@@ -1,0 +1,75 @@
+"""0620 transverse actions (non-seismic): Example2 09 pp.9-1 to 9-15.
+
+``calculate_transverse`` builds the transverse frame with its materials and
+0500 springs, every basic action from the 0600 result (decision 2) with the
+wind on the pier body (decision 12), the nominal combination table of the
+Define cases and the actions of each combination resolved by use. No
+structural analysis and no member check is done here.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ...inputs import PierInput
+from ..foundation import FoundationResult
+from ..frame import Direction, Frame, build_frame
+from ..longitudinal.combinations import (
+    Basis, CombinationFactors, Extraction, ExtractionGroup, Usage, combination_factors, extractions,
+)
+from ..materials import calculate_materials
+from ..reaction import ReactionResult
+from .actions import (
+    AdditionalDead, BasicAction, BasicCase, FixedDead, HorizontalRow, ImpactRow, Impacts, ImpactSet, ImpactTable,
+    Item, Lateral, Row, TopTable, Track, TrainRow, Trains, TrainTable, Wind, calculate_actions,
+)
+from .combinations import (
+    WIND_SAFETY, Check, Combination, Component, Define, DefineCase, ResolvedAction, define_cases,
+    resolve_combinations,
+)
+from .wind import MemberLoad, PierWind, WindSegment
+
+
+@dataclass(frozen=True)
+class TransverseResult:
+    frame: Frame  # 9-1 / 9-2: nodes, members, sections, materials and springs
+    fixed: FixedDead  # 9-3 D1
+    additional: AdditionalDead  # 9-3 D2
+    buoyancy: tuple[Row, Row, Row]  # 9-4: high, normal, low water
+    snow: tuple[TopTable, TopTable, TopTable]  # 9-4: 2, 10, 30 year
+    train: Trains  # 9-5: up, down, double
+    impact: Impacts  # 9-6 (girder coefficients, decision 26), and the serviceability tables
+    lateral: Lateral  # 9-7
+    wind_with_train: Wind  # 9-7
+    wind_without_train: Wind  # 9-8
+    basic_cases: tuple[BasicAction, ...]  # 9-9 to 9-13: the 17 basic cases
+    define_cases: tuple[DefineCase, ...]  # 9-13: the 15 Define cases
+    factors: CombinationFactors
+    combinations: tuple[Combination, ...]  # 9-14, with the resolved actions
+    extractions: tuple[Extraction, ...]  # 9-15 (the same groups as 8-11)
+
+    def basic(self, case: BasicCase) -> BasicAction:
+        return self.basic_cases[case.value - 1]
+
+
+def calculate_transverse(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult) -> TransverseResult:
+    frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.TRANSVERSE)
+    actions = calculate_actions(pier, frame, reaction)
+    factors = combination_factors(pier)
+    return TransverseResult(
+        frame=frame, fixed=actions.fixed, additional=actions.additional, buoyancy=actions.buoyancy,
+        snow=actions.snow, train=actions.train, impact=actions.impact, lateral=actions.lateral,
+        wind_with_train=actions.wind_with_train, wind_without_train=actions.wind_without_train,
+        basic_cases=actions.basic_cases, define_cases=define_cases(), factors=factors,
+        combinations=resolve_combinations(frame, actions.basic_cases, actions.impact.service, factors),
+        extractions=extractions(),
+    )
+
+
+__all__ = [
+    "AdditionalDead", "BasicAction", "BasicCase", "Basis", "Check", "Combination", "CombinationFactors", "Component",
+    "Define", "DefineCase", "Extraction", "ExtractionGroup", "FixedDead", "HorizontalRow", "ImpactRow", "ImpactSet",
+    "ImpactTable", "Impacts", "Item", "Lateral", "MemberLoad", "PierWind", "ResolvedAction", "Row", "TopTable",
+    "Track", "TrainRow", "TrainTable", "Trains", "TransverseResult", "Usage", "WIND_SAFETY", "Wind", "WindSegment",
+    "calculate_transverse",
+]
