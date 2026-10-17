@@ -1,0 +1,107 @@
+"""0610 boundaries by hand: pedestal, asymmetric footing, zero members, single track, signs, bearings, Ec range."""
+
+from decimal import Decimal
+
+import pytest
+
+from longitudinal_support import chain, longitudinal
+from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, document, pier, q, value
+from webpier.calc.frame import NodeRole
+from webpier.calc.longitudinal import BasicCase, Item
+from webpier.core.errors import InputError
+from webpier.inputs import parse_input
+
+DIMS = {"B": "下部構造/寸法/側面/", "W": "下部構造/寸法/正面/", "H": "下部構造/寸法/高さ/"}
+
+
+def dims(**sizes):
+    return {DIMS[key[0]] + key: size for key, size in sizes.items()}
+
+
+def moment(n, arm):
+    return q(D(n) * D(arm), 2)
+
+
+def test_pedestal_adds_its_row_at_the_beam_top():
+    # 桁受け 1.000 × 7.000 × 0.300 = 2.100 m3 × 24.5 = 51.45 kN at (2·0.5 + 1.0 − 2.7)/2 = −0.350 from the column axis.
+    _, reaction, result = chain(pier(**dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3)))
+    fixed = result.fixed
+    pedestal = fixed.table.row(Item.PEDESTAL)
+    assert (pedestal.n.value, pedestal.arm.value) == (51.45, -0.35)
+    assert value(pedestal.m) == q(D(51.45) * D(-0.35), 2) == Decimal("-18.01")  # −18.0075
+    assert [row.item for row in fixed.table.rows] == [Item.ORIGIN, Item.END, Item.PEDESTAL, Item.BEAM]
+    # N = (5740 + 1860 + 51.45 + 1503.27) − 297.68 × 2.700 = 9154.72 − 803.736 = 8350.984
+    assert fixed.n.value == 8350.98
+    assert fixed.m.value == -628.01  # −1865.50 + 1255.50 − 18.01 + 0.00
+    (top, _) = result.basic(BasicCase.D1).points
+    assert top.node == result.frame.node(NodeRole.CAP_TOP).number == 1  # loads stay at the beam top
+    assert result.basic(BasicCase.D1).line_loads[0].members == (1, 2, 3)  # not on the pedestal stub
+
+
+ASYMMETRIC = dims(B7=2.5, B9=1.8, H5=0.5, H6=2.2, B8=3.0, W8=5.0) | {"下部構造/土かぶり/終点側_df2": 1.5}
+
+
+def test_asymmetric_footing_moments_about_the_footing_centre():
+    _, reaction, result = chain(pier(**ASYMMETRIC))
+    weights = reaction.self_weight
+    assert weights.footing.x_l.value != 0 and weights.overburden.x_l.value != 0  # the case is really asymmetric
+    for row, body in ((result.fixed.footing, weights.footing), (result.additional.soil, weights.overburden),
+                      (result.buoyancy[0], weights.buoyancy_high.body), (result.buoyancy[1], weights.buoyancy_normal.body)):
+        assert (row.n, row.arm) == (body.weight, body.x_l)
+        assert value(row.m) == moment(body.weight.value, body.x_l.value)
+    centroid = result.frame.node(NodeRole.FOOTING_CENTROID)
+    assert centroid.x.value == 0.0  # the lever above is from this node
+    footing_point = result.basic(BasicCase.D1).points[1]
+    assert (footing_point.node, footing_point.m) == (centroid.number, result.fixed.footing.m)
+    # The girder levers stay ±f from the column axis, where the beam-top node is.
+    assert result.fixed.table.row(Item.ORIGIN).arm.value == -0.325
+    assert result.frame.node(NodeRole.CAP_TOP).x.value == 0.35
+
+
+def test_zero_beam_and_haunch():
+    _, reaction, result = chain(pier(**dims(H2=0.0, H3=0.0)))
+    fixed = result.fixed
+    assert reaction.self_weight.beam.weight.value == 0.0
+    assert fixed.overlap.value == 0.0
+    assert fixed.n.value == 7600.0  # 5740 + 1860 + 0, nothing deducted
+    assert result.basic(BasicCase.D1).line_loads[0].members == (1,)
+
+
+def test_single_track_girders():
+    # L2 = 0 on every bearing: one loaded track (track total 1.000), so the double-track load is R itself.
+    changes = {f"{side}/{i}/列車分担/L2": 0.0 for side, n in ((ORIGIN_SLOTS, 4), (END_SLOTS, 2)) for i in range(n)}
+    changes |= {f"{ORIGIN_SLOTS}/{i}/列車分担/L1": share for i, share in enumerate((0.25, 0.25, 0.25, 0.25))}
+    changes |= {f"{END_SLOTS}/{i}/列車分担/L1": 0.5 for i in range(2)}
+    _, reaction, result = chain(pier(**changes))
+    assert reaction.dead.origin.track_total.value == reaction.dead.end.track_total.value == 1.0
+    double, single = result.train.double, result.train.single
+    assert [row.n for row in double.rows] == [row.n for row in single.rows]
+
+
+def test_signs_follow_the_bearing_side():
+    # The origin bearings are on the −x side (lever −f), the end bearings on +x (lever +f).
+    result = longitudinal(pier(**{"上部構造/起点側/支承位置_f": 0.0, "上部構造/終点側/支承位置_f": 1.2}))
+    rb, rc = result.fixed.table.row(Item.ORIGIN), result.fixed.table.row(Item.END)
+    assert (rb.arm.value, rb.m.value) == (0.0, 0.0)
+    assert (rc.arm.value, value(rc.m)) == (1.2, moment(1860.0, 1.2))  # 2232.00
+    assert result.fixed.m.value == 2232.0
+    mirrored = longitudinal(pier(**{"上部構造/起点側/支承位置_f": 1.2, "上部構造/終点側/支承位置_f": 0.0}))
+    assert mirrored.snow[0].row(Item.ORIGIN).m.value == -q(D(460) * D(1.2), 2) == Decimal("-552.00")
+    assert mirrored.train.single.m.value == float(moment(272.47, -1.2))  # −326.964 -> −326.96
+
+
+def test_swapping_fixed_and_movable_bearings():
+    data = document(**{"上部構造/支承データ/起点側/支承名": "固定", "上部構造/支承データ/終点側/支承名": "可動"})
+    _, reaction, result = chain(parse_input(data))
+    default = longitudinal()
+    for row, case in zip(result.horizontal, reaction.longitudinal.cases, strict=True):
+        assert (row.origin, row.end) == (case.origin.force, case.end.force)
+        assert value(row.total) == value(case.origin.force) + value(case.end.force)
+    assert [r.total for r in result.horizontal] != [r.total for r in default.horizontal]
+    for number in range(13, 21):
+        assert result.basic(BasicCase(number)).points[0].h == result.horizontal[number - 13].total
+
+
+def test_concrete_outside_the_table_stops_0610():
+    with pytest.raises(InputError, match=r"鉄筋\.柱\.concrete_strength_mpa"):
+        longitudinal(pier(**{"鉄筋/柱/concrete_strength_mpa": 17.9}))
