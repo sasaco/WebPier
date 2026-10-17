@@ -1,0 +1,52 @@
+{
+  "basis": "Independently transcribed by hand from the page images of .claude/docs/Example橋脚2/08_線路.pdf pages 8-3 to 8-5 (rendered at 130 dpi with PyMuPDF); never generated from the application.",
+  "notes": [
+    "08 is the 0610 report; it prints only the 0600 quantities listed here. Pier part centroids, the beam/haunch frustum and the pier-bottom aggregate are not printed anywhere in Example2.",
+    "8-3 prints the beam as the prism 2.70 x 9.00 x 2.00 and the haunch as the two wings 2.70 x 2.25 x 0.70 only (the column is carried up through the haunch and q x 2.00 is deducted); these are 0610 quantities, kept here for reference.",
+    "8-4 double-track train loads use the unrounded RB = 272.4668 (x 2 = 544.9337 -> 544.93); from the printed RB 272.47 the product is 544.94.",
+    "8-5 impact loads use the girder coefficients of 7-2 without the pier reduction and the unrounded RB (272.4668 x 0.245 = 66.754 -> 66.75)."
+  ],
+  "8-3": {
+    "column_q": {"formula": "q = 4.50 × 2.70 × 24.5", "value": 297.68, "digits": 2, "unit": "kN/m"},
+    "footing": {"formula": "P = 24.5 × 7.00 × 9.00 × 2.70", "value": 4167.45, "digits": 2, "unit": "kN"},
+    "beam_prism": {"formula": "2.70 × 9.00 × 2.00 × 24.5", "value": 1190.70, "digits": 2, "unit": "kN"},
+    "haunch_wings": {"formula": "2.70 × 2.25 × 0.70 × 24.5", "value": 104.19, "digits": 2, "unit": "kN"},
+    "fixed_dead_top": {
+      "RB": {"N": 5740.00, "arm": -0.325, "M": -1865.50},
+      "RC": {"N": 1860.00, "arm": 0.675, "M": 1255.50},
+      "beam": {"N": 1190.70, "arm": 0.000, "M": 0.00},
+      "haunch": {"N": 104.19, "arm": 0.000, "M": 0.00},
+      "total": {"N": 8894.89, "M": -610.00},
+      "N": {"formula": "N = 8894.89 − 297.68 × 2.00", "value": 8299.53},
+      "M": -610.00
+    },
+    "overburden": {
+      "trapezoid": {"formula": "P = 18.0 × 7.00 × 9.00 × 2.00", "value": 2268.00},
+      "column": {"formula": "P = -18.0 × 4.50 × 2.70 × 2.00", "value": -437.40},
+      "total": {"formula": "ΣP", "value": 1830.60, "digits": 2, "unit": "kN"}
+    },
+    "additional_dead_top": {
+      "RB": {"N": 520.00, "arm": -0.325, "M": -169.00},
+      "RC": {"N": 260.00, "arm": 0.675, "M": 175.50},
+      "total": {"N": 780.00, "M": 6.50}
+    },
+    "buoyancy": {
+      "high": {"formula": "ω1 = -10.0 × 7.00 × 9.00 × 3.78", "value": -2381.40, "digits": 2, "unit": "kN"},
+      "normal": {"formula": "ω2 = -10.0 × 7.00 × 9.00 × 2.70", "value": -1701.00, "digits": 2, "unit": "kN"},
+      "low": {"formula": "ω3 = -10.0 × 7.00 × 9.00 × 0.00", "value": 0.00, "digits": 2, "unit": "kN"}
+    }
+  },
+  "8-4": {
+    "snow": {
+      "S2": {"RB": 460.00, "RC": 250.00, "total": 710.00},
+      "S10": {"RB": 740.00, "RC": 400.00, "total": 1140.00},
+      "S30": {"RB": 820.00, "RC": 450.00, "total": 1270.00}
+    },
+    "train_single": {"RB": 272.47, "RC": 294.92, "total": 567.39},
+    "train_double": {"RB": 544.93, "RC": 589.84, "total": 1134.77}
+  },
+  "8-5": {
+    "impact_single": {"RB": {"formula": "272.47 × 0.245", "value": 66.75}, "RC": {"formula": "294.92 × 0.546", "value": 161.03}},
+    "impact_double": {"RB": {"formula": "544.93 × 0.222", "value": 120.98}, "RC": {"formula": "589.84 × 0.521", "value": 307.31}}
+  }
+}
