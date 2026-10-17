@@ -11,13 +11,24 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "pypdf>=5,<7"]
+dev = ["pytest>=8,<10", "pypdf>=5,<7", "coverage>=7.10,<8", "hypothesis>=6.100,<7"]
 
 [tool.uv]
 package = false
 
 [tool.uv.sources]
 gridlayoutpdf = { path = "C:/Users/sasai/Documents/GridLayoutPdf" }
+
+[tool.coverage.run]
+branch = true
+source = ["webpier"]
+parallel = true
+# The pipeline and PDF tests run python -m webpier and python -c in child processes.
+patch = ["subprocess"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
