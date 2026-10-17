@@ -118,6 +118,19 @@ def _own(registry: Registry, results: Mapping[str, Any], stage_id: str) -> dict[
     return {name: results[name] for name in (*registry.get(stage_id).depends_on, stage_id)}
 
 
+def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registry = STAGES) -> bytes:
+    """The bytes of one export of *stage_id*, as a generation writes them; no report is rendered.
+
+    The real-app acceptance rebuilds its candidate files with this, so an opt-in export needs no flag here.
+    """
+    (selected,) = registry.select(stage_id)
+    item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
+    if item is None:
+        raise InputError(f"{selected}に{kind} の出力はありません")
+    results = _calculate(registry, pier, (selected,))
+    return item.build(_own(registry, results, selected), pier)
+
+
 class Candidate:
     """A generation held in staging; ``publish`` replaces the destinations with exactly these bytes, once."""
 
