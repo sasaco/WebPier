@@ -1,10 +1,10 @@
 {
   "basis": "Independently transcribed from the user-provided PDFs; never generated from the application result.",
   "references": {
-    "model": {"document": "Example橋脚2/08_線路.pdf", "physical_page": 1},
-    "actions": {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_page": 8},
-    "water_and_snow": {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_page": 10},
-    "cases": {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_page": 12}
+    "model": {"document": ".claude/docs/Example橋脚2/08_線路.pdf", "physical_page": 1},
+    "actions": {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_page": 8},
+    "water_and_snow": {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_page": 10},
+    "cases": {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_page": 12}
   },
   "train": {
     "B": {"N": 320.0, "arm": -0.325, "M": -104.0},

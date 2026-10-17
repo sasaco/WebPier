@@ -978,14 +978,14 @@
   "provenance": {
     "references": [
       {
-        "document": "Example橋脚2/08_線路.pdf",
+        "document": ".claude/docs/Example橋脚2/08_線路.pdf",
         "physical_pages": [
           1
         ],
         "purpose": "physical_frame"
       },
       {
-        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf",
         "physical_pages": [
           1,
           2,
@@ -996,7 +996,7 @@
         "purpose": "column_base_micro_member"
       },
       {
-        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf",
         "physical_pages": [
           8,
           12
@@ -1004,7 +1004,7 @@
         "purpose": "actions_and_cases"
       },
       {
-        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf",
         "physical_pages": [
           10
         ],

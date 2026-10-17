@@ -151,7 +151,7 @@ def _definitions(parameters: dict) -> dict:
         for number, (key, label, ids) in enumerate(_EXTRACTION_ROWS, 1)
     ]
     return {"case_model_version": CASE_MODEL_VERSION, "direction": "transverse",
-            "source": {"path": "Example橋脚2/09_直角.pdf", "sha256": SOURCE_SHA256, "pages": [13, 14, 15]},
+            "source": {"path": ".claude/docs/Example橋脚2/09_直角.pdf", "sha256": SOURCE_SHA256, "pages": [13, 14, 15]},
             "factor_parameters": dict(parameters), "coefficient_define_case_ids": list(range(1, 16)),
             "basic_cases": basics, "define_cases": defines,
             "combinations": combinations, "extraction_cases": extractions}

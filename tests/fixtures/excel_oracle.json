@@ -1,5 +1,5 @@
 {
-  "source": "Example橋脚/0500_直接基礎.xls",
+  "source": ".claude/docs/Example橋脚/0500_直接基礎.xls",
   "source_sha256": "b2ad5488271f9b56d3bd1a19312342c9eadbc8c423c8fd8e5bded0254e8624c1",
   "oracle": "Microsoft Excel COM CalculateFull, read-only temporary workbook; macros and events disabled; update links off",
   "excel_version": "16.0",

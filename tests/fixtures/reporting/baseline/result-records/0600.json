@@ -11082,7 +11082,7 @@
   {
     "id": "0600/result/provenance/method",
     "kind": "string",
-    "value": "元セル数式の倍精度演算・ROUNDとVBA移動荷重Single演算を維持。桁継目の所属比較だけは載荷座標と同じ0.001mの偶数丸めに統一し、元VBAの境界判定を修正（原点へ丸まる継目は元比較を保持）。Example橋脚2/07に合わせて支承鉛直荷重の組合せを修正。実行時Excel参照なし。"
+    "value": "元セル数式の倍精度演算・ROUNDとVBA移動荷重Single演算を維持。桁継目の所属比較だけは載荷座標と同じ0.001mの偶数丸めに統一し、元VBAの境界判定を修正（原点へ丸まる継目は元比較を保持）。.claude/docs/Example橋脚2/07に合わせて支承鉛直荷重の組合せを修正。実行時Excel参照なし。"
   },
   {
     "id": "0600/result/provenance/snow_loads",
@@ -11097,17 +11097,17 @@
   {
     "id": "0600/result/provenance/source_vba/0",
     "kind": "string",
-    "value": "Example橋脚/wiki/evidence/vba/input/上部工反力.bas"
+    "value": ".claude/docs/Example橋脚/wiki/evidence/vba/input/上部工反力.bas"
   },
   {
     "id": "0600/result/provenance/source_vba/1",
     "kind": "string",
-    "value": "Example橋脚/wiki/evidence/vba/0600_上部工反力/列車荷重Module.bas"
+    "value": ".claude/docs/Example橋脚/wiki/evidence/vba/0600_上部工反力/列車荷重Module.bas"
   },
   {
     "id": "0600/result/provenance/source_workbook",
     "kind": "string",
-    "value": "Example橋脚/0600_上部工反力.xls"
+    "value": ".claude/docs/Example橋脚/0600_上部工反力.xls"
   },
   {
     "id": "0600/result/public_values/はり/N",
@@ -13102,12 +13102,12 @@
   {
     "id": "0600/result/warnings/5",
     "kind": "string",
-    "value": "Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。"
+    "value": ".claude/docs/Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。"
   },
   {
     "id": "0600/result/warnings/6",
     "kind": "string",
-    "value": "Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"
+    "value": ".claude/docs/Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"
   },
   {
     "id": "0600/result/weights/cells/AA308",

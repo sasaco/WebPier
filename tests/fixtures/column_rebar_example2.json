@@ -1,8 +1,8 @@
 {
-  "description": "Independent transcription of Example橋脚2 physical PDF page 6 in both directions; all dimensions are millimetres.",
+  "description": "Independent transcription of .claude\docs\Example橋脚2 physical PDF page 6 in both directions; all dimensions are millimetres.",
   "sources": {
-    "線路": {"path": "Example橋脚2/10_線路(耐震).pdf", "physical_page": 6, "printed_page": "10-6", "sha256": "933dec57e79330f44d07ed38adb89f8d2aa1ffd1c3e87b987ba3e20515f4063c"},
-    "直角": {"path": "Example橋脚2/11_直角(耐震).pdf", "physical_page": 6, "printed_page": "11-6", "sha256": "809a09f126daee89128ea991de35d50a4633151fccb7c50378af60d14965b838"}
+    "線路": {"path": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_page": 6, "printed_page": "10-6", "sha256": "933dec57e79330f44d07ed38adb89f8d2aa1ffd1c3e87b987ba3e20515f4063c"},
+    "直角": {"path": ".claude/docs/Example橋脚2/11_直角(耐震).pdf", "physical_page": 6, "printed_page": "11-6", "sha256": "809a09f126daee89128ea991de35d50a4633151fccb7c50378af60d14965b838"}
   },
   "provenance": {
     "directional_rows": "Each row is transcribed independently from section 5 鉄筋配置 of its source page, with material SD390 from section 3(1).",

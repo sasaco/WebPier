@@ -150267,7 +150267,7 @@
   {
     "id": "0620/result/legacy_audit/source_workbook",
     "kind": "string",
-    "value": "Example橋脚/0620_直角方向荷重.xls"
+    "value": ".claude/docs/Example橋脚/0620_直角方向荷重.xls"
   },
   {
     "id": "0620/result/provenance/dependencies/0",
@@ -150322,7 +150322,7 @@
   {
     "id": "0620/result/provenance/reference_document",
     "kind": "string",
-    "value": "Example橋脚2/09_直角.pdf"
+    "value": ".claude/docs/Example橋脚2/09_直角.pdf"
   },
   {
     "id": "0620/result/provenance/scope",
@@ -150357,7 +150357,7 @@
   {
     "id": "0620/result/source/path",
     "kind": "string",
-    "value": "Example橋脚2/09_直角.pdf"
+    "value": ".claude/docs/Example橋脚2/09_直角.pdf"
   },
   {
     "id": "0620/result/source/sha256",

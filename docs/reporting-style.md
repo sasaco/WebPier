@@ -4,13 +4,13 @@
 
 ## 根拠と再測定
 
-原本は `../Example橋脚/output` の4冊69頁。`tests/fixtures/reporting/appearance/reference-census.json` に全頁の寸法、回転、書体/サイズ、等号X、罫線中心/太さ、見出し、白紙判定を保存した。`reference-style.json` は意味役割を人が選び、その選択箇所を原本から直接抽出した契約である。`page-roles.json` は全69頁の構成台帳で、機械的な罫線本数による分類とは区別する。図の寸法線が多いだけの頁を表として扱わない。
+原本は `../.claude/docs/Example橋脚/output` の4冊69頁。`tests/fixtures/reporting/appearance/reference-census.json` に全頁の寸法、回転、書体/サイズ、等号X、罫線中心/太さ、見出し、白紙判定を保存した。`reference-style.json` は意味役割を人が選び、その選択箇所を原本から直接抽出した契約である。`page-roles.json` は全69頁の構成台帳で、機械的な罫線本数による分類とは区別する。図の寸法線が多いだけの頁を表として扱わない。
 
 原本のSHA-256は各fixtureに保存し、検査時に再確認する。測定器は `scripts/reporting_appearance.py`、抽出器は PyMuPDF 1.28.2。原本を変更・再保存せず、製品コードや新しいbuilderをimportしない。
 
 ```powershell
 $p7Root = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/.'
-$referenceRoot = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/Example橋脚/output'
+$referenceRoot = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/.claude/docs/Example橋脚/output'
 & "$p7Root/.venv/Scripts/python.exe" -X utf8 "$p7Root/scripts/reporting_appearance.py" $referenceRoot "$p7Root/tests/fixtures/reporting/appearance/reference-census.json"
 & "$p7Root/.venv/Scripts/python.exe" -X utf8 "$p7Root/scripts/reporting_appearance.py" $referenceRoot "$p7Root/tests/fixtures/reporting/appearance/reference-style.json" --style
 ```

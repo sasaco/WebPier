@@ -16,7 +16,7 @@ from .reaction_math import excel_round as R
 
 CASE_MODEL_VERSION = "example2-nonseismic-pier-impact-v1"
 
-# Example橋脚2/08_線路.pdf, physical page 9. IDs follow the source row order.
+# .claude/docs/Example橋脚2/08_線路.pdf, physical page 9. IDs follow the source row order.
 # key, source symbol, source label, spring, action domain, track (if applicable).
 _BASIC_CASES = (
     ("dead_fixed", "D1", "固定死荷重", 1, "vertical", None),

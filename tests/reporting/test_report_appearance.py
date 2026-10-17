@@ -16,7 +16,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures" / "reporting" / "appearance"
-REFERENCE = ROOT.parent / "Example橋脚" / "output"
+REFERENCE = ROOT.parent / ".claude\docs\Example橋脚" / "output"
 SPEC = importlib.util.spec_from_file_location("reporting_appearance", ROOT / "scripts" / "reporting_appearance.py")
 assert SPEC is not None and SPEC.loader is not None
 appearance = importlib.util.module_from_spec(SPEC)

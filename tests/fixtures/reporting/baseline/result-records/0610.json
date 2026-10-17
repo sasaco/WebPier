@@ -180812,7 +180812,7 @@
   {
     "id": "0610/result/legacy_audit/provenance/snow_combinations",
     "kind": "string",
-    "value": "Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。"
+    "value": ".claude/docs/Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。"
   },
   {
     "id": "0610/result/legacy_audit/provenance/source_sha256",
@@ -180822,12 +180822,12 @@
   {
     "id": "0610/result/legacy_audit/provenance/source_vba/0",
     "kind": "string",
-    "value": "Example橋脚/wiki/evidence/vba/input/線路荷重.bas"
+    "value": ".claude/docs/Example橋脚/wiki/evidence/vba/input/線路荷重.bas"
   },
   {
     "id": "0610/result/legacy_audit/provenance/source_workbook",
     "kind": "string",
-    "value": "Example橋脚/0610_線路方向荷重.xls"
+    "value": ".claude/docs/Example橋脚/0610_線路方向荷重.xls"
   },
   {
     "id": "0610/result/legacy_audit/schema_version",
@@ -184322,12 +184322,12 @@
   {
     "id": "0610/result/legacy_audit/warnings/6",
     "kind": "string",
-    "value": "0600: Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。"
+    "value": "0600: .claude/docs/Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。"
   },
   {
     "id": "0610/result/legacy_audit/warnings/7",
     "kind": "string",
-    "value": "0600: Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"
+    "value": "0600: .claude/docs/Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"
   },
   {
     "id": "0610/result/legacy_audit/warnings/8",
@@ -184442,7 +184442,7 @@
   {
     "id": "0610/result/provenance/reference_document",
     "kind": "string",
-    "value": "Example橋脚2/08_線路.pdf"
+    "value": ".claude/docs/Example橋脚2/08_線路.pdf"
   },
   {
     "id": "0610/result/provenance/reference_pages/0",

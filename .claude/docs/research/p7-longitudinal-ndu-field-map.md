@@ -17,7 +17,7 @@
 
 公式資料: `.agents/agents/jrsnap-operator/JRSNAP_Ver5.2-L03/JRSNAP_操作説明書.pdf`。頁番号はPDF物理頁。抽出テキストは `manual-comparison-data/JRSNAP.json` の `old.pages`。
 
-見本: `Example橋脚2/10_線路(耐震)/線路方向_朝里川温泉P1.ndu`（CP932、SHA256 `7511404fa1da9d67c5f89dd03b084831da322cfcf6764648a288673eb053c35e`）。PDF10の入力と照合。地盤の直接式は08 PDF28頁。正式調査記録 `.agents/docs/research/p7-longitudinal-ndu-soil-derivation.md`。
+見本: `.claude/docs/Example橋脚2/10_線路(耐震)/線路方向_朝里川温泉P1.ndu`（CP932、SHA256 `7511404fa1da9d67c5f89dd03b084831da322cfcf6764648a288673eb053c35e`）。PDF10の入力と照合。地盤の直接式は08 PDF28頁。正式調査記録 `.agents/docs/research/p7-longitudinal-ndu-soil-derivation.md`。
 
 ソース確認: インストール済み `C:/RTRI_Program/JRSNAP(Ver5.2-L03)/JRSNAP_Input.exe` をscratchのilspycmd 9.1.0.7988で読み取り。該当型のみ `tmp/p7-ndu-implementation/core/decompiled/` に出力。製品やインストール先は変更しない。
 

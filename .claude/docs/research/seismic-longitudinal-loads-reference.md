@@ -8,9 +8,9 @@ The physical PDF page indexes agree with printed page numbers. The reference PDF
 
 | Source | Physical / printed page | Requested content |
 |---|---|---|
-| Example橋脚2/08_線路.pdf | 1 / 8-1 | Frame geometry, dimensions, support springs; to be adapted for earthquake loading |
-| Example橋脚2/10_線路(耐震).pdf | 8 / 10-8 | Train vertical load, bearing horizontal forces, pier self-weight inertia |
-| Example橋脚2/10_線路(耐震).pdf | 12 / 10-12 | Eight basic cases and one combination |
+| .claude/docs/Example橋脚2/08_線路.pdf | 1 / 8-1 | Frame geometry, dimensions, support springs; to be adapted for earthquake loading |
+| .claude/docs/Example橋脚2/10_線路(耐震).pdf | 8 / 10-8 | Train vertical load, bearing horizontal forces, pier self-weight inertia |
+| .claude/docs/Example橋脚2/10_線路(耐震).pdf | 12 / 10-12 | Eight basic cases and one combination |
 
 All three pages were rendered with PyMuPDF and visually inspected. Read-only inspection PNG/text files are in `tmp/seismic-longitudinal-loads-plan/`.
 

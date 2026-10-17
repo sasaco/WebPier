@@ -18,7 +18,7 @@ All page numbers below are physical PDF pages, confirmed by rendered-page inspec
 
 ### Example bridge pier: longitudinal
 
-`Example橋脚2/10_線路(耐震).pdf`, p6 (printed 10-6): section width 4500 mm, height 2700 mm.
+`.claude/docs/Example橋脚2/10_線路(耐震).pdf`, p6 (printed 10-6): section width 4500 mm, height 2700 mm.
 
 - D32: 29 bars at depth 108 mm and 29 bars at depth 2592 mm.
 - D19: 2 bars at each depth 350, 600, 850, 1100, 1350, 1600, 1850, 2100, 2350 mm.
@@ -27,7 +27,7 @@ All page numbers below are physical PDF pages, confirmed by rendered-page inspec
 
 ### Example bridge pier: transverse
 
-`Example橋脚2/11_直角(耐震).pdf`, p6 (printed 11-6): width 2700 mm, height 4500 mm.
+`.claude/docs/Example橋脚2/11_直角(耐震).pdf`, p6 (printed 11-6): width 2700 mm, height 4500 mm.
 
 - D19: 9 bars at depth 102 mm and 9 bars at depth 4398 mm.
 - D32: 2 bars at each depth 108, 300, 450, 600, 750, 900, 1050, 1200, 1350, 1500, 1650, 1800, 1950, 2100, 2250, 2400, 2550, 2700, 2850, 3000, 3150, 3300, 3450, 3600, 3750, 3900, 4050, 4200, 4392 mm.

@@ -5,7 +5,7 @@
 ## 根拠と入力世代
 
 - 指示/範囲: `.agents/docs/plans/p7-transverse-ndu-export.md`、`tmp/p7-transverse-ndu/root/brief.md`。同じ版・微小M-θ/他剛域・並進＋非線形FootInfo・現在配筋・自動Df/γ2・編集可能な4入力を引継ぐ。
-- 参照見本: `Example橋脚2/11_直角(耐震)/直角方向_朝里川温泉P1.ndu`（CP932、5.1.10.S.4）と `Example橋脚2/11_直角(耐震).pdf`。PDF物理1–4頁は上部2.750 mを含む8節点7要素、6頁は2700×4500/La10350/31行/直角帯筋6脚を明示。
+- 参照見本: `.claude/docs/Example橋脚2/11_直角(耐震)/直角方向_朝里川温泉P1.ndu`（CP932、5.1.10.S.4）と `.claude/docs/Example橋脚2/11_直角(耐震).pdf`。PDF物理1–4頁は上部2.750 mを含む8節点7要素、6頁は2700×4500/La10350/31行/直角帯筋6脚を明示。
 - 5.2公式マニュアルの参照頁は線路方向と同じ: 32–33（M-θ集約）、38（右x/下y/時計回りM）、79（制御条件）、89–92/529–531（断面・鉄筋・安全係数）、142–145（非線形/剛域）、155/515（直接基礎）、159–163（荷重）。
 - 現入力の初期SHA `7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93`。rootが `jrsnap_transverse` 4項目だけを追加し、新SHA `10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b` を今回対象に確定した。その他のJSON値は不変、旧入力と旧0710 receiptを保持する。
 - 読取専用実計算: `tmp/p7-transverse-ndu/core/current-input-calculation.json`（0500/0720/現配筋）。作成スクリプトは同directoryの `inspect_sources.py`。独立担当の0500/0720と数値を相互確認したが、受入oracleは別担当が独立に保持する。

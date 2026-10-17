@@ -4,10 +4,10 @@
 
 | ファイル | 元資料 | 切り出し範囲（PDFポイント、左・上・右・下） |
 | --- | --- | --- |
-| substructure | Example橋脚/pre/input-下部構造.pdf | 70, 250, 655, 618 |
-| skew | Example橋脚/pre/input-下部構造.pdf | 732, 78, 1060, 258 |
-| superstructure | Example橋脚/pre/input-上部構造.pdf | 103, 149, 900, 315 |
-| train | Example橋脚/pre/input-上部構造.pdf | 304, 430, 728, 572 |
-| reactions | Example橋脚/pre/input-上部工反力.pdf | 94, 86, 680, 245 |
+| substructure | .claude/docs/Example橋脚/pre/input-下部構造.pdf | 70, 250, 655, 618 |
+| skew | .claude/docs/Example橋脚/pre/input-下部構造.pdf | 732, 78, 1060, 258 |
+| superstructure | .claude/docs/Example橋脚/pre/input-上部構造.pdf | 103, 149, 900, 315 |
+| train | .claude/docs/Example橋脚/pre/input-上部構造.pdf | 304, 430, 728, 572 |
+| reactions | .claude/docs/Example橋脚/pre/input-上部工反力.pdf | 94, 86, 680, 245 |
 
 拡大用はPyMuPDFの `page.get_pixmap(matrix=Matrix(2, 2), clip=Rect(...), alpha=False)` で生成。通常用の目標幅は順に580、320、520、480、600ピクセル（クリップ端の丸めで1ピクセル大きくなる場合があります）。

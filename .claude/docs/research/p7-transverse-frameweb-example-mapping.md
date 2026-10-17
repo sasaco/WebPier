@@ -1,8 +1,8 @@
-# Example橋脚2: 線路直角方向 PDF と FrameWeb JSON の対応調査
+# .claude\docs\Example橋脚2: 線路直角方向 PDF と FrameWeb JSON の対応調査
 
 調査日: 2026-10-16。P7直角方向エクスポートの計画に用いる読取調査。既存PDF・JSON・アプリ・旧計画は変更していない。
 
-対象は `Example橋脚2/09_直角.pdf` と `Example橋脚2/09_直角/frameWebForJS.json`。PDF全29ページをテキスト抽出し、入力に対応するp1〜15および結果のp16〜17を描画して目視確認した。物理ページnと印刷ページ`9 - n`が対応する。作業画像・抽出文は `tmp/p7-transverse-frameweb-plan/example/` に保存。
+対象は `.claude/docs/Example橋脚2/09_直角.pdf` と `.claude/docs/Example橋脚2/09_直角/frameWebForJS.json`。PDF全29ページをテキスト抽出し、入力に対応するp1〜15および結果のp16〜17を描画して目視確認した。物理ページnと印刷ページ`9 - n`が対応する。作業画像・抽出文は `tmp/p7-transverse-frameweb-plan/example/` に保存。
 
 このメモの「確認」は当該PDFとJSONの直接照合に基づく。FEMPythonの一般仕様や設計基準の正当性を認証するものではない。例題の入力・図・結果に不一致が存在するため、例題JSONの機械的な複製はP7の実装方針にしない。
 

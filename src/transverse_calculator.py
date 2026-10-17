@@ -47,7 +47,7 @@ def calculate_transverse(inputs: ReactionInput, foundation: dict, reactions: dic
                   "units": {"length": "m", "force": "kN", "moment": "kN m",
                             "area": "m2", "inertia": "m4", "line_load": "kN/m"},
                   "provenance": {
-                      "reference_document": "Example橋脚2/09_直角.pdf",
+                      "reference_document": ".claude/docs/Example橋脚2/09_直角.pdf",
                       "dependencies": ["current input", "0500.long_term", "0500.short_term",
                                        "0600.train.raw_reactions", "0600.train.pier",
                                        "0600.macro_handoff_single"],
@@ -57,7 +57,7 @@ def calculate_transverse(inputs: ReactionInput, foundation: dict, reactions: dic
                       "material_policy": "Existing part inputs and RcDan interpolation; equivalent body sections unchanged",
                   },
                   "legacy_audit": {"entrypoint": "calculate_transverse_legacy",
-                                   "source_workbook": "Example橋脚/0620_直角方向荷重.xls",
+                                   "source_workbook": ".claude/docs/Example橋脚/0620_直角方向荷重.xls",
                                    "source_sha256": SOURCE_SHA256,
                                    "public_actions_use_legacy_selection": False},
                   "warnings": list(inputs.warnings)}
@@ -448,8 +448,8 @@ def _finish(inputs: ReactionInput, foundation: dict, reactions: dict, cells: dic
               "inertia": inertia, "single_track_selection": selection, "basic_cases": basics, "combinations": combinations,
               "units": {"length": "m", "force": "kN", "moment": "kN m", "area": "m2", "inertia": "m4",
                         "line_load": "kN/m", "unit_weight": "kN/m3", "compatibility_total": None},
-              "provenance": {"source_workbook": "Example橋脚/0620_直角方向荷重.xls", "source_sha256": SOURCE_SHA256,
-                             "source_vba": ["Example橋脚/wiki/evidence/vba/input/直角荷重.bas"],
+              "provenance": {"source_workbook": ".claude/docs/Example橋脚/0620_直角方向荷重.xls", "source_sha256": SOURCE_SHA256,
+                             "source_vba": [".claude/docs/Example橋脚/wiki/evidence/vba/input/直角荷重.bas"],
                              "dependencies": ["current input", "0500.macro_handoff_single", "0600.macro_handoff_single"],
                              "method": "元セル式を明示的に再計算。実行時Excel・証拠JSON参照なし。",
                              "rounding": "元ROUND箇所の15有効桁正規化。上流Singleと最終分担率Doubleを区別。",

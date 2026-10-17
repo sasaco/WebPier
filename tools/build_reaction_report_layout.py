@@ -19,7 +19,7 @@ import pymupdf
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "Example橋脚" / "0600_上部工反力.xls"
+SOURCE = ROOT / ".claude\docs\Example橋脚" / "0600_上部工反力.xls"
 DESTINATION = ROOT / "." / "src" / "assets" / "reaction_report_layout.json"
 SCALE = 14.28 / 15.75
 LEFT = 58.08
@@ -60,9 +60,9 @@ def rounded(value: float) -> float:
 
 def main() -> None:
     book = xlrd.open_workbook(str(SOURCE), formatting_info=True)
-    evidence = json.loads((ROOT / "Example橋脚/wiki/evidence/cell-formulas.json").read_text(encoding="utf-8"))
+    evidence = json.loads((ROOT / ".claude/docs/Example橋脚/wiki/evidence/cell-formulas.json").read_text(encoding="utf-8"))
     formulas = evidence["0600_上部工反力"]
-    reference = pymupdf.open(ROOT / "Example橋脚/output/0600_上部工反力.pdf")
+    reference = pymupdf.open(ROOT / ".claude/docs/Example橋脚/output/0600_上部工反力.pdf")
     constants = {}
     for sheet in book.sheets():
         constants[sheet.name] = {}
@@ -185,7 +185,7 @@ def main() -> None:
             page["rules"] = sorted(rules)
             pages.append(page)
     result = {"schema_version": 1, "page_size": [595, 842],
-              "source": "Example橋脚/0600_上部工反力.xls",
+              "source": ".claude/docs/Example橋脚/0600_上部工反力.xls",
               "source_sha256": hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
               "description": "Static print layout; formula cached values deliberately omitted.",
               "fonts": fonts, "styles": styles, "formulas": formulas,

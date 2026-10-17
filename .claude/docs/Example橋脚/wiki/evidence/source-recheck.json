@@ -3,7 +3,7 @@
   "note": "Binary updates observed during read-only analysis. No source workbook writes by this investigation. The 0700 workbook is outside the start call path; formula/name recheck not performed for it.",
   "workbooks": [
     {
-      "path": "Example橋脚/0600_上部工反力.xls",
+      "path": ".claude/docs/Example橋脚/0600_上部工反力.xls",
       "initial_sha256": "edcd4a7eb6073373a941738e7e60c40e00841d9e668e98c807a97155361d5fd9",
       "later_sha256": "2c46fd2db477b0de8b04fc00d6c3ad223ba356f7cc2d621ece349ed61ed46f19",
       "changed_vba_modules": [],
@@ -12,7 +12,7 @@
       "defined_names_equal": true
     },
     {
-      "path": "Example橋脚/0610_線路方向荷重.xls",
+      "path": ".claude/docs/Example橋脚/0610_線路方向荷重.xls",
       "initial_sha256": "9d6fd4cd97a2f1e379287352525e3df842ff8a2eecc120d6662bd512de4fbee6",
       "later_sha256": "12a3b2de1a6db2e3c39a74aacfc83ba7fe268323280cbb3d2d7176d27f673a8a",
       "changed_vba_modules": [],
@@ -21,7 +21,7 @@
       "defined_names_equal": true
     },
     {
-      "path": "Example橋脚/0620_直角方向荷重.xls",
+      "path": ".claude/docs/Example橋脚/0620_直角方向荷重.xls",
       "initial_sha256": "04840664269c7a075f8c79be5e23bd8f7fba51b6e65e9e2f7670c1eecf502d1a",
       "later_sha256": "bdef89e568ebc5d4de251680afab2b357b5cffacb5c85136712b310e75b13eb2",
       "changed_vba_modules": [],
@@ -30,7 +30,7 @@
       "defined_names_equal": true
     },
     {
-      "path": "Example橋脚/0700_基礎フーチング.xls",
+      "path": ".claude/docs/Example橋脚/0700_基礎フーチング.xls",
       "initial_sha256": "9412c6aa24d2515760c61add03910f3eaff020e68f1e68196c8e36e870346bc8",
       "later_sha256": "083b13dc62069039e675b7048bbc4b38da705078cc42e4a986ad689de3c6fe9c",
       "changed_vba_modules": [],

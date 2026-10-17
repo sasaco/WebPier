@@ -11,7 +11,7 @@ Example 保存 JSON は dimension=2、6 節点・5 部材、支持ばね 2 組�
 ## 調査対象と実行環境
 
 - ソース基準: `C:/Users/sasai/Documents/structural-mcp/FEMPython/`。以下のソース参照はこのルートからの相対パス。
-- 入力原本: `Example橋脚2/08_線路/frameWebForJS.json`。
+- 入力原本: `.claude/docs/Example橋脚2/08_線路/frameWebForJS.json`。
 - 原本 SHA-256: `244085acff3aee31a78f466e506cab317e920c0d506b0fd6aa9a7e14fadb70b3`。
 - FEMPython の `AGENTS.md` と context-loader を読取り。ルール 10 ファイル、STATE、DESIGN を確認。loader は `missing=["PROGRESS.md"]`, `unreadable=[]`, `warnings=[]`, `design.placeholder=false`, `progress.entries=0`。
 - 既存 Release runner を利用。実行 envelope の engineVersion は `1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6`。ソース側に別タスクの未コミット変更あり。本調査で build/restore/update/source編集はしていないため、今回の実測は既存バイナリの実測と区別する。

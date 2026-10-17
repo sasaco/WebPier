@@ -46974,10 +46974,10 @@
       }
     },
     "provenance": {
-      "source_workbook": "Example橋脚/0610_線路方向荷重.xls",
+      "source_workbook": ".claude/docs/Example橋脚/0610_線路方向荷重.xls",
       "source_sha256": "12a3b2de1a6db2e3c39a74aacfc83ba7fe268323280cbb3d2d7176d27f673a8a",
       "source_vba": [
-        "Example橋脚/wiki/evidence/vba/input/線路荷重.bas"
+        ".claude/docs/Example橋脚/wiki/evidence/vba/input/線路荷重.bas"
       ],
       "method": "元セル数式を明示的に再計算。実行時Excel・証拠JSON参照なし。",
       "rounding": "元ROUND箇所だけ15桁正規化と指定桁丸め。支持ばねは0500正規Double、0600転記Singleは上流値を保持。",
@@ -46990,7 +46990,7 @@
         "0600.longitudinal_snow_cases"
       ],
       "combination_scope": "旧元表係数を保持しS30/LR単独4組合せを追加（存在時）。暗黙の1.2乗算・応答解析なし。",
-      "snow_combinations": "Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。",
+      "snow_combinations": ".claude/docs/Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。",
       "audit_basis": "旧式＋正規方向ばね（線路方向Double）。旧macro完全再現はcalculate_longitudinal_legacy。"
     },
     "units": {
@@ -47010,8 +47010,8 @@
       "0600: 列車・車両横荷重はRB+RCの共通最大載荷位置を採用します（各支点別最大ではありません）。",
       "0600: 元式の可動支承の下限制御は表示説明の0.1ではなく摩擦係数μを使用します。",
       "0600: 遠心作用方向記号は元VBAの転記対象外のため計算には使用しません。",
-      "0600: Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。",
-      "0600: Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。",
+      "0600: .claude/docs/Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。",
+      "0600: .claude/docs/Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。",
       "0610は荷重・骨組条件と原表の組合せ係数を作成します。構造解析・断面照査は実施しません。",
       "支持ばね6成分は0500正規長短期の線路方向Double値を使用します。荷重式は旧式監査用です。",
       "主幹節点のx座標は0とし、H1が正のパラペットには形状による偏心を設けます。柱重心の偏心を節点へ加算しません。",
@@ -50552,7 +50552,7 @@
     "elastic_modulus": "kN/m2"
   },
   "provenance": {
-    "reference_document": "Example橋脚2/08_線路.pdf",
+    "reference_document": ".claude/docs/Example橋脚2/08_線路.pdf",
     "reference_pages": [
       9,
       10,

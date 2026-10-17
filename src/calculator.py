@@ -144,8 +144,8 @@ def _calculate(inputs: DesignInput) -> dict[str, Any]:
                   "kv": "kN/m³", "ks": "kN/m³", "Kv": "kN/m", "Ks": "kN/m",
                   "Kr_longitudinal": "kN·m/rad", "Kr_transverse": "kN·m/rad"},
         "provenance": {
-            "macro": "Example橋脚/pre/input.xls!直接基礎計算.計算",
-            "workbook": "Example橋脚/0500_直接基礎.xls",
+            "macro": ".claude/docs/Example橋脚/pre/input.xls!直接基礎計算.計算",
+            "workbook": ".claude/docs/Example橋脚/0500_直接基礎.xls",
             "sheet": "支持層",
             "bearing_factors": (
                 "解説表13.2.2.3-2「地表面が平坦な場合の支持力係数」。"

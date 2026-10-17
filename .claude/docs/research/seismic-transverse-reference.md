@@ -4,8 +4,8 @@ Investigated 2026-10-17 for the planned 0720 report. Product code, input, and pu
 
 ## Evidence and page scope
 
-- `Example橋脚2/09_直角.pdf`: 29 pages; visually inspected p1.
-- `Example橋脚2/11_直角(耐震).pdf`: 27 pages; visually inspected p1-5, p8-13. The requested four-page adaptation uses 09 p1 for the clean skeleton presentation, 11 p1-5 for seismic geometry, 11 p8 and p9 for actions, and 11 p13 for combinations.
+- `.claude/docs/Example橋脚2/09_直角.pdf`: 29 pages; visually inspected p1.
+- `.claude/docs/Example橋脚2/11_直角(耐震).pdf`: 27 pages; visually inspected p1-5, p8-13. The requested four-page adaptation uses 09 p1 for the clean skeleton presentation, 11 p1-5 for seismic geometry, 11 p8 and p9 for actions, and 11 p13 for combinations.
 - Images and matching text: `tmp/seismic-transverse-planning/ordinary-p01.png` and `.txt`; `seismic-p01` through `seismic-p05`, `seismic-p08` through `seismic-p13`, each `.png` and `.txt`.
 - Independent arithmetic from the current JSON, without invoking product calculation functions: `tmp/seismic-transverse-planning/independent-input-check.json`.
 

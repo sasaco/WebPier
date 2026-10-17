@@ -4,7 +4,7 @@ Status: PASS for source/test review — the Medium gap is resolved; no open mate
 
 ## Scope and evidence
 
-Reviewed the approved plan and nonempty initial scoped patch `.agents/logs/review-diff-p7-calculation-print-preview.patch` (128461 bytes at initial review), the three changed/new test modules, their production implementations, runtime dependency changes, README, and existing CLI publication/rollback tests. Re-reviewed the subsequent artifact-identity fix directly in current source and tests. The unrelated `Example橋脚2/` work is outside this review.
+Reviewed the approved plan and nonempty initial scoped patch `.agents/logs/review-diff-p7-calculation-print-preview.patch` (128461 bytes at initial review), the three changed/new test modules, their production implementations, runtime dependency changes, README, and existing CLI publication/rollback tests. Re-reviewed the subsequent artifact-identity fix directly in current source and tests. The unrelated `.claude/docs/Example橋脚2/` work is outside this review.
 
 - Root integration gate log `tmp/quality-gates/pytest-20261015-111841-6762610.log`: **599 passed, 0 failed, 0 skipped**, 150.54 seconds. This reviewer inspected the log and did not repeat the unchanged full suite.
 - `tmp/p7-print-preview/ui-evidence.json` and its harness show two real CLI runs through the real Tk app, four PDF/JSON pairs, matching input SHA, first/last pages of all four reports, responsive events, and zero callback errors.

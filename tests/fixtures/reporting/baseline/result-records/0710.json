@@ -2922,7 +2922,7 @@
   {
     "id": "0710/result/provenance/references/0/document",
     "kind": "string",
-    "value": "Example橋脚2/08_線路.pdf"
+    "value": ".claude/docs/Example橋脚2/08_線路.pdf"
   },
   {
     "id": "0710/result/provenance/references/0/physical_pages/0",
@@ -2937,7 +2937,7 @@
   {
     "id": "0710/result/provenance/references/1/document",
     "kind": "string",
-    "value": "Example橋脚2/10_線路(耐震).pdf"
+    "value": ".claude/docs/Example橋脚2/10_線路(耐震).pdf"
   },
   {
     "id": "0710/result/provenance/references/1/physical_pages/0",
@@ -2972,7 +2972,7 @@
   {
     "id": "0710/result/provenance/references/2/document",
     "kind": "string",
-    "value": "Example橋脚2/10_線路(耐震).pdf"
+    "value": ".claude/docs/Example橋脚2/10_線路(耐震).pdf"
   },
   {
     "id": "0710/result/provenance/references/2/physical_pages/0",
@@ -2992,7 +2992,7 @@
   {
     "id": "0710/result/provenance/references/3/document",
     "kind": "string",
-    "value": "Example橋脚2/10_線路(耐震).pdf"
+    "value": ".claude/docs/Example橋脚2/10_線路(耐震).pdf"
   },
   {
     "id": "0710/result/provenance/references/3/physical_pages/0",

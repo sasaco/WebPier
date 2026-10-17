@@ -85,7 +85,7 @@ def calculate_longitudinal_canonical(inputs: ReactionInput, foundation: dict, re
             "legacy_audit": audit,
             "units": deepcopy(audit["units"]),
             "provenance": {
-                "reference_document": "Example橋脚2/08_線路.pdf", "reference_pages": [9, 10, 11],
+                "reference_document": ".claude/docs/Example橋脚2/08_線路.pdf", "reference_pages": [9, 10, 11],
                 "dependencies": ["current input", "0500.long_term", "0500.short_term", "0600.dead_loads.points",
                                  "0600.dead_loads.track_totals", "0600.snow_loads.points", "0600.train.raw_reactions",
                                  "0600.train.pier", "0600.longitudinal", "0600.longitudinal_snow_cases",
@@ -217,8 +217,8 @@ def _calculate(inputs: ReactionInput, foundation: dict, reactions: dict, *,
     return {
         "schema_version": 1, "stage": "0610", "input": asdict(inputs),
         "provenance": {
-            "source_workbook": "Example橋脚/0610_線路方向荷重.xls", "source_sha256": SOURCE_SHA256,
-            "source_vba": ["Example橋脚/wiki/evidence/vba/input/線路荷重.bas"],
+            "source_workbook": ".claude/docs/Example橋脚/0610_線路方向荷重.xls", "source_sha256": SOURCE_SHA256,
+            "source_vba": [".claude/docs/Example橋脚/wiki/evidence/vba/input/線路荷重.bas"],
             "method": "元セル数式を明示的に再計算。実行時Excel・証拠JSON参照なし。",
             "rounding": ("元ROUND箇所だけ15桁正規化と指定桁丸め。転記Singleは上流値を保持。" if spring_set is None else
                          "元ROUND箇所だけ15桁正規化と指定桁丸め。支持ばねは0500正規Double、0600転記Singleは上流値を保持。"),
@@ -226,7 +226,7 @@ def _calculate(inputs: ReactionInput, foundation: dict, reactions: dict, *,
                              "0600.macro_handoff_single", "0600.dead_loads.points",
                              *(["0600.snow_loads.points", "0600.longitudinal_snow_cases"] if snow_transfers else [])],
             "combination_scope": "旧元表係数を保持しS30/LR単独4組合せを追加（存在時）。暗黙の1.2乗算・応答解析なし。",
-            **({"snow_combinations": "Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。"}
+            **({"snow_combinations": ".claude/docs/Example橋脚2/07 7-10・7-12のS30とLR単独を追加。列車・衝撃・水位荷重を含まない。0600のS30鉛直荷重Doubleと水平荷重Singleを使用。構造解析・断面照査は実施しない。"}
                if snow_transfers else {}),
         },
         "units": {"length": "m", "force": "kN", "moment": "kN m", "line_load": "kN/m",

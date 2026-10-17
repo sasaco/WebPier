@@ -1,6 +1,6 @@
 # P7 直角方向 FrameWeb native JSON・FEMPython 契約追加調査
 
-調査日: 2026-10-16。実装計画用の読取調査。対象は `Example橋脚2/09_直角/frameWebForJS.json`、予定出力は `./post/線路直角方向.json`。製品ソース、Example 原本、P7 入出力、既存調査メモを変更していない。調査用コピー・計算結果は `tmp/p7-transverse-frameweb-plan/fem_contract/` のみに作成した。
+調査日: 2026-10-16。実装計画用の読取調査。対象は `.claude/docs/Example橋脚2/09_直角/frameWebForJS.json`、予定出力は `./post/線路直角方向.json`。製品ソース、Example 原本、P7 入出力、既存調査メモを変更していない。調査用コピー・計算結果は `tmp/p7-transverse-frameweb-plan/fem_contract/` のみに作成した。
 
 共通契約は [線路方向の調査メモ](p7-frameweb-fem-contract.md) を再利用する。本メモは直角方向固有の荷重・包絡・風分布荷重を補足する。GUI 実操作と PDF 生成は今回実施していない。
 

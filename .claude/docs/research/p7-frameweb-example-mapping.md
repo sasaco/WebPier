@@ -1,11 +1,11 @@
-# Example橋脚2: 線路方向 PDF と FrameWeb JSON の対応調査
+# .claude\docs\Example橋脚2: 線路方向 PDF と FrameWeb JSON の対応調査
 
 調査日: 2026-10-16。実装前の読取調査。原本・入力・既存 JSON は変更していない。
 
 対象:
 
-- `Example橋脚2/08_線路.pdf` (32 ページ)
-- `Example橋脚2/08_線路/frameWebForJS.json`
+- `.claude/docs/Example橋脚2/08_線路.pdf` (32 ページ)
+- `.claude/docs/Example橋脚2/08_線路/frameWebForJS.json`
 
 この PDF では物理ページ n と印刷ページ `8 - n` が一致する。以下の `pN` は物理ページを表す。p1〜11 の入力条件を全文抽出し、p1〜11 の図表を PNG に描画して目視確認した。作業ファイルは `tmp/p7-frameweb-plan/example/`。PDF から JSON の数値への対応は確認済みだが、FEMPython のデータ解釈は別途ソースコードで確認する必要がある。
 

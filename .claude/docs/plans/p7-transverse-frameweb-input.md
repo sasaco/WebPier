@@ -6,7 +6,7 @@
 
 ### Purpose
 
-`Example橋脚2/09_直角.pdf` と `Example橋脚2/09_直角/frameWebForJS.json` の数値対応を明らかにし、P7の0620帳票と同じ骨組・作用を、指定FEMPython内のFrameWebforCS GUIと既存headlessで読み込み解析できる `./post/線路直角方向.json` に出力する。これはnative保存JSONであり、Python解析エンジンへ直接渡す入力形式ではない。
+`.claude/docs/Example橋脚2/09_直角.pdf` と `.claude/docs/Example橋脚2/09_直角/frameWebForJS.json` の数値対応を明らかにし、P7の0620帳票と同じ骨組・作用を、指定FEMPython内のFrameWebforCS GUIと既存headlessで読み込み解析できる `./post/線路直角方向.json` に出力する。これはnative保存JSONであり、Python解析エンジンへ直接渡す入力形式ではない。
 
 前回のユーザー回答「通常の橋脚計算でもJSONを自動更新する」と今回の「同様に」を引き継ぎ、通常の `--stage 0620` / `--stage all` とGUI全工程計算に組み込む。現物の資料名は **`./output/0620_直角方向荷重.pdf`** であり、指定の「0620_線路直角方向荷重.pdf」に相当する。資料名を変更せず、生成先はユーザー指定名にする。
 
@@ -24,8 +24,8 @@
 
 | 調査対象 | SHA-256 |
 |---|---|
-| `Example橋脚2/09_直角.pdf`（29頁） | `b6a7f5658b9f98ee8a7d6b29691edcb0209bc7455fa8309d4e3a2e16605474de` |
-| `Example橋脚2/09_直角/frameWebForJS.json` | `8ff9e589ffd70af6cba3c89cb999b2735ce9f7734801df29015b7cc1e5cbf5ff` |
+| `.claude/docs/Example橋脚2/09_直角.pdf`（29頁） | `b6a7f5658b9f98ee8a7d6b29691edcb0209bc7455fa8309d4e3a2e16605474de` |
+| `.claude/docs/Example橋脚2/09_直角/frameWebForJS.json` | `8ff9e589ffd70af6cba3c89cb999b2735ce9f7734801df29015b7cc1e5cbf5ff` |
 | `./pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
 | `./output/0620_直角方向荷重.pdf`（12頁） | `64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a` |
 | `./output/0620_直角方向荷重.json` | `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca` |

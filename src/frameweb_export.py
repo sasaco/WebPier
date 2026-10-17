@@ -355,8 +355,8 @@ def build_frameweb_input(result: dict) -> FrameWebExport:
         mapping = {
             "schema_version": 1, "exporter_version": transverse.EXPORTER_VERSION if stage == "0620" else EXPORTER_VERSION,
             "canonical_schema_version": 2, "case_model_version": result["case_model_version"], "frame_model_version": 2,
-            "source_documents": ({"example": "Example橋脚2/09_直角.pdf", "p7": "0620_直角方向荷重.pdf"}
-                                 if stage == "0620" else {"example": "Example橋脚2/08_線路.pdf", "p7": "0610_線路方向荷重.pdf"}),
+            "source_documents": ({"example": ".claude/docs/Example橋脚2/09_直角.pdf", "p7": "0620_直角方向荷重.pdf"}
+                                 if stage == "0620" else {"example": ".claude/docs/Example橋脚2/08_線路.pdf", "p7": "0610_線路方向荷重.pdf"}),
             "conventions": {"units": "kN,m,kN/m2", "signs": {"tx": "H", "ty": "-N", "rz": "-M"},
                             "rigid_region": {"E": 26500000, "A": 1000, "Iz": 1000, "policy": "Example finite stiffness, not exact rigidity"},
                             "Xp": {"value": 1e-5, "source": "Example software convention"},

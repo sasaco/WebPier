@@ -44,7 +44,7 @@ tmpPath = FSO.GetParentFolderName(ThisWorkbook.Path)
 Set target = comon.OpenBook(tmpPath & BOOKNAME)
 ```
 
-現物の配置なら `tmpPath` は `...\Example橋脚`。実コードは末尾の `\` を追加しないため、最初の引数は `...\Example橋脚0500_直接基礎.xls` となる。本来の配置 `...\Example橋脚\0500_直接基礎.xls` とは異なる。
+現物の配置なら `tmpPath` は `...\.claude\docs\Example橋脚`。実コードは末尾の `\` を追加しないため、最初の引数は `...\.claude\docs\Example橋脚0500_直接基礎.xls` となる。本来の配置 `...\.claude\docs\Example橋脚\0500_直接基礎.xls` とは異なる。
 
 `comon.OpenBook` は以下の順に処理する。
 
@@ -52,7 +52,7 @@ Set target = comon.OpenBook(tmpPath & BOOKNAME)
 2. Excelの全 `Workbooks` を走査し、`Workbooks(i).Name` と同じ名前があればそのブックを返す。
 3. なければ `Workbooks.Open(FilePath)` で開く。
 
-区切り文字欠落時は探索名も `Example橋脚0500_直接基礎.xls` となるため、正常な名前のブックを先に開いても回避できない。さらに、パスを直した場合でも開いているブックの照合は**フルパスではなく名前のみ**である。別フォルダーの同名ブックを再利用・更新する可能性がある。
+区切り文字欠落時は探索名も `.claude\docs\Example橋脚0500_直接基礎.xls` となるため、正常な名前のブックを先に開いても回避できない。さらに、パスを直した場合でも開いているブックの照合は**フルパスではなく名前のみ**である。別フォルダーの同名ブックを再利用・更新する可能性がある。
 
 再利用したブックも各手続きの最後で `.Save` と `.Close` する。ユーザーが手作業で開いていたかどうかは区別しない。
 

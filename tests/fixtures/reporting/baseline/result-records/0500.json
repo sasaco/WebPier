@@ -247,7 +247,7 @@
   {
     "id": "0500/result/provenance/macro",
     "kind": "string",
-    "value": "Example橋脚/pre/input.xls!直接基礎計算.計算"
+    "value": ".claude/docs/Example橋脚/pre/input.xls!直接基礎計算.計算"
   },
   {
     "id": "0500/result/provenance/rounding",
@@ -267,7 +267,7 @@
   {
     "id": "0500/result/provenance/workbook",
     "kind": "string",
-    "value": "Example橋脚/0500_直接基礎.xls"
+    "value": ".claude/docs/Example橋脚/0500_直接基礎.xls"
   },
   {
     "id": "0500/result/schema_version",

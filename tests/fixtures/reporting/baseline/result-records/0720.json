@@ -19067,7 +19067,7 @@
   {
     "id": "0720/result/provenance/references/0/document",
     "kind": "string",
-    "value": "Example橋脚2/09_直角.pdf"
+    "value": ".claude/docs/Example橋脚2/09_直角.pdf"
   },
   {
     "id": "0720/result/provenance/references/0/physical_pages/0",
@@ -19082,7 +19082,7 @@
   {
     "id": "0720/result/provenance/references/1/document",
     "kind": "string",
-    "value": "Example橋脚2/11_直角(耐震).pdf"
+    "value": ".claude/docs/Example橋脚2/11_直角(耐震).pdf"
   },
   {
     "id": "0720/result/provenance/references/1/physical_pages/0",

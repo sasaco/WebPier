@@ -8,7 +8,7 @@
 
 ### Purpose
 
-`Example橋脚2/08_線路.pdf` と同フォルダー配下の `08_線路/frameWebForJS.json` の数値対応を明らかにし、`./output/0610_線路方向荷重.pdf` に示された骨組・作用をFEMPythonで開いて計算できる `./post/frameWebForJS.json` として出力する。
+`.claude/docs/Example橋脚2/08_線路.pdf` と同フォルダー配下の `08_線路/frameWebForJS.json` の数値対応を明らかにし、`./output/0610_線路方向荷重.pdf` に示された骨組・作用をFEMPythonで開いて計算できる `./post/frameWebForJS.json` として出力する。
 
 ユーザーの追加回答により、単発の手入力ではなく、通常の `run_design.py --stage 0610` / `--stage all` とGUIからの全工程計算に自動生成を組み込む。PDF・計算結果JSON・FrameWeb入力は、同じ入力から得た同じ0610計算結果を使う。
 
@@ -26,8 +26,8 @@
 
 | 資料 | SHA-256（調査開始時） |
 |---|---|
-| `Example橋脚2/08_線路.pdf`（32頁） | `91e288880677f6e121afa887314d183000371478852b96663a6c753f76806706` |
-| `Example橋脚2/08_線路/frameWebForJS.json` | `244085acff3aee31a78f466e506cab317e920c0d506b0fd6aa9a7e14fadb70b3` |
+| `.claude/docs/Example橋脚2/08_線路.pdf`（32頁） | `91e288880677f6e121afa887314d183000371478852b96663a6c753f76806706` |
+| `.claude/docs/Example橋脚2/08_線路/frameWebForJS.json` | `244085acff3aee31a78f466e506cab317e920c0d506b0fd6aa9a7e14fadb70b3` |
 | `./output/0610_線路方向荷重.pdf`（8頁） | `85334ee02cf775b8914f9cc73c6db107d522bb1625ed0fe5b7f6e66ad438383f` |
 | `./output/0610_線路方向荷重.json` | `ad98ba14bb10a9af67b0e8fcc3e4714a597beef7230ba567512713ffe89d8e66` |
 | `./pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |

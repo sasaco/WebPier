@@ -410,8 +410,8 @@ def calculate_seismic_transverse(inputs: ReactionInput, reactions: Mapping[str, 
                    "load_type": kind, "coefficient": 1., "loads": deepcopy(actions[key])}
                   for index, (key, symbol, label, direction, kind) in enumerate(specs, 1)]
         provenance = {
-            "references": [{"document": "Example橋脚2/09_直角.pdf", "physical_pages": [1], "purpose": "physical_frame"},
-                           {"document": "Example橋脚2/11_直角(耐震).pdf", "physical_pages": [1,2,3,4,5,8,9,12,13],
+            "references": [{"document": ".claude/docs/Example橋脚2/09_直角.pdf", "physical_pages": [1], "purpose": "physical_frame"},
+                           {"document": ".claude/docs/Example橋脚2/11_直角(耐震).pdf", "physical_pages": [1,2,3,4,5,8,9,12,13],
                             "purpose": "seismic_geometry_actions_and_cases"}],
             "dependencies": ["current input", "0600.train.earthquake", "0600.transverse.case7",
                              "0600.transverse.case8", "0600.macro_handoff_single weights", "0620.frame",

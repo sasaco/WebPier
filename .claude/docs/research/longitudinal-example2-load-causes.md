@@ -18,7 +18,7 @@ Example `08_線路.pdf` p2 のく体は f'ck=27.0 N/mm2、Ec=2.65e7 kN/m2。ア�
 
 - `pier_design/longitudinal_calculator.py:124`: frame.materialsに24.0/2.5e7を固定。
 - 同`:252-253`: 原表セルM107/M108等にも24.0/2.5を固定。
-- 原証拠 `Example橋脚/wiki/evidence/constant-cells.json:4185,4189`: 旧Example橋脚/0610.xlsの定数自体が24.0/2.5。Example橋脚2とは異なる参考ブックの固定値を継承した。
+- 原証拠 `.claude/docs/Example橋脚/wiki/evidence/constant-cells.json:4185,4189`: 旧.claude/docs/Example橋脚/0610.xlsの定数自体が24.0/2.5。.claude\docs\Example橋脚2とは異なる参考ブックの固定値を継承した。
 - `pier_design/reaction_inputs.py:29-62,144-150`: geometry/ReactionInputに材料入力がない。現在のinput.jsonでExample2の27.0を指定する経路が存在しない。
 - `pier_design/transverse_calculator.py:173,345`: 0620は別の固定値25.0/2.5e7。方向ごとに同一く体の材料が違う現状もある。
 
@@ -34,7 +34,7 @@ Example08 p1は長期52,218,663、短期104,437,326 kN m/rad。アプリ0610は8
 - 同`:113-114`: 方向別Krを既に正しく計算。
 - 同`:121-125`: 旧VBA契約の単一macro_handoff_single.KrにはKr_transverseのみ採用。
 - `pier_design/longitudinal_calculator.py:73-77`: 方向を選ばず同handoff.Krを転記。
-- 原証拠 `Example橋脚/wiki/evidence/defined-names.json:346-347` のKr長期は支持層U124（直角方向）。`vba/input/直接基礎計算.bas:57-58`で読み、`vba/input/線路荷重.bas:127-134`で再転記。原VBAからの方向混同を忠実に移植した。
+- 原証拠 `.claude/docs/Example橋脚/wiki/evidence/defined-names.json:346-347` のKr長期は支持層U124（直角方向）。`vba/input/直接基礎計算.bas:57-58`で読み、`vba/input/線路荷重.bas:127-134`で再転記。原VBAからの方向混同を忠実に移植した。
 - 数値比 `86,320,648/52,218,663=1.65306124 ≈ 9^2/7^2`。シェルター無関係。
 
 修正候補: 0610の正規経路を0500方向別 `long_term/short_term.Kr_longitudinal` へ向け、旧共通Single値を監査用に保存。0500の共通macro_handoff.Kr自体を線路方向へ変更すると0620も誤るため避ける。
@@ -52,7 +52,7 @@ Example08 p3: はり1190.70 + ハンチ104.19、天端8894.89 - 297.68*2.00 = 82
 - 独立計算: 矩形1190.70、H3全断面312.55875（うち張出しハンチ104.18625、柱芯部208.3725）→合計1503.25875→1503.26。
 - Exampleは柱芯部を柱線荷重側に入れるため、梁側の差208.37は `297.675*0.7=208.3725`。
 - `longitudinal_calculator.py:93-100`で0600の梁重量Singleを転記、`:264`で柱線荷重を0.01へ丸め、`:286-289`でH2+H3=2.7を控除。
-- 原セル根拠 `Example橋脚/wiki/evidence/cell-formulas.json:2000-2003` も `W35=H2+H3; AB35=ROUND(L35-R35*W35,2)`。
+- 原セル根拠 `.claude/docs/Example橋脚/wiki/evidence/cell-formulas.json:2000-2003` も `W35=H2+H3; AB35=ROUND(L35-R35*W35,2)`。
 
 設計荷重の大きな過不足ではない。丸めを行う集約位置の違いにより0.01 kN差が残る。厳密一致が必要なら「梁/張出しハンチ/柱芯」の表示内訳・丸め段階を独立に定義する。0600共通のbeam重量をExample表示に合わせて104.19へ減らすだけだとDs・重心・衝撃低減・0620まで壊れる。
 

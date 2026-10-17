@@ -26,7 +26,7 @@
     "case_model_version": "example2-nonseismic-pier-impact-v1",
     "frame_model_version": 2,
     "source_documents": {
-      "example": "Example橋脚2/09_直角.pdf",
+      "example": ".claude/docs/Example橋脚2/09_直角.pdf",
       "p7": "0620_直角方向荷重.pdf"
     },
     "conventions": {

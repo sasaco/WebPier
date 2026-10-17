@@ -4964,7 +4964,7 @@
   "case_model_version": "example2-nonseismic-pier-impact-v1",
   "direction": "transverse",
   "source": {
-    "path": "Example橋脚2/09_直角.pdf",
+    "path": ".claude/docs/Example橋脚2/09_直角.pdf",
     "sha256": "b6a7f5658b9f98ee8a7d6b29691edcb0209bc7455fa8309d4e3a2e16605474de",
     "pages": [
       13,
@@ -37675,7 +37675,7 @@
     "line_load": "kN/m"
   },
   "provenance": {
-    "reference_document": "Example橋脚2/09_直角.pdf",
+    "reference_document": ".claude/docs/Example橋脚2/09_直角.pdf",
     "dependencies": [
       "current input",
       "0500.long_term",
@@ -37693,7 +37693,7 @@
   },
   "legacy_audit": {
     "entrypoint": "calculate_transverse_legacy",
-    "source_workbook": "Example橋脚/0620_直角方向荷重.xls",
+    "source_workbook": ".claude/docs/Example橋脚/0620_直角方向荷重.xls",
     "source_sha256": "6f6cb51b1cdb33e2596ca432c08ae11e4b676d8709e9e8f3ef5e8edd3551e0ae",
     "public_actions_use_legacy_selection": false
   },

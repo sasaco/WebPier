@@ -5694,14 +5694,14 @@
   "provenance": {
     "references": [
       {
-        "document": "Example橋脚2/09_直角.pdf",
+        "document": ".claude/docs/Example橋脚2/09_直角.pdf",
         "physical_pages": [
           1
         ],
         "purpose": "physical_frame"
       },
       {
-        "document": "Example橋脚2/11_直角(耐震).pdf",
+        "document": ".claude/docs/Example橋脚2/11_直角(耐震).pdf",
         "physical_pages": [
           1,
           2,

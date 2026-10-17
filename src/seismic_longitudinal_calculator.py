@@ -216,11 +216,11 @@ def calculate_seismic_longitudinal(longitudinal: Mapping[str, Any]) -> dict[str,
               for index, (symbol, label, direction, load_type, loads) in enumerate(specifications, 1)]
     provenance = {
         "references": [
-            {"document": "Example橋脚2/08_線路.pdf", "physical_pages": [1], "purpose": "physical_frame"},
-            {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_pages": [1, 2, 3, 4, 5],
+            {"document": ".claude/docs/Example橋脚2/08_線路.pdf", "physical_pages": [1], "purpose": "physical_frame"},
+            {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_pages": [1, 2, 3, 4, 5],
              "purpose": "column_base_micro_member"},
-            {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_pages": [8, 12], "purpose": "actions_and_cases"},
-            {"document": "Example橋脚2/10_線路(耐震).pdf", "physical_pages": [10], "purpose": "normal_water_and_s2"},
+            {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_pages": [8, 12], "purpose": "actions_and_cases"},
+            {"document": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_pages": [10], "purpose": "normal_water_and_s2"},
         ],
         "dependencies": ["0610.input", "0610.frame", "0610.vertical.fixed", "0610.vertical.additional",
                          "0610.vertical.water.normal", "0610.vertical.snow.s2",

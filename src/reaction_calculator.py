@@ -402,8 +402,8 @@ def _calculate_reactions(inputs: ReactionInput) -> dict[str, Any]:
                 "列車・車両横荷重はRB+RCの共通最大載荷位置を採用します（各支点別最大ではありません）。",
                 "元式の可動支承の下限制御は表示説明の0.1ではなく摩擦係数μを使用します。",
                 "遠心作用方向記号は元VBAの転記対象外のため計算には使用しません。",
-                "Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。",
-                "Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"]
+                ".claude/docs/Example橋脚2/07 7-9は原本展開式を採用し、見出しをL＋Iへ整合します。",
+                ".claude/docs/Example橋脚2/07 7-11は原本展開式を採用し、見出しを側別の復旧性制動係数へ整合します。"]
     spans = (inputs.spans.b, inputs.spans.c)
     lengths = tuple(value for span in spans for value in (span.l1, span.span, span.l2))
     vehicle = inputs.train
@@ -423,11 +423,11 @@ def _calculate_reactions(inputs: ReactionInput) -> dict[str, Any]:
     }
     return {
         "schema_version": 1, "stage": "0600", "input": asdict(inputs),
-        "provenance": {"source_workbook": "Example橋脚/0600_上部工反力.xls",
+        "provenance": {"source_workbook": ".claude/docs/Example橋脚/0600_上部工反力.xls",
                        "source_sha256": SOURCE_SHA256,
-                       "source_vba": ["Example橋脚/wiki/evidence/vba/input/上部工反力.bas",
-                                      "Example橋脚/wiki/evidence/vba/0600_上部工反力/列車荷重Module.bas"],
-                       "method": "元セル数式の倍精度演算・ROUNDとVBA移動荷重Single演算を維持。桁継目の所属比較だけは載荷座標と同じ0.001mの偶数丸めに統一し、元VBAの境界判定を修正（原点へ丸まる継目は元比較を保持）。Example橋脚2/07に合わせて支承鉛直荷重の組合せを修正。実行時Excel参照なし。",
+                       "source_vba": [".claude/docs/Example橋脚/wiki/evidence/vba/input/上部工反力.bas",
+                                      ".claude/docs/Example橋脚/wiki/evidence/vba/0600_上部工反力/列車荷重Module.bas"],
+                       "method": "元セル数式の倍精度演算・ROUNDとVBA移動荷重Single演算を維持。桁継目の所属比較だけは載荷座標と同じ0.001mの偶数丸めに統一し、元VBAの境界判定を修正（原点へ丸まる継目は元比較を保持）。.claude/docs/Example橋脚2/07に合わせて支承鉛直荷重の組合せを修正。実行時Excel参照なし。",
                        "combination_coefficients": "安全性・復旧性の組合せ係数はρu×γを小数2桁に丸めて採用。基礎列車反力表・入力値は保持。",
                        "handoff": "実VBA Public代入の最終値だけをSingle化。係数・疲労表は表示用倍精度値。",
                        "snow_loads": "ユーザー入力を確率ごとに独立集計し水平荷重へ連携。S2:使用性/地震、S10:安全性/復旧性の列車併用、S30:LR単独。未入力は0、A/D未入力はB/Cの対応確率合計へfallback。元Excelに雪の対応セルはありません。"},

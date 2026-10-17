@@ -8,12 +8,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -2260,12 +2260,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -4512,12 +4512,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -6764,12 +6764,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -9016,12 +9016,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -11268,12 +11268,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -13520,12 +13520,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
@@ -15882,12 +15882,12 @@
       "input": {
         "schema_version": 1,
         "出典": {
-          "ブック": "Example橋脚/pre/input.xls",
+          "ブック": ".claude/docs/Example橋脚/pre/input.xls",
           "PDF": {
-            "上部工反力": "Example橋脚/pre/input-上部工反力.pdf",
-            "上部構造": "Example橋脚/pre/input-上部構造.pdf",
-            "下部構造": "Example橋脚/pre/input-下部構造.pdf",
-            "地盤データ": "Example橋脚/pre/input-地盤データ.pdf"
+            "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+            "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+            "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+            "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
           },
           "ページ": "各PDFの1ページ目",
           "転記方針": [
