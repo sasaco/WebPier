@@ -286,7 +286,8 @@ def _side_row(node: Reader) -> SideRow:
               "stirrup_position", "cover_mode", "center_mm")
     row = SideRow(
         diameter=_value(node, "diameter_mm"), material=_value(node, "material"),
-        per_face_count=_value(node, "per_face_count"), columns=_value(node, "columns"), column_pitch=_value(node, "column_pitch_mm"),
+        per_face_count=_value(node, "per_face_count"), columns=_value(node, "columns"),
+        column_pitch=_value(node, "column_pitch_mm"),
         start=_value(node, "start_mm"), pitch=_value(node, "pitch_mm"),
         stirrup_position=_value(node, "stirrup_position"),
         cover_mode=_value(node, "cover_mode"), center=_value(node, "center_mm"))

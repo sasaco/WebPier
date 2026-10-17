@@ -102,10 +102,11 @@ class SectionView(ttk.Frame):
                                   tags=("hoop",))
         for index, circle in enumerate(circles):
             x, y = point(circle.x, circle.y)
-            radius = max(2.0, circle.diameter * scale / 2)
+            radius = max(2.5, circle.diameter * scale / 2)
             tags = ("rebar", f"bar:{index}", *(("selected",) if circle.selected else ()))
             canvas.create_oval(x - radius, y - radius, x + radius, y + radius,
-                               fill="#1674bf" if circle.selected else "#7a8797", outline="white", tags=tags)
+                               fill="#1674bf" if circle.selected else "#526981",
+                               outline="white" if radius >= 4 else "", tags=tags)
         canvas.create_text(width / 2, 10, text=caption, fill="#64748b", font=("Yu Gothic UI", 8), tags=("caption",))
         canvas.create_text(width / 2, height - 12, text=f"{span_x:g} mm × {span_y:g} mm", fill="#526981",
                            font=("Yu Gothic UI", 9), tags=("size",))

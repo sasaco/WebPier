@@ -279,3 +279,45 @@ def test_restructuring_waits_for_refused_text(editor, quiet):
     type_in(editor, ("地盤データ", "層", 1, "N値"), "x")
     assert not gui.pages.soil_change(gui.Form(editor, editor.form), "add")
     assert len(editor.document.data["地盤データ"]["層"]) == 2
+
+
+def test_a_file_of_another_form_shows_its_missing_items_without_adding_them(tk_root, tmp_path, quiet):
+    data = json.loads(CURRENT.read_text(encoding="utf-8"))
+    del data["下部構造"]["寸法"]["高さ"]
+    data["上部構造"]["列車"]["軸距"] = "2.8"
+    path = tmp_path / "other.json"
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    editor = gui.InputEditor(tk_root, path)
+    h1 = ("下部構造", "寸法", "高さ", "H1")
+    assert h1 not in editor.bindings.items
+    assert editor.bindings.value(h1) is MISSING
+    editor.select("上部構造")
+    a1 = ("上部構造", "列車", "軸距", "a1_連結部")
+    assert a1 not in editor.bindings.items
+    assert not editor.dirty and editor.save()
+    assert json.loads(path.read_text(encoding="utf-8")) == data
+
+
+def test_a_value_that_cannot_be_written_is_refused(editor, monkeypatch):
+    def broken(value):
+        raise gui.EditorError("入力項目がありません: x")
+
+    editor.bindings.items[B1].write = broken
+    type_in(editor, B1, "3")
+    assert editor.bindings.refused[B1] == "入力項目がありません: x"
+
+
+def test_an_open_cell_editor_is_entered_before_saving(editor):
+    target = cell(editor, *B1)
+    editor.root.deiconify()
+    editor.root.update()
+    target.sheet.select_cell(target.row, target.column)
+    target.sheet.open_cell()
+    widget = target.sheet.get_text_editor_widget()
+    widget.delete("1.0", "end")
+    widget.insert("1.0", "3.14159")
+    editor.root.update()
+    assert editor.dirty  # the pending text counts as a change
+    assert editor.save()
+    assert saved(editor)["下部構造"]["寸法"]["側面"]["B1"] == 3.142
+    assert target.get() == "3.142"

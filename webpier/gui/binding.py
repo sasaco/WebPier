@@ -15,9 +15,12 @@ from typing import Any
 from tksheet import Sheet
 
 from ..inputs.fields import Field, field, path_text
-from .document import MISSING, JsonPath, lookup, put
+from .document import MISSING, EditorError, JsonPath, lookup, put
 from .entry import EntryError, display, enter, problem
 from .grid import DISABLED, EDITABLE, MISSING as MISSING_COLOR, REFUSED, SheetCell, commit_editor, pending_dirty
+
+
+ABSENT = "（項目なし）"
 
 
 @dataclass
@@ -51,6 +54,9 @@ class Bindings:
         value = self.value(path)
         text = "" if value is MISSING else display(spec, value)
         cell = SheetCell(sheet, row, column)
+        if value is MISSING and write is None and not isinstance(self.value(path[:-1]), (dict, list)):
+            cell.show(ABSENT)  # an input of another form; nothing is added to it
+            return Bound(path, cell, spec, ABSENT, lambda new: None)
         cell.show(text)
         bound = Bound(path, cell, spec, text, write or (lambda new, path=path: put(self._data(), path, new)))
         self.items[path] = bound
@@ -84,8 +90,13 @@ class Bindings:
             self.refused[bound.path] = str(exc)
             bound.shown = text
             return
+        try:
+            bound.write(value)
+        except EditorError as exc:
+            self.refused[bound.path] = str(exc)
+            bound.shown = text
+            return
         self.refused.pop(bound.path, None)
-        bound.write(value)
         bound.shown = display(bound.spec, value)
         if bound.shown != text:
             bound.cell.show(bound.shown)

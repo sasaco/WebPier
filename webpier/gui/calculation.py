@@ -125,8 +125,10 @@ def _check_sidecar(sidecar: Artifact, native: Artifact, generation: list[Artifac
     if document.get("sha256") != file_sha256(native.path):
         raise ArtifactValidationError(f"付帯JSONと出力が一致しません: {native.path.name}")
     listed = document.get("artifacts")
-    if not isinstance(listed, list) or sorted(item.get("role", "") for item in listed if isinstance(item, dict)) != sorted(
-            artifact.role for artifact in generation):
+    roles = None
+    if isinstance(listed, list):
+        roles = sorted(item.get("role", "") for item in listed if isinstance(item, dict))
+    if roles != sorted(artifact.role for artifact in generation):
         raise ArtifactValidationError(f"付帯JSONの成果物一覧が今回の生成と一致しません: {sidecar.path.name}")
     by_role = {artifact.role: artifact for artifact in generation}
     for item in listed:

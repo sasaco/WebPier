@@ -119,7 +119,8 @@ class InputEditor:
         self.heading = tk.StringVar(master=self.root)
         ttk.Label(right, textvariable=self.heading, style="Heading.TLabel", padding=(2, 6, 8, 0)).pack(anchor="w")
         self.hint = tk.StringVar(master=self.root)
-        ttk.Label(right, textvariable=self.hint, style="Muted.TLabel", padding=(2, 7, 0, 4), wraplength=980).pack(anchor="w")
+        ttk.Label(right, textvariable=self.hint, style="Muted.TLabel", padding=(2, 7, 0, 4),
+                  wraplength=980).pack(anchor="w")
         self.cell_message = tk.StringVar(master=self.root)
         ttk.Label(right, textvariable=self.cell_message, style="Error.TLabel", padding=(2, 0, 0, 8)).pack(anchor="w")
         body = ttk.Frame(right)
@@ -143,8 +144,8 @@ class InputEditor:
 
     def _resized(self, event: tk.Event) -> None:
         fill = self.page in (REBAR, CALCULATION)
-        self.canvas.itemconfigure(self.form_window, width=event.width if fill else max(event.width, self.form.winfo_reqwidth()),
-                                  height=event.height if fill else 0)
+        width = event.width if fill else max(event.width, self.form.winfo_reqwidth())
+        self.canvas.itemconfigure(self.form_window, width=width, height=event.height if fill else 0)
 
     def _wheel(self, event: tk.Event) -> None:
         if self.page in (REBAR, CALCULATION) or event.state & 0x5:
@@ -295,7 +296,8 @@ class InputEditor:
             return False
         path = filedialog.asksaveasfilename(parent=self.root, title="入力JSONを別名で保存",
                                             initialdir=self.document.path.parent, initialfile=self.document.path.name,
-                                            defaultextension=".json", confirmoverwrite=False, filetypes=(("JSON", "*.json"),))
+                                            defaultextension=".json", confirmoverwrite=False,
+                                            filetypes=(("JSON", "*.json"),))
         if not path:
             return False
         try:

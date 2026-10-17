@@ -104,7 +104,8 @@ class RebarPage:
         self.direction_choice = ttk.Combobox(title, values=choices.REBAR_DIRECTIONS, state="readonly", width=7)
         self.direction_choice.set(self.direction)
         self.direction_choice.pack(side="right")
-        self.direction_choice.bind("<<ComboboxSelected>>", lambda event: self.select_direction(self.direction_choice.get()))
+        self.direction_choice.bind("<<ComboboxSelected>>",
+                                   lambda event: self.select_direction(self.direction_choice.get()))
         self.section = SectionView(right, on_bar=self.bar_clicked)
         self.section.pack(fill="both", expand=True)
         ttk.Label(right, text="方向別の鉄筋配置表（基準面からの芯位置）", style="Symbol.TLabel").pack(anchor="w", pady=(6, 0))
@@ -177,7 +178,8 @@ class RebarPage:
             button.pack(side="left", padx=2)
             self.placement_buttons[name] = button
         self.placement_buttons["auto"].state(["!disabled" if detailed else "disabled"])
-        self.placement_buttons["detail"].state(["disabled" if detailed or not column["manual_positions"] else "!disabled"])
+        kept = not detailed and bool(column["manual_positions"])
+        self.placement_buttons["detail"].state(["!disabled" if kept else "disabled"])
         if detailed:
             self._rows_table("manual_positions", "使用中の詳細位置 mm", actions=False)
         else:
@@ -319,7 +321,8 @@ class RebarPage:
         bar = self.layout.bars[index]
         if self.layout.manual is not None:
             positions = self.editor.document.data["鉄筋"]["柱"]["manual_positions"]
-            match = next(i for i, row in enumerate(positions) if (row["x_mm"], row["y_mm"]) == (bar.x.value, bar.y.value))
+            match = next(i for i, row in enumerate(positions)
+                         if (row["x_mm"], row["y_mm"]) == (bar.x.value, bar.y.value))
             self.selected = ("manual_positions", match)
         elif bar.rows:
             self.selected = ("main_rows", bar.rows[0])
