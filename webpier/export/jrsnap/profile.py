@@ -29,10 +29,10 @@ from ...calc.seismic_transverse import SeismicCase as TransverseCase
 NATIVE_VERSION = "5.2.3.S.4"  # the header JRSNAP 5.2-L03 writes (its key is spelt Virsion)
 TARGET_VERSION = "5.2-L03"
 
-# DataInfo (Example2 NDU): load divisions, trials at intermediate and final steps, convergence factor FTM.
-LOAD_DIVISIONS = 1000
-TRIALS = 999
-CONVERGENCE = Decimal("0.001")
+# Solver numerical controls of DataInfo, not design inputs (Example2 NDU DataInfo 5, 10, 11, 20 = JRSNAP defaults):
+LOAD_DIVISIONS = 1000  # divisions of the incremental load
+TRIALS = 999  # stiffness-reduction trials at the intermediate and the final steps
+CONVERGENCE = Decimal("0.001")  # convergence factor FTM of the stiffness reduction
 RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS = 1000, 1000, 25  # m2, m4, kN/mm2 (manual p.144-145 initial values)
 STEEL_MODULUS = 200  # Es, kN/mm2
 # SectSafe without the three input factors: GC, GR, GS, GB1, GB2, GB23, (GBC), (GBV), GBS, K, (GBVD), GBVO.
