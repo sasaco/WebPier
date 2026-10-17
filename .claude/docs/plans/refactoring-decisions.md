@@ -43,6 +43,7 @@
    - 行・分岐カバレッジの下限は core/inputs/calc/export/pipeline が 100%、reporting が 95%、gui が 85%。
    - 印刷物での検算テストを入れる。PDF の数値を読み取り、印刷された部分の値から合計・積を再計算して、全頁で一致を確かめる。
    - `hypothesis` による性質テストを入れる。
+   - （2026-10-18 段階7B）`.claude/check.ps1` が全件を coverage の下で実行し、層ごとの下限を照合する。性質テストは `tests/*/test_*_properties.py`（`derandomize=True`）。性質テストで見つけた2件（`load_json` が対のないサロゲートを通す、`_exact.put` が double を経て二重に丸める）を直した。
 16. 開発初期のため、旧形式との互換は考えない。
    - 入力JSONの形式は直接書き換え、移行の道具や旧形式の読み替えは作らない。`pre/input.json` とテスト用入力は新しい形式で書き直す。
    - コード中の互換の経路もすべて削除する。対象は、frameweb_artifacts の schema 1 戻り値、artifact_publication の単一 Path の経路、cli の互換用の再export、エディタの「旧JSONのB・C合計を読込時に除く」処理など。

@@ -199,9 +199,12 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 ```
 
-`.claude/check.ps1` も同じ全件のゲートです。テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
+品質ゲートは `.claude/check.ps1` の1コマンドです（`& ".claude/check.ps1"`）。全件を coverage の下で実行し（`python -m webpier` などの子プロセスも `pyproject.toml` の `[tool.coverage]` の `patch = ["subprocess"]` で測ります）、層ごとの行・分岐カバレッジを下限と照合します（決定15）。下限は `webpier/core`・`inputs`・`calc`・`export`・`pipeline` が 100%、`reporting` が 95%、`gui` が 85% で、テストの失敗か下限割れで exit 2、ゲートを実行できなければ exit 3 です。結果の JSON の `tools.coverage.packages` に層ごとの値と合否が出ます。
+
+テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
 
 - 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。実アプリでの受入記録は期待値ではなく、実アプリが読んだ生成物とその読戻しの記録です。
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。
+- 性質テスト（hypothesis、`tests/*/test_*_properties.py`）は、式から言える恒等式と順序だけを確かめます。印字桁の丸め（四捨五入・冪等・符号の対称）、厳密なJSONの往復と拒否、項目表による入力の検証、印刷された部分の和としての合計、移動荷重の釣合い、地盤ばねの Ed への比例、NDU の読戻しと FrameWeb の妥当性です。`tests/conftest.py` のプロファイルで `derandomize=True` にしており、毎回同じ例で実行します。
 - 帳票は、意味内容（印刷された数値・文字が計算結果と印字桁に一致する）、体裁（`tests/fixtures/reporting/appearance` の、見本PDFから独立に測った値に一致する）、印刷物での検算（PDFから読んだ数値だけで各式と合計が再現できる）を確かめます。`appearance` の値は新しい描画結果から作り直しません。
 - GridLayoutPdf のソースを変えたときは、`uv sync --project "." --locked --reinstall-package gridlayoutpdf` で取り込み直します。取り込み直さないと実装の同一性の照合が食い違い、テストが失敗します。

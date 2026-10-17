@@ -20,7 +20,10 @@ uv run --project "." --locked python -m webpier --stage all --jrsnap --overwrite
 # 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）
 uv run --project "." --locked python -m webpier.gui
 
-# テスト（全件。.claude/check.ps1 も同じ全件ゲート）
+# 品質ゲート（全件をカバレッジ付きで実行し、層ごとの行・分岐カバレッジの下限も照合する。決定15）
+# core/inputs/calc/export/pipeline 100%、reporting 95%、gui 85%。下回れば exit 2。JSON の tools.coverage に層ごとの値
+& ".claude/check.ps1"
+# テスト（全件。カバレッジなし）
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 # 単一ファイル／単一テスト
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests/calc/test_foundation.py -q
@@ -57,10 +60,12 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 ### 決定性と実装の同一性
 - PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。
 - `webpier/pipeline/runtime.py` の `dependency_hashes` は、`webpier` のソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
+- ハッシュするソースと受入記録の補助スクリプトは `.gitattributes` で LF に固定している（`*.py`、`scripts/*.cs`、jrsnap-input-open-save の `scripts/*.ps1`・`*.cs`）。`core.autocrlf` で CRLF になると実装の同一性や受入記録の SHA が変わる。
 
 ### 帳票の基準とテスト用データ
 - 体裁の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。
 - テストは層ごとに `tests/<層>/`。期待値は、Example2 原資料から独立に転記した値（`tests/fixtures/example2/`）と、実装を使わない手計算だけ。入力は `tests/fixtures/inputs/current.json` を基に変えたい項目だけ書き換える。
+- 性質テスト（hypothesis、`tests/*/test_*_properties.py`）は式から言える恒等式・順序だけを確かめる。`tests/conftest.py` のプロファイルで `derandomize=True`（毎回同じ例）にしている。
 - `tests/fixtures/reporting/appearance` は見本PDFから独立に測った体裁値（測定器は `scripts/reporting_appearance.py`）。新しい描画結果から作り直さない。
 - 文字の縮小や伸縮で固定ページ数に収めない。式・表・図のまとまりを保ち、内容に応じて改ページする。
 
