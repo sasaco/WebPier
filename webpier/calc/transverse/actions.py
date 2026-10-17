@@ -313,7 +313,8 @@ def _body(item: Item, body: Body) -> Row:
 Girders = tuple[tuple[Item, tuple[BearingLoads, ...]], ...]
 
 
-def _train(track: Track, girders: Girders, reactions: dict[Item, Printed]) -> TrainTable:
+def train_table(track: Track, girders: Girders, reactions: dict[Item, Printed]) -> TrainTable:
+    """One track per bearing: girder reaction × share of the bearing (9-5; 11-8 with the seismic train)."""
     def share(bearing: BearingLoads) -> Printed:
         if track is Track.DOUBLE:
             return bearing.double
@@ -382,7 +383,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
                      for water in (weights.buoyancy_high, weights.buoyancy_normal, weights.buoyancy_low))
     snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30"))
     reactions = {Item.ORIGIN: train.loading.rb, Item.END: train.loading.rc}
-    trains = Trains(*(_train(track, girders, reactions) for track in Track))
+    trains = Trains(*(train_table(track, girders, reactions) for track in Track))
     impact = Impacts(ultimate=_impacts(trains, train.ultimate), service=_impacts(trains, train.service))
     origin, end = transverse.origin, transverse.end
     lateral_rows = (_horizontal(Item.ORIGIN, origin.vehicle_lateral), _horizontal(Item.END, end.vehicle_lateral))
@@ -450,4 +451,4 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 __all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
            "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "FixedDead",
            "HorizontalRow", "ImpactRow", "ImpactSet", "ImpactTable", "Impacts", "Item", "Lateral", "Row", "TopTable",
-           "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions"]
+           "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions", "train_table"]

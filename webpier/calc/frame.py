@@ -19,7 +19,10 @@ bearing loads act at its top (decision 29), so the frame carries H × H1.
 
 0710 cuts a 0.010 m micro member from the bottom of the column (CONTEXT.md
 柱下端の微小部材) and makes the rest rigid; ``column_base_micro_member`` and
-``elastic_regions`` express that. No drawing data is kept here.
+``elastic_regions`` express that. 0720 adds the girder level of each side,
+h1 + h2 above the bearing seat (Example2 11-1 node 1, 2.750), joined to the
+seat by rigid members and numbered first (``girder_levels``). No drawing data
+is kept here.
 """
 
 from __future__ import annotations
@@ -54,6 +57,8 @@ class NodeRole(Enum):
     FOOTING_BOTTOM = "footing_bottom"  # the spring support
     PEDESTAL_BASE = "pedestal_base"
     PEDESTAL_TOP = "pedestal_top"
+    GIRDER_ORIGIN = "girder_origin"  # h1 + h2 of the origin girder above the bearing seat (0720)
+    GIRDER_END = "girder_end"  # h1 + h2 of the end girder above the bearing seat (0720)
 
 
 class Region(Enum):
@@ -65,6 +70,7 @@ class Region(Enum):
     FOOTING_LOWER = "footing_lower"  # centroid to base
     PEDESTAL_ARM = "pedestal_arm"  # beam top to the pedestal centre, horizontal
     PEDESTAL = "pedestal"  # H1
+    GIRDER = "girder"  # bearing seat up to a girder level, rigid (0720)
 
 
 BODY_REGIONS = frozenset({Region.BEAM, Region.HAUNCH, Region.COLUMN, Region.COLUMN_BASE, Region.PEDESTAL})
@@ -192,9 +198,30 @@ def _springs(springs: SpringSet, direction: Direction) -> Springs:
     return Springs(kv=springs.Kv, ks=springs.Ks, kr=kr)
 
 
+def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, int, Region]]
+                   ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+    """The girder levels above the bearing seat, numbered first from the top (Example2 11-1, 11-2).
+
+    Sides at the same height share a node; a level at the seat (h1 + h2 = 0) is the seat itself.
+    """
+    seat = next((node for node in nodes if NodeRole.PEDESTAL_TOP in node.roles), nodes[0])
+    levels: dict[Printed, set[NodeRole]] = {}
+    for role, span in ((NodeRole.GIRDER_ORIGIN, pier.spans.origin), (NodeRole.GIRDER_END, pier.spans.end)):
+        levels.setdefault(LENGTH.total((seat.y, span.heights[1], span.heights[2])), set()).add(role)
+    above = sorted((y for y in levels if y != seat.y), key=lambda y: y.value, reverse=True)
+    shift = len(above)
+    added = [Node(number, seat.x, y, frozenset(levels[y])) for number, y in enumerate(above, 1)]
+    moved = [Node(node.number + shift, node.x, node.y, node.roles | frozenset(levels.get(node.y, ()))
+                  if node is seat else node.roles) for node in nodes]
+    chain = [(number, number + 1, Region.GIRDER) for number in range(1, shift)]
+    if shift:
+        chain.append((shift, seat.number + shift, Region.GIRDER))
+    return added + moved, chain + [(start + shift, end + shift, region) for start, end, region in links]
+
+
 def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: FoundationResult,
                 materials: MaterialsResult, direction: Direction, *, column_base_micro_member: bool = False,
-                elastic_regions: Collection[Region] = BODY_REGIONS) -> Frame:
+                elastic_regions: Collection[Region] = BODY_REGIONS, girder_levels: bool = False) -> Frame:
     unknown = set(elastic_regions) - BODY_REGIONS
     if unknown:
         raise ValueError(f"elastic regions need a section: {sorted(region.name for region in unknown)}")
@@ -250,6 +277,8 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
         previous = len(nodes)
         if start:
             links.append((start, previous, region))  # type: ignore[arg-type]  # only the beam top has no region
+    if girder_levels:
+        nodes, links = _girder_levels(pier, nodes, links)
 
     by_number = {node.number: node for node in nodes}
     members = []

@@ -66,6 +66,7 @@ class ActionDirection(Enum):
     DOWNWARD = "downward"  # ↓
     UPWARD = "upward"  # ↑
     TOWARD_ORIGIN = "toward_origin"  # ←
+    TOWARD_W9 = "toward_w9"  # → across the track (0720), +x of the transverse frame
 
 
 class Increment(Enum):
@@ -190,7 +191,8 @@ def _intensity(along: Printed, across: Printed, unit_weight: Printed) -> Intensi
                      value=put(LINE_LOAD, d(along) * d(across) * d(unit_weight) * d(PIER_KH)))
 
 
-def _self_weight(pier: PierInput, reaction: ReactionResult) -> SelfWeightInertia:
+def self_weight_inertia(pier: PierInput, reaction: ReactionResult) -> SelfWeightInertia:
+    """10-8 (3), and 11-8 (8) of 0720: the sizes b × w are the same in both directions."""
     s = pier.substructure
     b, w, gamma = s.b, s.w, s.unit_weight_body
     footing = reaction.self_weight.footing
@@ -213,17 +215,20 @@ def _self_weight(pier: PierInput, reaction: ReactionResult) -> SelfWeightInertia
     )
 
 
-def _toward(value: Printed) -> Printed:
-    """A printed magnitude as a frame component in the direction of the earthquake (exact)."""
-    return Printed(float(EARTHQUAKE * d(value)), value.digits, value.unit)
+def toward(value: Printed, earthquake: Decimal = EARTHQUAKE) -> Printed:
+    """A printed magnitude as a frame component in the direction of the earthquake (±1, exact)."""
+    return Printed(float(earthquake * d(value)), value.digits, value.unit)
 
 
-def _member_loads(frame: Frame, inertia: SelfWeightInertia) -> tuple[MemberLoad, ...]:
-    top, bottom, column = (_toward(i.value) for i in (inertia.beam_top, inertia.beam_bottom, inertia.column))
+def self_weight_loads(frame: Frame, inertia: SelfWeightInertia, earthquake: Decimal = EARTHQUAKE
+                      ) -> tuple[MemberLoad, ...]:
+    """Hw along the beam, the haunch (linear, decision 31), the column with its micro member and the pedestal."""
+    top, bottom, column = (toward(i.value, earthquake) for i in (inertia.beam_top, inertia.beam_bottom,
+                                                                 inertia.column))
     ends = {Region.BEAM: (top, top), Region.HAUNCH: (top, bottom), Region.COLUMN: (column, column),
             Region.COLUMN_BASE: (column, column)}
     if inertia.pedestal is not None:
-        pedestal = _toward(inertia.pedestal.value)
+        pedestal = toward(inertia.pedestal.value, earthquake)
         ends[Region.PEDESTAL] = (pedestal, pedestal)
     return tuple(MemberLoad(member=m.number, start=ends[m.region][0], end=ends[m.region][1])
                  for m in frame.members if m.region in ends)
@@ -244,7 +249,7 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
     train = TopTable(rows=rows, n=put(FORCE, total(row.n for row in rows)), m=put(MOMENT, total(row.m for row in rows)))
     girder = Inertia(kh=put(KH, SEISMIC_KH), forces=reaction.longitudinal.seismic_girder)
     train_inertia = Inertia(kh=put(KH, ADHESION), forces=reaction.longitudinal.seismic_train)
-    self_weight = _self_weight(pier, reaction)
+    self_weight = self_weight_inertia(pier, reaction)
 
     points: dict[SeismicCase, tuple[PointLoad, ...]] = {
         case: tuple(_on_frame(frame, p) for p in longitudinal.basic(basic).points)
@@ -253,14 +258,14 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
         case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in longitudinal.basic(basic).line_loads)
         for case, basic in _FROM_0610.items()}
     points[SeismicCase.TRAIN] = (bearing_point(frame, train.n, train.m),)
-    points[SeismicCase.GIRDER_INERTIA] = (bearing_point(frame, FORCE(0), h=_toward(girder.forces.total)),)
-    points[SeismicCase.TRAIN_INERTIA] = (bearing_point(frame, FORCE(0), h=_toward(train_inertia.forces.total)),)
+    points[SeismicCase.GIRDER_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(girder.forces.total)),)
+    points[SeismicCase.TRAIN_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(train_inertia.forces.total)),)
     points[SeismicCase.SELF_INERTIA] = (
-        point_load(frame, NodeRole.FOOTING_CENTROID, h=_toward(self_weight.footing.force)),)
+        point_load(frame, NodeRole.FOOTING_CENTROID, h=toward(self_weight.footing.force)),)
     basic_cases = tuple(
         SeismicAction(case=case, direction=_KINDS[case][0], increment=_KINDS[case][1], points=points[case],
                       line_loads=lines.get(case, ()),
-                      member_loads=_member_loads(frame, self_weight) if case is SeismicCase.SELF_INERTIA else ())
+                      member_loads=self_weight_loads(frame, self_weight) if case is SeismicCase.SELF_INERTIA else ())
         for case in SeismicCase)
     combination = SeismicCombination(number=1, alpha_f=ALPHA_F, rho_m=RHO_M, direction=ActionDirection.TOWARD_ORIGIN,
                                      cases=tuple(SeismicCase), ground_resistance_type=GROUND_RESISTANCE_TYPE)
@@ -274,5 +279,5 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
 __all__ = [
     "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity", "MemberLoad", "SeismicAction",
     "SeismicCase", "SeismicCombination", "SeismicLongitudinalResult", "SelfWeightInertia",
-    "calculate_seismic_longitudinal",
+    "calculate_seismic_longitudinal", "self_weight_inertia", "self_weight_loads", "toward",
 ]
