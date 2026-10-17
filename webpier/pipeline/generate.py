@@ -95,6 +95,16 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
     return [*reports, *exports, *sidecars], planned
 
 
+def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[Artifact, ...]:
+    """The files a generation with *options* publishes, in publication order; nothing is read or written.
+
+    The editor uses it to check a finished generation against exactly the files the CLI wrote.
+    """
+    selected = registry.select(options.stage)
+    _check_opt_in(options, registry, selected)
+    return tuple(_plan(options, registry, selected)[0])
+
+
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
     results: dict[str, Any] = {}
     for stage_id in registry.closure(selected):

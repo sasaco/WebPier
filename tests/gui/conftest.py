@@ -1,5 +1,6 @@
 """Tk fixtures of the editor tests: a fresh, withdrawn root per test, destroyed afterwards."""
 
+import gc
 import time
 import tkinter as tk
 from pathlib import Path
@@ -35,6 +36,7 @@ def tk_root():
         root.destroy()
     except tk.TclError:
         pass
+    gc.collect()  # finalize this root's images here, not on a worker thread of a later test
     assert not errors, errors
 
 

@@ -57,7 +57,10 @@ class InputEditor:
         self.soil_sheet: Sheet | None = None
         self.view: Any = None  # the rebar or calculation page object
         self.rebar_state: dict[str, Any] = {}  # member, group, direction and selection of the rebar page
-        self._calculation_controller = calculation
+        self.calculation = calculation  # the CalculationController, created by the calculation page when needed
+        self.calculation_status = ""
+        self.calculation_log = ""
+        self.calculation_jrsnap = False
         self.closed = False
         root.title("橋脚 入力データ編集")
         root.geometry("1360x900")
@@ -212,7 +215,7 @@ class InputEditor:
             self.view = RebarPage(self, self.form)
         else:
             from .calculation_page import CalculationPage
-            self.view = CalculationPage(self, self.form, self._calculation_controller)
+            self.view = CalculationPage(self, self.form, self.calculation)
         self.root.update_idletasks()
         self.canvas.yview_moveto(0)
         self.canvas.xview_moveto(0)
@@ -238,6 +241,9 @@ class InputEditor:
 
     def changed(self) -> None:
         dirty = self.dirty
+        if dirty and self.calculation is not None and self.calculation.state == "success":
+            self.calculation.mark_stale()
+            self.calculation_status = "入力が変更されました。表示中のPDFは過去の結果です。再計算してください。"
         self.root.title(f"{'* ' if dirty else ''}橋脚 入力データ編集 — {self.document.path.name}")
         self.path_text.set(str(self.document.path))
         marked = len(self.bindings.problems())
@@ -274,6 +280,9 @@ class InputEditor:
             return False
         self.document = document
         self.soil_selected = 0
+        if self.calculation is not None:
+            self.calculation.mark_stale()
+            self.calculation_status = "入力ファイルを開きました。既存の出力は今回の入力の結果ではありません。"
         self.render()
         self.status.set("入力を読み込みました")
         return True
