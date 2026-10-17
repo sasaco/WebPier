@@ -16,7 +16,7 @@
 ## 文言と構成
 
 - 帳票の見出し・項目名・文言は帳票側に置く。calc の結果は英語名だけを持ち、文言を持たない。
-- 段階ごとの組版は `webpier/reporting/stages/<段階>.py`。1ファイルが大きくなる場合は、図・表・本文で分ける。
+- 段階ごとの組版は `webpier/reporting/stages/` の段階の内容名のモジュール（`foundation.py`・`reaction/`・`longitudinal.py` など）。1ファイルが大きくなる場合は、図・表・本文で分ける。
 - 汎用の組版機能が足りなければ GridLayoutPdf に追加する（CLAUDE.md）。WebPier 側で回避しない。
 
 ## 決定性とテスト

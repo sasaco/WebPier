@@ -34,7 +34,7 @@ SECTION_TYPE = 1  # the one element type; every load case uses it
 RIGID = {"E": 26_500_000, "A": 1000, "Iz": 1000}  # Example2 element 2 "剛域": a finite stiffness, not a tie
 XP = 1e-5  # Example2: Xp of every section
 LL_PITCH = 0.1  # Example2: moving-load pitch, unused by a static case
-RATE = 1  # Example2: the load-case multiplier
+RATE = 1  # as Example2 writes it; FrameWebforCS does not pass it to the solver (README FrameWeb)
 RIGID_NAME = "剛域"
 REGION_NAMES = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端",
                 Region.PEDESTAL: "桁受け"}

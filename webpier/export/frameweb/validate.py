@@ -1,7 +1,6 @@
 """The native rules of the FrameWeb input that WebPier writes (2D frame, static load cases).
 
-The rules are those of the format of the Example2 FrameWeb file and of FrameWeb's behaviour (README 線路方向の
-FrameWeb入力): a spring value 1 means a fixed support and 0 a free one, so springs are positive and not 1;
+The rules are those of the format of the Example2 FrameWeb file and of FrameWeb's behaviour (README FrameWeb): a spring value 1 means a fixed support and 0 a free one, so springs are positive and not 1;
 member rows without a load are rejected (unsupported mark); member load intensities are projected to 0.01; a
 load case without rows is skipped, so a Combine with only such cases is dropped and its Pickup fails, and a
 Define that has both empty and loaded candidates changes its envelope; the Combine grid shows 50 Define

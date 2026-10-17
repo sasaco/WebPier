@@ -1,6 +1,6 @@
 # WebPier 計算書の体裁契約
 
-2026-10-17、承認済み `pier-report-grid-migration` の Step 2。これは **体裁の独立測定値** であり、見本の数値・計算式・ケース数を WebPier の計算仕様に採用する文書ではない。全6帳票のページ数は内容に応じて変わる。旧0710の3頁、0720の4頁、見本の白紙頁は拘束しない。
+2026-10-17 に見本から測定した **体裁の独立測定値** であり、見本の数値・計算式・ケース数を WebPier の計算仕様に採用する文書ではない。全6帳票のページ数は内容に応じて変わり、見本の頁数や白紙頁は拘束しない。
 
 ## 根拠と再測定
 
@@ -9,10 +9,8 @@
 原本のSHA-256は各fixtureに保存し、検査時に再確認する。測定器は `scripts/reporting_appearance.py`、抽出器は PyMuPDF 1.28.2。原本を変更・再保存せず、製品コードや新しいbuilderをimportしない。
 
 ```powershell
-$webpierRoot = '.'
-$referenceRoot = '.claude/docs/Example橋脚/output'
-& "$webpierRoot/.venv/Scripts/python.exe" -X utf8 "$webpierRoot/scripts/reporting_appearance.py" $referenceRoot "$webpierRoot/tests/fixtures/reporting/appearance/reference-census.json"
-& "$webpierRoot/.venv/Scripts/python.exe" -X utf8 "$webpierRoot/scripts/reporting_appearance.py" $referenceRoot "$webpierRoot/tests/fixtures/reporting/appearance/reference-style.json" --style
+uv run --project "." --locked python -X utf8 "./scripts/reporting_appearance.py" ".claude/docs/Example橋脚/output" "./tests/fixtures/reporting/appearance/reference-census.json"
+uv run --project "." --locked python -X utf8 "./scripts/reporting_appearance.py" ".claude/docs/Example橋脚/output" "./tests/fixtures/reporting/appearance/reference-style.json" --style
 ```
 
 このコマンドは原本測定の再現用。新PDFから期待値を作り直す用途には使わない。
@@ -85,4 +83,4 @@ A4の595×842ptに対し、全体フレーム **(48,72)-(576,792)** と基線off
 
 `tests/reporting/test_report_appearance.py` は全69頁のfixture被覆、原本hash/再測定一致、書体face・サイズ・インデント・等号・添字基線・白黒・表行高の検査器と負例を検証する。実装側は新PDFから該当する意味役割を選び、`role_errors` / `table_errors` / `monochrome_errors` へ渡す。生成traceを期待座標として渡さない。
 
-この担当で個別目視した代表頁: 0500p1、0600p1/p3/p13/p16/p37、0610p2/p10、0620p14/p15/p16/p17（12頁）。既存調査では0610p8も白紙目視済み。全69頁は寸法・文字・罫線・グレースケールrender白紙判定まで棚卸ししたが、全69頁の詳細目視を完了したとは主張しない。移行後の全6帳票・全頁通常/検査PDFの検証は実装/統合担当の後続ゲートであり、この測定完了では代替しない。
+測定時に個別目視した代表頁は 0500p1、0600p1/p3/p13/p16/p37、0610p2/p10、0620p14/p15/p16/p17（12頁）と、白紙の0610p8。全69頁は寸法・文字・罫線・グレースケールrender白紙判定まで棚卸ししたが、全頁の詳細目視ではない。新しい帳票は `tests/reporting/test_*_pdf.py` がこれらの検査器で確かめる。

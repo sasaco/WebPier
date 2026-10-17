@@ -1,7 +1,7 @@
 """The NDU model laid out as JRSNAP 5.2-L03 records, in the order the native reader consumes them.
 
-The record set and order are those JRSNAP 5.2-L03 saves (header 5.2.3.S.4; recorded in .claude/docs/research/
-webpier-longitudinal-ndu-field-map.md and confirmed against the Example2 NDU files for the shared records). The
+The record set and order are those JRSNAP 5.2-L03 saves (header 5.2.3.S.4; recorded in README JRSNAP and
+confirmed against the Example2 NDU files for the shared records). The
 inactive records are written with their native initial values: no pile, no slope ground, no linked foundation
 check, no soil-analysis link, no displacement link, no section check (Sesf), display settings as initialised.
 ``Tisou=`` must be present even with TishouNum=0. A field is a number, BLANK (one space: not set), EMPTY (no

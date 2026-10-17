@@ -1,7 +1,7 @@
 """NDU bytes: CP932 / CRLF, the native record layout, and the records equal to the Example2 NDU files.
 
 The Example2 files are JRSNAP 5.1.10 saves; 5.2-L03 adds fields at the end of DataInfo, SectInfo, SectSafe and
-FootInfo (recorded in .claude/docs/research/webpier-longitudinal-ndu-field-map.md), so those are compared on the
+FootInfo (recorded in README JRSNAP), so those are compared on the
 5.1 fields. Records that differ on purpose: Virsion; MemberNum and the member blocks (one native member per
 element here, two grouped members there); SectTitle / NonLinInfo1 titles; FootInfo Df and γ2 (derived); the
 linked foundation check, soil link, ground layers and NDTPath (inactive here); the loads listed in

@@ -8,7 +8,7 @@ displacement) are inputs of each direction (decision 40), not profile values.
 
 Sources of the fixed settings: the Example2 NDU files saved by JRSNAP (.claude/docs/Example橋脚2/10_線路(耐震)/
 線路方向_朝里川温泉P1.ndu, 11_直角(耐震)/直角方向_朝里川温泉P1.ndu: DataInfo, SectSafe, the load titles) and the
-JRSNAP 5.2-L03 manual as recorded in .claude/docs/research/webpier-longitudinal-ndu-field-map.md (the rigid
+JRSNAP 5.2-L03 manual (.claude/agents/jrsnap-operator/JRSNAP_Ver5.2-L03/JRSNAP_操作説明書.pdf, README JRSNAP; the rigid
 region 1000 m2 / 1000 m4 / 25 kN/mm2, p.144-145; Es = 200 kN/mm2; KR2 = 2 and the final slope 1/20 of the
 direct-foundation rotational spring, p.155; GBVO = 1.3 added by 5.2).
 """
