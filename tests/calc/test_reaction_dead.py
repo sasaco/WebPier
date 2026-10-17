@@ -41,9 +41,9 @@ def test_example2_08_snow_and_dead_on_the_pier():
     assert dead.end.pier.d2.value == top["additional_dead_top"]["RC"]["N"]
 
 
-def test_superstructure_dead_is_d1_plus_d2_of_both_pier_supports():
-    # DU of the pier impact reduction: 5740 + 520 + 1860 + 260.
-    assert calculate_dead(pier()).superstructure.value == 8380.0
+def test_no_superstructure_dead_for_a_pier_impact():
+    # Decision 27: DU served only the pier impact reduction, which is removed.
+    assert not hasattr(calculate_dead(pier()), "superstructure")
 
 
 def test_printed_digits_and_units():
@@ -80,7 +80,6 @@ def test_a_side_without_bearings_carries_nothing():
     assert dead.end.bearings == ()
     assert loads(dead.end.pier) == (0.0,) * 5
     assert dead.end.track_total.value == 0.0
-    assert dead.superstructure.value == 5740 + 520
 
 
 def test_the_double_share_is_l1_plus_l2_and_no_third_track_is_carried():
@@ -96,4 +95,3 @@ def test_far_supports_are_the_entered_totals():
                                   "上部工反力/終点側/D支点/雪荷重_30年確率": 0.0}))
     assert dead.origin.far.d1.value == -5.0
     assert dead.end.far.snow30.value == 0.0
-    assert dead.superstructure.value == 8380.0  # A and D do not rest on the pier

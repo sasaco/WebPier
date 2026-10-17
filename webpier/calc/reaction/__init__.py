@@ -21,7 +21,7 @@ from .transverse import TransverseResult, calculate_transverse
 class ReactionResult:
     dead: DeadResult  # dead and snow loads at A..D, bearing shares, track totals
     self_weight: SelfWeightResult  # pier parts, soil, buoyancy, pier-bottom and footing-centre aggregates
-    train: TrainResult  # train loading, impact tables, pier impact, seismic train
+    train: TrainResult  # train loading, girder impact tables, seismic train
     longitudinal: LongitudinalResult  # forces on the girders and at the bearings on this pier
     transverse: TransverseResult  # transverse forces, heights and moments at B and C
 
@@ -30,7 +30,7 @@ def calculate_reaction(pier: PierInput) -> ReactionResult:
     try:
         dead = calculate_dead(pier)
         self_weight = calculate_self_weight(pier)
-        train = calculate_train(pier, dead, self_weight)
+        train = calculate_train(pier, dead)
         return ReactionResult(
             dead=dead, self_weight=self_weight, train=train,
             longitudinal=calculate_longitudinal(pier, dead, train),

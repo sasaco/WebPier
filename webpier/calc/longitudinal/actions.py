@@ -1,9 +1,10 @@
 """0610 basic actions on the longitudinal frame (Example2 08 pp.8-3 to 8-9).
 
 Every action is computed from the printed 0600 and input values (decision 2):
-the girder loads at B and C act at the beam top with the lever −f (origin side)
-and +f (end side) from the column axis; the 0600 pier parts keep their own
-centroids. Footing, soil and water act at the footing centroid, with the lever
+the girder loads at B and C have the lever −f (origin side) and +f (end side)
+from the column axis and act at the bearing seat, the beam top or, with a
+pedestal, the pedestal top (decision 29), where their moment is taken about
+the seat. The 0600 pier parts act at the beam top with their own centroids. Footing, soil and water act at the footing centroid, with the lever
 from the footing centre (0600). Tables print N and M to 2 decimals and the
 lever to 3; every moment is N × lever of its own row and every total is the
 sum of the printed rows (ADR-0003).
@@ -21,7 +22,7 @@ from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, poin
 from ..reaction import ReactionResult
 from ..reaction.longitudinal import LongitudinalCase
 from ..reaction.self_weight import Body
-from ..reaction.train import PierImpact
+from ..reaction.train import GirderImpact
 
 
 class Item(Enum):
@@ -86,7 +87,7 @@ class Trains:
 class ImpactRow:
     item: Item
     train: Printed  # train load of the support
-    coefficient: Printed  # 0600 pier impact coefficient
+    coefficient: Printed  # 0600 girder impact coefficient (07 7-2)
     n: Printed  # train × coefficient
     arm: Printed
     m: Printed
@@ -104,11 +105,11 @@ class ImpactTable:
 
 @dataclass(frozen=True)
 class Impacts:
-    """Impact on the pier body (decision C05: the 0600 pier coefficients, RC標準 解4.4.4)."""
+    """Impact with the girder coefficients as they are (decision 26, Example2 8-5)."""
 
     ultimate_single: ImpactTable  # safety and restorability coefficients: basic case 11
-    ultimate_double: ImpactTable  # basic case 12
-    service_single: ImpactTable  # serviceability coefficients, the 0.75 included
+    ultimate_double: ImpactTable  # i × (1 − L/200): basic case 12
+    service_single: ImpactTable  # serviceability coefficients, 0.75 i (07 7-2)
     service_double: ImpactTable
 
 
@@ -211,15 +212,26 @@ def _body(item: Item, body: Body) -> Row:
     return _row(item, body.weight, body.x_l)
 
 
-def _impact(train: TopTable, pier: PierImpact) -> ImpactTable:
+def _impact(train: TopTable, origin: GirderImpact, end: GirderImpact, double: bool) -> ImpactTable:
     rows = []
-    for item, support in ((Item.ORIGIN, pier.b), (Item.END, pier.c)):
+    for item, girder in ((Item.ORIGIN, origin), (Item.END, end)):
         load = train.row(item)
-        n = put(FORCE, d(load.n) * d(support.coefficient))
-        rows.append(ImpactRow(item=item, train=load.n, coefficient=support.coefficient, n=n, arm=load.arm,
+        coefficient = girder.double if double else girder.single
+        n = put(FORCE, d(load.n) * d(coefficient))
+        rows.append(ImpactRow(item=item, train=load.n, coefficient=coefficient, n=n, arm=load.arm,
                               m=put(MOMENT, d(n) * d(load.arm))))
     return ImpactTable(rows=tuple(rows), n=put(FORCE, total(row.n for row in rows)),
                        m=put(MOMENT, total(row.m for row in rows)))
+
+
+def bearing_point(frame: Frame, n: Printed, m: Printed = MOMENT(0), h: Printed = FORCE(0)) -> PointLoad:
+    """Bearing loads at the seat; M (about the column axis) moves to the seat as M − N × offset."""
+    seat = frame.bearing_seat
+    offset = frame.bearing_offset
+    if offset.value:
+        m = put(MOMENT, d(m) - d(n) * d(offset))
+    return PointLoad(anchor=NodeRole.PEDESTAL_TOP if NodeRole.PEDESTAL_TOP in seat.roles else NodeRole.CAP_TOP,
+                     node=seat.number, n=n, h=h, m=m)
 
 
 def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
@@ -244,23 +256,31 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     single = _table(_bearings(train.loading.rb, train.loading.rc, arms))
     double = _table(_bearings(put(FORCE, d(train.loading.rb) * d(dead.origin.track_total)),
                               put(FORCE, d(train.loading.rc) * d(dead.end.track_total)), arms))
+    ultimate, service = train.ultimate, train.service
     impact = Impacts(
-        ultimate_single=_impact(single, train.pier_ultimate.single),
-        ultimate_double=_impact(double, train.pier_ultimate.double),
-        service_single=_impact(single, train.pier_service.single),
-        service_double=_impact(double, train.pier_service.double))
+        ultimate_single=_impact(single, ultimate.origin_impact, ultimate.end_impact, double=False),
+        ultimate_double=_impact(double, ultimate.origin_impact, ultimate.end_impact, double=True),
+        service_single=_impact(single, service.origin_impact, service.end_impact, double=False),
+        service_double=_impact(double, service.origin_impact, service.end_impact, double=True))
     bearing_cases = {basic: reaction.longitudinal.case(case) for basic, case in HORIZONTAL_CASES.items()}
     horizontal = tuple(HorizontalRow(case=c.case, origin=c.origin.force, end=c.end.force, total=c.total)
                        for c in bearing_cases.values())
 
     def top(n: Printed, m: Printed) -> PointLoad:
-        return point_load(frame, NodeRole.CAP_TOP, n=n, m=m)
+        return bearing_point(frame, n, m)
 
     def footing(row: Row) -> PointLoad:
         return point_load(frame, NodeRole.FOOTING_CENTROID, n=row.n, m=row.m)
 
+    if frame.bearing_seat.number == frame.node(NodeRole.CAP_TOP).number:
+        d1: tuple[PointLoad, ...] = (point_load(frame, NodeRole.CAP_TOP, n=fixed.n, m=fixed.m),)
+    else:  # the bearings on the pedestal; the pier parts, less the column-line overlap, at the beam top
+        bearings, body = table.rows[:2], table.rows[2:]
+        d1 = (bearing_point(frame, put(FORCE, total(r.n for r in bearings)), put(MOMENT, total(r.m for r in bearings))),
+              point_load(frame, NodeRole.CAP_TOP, n=put(FORCE, total(r.n for r in body) - d(q) * d(overlap)),
+                         m=put(MOMENT, total(r.m for r in body))))
     points: dict[BasicCase, tuple[PointLoad, ...]] = {
-        BasicCase.D1: (top(fixed.n, fixed.m), footing(fixed.footing)),
+        BasicCase.D1: (*d1, footing(fixed.footing)),
         BasicCase.D2: (top(additional.table.n, additional.table.m), footing(additional.soil)),
         BasicCase.BUOYANCY_HIGH: (footing(buoyancy[0]),),
         BasicCase.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
@@ -274,7 +294,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
         BasicCase.IMPACT_DOUBLE: (top(impact.ultimate_double.n, impact.ultimate_double.m),),
     }
     for basic, forces in bearing_cases.items():
-        points[basic] = (point_load(frame, NodeRole.CAP_TOP, h=forces.total),)
+        points[basic] = (bearing_point(frame, FORCE(0), h=forces.total),)
     basic_cases = tuple(
         BasicAction(case=case, spring=SpringTerm.SHORT if case in _SHORT_TERM else SpringTerm.LONG,
                     points=points[case],
@@ -285,4 +305,5 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 
 
 __all__ = ["Actions", "AdditionalDead", "BasicAction", "BasicCase", "FixedDead", "HorizontalRow", "ImpactRow",
-           "ImpactTable", "Impacts", "Item", "Row", "SpringTerm", "TopTable", "Trains", "calculate_actions"]
+           "ImpactTable", "Impacts", "Item", "Row", "SpringTerm", "TopTable", "Trains", "bearing_point",
+           "calculate_actions"]

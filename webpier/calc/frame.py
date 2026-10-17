@@ -14,7 +14,8 @@ inclined and the springs stay at the centre of the base they belong to.
 
 Example2 gives the beam, haunch and column the column section (8-2 / 9-2
 print only the column) and makes the footing rigid. A pedestal (H1 > 0) is a
-B3 × W3 stub on the beam top at its own centre, joined by a rigid arm.
+B3 × W3 stub on the beam top at its own centre, joined by a rigid arm; the
+bearing loads act at its top (decision 29), so the frame carries H × H1.
 
 0710 cuts a 0.010 m micro member from the bottom of the column (CONTEXT.md
 柱下端の微小部材) and makes the rest rigid; ``column_base_micro_member`` and
@@ -132,6 +133,16 @@ class Frame:
             if role in node.roles:
                 return node
         raise KeyError(role)
+
+    @property
+    def bearing_seat(self) -> Node:
+        """Where the bearing loads act (decision 29): the pedestal top, or the beam top without a pedestal."""
+        return self.node(NodeRole.PEDESTAL_TOP if self.pedestal_section is not None else NodeRole.CAP_TOP)
+
+    @property
+    def bearing_offset(self) -> Printed:
+        """x of the bearing seat from the beam-top node: shifts a lever from the column axis to the seat."""
+        return put(LENGTH, d(self.bearing_seat.x) - d(self.node(NodeRole.CAP_TOP).x))
 
     @property
     def column_line(self) -> tuple[Member, ...]:

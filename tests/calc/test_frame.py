@@ -182,6 +182,9 @@ def test_pedestal_with_offset():
     assert (transverse.width.value, transverse.depth.value) == (1.0, 7.0)
     assert Decimal(repr(transverse.inertia.value)) == q(D(1.0) * D(7.0) ** 3 / 12, 5)  # 28.58333
     assert [m.number for m in result.column_line] == [1, 2, 3]  # the pedestal is not on the column line
+    # Decision 29: the bearings sit on the pedestal top.
+    assert result.bearing_seat is top
+    assert result.bearing_offset.value == -0.35  # pedestal top from the beam-top node
 
 
 def test_centred_pedestal_shares_the_cap_top_node():
@@ -191,10 +194,13 @@ def test_centred_pedestal_shares_the_cap_top_node():
     assert result.members[-1].region is Region.PEDESTAL
     assert Region.PEDESTAL_ARM not in {m.region for m in result.members}
     assert (result.members[-1].start, result.members[-1].end) == (1, 7)
+    assert result.bearing_seat.number == 7 and result.bearing_offset.value == 0.0
 
 
 def test_no_pedestal_without_h1():
     result = frame(dims(B2=0.5, B3=1.0, W3=7.0))
+    assert result.bearing_seat is result.node(NodeRole.CAP_TOP)  # H1 = 0: the bearings sit on the beam top
+    assert result.bearing_offset.value == 0.0
     assert result.pedestal_section is None
     with pytest.raises(KeyError):
         result.node(NodeRole.PEDESTAL_TOP)

@@ -51,7 +51,6 @@ class GirderDead:
 class DeadResult:
     origin: GirderDead
     end: GirderDead
-    superstructure: Printed  # DU = D1 + D2 at B and C: girder dead load on the pier (RC標準 解4.4.4)
 
 
 def _far(end: EndReaction) -> SupportLoads:
@@ -75,5 +74,4 @@ def calculate_dead(pier: PierInput) -> DeadResult:
     reactions = pier.reactions
     origin = _girder(reactions.a, reactions.b)
     end = _girder(reactions.d, reactions.c)
-    superstructure = put(FORCE, total((origin.pier.d1, origin.pier.d2, end.pier.d1, end.pier.d2)))
-    return DeadResult(origin=origin, end=end, superstructure=superstructure)
+    return DeadResult(origin=origin, end=end)

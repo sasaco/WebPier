@@ -104,19 +104,20 @@ def test_combination_1_by_hand():
     assert [(p.n.value, p.m.value) for p in d2.points] == [(936.0, 7.8), (2196.72, 0.0)]
     train = combination.component(B.TRAIN_DOUBLE).points[0]
     assert (train.n.value, train.m.value) == (1531.95, 298.39)  # 1.35 × 1134.78 = 1531.953; 1.35 × 221.03 = 298.3905
-    assert combination.component(B.IMPACT_DOUBLE).basis is Basis.BASIC  # ultimate pier impact × 1.35
+    assert combination.component(B.IMPACT_DOUBLE).basis is Basis.BASIC  # girder impact × 1.35
     rail = combination.component(B.SAFETY_LR10_B).points[0]
     assert (rail.n.value, rail.h.value, rail.m.value) == (0.0, 473.43, 0.0)
 
 
-def test_serviceability_impact_comes_from_the_service_pier_impact():
+def test_serviceability_impact_comes_from_the_serviceability_girder_coefficient():
     result = longitudinal()
     for number, case, impact in ((5, B.IMPACT_DOUBLE, result.impact.service_double),
                                  (7, B.IMPACT_SINGLE, result.impact.service_single),
                                  (15, B.IMPACT_SINGLE, result.impact.service_single),
                                  (16, B.IMPACT_SINGLE, result.impact.service_single)):
         component = result.combinations[number - 1].component(case)
-        # The printed 0.75 = ρ × 0.75 is already in the 0600 service coefficient; only ρ (1.00) remains.
+        # The printed 0.75 = ρ × 0.75 is already in the 0600 serviceability girder coefficient
+        # (07 7-2: 0.245 × 0.75 = 0.184); only ρ (1.00) remains.
         assert (component.nominal.value, component.factor.value, component.basis) == (0.75, 1.0, Basis.SERVICE_IMPACT)
         assert (component.points[0].n, component.points[0].m) == (impact.n, impact.m)
 

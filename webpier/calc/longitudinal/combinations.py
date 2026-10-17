@@ -4,11 +4,12 @@ The table holds the nominal coefficients as printed. Each combination is also
 resolved into actions (README 用途別解決): a component is its factor times the
 printed basic action, every N, H, M and q rounded once to its digits.
 
-The impact differs by use (decision C05): the basic I (cases 11, 12) uses the
-0600 pier coefficients of safety and restorability, so in those combinations
-the factor is the nominal coefficient (1.23, 1.35). The serviceability 0.75 is
-already in the 0600 serviceability coefficient, so there the serviceability
-pier impact is taken and only ρ remains (nominal 0.75 = ρ × 0.75).
+The impact differs by use: the basic I (cases 11, 12) uses the girder impact
+coefficients of safety and restorability (decision 26), so in those
+combinations the factor is the nominal coefficient (1.23, 1.35). The
+serviceability 0.75 is already in the 0600 serviceability girder coefficient
+(07 7-2: 0.245 -> 0.184), so there the serviceability impact is taken and only
+ρ remains (nominal 0.75 = ρ × 0.75).
 
 Factors derived from the load factors ρ are printed with 2 decimals, like the
 0600 effective factors (07 7-7: 1.231 × 1.1 = 1.3541 -> 1.35).
@@ -24,8 +25,8 @@ from enum import Enum
 from ...core.printed import FORCE, LINE_LOAD, MOMENT, Precision, Printed
 from ...inputs import PierInput
 from .._exact import d, put
-from ..frame import Frame, LineLoad, NodeRole, PointLoad, point_load
-from .actions import BasicAction, BasicCase, ImpactTable, Impacts
+from ..frame import Frame, LineLoad, PointLoad
+from .actions import BasicAction, BasicCase, ImpactTable, Impacts, bearing_point
 
 FACTOR = Precision(2, "")  # factors from the load factors ρ (8-10: 1.35, 1.23, 0.75)
 CONSTANT = Precision(1, "")  # fixed factors (8-10: 1.0, 1.1, 1.2)
@@ -74,7 +75,7 @@ class ExtractionGroup(Enum):
 
 class Basis(Enum):
     BASIC = "basic"  # the basic action of the case
-    SERVICE_IMPACT = "service_impact"  # the serviceability pier impact instead of the basic I
+    SERVICE_IMPACT = "service_impact"  # the serviceability impact instead of the basic I
 
 
 @dataclass(frozen=True)
@@ -201,7 +202,7 @@ def _resolve(basic: BasicAction, nominal: Printed, usage: Usage, service_impacts
     if usage is Usage.SERVICE and basic.case in service_impacts:
         basis, factor = Basis.SERVICE_IMPACT, factors.service
         impact = service_impacts[basic.case]
-        points: tuple[PointLoad, ...] = (point_load(frame, NodeRole.CAP_TOP, n=impact.n, m=impact.m),)
+        points: tuple[PointLoad, ...] = (bearing_point(frame, impact.n, impact.m),)
         lines: tuple[LineLoad, ...] = ()
     else:
         basis, factor, points, lines = Basis.BASIC, nominal, basic.points, basic.line_loads

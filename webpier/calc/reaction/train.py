@@ -1,8 +1,8 @@
-"""0600 train loads: moving-load reactions, impact on the girders and on the pier, seismic train.
+"""0600 train loads: moving-load reactions, impact on the girders, seismic train.
 
 Example2 07 7-1/7-2 print the reactions (kN, 2 decimals), the load factors ρf
-and the impact coefficients (3 decimals). The pier impact follows RC標準 解4.4.4
-as in the 0600 sheet: i = i0 (1 − Ds / (L + DU + Ds)) at the column bottom.
+and the impact coefficients (3 decimals). The later stages use these girder
+coefficients as they are (decision 26); no pier reduction is computed (decision 27).
 """
 
 from __future__ import annotations
@@ -14,10 +14,9 @@ from ...core.errors import InputError
 from ...core.printed import COEFFICIENT, FORCE, LENGTH, Printed
 from ...inputs import PierInput
 from ...inputs.model import Span
-from .._exact import d, put, total
+from .._exact import d, put
 from ..moving_load import MovingLoadResult, search_reactions
 from .dead import DeadResult, GirderDead
-from .self_weight import SelfWeightResult
 
 IMPACT = COEFFICIENT  # impact coefficient i (07 7-2)
 SERVICE_RATIO = Decimal("0.75")  # serviceability and fatigue use 3/4 of the impact (07 7-2: 0.245 -> 0.184)
@@ -62,22 +61,6 @@ class GroupTrain:
 
 
 @dataclass(frozen=True)
-class PierImpact:
-    """Impact on the pier body for one load group and track case."""
-
-    train_total: Printed  # L = L_B + L_C
-    b: SupportTrain  # coefficient i = i0 (1 − Ds / (L + DU + Ds))
-    c: SupportTrain
-    impact_total: Printed  # I_B + I_C
-
-
-@dataclass(frozen=True)
-class PierImpactGroup:
-    single: PierImpact
-    double: PierImpact
-
-
-@dataclass(frozen=True)
 class SeismicTrain:
     """Seismic train reactions, one track, without shares (07 7-2)."""
 
@@ -94,10 +77,6 @@ class TrainResult:
     ultimate: GroupTrain  # safety (failure) and restorability
     service: GroupTrain  # serviceability
     fatigue: GroupTrain  # safety (fatigue)
-    pier_weight: Printed  # Ds: pier-bottom weight (self weight)
-    superstructure_dead: Printed  # DU: D1 + D2 on the pier
-    pier_ultimate: PierImpactGroup
-    pier_service: PierImpactGroup
     seismic: SeismicTrain
 
 
@@ -132,18 +111,7 @@ def _group(factor: Printed, loading: MovingLoadResult, origin: GirderDead, end: 
     )
 
 
-def _pier(track: TrackTrain, ds: Printed, du: Printed) -> PierImpact:
-    train_total = put(FORCE, total((track.b.load, track.c.load)))
-    denominator = d(train_total) + d(du) + d(ds)
-    if denominator == 0:
-        raise InputError("0600 橋脚く体の衝撃: 低減式の分母 L + DU + Ds が0になります（死荷重の入力を確認）")
-    factor = 1 - d(ds) / denominator
-    b = _support(track.b.load, put(IMPACT, d(track.b.coefficient) * factor))
-    c = _support(track.c.load, put(IMPACT, d(track.c.coefficient) * factor))
-    return PierImpact(train_total=train_total, b=b, c=c, impact_total=put(FORCE, total((b.impact, c.impact))))
-
-
-def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightResult) -> TrainResult:
+def calculate_train(pier: PierInput, dead: DeadResult) -> TrainResult:
     t, spans = pier.train, pier.spans
     loading = search_reactions(spans.origin, spans.end, axle_load=t.axle_load, cars=t.cars,
                                car_length=t.car_length, a1=t.a1, a2=t.a2)
@@ -156,9 +124,6 @@ def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightRe
         "service": _group(t.factor_service, loading, dead.origin, dead.end, (service[0], service[1])),
         "fatigue": _group(t.factor_fatigue, loading, dead.origin, dead.end, (service[0], service[1])),
     }
-    ds, du = self_weight.pier_bottom.weight, dead.superstructure
-    pier_groups = {name: PierImpactGroup(_pier(groups[name].single, ds, du), _pier(groups[name].double, ds, du))
-                   for name in ("ultimate", "service")}
     lengths = (girder_length(spans.origin), girder_length(spans.end))
     seismic = SeismicTrain(
         line_load=t.earthquake_load, origin_length=lengths[0], end_length=lengths[1],
@@ -167,6 +132,5 @@ def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightRe
     return TrainResult(
         loading=loading,
         ultimate=groups["ultimate"], service=groups["service"], fatigue=groups["fatigue"],
-        pier_weight=ds, superstructure_dead=du,
-        pier_ultimate=pier_groups["ultimate"], pier_service=pier_groups["service"], seismic=seismic,
+        seismic=seismic,
     )

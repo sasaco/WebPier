@@ -91,36 +91,59 @@ def hand_impact(train, coefficient, arm):
     return n, q(n * D(arm), 2)
 
 
+def test_8_5_single_track_impact_with_the_girder_coefficients():
+    # Decision 26: the girder impact coefficients as they are (8-5: 0.245 / 0.546), no pier reduction.
+    rows = table("impact_load", "single_track")
+    impact = longitudinal().impact.ultimate_single
+    rb, rc = impact.row(Item.ORIGIN), impact.row(Item.END)
+    assert [rb.train.value, rb.coefficient.value, rb.arm.value] == [rows["RB"][0], rows["RB"][1], rows["RB"][3]]
+    assert [rc.train.value, rc.coefficient.value, rc.n.value, rc.arm.value] == rows["RC"][:4]  # 161.03
+    # 8-5 prints 66.75 and −21.70 from a hidden reaction below 272.47. From the printed operands:
+    # 272.47 × 0.245 = 66.75515 -> 66.76; 66.76 × −0.325 = −21.697 -> −21.70 (8-5 −21.70).
+    assert (rb.n.value, rb.m.value) == (66.76, -21.7)
+    assert rows["RB"][2] == 66.75
+    # 161.03 × 0.675 = 108.69525 -> 108.70 (8-5 108.69 from the unrounded 161.026).
+    assert rc.m.value == 108.7 and rows["RC"][4] == 108.69
+    # Totals 66.76 + 161.03 = 227.79, −21.70 + 108.70 = 87.00 (8-5: 227.78 / 86.99).
+    assert [impact.n.value, impact.m.value] == [227.79, 87.0]
+    assert [rows["total"][2], rows["total"][4]] == [227.78, 86.99]
+
+
+def test_8_5_double_track_impact_with_the_girder_coefficients():
+    rows = table("impact_load", "double_track")
+    impact = longitudinal().impact.ultimate_double
+    rb, rc = impact.row(Item.ORIGIN), impact.row(Item.END)
+    # Train 544.94 (see 8-4 above; 8-5 prints 544.93). 544.94 × 0.222 = 120.97668 -> 120.98 as printed.
+    assert [rb.train.value, rb.coefficient.value, rb.n.value, rb.arm.value, rb.m.value] == [
+        544.94, 0.222, 120.98, -0.325, -39.32]
+    assert rows["RB"][1:] == [0.222, 120.98, -0.325, -39.32]
+    assert [rc.train.value, rc.coefficient.value, rc.n.value, rc.arm.value, rc.m.value] == rows["RC"]
+    # 120.98 + 307.31 = 428.29 (8-5 prints 428.28, the sum of unrounded parts); M 168.11 as printed.
+    assert [impact.n.value, impact.m.value] == [428.29, rows["total"][4]]
+    assert rows["total"][2] == 428.28
+
+
 @pytest.mark.parametrize("usage,track", [("ultimate", "single"), ("ultimate", "double"),
                                          ("service", "single"), ("service", "double")])
-def test_impact_uses_the_0600_pier_coefficients(usage, track):
-    # Decision C05 (longitudinal-example2-parity.md, owner-approved): the pier impact of 0600 (RC標準 解4.4.4,
-    # i = i0 (1 − Ds/(L + DU + Ds))) is used, not the girder coefficients of Example2 8-5 (0.245 / 0.546 single,
-    # 0.222 / 0.521 double, which give 66.75 / 161.03 and 120.98 / 307.31). The service group carries 0.75 in it.
+def test_impact_is_the_train_times_the_0600_girder_coefficient(usage, track):
+    # Safety/restorability: 07 7-2 i as entered (single) and i × (1 − L/200) (double);
+    # serviceability: 3/4 of them (07 7-2: 0.184 / 0.41, 0.167 / 0.391).
     _, reaction, result = chain()
     impact = getattr(result.impact, f"{usage}_{track}")
-    pier = getattr(getattr(reaction.train, f"pier_{usage}"), track)
+    group = getattr(reaction.train, usage)
     trains = getattr(result.train, track)
     total_n = total_m = Decimal(0)
-    for item, support in ((Item.ORIGIN, pier.b), (Item.END, pier.c)):
-        row = impact.row(item)
-        train = trains.row(item)
-        assert row.train == train.n and row.coefficient == support.coefficient and row.arm == train.arm
-        n, m = hand_impact(train.n.value, support.coefficient.value, train.arm.value)
+    for item, girder in ((Item.ORIGIN, group.origin_impact), (Item.END, group.end_impact)):
+        row, train = impact.row(item), trains.row(item)
+        coefficient = getattr(girder, track)
+        assert row.train == train.n and row.coefficient == coefficient and row.arm == train.arm
+        n, m = hand_impact(train.n.value, coefficient.value, train.arm.value)
         assert (value(row.n), value(row.m)) == (n, m)
         total_n, total_m = total_n + n, total_m + m
     assert (value(impact.n), value(impact.m)) == (total_n, total_m)
-
-
-def test_impact_ultimate_single_values():
-    # 0600 pier coefficients of the current input: 0.185 (B), 0.412 (C).
-    impact = longitudinal().impact.ultimate_single
-    assert [impact.row(Item.ORIGIN).coefficient.value, impact.row(Item.END).coefficient.value] == [0.185, 0.412]
-    # 272.47 × 0.185 = 50.40695 -> 50.41, × −0.325 = −16.38325 -> −16.38; 294.92 × 0.412 = 121.50704 -> 121.51,
-    # × 0.675 = 82.019 -> 82.02.
-    assert cells(impact.row(Item.ORIGIN))[0::2] == [50.41, -16.38]
-    assert cells(impact.row(Item.END))[0::2] == [121.51, 82.02]
-    assert [impact.n.value, impact.m.value] == [171.92, 65.64]
+    if usage == "service":
+        assert [impact.row(Item.ORIGIN).coefficient.value, impact.row(Item.END).coefficient.value] == (
+            [0.184, 0.41] if track == "single" else [0.167, 0.391])
 
 
 def test_8_5_horizontal_bearing_loads():
@@ -156,7 +179,7 @@ def test_8_6_to_8_8_load_diagrams_vertical():
     for case, number in ((B.SNOW2, 6), (B.SNOW10, 7), (B.SNOW30, 8), (B.TRAIN_SINGLE, 9)):
         assert points(result.basic(case)) == {CAP: (1, diagram(number)["N"], 0.0, diagram(number)["M"])}
     assert points(result.basic(B.TRAIN_DOUBLE)) == {CAP: (1, 1134.78, 0.0, 221.03)}  # see the double-track test
-    assert points(result.basic(B.IMPACT_SINGLE)) == {CAP: (1, 171.92, 0.0, 65.64)}  # ultimate pier impact (C05)
+    assert points(result.basic(B.IMPACT_SINGLE)) == {CAP: (1, 227.79, 0.0, 87.0)}  # see the 8-5 test
     assert points(result.basic(B.IMPACT_DOUBLE)) == {
         CAP: (1, result.impact.ultimate_double.n.value, 0.0, result.impact.ultimate_double.m.value)}
 
