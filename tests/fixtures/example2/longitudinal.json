@@ -1,0 +1,7674 @@
+{
+  "basis": "Independently transcribed from the user-provided PDFs; never generated from the application.",
+  "source_pdf": ".claude/docs/Example橋脚2/08_線路.pdf",
+  "chapter": "§8. 線路方向の計算（地震時以外）",
+  "calc_id": "0610 線路方向荷重 (non-seismic)",
+  "pages_covered": "8-1 to 8-32 (all 32 pages)",
+  "conventions": {
+    "value": "printed number converted to JSON number (thousands separators removed)",
+    "digits": "number of decimal places as printed",
+    "cells": "null means printed '-' / '—' / blank; {'text': ...} for non-numeric cells; 'a < b' cells are {'value','compare','limit'}",
+    "formula": "operands listed in printed order (including literal constants like 1/12 and exponents)"
+  },
+  "sections": [
+    {
+      "key": "frame_model",
+      "title": "8.1 検討モデル (1) 骨組図",
+      "page": "8-1",
+      "items": [
+        {
+          "key": "chapter",
+          "label": "章題",
+          "text": "§8. 線路方向の計算（地震時以外）"
+        },
+        {
+          "key": "member1_length",
+          "label": "部材1 (節点1-2) 高さ",
+          "value": 2.0,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "member2_length",
+          "label": "部材2 (節点2-3) 高さ",
+          "value": 0.7,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "member3_length",
+          "label": "部材3 (節点3-4) 高さ",
+          "value": 4.9,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "pier_height_above_footing",
+          "label": "節点1-4 高さ (2.000+0.700+4.900)",
+          "value": 7.6,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "member4_length",
+          "label": "部材4 (節点4-5) 高さ",
+          "value": 1.35,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "member5_length",
+          "label": "部材5 (節点5-6) 高さ",
+          "value": 1.35,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_height",
+          "label": "フーチング高さ (節点4-6)",
+          "value": 2.7,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "column_width",
+          "label": "柱幅（線路方向）",
+          "value": 2.7,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_projection_start",
+          "label": "フーチング張出し（起点側, 上段寸法）",
+          "value": 2.15,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_projection_end",
+          "label": "フーチング張出し（終点側, 上段寸法）",
+          "value": 2.15,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_half_width_start",
+          "label": "フーチング下段寸法 左",
+          "value": 3.0,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_half_width_end",
+          "label": "フーチング下段寸法 右",
+          "value": 3.0,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "footing_width_bottom_dim",
+          "label": "フーチング下段寸法 全幅",
+          "value": 6.0,
+          "digits": 3,
+          "unit": "m",
+          "note": "Conflicts with 2.150+2.700+2.150=7.000 and with B=7.000 on 8-30; see notes."
+        },
+        {
+          "key": "nodes",
+          "label": "節点番号",
+          "text": "1,2,3,4,5,6 (1=橋脚天端, 4=柱基部/フーチング上面, 5=フーチング重心, 6=フーチング底面・ばね支点)"
+        },
+        {
+          "key": "members",
+          "label": "部材番号",
+          "text": "1:節点1-2, 2:節点2-3, 3:節点3-4, 4:節点4-5, 5:節点5-6"
+        },
+        {
+          "key": "bearing_marks",
+          "label": "支承記号",
+          "text": "左（起点側）に M, 右（終点側）に F（丸囲み）"
+        },
+        {
+          "key": "spring_node",
+          "label": "ばね位置",
+          "text": "節点6 に Kr, Kv, Ks"
+        }
+      ],
+      "tables": [
+        {
+          "key": "footing_springs",
+          "title": "フーチング底面のばね（安定計算時）",
+          "page": "8-1",
+          "columns": [
+            {
+              "key": "long_term",
+              "label": "長期",
+              "unit": null
+            },
+            {
+              "key": "short_term",
+              "label": "短期",
+              "unit": null
+            }
+          ],
+          "rows": [
+            {
+              "key": "Kv",
+              "label": "鉛直ばね Kv",
+              "cells": [
+                {
+                  "value": 12788244,
+                  "digits": 0
+                },
+                {
+                  "value": 25576488,
+                  "digits": 0
+                }
+              ],
+              "unit": "kN/m"
+            },
+            {
+              "key": "Ks",
+              "label": "せん断ばね Ks",
+              "cells": [
+                {
+                  "value": 4262769,
+                  "digits": 0
+                },
+                {
+                  "value": 8525475,
+                  "digits": 0
+                }
+              ],
+              "unit": "kN/m"
+            },
+            {
+              "key": "Kr",
+              "label": "回転ばね Kr",
+              "cells": [
+                {
+                  "value": 52218663,
+                  "digits": 0
+                },
+                {
+                  "value": 104437326,
+                  "digits": 0
+                }
+              ],
+              "unit": "kN･m/rad"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "section_properties",
+      "title": "8.1 (2) 部材の断面諸元",
+      "page": "8-2",
+      "items": [
+        {
+          "key": "column_b",
+          "label": "柱 b",
+          "value": 4.5,
+          "digits": 2,
+          "unit": "m"
+        },
+        {
+          "key": "column_h",
+          "label": "柱 h",
+          "value": 2.7,
+          "digits": 2,
+          "unit": "m"
+        },
+        {
+          "key": "column_area",
+          "label": "断面積 A",
+          "formula": "A = b x h",
+          "operands": [
+            4.5,
+            2.7
+          ],
+          "operand_digits": [
+            2,
+            2
+          ],
+          "value": 12.15,
+          "digits": 3,
+          "unit": "m2"
+        },
+        {
+          "key": "column_inertia",
+          "label": "断面二次ﾓｰﾒﾝﾄ I",
+          "formula": "I = 1／12 x b x h^3",
+          "operands": [
+            1,
+            12,
+            4.5,
+            2.7,
+            3
+          ],
+          "operand_digits": [
+            0,
+            0,
+            2,
+            2,
+            0
+          ],
+          "value": 7.38113,
+          "digits": 5,
+          "unit": "m4"
+        },
+        {
+          "key": "footing_rigid",
+          "label": "フーチング",
+          "text": "フーチングはすべて剛域とする"
+        },
+        {
+          "key": "footing_centroid_ye",
+          "label": "断面の重心位置 ye",
+          "value": 1.35,
+          "digits": 3,
+          "unit": "m"
+        },
+        {
+          "key": "fck",
+          "label": "く体 f'ck",
+          "value": 27.0,
+          "digits": 1,
+          "unit": "N/mm2"
+        },
+        {
+          "key": "Ec_mantissa",
+          "label": "く体 Ec（仮数部; Ec = 2.65 x 10^7）",
+          "value": 2.65,
+          "digits": 2,
+          "unit": "x10^7 kN/m2"
+        },
+        {
+          "key": "Ec_exponent",
+          "label": "く体 Ec の指数",
+          "value": 7,
+          "digits": 0,
+          "unit": null
+        }
+      ]
+    },
+    {
+      "key": "dead_load",
+      "title": "8.2 作用の計算 (1) 固定死荷重",
+      "page": "8-3",
+      "items": [
+        {
+          "key": "column_q",
+          "label": "柱 q",
+          "formula": "q = 4.50 × 2.70 × 24.5",
+          "operands": [
+            4.5,
+            2.7,
+            24.5
+          ],
+          "operand_digits": [
+            2,
+            2,
+            1
+          ],
+          "value": 297.68,
+          "digits": 2,
+          "unit": "kN/m"
+        },
+        {
+          "key": "footing_P",
+          "label": "フーチング P",
+          "formula": "P = 24.5 × 7.00 × 9.00 × 2.70",
+          "operands": [
+            24.5,
+            7.0,
+            9.0,
+            2.7
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": 4167.45,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "beam_weight",
+          "label": "はり（橋脚天端に作用する荷重）",
+          "formula": "2.70 × 9.00 × 2.00 × 24.5",
+          "operands": [
+            2.7,
+            9.0,
+            2.0,
+            24.5
+          ],
+          "operand_digits": [
+            2,
+            2,
+            2,
+            1
+          ],
+          "value": 1190.7,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "haunch_weight",
+          "label": "ハンチ（橋脚天端に作用する荷重）",
+          "formula": "2.70 × 2.25 × 0.70 × 24.5",
+          "operands": [
+            2.7,
+            2.25,
+            0.7,
+            24.5
+          ],
+          "operand_digits": [
+            2,
+            2,
+            2,
+            1
+          ],
+          "value": 104.19,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "top_N",
+          "label": "鉛直力 N",
+          "formula": "N = 8894.89 − 297.68 × 2.00",
+          "operands": [
+            8894.89,
+            297.68,
+            2.0
+          ],
+          "operand_digits": [
+            2,
+            2,
+            2
+          ],
+          "value": 8299.53,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "top_M",
+          "label": "ﾓｰﾒﾝﾄ M",
+          "value": -610.0,
+          "digits": 2,
+          "unit": "kN･m"
+        }
+      ],
+      "tables": [
+        {
+          "key": "top_loads",
+          "title": "橋脚天端に作用する荷重",
+          "page": "8-3",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 5740.0,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -1865.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 1860.0,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 1255.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "beam",
+              "label": "はり",
+              "cells": [
+                {
+                  "value": 1190.7,
+                  "digits": 2
+                },
+                {
+                  "value": 0.0,
+                  "digits": 3
+                },
+                {
+                  "value": 0.0,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "haunch",
+              "label": "ハンチ",
+              "cells": [
+                {
+                  "value": 104.19,
+                  "digits": 2
+                },
+                {
+                  "value": 0.0,
+                  "digits": 3
+                },
+                {
+                  "value": 0.0,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 8894.89,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": -610.0,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "superimposed_dead_load",
+      "title": "8.2 (2) 付加死荷重",
+      "page": "8-3",
+      "items": [
+        {
+          "key": "soil_P1",
+          "label": "載荷土 P",
+          "formula": "P = 18.0 × 7.00 × 9.00 × 2.00",
+          "operands": [
+            18.0,
+            7.0,
+            9.0,
+            2.0
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": 2268.0,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "soil_P2",
+          "label": "載荷土 P（柱部分控除）",
+          "formula": "P = -18.0 × 4.50 × 2.70 × 2.00",
+          "operands": [
+            -18.0,
+            4.5,
+            2.7,
+            2.0
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": -437.4,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "soil_sumP",
+          "label": "ΣP",
+          "formula": "ΣP = 2268.00 + (-437.40)",
+          "operands": [
+            2268.0,
+            -437.4
+          ],
+          "operand_digits": [
+            2,
+            2
+          ],
+          "value": 1830.6,
+          "digits": 2,
+          "unit": "kN"
+        }
+      ],
+      "tables": [
+        {
+          "key": "top_loads",
+          "title": "橋脚天端に作用する荷重",
+          "page": "8-3",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 520.0,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -169.0,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 260.0,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 175.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 780.0,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 6.5,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "buoyancy",
+      "title": "8.2 (3) 浮力",
+      "page": "8-3",
+      "items": [
+        {
+          "key": "omega1_high",
+          "label": "高水位 ω1",
+          "formula": "ω1 = -10.0 × 7.00 × 9.00 × 3.78",
+          "operands": [
+            -10.0,
+            7.0,
+            9.0,
+            3.78
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": -2381.4,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "omega2_mean",
+          "label": "平水位 ω2",
+          "formula": "ω2 = -10.0 × 7.00 × 9.00 × 2.70",
+          "operands": [
+            -10.0,
+            7.0,
+            9.0,
+            2.7
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": -1701.0,
+          "digits": 2,
+          "unit": "kN"
+        },
+        {
+          "key": "omega3_low",
+          "label": "低水位 ω3",
+          "formula": "ω3 = -10.0 × 7.00 × 9.00 × 0.00",
+          "operands": [
+            -10.0,
+            7.0,
+            9.0,
+            0.0
+          ],
+          "operand_digits": [
+            1,
+            2,
+            2,
+            2
+          ],
+          "value": 0.0,
+          "digits": 2,
+          "unit": "kN"
+        }
+      ]
+    },
+    {
+      "key": "snow_load",
+      "title": "8.2 (4) 雪荷重",
+      "page": "8-4",
+      "tables": [
+        {
+          "key": "snow_2yr",
+          "title": "1) 2年確率",
+          "page": "8-4",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 460.0,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -149.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 250.0,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 168.75,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 710.0,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 19.25,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "snow_10yr",
+          "title": "2) 10年確率",
+          "page": "8-4",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 740.0,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -240.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 400.0,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 270.0,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 1140.0,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 29.5,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "snow_30yr",
+          "title": "3) 30年確率",
+          "page": "8-4",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 820.0,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -266.5,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 450.0,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 303.75,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 1270.0,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 37.25,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "train_load",
+      "title": "8.2 (5) 列車荷重",
+      "page": "8-4",
+      "tables": [
+        {
+          "key": "single_track",
+          "title": "1) 単線載荷",
+          "page": "8-4",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 272.47,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -88.55,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 294.92,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 199.07,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 567.39,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 110.52,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "double_track",
+          "title": "2) 複線載荷",
+          "page": "8-4",
+          "columns": [
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 544.93,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -177.1,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 589.84,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 398.14,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 1134.77,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 221.04,
+                  "digits": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "impact_load",
+      "title": "8.2 (6) 衝撃荷重",
+      "page": "8-5",
+      "tables": [
+        {
+          "key": "single_track",
+          "title": "1) 単線載荷",
+          "page": "8-5",
+          "columns": [
+            {
+              "key": "train_reaction",
+              "label": "鉛直力（列車荷重）",
+              "unit": "kN"
+            },
+            {
+              "key": "impact_coefficient",
+              "label": "衝撃係数",
+              "unit": null
+            },
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 272.47,
+                  "digits": 2
+                },
+                {
+                  "value": 0.245,
+                  "digits": 3
+                },
+                {
+                  "value": 66.75,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -21.7,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 294.92,
+                  "digits": 2
+                },
+                {
+                  "value": 0.546,
+                  "digits": 3
+                },
+                {
+                  "value": 161.03,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 108.69,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 567.39,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 227.78,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 86.99,
+                  "digits": 2
+                }
+              ]
+            }
+          ],
+          "formula": "鉛直力 = 列車荷重反力 × 衝撃係数"
+        },
+        {
+          "key": "double_track",
+          "title": "2) 複線載荷",
+          "page": "8-5",
+          "columns": [
+            {
+              "key": "train_reaction",
+              "label": "鉛直力（列車荷重）",
+              "unit": "kN"
+            },
+            {
+              "key": "impact_coefficient",
+              "label": "衝撃係数",
+              "unit": null
+            },
+            {
+              "key": "vertical",
+              "label": "鉛直力",
+              "unit": "kN"
+            },
+            {
+              "key": "arm",
+              "label": "アーム",
+              "unit": "m"
+            },
+            {
+              "key": "moment",
+              "label": "ﾓｰﾒﾝﾄ",
+              "unit": "kN･m"
+            }
+          ],
+          "rows": [
+            {
+              "key": "RB",
+              "label": "起点側 RB",
+              "cells": [
+                {
+                  "value": 544.93,
+                  "digits": 2
+                },
+                {
+                  "value": 0.222,
+                  "digits": 3
+                },
+                {
+                  "value": 120.98,
+                  "digits": 2
+                },
+                {
+                  "value": -0.325,
+                  "digits": 3
+                },
+                {
+                  "value": -39.32,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "RC",
+              "label": "終点側 RC",
+              "cells": [
+                {
+                  "value": 589.84,
+                  "digits": 2
+                },
+                {
+                  "value": 0.521,
+                  "digits": 3
+                },
+                {
+                  "value": 307.31,
+                  "digits": 2
+                },
+                {
+                  "value": 0.675,
+                  "digits": 3
+                },
+                {
+                  "value": 207.43,
+                  "digits": 2
+                }
+              ]
+            },
+            {
+              "key": "total",
+              "label": "合計",
+              "cells": [
+                {
+                  "value": 1134.77,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 428.28,
+                  "digits": 2
+                },
+                null,
+                {
+                  "value": 168.11,
+                  "digits": 2
+                }
+              ]
+            }
+          ],
+          "formula": "鉛直力 = 列車荷重反力 × 衝撃係数"
+        }
+      ]
+    },
+    {
+      "key": "bearing_horizontal_loads",
+      "title": "8.2 (7) 水平荷重 1) 支承に働く水平荷重のまとめ",
+      "page": "8-5",
+      "tables": [
+        {
+          "key": "summary",
+          "title": "支承に働く水平荷重のまとめ",
+          "page": "8-5",
+          "columns": [
+            {
+              "key": "start_girder",
+              "label": "起点桁",
+              "unit": "kN"
+            },
+            {
+              "key": "end_girder",
+              "label": "終点桁",
+              "unit": "kN"
+            }
+          ],
+          "rows": [
+            {
+              "key": "serviceability_0.8LR",
+              "label": "使用性 0.8 LR",
+              "cells": [
+                {
+                  "value": 160.0,
+                  "digits": 2
+                },
+                {
+                  "value": 80.0,
+                  "digits": 2
+                }
+              ],
+              "requirement": "使用性"
+            },
+            {
+              "key": "serviceability_1.0LR",
+              "label": "使用性 1.0 LR",
+              "cells": [
+                {
+                  "value": 200.0,
+                  "digits": 2
+                },
+                {
+                  "value": 100.0,
+                  "digits": 2
+                }
+              ],
+              "requirement": "使用性"
+            },
+            {
+              "key": "safety_1.0LR+1.23B",
+              "label": "安全性（破壊） 1.0 LR + 1.23B",
+              "cells": [
+                {
+                  "value": 298.4,
+                  "digits": 2
+                },
+                {
+                  "value": 175.03,
+                  "digits": 2
+                }
+              ],
+              "requirement": "安全性（破壊）"
+            },
+            {
+              "key": "safety_1.1LR+1.23B",
+              "label": "安全性（破壊） 1.1 LR + 1.23B",
+              "cells": [
+                {
+                  "value": 318.4,
+                  "digits": 2
+                },
+                {
+                  "value": 195.49,
+                  "digits": 2
+                }
+              ],
+              "requirement": "安全性（破壊）"
+            },
+            {
+              "key": "safety_1.0LR+1.35B",
+              "label": "安全性（破壊） 1.0 LR + 1.35B",
+              "cells": [
+                {
+                  "value": 308.0,
+                  "digits": 2
+                },
+                {
+                  "value": 187.01,
+                  "digits": 2
+                }
+              ],
+              "requirement": "安全性（破壊）"
+            },
+            {
+              "key": "safety_1.0LR",
+              "label": "安全性（破壊） 1.0 LR",
+              "cells": [
+                {
+                  "value": 200.0,
+                  "digits": 2
+                },
+                {
+                  "value": 100.0,
+                  "digits": 2
+                }
+              ],
+              "requirement": "安全性（破壊）"
+            },
+            {
+              "key": "restorability_1.0LR+1.23B",
+              "label": "復旧性 1.0 LR + 1.23B",
+              "cells": [
+                {
+                  "value": 298.4,
+                  "digits": 2
+                },
+                {
+                  "value": 165.31,
+                  "digits": 2
+                }
+              ],
+              "requirement": "復旧性"
+            },
+            {
+              "key": "restorability_1.0LR",
+              "label": "復旧性 1.0 LR",
+              "cells": [
+                {
+                  "value": 200.0,
+                  "digits": 2
+                },
+                {
+                  "value": 100.0,
+                  "digits": 2
+                }
+              ],
+              "requirement": "復旧性"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "load_diagrams",
+      "title": "8.3 荷重図",
+      "page": "8-6",
+      "cases": [
+        {
+          "case": 1,
+          "symbol": "D1",
+          "label": "固定死荷重 (D1)",
+          "page": "8-6",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 8299.53,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": -610.0,
+              "digits": 2,
+              "unit": "kN･m"
+            },
+            {
+              "key": "q",
+              "label": "q",
+              "value": 297.68,
+              "digits": 2,
+              "unit": "kN/m"
+            },
+            {
+              "key": "P",
+              "label": "P",
+              "value": 4167.45,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 2,
+          "symbol": "D2",
+          "label": "付加死荷重 (D2)",
+          "page": "8-6",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 780.0,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 6.5,
+              "digits": 2,
+              "unit": "kN･m"
+            },
+            {
+              "key": "P",
+              "label": "P",
+              "value": 1830.6,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 3,
+          "symbol": "Wp",
+          "label": "浮力 (Wp) 高水位",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "P",
+              "label": "P",
+              "value": -2381.4,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 4,
+          "symbol": "Wp",
+          "label": "浮力 (Wp) 平水位",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "P",
+              "label": "P",
+              "value": -1701.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 5,
+          "symbol": "Wp",
+          "label": "浮力 (Wp) 低水位",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "P",
+              "label": "P",
+              "value": 0.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 6,
+          "symbol": "Ss",
+          "label": "雪荷重 (Ss) 2年確率",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 710.0,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 19.25,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 7,
+          "symbol": "Ss",
+          "label": "雪荷重 (Ss) 10年確率",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 1140.0,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 29.5,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 8,
+          "symbol": "Ss",
+          "label": "雪荷重 (Ss) 30年確率",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 1270.0,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 37.25,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 9,
+          "symbol": "L",
+          "label": "列車荷重 (L) 単線",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 567.39,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 110.52,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 10,
+          "symbol": "L",
+          "label": "列車荷重 (L) 複線",
+          "page": "8-7",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 1134.77,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 221.04,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 11,
+          "symbol": "I",
+          "label": "衝撃荷重 (I) 安全性 単線",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 227.78,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 86.99,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 12,
+          "symbol": "I",
+          "label": "衝撃荷重 (I) 安全性 複線",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "N",
+              "label": "N",
+              "value": 428.28,
+              "digits": 2,
+              "unit": "kN"
+            },
+            {
+              "key": "M",
+              "label": "M",
+              "value": 168.11,
+              "digits": 2,
+              "unit": "kN･m"
+            }
+          ]
+        },
+        {
+          "case": 13,
+          "symbol": "LR+B",
+          "label": "水平荷重 使用性 0.8 LR",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 240.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 14,
+          "symbol": "LR+B",
+          "label": "水平荷重 使用性 1.0 LR",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 300.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 15,
+          "symbol": "LR+B",
+          "label": "水平荷重 安全性 1.0 LR + 1.23B",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 473.43,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 16,
+          "symbol": "LR+B",
+          "label": "水平荷重 安全性 1.1 LR + 1.23B",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 513.89,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 17,
+          "symbol": "LR+B",
+          "label": "水平荷重 安全性 1.0 LR + 1.35B",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 495.01,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 18,
+          "symbol": "LR+B",
+          "label": "水平荷重 安全性 1.0 LR",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 300.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 19,
+          "symbol": "LR+B",
+          "label": "水平荷重 復旧性 1.0 LR + 1.23B",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 463.71,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        },
+        {
+          "case": 20,
+          "symbol": "LR+B",
+          "label": "水平荷重 復旧性 1.0 LR",
+          "page": "8-8",
+          "items": [
+            {
+              "key": "H",
+              "label": "H",
+              "value": 300.0,
+              "digits": 2,
+              "unit": "kN"
+            }
+          ]
+        }
+      ],
+      "diagram_notes": "N, M act at node 1 (pier top). q is drawn dashed along the pier above node 4. P (D1, D2, Wp) is drawn as an inclined arrow to the footing node below node 4 (node 5 by the drawing). H acts at node 1."
+    },
+    {
+      "key": "basic_cases",
+      "title": "8.4 設計作用の組合せ (1) 基本ケース",
+      "page": "8-9",
+      "rows": [
+        {
+          "no": 1,
+          "name": "固定死荷重",
+          "detail": "",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 2,
+          "name": "付加死荷重",
+          "detail": "",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 3,
+          "name": "浮力",
+          "detail": "高水位",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 4,
+          "name": "浮力",
+          "detail": "平水位",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 5,
+          "name": "浮力",
+          "detail": "低水位",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 6,
+          "name": "雪荷重",
+          "detail": "2年確率",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 7,
+          "name": "雪荷重",
+          "detail": "10年確率",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 8,
+          "name": "雪荷重",
+          "detail": "30年確率",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 9,
+          "name": "列車荷重",
+          "detail": "",
+          "track": "単線",
+          "spring": 2
+        },
+        {
+          "no": 10,
+          "name": "列車荷重",
+          "detail": "",
+          "track": "複線",
+          "spring": 2
+        },
+        {
+          "no": 11,
+          "name": "衝撃荷重",
+          "detail": "安全性・復旧性",
+          "track": "単線",
+          "spring": 2
+        },
+        {
+          "no": 12,
+          "name": "衝撃荷重",
+          "detail": "安全性・復旧性",
+          "track": "複線",
+          "spring": 2
+        },
+        {
+          "no": 13,
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "使用性 0.8LR",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 14,
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "使用性 1.0LR",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 15,
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性 1.0LR + 1.23B",
+          "track": "",
+          "spring": 2
+        },
+        {
+          "no": 16,
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性 1.1LR + 1.23B",
+          "track": "",
+          "spring": 2
+        },
+        {
+          "no": 17,
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性 1.0LR + 1.35B",
+          "track": "",
+          "spring": 2
+        },
+        {
+          "no": 18,
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "安全性 1.0LR",
+          "track": "",
+          "spring": 1
+        },
+        {
+          "no": 19,
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "復旧性 1.0LR + 1.23B",
+          "track": "",
+          "spring": 2
+        },
+        {
+          "no": 20,
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "復旧性 1.0LR",
+          "track": "",
+          "spring": 1
+        }
+      ],
+      "spring_note": "バネ column: 1 or 2 as printed (presumably 1=長期, 2=短期 spring set of 8-1; not stated on the page)."
+    },
+    {
+      "key": "define_cases",
+      "title": "8.4 (2) Defineケース",
+      "page": "8-9",
+      "rows": [
+        {
+          "no": 1,
+          "C": [
+            1
+          ],
+          "symbol": "D1",
+          "name": "固定死荷重",
+          "detail": ""
+        },
+        {
+          "no": 2,
+          "C": [
+            2
+          ],
+          "symbol": "D2",
+          "name": "付加死荷重",
+          "detail": ""
+        },
+        {
+          "no": 3,
+          "C": [
+            3
+          ],
+          "symbol": "WP1",
+          "name": "浮力",
+          "detail": "高水位"
+        },
+        {
+          "no": 4,
+          "C": [
+            4
+          ],
+          "symbol": "WP2",
+          "name": "浮力",
+          "detail": "平水位"
+        },
+        {
+          "no": 5,
+          "C": [
+            5
+          ],
+          "symbol": "WP3",
+          "name": "浮力",
+          "detail": "低水位"
+        },
+        {
+          "no": 6,
+          "C": [
+            6
+          ],
+          "symbol": "SS2",
+          "name": "雪荷重",
+          "detail": "2年確率"
+        },
+        {
+          "no": 7,
+          "C": [
+            7
+          ],
+          "symbol": "SS10",
+          "name": "雪荷重",
+          "detail": "10年確率"
+        },
+        {
+          "no": 8,
+          "C": [
+            8
+          ],
+          "symbol": "SS30",
+          "name": "雪荷重",
+          "detail": "30年確率"
+        },
+        {
+          "no": 9,
+          "C": [
+            9
+          ],
+          "symbol": "L1",
+          "name": "列車荷重",
+          "detail": "単線"
+        },
+        {
+          "no": 10,
+          "C": [
+            10
+          ],
+          "symbol": "L2",
+          "name": "列車荷重",
+          "detail": "複線"
+        },
+        {
+          "no": 11,
+          "C": [
+            11
+          ],
+          "symbol": "I1",
+          "name": "衝撃荷重",
+          "detail": "安全性・復旧性 単線"
+        },
+        {
+          "no": 12,
+          "C": [
+            12
+          ],
+          "symbol": "I2",
+          "name": "衝撃荷重",
+          "detail": "安全性・復旧性 複線"
+        },
+        {
+          "no": 13,
+          "C": [
+            13,
+            -13
+          ],
+          "symbol": "0.8LR",
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "使用性"
+        },
+        {
+          "no": 14,
+          "C": [
+            14,
+            -14
+          ],
+          "symbol": "1.0LR",
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "使用性"
+        },
+        {
+          "no": 15,
+          "C": [
+            15,
+            -15
+          ],
+          "symbol": "1.0LR+1.23B",
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性"
+        },
+        {
+          "no": 16,
+          "C": [
+            16,
+            -16
+          ],
+          "symbol": "1.1LR+1.23B",
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性"
+        },
+        {
+          "no": 17,
+          "C": [
+            17,
+            -17
+          ],
+          "symbol": "1.0LR+1.35B",
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "安全性"
+        },
+        {
+          "no": 18,
+          "C": [
+            18,
+            -18
+          ],
+          "symbol": "1.0LR",
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "安全性"
+        },
+        {
+          "no": 19,
+          "C": [
+            19,
+            -19
+          ],
+          "symbol": "1.0LR+1.23B",
+          "name": "ﾛﾝｸﾞﾚｰﾙ+制動",
+          "detail": "復旧性"
+        },
+        {
+          "no": 20,
+          "C": [
+            20,
+            -20
+          ],
+          "symbol": "1.0LR",
+          "name": "ﾛﾝｸﾞﾚｰﾙ縦荷重",
+          "detail": "復旧性"
+        }
+      ],
+      "note": "C1/C2/C3 are basic-case numbers; a negative number means the same basic case with reversed sign (both directions)."
+    },
+    {
+      "key": "combinations",
+      "title": "8.4 (3) 組合せケースと荷重係数",
+      "page": "8-10",
+      "combination_table": {
+        "key": "combination_factors",
+        "title": "組合せケースと荷重係数",
+        "page": "8-10",
+        "columns": [
+          {
+            "no": 1,
+            "symbol": "D1",
+            "label": "死荷重 固定"
+          },
+          {
+            "no": 2,
+            "symbol": "D2",
+            "label": "死荷重 付加"
+          },
+          {
+            "no": 3,
+            "symbol": "WP1",
+            "label": "浮力 高水位 HWL"
+          },
+          {
+            "no": 4,
+            "symbol": "WP2",
+            "label": "浮力 平水位 MWL"
+          },
+          {
+            "no": 5,
+            "symbol": "WP3",
+            "label": "浮力 低水位 LWL"
+          },
+          {
+            "no": 6,
+            "symbol": "S2",
+            "label": "雪荷重 2年確率"
+          },
+          {
+            "no": 7,
+            "symbol": "S10",
+            "label": "雪荷重 10年確率"
+          },
+          {
+            "no": 8,
+            "symbol": "S30",
+            "label": "雪荷重 30年確率"
+          },
+          {
+            "no": 9,
+            "symbol": "L1",
+            "label": "列車荷重 単線"
+          },
+          {
+            "no": 10,
+            "symbol": "L2",
+            "label": "列車荷重 複線"
+          },
+          {
+            "no": 11,
+            "symbol": "I1",
+            "label": "衝撃荷重 単線"
+          },
+          {
+            "no": 12,
+            "symbol": "I2",
+            "label": "衝撃荷重 複線"
+          },
+          {
+            "no": 13,
+            "symbol": "0.8LR",
+            "label": "ロングレール,制動荷重 使用性 0.8LR"
+          },
+          {
+            "no": 14,
+            "symbol": "1.0LR",
+            "label": "ロングレール,制動荷重 使用性 1.0LR"
+          },
+          {
+            "no": 15,
+            "symbol": "1.0LR+1.23B",
+            "label": "ロングレール,制動荷重 安全性 1.0LR+1.23B"
+          },
+          {
+            "no": 16,
+            "symbol": "1.1LR+1.23B",
+            "label": "ロングレール,制動荷重 安全性 1.1LR+1.23B"
+          },
+          {
+            "no": 17,
+            "symbol": "1.0LR+1.35B",
+            "label": "ロングレール,制動荷重 安全性 1.0LR+1.35B"
+          },
+          {
+            "no": 18,
+            "symbol": "1.0LR",
+            "label": "ロングレール,制動荷重 安全性 1.0LR"
+          },
+          {
+            "no": 19,
+            "symbol": "1.0LR+1.23B",
+            "label": "ロングレール,制動荷重 復旧性 1.0LR+1.23B"
+          },
+          {
+            "no": 20,
+            "symbol": "1.0LR",
+            "label": "ロングレール,制動荷重 復旧性 1.0LR"
+          }
+        ],
+        "rows": [
+          {
+            "no": 1,
+            "requirement": "安全性",
+            "performance_item": "破壊",
+            "remark": "列車最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.35,
+              null,
+              1.35,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              2,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 2,
+            "requirement": "安全性",
+            "performance_item": "破壊",
+            "remark": "制動最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.23,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 3,
+            "requirement": "安全性",
+            "performance_item": "破壊",
+            "remark": "ﾛﾝｸﾞ最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.23,
+              null,
+              1.23,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              2,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 4,
+            "requirement": "安全性",
+            "performance_item": "破壊",
+            "remark": "雪最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 5,
+            "requirement": "耐久性・使用性",
+            "performance_item": "ひび割れ",
+            "remark": "縁応力度",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              0.75,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              1,
+              null,
+              2,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 6,
+            "requirement": "耐久性・使用性",
+            "performance_item": "ひび割れ",
+            "remark": "永久荷重",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 7,
+            "requirement": "耐久性・使用性",
+            "performance_item": "ひび割れ",
+            "remark": "変動荷重",
+            "coefficients": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              0.75,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 8,
+            "requirement": "復旧性",
+            "performance_item": "損傷",
+            "remark": "列車最大",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.23,
+              null,
+              1.23,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null
+            ]
+          },
+          {
+            "no": 9,
+            "requirement": "復旧性",
+            "performance_item": "損傷",
+            "remark": "雪最大",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1
+            ]
+          },
+          {
+            "no": 10,
+            "requirement": "安全性",
+            "performance_item": "地盤の安定",
+            "remark": "列車最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              1.0,
+              null,
+              1.0,
+              null,
+              null,
+              1.35,
+              null,
+              1.35,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              2,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 11,
+            "requirement": "安全性",
+            "performance_item": "地盤の安定",
+            "remark": "制動最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              1.0,
+              null,
+              1.0,
+              null,
+              null,
+              1.23,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 12,
+            "requirement": "安全性",
+            "performance_item": "地盤の安定",
+            "remark": "ﾛﾝｸﾞ最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              1.0,
+              null,
+              1.0,
+              null,
+              null,
+              1.23,
+              null,
+              1.23,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              1,
+              null,
+              null,
+              2,
+              null,
+              2,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 13,
+            "requirement": "安全性",
+            "performance_item": "地盤の安定",
+            "remark": "雪最大",
+            "coefficients": [
+              1.1,
+              1.2,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1.0,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              1,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 14,
+            "requirement": "使用性",
+            "performance_item": "長期",
+            "remark": "",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              1.0,
+              null,
+              1.0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              1,
+              null,
+              1,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 15,
+            "requirement": "使用性",
+            "performance_item": "短期",
+            "remark": "",
+            "coefficients": [
+              1.0,
+              1.0,
+              null,
+              null,
+              1.0,
+              1.0,
+              null,
+              null,
+              1.0,
+              null,
+              0.75,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              null,
+              null,
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          {
+            "no": 16,
+            "requirement": "使用性",
+            "performance_item": "短期",
+            "remark": "",
+            "coefficients": [
+              1.0,
+              1.0,
+              1.0,
+              null,
+              null,
+              1.0,
+              null,
+              null,
+              1.0,
+              null,
+              0.75,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ],
+            "digits": [
+              1,
+              1,
+              1,
+              null,
+              null,
+              1,
+              null,
+              null,
+              1,
+              null,
+              2,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        ],
+        "column_basis": "columns are basic/Define case numbers 1-20 (identical numbering in 08)",
+        "row_header_note": "要求性能/性能項目 cells span rows: rows 1-4 安全性/破壊, 5-7 耐久性・使用性 (printed '耐久性 使用性')/ひび割れ, 8-9 復旧性/損傷, 10-13 安全性/地盤の安定, 14 使用性/長期, 15-16 使用性/短期"
+      }
+    },
+    {
+      "key": "extraction_cases",
+      "title": "8.4 (4) 抽出ケース",
+      "page": "8-11",
+      "header_anomaly": "The name-column header cell prints '0.375' instead of '荷重名称'.",
+      "rows": [
+        {
+          "no": 1,
+          "name": "安全性（破壊）",
+          "combinations": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "no": 2,
+          "name": "永久＋変動",
+          "combinations": [
+            5
+          ]
+        },
+        {
+          "no": 3,
+          "name": "永久作用",
+          "combinations": [
+            6
+          ]
+        },
+        {
+          "no": 4,
+          "name": "変動作用",
+          "combinations": [
+            7
+          ]
+        },
+        {
+          "no": 5,
+          "name": "復旧性（損傷）",
+          "combinations": [
+            8,
+            9
+          ]
+        },
+        {
+          "no": 6,
+          "name": "安全性（安定）",
+          "combinations": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "no": 7,
+          "name": "長期支持性能",
+          "combinations": [
+            14
+          ]
+        },
+        {
+          "no": 8,
+          "name": "短期支持性能",
+          "combinations": [
+            15,
+            16
+          ]
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "note": "Member and foundation checks (lower priority). Fully '-' rows/columns omitted; see omitted_rows.",
+    "sections": [
+      {
+        "key": "section_forces_bending",
+        "title": "8.5 断面力の総括 柱曲げモーメントの照査 (部材3, JTAN, 算出点 4.900)",
+        "page": "8-12",
+        "tables": [
+          {
+            "key": "summary",
+            "title": "柱曲げモーメントの照査",
+            "page": "8-12",
+            "columns": [
+              {
+                "key": "M_upper",
+                "label": "上側 M",
+                "unit": "kN･m"
+              },
+              {
+                "key": "N_upper",
+                "label": "上側 N",
+                "unit": "kN"
+              },
+              {
+                "key": "comb_upper",
+                "label": "上側 comb",
+                "unit": null
+              },
+              {
+                "key": "M_lower",
+                "label": "下側 M",
+                "unit": "kN･m"
+              },
+              {
+                "key": "N_lower",
+                "label": "下側 N",
+                "unit": "kN"
+              },
+              {
+                "key": "comb_lower",
+                "label": "下側 comb",
+                "unit": null
+              }
+            ],
+            "rows": [
+              {
+                "key": "durability_edge_stress",
+                "label": "耐久性、使用性 縁引張応力度検討用",
+                "cells": [
+                  {
+                    "value": -2517.13,
+                    "digits": 2
+                  },
+                  {
+                    "value": 13507.88,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5,
+                    "digits": 0
+                  },
+                  {
+                    "value": 2042.87,
+                    "digits": 2
+                  },
+                  {
+                    "value": 13507.88,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "durability_permanent",
+                "label": "耐久性、使用性 永久作用",
+                "cells": [
+                  {
+                    "value": -2408.25,
+                    "digits": 2
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6,
+                    "digits": 0
+                  },
+                  {
+                    "value": 1239.75,
+                    "digits": 2
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "safety_failure",
+                "label": "安全性（破壊）",
+                "cells": [
+                  {
+                    "value": -4123.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 15089.86,
+                    "digits": 2
+                  },
+                  {
+                    "value": 2,
+                    "digits": 0
+                  },
+                  {
+                    "value": 3750.51,
+                    "digits": 2
+                  },
+                  {
+                    "value": 15616.64,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "restorability",
+                "label": "復旧性（地震時以外）",
+                "cells": [
+                  {
+                    "value": -3619.55,
+                    "digits": 2
+                  },
+                  {
+                    "value": 14404.45,
+                    "digits": 2
+                  },
+                  {
+                    "value": 8,
+                    "digits": 0
+                  },
+                  {
+                    "value": 3428.85,
+                    "digits": 2
+                  },
+                  {
+                    "value": 14404.45,
+                    "digits": 2
+                  },
+                  {
+                    "value": 8,
+                    "digits": 0
+                  }
+                ]
+              }
+            ],
+            "member": 3,
+            "point": "JTAN",
+            "position_m": 4.9
+          }
+        ]
+      },
+      {
+        "key": "section_forces_shear",
+        "title": "8.5 柱せん断力に対する照査 (部材3, JTAN, 算出点 4.900)",
+        "page": "8-13",
+        "tables": [
+          {
+            "key": "summary",
+            "title": "柱せん断力に対する照査",
+            "page": "8-13",
+            "columns": [
+              {
+                "key": "V",
+                "label": "V",
+                "unit": "kN"
+              },
+              {
+                "key": "M",
+                "label": "M",
+                "unit": "kN･m"
+              },
+              {
+                "key": "N",
+                "label": "N",
+                "unit": "kN"
+              },
+              {
+                "key": "comb",
+                "label": "comb",
+                "unit": null
+              }
+            ],
+            "rows": [
+              {
+                "key": "crack_need_upper",
+                "label": "耐久性 ひび割れ照査必要性の検討用 上側",
+                "cells": [
+                  {
+                    "value": -300.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": -2517.13,
+                    "digits": 2
+                  },
+                  {
+                    "value": 13507.88,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "crack_need_lower",
+                "label": "耐久性 ひび割れ照査必要性の検討用 下側",
+                "cells": [
+                  {
+                    "value": 300.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 2042.87,
+                    "digits": 2
+                  },
+                  {
+                    "value": 13507.88,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "permanent_upper",
+                "label": "耐久性 永久作用 上側",
+                "cells": [
+                  {
+                    "value": -240.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": -2408.25,
+                    "digits": 2
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "permanent_lower",
+                "label": "耐久性 永久作用 下側",
+                "cells": [
+                  {
+                    "value": 240.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1239.75,
+                    "digits": 2
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "variable_upper",
+                "label": "耐久性 変動作用 上側",
+                "cells": [
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "key": "variable_lower",
+                "label": "耐久性 変動作用 下側",
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 175.76,
+                    "digits": 2
+                  },
+                  {
+                    "value": 738.23,
+                    "digits": 2
+                  },
+                  {
+                    "value": 7,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "safety_upper",
+                "label": "安全性（破壊） 上側",
+                "cells": [
+                  {
+                    "value": -513.89,
+                    "digits": 2
+                  },
+                  {
+                    "value": -4060.61,
+                    "digits": 2
+                  },
+                  {
+                    "value": 15616.64,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "safety_lower",
+                "label": "安全性（破壊） 下側",
+                "cells": [
+                  {
+                    "value": 513.89,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3750.51,
+                    "digits": 2
+                  },
+                  {
+                    "value": 15616.64,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "restorability_upper",
+                "label": "復旧性（地震時以外） 上側",
+                "cells": [
+                  {
+                    "value": -463.71,
+                    "digits": 2
+                  },
+                  {
+                    "value": -3619.55,
+                    "digits": 2
+                  },
+                  {
+                    "value": 14404.45,
+                    "digits": 2
+                  },
+                  {
+                    "value": 8,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "restorability_lower",
+                "label": "復旧性（地震時以外） 下側",
+                "cells": [
+                  {
+                    "value": 463.71,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3428.85,
+                    "digits": 2
+                  },
+                  {
+                    "value": 14404.45,
+                    "digits": 2
+                  },
+                  {
+                    "value": 8,
+                    "digits": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "safety_method",
+        "title": "8.6 安全性（破壊）の照査 (1) 曲げ耐力の算定 【RC標準 7.2.2】",
+        "page": "8-14",
+        "items": [
+          {
+            "key": "criterion",
+            "label": "照査式",
+            "text": "γi・Md ／ Mud ≦ 1.0"
+          },
+          {
+            "key": "gamma_i",
+            "label": "γi 構造物係数",
+            "value": 1.2,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "Mud",
+            "label": "Mud",
+            "text": "Mud＝Mu／γb"
+          },
+          {
+            "key": "gamma_b",
+            "label": "γb 部材係数",
+            "value": 1.1,
+            "digits": 1,
+            "unit": null
+          }
+        ]
+      },
+      {
+        "key": "safety_bending_result",
+        "title": "安全性（破壊）曲げモーメントの照査結果（その1）[柱]",
+        "page": "8-15",
+        "tables": [
+          {
+            "key": "result",
+            "title": "安全性（破壊）曲げモーメントの照査結果",
+            "page": "8-15",
+            "columns": [
+              "3部材(4.900) 上側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dest",
+                "label": "dest",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Asc",
+                "label": "Asc",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "compression_bars",
+                "label": "圧縮鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "desc",
+                "label": "desc",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f'ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f'cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 20.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 4123.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "N'd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 15089.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "eps_cu",
+                "label": "ε'cu",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0035,
+                    "digits": 5
+                  }
+                ]
+              },
+              {
+                "key": "eps_s",
+                "label": "εs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.03469,
+                    "digits": 5
+                  }
+                ]
+              },
+              {
+                "key": "x",
+                "label": "x",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 237.6,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Mu",
+                "label": "Mu",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 41194.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_b",
+                "label": "γb",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.1,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Mud",
+                "label": "Mud",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 37449.1,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ratio",
+                "label": "γi･Md/Mud",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.132,
+                    "digits": 3,
+                    "compare": "<",
+                    "limit": 1.0,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "result",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "omitted_rows": "Bf, Hf, Ase, 側方鉄筋, dase printed '-'"
+          }
+        ]
+      },
+      {
+        "key": "safety_shear_method",
+        "title": "8.6 (2) せん断に対する照査 【RC標準 7.2.3】",
+        "page": "8-16",
+        "items": [
+          {
+            "key": "criterion_yd",
+            "label": "a/d≧2.0 (a)",
+            "text": "γi・Vd／Vyd≦1.0, Vyd＝Vcd＋Vwd＋Vsd"
+          },
+          {
+            "key": "criterion_wcd",
+            "label": "a/d≧2.0 (b)",
+            "text": "γi・Vd／Vwcd≦1.0"
+          },
+          {
+            "key": "criterion_dd",
+            "label": "a/d<2.0",
+            "text": "γi・Vd／Vdd≦1.0"
+          },
+          {
+            "key": "gamma_i",
+            "label": "γi",
+            "value": 1.2,
+            "digits": 1,
+            "unit": null
+          }
+        ]
+      },
+      {
+        "key": "safety_shear_result",
+        "title": "安全性（破壊）せん断力の照査結果（その1）[柱]",
+        "page": "8-17",
+        "tables": [
+          {
+            "key": "result",
+            "title": "安全性（破壊）せん断力の照査結果",
+            "page": "8-17",
+            "columns": [
+              "3部材(4.900) 下側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B Bf",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H Ht",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dast",
+                "label": "dast",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Asc",
+                "label": "Asc",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "compression_bars",
+                "label": "圧縮鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dasc",
+                "label": "dasc",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f'ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f'cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 20.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 3750.5,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "N'd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 15616.6,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vd",
+                "label": "Vd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 513.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Aw",
+                "label": "Aw",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 3871.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "stirrup",
+                "label": "スターラップ",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D22-10本"
+                  }
+                ]
+              },
+              {
+                "key": "fwyd",
+                "label": "fwyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "theta_s",
+                "label": "θs",
+                "unit": "°",
+                "cells": [
+                  {
+                    "value": 90,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ss",
+                "label": "Ss",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 150,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fvcd",
+                "label": "fvcd fdd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 0.55,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "beta_d",
+                "label": "βd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.788,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "beta_p",
+                "label": "βp",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.582,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Mu",
+                "label": "Mu",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 41815.3,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Mo",
+                "label": "Mo",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 7027.5,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "beta_n",
+                "label": "βn",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.336,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "gamma_bc",
+                "label": "γbc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Vcd",
+                "label": "Vcd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 3024.6,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_bs",
+                "label": "γbs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.1,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Vsd",
+                "label": "Vsd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 20622.5,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vyd",
+                "label": "Vyd Vdd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 23647.1,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ratio_yd",
+                "label": "γi･Vd/Vyd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.026,
+                    "digits": 3,
+                    "compare": "<",
+                    "limit": 1.0,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "result_yd",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  }
+                ]
+              },
+              {
+                "key": "fwcd",
+                "label": "fwcd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 5.697,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Vwcd",
+                "label": "Vwcd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 51112.2,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "ratio_wcd",
+                "label": "γi･Vd/Vwcd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.012,
+                    "digits": 3,
+                    "compare": "<",
+                    "limit": 1.0,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "result_wcd",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "omitted_rows": "tanθc+tanθt, 側方鉄筋, せん断スパン, せん断スパン比, βaf, pw, βw cotθ printed '-'",
+            "label_anomaly": "Row printed 'Vsd' (鉄骨部分) carries 20622.5 although the member is RC; Vyd = Vcd + Vsd here."
+          }
+        ]
+      },
+      {
+        "key": "durability_method",
+        "title": "8.7 耐久性の照査 (1) 曲げひび割れの検討",
+        "page": "8-18/8-19",
+        "items": [
+          {
+            "key": "criterion_s",
+            "label": "σs／σsl1",
+            "text": "σs ／ σsl1 ≦ 1.0"
+          },
+          {
+            "key": "sigma_sl1_general",
+            "label": "σsl1 一般の環境",
+            "value": 140,
+            "digits": 0,
+            "unit": "N/mm2"
+          },
+          {
+            "key": "sigma_sl1_corrosive",
+            "label": "σsl1 腐食性環境",
+            "value": 120,
+            "digits": 0,
+            "unit": "N/mm2"
+          },
+          {
+            "key": "sigma_sl1_severe",
+            "label": "σsl1 特に厳しい腐食性環境",
+            "value": 100,
+            "digits": 0,
+            "unit": "N/mm2"
+          },
+          {
+            "key": "criterion_w",
+            "label": "8-19",
+            "text": "γi・Wd ／ Wlim ≦ 1.0, γi=1.0, Wd=1.1・k1・k2・k3・k4{4c+0.7(Cs−φ)}(σse／Es+ε'csd), k2=15/(f'cd+20)+0.7, k3=1.0, k4=0.85"
+          },
+          {
+            "key": "Wlim",
+            "label": "Wlim 異形鉄筋",
+            "text": "0.005c / 0.004c / 0.0035c"
+          }
+        ],
+        "flowchart_note": "8-18 flowchart boxes are truncated in print ('…縁引張', '…σbl の', 'σb ≦')."
+      },
+      {
+        "key": "durability_bending_crack_result",
+        "title": "耐久性 曲げひび割れの照査結果（その1）[柱]",
+        "page": "8-20",
+        "tables": [
+          {
+            "key": "result",
+            "title": "耐久性 曲げひび割れの照査結果",
+            "page": "8-20",
+            "columns": [
+              "3部材(4.900) 上側引張",
+              "3部材(4.900) 下側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  },
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  },
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  },
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  },
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dast",
+                "label": "dast",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  },
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f''ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f''cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "environment",
+                "label": "環境条件",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "一般の環境"
+                  },
+                  {
+                    "text": "一般の環境"
+                  }
+                ]
+              },
+              {
+                "key": "Mhd",
+                "label": "Mhd",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 2517.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 2042.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nhd",
+                "label": "Nhd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 13507.9,
+                    "digits": 1
+                  },
+                  {
+                    "value": 13507.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_b",
+                "label": "σb≦σbl",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 1.9,
+                    "limit_digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 1.9,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 2408.3,
+                    "digits": 1
+                  },
+                  {
+                    "value": 1239.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "Nd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_c",
+                "label": "σc≦0.4/f''cd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.44,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 10.8,
+                    "limit_digits": 1
+                  },
+                  {
+                    "value": 1.24,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 10.8,
+                    "limit_digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_s",
+                "label": "σs≦σsl1",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "全断面圧縮"
+                  },
+                  {
+                    "text": "全断面圧縮"
+                  }
+                ]
+              },
+              {
+                "key": "pt",
+                "label": "Pt = Ast/(b･d)",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.2,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 0.5,
+                    "limit_digits": 2,
+                    "unit": "%"
+                  },
+                  {
+                    "value": 0.2,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 0.5,
+                    "limit_digits": 2,
+                    "unit": "%"
+                  }
+                ]
+              },
+              {
+                "key": "result",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "omitted_rows": "Asc, Ase, crack-width rows (n, σse, C, Cs, Φ, ε''csd, κ1-κ4, Wd, Wlim, γi, γi･Wd/Wlim) printed '-'",
+            "label_anomaly": "'σc≦0.4/f''cd' printed (presumably 0.4･f''cd; 0.4×27.0=10.8)."
+          }
+        ]
+      },
+      {
+        "key": "shear_crack_method",
+        "title": "8.7 (2) せん断ひび割れの検討",
+        "page": "8-21",
+        "items": [
+          {
+            "key": "skip_rule",
+            "label": "省略条件",
+            "text": "Vd<0.7Vcd の場合 以下の検討を省略する"
+          },
+          {
+            "key": "criterion",
+            "label": "照査式",
+            "text": "σwpd ／ σsl2 ≦ 1.0"
+          },
+          {
+            "key": "kr",
+            "label": "kr 一般に",
+            "value": 0.5,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "gamma_b_vcd",
+            "label": "Vcd 算定時の γb",
+            "value": 1.3,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "sigma_sl2_general",
+            "label": "σsl2 一般の環境",
+            "value": 120,
+            "digits": 0,
+            "unit": "N/mm2"
+          },
+          {
+            "key": "sigma_sl2_corrosive",
+            "label": "σsl2 腐食性環境",
+            "value": 100,
+            "digits": 0,
+            "unit": "N/mm2"
+          },
+          {
+            "key": "sigma_sl2_severe",
+            "label": "σsl2 特に厳しい腐食性環境",
+            "value": 80,
+            "digits": 0,
+            "unit": "N/mm2"
+          }
+        ]
+      },
+      {
+        "key": "durability_shear_crack_result",
+        "title": "耐久性 せん断ひび割れの照査結果（その1）[柱]",
+        "page": "8-22",
+        "tables": [
+          {
+            "key": "result",
+            "title": "耐久性 せん断ひび割れの照査結果",
+            "page": "8-22",
+            "columns": [
+              "3部材(4.900) 上側引張",
+              "3部材(4.900) 下側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  },
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  },
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  },
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  },
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dast",
+                "label": "dast",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  },
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f'ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f'cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Aw",
+                "label": "Aw",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 3871.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 3871.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "stirrup",
+                "label": "スターラップ",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D22-10本"
+                  },
+                  {
+                    "text": "D22-10本"
+                  }
+                ]
+              },
+              {
+                "key": "fwyd",
+                "label": "fwyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "theta_s",
+                "label": "θs",
+                "unit": "°",
+                "cells": [
+                  {
+                    "value": 90,
+                    "digits": 0
+                  },
+                  {
+                    "value": 90,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ss",
+                "label": "Ss",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 150,
+                    "digits": 0
+                  },
+                  {
+                    "value": 150,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "N'd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vhd",
+                "label": "Vhd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 300.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 300.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vpd",
+                "label": "Vpd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 240.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 240.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vrd",
+                "label": "Vrd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 60.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 60.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fvcd",
+                "label": "fvcd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 0.6,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.6,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "beta_d",
+                "label": "βd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.788,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.788,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "pc",
+                "label": "pc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.00197,
+                    "digits": 5
+                  },
+                  {
+                    "value": 0.00197,
+                    "digits": 5
+                  }
+                ]
+              },
+              {
+                "key": "beta_p",
+                "label": "βp",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.582,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.582,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Mu",
+                "label": "Mu",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 37351.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 37351.1,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Mo",
+                "label": "Mo",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 5423.4,
+                    "digits": 1
+                  },
+                  {
+                    "value": 5423.4,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "beta_n",
+                "label": "βn",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.29,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.29,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "gamma_bc",
+                "label": "γbc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Vcd",
+                "label": "Vcd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 4144.5,
+                    "digits": 1
+                  },
+                  {
+                    "value": 4144.5,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Vhd_vs_0.7Vcd",
+                "label": "Vhd / 0.7･Vcd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 300.0,
+                    "digits": 1,
+                    "compare": "<",
+                    "limit": 2901.2,
+                    "limit_digits": 1
+                  },
+                  {
+                    "value": 300.0,
+                    "digits": 1,
+                    "compare": "<",
+                    "limit": 2901.2,
+                    "limit_digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "result_wpd",
+                "label": "照査結果 (σwpd)",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "omitted_rows": "Asc, 側方鉄筋, 環境条件, Kr, σwpd/σsl2 rows, σbpd rows printed '-'",
+            "note": "γbc printed 1.00 although 8-21 states γb=1.3 for Vcd in this check."
+          }
+        ]
+      },
+      {
+        "key": "serviceability_method",
+        "title": "8.8 使用性の照査 (1) 曲げひび割れの検討",
+        "page": "8-23",
+        "items": [
+          {
+            "key": "criterion_w",
+            "label": "照査式",
+            "text": "γi・Wd ／ 0.30 ≦ 1.0 (γi=1.0)"
+          },
+          {
+            "key": "sigma_sl1_general",
+            "label": "σsl1 一般の環境",
+            "value": 140,
+            "digits": 0,
+            "unit": "N/mm2"
+          }
+        ]
+      },
+      {
+        "key": "serviceability_bending_crack_result",
+        "title": "使用性（外観）曲げひび割れの照査結果（その1）[柱]",
+        "page": "8-24",
+        "tables": [
+          {
+            "key": "result",
+            "title": "使用性（外観）曲げひび割れの照査結果",
+            "page": "8-24",
+            "columns": [
+              "3部材(4.900) 上側引張",
+              "3部材(4.900) 下側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  },
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  },
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  },
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  },
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dast",
+                "label": "dast",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  },
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f''ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f''cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  },
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "environment",
+                "label": "環境条件",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "一般の環境"
+                  },
+                  {
+                    "text": "一般の環境"
+                  }
+                ]
+              },
+              {
+                "key": "Mhd",
+                "label": "Mhd",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 2517.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 2042.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nhd",
+                "label": "Nhd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 13507.9,
+                    "digits": 1
+                  },
+                  {
+                    "value": 13507.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_b",
+                "label": "σb≦σbl",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 1.9,
+                    "limit_digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 1.9,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 2408.3,
+                    "digits": 1
+                  },
+                  {
+                    "value": 1239.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "Nd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  },
+                  {
+                    "value": 12051.9,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_c",
+                "label": "σc≦0.4/f''cd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.44,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 10.8,
+                    "limit_digits": 1
+                  },
+                  {
+                    "value": 1.24,
+                    "digits": 2,
+                    "compare": "<",
+                    "limit": 10.8,
+                    "limit_digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "sigma_s",
+                "label": "σs≦σsl1",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "全断面圧縮"
+                  },
+                  {
+                    "text": "全断面圧縮"
+                  }
+                ]
+              },
+              {
+                "key": "result",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "omitted_rows": "Asc, Ase, crack-width rows printed '-' (no Pt row on this sheet)"
+          }
+        ]
+      },
+      {
+        "key": "restorability_method",
+        "title": "8.9 復旧性の照査 【RC標準 9.2】",
+        "page": "8-25",
+        "items": [
+          {
+            "key": "criterion",
+            "label": "照査式",
+            "text": "γi・Md ／ Myd ≦ 1.0, Myd＝My／γb"
+          },
+          {
+            "key": "gamma_i",
+            "label": "γi 構造物係数",
+            "value": 1.0,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "gamma_b",
+            "label": "γb 部材係数",
+            "value": 1.0,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "shear",
+            "label": "(2) せん断",
+            "text": "安全性（破壊）の照査を満足することで満足されるため省略"
+          }
+        ]
+      },
+      {
+        "key": "restorability_bending_result",
+        "title": "復旧性（地震時以外）曲げモーメントの照査結果（その1）[柱]",
+        "page": "8-26",
+        "tables": [
+          {
+            "key": "result",
+            "title": "復旧性（地震時以外）曲げモーメントの照査結果",
+            "page": "8-26",
+            "columns": [
+              "3部材(4.900) 上側引張"
+            ],
+            "rows": [
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 4500,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "H",
+                "label": "H",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 2700,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ast",
+                "label": "Ast",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "tension_bars",
+                "label": "引張鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dast",
+                "label": "dast",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Asc",
+                "label": "Asc",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 23031.8,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "compression_bars",
+                "label": "圧縮鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D32-29本"
+                  }
+                ]
+              },
+              {
+                "key": "dasc",
+                "label": "dasc",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 108,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Ase",
+                "label": "Ase",
+                "unit": "mm2",
+                "cells": [
+                  {
+                    "value": 2578.5,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "side_bars",
+                "label": "側方鉄筋",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "D19-9本"
+                  }
+                ]
+              },
+              {
+                "key": "dase",
+                "label": "dase",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 1350,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "fck",
+                "label": "f'ck",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 27.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_c",
+                "label": "γc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fcd",
+                "label": "f'cd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 20.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "fsyk",
+                "label": "fsyk",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "gamma_s",
+                "label": "γs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fsyd",
+                "label": "fsyd",
+                "unit": "N/mm2",
+                "cells": [
+                  {
+                    "value": 390,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 3619.6,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nd",
+                "label": "N'd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 14404.5,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "eps_c",
+                "label": "ε'c",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0008,
+                    "digits": 5
+                  }
+                ]
+              },
+              {
+                "key": "eps_sy",
+                "label": "εsy",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.00195,
+                    "digits": 5
+                  }
+                ]
+              },
+              {
+                "key": "x",
+                "label": "x",
+                "unit": "mm",
+                "cells": [
+                  {
+                    "value": 755.7,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Mu",
+                "label": "Mu",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 38260.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_b",
+                "label": "γb",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Myd",
+                "label": "Myd",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 38260.8,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ratio",
+                "label": "γi･Md/Myd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.114,
+                    "digits": 3,
+                    "compare": "<",
+                    "limit": 1.0,
+                    "limit_digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "result",
+                "label": "照査結果",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ],
+            "label_anomaly": "Row label 'Mu' although the quantity is My (Myd=My/γb); γi printed 1.20 vs 1.0 stated on 8-25."
+          }
+        ]
+      },
+      {
+        "key": "foundation_method",
+        "title": "8.7 基礎の照査 (1) 鉛直支持に対する検討 (heading number duplicates 8.7)",
+        "page": "8-27/8-28/8-29",
+        "items": [
+          {
+            "key": "gamma_a_bearing",
+            "label": "長期・短期 γa",
+            "value": 1.0,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "gamma_i_bearing",
+            "label": "長期・短期 γi",
+            "value": 1.0,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "gamma_a_safety",
+            "label": "安全性 γa",
+            "value": 1.2,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "gamma_i_safety",
+            "label": "安全性 γi",
+            "value": 1.2,
+            "digits": 1,
+            "unit": null
+          },
+          {
+            "key": "pd_formula",
+            "label": "設計鉛直地盤反力度",
+            "text": "ex≦B/6: pd1,pd2 = Vd/(BL)(1 ± 6ex/B); ex>B/6: pd1 = 2Vd/(3L(B/2−ex))"
+          },
+          {
+            "key": "long_term_limit",
+            "label": "長期 地盤反力度の制限値",
+            "text": "洪積砂礫地盤 500+γe2Df; 洪積砂地盤・沖積砂礫地盤 300+γe2Df; 洪積粘性土地盤 200"
+          },
+          {
+            "key": "qd",
+            "label": "qd",
+            "text": "qd = qvd + γe2 Df; qvd = frγ Iγ βd Be γe1 Nγ + frq Iq γe2 Df (Nq−1)"
+          },
+          {
+            "key": "Df",
+            "label": "Df",
+            "value": 3.78,
+            "digits": 3,
+            "unit": "m"
+          },
+          {
+            "key": "gamma_e1",
+            "label": "γe1",
+            "value": 10.0,
+            "digits": 1,
+            "unit": "kN/m3"
+          },
+          {
+            "key": "gamma_e2_high",
+            "label": "γe2 高水位",
+            "value": 9.0,
+            "digits": 1,
+            "unit": "kN/m3"
+          },
+          {
+            "key": "gamma_e2_mean",
+            "label": "γe2 平水位",
+            "formula": "(1.080 × 18.0 + 2.700 × 9.0) / 3.780",
+            "operands": [
+              1.08,
+              18.0,
+              2.7,
+              9.0,
+              3.78
+            ],
+            "operand_digits": [
+              3,
+              1,
+              3,
+              1,
+              3
+            ],
+            "value": 11.6,
+            "digits": 1,
+            "unit": "kN/m3"
+          },
+          {
+            "key": "gamma_e2_low",
+            "label": "γe2 低水位",
+            "value": 18.0,
+            "digits": 1,
+            "unit": "kN/m3"
+          },
+          {
+            "key": "Iq_Igamma",
+            "label": "傾斜荷重補正",
+            "text": "Iq=(1−δ/90)^2, Iγ=(1−δ/φ)^2, δ=tan^-1(Hd/Vd)"
+          },
+          {
+            "key": "shape",
+            "label": "形状係数",
+            "text": "αb=1.0+0.2(B'/L), βb=0.5−0.2(B'/L), B'=B−2ex"
+          },
+          {
+            "key": "Rvd",
+            "label": "設計鉛直支持力",
+            "text": "Rvd = A' qvd + γe2 Df A', A'=B'L"
+          }
+        ]
+      },
+      {
+        "key": "vertical_bearing_check",
+        "title": "4) 鉛直支持に対する検討",
+        "page": "8-30",
+        "tables": [
+          {
+            "key": "result",
+            "title": "鉛直支持に対する検討",
+            "page": "8-30",
+            "columns": [
+              "長期支持",
+              "短期支持",
+              "安全性 鉛直力最大",
+              "安全性 曲げ最大"
+            ],
+            "rows": [
+              {
+                "key": "Vd",
+                "label": "Vd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 16348.95,
+                    "digits": 2
+                  },
+                  {
+                    "value": 18788.17,
+                    "digits": 2
+                  },
+                  {
+                    "value": 22585.12,
+                    "digits": 2
+                  },
+                  {
+                    "value": 21870.77,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Hd",
+                "label": "Hd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 473.43,
+                    "digits": 2
+                  },
+                  {
+                    "value": 495.01,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 584.25,
+                    "digits": 2
+                  },
+                  {
+                    "value": 408.49,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4767.98,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5460.42,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "pd",
+                "label": "pd 設計地盤反力度",
+                "unit": "kN/m2",
+                "cells": [
+                  {
+                    "value": 262.2,
+                    "digits": 2
+                  },
+                  {
+                    "value": 300.11,
+                    "digits": 2
+                  },
+                  {
+                    "value": 381.49,
+                    "digits": 2
+                  },
+                  {
+                    "value": 373.86,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ex",
+                "label": "ex = Md/Vd",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 0.036,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.022,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.211,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.25,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "ey",
+                "label": "ey = Mdy/Vdy",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "L",
+                "label": "L",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "B_eff",
+                "label": "B' = B-2・ex",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 6.928,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.956,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.578,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.5,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "L_eff",
+                "label": "L' = L-2・ey",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "A_eff",
+                "label": "A' = B'・L'",
+                "unit": "m2",
+                "cells": [
+                  {
+                    "value": 62.352,
+                    "digits": 3
+                  },
+                  {
+                    "value": 62.604,
+                    "digits": 3
+                  },
+                  {
+                    "value": 59.202,
+                    "digits": 3
+                  },
+                  {
+                    "value": 58.5,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Df",
+                "label": "Df",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 3.78,
+                    "digits": 3
+                  },
+                  {
+                    "value": 3.78,
+                    "digits": 3
+                  },
+                  {
+                    "value": 3.78,
+                    "digits": 3
+                  },
+                  {
+                    "value": 3.78,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "phi",
+                "label": "φ",
+                "unit": "度",
+                "cells": [
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "delta",
+                "label": "δ = tan-1(Hd/Vd)",
+                "unit": "度",
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.201,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.297,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Mmd",
+                "label": "設計最大ﾓｰﾒﾝﾄ Mmd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 14021.98,
+                    "digits": 2
+                  },
+                  {
+                    "value": 59748.03,
+                    "digits": 2
+                  },
+                  {
+                    "value": 72146.55,
+                    "digits": 2
+                  },
+                  {
+                    "value": 70029.45,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "distribution",
+                "label": "地盤反力の分布形状",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "Case 1"
+                  },
+                  {
+                    "text": "Case 1"
+                  },
+                  {
+                    "text": "Case 1"
+                  },
+                  {
+                    "text": "Case 1"
+                  }
+                ]
+              },
+              {
+                "key": "x",
+                "label": "地盤反力の載荷幅 x",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 7.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Pd1",
+                "label": "Pd1",
+                "unit": "kN/m3 (printed)",
+                "cells": [
+                  {
+                    "value": 267.51,
+                    "digits": 2
+                  },
+                  {
+                    "value": 303.85,
+                    "digits": 2
+                  },
+                  {
+                    "value": 423.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 421.55,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Pd2",
+                "label": "Pd2",
+                "unit": "kN/m3 (printed)",
+                "cells": [
+                  {
+                    "value": 251.5,
+                    "digits": 2
+                  },
+                  {
+                    "value": 292.6,
+                    "digits": 2
+                  },
+                  {
+                    "value": 293.66,
+                    "digits": 2
+                  },
+                  {
+                    "value": 272.76,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "gamma_e1",
+                "label": "γe1",
+                "unit": "kN/m3",
+                "cells": [
+                  {
+                    "value": 10.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 10.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 10.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 10.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "gamma_e2",
+                "label": "γe2",
+                "unit": "kN/m3",
+                "cells": [
+                  {
+                    "value": 11.6,
+                    "digits": 1
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 1
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Ir",
+                "label": "Ir = (1-δ/φ)^2",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.944,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.939,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "Iq",
+                "label": "Iq = (1-δ/90)^2",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.973,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.971,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "alpha_b",
+                "label": "αb = 1.0+0.2・B'/L'",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.154,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.155,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.146,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.144,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "beta_b",
+                "label": "βb = 0.5-0.2・B'/L'",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.346,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.345,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.354,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.356,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "C",
+                "label": "粘着力 C",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Nc",
+                "label": "Nc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 5.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 5.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 5.1,
+                    "digits": 1
+                  },
+                  {
+                    "value": 5.1,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "Nr",
+                "label": "Nr",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 150,
+                    "digits": 0
+                  },
+                  {
+                    "value": 150,
+                    "digits": 0
+                  },
+                  {
+                    "value": 150,
+                    "digits": 0
+                  },
+                  {
+                    "value": 150,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "Nq",
+                "label": "Nq",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 85,
+                    "digits": 0
+                  },
+                  {
+                    "value": 85,
+                    "digits": 0
+                  },
+                  {
+                    "value": 85,
+                    "digits": 0
+                  },
+                  {
+                    "value": 85,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "frc",
+                "label": "frc",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.5,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "fry",
+                "label": "fry",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.5,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "frd",
+                "label": "frd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.5,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.67,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "term_r",
+                "label": "frc･Ir･βb･Be･γe1･Nr",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1186.56,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1799.87,
+                    "digits": 2
+                  },
+                  {
+                    "value": 2209.2,
+                    "digits": 2
+                  },
+                  {
+                    "value": 2183.71,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "term_q",
+                "label": "frd･Iq･γe2･Df･(Nq-1)",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1212.47,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1428.84,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1862.95,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1859.12,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "term_c",
+                "label": "frc･Nc･Ic･αb･c",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "qvd",
+                "label": "極限支持力度 qvd",
+                "unit": "kN/m2",
+                "cells": [
+                  {
+                    "value": 300.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3228.71,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4072.15,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4042.83,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "qd",
+                "label": "設計鉛直支持力度 qd",
+                "unit": "kN/m2",
+                "cells": [
+                  {
+                    "value": 343.74,
+                    "digits": 2
+                  },
+                  {
+                    "value": 3262.73,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4106.17,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4076.85,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Rvd",
+                "label": "設計鉛直支持力 Rvd",
+                "unit": "kN",
+                "cells": [
+                  null,
+                  null,
+                  {
+                    "value": 243093.48,
+                    "digits": 2
+                  },
+                  {
+                    "value": 238495.73,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "gamma_a",
+                "label": "γa",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.2,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ratio_pd_qd",
+                "label": "γi･Pd／qd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.778,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.093,
+                    "digits": 3
+                  },
+                  null,
+                  null
+                ]
+              },
+              {
+                "key": "ratio_Vd_Rvd",
+                "label": "γi･γa･Vd／Rvd",
+                "unit": null,
+                "cells": [
+                  null,
+                  null,
+                  {
+                    "value": 0.134,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.132,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "ex_limit",
+                "label": "回転安定 制限値",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 1.167,
+                    "digits": 3
+                  },
+                  {
+                    "value": 1.75,
+                    "digits": 3
+                  },
+                  null,
+                  null
+                ]
+              },
+              {
+                "key": "ratio_ex",
+                "label": "γi･γa･ex／制限値",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.031,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.013,
+                    "digits": 3
+                  },
+                  null,
+                  null
+                ]
+              },
+              {
+                "key": "ratio_Md_Mmd",
+                "label": "γi･γa･Md／Mmd",
+                "unit": null,
+                "cells": [
+                  null,
+                  null,
+                  {
+                    "value": 0.095,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.112,
+                    "digits": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "horizontal_bearing_method",
+        "title": "(2) 水平支持に対する検討",
+        "page": "8-31",
+        "items": [
+          {
+            "key": "criterion",
+            "label": "照査式",
+            "text": "γa γi Hd/Rhd ≦ 1.0; Rhd = Rhb + Rhp; Rhb = frs Vd tanδb + frc A' c'; Rhp は考慮しない; δ = φ"
+          }
+        ]
+      },
+      {
+        "key": "horizontal_bearing_check",
+        "title": "水平支持に対する検討表",
+        "page": "8-32",
+        "tables": [
+          {
+            "key": "result",
+            "title": "水平支持に対する検討表",
+            "page": "8-32",
+            "columns": [
+              "長期支持",
+              "短期支持",
+              "安全性 鉛直力最大",
+              "安全性 曲げ最大"
+            ],
+            "rows": [
+              {
+                "key": "Vd",
+                "label": "Vd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 16348.95,
+                    "digits": 2
+                  },
+                  {
+                    "value": 18788.17,
+                    "digits": 2
+                  },
+                  {
+                    "value": 22585.12,
+                    "digits": 2
+                  },
+                  {
+                    "value": 21870.77,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Hd",
+                "label": "Hd",
+                "unit": "kN",
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 473.43,
+                    "digits": 2
+                  },
+                  {
+                    "value": 495.01,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Md",
+                "label": "Md",
+                "unit": "kN･m",
+                "cells": [
+                  {
+                    "value": 584.25,
+                    "digits": 2
+                  },
+                  {
+                    "value": 408.49,
+                    "digits": 2
+                  },
+                  {
+                    "value": 4767.98,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5460.42,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "phi",
+                "label": "φ",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  },
+                  {
+                    "value": 42.2,
+                    "digits": 1
+                  }
+                ]
+              },
+              {
+                "key": "c",
+                "label": "C'",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  },
+                  {
+                    "value": 0,
+                    "digits": 0
+                  }
+                ]
+              },
+              {
+                "key": "ex",
+                "label": "ex = Md/Nd",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.036,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.022,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.211,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.25,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "ey",
+                "label": "ey = Mdy/Ndy",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "B",
+                "label": "B",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 7.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "L",
+                "label": "L",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "B_eff",
+                "label": "B'=B-2・ex",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 6.929,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.957,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.578,
+                    "digits": 3
+                  },
+                  {
+                    "value": 6.501,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "L_eff",
+                "label": "L'=L-2・ey",
+                "unit": "m",
+                "cells": [
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 9.0,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "A_eff",
+                "label": "A'",
+                "unit": "m2",
+                "cells": [
+                  {
+                    "value": 62.361,
+                    "digits": 3
+                  },
+                  {
+                    "value": 62.613,
+                    "digits": 3
+                  },
+                  {
+                    "value": 59.202,
+                    "digits": 3
+                  },
+                  {
+                    "value": 58.509,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "frs",
+                "label": "frs",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.33,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "term_friction",
+                "label": "frsVtanδb",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 4892.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5621.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6758.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6544.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "term_adhesion",
+                "label": "frsA'C'",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "Rhb",
+                "label": "Rhb",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 4892.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 5621.9,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6758.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 6544.3,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "gamma_i",
+                "label": "γi",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  },
+                  {
+                    "value": 1.0,
+                    "digits": 2
+                  }
+                ]
+              },
+              {
+                "key": "ratio",
+                "label": "γi(Hd/Rhd)",
+                "unit": null,
+                "cells": [
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.0,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.07,
+                    "digits": 3
+                  },
+                  {
+                    "value": 0.076,
+                    "digits": 3
+                  }
+                ]
+              },
+              {
+                "key": "judgement",
+                "label": "判定",
+                "unit": null,
+                "cells": [
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  },
+                  {
+                    "text": "OK"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
