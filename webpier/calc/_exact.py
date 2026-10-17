@@ -9,7 +9,7 @@ from the printed values and rounded once, by the Precision of the result.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Context, Decimal
 
 from ..core.printed import Precision, Printed
 
@@ -23,8 +23,14 @@ def d(number: Number) -> Decimal:
 
 
 def put(precision: Precision, exact: Decimal) -> Printed:
-    """Round an exact result to its printed digits."""
-    return precision(float(exact))
+    """Round an exact result to its printed digits, once.
+
+    The decimal is rounded itself: through the nearest double first, 0.49999999999999999 would become 0.5 and
+    then 1 instead of 0.
+    """
+    places = Decimal(1).scaleb(-precision.digits)
+    context = Context(prec=max(exact.adjusted(), 0) + precision.digits + 2)
+    return precision(float(exact.quantize(places, rounding=ROUND_HALF_UP, context=context)))
 
 
 def total(numbers: Iterable[Number]) -> Decimal:
