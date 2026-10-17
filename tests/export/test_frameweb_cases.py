@@ -155,9 +155,11 @@ def test_reversal_is_only_for_the_horizontal_cases(current):
 
 
 def test_zero_coefficients_are_left_out_and_an_empty_combination_is_an_error():
-    # ρs = 0: the serviceability train and impact vanish. Combinations 5, 15 and 16 keep their other actions;
-    # combination 7 (L1 + I1 only) has nothing, and FrameWeb drops an empty Combine, so Pickup 4 would fail.
-    result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.0})
+    # ρs must be positive (decision 37), but a factor is printed with 2 decimals: ρs = 0.004 prints 0.00, and
+    # 0.75 × 0.004 = 0.003 -> 0.00. The serviceability train and impact then add nothing. Combinations 5, 15 and 16
+    # keep their other actions; combination 7 (L1 + I1 only) has nothing, and FrameWeb drops an empty Combine, so
+    # Pickup 4 would fail.
+    result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
     assert [c.factor.value for c in result.combinations[6].components] == [0, 0]
     with pytest.raises(InputError, match="combine.7"):
         build_frameweb(result)

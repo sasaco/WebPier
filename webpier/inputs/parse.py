@@ -113,9 +113,9 @@ def _train(root: Reader) -> Train:
         height_wind=heights.at("受風高").printed(LENGTH),
         height_centrifugal=heights.at("遠心重心高").printed(LENGTH),
         height_seismic=heights.at("地震重心高").printed(LENGTH),
-        factor_service=factors.at("使用性").printed(RATIO),
-        factor_ultimate=factors.at("安全性(破壊)").printed(RATIO),
-        factor_fatigue=factors.at("安全性(疲労)").printed(RATIO),
+        factor_service=factors.at("使用性").printed(RATIO, sign="positive"),  # decision 37
+        factor_ultimate=factors.at("安全性(破壊)").printed(RATIO, sign="positive"),
+        factor_fatigue=factors.at("安全性(疲労)").printed(RATIO, sign="positive"),
     )
 
 

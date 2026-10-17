@@ -7,11 +7,14 @@ combination is the printed factor times the printed action (Example2 08 pp.8-9 t
 - a load case per other action a factor applies to (``ResolvedAction.basis`` other than the basic one, e.g. the
   serviceability impact of 0610), after the basic cases, with a Define of its own;
 - a Define per Define case of the calc, listing the load case in each of its signs (−n reverses it);
-- a Combine per combination: each component as (Define, printed factor); a factor 0 adds nothing and is left
-  out;
+- a Combine per combination: each component as (Define, printed factor); a factor printed 0.00 (a load factor
+  below 0.005) adds nothing and is left out;
 - a Pickup per extraction group.
 
-Nothing is computed: the actions and factors are the printed values of the calc result.
+Nothing is computed: the actions and factors are the printed values of the calc result. FrameWeb multiplies
+them without rounding, while the report rounds each resolved action once (factor × action -> 2 decimals), so a
+FrameWeb combination differs from the printed one by up to 0.005 per action; this is accepted for the external
+analysis (decision 38).
 """
 
 from __future__ import annotations

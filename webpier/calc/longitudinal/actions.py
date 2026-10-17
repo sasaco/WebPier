@@ -19,6 +19,7 @@ from ...core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Printed
 from ...inputs import PierInput
 from .._exact import d, put, total
 from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, point_load
+from ..load_nature import Nature, SpringTerm, spring_term
 from ..reaction import ReactionResult
 from ..reaction.longitudinal import LongitudinalCase
 from ..reaction.self_weight import Body
@@ -161,14 +162,22 @@ HORIZONTAL_CASES = {
 }
 
 
-class SpringTerm(Enum):
-    LONG = "long_term"  # バネ 1 of 8-9
-    SHORT = "short_term"  # バネ 2
-
-
-_SHORT_TERM = frozenset({BasicCase.TRAIN_SINGLE, BasicCase.TRAIN_DOUBLE, BasicCase.IMPACT_SINGLE,
-                         BasicCase.IMPACT_DOUBLE, BasicCase.SAFETY_LR10_B, BasicCase.SAFETY_LR11_B,
-                         BasicCase.SAFETY_LR10_BMAX, BasicCase.RESTORABILITY_LR10_B})  # 8-9 バネ 2
+_N = Nature
+_RAIL, _RAIL_BRAKING = frozenset({_N.LONG_RAIL}), frozenset({_N.LONG_RAIL, _N.BRAKING})
+# What each basic case carries; its spring set follows from it (decision 36, load_nature).
+NATURES: dict[BasicCase, frozenset[Nature]] = {
+    BasicCase.D1: frozenset({_N.DEAD}), BasicCase.D2: frozenset({_N.DEAD}),
+    BasicCase.BUOYANCY_HIGH: frozenset({_N.WATER}), BasicCase.BUOYANCY_NORMAL: frozenset({_N.WATER}),
+    BasicCase.BUOYANCY_LOW: frozenset({_N.WATER}),
+    BasicCase.SNOW2: frozenset({_N.SNOW}), BasicCase.SNOW10: frozenset({_N.SNOW}),
+    BasicCase.SNOW30: frozenset({_N.SNOW}),
+    BasicCase.TRAIN_SINGLE: frozenset({_N.TRAIN}), BasicCase.TRAIN_DOUBLE: frozenset({_N.TRAIN}),
+    BasicCase.IMPACT_SINGLE: frozenset({_N.IMPACT}), BasicCase.IMPACT_DOUBLE: frozenset({_N.IMPACT}),
+    BasicCase.SERVICE_LR08: _RAIL, BasicCase.SERVICE_LR10: _RAIL,
+    BasicCase.SAFETY_LR10_B: _RAIL_BRAKING, BasicCase.SAFETY_LR11_B: _RAIL_BRAKING,
+    BasicCase.SAFETY_LR10_BMAX: _RAIL_BRAKING, BasicCase.SAFETY_LR10: _RAIL,
+    BasicCase.RESTORABILITY_LR10_B: _RAIL_BRAKING, BasicCase.RESTORABILITY_LR10: _RAIL,
+}
 
 
 @dataclass(frozen=True)
@@ -296,7 +305,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     for basic, forces in bearing_cases.items():
         points[basic] = (bearing_point(frame, FORCE(0), h=forces.total),)
     basic_cases = tuple(
-        BasicAction(case=case, spring=SpringTerm.SHORT if case in _SHORT_TERM else SpringTerm.LONG,
+        BasicAction(case=case, spring=spring_term(NATURES[case]),
                     points=points[case],
                     line_loads=(column_line_load(frame, n=q),) if case is BasicCase.D1 else ())
         for case in BasicCase)
@@ -305,5 +314,5 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 
 
 __all__ = ["Actions", "AdditionalDead", "BasicAction", "BasicCase", "FixedDead", "HorizontalRow", "ImpactRow",
-           "ImpactTable", "Impacts", "Item", "Row", "SpringTerm", "TopTable", "Trains", "bearing_point",
+           "ImpactTable", "Impacts", "Item", "NATURES", "Row", "SpringTerm", "TopTable", "Trains", "bearing_point",
            "calculate_actions"]

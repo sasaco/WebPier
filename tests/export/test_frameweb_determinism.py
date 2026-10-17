@@ -32,9 +32,9 @@ def test_key_order_is_by_number():
 
 
 def test_zero_coefficients_are_left_out():
-    # With ρs = 0 the serviceability train and impact have the factor 0.00: they add nothing, so their columns
+    # With ρs = 0.004 the serviceability train and impact have the printed factor 0.00: they add nothing, so their columns
     # are left out (build_frameweb then rejects the empty combination 7, see test_frameweb_cases).
-    result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.0})
+    result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
     document = frameweb_document(result.frame, frameweb_cases(result, LONGITUDINAL))
     assert {key for key in document["combine"]["5"] if key.startswith("C")} == {"C1", "C2", "C6", "C14"}
     assert {key for key in document["combine"]["7"] if key.startswith("C")} == set()

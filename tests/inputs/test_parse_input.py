@@ -188,3 +188,12 @@ def test_parse_does_not_mutate_the_document():
     document = data()
     parse_input(document)
     assert document == CURRENT
+
+
+@pytest.mark.parametrize("key", ["使用性", "安全性(破壊)", "安全性(疲労)"])
+@pytest.mark.parametrize("value", [0.0, -0.5])
+def test_load_factors_must_be_positive(key, value):
+    # Decision 37: a load factor of 0 would remove the train from its combinations; it is an input error.
+    document = data()
+    document["上部構造"]["列車"]["荷重修正係数"][key] = value
+    fails(document, f"上部構造.列車.荷重修正係数.{key}: 正の数値が必要です")
