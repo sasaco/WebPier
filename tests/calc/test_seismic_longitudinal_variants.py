@@ -2,11 +2,14 @@
 
 from decimal import Decimal
 
+import pytest
+
 from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, document, pier, q, value
 from seismic_longitudinal_support import chain, points, seismic
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import BasicCase, Item
 from webpier.calc.seismic_longitudinal import SeismicCase
+from webpier.core.errors import InputError
 from webpier.inputs import parse_input
 
 C = SeismicCase
@@ -171,3 +174,16 @@ def test_bearing_side_signs_of_the_train_moment():
     rb, rc = result.train.row(Item.ORIGIN), result.train.row(Item.END)
     assert (rb.arm.value, rb.m.value) == (0.0, 0.0)
     assert value(rc.m) == q(D(160) * D(1.2), 2) == Decimal("192.00")
+
+
+def test_footing_lighter_than_the_displaced_soil_stops_0710():
+    # Decision 32: γ < γ' would give a footing inertia against the earthquake.
+    with pytest.raises(InputError, match=r"下部構造\.単位体積重量\.フーチング.*地盤データ\.層\.0\.単位体積重量\.湿潤"):
+        seismic(pier(**{WEIGHTS + "フーチング": 17.9}))
+
+
+def test_footing_as_heavy_as_the_displaced_soil_has_no_inertia():
+    # γ = γ': the footing moves as the soil it replaces; H = 170.100 × 0.0 × 1.00 = 0.00, a valid zero load.
+    result = seismic(pier(**{WEIGHTS + "フーチング": 18.0}))
+    assert result.self_weight.footing.force.value == 0.0
+    assert points(result.basic(C.SELF_INERTIA)) == {6: (0.0, 0.0, 0.0)}

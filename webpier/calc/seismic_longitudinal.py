@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
+from ..core.errors import InputError
 from ..core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Precision, Printed
 from ..inputs import PierInput
 from ._exact import d, put, total
@@ -195,6 +196,10 @@ def _self_weight(pier: PierInput, reaction: ReactionResult) -> SelfWeightInertia
     footing = reaction.self_weight.footing
     displaced = pier.soil.surface.unit_weight_wet
     assert displaced is not None  # required by parse_input
+    if s.unit_weight_footing.value < displaced.value:  # decision 32; γ = γ' gives H = 0, a valid zero load
+        raise InputError(f"下部構造.単位体積重量.フーチング（{s.unit_weight_footing.value} kN/m3）が "
+                         f"地盤データ.層.0.単位体積重量.湿潤（排除した土 γ' {displaced.value} kN/m3）より小さく、"
+                         "フーチングの慣性力 V×(γ−γ')×Kh が地震と逆向きになります")
     return SelfWeightInertia(
         kh=PIER_KH,
         beam_top=_intensity(b[1], w[1], gamma),
