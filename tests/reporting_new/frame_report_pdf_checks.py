@@ -62,8 +62,10 @@ def table_checks(path: str | Path) -> list[RowCheck]:
                 numbers = _numbers(tokens)
                 if ("op", "=") in tokens or not tokens:
                     continue
-                labelled = text.startswith(ROW_WORDS)
-                if labelled and len(numbers) in (3, 5):
+                # N, arm, M of a bearing or a pier part; load, factor, N, arm, M of a bearing
+                labelled = (text.startswith(ROW_WORDS) and len(numbers) == 3
+                            or text.startswith(ROW_WORDS[:2]) and len(numbers) == 5)
+                if labelled:
                     if len(numbers) == 3:
                         ok = _product(numbers[0], numbers[1], numbers[2])
                     else:
@@ -71,7 +73,8 @@ def table_checks(path: str | Path) -> list[RowCheck]:
                     checks.append(RowCheck(page.number + 1, text, "row", ok))
                     rows.append(numbers)
                 elif text.startswith("合計") and rows and len(numbers) in (2, 3):
-                    columns = (0, 2) if len(numbers) == 2 else (0, 2, 4)
+                    # N and M under rows of N, arm, M; or under rows of load, factor, N, arm, M (Σ of the products)
+                    columns = (0, 2, 4) if len(numbers) == 3 else (0, 2) if len(rows[0]) == 3 else (2, 4)
                     sums = [sum((Decimal(row[c]) for row in rows), Decimal(0)) for c in columns]
                     ok = all(total == Decimal(number) for total, number in zip(sums, numbers, strict=True))
                     checks.append(RowCheck(page.number + 1, text, "total", ok))

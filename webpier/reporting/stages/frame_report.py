@@ -345,11 +345,12 @@ _ROLE_NAMES = {
     NodeRole.MICRO_TOP: "微小部材上端", NodeRole.FOOTING_TOP: "フーチング天端",
     NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面（ばね）",
     NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
+    NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁",
 }
 REGION_NAMES = {
     Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端の微小部材",
     Region.FOOTING_UPPER: "フーチング天端～重心", Region.FOOTING_LOWER: "フーチング重心～底面",
-    Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け",
+    Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け", Region.GIRDER: "支承から桁までの剛域",
 }
 
 
@@ -446,6 +447,118 @@ def seat_moment(m: Manuscript, key: str, frame: Frame, n: Printed, moment: Print
     m.equation(key, "桁受け天端", "M", expression(value(moment), "−", value(n), "×", operand(offset)), point.m)
 
 
+def joined(parts: list[Any]) -> list[Any]:
+    """Operands joined by +, for expression()."""
+    found: list[Any] = []
+    for part in parts:
+        if found:
+            found.append("+")
+        found.append(part)
+    return found
+
+
+def seat_split(m: Manuscript, fixed: Any, points: Sequence[PointLoad], frame: Frame,
+               bearing: Callable[[Any], bool]) -> None:
+    """With the bearings on an offset pedestal, D1 splits into the seat and the beam top (decision 29).
+
+    *fixed* is the D1 of the stage (its table, q and the overlap), *points* the D1 point loads and
+    *bearing* tells the bearing rows of the table from the pier parts.
+    """
+    seat = next(p for p in points if p.anchor is NodeRole.PEDESTAL_TOP)
+    cap = next(p for p in points if p.anchor is NodeRole.CAP_TOP)
+    bearings = [row for row in fixed.table.rows if bearing(row)]
+    body = [row for row in fixed.table.rows if not bearing(row)]
+    m.paragraph("fixed.seat.heading", "・桁受け天端とはり天端への載荷", keep=True)
+    m.equation("fixed.seat.n", "桁受け天端", "N", expression(*joined([value(r.n) for r in bearings])), seat.n)
+    moments = joined([operand(r.m) if i else value(r.m) for i, r in enumerate(bearings)])
+    m.equation("fixed.seat.m", "", "M", expression(*moments, "−", value(seat.n), "×", operand(frame.bearing_offset)),
+               seat.m)
+    m.equation("fixed.cap.n", "はり天端", "N'", expression(*joined([value(r.n) for r in body]), "−",
+                                                       value(fixed.column_q), "×", value(fixed.overlap)), cap.n)
+    m.equation("fixed.cap.m", "", "M'", expression(*joined([operand(r.m) if i else value(r.m)
+                                                             for i, r in enumerate(body)])), cap.m)
+
+
+def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str) -> None:
+    """Kh, Hw = b × w × γ × Kh of the beam, haunch bottom, column (pedestal) and H at the footing (10-8, 11-8)."""
+    m.heading("inertia.heading", heading, 2)
+    m.equation("inertia.kh", "設計水平震度", sub("K", "h"), value(inertia.kh))
+    m.paragraph("inertia.body", "・橋脚く体に作用する水平力", keep=True)
+    parts = (("beam_top", "はり", "w1", inertia.beam_top), ("beam_bottom", "ハンチ下端", "w2", inertia.beam_bottom),
+             ("column", "柱", "w3", inertia.column), ("pedestal", "桁受け", "w4", inertia.pedestal))
+    for key, label, name, intensity in parts:
+        if intensity is not None:
+            m.equation(f"inertia.{key}", label, sub("H", name),
+                       expression(value(intensity.along), "×", value(intensity.across), "×",
+                                  value(intensity.unit_weight), "×", value(intensity.kh)), intensity.value)
+    m.paragraph("inertia.footing.heading", "・フーチング重心に作用する水平力", keep=True)
+    footing = inertia.footing
+    m.equation("inertia.footing.formula", "", "H", expression("V", "×", Row("(", expression("γ", "−", "γ'"), ")",
+                                                                         gap=0), "×", sub("K", "h")))
+    m.equation("inertia.footing", "", "H",
+               expression(value(footing.volume), "×",
+                          Row("(", expression(value(footing.unit_weight), "−", value(footing.displaced)), ")", gap=0),
+                          "×", value(footing.kh)), footing.force)
+    m.paragraph("inertia.footing.note", f"V はフーチングの体積（{chapter}），γ' は排除した土（表層）の湿潤単位体積重量．")
+
+
+# --- combinations (8.4 / 9.4) -----------------------------------------------------------------------------
+
+
+def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
+                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]]) -> TableSpec:
+    """Cases as rows, combinations as columns, the coefficients as printed (8-10, 9-14).
+
+    *headers* gives each combination its requirement, performance item and remark; neighbours with the
+    same text share a header cell. A missing coefficient prints '－'.
+    """
+    header: list[list[Any]] = [[Span("No", rowspan=4), Span("記号", rowspan=4), Span("荷重名称", rowspan=4)], [], [], []]
+    for level in (0, 1):
+        index = 0
+        while index < len(headers):
+            text, span = headers[index][level], 1
+            while (index + span < len(headers) and headers[index + span][level] == text
+                   and headers[index + span][0] == headers[index][0]):
+                span += 1
+            header[level].append(Span(text, colspan=span))
+            index += span
+    header[2] = [Span(remark, vertical=True) if remark else "" for *_, remark in headers]
+    header[3] = [str(number) for number in numbers]
+    body = [(number, Span(symbol), name, *(value(c) if c is not None else Span("－") for c in coefficients))
+            for number, symbol, name, coefficients in rows]
+    width = 23.04 if len(headers) <= 16 else 22.08
+    widths = (19.92, 64.32, 528 - 19.92 - 64.32 - width * len(headers), *(width,) * len(headers))
+    heights = (28.56, 14.28, 47.76, 14.28) + (14.28,) * len(body)
+    return TableSpec(widths, (*(tuple(row) for row in header), *body), heights, header_rows=4,
+                     numeric=frozenset({0, *range(3, 3 + len(headers))}), left=48.0)
+
+
+def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_impact: Any) -> None:
+    """ρ as entered and as printed in the table, 1.1ρ and 0.75ρ (8-10, 9-14)."""
+    m.equation("factors.ultimate", "安全性・復旧性", "ρ", value(train.factor_ultimate), factors.ultimate,
+               result_relation="≒")
+    m.equation("factors.maximum", "列車最大", "1.1ρ", expression(maximum, "×", value(train.factor_ultimate)),
+               factors.maximum)
+    m.equation("factors.service", "使用性", "ρ", value(train.factor_service), factors.service, result_relation="≒")
+    m.equation("factors.service_impact", "使用性の衝撃", "0.75ρ",
+               expression(service_impact, "×", value(train.factor_service)), factors.service_impact)
+
+
+EXTRACTION_NAMES = ("安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）",
+                    "長期支持性能", "短期支持性能")
+
+
+def extraction_table(m: Manuscript, extractions: Sequence[Any]) -> None:
+    width = max(len(extraction.combinations) for extraction in extractions)
+    rows: list[tuple[Any, ...]] = [("No", "名称", *(f"C{index}" for index in range(1, width + 1)))]
+    for extraction in extractions:
+        numbers = [str(number) for number in extraction.combinations]
+        rows.append((str(extraction.number), EXTRACTION_NAMES[extraction.group.value - 1], *numbers,
+                     *[""] * (width - len(numbers))))
+    m.table("extraction", TableSpec((28.8, 120, *(39.6,) * width), tuple(rows), (14.28,) * len(rows),
+                                    numeric=frozenset({0, *range(2, 2 + width)})))
+
+
 def bearing_symbol(side: str) -> MathNode:
     return Row("起点側　" if side == "origin" else "終点側　", sub("R", "B" if side == "origin" else "C"), gap=0)
 
@@ -461,7 +574,8 @@ class CaseLoads:
     title: str
     points: tuple[PointLoad, ...]
     line_loads: tuple[LineLoad, ...] = ()
-    member_loads: tuple[tuple[int, Printed, Printed], ...] = ()  # member, start, end (signed, kN/m)
+    # member, start, end (signed, kN/m), and optionally the loaded part (t0, t1) of the member length
+    member_loads: tuple[tuple[Any, ...], ...] = ()
     member_names: dict[Region, tuple[str, str]] = field(default_factory=dict)  # region → names of start, end
     horizontal: bool = False  # an all-zero load is listed as H, otherwise as N
     magnitudes: bool = False  # horizontal forces as magnitude and direction (←, →), as Example2 10 / 11
@@ -486,7 +600,8 @@ def _point_names(case: CaseLoads) -> list[tuple[PointLoad, dict[str, str]]]:
 
 
 def _listed(point: PointLoad, horizontal: bool) -> list[str]:
-    found = [component for component in ("n", "m", "h") if getattr(point, component).value]
+    # Example2 9-11: N, then H, then M
+    found = [component for component in ("n", "h", "m") if getattr(point, component).value]
     return found or (["h"] if horizontal else ["n"])
 
 
@@ -523,12 +638,13 @@ def case_glyphs(frame: Frame, case: CaseLoads, signs: Sequence[int] | None = Non
     if case.member_loads:
         regions = {member.number: member.region for member in frame.members}
         labels, seen = [], set()
-        for number, start, end in case.member_loads:
+        for number, start, end, *_ in case.member_loads:
             for where, name in zip((0.0, 1.0), case.member_names[regions[number]], strict=True):
                 if name not in seen:
                     seen.add(name)
                     labels.append((number, .5 if start == end else where, name))
-        glyphs.append(DistributedGlyph(tuple((n, s.value, e.value) for n, s, e in case.member_loads), tuple(labels)))
+        glyphs.append(DistributedGlyph(tuple((n, s.value, e.value, *part) for n, s, e, *part in case.member_loads),
+                                       tuple(labels)))
     return glyphs
 
 
@@ -560,7 +676,7 @@ def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
     if case.member_loads:
         regions = {member.number: member.region for member in frame.members}
         seen: set[str] = set()
-        for number, start, end in case.member_loads:
+        for number, start, end, *_ in case.member_loads:
             for intensity, name in zip((start, end), case.member_names[regions[number]], strict=True):
                 if name not in seen:
                     seen.add(name)
@@ -598,7 +714,8 @@ def diagram_groups(m: Manuscript, frame: Frame, groups: Iterable[tuple[str, str,
         runs = _compatible(frame, cases)
         for index, (run, signs) in enumerate(runs):
             suffix = "" if len(runs) == 1 else f".{index + 1}"
-            m.paragraph(f"diagrams.{key}{suffix}.title", title(name, run), keep=True, left=LEVELS[3])
+            alone = f"　{run[0].title}" if len(run) == 1 and len(cases) > 1 else ""  # a case split from its group
+            m.paragraph(f"diagrams.{key}{suffix}.title", title(name, run) + alone, keep=True, left=LEVELS[3])
             lines: list[Any] = []
             for case in run:
                 if len(run) > 1:

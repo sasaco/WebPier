@@ -66,3 +66,39 @@ def text(value: Printed | None, *, thousands: bool = False) -> str:
     decimal = Decimal(repr(value.value)).quantize(Decimal(1).scaleb(-value.digits))
     assert float(decimal) == value.value
     return format(decimal, ",f" if thousands else "f")
+
+
+# 0620/0720: the transverse frame changes with W sizes; R ≠ 0 adds the centrifugal cases (decision 33);
+# the ground (footing top + min(df1, df2)) cuts the column in Example2 and the haunch in ``haunch_ground``.
+TRANSVERSE_CASES: dict[str, dict[str, object]] = {
+    "current": {},
+    "curve": {"上部構造/起点側/曲線半径": 600, "上部構造/終点側/曲線半径": 800},
+    "pedestal": CASES["pedestal"],
+    "asymmetric": _dims(W7=2.75, W9=1.75, H5=0.5, H6=2.2, W8=5.0),
+    "haunch_ground": {"下部構造/土かぶり/起点側_df1": 5.2, "下部構造/土かぶり/終点側_df2": 5.4},
+    "merged": CASES["merged"],
+}
+
+
+def _input(changes: dict[str, object]) -> PierInput:
+    document = deepcopy(CURRENT)
+    for path, value in changes.items():
+        node = document
+        *parents, key = path.split("/")
+        for part in parents:
+            node = node[int(part)] if part.isdigit() else node[part]
+        node[key] = value
+    return parse_input(document)
+
+
+@cache
+def transverse_chain(case: str):
+    """(pier, reaction, TransverseResult, SeismicTransverseResult) of a transverse variant."""
+    from webpier.calc.seismic_transverse import calculate_seismic_transverse
+    from webpier.calc.transverse import calculate_transverse
+
+    pier = _input(TRANSVERSE_CASES[case])
+    foundation = calculate_foundation(pier)
+    reaction = calculate_reaction(pier)
+    transverse = calculate_transverse(pier, foundation, reaction)
+    return pier, reaction, transverse, calculate_seismic_transverse(pier, foundation, reaction, transverse)

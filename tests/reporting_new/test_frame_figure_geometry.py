@@ -263,3 +263,33 @@ def test_the_pier_height_spans_the_beam_top_to_the_footing_top():
     assert any(c.y1 == pytest.approx(top) and c.y2 == pytest.approx(footing) for c in lines)
     assert text(frame.pier_height) == "7.600"
 
+
+
+@pytest.mark.parametrize("stage", ["0620", "0720"])
+@pytest.mark.parametrize("case", ["current", "curve", "pedestal", "asymmetric", "haunch_ground", "merged"])
+def test_transverse_frames_draw_their_coordinates_labels_and_heights(case: str, stage: str):
+    """Across the track: W sizes, the girder level above the seat (0720 node 1), the micro member."""
+    from frame_report_cases import transverse_chain
+
+    pier, _, transverse, seismic = transverse_chain(case)
+    frame = transverse.frame if stage == "0620" else seismic.frame
+    figure = FrameFigure(frame, pier_outline(pier, frame))
+    drawn = commands(figure)
+    circles = node_circles(drawn)
+    top, base = frame.node(NodeRole.CAP_TOP), frame.node(NodeRole.FOOTING_BOTTOM)
+    scale = (circles[base.number - 1].y - circles[top.number - 1].y) / (top.y.value - base.y.value)
+    for node, circle in zip(frame.nodes, circles, strict=True):
+        assert circle.x == pytest.approx(circles[top.number - 1].x + (node.x.value - top.x.value) * scale, abs=1e-6)
+        assert circle.y == pytest.approx(circles[top.number - 1].y - (node.y.value - top.y.value) * scale, abs=1e-6)
+    highest = max(frame.nodes, key=lambda node: node.y.value)
+    expected = [text(m.height) for m in frame.members if m.height.value > 0]
+    expected += [text(frame.pier_height), text(frame.node(NodeRole.FOOTING_TOP).y), text(highest.y)]
+    assert Counter(c.text for c in texts(drawn, turned=True)) == Counter(expected)
+    if stage == "0720":
+        assert NodeRole.GIRDER_ORIGIN in highest.roles and highest.number == 1
+    boxes = [command_bounds(c, FONTS) for c in drawn if isinstance(c, Text)]
+    for a, b in itertools.combinations(boxes, 2):
+        assert a.right <= b.x or b.right <= a.x or a.bottom <= b.y or b.bottom <= a.y
+    width = sum(pier.substructure.w[i].value for i in (7, 8, 9))
+    footing = next(p for p in pier_outline(pier, frame).polygons if min(y for _, y in p) == 0)
+    assert max(x for x, _ in footing) - min(x for x, _ in footing) == pytest.approx(width)

@@ -19,14 +19,14 @@ from gridlayoutpdf import Document, Row
 from ...calc.frame import MICRO_MEMBER, NodeRole, Region
 from ...calc.longitudinal.actions import Item
 from ...calc.seismic_longitudinal import (
-    ActionDirection, Increment, Intensity, SeismicCase, SeismicLongitudinalResult,
+    ActionDirection, Increment, SeismicCase, SeismicLongitudinalResult,
 )
 from ...inputs import PierInput
 from ..figures import pier_outline
 from .frame_report import (
-    CaseLoads, Manuscript, Span, TableSpec, Unit, bearing_symbol, diagram_groups, document, expression,
+    CaseLoads, Manuscript, Span, TableSpec, Unit, bearing_symbol, diagram_groups, document,
     frame_figure, material_lines, member_table, node_table, section_lines, seat_moment,
-    semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    self_weight_inertia, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
 
 PREFIX = "0710/"
@@ -84,12 +84,6 @@ def _model(m: Manuscript, result: SeismicLongitudinalResult, pier: PierInput) ->
     m.table("springs", spring_table(frame))
 
 
-def _intensity(m: Manuscript, key: str, label: str, name: str, intensity: Intensity) -> None:
-    m.equation(key, label, sub("H", name), expression(value(intensity.along), "×", value(intensity.across), "×",
-                                                      value(intensity.unit_weight), "×", value(intensity.kh)),
-               intensity.value)
-
-
 def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.heading("actions.heading", "10.2 作用の計算", 1)
     m.paragraph("actions.note", "下記以外の作用については，§8. 線路方向の計算（地震時以外）と同様とする．")
@@ -112,24 +106,7 @@ def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.table("horizontal", TableSpec((28.8, 199.2, 66, 66, 66), tuple(table), (28.56, 23.04, 23.04)))
     m.paragraph("horizontal.note", f"0600 の支承の水平力（桁荷重 Kh = {value(result.girder_inertia.kh)}，"
                                    f"列車荷重 μ = {value(result.train_inertia.kh)}）をそのまま用いる．")
-    inertia = result.self_weight
-    m.heading("inertia.heading", "(3) 自重による地震時慣性力", 2)
-    m.equation("inertia.kh", "設計水平震度", sub("K", "h"), value(inertia.kh))
-    m.paragraph("inertia.body", "・橋脚く体に作用する水平力", keep=True)
-    _intensity(m, "inertia.beam_top", "はり", "w1", inertia.beam_top)
-    _intensity(m, "inertia.beam_bottom", "ハンチ下端", "w2", inertia.beam_bottom)
-    _intensity(m, "inertia.column", "柱", "w3", inertia.column)
-    if inertia.pedestal is not None:
-        _intensity(m, "inertia.pedestal", "桁受け", "w4", inertia.pedestal)
-    m.paragraph("inertia.footing.heading", "・フーチング重心に作用する水平力", keep=True)
-    footing = inertia.footing
-    m.equation("inertia.footing.formula", "", "H", expression("V", "×", Row("(", expression("γ", "−", "γ'"), ")", gap=0),
-                                                         "×", sub("K", "h")))
-    m.equation("inertia.footing", "", "H",
-               expression(value(footing.volume), "×",
-                          Row("(", expression(value(footing.unit_weight), "−", value(footing.displaced)), ")", gap=0),
-                          "×", value(footing.kh)), footing.force)
-    m.paragraph("inertia.footing.note", "V はフーチングの体積（§6），γ' は排除した土（表層）の湿潤単位体積重量．")
+    self_weight_inertia(m, result.self_weight, "(3) 自重による地震時慣性力", "§6")
 
 
 def _diagrams(m: Manuscript, result: SeismicLongitudinalResult) -> None:

@@ -46,9 +46,13 @@ class AxialGlyph:
 
 @dataclass(frozen=True)
 class DistributedGlyph:
-    """A horizontal load along members, linear from start to end; *labels* are (member, 0..1 along it, text)."""
+    """A horizontal load along members, linear from start to end; *labels* are (member, 0..1 along it, text).
 
-    segments: tuple[tuple[int, float, float], ...]
+    A segment is (member, start, end) over the whole member, or (member, start, end, t0, t1) over the part
+    from t0 to t1 of its length (the wind above the ground, decision 12); a label's 0..1 is along that part.
+    """
+
+    segments: tuple[tuple[int, float, float] | tuple[int, float, float, float, float], ...]
     labels: tuple[tuple[int, float, str], ...]
 
 
@@ -154,10 +158,17 @@ class LoadDiagram:
                 label((min(a, c) - 8, (b + e) / 2 + cap / 2, "right"),
                       (min(a, c) - 8, (b + e) / 2 + cap / 2 + 12, "right"), value=glyph.label)
             else:
-                peak = max(abs(value) for _, *values in glyph.segments for value in values) or 1
-                k = 36 / peak
-                for number, start, end in glyph.segments:
+                parts = {segment[0]: (*segment, 0.0, 1.0)[:5] for segment in glyph.segments}
+
+                def loaded(number: int) -> tuple[tuple[float, float], tuple[float, float]]:
                     (x0, y0), (x1, y1) = member(number)
+                    t0, t1 = parts[number][3:]
+                    return (x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0), (x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1)
+
+                peak = max(abs(value) for segment in glyph.segments for value in segment[1:3]) or 1
+                k = 36 / peak
+                for number, start, end, *_ in glyph.segments:
+                    (x0, y0), (x1, y1) = loaded(number)
                     a, b = x0 + 6 + abs(start) * k, x1 + 6 + abs(end) * k
                     drawn.append(Line(a, y0, b, y1, .5))
                     drawn += [Line(x0 + 6, y0, x1 + 6, y1, .3), Line(x0 + 6, y0, a, y0, .3),
@@ -170,8 +181,8 @@ class LoadDiagram:
                             drawn.append(Arrow(tail, (y0 + y1) / 2, tip, (y0 + y1) / 2, head_length=4,
                                                head_width=2.8, width=.3))
                 for number, where, text in glyph.labels:
-                    (x0, y0), (x1, y1) = member(number)
-                    start, end = next((s, e) for n, s, e in glyph.segments if n == number)
+                    (x0, y0), (x1, y1) = loaded(number)
+                    start, end = parts[number][1:3]
                     x = x0 + 6 + (abs(start) + (abs(end) - abs(start)) * where) * k + (x1 - x0) * where
                     baseline = y0 + (y1 - y0) * where + cap / 2
                     label((x + 3, baseline, "left"), (x + 3, baseline + 11, "left"), value=text)

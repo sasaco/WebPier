@@ -17,7 +17,7 @@ from gridlayoutpdf import Document, Row
 
 from ...calc.frame import NodeRole
 from ...calc.longitudinal import (
-    BasicCase, Check, ExtractionGroup, ImpactTable, Item, LongitudinalResult, SpringTerm, TopTable,
+    BasicCase, Check, ImpactTable, Item, LongitudinalResult, SpringTerm, TopTable,
 )
 from ...calc.longitudinal.combinations import MAXIMUM_TRAIN, SERVICE_IMPACT, Basis
 from ...calc.reaction import ReactionResult
@@ -28,7 +28,7 @@ from ..numbers import constant
 from .frame_report import (
     BODY_LEFT, CaseLoads, Manuscript, Span, TableSpec, Unit, bearing_symbol, diagram_groups, document, expression,
     frame_figure, material_lines, member_table, node_table, operand, section_lines, seat_moment,
-    semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
 
 PREFIX = "0610/"
@@ -72,12 +72,6 @@ _CHECKS = {
     Check.STABILITY_SNOW_MAX: ("安全性", "地盤の安定", "雪最大"),
     Check.SUPPORT_LONG_TERM: ("使用性", "長期", ""), Check.SUPPORT_SHORT_TERM_LOW_WATER: ("使用性", "短期", ""),
     Check.SUPPORT_SHORT_TERM_HIGH_WATER: ("使用性", "短期", ""),
-}
-_EXTRACTIONS = {
-    ExtractionGroup.FAILURE: "安全性（破壊）", ExtractionGroup.PERMANENT_VARIABLE: "永久＋変動",
-    ExtractionGroup.PERMANENT: "永久作用", ExtractionGroup.VARIABLE: "変動作用",
-    ExtractionGroup.DAMAGE: "復旧性（損傷）", ExtractionGroup.STABILITY: "安全性（安定）",
-    ExtractionGroup.SUPPORT_LONG_TERM: "長期支持性能", ExtractionGroup.SUPPORT_SHORT_TERM: "短期支持性能",
 }
 _WATER = (("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3"))
 _ROW_NAMES = {Item.PEDESTAL: "桁受け", Item.BEAM: "はり"}
@@ -198,7 +192,8 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
                                                    value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
     if frame.bearing_offset.value:
-        _seat_d1(m, result)
+        seat_split(m, fixed, result.basic(BasicCase.D1).points, frame,
+                   lambda row: row.item in (Item.ORIGIN, Item.END))
     m.heading("additional.heading", "(2) 付加死荷重", 2)
     soil = result.additional.soil
     m.equation("additional.soil", "載荷土", "P",
@@ -213,34 +208,6 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
         m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
                    expression(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
         _footing_moment(m, f"buoyancy.{key}.moment", sub("M", "P"), row.n, row.arm, row.m)
-
-
-def _seat_d1(m: Manuscript, result: LongitudinalResult) -> None:
-    """With the bearings on an offset pedestal, D1 splits into the seat and the beam top (decision 29)."""
-    fixed, frame = result.fixed, result.frame
-    seat = next(p for p in result.basic(BasicCase.D1).points if p.anchor is NodeRole.PEDESTAL_TOP)
-    cap = next(p for p in result.basic(BasicCase.D1).points if p.anchor is NodeRole.CAP_TOP)
-    bearings = [row for row in fixed.table.rows if row.item in (Item.ORIGIN, Item.END)]
-    body = [row for row in fixed.table.rows if row.item not in (Item.ORIGIN, Item.END)]
-    m.paragraph("fixed.seat.heading", "・桁受け天端とはり天端への載荷", keep=True)
-    m.equation("fixed.seat.n", "桁受け天端", "N", expression(*_joined([value(r.n) for r in bearings])), seat.n)
-    moments = _joined([operand(r.m) if i else value(r.m) for i, r in enumerate(bearings)])
-    m.equation("fixed.seat.m", "", "M", expression(*moments, "−", value(seat.n), "×", operand(frame.bearing_offset)),
-               seat.m)
-    parts = _joined([value(r.n) for r in body])
-    m.equation("fixed.cap.n", "はり天端", "N'", expression(*parts, "−", value(fixed.column_q), "×",
-                                                       value(fixed.overlap)), cap.n)
-    m.equation("fixed.cap.m", "", "M'", expression(*_joined([operand(r.m) if i else value(r.m)
-                                                              for i, r in enumerate(body)])), cap.m)
-
-
-def _joined(parts: list[str]) -> list[str]:
-    found: list[str] = []
-    for part in parts:
-        if found:
-            found.append("+")
-        found.append(part)
-    return found
 
 
 def _snow_train(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
@@ -373,14 +340,8 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
                                 numeric=frozenset({0, 1, 2})))
     m.paragraph("define.note", "C2 は水平荷重を逆向きにも作用させることを示す．")
     m.heading("factors.heading", "(3) 組合せケースと荷重係数", 2)
-    factors, train = result.factors, pier.train
-    m.equation("factors.ultimate", "安全性・復旧性", "ρ", value(train.factor_ultimate), factors.ultimate,
-               result_relation="≒")
-    m.equation("factors.maximum", "列車最大", "1.1ρ",
-               expression(constant(float(MAXIMUM_TRAIN)), "×", value(train.factor_ultimate)), factors.maximum)
-    m.equation("factors.service", "使用性", "ρ", value(train.factor_service), factors.service, result_relation="≒")
-    m.equation("factors.service_impact", "使用性の衝撃", "0.75ρ",
-               expression(constant(float(SERVICE_IMPACT)), "×", value(train.factor_service)), factors.service_impact)
+    factors = result.factors
+    factor_lines(m, factors, pier.train, constant(float(MAXIMUM_TRAIN)), constant(float(SERVICE_IMPACT)))
     m.table("combination", _combination_table(result, reaction))
     services = [str(c.number) for c in result.combinations
                 if any(component.basis is Basis.SERVICE_IMPACT for component in c.components)]
@@ -388,41 +349,18 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
                 f"組合せ {'，'.join(services)} の衝撃荷重には，使用性の衝撃係数（3/4 を含む）による 8.2 (6) 3)，4) の値に"
                 f" ρ = {value(factors.service)} を乗じる．")
     m.heading("extraction.heading", "(4) 抽出ケース", 2)
-    width = max(len(extraction.combinations) for extraction in result.extractions)
-    rows = [("No", "名称", *(f"C{index}" for index in range(1, width + 1)))]
-    for extraction in result.extractions:
-        numbers = [str(number) for number in extraction.combinations]
-        rows.append((str(extraction.number), _EXTRACTIONS[extraction.group], *numbers, *[""] * (width - len(numbers))))
-    m.table("extraction", TableSpec((28.8, 120, *(39.6,) * width), tuple(rows), (14.28,) * len(rows),
-                                    numeric=frozenset({0, *range(2, 2 + width)})))
+    extraction_table(m, result.extractions)
 
 
 def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> TableSpec:
     """Basic cases as rows and the 16 combinations as columns, the coefficients as printed (8-10)."""
-    checks = [combination.check for combination in result.combinations]
-    header: list[list[Any]] = [[Span("No", rowspan=4), Span("記号", rowspan=4), Span("荷重名称", rowspan=4)], [], [], []]
-    for level in (0, 1):
-        index = 0
-        while index < len(checks):
-            text = _CHECKS[checks[index]][level]
-            span = 1
-            while index + span < len(checks) and _CHECKS[checks[index + span]][level] == text and \
-                    _CHECKS[checks[index + span]][0] == _CHECKS[checks[index]][0]:
-                span += 1
-            header[level].append(Span(text, colspan=span))
-            index += span
-    header[2] = [Span(_CHECKS[check][2], vertical=True) if _CHECKS[check][2] else "" for check in checks]
-    header[3] = [str(combination.number) for combination in result.combinations]
-    rows: list[tuple[Any, ...]] = [tuple(row) for row in header]
+    rows = []
     for action in result.basic_cases:
         name, _, _, symbol = basic_name(result, reaction, action.case)
-        coefficients = [combination.coefficients[action.case.value - 1] for combination in result.combinations]
-        rows.append((str(action.case.value), Span(symbol), name,
-                     *(value(c) if c is not None else Span("－") for c in coefficients)))
-    widths = (19.92, 64.32, 75.12, *(23.04,) * len(checks))
-    heights = (28.56, 14.28, 47.76, 14.28) + (14.28,) * len(result.basic_cases)
-    return TableSpec(widths, tuple(rows), heights, header_rows=4, numeric=frozenset({0, *range(3, 3 + len(checks))}),
-                     left=48.0)
+        rows.append((str(action.case.value), symbol, name,
+                     [combination.coefficients[action.case.value - 1] for combination in result.combinations]))
+    return coefficient_table([_CHECKS[c.check] for c in result.combinations],
+                             [c.number for c in result.combinations], rows)
 
 
 def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:

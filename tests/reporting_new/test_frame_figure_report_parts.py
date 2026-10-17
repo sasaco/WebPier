@@ -112,3 +112,14 @@ def test_spanning_math_cells_are_centred_in_their_rows():
     spec = TableSpec((60, 60), ((Span(sub("D", "1"), rowspan=2), "a"), ("b",)), (14.28, 14.28), header_rows=0)
     drawn = measure(table_block(spec, "t"))
     assert [c.text for c in drawn if isinstance(c, Text)] == ["D", "1", "a", "b"]
+
+
+def test_a_distributed_load_on_part_of_a_member_stops_where_the_part_ends():
+    """The wind of 0620 is loaded from the member top down to the ground (decision 12)."""
+    f = frame()
+    column = next(m for m in f.members if m.region is Region.COLUMN)
+    drawn = measure(LoadDiagram(f, (DistributedGlyph(((column.number, 2.0, 2.0, 0.0, .25),), ()),)), 240)
+    dots = [c for c in drawn if type(c).__name__ == "Circle"]
+    top, bottom = dots[column.start - 1].y, dots[column.end - 1].y
+    outer = next(c for c in drawn if isinstance(c, Line) and c.width == .5)
+    assert (outer.y1, outer.y2) == pytest.approx((top, top + (bottom - top) * .25))

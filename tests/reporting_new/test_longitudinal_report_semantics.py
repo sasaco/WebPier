@@ -29,11 +29,12 @@ ADDITIONS = {
 }
 REGIONS = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端の微小部材",
            Region.FOOTING_UPPER: "フーチング天端～重心", Region.FOOTING_LOWER: "フーチング重心～底面",
-           Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け"}
+           Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け", Region.GIRDER: "支承から桁までの剛域"}
 ROLES = {NodeRole.CAP_TOP: "はり天端", NodeRole.BEAM_BOTTOM: "はり下端", NodeRole.COLUMN_TOP: "柱上端",
          NodeRole.MICRO_TOP: "微小部材上端", NodeRole.FOOTING_TOP: "フーチング天端",
          NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面（ばね）",
-         NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端"}
+         NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
+         NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁"}
 UNITS = {"kN": "kN", "kN m": "kN・m", "kN/m": "kN/m", "m": "m", "m2": "m2", "m4": "m4"}
 
 
@@ -157,7 +158,7 @@ def point_lines(points, horizontal: bool, magnitudes: bool = False) -> str:
             names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
         else:
             names = {"n": "P", "m": "MP", "h": "HP" if top_h else "H"}
-        listed = [c for c in "nmh" if getattr(p, c).value] or (["h"] if horizontal else ["n"])
+        listed = [c for c in "nhm" if getattr(p, c).value] or (["h"] if horizontal else ["n"])
         for c in listed:
             value = getattr(p, c)
             out += f"{names[c]}=" + (directed(value) if magnitudes and c == "h" else t(value) + u(value))
@@ -174,7 +175,7 @@ def glyph_labels(points, line_loads, horizontal: bool) -> str:
             names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
         else:
             names = {"n": "P", "m": "MP", "h": "HP" if top_h else "H"}
-        out += "".join(names[c] for c in ([c for c in "nmh" if getattr(p, c).value] or (["h"] if horizontal else ["n"])))
+        out += "".join(names[c] for c in ([c for c in "nhm" if getattr(p, c).value] or (["h"] if horizontal else ["n"])))
     return out + "".join("q" for line in line_loads if line.n.value)
 
 
@@ -441,7 +442,7 @@ def test_glyph_runs_split_when_directions_differ_and_zero_fits_either():
     diagram_groups(m, frame, [("g", "G", [case(1, 0.0), case(2, -5.0), case(3, 0.0), case(4, 7.0)])],
                    lambda name, cases: f"{cases[0].number}-{cases[-1].number}")
     titles = [u.value for u in m.units if u.key.endswith(".title")]
-    assert titles == ["1-3", "4-4"]
+    assert titles == ["1-3", "4-4　c4"]  # a case split from its group names itself
     signs = [[g.sign for g in u.value.figure.glyphs] for u in m.units if u.kind == "diagram"]
     assert signs == [[-1], [1]]
 
