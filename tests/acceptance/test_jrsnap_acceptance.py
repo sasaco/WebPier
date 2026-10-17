@@ -39,6 +39,12 @@ def test_the_record_is_a_readback_in_jrsnap_5_2_l03_without_analysis():
     assert set(RECORD["directions"]) == set(STAGES)
 
 
+@pytest.mark.parametrize("helper", sorted(RECORD["helpers"]))
+def test_the_recorded_helpers_are_the_files_of_this_checkout(helper):
+    """The helpers are stored with LF (.gitattributes), so their SHA-256 does not depend on core.autocrlf."""
+    assert sha256((ROOT / helper).read_bytes()) == RECORD["helpers"][helper], f"{helper} が受入時から変わっています。{REDO}"
+
+
 @pytest.mark.parametrize("stage", STAGES)
 def test_the_accepted_candidate_is_what_the_generator_writes_now(generated, stage):
     direction = RECORD["directions"][stage]

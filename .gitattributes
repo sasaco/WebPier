@@ -1,3 +1,11 @@
 # Hash-pinned inputs and fixtures: store and check out bytes exactly (no EOL conversion).
 tests/fixtures/** -text
 pre/** -text
+
+# Hashed sources: stored and checked out with LF on every machine, whatever core.autocrlf says.
+# - Python: the implementation identity (pipeline/runtime.py dependency_hashes) hashes the webpier bytes.
+# - The acceptance helpers whose SHA-256 tests/fixtures/acceptance/*/record.json records.
+*.py text eol=lf
+scripts/*.cs text eol=lf
+.claude/skills/jrsnap-input-open-save/scripts/*.cs text eol=lf
+.claude/skills/jrsnap-input-open-save/scripts/*.ps1 text eol=lf
