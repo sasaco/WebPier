@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json` から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDUを生成する。構造解析・部材照査・最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md` を正とする。
+鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDUを生成する。構造解析・部材照査・最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
 
 ## コマンド
 
@@ -12,58 +12,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```powershell
 # 計算・PDF生成（既定は --stage all。既存成果物の更新には --overwrite）
-uv run --project "." --locked python "./run_design.py" --overwrite
-uv run --project "." --locked python "./run_design.py" --stage 0610 --overwrite   # 0500/0600/0610/0620/0710/0720/all
-uv run --project "." --locked python "./run_design.py" --stage all --jrsnap --overwrite  # NDUも出力
+uv run --project "." --locked python -m webpier --overwrite
+uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0620/0710/0720/all
+uv run --project "." --locked python -m webpier --stage all --jrsnap --overwrite  # NDUも出力
+# run_design.py は python -m webpier と同じ
 
-# 入力編集GUI（Tkinter/tksheet。VS CodeのF5でも起動）
-uv run --project "." --locked python "./edit_input.py"
+# 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）
+uv run --project "." --locked python -m webpier.gui
 
 # テスト（全件。.claude/check.ps1 も同じ全件ゲート）
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 # 単一ファイル／単一テスト
-uv run --project "." --locked --group dev python -X utf8 -m pytest tests/test_transverse_calculator.py -q
-uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/test_transverse_calculator.py::test_name" -q
+uv run --project "." --locked --group dev python -X utf8 -m pytest tests/calc/test_foundation.py -q
+uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/test_foundation.py::test_name" -q
 
 # GridLayoutPdf のソースを変更した後の取り込み直し
 uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 
-### 計算 → 描画 → 一括公開
-`run_design.py` → `src/cli.py`。流れは `prepare_generation` に集約されている。
+### 層別パッケージ（ADR-0004）
+`webpier/` の下に層を分け、依存は下向きだけにする。`tests/test_layer_boundaries.py` が強制する。
 
-1. 入力を一度だけバイト列で読み、そのSHA256を全段階の `provenance` に記録する。
-2. `_calculate_stages` で依存段階も内部計算する（0610/0620は0500と0600、0710は0610、0720は0600と0620を使用）。保存済みの結果JSONは読まない。
-3. 選択した全段階の計算が成功してから描画する。各段階は `src/<段階>_report.py` の公開エントリ → `src/reporting/stages/*.py` で GridLayoutPdf の文書を組む。
-4. 成果物を一時領域にステージングし、`src/artifact_publication.py` が退避・置換・復元を伴ってまとめて公開する。FrameWeb入力（`frameweb_*`）とNDU（`jrsnap_*`）も同じ世代として公開し、付帯JSON（provenance）に入力・成果物・実装のSHAを記録する。
+`core ← inputs ← calc ← reporting / export ← pipeline ← gui`
 
-### モジュールの分け方
-- 入力の解析・検証: `inputs.py`（0500）、`reaction_inputs.py`（0600以降）、`*_design_conditions.py`
-- 計算: `calculator.py`（0500）、`reaction_calculator.py`、`longitudinal_*`、`transverse_*`、`seismic_*`。計算モジュールは描画に依存しない。
-- 帳票: `src/reporting/`（書体・式・表・図・スタイル）と `src/reporting/stages/`（段階別の組版）。工学計算はここに置かない。
-- 外部ソフト向け出力: `frameweb_*`（FEMPython/FrameWebforCS）、`jrsnap_*`（JRSNAP 5.2-L03 NDU、CP932/CRLF）
-- GUI: `editor_*`、`rebar_*`、`column_rebar*`、`pdf_preview*`。GUIの「計算・印刷」はCLIと同じ生成・公開処理を使う。
+- `core`: 印字桁つきの値 `Printed`、厳密なJSON読込み、エラー、ハッシュ。
+- `inputs`: schema 2 の解析と検証。`fields.py` の項目表（桁・単位・符号・選択肢・予約項目）をparserとエディタが共用する。選択肢は `choices.py`。
+- `calc`: 段階の計算。結果は `Printed` を持つ frozen dataclass で、描画に依存しない。
+- `reporting`: GridLayoutPdf で組む帳票（`reporting/stages/`）。工学計算をここに置かない。
+- `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）。
+- `pipeline`: 段階の登録表、生成、公開、CLI。
+- `gui`: 入力エディタ。「計算・印刷」は pipeline を子プロセス（`python -m webpier`）で実行し、付帯JSONで結果を確かめる。
+
+### 段階の登録表と一括公開
+段階の依存・計算・帳票・成果物・外部出力は `webpier/pipeline/stages.py` の `StageSpec` 1か所に定義し、段階ごとの分岐を他に書かない。生成は `webpier/pipeline/generate.py`。
+
+1. 入力を一度だけバイト列で読み、厳密に解析する。そのSHA256を全ての結果JSONと付帯JSONに記録する。
+2. 選択した段階と依存段階をすべて計算してから描画する（0610/0620は0500と0600、0710は0610、0720は0620も使う）。保存済みの結果JSONは読まない。
+3. 成果物を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。
 
 ### 決定性と実装の同一性
 - PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。
-- `src/reporting/runtime.py` の `dependency_hashes` は、自プロジェクトのソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
+- `webpier/pipeline/runtime.py` の `dependency_hashes` は、`webpier` のソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
 
 ### 帳票の基準とテスト用データ
-- 体裁の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、移行の対応表は `.claude/docs/reporting-migration.md` を参照。
-- `tests/fixtures/reporting/` に、見本から測定した体裁値（appearance）、移行前の基準（baseline）、段階別の意味内容（semantic）を置く。これらは見本や旧成果物から作った独立の期待値なので、新しい描画結果から作り直さない（`scripts/reporting_*.py` は測定・監査用で、実行時のフォールバックではない）。
-- `tests/fixtures/*_excel_oracle.json` などは元Excelから取った照合値。
+- 体裁の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。
+- テストは層ごとに `tests/<層>/`。期待値は、Example2 原資料から独立に転記した値（`tests/fixtures/example2/`）と、実装を使わない手計算だけ。入力は `tests/fixtures/inputs/current.json` を基に変えたい項目だけ書き換える。
+- `tests/fixtures/reporting/appearance` は見本PDFから独立に測った体裁値（測定器は `scripts/reporting_appearance.py`）。新しい描画結果から作り直さない。
 - 文字の縮小や伸縮で固定ページ数に収めない。式・表・図のまとまりを保ち、内容に応じて改ページする。
 
-### 入力の扱い
-空欄は `null`、`0` は数値、反力表の `-` は適用外の文字列として区別し、欠けている値を固定値や見本値で補わない。不正な値は補完して隠さず、入力エラーにする。
+### 入力の扱い（schema 2）
+- 空欄は `null`、`0` は数値。欠けている値を固定値や見本値で補わず、計算に要る値が空欄なら入力エラーにする。全項目が空欄の支承枠だけは空き支承枠。
+- 知らないキーは入力エラー。選択肢（車両名・土質区分・杭種など）はプログラムが持ち、入力JSONには選んだ値だけを保存する。
+- 派生値（表層厚、排除した土の単位体積重量、B・C支点の合計）は入力にしない。計算器が求めて印刷する。
+- 入力値は入力時に印字桁へ丸める。エディタは入力した時点で丸め、手で書いたJSONに印字桁より細かい値があれば入力エラーにする。
+- 杭・斜角・遠心の作用方向などは予約項目として形式と桁だけを検証する（決定19）。
 
 ### 計算の原則（docs/adr/ を正とする）
-- 元Excelの誤りは再現しない。元式を残すのは README の互換一覧に明示したものだけ（ADR-0001）。元Excelのセル番地や照合値は使わず、物理量で計算し、Example2 の転記と独立の手計算で検証する（ADR-0002）。
-- 計算書に印刷する値は内部でも印字桁に丸め、後続の計算はその値を使う。印字桁は計算器が持ち、帳票は丸め直さない（ADR-0003）。
+- 元Excelの誤りは再現しない。元式を残すのは README の互換一覧に明示したものだけで、いまは空（ADR-0001）。元Excelのセル番地や照合値は使わず、物理量で計算し、Example2 の転記と独立の手計算で検証する（ADR-0002）。
+- 計算書に印刷する値は内部でも印字桁に丸め、後続の計算はその値を使う。合計は印刷された部分の和。丸めは四捨五入（0.5は絶対値の大きい側）だけ。印字桁は計算器が持ち、帳票は丸め直さない（ADR-0003）。
 - 開発初期のため後方互換を作らない。入力形式や結果JSONを変えるときは、旧形式の読み替えや互換の経路を残さず書き換える。
 
 ## GridLayoutPdf の責務は GridLayoutPdf 側で直す
