@@ -16,6 +16,12 @@ times the share of the bearing; the impact is that train load times the girder
 impact coefficient as it is (decision 26). The horizontal actions are the 0600
 transverse forces at B and C: vehicle lateral, and wind with and without the
 train together with the wind on the pier body (decision 12, ``wind``).
+
+On a curve (R ≠ 0 on a side, decision 33) the centrifugal load is a basic case
+per track like the train (cases 18-20; none on a straight track): the train
+load of the track at the side (its 9-5 rows) times the 0600 α, at the 0600
+centrifugal height above the seat. The 0600 centrifugal forces already carry
+ρf, so they are not used here: ρ comes once, from the coefficient of L.
 """
 
 from __future__ import annotations
@@ -24,7 +30,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
-from ...core.errors import InputError
 from ...core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Printed
 from ...inputs import PierInput
 from .._exact import d, put, total
@@ -34,7 +39,7 @@ from ..reaction import ReactionResult
 from ..reaction.dead import BearingLoads
 from ..reaction.self_weight import Body
 from ..reaction.train import GirderImpact, GroupTrain
-from ..reaction.transverse import WIND_WITH_TRAIN, WIND_WITHOUT_TRAIN, TransverseForce
+from ..reaction.transverse import WIND_WITH_TRAIN, WIND_WITHOUT_TRAIN, TransverseForce, TransverseSide
 from .wind import MemberLoad, PierWind, pier_wind
 
 
@@ -167,6 +172,34 @@ class Impacts:
 
 
 @dataclass(frozen=True)
+class CentrifugalRow:
+    item: Item  # ORIGIN (B) or END (C)
+    train: Printed  # Σ N of the side's rows of the train table of the track, without ρf
+    coefficient: Printed  # α = V² / (127 R) of the side (0600), 0 on a straight side
+    h: Printed  # train × α
+    y: Printed  # 0600 centrifugal height above the bearing seat
+    m: Printed  # H × y
+
+
+@dataclass(frozen=True)
+class CentrifugalTable:
+    track: Track
+    rows: tuple[CentrifugalRow, CentrifugalRow]  # B and C
+    h: Printed
+    m: Printed
+
+
+@dataclass(frozen=True)
+class Centrifugals:
+    up: CentrifugalTable
+    down: CentrifugalTable
+    double: CentrifugalTable
+
+    def table(self, track: Track) -> CentrifugalTable:
+        return {Track.UP: self.up, Track.DOWN: self.down, Track.DOUBLE: self.double}[track]
+
+
+@dataclass(frozen=True)
 class HorizontalRow:
     """A 0600 transverse force at B or C: H at the height y above the bearing seat."""
 
@@ -217,12 +250,18 @@ class BasicCase(Enum):
     LATERAL = 15
     WIND_WITH_TRAIN = 16
     WIND_WITHOUT_TRAIN = 17
+    CENTRIFUGAL_UP = 18  # only on a curve (decision 33)
+    CENTRIFUGAL_DOWN = 19
+    CENTRIFUGAL_DOUBLE = 20
 
 
-TRACKS = {BasicCase.TRAIN_UP: Track.UP, BasicCase.TRAIN_DOWN: Track.DOWN, BasicCase.TRAIN_DOUBLE: Track.DOUBLE,
+CENTRIFUGAL_CASES = {BasicCase.CENTRIFUGAL_UP: Track.UP, BasicCase.CENTRIFUGAL_DOWN: Track.DOWN,
+                     BasicCase.CENTRIFUGAL_DOUBLE: Track.DOUBLE}
+TRACKS = {**CENTRIFUGAL_CASES, BasicCase.TRAIN_UP: Track.UP, BasicCase.TRAIN_DOWN: Track.DOWN, BasicCase.TRAIN_DOUBLE: Track.DOUBLE,
           BasicCase.IMPACT_UP: Track.UP, BasicCase.IMPACT_DOWN: Track.DOWN, BasicCase.IMPACT_DOUBLE: Track.DOUBLE}
 IMPACT_CASES = frozenset({BasicCase.IMPACT_UP, BasicCase.IMPACT_DOWN, BasicCase.IMPACT_DOUBLE})
-HORIZONTAL = frozenset({BasicCase.LATERAL, BasicCase.WIND_WITH_TRAIN, BasicCase.WIND_WITHOUT_TRAIN})
+HORIZONTAL = frozenset({BasicCase.LATERAL, BasicCase.WIND_WITH_TRAIN, BasicCase.WIND_WITHOUT_TRAIN,
+                        *CENTRIFUGAL_CASES})
 LONG_TERM = frozenset(BasicCase(n) for n in range(1, 9))  # 9-13 バネ 1 (long term); 2 for the train and after
 
 
@@ -254,6 +293,7 @@ class Actions:
     lateral: Lateral
     wind_with_train: Wind
     wind_without_train: Wind
+    centrifugal: Centrifugals | None  # None on a straight track
     basic_cases: tuple[BasicAction, ...]
 
 
@@ -310,15 +350,18 @@ def _horizontal(item: Item, force: TransverseForce) -> HorizontalRow:
     return HorizontalRow(item=item, h=force.force, y=force.height, m=force.moment)
 
 
-def _check_straight(pier: PierInput) -> None:
-    for side, span in (("起点側", pier.spans.origin), ("終点側", pier.spans.end)):
-        if span.radius.value:
-            raise InputError(f"上部構造.{side}.曲線半径: 0620 は遠心荷重のケースを持たないため、曲線（半径 "
-                             f"{span.radius.value:g} m）には未対応です")
+def _centrifugal(train: TrainTable, sides: tuple[TransverseSide, TransverseSide]) -> CentrifugalTable:
+    rows = []
+    for item, side in zip((Item.ORIGIN, Item.END), sides, strict=True):
+        load = put(FORCE, total(r.n for r in train.rows if r.item is item))
+        h = put(FORCE, d(load) * d(side.centrifugal_coefficient))
+        rows.append(CentrifugalRow(item=item, train=load, coefficient=side.centrifugal_coefficient, h=h,
+                                   y=side.centrifugal_height, m=put(MOMENT, d(h) * d(side.centrifugal_height))))
+    return CentrifugalTable(track=train.track, rows=(rows[0], rows[1]), h=put(FORCE, total(r.h for r in rows)),
+                            m=put(MOMENT, total(r.m for r in rows)))
 
 
 def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
-    _check_straight(pier)
     s = pier.substructure
     dead, weights, train, transverse = reaction.dead, reaction.self_weight, reaction.train, reaction.transverse
     girders: Girders = ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
@@ -383,20 +426,28 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
         c.WIND_WITHOUT_TRAIN: (seat(without_train.h, without_train.m),),
     }
     for case, track in TRACKS.items():
-        loaded: TrainTable | ImpactTable = impact.ultimate.table(track) if case in IMPACT_CASES else trains.table(track)
-        points[case] = (top(loaded.n, loaded.m),)
-    members = {c.WIND_WITH_TRAIN: with_train.pier.member_loads(),
-               c.WIND_WITHOUT_TRAIN: without_train.pier.member_loads()}
+        if case not in CENTRIFUGAL_CASES:
+            loaded: TrainTable | ImpactTable = (impact.ultimate.table(track) if case in IMPACT_CASES
+                                                else trains.table(track))
+            points[case] = (top(loaded.n, loaded.m),)
+    centrifugal = None
+    if pier.spans.origin.radius.value or pier.spans.end.radius.value:
+        centrifugal = Centrifugals(*(_centrifugal(trains.table(track), (origin, end)) for track in Track))
+        for case, track in CENTRIFUGAL_CASES.items():
+            points[case] = (seat(centrifugal.table(track).h, centrifugal.table(track).m),)
+    members = {c.WIND_WITH_TRAIN: with_train.pier.member_loads,
+               c.WIND_WITHOUT_TRAIN: without_train.pier.member_loads}
     basic_cases = tuple(
         BasicAction(case=case, spring=SpringTerm.LONG if case in LONG_TERM else SpringTerm.SHORT, points=points[case],
                     line_loads=(column_line_load(frame, n=q),) if case is c.D1 else (),
                     member_loads=members.get(case, ()))
-        for case in BasicCase)
+        for case in BasicCase if case in points)
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]
                    train=trains, impact=impact, lateral=lateral, wind_with_train=with_train,
-                   wind_without_train=without_train, basic_cases=basic_cases)
+                   wind_without_train=without_train, centrifugal=centrifugal, basic_cases=basic_cases)
 
 
-__all__ = ["IMPACT_CASES", "TRACKS", "Actions", "AdditionalDead", "BasicAction", "BasicCase", "FixedDead",
+__all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
+           "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "FixedDead",
            "HorizontalRow", "ImpactRow", "ImpactSet", "ImpactTable", "Impacts", "Item", "Lateral", "Row", "TopTable",
            "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions"]

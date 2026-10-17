@@ -180,3 +180,35 @@ def test_horizontal_actions_print_two_decimals():
     for segment in result.wind_with_train.pier.segments:
         assert (segment.width_top.digits, segment.load_top.digits, segment.length.digits) == (3, 2, 3)
         assert segment.load_top.unit == "kN/m"
+
+
+# Decision 35: the pedestal takes the wind over its width B3 (1.000), above the ground like the rest.
+PEDESTAL = dims(B2=0.85, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
+
+
+def test_pedestal_takes_the_wind_over_b3():
+    result = transverse(pier(**PEDESTAL))
+    wind = result.wind_with_train
+    pedestal = result.frame.members[-1]
+    assert (pedestal.region, pedestal.number, pedestal.start, pedestal.end) == (Region.PEDESTAL, 7, 7, 8)
+    # Pedestal 10.300 -> 10.600: 1.5 × 1.000 = 1.50 kN/m; the exposure runs from its top: 10.600 − 4.700 = 5.900.
+    assert segments(wind)[0] == (Region.PEDESTAL, 7, 10.6, 10.3, 0.3, 1.0, 1.0, 1.5, 1.5)
+    assert [s[0] for s in segments(wind)] == [Region.PEDESTAL, Region.BEAM, Region.HAUNCH, Region.COLUMN]
+    assert wind.pier.exposure.value == 5.9
+    # The pedestal member starts at its base (node 7): the load runs 0.000 -> 0.300 from there.
+    assert member_loads(result.basic(B.WIND_WITH_TRAIN))[0] == (7, 0.0, 0.3, 1.5, 1.5)
+    assert member_loads(result.basic(B.WIND_WITHOUT_TRAIN))[0] == (7, 0.0, 0.3, 3.0, 3.0)
+
+
+def test_ground_inside_the_pedestal():
+    # Ground 2.700 + 7.750 = 10.450: only the top 0.150 of the pedestal; from its base node that is 0.150 -> 0.300.
+    result = transverse(pier(**PEDESTAL, **{DF1: 7.75, DF2: 7.75}))
+    wind = result.wind_with_train
+    assert segments(wind) == [(Region.PEDESTAL, 7, 10.6, 10.45, 0.15, 1.0, 1.0, 1.5, 1.5)]
+    assert wind.pier.exposure.value == 0.15
+    assert member_loads(result.basic(B.WIND_WITH_TRAIN)) == [(7, 0.15, 0.3, 1.5, 1.5)]
+
+
+def test_centred_pedestal_starts_at_the_beam_top():
+    result = transverse(pier(**dims(B2=0.85, B3=1.2, W2=1.0, W3=7.0, H1=0.4)))  # xC = 0: no arm
+    assert member_loads(result.basic(B.WIND_WITHOUT_TRAIN))[0] == (6, 0.0, 0.4, 3.6, 3.6)  # 3.0 × 1.200

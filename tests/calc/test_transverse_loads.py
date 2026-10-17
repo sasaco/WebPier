@@ -231,11 +231,11 @@ def test_9_9_to_9_11_load_diagrams_vertical():
         assert points(result.basic(case)) == {CAP: (impact.n.value, 0.0, impact.m.value)}
     assert [points(result.basic(c))[CAP] for c in (B.TRAIN_UP, B.IMPACT_UP)] == [(567.38, 0.0, 1210.09),
                                                                                  (227.77, 0.0, 483.47)]
-    for case in B:
-        if case is not B.D1:
-            assert result.basic(case).line_loads == ()
-        if case.value < 16:
-            assert result.basic(case).member_loads == ()
+    for action in result.basic_cases:
+        if action.case is not B.D1:
+            assert action.line_loads == ()
+        if action.case.value < 16:
+            assert action.member_loads == ()
 
 
 def test_9_13_basic_cases_and_springs():

@@ -20,7 +20,7 @@ def test_9_13_define_cases():
     signed = [tuple(sign * case.value for case in define.cases for sign in define.signs)
               for define in result.define_cases]
     assert signed == [tuple(row["C"]) for row in printed]  # 9: {9, 10}, 11: {12, 13}, 13-15: ±
-    assert [define.define for define in result.define_cases] == list(Define)
+    assert [define.define for define in result.define_cases] == list(Define)[:15]  # no centrifugal on a straight
 
 
 def test_9_14_combination_table_values_and_digits():

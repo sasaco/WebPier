@@ -40,8 +40,8 @@ def test_pedestal_row_and_loads_at_the_pedestal_top():
     # Horizontal actions at the seat with their own M = H × y above it; the frame carries H × H1.
     assert anchored(result.basic(B.LATERAL)) == [(seat, 8, 0.0, 111.69, 430.01)]
     assert anchored(result.basic(B.WIND_WITH_TRAIN))[0][:4] == (seat, 8, 0.0, 305.88)
-    # The pier wind stays on the column line (the beam top 10.300); the pedestal stub is not loaded.
-    assert [m.member for m in result.basic(B.WIND_WITH_TRAIN).member_loads] == [1, 2, 3]
+    # The pier wind: the pedestal stub (member 7, decision 35) and the column line.
+    assert [m.member for m in result.basic(B.WIND_WITH_TRAIN).member_loads] == [7, 1, 2, 3]
     assert result.basic(B.D1).line_loads[0].members == (1, 2, 3)
     # 変動作用 (7): the serviceability impact acts at the seat too.
     impact = result.combinations[6].component(Define.IMPACT_SINGLE).alternatives[0]
@@ -138,12 +138,6 @@ def test_empty_slots_are_skipped_and_slots_kept():
     assert [r.slot for r in result.fixed.table.bearings(Item.ORIGIN)] == [0, 2, 3]
     assert [r.slot for r in result.train.up.rows if r.item is Item.ORIGIN] == [0, 2, 3]
     assert value(result.fixed.table.n) == Decimal("9103.27") - 1340
-
-
-def test_curved_track_is_not_supported_by_0620():
-    # 0620 has no centrifugal case (Example2 9-13); a curve would lose that load silently.
-    with pytest.raises(InputError, match="曲線半径"):
-        transverse(pier(**{"上部構造/終点側/曲線半径": 600}))
 
 
 def test_concrete_outside_the_table_stops_0620():

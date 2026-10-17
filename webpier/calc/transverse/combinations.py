@@ -10,7 +10,12 @@ N, H, M, q and wind line load rounded once to its digits.
 
 A choice of the combination (``Combination.variants``) takes one track for all
 its single-track components, so an up train never goes with a down impact, and
-each reversible horizontal component in either sign independently.
+each reversible horizontal component in either sign independently (decision 35).
+
+On a curve the centrifugal load adds Define 16 (single track: up or down) and
+17 (double track), with the coefficient of L single and L double of the same
+combination: it enters exactly the combinations that hold L, on the track of L
+(decision 33). It acts toward the outside of the curve only, so it has one sign.
 
 As in 0610, the basic impact uses the girder coefficients of safety and
 restorability (decision 26), so there the factor is the nominal coefficient;
@@ -57,6 +62,8 @@ class Define(Enum):
     LATERAL = 13
     WIND_WITH_TRAIN = 14
     WIND_WITHOUT_TRAIN = 15
+    CENTRIFUGAL_SINGLE = 16  # only on a curve (decision 33)
+    CENTRIFUGAL_DOUBLE = 17
 
 
 _DEFINE_CASES = {
@@ -67,7 +74,10 @@ _DEFINE_CASES = {
     Define.LATERAL: (BasicCase.LATERAL,),
     Define.WIND_WITH_TRAIN: (BasicCase.WIND_WITH_TRAIN,),
     Define.WIND_WITHOUT_TRAIN: (BasicCase.WIND_WITHOUT_TRAIN,),
+    Define.CENTRIFUGAL_SINGLE: (BasicCase.CENTRIFUGAL_UP, BasicCase.CENTRIFUGAL_DOWN),
+    Define.CENTRIFUGAL_DOUBLE: (BasicCase.CENTRIFUGAL_DOUBLE,),
 }
+_CENTRIFUGAL = {Define.CENTRIFUGAL_SINGLE: Define.TRAIN_SINGLE, Define.CENTRIFUGAL_DOUBLE: Define.TRAIN_DOUBLE}
 _REVERSIBLE = frozenset({Define.LATERAL, Define.WIND_WITH_TRAIN, Define.WIND_WITHOUT_TRAIN})
 
 
@@ -132,7 +142,7 @@ class Combination:
     number: int
     check: Check
     usage: Usage
-    coefficients: tuple[Printed | None, ...]  # by Define case 1-15; None prints '－'
+    coefficients: tuple[Printed | None, ...]  # by Define case 1-15 (1-17 on a curve); None prints '－'
     components: tuple[Component, ...]  # the Define cases with a coefficient, in order
 
     def variants(self) -> tuple[tuple[ResolvedAction, ...], ...]:
@@ -173,9 +183,10 @@ _SERVICE_CHECKS = frozenset({Check.CRACK_PERMANENT_VARIABLE, Check.CRACK_PERMANE
                              Check.SUPPORT_SHORT_TERM_HIGH_WATER})
 
 
-def define_cases() -> tuple[DefineCase, ...]:
+def define_cases(centrifugal: bool) -> tuple[DefineCase, ...]:
     return tuple(DefineCase(define=define, cases=_DEFINE_CASES.get(define, (BasicCase(define.value),)),
-                            signs=(1, -1) if define in _REVERSIBLE else (1,)) for define in Define)
+                            signs=(1, -1) if define in _REVERSIBLE else (1,))
+                 for define in Define if centrifugal or define not in _CENTRIFUGAL)
 
 
 def _scaled_point(point: PointLoad, factor: Decimal, sign: Decimal) -> PointLoad:
@@ -206,16 +217,17 @@ def _resolve(basic: BasicAction, sign: int, nominal: Printed, usage: Usage, serv
                           member_loads=tuple(_scaled_member(m, s * f) for m in source.member_loads))
 
 
-def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], service: ImpactSet,
-                         factors: CombinationFactors) -> tuple[Combination, ...]:
+def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], defines: tuple[DefineCase, ...],
+                         service: ImpactSet, factors: CombinationFactors) -> tuple[Combination, ...]:
     symbols: Mapping[str, Printed] = {
         "1": factors.one, "D1": factors.d1_safety, "D2": factors.d2_safety, "W": WIND_SAFETY, "U": factors.ultimate,
         "X": factors.maximum, "S": factors.service, "SI": factors.service_impact}
-    defines = define_cases()
     combinations = []
     for check, row in _TABLE.items():
         usage = Usage.SERVICE if check in _SERVICE_CHECKS else Usage.ULTIMATE
-        coefficients = tuple(None if symbol == "-" else symbols[symbol] for symbol in row.split())
+        printed = row.split()
+        printed += [printed[_CENTRIFUGAL[d.define].value - 1] for d in defines if d.define in _CENTRIFUGAL]
+        coefficients = tuple(None if symbol == "-" else symbols[symbol] for symbol in printed)
         components = tuple(
             Component(define=define.define, nominal=nominal, alternatives=tuple(
                 _resolve(basic_cases[case.value - 1], sign, nominal, usage, service, frame, factors)
