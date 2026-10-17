@@ -174,12 +174,16 @@ def test_a_bar_is_added_through_the_field_table(editor):
     assert page(editor).select_group("placement")
     assert page(editor).begin_add_bar()
     dialog = page(editor).dialog
-    assert dialog.values["material"].get() == "SD390"
+    assert dialog.values["material"].get() == ""  # nothing is filled from the main steel
+    dialog.values["material"].set("SD390")
     dialog.values["x_mm"].set("abc")
     assert not dialog.apply() and dialog.error.get() == "X mm: 数値を入力してください"
     dialog.values["x_mm"].set("2250.04")
     dialog.values["y_mm"].set("1350")
     dialog.values["diameter_mm"].set("32")
+    dialog.values["material"].set("")
+    assert not dialog.apply() and dialog.error.get() == "鉄筋.柱.manual_positions[76].material: 値が必要です"
+    dialog.values["material"].set("SD390")
     assert dialog.apply()
     editor.root.update()
     positions = editor.document.data["鉄筋"]["柱"]["manual_positions"]
@@ -191,7 +195,7 @@ def test_an_overlapping_bar_is_refused_by_the_calculation(editor):
     page(editor).select_group("placement")
     page(editor).begin_add_bar()
     dialog = page(editor).dialog
-    for key, value in (("x_mm", "108"), ("y_mm", "120"), ("diameter_mm", "32")):
+    for key, value in (("x_mm", "108"), ("y_mm", "120"), ("diameter_mm", "32"), ("material", "SD390")):
         dialog.values[key].set(value)
     assert not dialog.apply()
     assert "鉄筋が重なっています" in dialog.error.get()

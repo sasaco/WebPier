@@ -140,9 +140,12 @@ class RegenerationDialog(Modal):
 
 
 class AddBarDialog(Modal):
-    """One bar of the detail positions, entered through the field table like any cell."""
+    """One bar of the detail positions, entered through the field table like any cell.
 
-    def __init__(self, root: tk.Misc, material: str | None, *, apply: Callable[[dict[str, Any]], str | None],
+    Every value starts blank: the material is chosen for this bar, not filled from the column's main steel.
+    """
+
+    def __init__(self, root: tk.Misc, *, apply: Callable[[dict[str, Any]], str | None],
                  on_close: Callable[[], None]) -> None:
         super().__init__(root, "鉄筋を追加 — 芯位置 mm", on_close)
         self._apply = apply
@@ -154,7 +157,7 @@ class AddBarDialog(Modal):
             line = ttk.Frame(body)
             line.pack(fill="x", pady=4)
             ttk.Label(line, text=label, width=10).pack(side="left")
-            variable = tk.StringVar(master=self.window, value=(material or "") if key == "material" else "")
+            variable = tk.StringVar(master=self.window, value="")
             self.values[key] = variable
             if key == "material":
                 ttk.Combobox(line, textvariable=variable, values=("", *choices.STEEL_GRADES), state="readonly",

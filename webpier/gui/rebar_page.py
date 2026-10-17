@@ -310,8 +310,7 @@ class RebarPage:
 
         def build() -> AddBarDialog:
             rebar_edit.column_preview(data)  # the automatic layout must be complete before it is copied
-            return AddBarDialog(self.editor.root, data["鉄筋"]["柱"]["materials"]["main"], apply=apply,
-                                on_close=self._dialog_closed)
+            return AddBarDialog(self.editor.root, apply=apply, on_close=self._dialog_closed)
 
         return self._open(build, "鉄筋を追加できません")
 
