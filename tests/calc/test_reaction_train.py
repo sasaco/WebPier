@@ -43,11 +43,12 @@ def test_example2_impact_coefficients_7_2(group, usage):
         assert impact.double.value == FACTORS[f"impact.{usage}.double.{girder}"]
 
 
-def test_double_track_reduction_is_its_own_printed_value():
-    result = train()
-    # 1 − 18.850/200 = 0.90575 -> 0.906; 0.245 × 0.906 = 0.22197 -> 0.222.
-    assert (result.origin_reduction.value, result.end_reduction.value) == (0.906, 0.954)
-    assert result.origin_reduction.digits == 3
+def test_double_track_impact_is_one_expression_rounded_once():
+    # Decision 23: i = i_single × (1 − L/200), only the result rounded. With i 0.500 and L 1.100:
+    # 0.5 × 0.9945 = 0.49725 -> 0.497 (rounding the factor first, 0.995, would give 0.498).
+    result = train(pier(**{"上部構造/起点側/衝撃係数_単線終局": 0.5, "上部構造/起点側/桁長/スパン長": 1.1}))
+    assert result.ultimate.origin_impact.double.value == 0.497
+    assert not hasattr(result, "origin_reduction")
 
 
 def test_example2_seismic_train_7_2():
@@ -120,10 +121,9 @@ def test_double_track_reduction_outside_its_range_is_an_input_error(side):
         train(pier(**{f"上部構造/{side}/桁長/スパン長": 200.0}))
 
 
-def test_span_just_below_200_m_gives_a_zero_reduction():
+def test_span_just_below_200_m_gives_almost_no_impact():
     result = train(pier(**{"上部構造/起点側/桁長/スパン長": 199.9}))
-    assert result.origin_reduction.value == 0.001  # 1 − 199.9/200 = 0.0005 -> 0.001
-    assert result.ultimate.origin_impact.double.value == 0.0  # 0.245 × 0.001
+    assert result.ultimate.origin_impact.double.value == 0.0  # 0.245 × 0.0005 = 0.0001225
 
 
 def test_pier_impact_with_a_zero_denominator_is_an_input_error():

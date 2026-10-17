@@ -127,6 +127,9 @@ def _bearing(slot: Reader) -> Bearing | None:
         return None
     slot.only(*BEARING_KEYS)
     shares = slot.at("列車分担").only("L1", "L2", "L3", "L4")
+    for track in ("L3", "L4"):  # decision 23: two tracks only; L3/L4 stay blank
+        if not shares.at(track).is_null:
+            raise shares.at(track).error("3線以上は未対応です")
     return Bearing(
         position=slot.at("支承位置").printed(LENGTH, sign="any"),
         d1=slot.at("固定死荷重_D1").printed(LOAD, sign="any"),
@@ -136,7 +139,6 @@ def _bearing(slot: Reader) -> Bearing | None:
         snow30=slot.at(SNOW_KEYS[2]).printed(LOAD, sign="any"),
         shares=Shares(
             l1=shares.at("L1").printed(RATIO, sign="any"), l2=shares.at("L2").printed(RATIO, sign="any"),
-            l3=_optional(shares, "L3", RATIO, sign="any"), l4=_optional(shares, "L4", RATIO, sign="any"),
         ),
     )
 

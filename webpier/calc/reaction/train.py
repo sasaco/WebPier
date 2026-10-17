@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from ...core.errors import InputError
-from ...core.printed import COEFFICIENT, FORCE, LENGTH, Precision, Printed
+from ...core.printed import COEFFICIENT, FORCE, LENGTH, Printed
 from ...inputs import PierInput
 from ...inputs.model import Span
 from .._exact import d, put, total
@@ -20,9 +20,8 @@ from .dead import DeadResult, GirderDead
 from .self_weight import SelfWeightResult
 
 IMPACT = COEFFICIENT  # impact coefficient i (07 7-2)
-REDUCTION = Precision(3, "")  # double-track reduction 1 − L/200
 SERVICE_RATIO = Decimal("0.75")  # serviceability and fatigue use 3/4 of the impact (07 7-2: 0.245 -> 0.184)
-DOUBLE_TRACK_SPAN = Decimal(200)  # 1 − L/200 for both tracks loaded; valid for L < 200 m (decision 13)
+DOUBLE_TRACK_SPAN = Decimal(200)  # i × (1 − L/200) for both tracks loaded; valid for L < 200 m (decisions 13, 23)
 SEISMIC_SHARE = Decimal("0.5")  # seismic train line load × girder length × 1/2 at each end (07 7-2)
 
 
@@ -31,7 +30,7 @@ class GirderImpact:
     """Impact coefficients of one girder for one load group."""
 
     single: Printed  # one track loaded
-    double: Printed  # both tracks loaded
+    double: Printed  # both tracks loaded: i_single × (1 − L/200) in one expression, rounded once (decision 23)
 
 
 @dataclass(frozen=True)
@@ -92,8 +91,6 @@ class SeismicTrain:
 @dataclass(frozen=True)
 class TrainResult:
     loading: MovingLoadResult  # adopted train loading: RA..RD of one track without load factors
-    origin_reduction: Printed  # 1 − L/200 of the origin span
-    end_reduction: Printed
     ultimate: GroupTrain  # safety (failure) and restorability
     service: GroupTrain  # serviceability
     fatigue: GroupTrain  # safety (fatigue)
@@ -109,11 +106,12 @@ def girder_length(span: Span) -> Printed:
     return LENGTH.total((span.l1, span.span, span.l2))
 
 
-def _reduction(span: Span, side: str) -> Printed:
+def _double_impact(span: Span, side: str) -> Printed:
+    """i = i_single × (1 − L/200), L the span; only the result is rounded (decision 23)."""
     if d(span.span) >= DOUBLE_TRACK_SPAN:
         raise InputError(f"上部構造.{side}.桁長.スパン長: 複線の衝撃低減 1 − L/200 の適用範囲外です"
                          f"（L < 200 m が必要、入力 {span.span.value} m）")
-    return put(REDUCTION, 1 - d(span.span) / DOUBLE_TRACK_SPAN)
+    return put(IMPACT, d(span.impact) * (1 - d(span.span) / DOUBLE_TRACK_SPAN))
 
 
 def _support(load: Printed, coefficient: Printed) -> SupportTrain:
@@ -149,9 +147,8 @@ def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightRe
     t, spans = pier.train, pier.spans
     loading = search_reactions(spans.origin, spans.end, axle_load=t.axle_load, cars=t.cars,
                                car_length=t.car_length, a1=t.a1, a2=t.a2)
-    reductions = (_reduction(spans.origin, "起点側"), _reduction(spans.end, "終点側"))
-    ultimate = tuple(GirderImpact(span.impact, put(IMPACT, d(span.impact) * d(reduction)))
-                     for span, reduction in zip((spans.origin, spans.end), reductions))
+    ultimate = (GirderImpact(spans.origin.impact, _double_impact(spans.origin, "起点側")),
+                GirderImpact(spans.end.impact, _double_impact(spans.end, "終点側")))
     service = tuple(GirderImpact(put(IMPACT, d(impact.single) * SERVICE_RATIO),
                                  put(IMPACT, d(impact.double) * SERVICE_RATIO)) for impact in ultimate)
     groups = {
@@ -168,7 +165,7 @@ def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightRe
         origin=put(FORCE, d(t.earthquake_load) * d(lengths[0]) * SEISMIC_SHARE),
         end=put(FORCE, d(t.earthquake_load) * d(lengths[1]) * SEISMIC_SHARE))
     return TrainResult(
-        loading=loading, origin_reduction=reductions[0], end_reduction=reductions[1],
+        loading=loading,
         ultimate=groups["ultimate"], service=groups["service"], fatigue=groups["fatigue"],
         pier_weight=ds, superstructure_dead=du,
         pier_ultimate=pier_groups["ultimate"], pier_service=pier_groups["service"], seismic=seismic,

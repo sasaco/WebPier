@@ -44,8 +44,16 @@ def test_empty_bearing_slots_are_absent_bearings():
     assert [slot is None for slot in b] == [False] * 4 + [True] * 6
     assert b[0].position.value == -3.8
     assert b[0].shares.l2.value == -0.02
-    assert b[0].shares.l3 is None and b[0].shares.l4 is None
+    assert not hasattr(b[0].shares, "l3") and not hasattr(b[0].shares, "l4")
     assert pier.reactions.a.d1.value == 5740.0
+
+
+@pytest.mark.parametrize("track", ["L3", "L4"])
+def test_a_third_or_fourth_track_is_not_supported(track):
+    # Decision 23: shares L3/L4 must stay blank; a value is an input error, not silently ignored.
+    document = data()
+    document["上部工反力"]["終点側"]["C支点"][1]["列車分担"][track] = 0.0
+    fails(document, f"上部工反力.終点側.C支点[1].列車分担.{track}: 3線以上は未対応です")
 
 
 def test_a_bearing_with_a_blank_value_is_an_error_not_zero():

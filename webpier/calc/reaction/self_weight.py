@@ -85,7 +85,7 @@ class WeightRow:
     weight: Printed  # N
     x_l: Printed
     x_c: Printed
-    y: Printed | None  # height above the reference; None for the soil (no height moment, as in the 0600 sheet)
+    y: Printed | None  # height above the reference; None for the soil, which is left out of the height
     moment_l: Printed  # N·xL
     moment_c: Printed  # N·xC
     moment_y: Printed | None  # N·y
@@ -96,13 +96,14 @@ class Aggregate:
     """Weights and centroid about a reference point."""
 
     rows: tuple[WeightRow, ...]
-    weight: Printed  # ΣN
+    weight: Printed  # ΣN, soil included
+    structure_weight: Printed  # ΣN of the rows with a height (soil excluded): the denominator of y (decision 24)
     moment_l: Printed
     moment_c: Printed
-    moment_y: Printed
+    moment_y: Printed  # ΣN·y over the structure rows
     x_l: Printed  # ΣN·xL / ΣN
     x_c: Printed
-    y: Printed  # ΣN·y / ΣN
+    y: Printed  # structure-only centroid height: ΣN·y / structure_weight
 
 
 @dataclass(frozen=True)
@@ -111,7 +112,7 @@ class SelfWeightResult:
     pedestal: Body  # 桁受け, one prism of height H1 on the beam top
     beam_top_area: Printed  # A1 = B1 × W1
     beam_bottom_area: Printed  # A2 = (B1−B4−B5)(W1−W4−W5)
-    beam_haunch_centroid: Printed  # z: haunch centroid above its lower (smaller) face A2
+    beam_haunch_centroid: Printed  # z: haunch centroid above its lower (smaller) face A2, exact (decision 22)
     beam: Body  # rows: prism (H2), haunch (H3)
     column_area: Printed  # B6 × W6
     column: Body  # one prism of height H4
@@ -167,11 +168,15 @@ def _area(a: Decimal, b: Decimal, name: str) -> Printed:
     return area
 
 
-def _frustum_centroid(height: Printed, lower: Printed, upper: Printed) -> Printed:
-    """Centroid of a frustum above its lower face: h/4·(1+2√r+3r)/(1+√r+r), r = upper/lower."""
-    ratio = d(upper) / d(lower)
-    root = ratio.sqrt()
-    return put(LENGTH, d(height) / 4 * (1 + 2 * root + 3 * ratio) / (1 + root + ratio))
+def _haunch_centroid(height: Printed, lower: tuple[Decimal, Decimal], upper: tuple[Decimal, Decimal]) -> Printed:
+    """Centroid above the lower face of a haunch whose sides b and w both vary linearly (decision 22).
+
+    z = ∫z·b·w dz / ∫b·w dz = h (b0w0/2 + (b0Δw + w0Δb)/3 + ΔbΔw/4) / (b0w0 + (b0Δw + w0Δb)/2 + ΔbΔw/3),
+    consistent with the prismatoid volume; for similar sections it equals the frustum formula.
+    """
+    (b0, w0), (db, dw) = lower, (upper[0] - lower[0], upper[1] - lower[1])
+    cross = b0 * dw + w0 * db
+    return put(LENGTH, d(height) * (b0 * w0 / 2 + cross / 3 + db * dw / 4) / (b0 * w0 + cross / 2 + db * dw / 3))
 
 
 def _scaled(offset: Printed, z: Printed, height: Printed) -> Printed:
@@ -213,11 +218,16 @@ def _weight_row(part: Part, weight: Printed, x_l: Printed, x_c: Printed, y: Prin
 
 def _aggregate(name: str, rows: Sequence[WeightRow]) -> Aggregate:
     weight = put(FORCE, total(row.weight for row in rows))
-    moments = [put(WEIGHT_MOMENT, total(getattr(row, key) for row in rows if getattr(row, key) is not None))
-               for key in ("moment_l", "moment_c", "moment_y")]
-    return Aggregate(rows=tuple(rows), weight=weight, moment_l=moments[0], moment_c=moments[1], moment_y=moments[2],
-                     x_l=_centroid(weight, moments[0], name), x_c=_centroid(weight, moments[1], name),
-                     y=_centroid(weight, moments[2], name))
+    moment_l = put(WEIGHT_MOMENT, total(row.moment_l for row in rows))
+    moment_c = put(WEIGHT_MOMENT, total(row.moment_c for row in rows))
+    # Decision 24: the height is of the structure only; rows without a height (the soil) are in neither sum.
+    structure = [row for row in rows if row.moment_y is not None]
+    structure_weight = put(FORCE, total(row.weight for row in structure))
+    moment_y = put(WEIGHT_MOMENT, total(row.moment_y for row in structure if row.moment_y is not None))
+    return Aggregate(rows=tuple(rows), weight=weight, structure_weight=structure_weight,
+                     moment_l=moment_l, moment_c=moment_c, moment_y=moment_y,
+                     x_l=_centroid(weight, moment_l, name), x_c=_centroid(weight, moment_c, name),
+                     y=_centroid(structure_weight, moment_y, name))
 
 
 def _shifted(a: Printed, b: Printed) -> Printed:
@@ -236,11 +246,11 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
                                      put(LENGTH, (2 * w[2] + w[3] - w[1] - w[4] + w[5]) / 2),
                                      put(LENGTH, h[1] / 2))], gamma)
 
-    # はり: the haunch frustum's centroid z is measured from its lower face A2 (ADR-0001).
+    # はり: the haunch centroid z is measured from its lower face A2 (ADR-0001, decision 22).
     lower_b, lower_w = b[1] - b[4] - b[5], w[1] - w[4] - w[5]
     top_area, bottom_area = _area(b[1], w[1], "はり上面"), _area(lower_b, lower_w, "はり下面")
     beam_x_l, beam_x_c = put(LENGTH, (b[5] - b[4]) / 2), put(LENGTH, (w[5] - w[4]) / 2)
-    z = _frustum_centroid(s.h[3], bottom_area, top_area)
+    z = _haunch_centroid(s.h[3], (lower_b, lower_w), (b[1], w[1]))
     beam = _body("はり", [
         _row(put(VOLUME, d(top_area) * h[2]), beam_x_l, beam_x_c, put(LENGTH, -h[2] / 2)),
         _row(put(VOLUME, h[3] / 6 * (lower_b * w[1] + b[1] * lower_w + 2 * (d(top_area) + d(bottom_area)))),
@@ -251,10 +261,10 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     column = _body("柱", [_row(put(VOLUME, d(column_area) * h[4]), put(LENGTH, (b[7] - b[9]) / 2),
                               put(LENGTH, (w[7] - w[9]) / 2), put(LENGTH, h[4] / 2 + h[5] + h[6]))], gamma)
 
-    # フーチング: haunch frustum (H5) on the base prism (H6); z from the larger lower face.
+    # フーチング: haunch (H5) on the base prism (H6); z from the larger lower face.
     bf, wf = LENGTH.total(s.b[i] for i in (7, 8, 9)), LENGTH.total(s.w[i] for i in (7, 8, 9))
     footing_top, footing_bottom = put(AREA, b[8] * w[8]), _area(d(bf), d(wf), "フーチング下面")
-    zf = _frustum_centroid(s.h[5], footing_bottom, footing_top)
+    zf = _haunch_centroid(s.h[5], (d(bf), d(wf)), (b[8], w[8]))
     footing_haunch = _row(put(VOLUME, h[5] / 6 * (d(bf) * w[8] + b[8] * d(wf) + 2 * (d(footing_top) + d(footing_bottom)))),
                           _scaled(column.x_l, zf, s.h[5]), _scaled(column.x_c, zf, s.h[5]), put(LENGTH, h[6] + d(zf)))
     footing = _body("フーチング", [footing_haunch, _row(put(VOLUME, d(footing_bottom) * h[6]), LENGTH(0), LENGTH(0),

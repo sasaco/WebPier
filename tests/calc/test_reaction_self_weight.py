@@ -20,8 +20,20 @@ def q3(x):
     return q(x, 3)
 
 
-def sqrt(x):
-    return Decimal(x).sqrt()
+def haunch_centroid(height, lower, upper):
+    """Centroid above the lower face of a solid whose sides vary linearly (decision 22), by Simpson's rule.
+
+    t·b(t)·w(t) is a cubic, so Simpson's rule is exact; it shares no code or algebra with the implementation.
+    """
+    if not height:
+        return ZERO
+
+    def area(t):
+        return (lower[0] + (upper[0] - lower[0]) * t / height) * (lower[1] + (upper[1] - lower[1]) * t / height)
+    mid = height / 2
+    volume = height / 6 * (area(ZERO) + 4 * area(mid) + area(height))
+    moment = height / 6 * (4 * mid * area(mid) + height * area(height))
+    return q3(moment / volume)
 
 
 def hand(p):
@@ -57,8 +69,7 @@ def hand(p):
     # Beam: prism + haunch frustum; z from the smaller (lower) face A2.
     a1, a2 = q3(b[1] * w[1]), q3((b[1] - b[4] - b[5]) * (w[1] - w[4] - w[5]))
     xl, xc = q3((b[5] - b[4]) / 2), q3((w[5] - w[4]) / 2)
-    ratio = a1 / a2
-    z = q3(h[3] / 4 * (1 + 2 * sqrt(ratio) + 3 * ratio) / (1 + sqrt(ratio) + ratio))
+    z = haunch_centroid(h[3], (b[1] - b[4] - b[5], w[1] - w[4] - w[5]), (b[1], w[1]))
     haunch_volume = q3(h[3] / 6 * ((b[1] - b[4] - b[5]) * w[1] + b[1] * (w[1] - w[4] - w[5]) + 2 * (a1 + a2)))
     haunch = (haunch_volume, q3(xl * z / h[3]) if h[3] else ZERO, q3(xc * z / h[3]) if h[3] else ZERO,
               q3(-(h[2] + h[3] - z)))
@@ -76,8 +87,7 @@ def hand(p):
     # Footing: haunch frustum on the lower prism; z from the larger (lower) face.
     bf, wf = b[7] + b[8] + b[9], w[7] + w[8] + w[9]
     f1, f2 = q3(b[8] * w[8]), q3(bf * wf)
-    ratio = f1 / f2
-    zf = q3(h[5] / 4 * (1 + 2 * sqrt(ratio) + 3 * ratio) / (1 + sqrt(ratio) + ratio))
+    zf = haunch_centroid(h[5], (bf, wf), (b[8], w[8]))
     footing_haunch = (q3(h[5] / 6 * (bf * w[8] + b[8] * wf + 2 * (f1 + f2))),
                       q3(column[1] * zf / h[5]) if h[5] else ZERO, q3(column[2] * zf / h[5]) if h[5] else ZERO,
                       q3(h[6] + zf))
@@ -128,9 +138,12 @@ def hand(p):
 def aggregate(r, name, rows):
     weight = sum((row[0] for row in rows), ZERO)
     r[name + ".weight"] = weight
-    for k, key in ((1, "x_l"), (2, "x_c"), (3, "y")):
-        moment = sum((q3(row[0] * row[k]) for row in rows if row[k] is not None), ZERO)
-        r[name + "." + key] = q3(moment / weight)
+    for k, key in ((1, "x_l"), (2, "x_c")):
+        r[name + "." + key] = q3(sum((q3(row[0] * row[k]) for row in rows), ZERO) / weight)
+    # Decision 24: the height is of the structure only; the soil is in neither sum.
+    structure = [row for row in rows if row[3] is not None]
+    r[name + ".structure_weight"] = sum((row[0] for row in structure), ZERO)
+    r[name + ".y"] = q3(sum((q3(row[0] * row[3]) for row in structure), ZERO) / r[name + ".structure_weight"])
 
 
 def actual(result):
@@ -155,6 +168,7 @@ def actual(result):
     for name in ("pier_bottom", "footing_centre"):
         total = getattr(result, name)
         r[name + ".weight"] = value(total.weight)
+        r[name + ".structure_weight"] = value(total.structure_weight)
         r[name + ".x_l"], r[name + ".x_c"], r[name + ".y"] = value(total.x_l), value(total.x_c), value(total.y)
     return r
 
@@ -190,9 +204,12 @@ def test_example2_08_page_8_3():
 
 def test_example2_values_by_hand():
     result = calculate_self_weight(pier())
-    # Beam haunch: r = 24.300/12.150 = 2, z = 0.175(1+2√2+6)/(1+√2+2) = 0.38964 -> 0.390 from the lower face.
-    assert result.beam_haunch_centroid.value == 0.39
-    assert result.beam.rows[1].y.value == -2.31  # -(2.000 + 0.700 - 0.390)
+    # Beam haunch (decision 22): width 2.700 constant, depth 4.500 -> 9.000 over 0.700 m.
+    # z = 0.7 × (2.7·4.5/2 + 2.7·4.5/3) / (2.7·4.5 + 2.7·4.5/2) = 0.7 × 10.125/18.225 = 0.38889 -> 0.389.
+    # The frustum formula, exact only for similar sections, gives 0.390 (r = 2: 0.38964), the value of the 0600
+    # sheet behind Example2 08 p.8-3; ours is 0.001 m lower (decision 22).
+    assert result.beam_haunch_centroid.value == 0.389
+    assert result.beam.rows[1].y.value == -2.311  # -(2.000 + 0.700 - 0.389)
     assert result.beam.volume.value == 61.358  # 48.600 + 12.758
     assert result.beam.weight.value == 1503.27
     assert result.column.weight.value == 1458.61  # 12.150 x 4.900 = 59.535 m3 x 24.5
@@ -205,10 +222,43 @@ def test_haunch_centroid_is_measured_from_the_smaller_lower_face():
     result = calculate_self_weight(pier())
     assert result.beam.rows[1].y.value != -2.39
     asymmetric = calculate_self_weight(pier(**ASYMMETRIC))
-    # A1 = 24.000, A2 = 2.400 x 4.500 = 10.800; z = 0.15(1+2√r+3r)/(1+√r+r) = 0.33890 -> 0.339.
+    # Lower 2.400 x 4.500, upper 3.000 x 8.000, h 0.600:
+    # z = 0.6 × (5.4 + (2.4·3.5 + 4.5·0.6)/3 + 0.6·3.5/4) / (10.8 + 11.1/2 + 2.1/3) = 0.6 × 9.625/17.05 = 0.33871.
     assert asymmetric.beam_haunch_centroid.value == 0.339
     assert asymmetric.beam.rows[1].y.value == -2.061  # -(1.800 + 0.600 - 0.339); the old code gave -2.139
     assert asymmetric.beam.rows[1].x_l.value == -0.057  # (0.200-0.400)/2 = -0.100, x 0.339/0.600 = -0.0565
+
+
+def test_similar_sections_give_the_frustum_formula():
+    # Lower 2.000 x 6.000 and upper 3.000 x 9.000 are similar (ratio 2/3): r = 27/12 = 2.25, √r = 1.5,
+    # frustum z = 0.6/4 × (1 + 3 + 6.75)/(1 + 1.5 + 2.25) = 0.15 × 10.75/4.75 = 0.33947 -> 0.339.
+    # Exact: 0.6 × (6 + (2·3 + 6·1)/3 + 3/4) / (12 + 12/2 + 3/3) = 0.6 × 10.75/19 = 0.33947.
+    result = calculate_self_weight(pier(**{
+        "下部構造/寸法/側面": {**ASYMMETRIC["下部構造/寸法/側面"], "B4": 0.6, "B5": 0.4},
+        "下部構造/寸法/正面": {**ASYMMETRIC["下部構造/寸法/正面"], "W1": 9.0, "W4": 1.0, "W5": 2.0},
+        "下部構造/寸法/高さ": ASYMMETRIC["下部構造/寸法/高さ"]}))
+    assert (result.beam_bottom_area.value, result.beam_top_area.value) == (12.0, 27.0)
+    assert result.beam_haunch_centroid.value == 0.339
+
+
+def test_footing_haunch_centroid_by_hand():
+    result = calculate_self_weight(pier(**ASYMMETRIC))
+    # Lower 6.000 x 9.000, upper 2.400 x 4.600, h 0.400: Δb = -3.6, Δw = -4.4,
+    # z = 0.4 × (27 + (6·(-4.4) + 9·(-3.6))/3 + 15.84/4) / (54 + (-58.8)/2 + 15.84/3) = 0.4 × 11.36/29.88 = 0.15208.
+    assert result.footing_haunch_centroid.value == 0.152
+    assert result.footing.rows[0].y.value == 1.652  # 1.500 + 0.152
+
+
+def test_footing_centre_height_is_of_the_structure_only():
+    # Decision 24: N and xL/xC include the soil; hG uses neither the soil's weight nor a soil height.
+    total = calculate_self_weight(pier()).footing_centre
+    assert total.weight.value == 8959.93  # 0 + 1503.27 + 1458.61 + 4167.45 + 1830.60
+    assert total.structure_weight.value == 7129.33  # without the soil 1830.60
+    # Beam y = (-48.600 + 12.758 × -2.311 = -29.484) / 61.358 = -78.084/61.358 = -1.27260 -> -1.273.
+    # N·y: beam 1503.27 × (10.300 - 1.273 = 9.027) = 13570.018, column 1458.61 × 5.150 = 7511.842,
+    # footing 4167.45 × 1.350 = 5626.058 -> 26707.918.
+    assert total.moment_y.value == 26707.918
+    assert total.y.value == 3.746  # 26707.918 / 7129.33 = 3.74618
 
 
 def test_decision_20_pedestal_weight_and_transverse_moment_and_soil_centroid():

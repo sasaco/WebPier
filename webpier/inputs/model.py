@@ -80,12 +80,10 @@ class Train:
 
 @dataclass(frozen=True)
 class Shares:
-    """Train share per track; None means the track does not exist."""
+    """Train share of the down (L1) and up (L2) track; L3/L4 must be blank (decision 23)."""
 
     l1: Printed
     l2: Printed
-    l3: Printed | None
-    l4: Printed | None
 
 
 @dataclass(frozen=True)

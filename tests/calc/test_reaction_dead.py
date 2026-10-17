@@ -83,13 +83,12 @@ def test_a_side_without_bearings_carries_nothing():
     assert dead.superstructure.value == 5740 + 520
 
 
-def test_l3_l4_none_means_no_such_track_and_the_double_share_is_l1_plus_l2():
-    slot = f"{ORIGIN_SLOTS}/0/列車分担"
-    dead = calculate_dead(pier(**{f"{slot}/L3": 0.3, f"{slot}/L4": None}))
-    shares = dead.origin.bearings[0].bearing.shares
-    assert (shares.l1.value, shares.l2.value, shares.l3.value, shares.l4) == (0.471, -0.02, 0.3, None)
-    assert (dead.origin.bearings[1].bearing.shares.l3, dead.origin.bearings[1].bearing.shares.l4) == (None, None)
-    assert dead.origin.bearings[0].double.value == 0.451
+def test_the_double_share_is_l1_plus_l2_and_no_third_track_is_carried():
+    # Decision 23: L3/L4 must be blank (parse rejects a value), so the result carries only L1 and L2.
+    bearing = calculate_dead(pier()).origin.bearings[0]
+    shares = bearing.bearing.shares
+    assert (shares.l1.value, shares.l2.value, bearing.double.value) == (0.471, -0.02, 0.451)
+    assert not hasattr(shares, "l3") and not hasattr(shares, "l4")
 
 
 def test_far_supports_are_the_entered_totals():
