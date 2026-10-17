@@ -199,7 +199,8 @@ class FrameFigure:
 
         # Node numbers right of their nodes, spread so that close nodes (the micro member) stay readable.
         cap = cap_height(fonts, NODE_STYLE)
-        support = self.frame.support.node
+        # The support's number is lifted clear of the Ks spring; without springs it stays at its node.
+        support = self.frame.support.node if self.springs else None
         order = sorted(nodes, key=lambda n: (nodes[n][1] - (7 if n == support else 0), n))
         centres = spread([nodes[n][1] - (7 if n == support else 0) for n in order], [cap / 2 + .5] * len(order),
                          1.5, 2, self.height - 2, "節点番号")

@@ -293,3 +293,23 @@ def test_transverse_frames_draw_their_coordinates_labels_and_heights(case: str, 
     width = sum(pier.substructure.w[i].value for i in (7, 8, 9))
     footing = next(p for p in pier_outline(pier, frame).polygons if min(y for _, y in p) == 0)
     assert max(x for x, _ in footing) - min(x for x, _ in footing) == pytest.approx(width)
+
+
+@pytest.mark.parametrize("case", list(CASES))
+def test_without_springs_nothing_of_a_spring_is_drawn_and_the_support_number_stays_at_its_node(case: str):
+    """0710 and 0720 show no springs (decision 41): no zigzag, no coil, no K, and no room kept for them."""
+    pier, _, by_stage = frames(case)
+    frame = by_stage["0710"]
+    figure = FrameFigure(frame, pier_outline(pier, frame), springs=False)
+    drawn = commands(figure)
+    assert [c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3] == []
+    assert "K" not in figure.texts() and figure.texts() == tuple(c.text for c in drawn if isinstance(c, Text))
+    circles, numbers = node_circles(drawn), [c for c in texts(drawn, 9.9, turned=False) if c.style.font == "heading"]
+
+    def offset(role: NodeRole) -> float:
+        """The baseline of a node's number below its node."""
+        number = frame.node(role).number
+        return next(c.y for c in numbers if c.text == str(number)) - circles[number - 1].y
+
+    # Nothing is lifted clear of a spring: the support's number sits like any other node's.
+    assert offset(NodeRole.FOOTING_BOTTOM) == pytest.approx(offset(NodeRole.FOOTING_CENTROID), abs=.01)
