@@ -14,7 +14,7 @@ from gridlayoutpdf import (
 from .styles import BODY, SMALL, grid_units
 
 # Inner clearance of a table cell from the cell boundary (the rule centre), measured in the references
-# (tests/reporting_new/test_table_cell_padding.py) as the gap between a right-aligned number's advance
+# (tests/reporting/test_table_cell_padding.py) as the gap between a right-aligned number's advance
 # box and the ink of the rule after it, plus half the thin 0.12 pt rule. Vertical: 1.08 pt, so that the
 # measured 12.84-14.88 pt rows hold a 9.9 pt line.
 #   CELL_PADDING: the combination tables of 0610 p10 / 0620 p17, 4.05 pt -> 4.11 pt (the default).
