@@ -93,6 +93,11 @@ def _remove_staging(directory: Path) -> None:
                       RuntimeWarning, stacklevel=2)
 
 
+def backup_path(staging: Mapping[Path, Path], destination: Path) -> Path:
+    """Where publish_outputs keeps the old *destination* until the generation is committed."""
+    return staging[destination.parent.resolve()] / (destination.name + ".backup")
+
+
 def validate_destinations(destinations: Sequence[Path], *, overwrite: bool,
                           input_path: Path | None = None) -> None:
     check_incomplete_publications(destinations)
@@ -187,8 +192,7 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
         journal = {
             "schema_version": 1, "transaction_id": uuid.uuid4().hex, "state": "publishing",
             "artifacts": [{"source": str(source.resolve()), "destination": str(destination.resolve()),
-                           "backup": str(directories[destination.parent.resolve()] /
-                                         (destination.name + ".backup")),
+                           "backup": str(backup_path(directories, destination)),
                            "had_original": destination.exists()}
                           for source, destination in pairs],
         }
@@ -198,7 +202,7 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
         # Back up every old artifact before publishing any new artifact.
         for destination in destinations:
             if destination.exists():
-                backup = directories[destination.parent.resolve()] / (destination.name + ".backup")
+                backup = backup_path(directories, destination)
                 os.replace(destination, backup)
                 backups[destination] = backup
         for source, destination in pairs:
