@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from ..calc.column_rebar import column_layout
-from ..calc.embedment import calculate_embedment
+from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.foundation import calculate_foundation
 from ..calc.longitudinal import calculate_longitudinal
 from ..calc.reaction import calculate_reaction
@@ -158,7 +158,8 @@ _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
-              lambda results, pier, path: render_foundation(results["0500"], pier, path)),
+              lambda results, pier, path: render_foundation(
+                  results["0500"], pier, applicable_embedment(pier, results["0500"]), path)),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
               lambda results, pier, path: render_reaction(results["0600"], pier, path)),
