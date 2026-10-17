@@ -9,7 +9,7 @@ from gridlayoutpdf import (
     MeasuredBlock, Script, measure_block,
 )
 
-from .document import IndentTo
+from .document import indent_to
 from .styles import BODY, finite, grid_units
 
 
@@ -69,5 +69,5 @@ def equation_group(*equations: Equation, left: float = 117, first_equal: float =
     time, so their native text origins differ by at most 0.06 pt from the target.
     Each equation resolves its own relation font/width; no text is resized.
     """
-    return IndentTo(_PaperEquations(equations, left, first_equal, second_equal,
-                                    result_right, unit_start, block_id), left)
+    return indent_to(_PaperEquations(equations, left, first_equal, second_equal,
+                                     result_right, unit_start, block_id), left)

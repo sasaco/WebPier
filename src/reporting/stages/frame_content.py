@@ -11,15 +11,15 @@ import re
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, Cell, CellLines, Document, Equation, Fraction, Insets, LayoutContext,
-    LayoutPart, Literal, MathNode, MeasuredBlock, Root, Row, Script, Text, TextStyle,
-    command_bounds, wrap_text,
+    Block, Cell, CellLines, Document, Equation, Fraction, Insets, KeepWithNext, LayoutContext,
+    LayoutPart, Leading, Literal, MathNode, MeasuredBlock, PreferKeepTogether, Root, Row, Script,
+    Text, command_bounds, proportional_spans,
 )
 
-from ..document import IndentTo, heading, paragraph, report, spacer
+from ..document import heading, indent_to, paragraph, report, spacer
 from ..equations import equation_group, script
 from ..figures import physical_frame
-from ..styles import BODY, HEADING
+from ..styles import BODY, BODY_LEADING, HEADING, PITCH, grid_units
 from ..tables import math_cell, table
 
 
@@ -64,14 +64,7 @@ class Header:
     values: tuple[Any, ...]
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        lines = []
-        for value in self.values:
-            if isinstance(value, str):
-                lines.extend(line.text for line in wrap_text(value, context.fonts, BODY, available_width - 2.16,
-                                                            max_tracking_em=0))
-            else:
-                lines.append(value)
-        return CellLines(tuple(lines), style=BODY, line_advance=14.28, align="center",
+        return CellLines(self.values, style=BODY, line_advance=14.28, align="center", wrap=True,
                          inner_padding=Insets(1.08, 1.08, 1.08, 1.08)).measure(context, available_width)
 
 
@@ -211,48 +204,15 @@ def semantic_sections(units: Sequence[Unit]) -> list[dict[str, str]]:
     return records
 
 
-@dataclass(frozen=True)
-class WrappedCell:
-    text: str
-    align: str = "left"
-    style: TextStyle = BODY
-    minimum: float = 14.28
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        lines = wrap_text(self.text, context.fonts, self.style, available_width - 2.16,
-                          align=self.align, max_tracking_em=0)
-        return CellLines(tuple(line.text for line in lines), style=self.style, line_advance=14.28,
-                         min_height=self.minimum, inner_padding=Insets(1.08, 1.08, 1.08, 1.08),
-                         align=self.align).measure(context, available_width)
+def wrapped_cell(text: str, align: str = "left", *, minimum: float = 14.28) -> CellLines:
+    """Body text wrapped at its fixed size inside the standard cell clearance."""
+    return CellLines((text,), style=BODY, line_advance=14.28, min_height=minimum,
+                     inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align=align, wrap=True)
 
 
 def column_widths(weights: Sequence[float], width: float = 528) -> tuple[float, ...]:
     """Distribute an authored frame width on the explicit .12 pt page grid."""
-    total = round(width / .12)
-    boundaries = [round(total * sum(weights[:index]) / sum(weights)) for index in range(len(weights) + 1)]
-    return tuple((right - left) * .12 for left, right in zip(boundaries, boundaries[1:]))
-
-
-@dataclass(frozen=True)
-class MinimumLeading:
-    block: Block
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        measured = self.block.measure(context, available_width)
-        minimum = context.rows_for(14.28)
-        return replace(measured, parts=tuple(replace(part, rows=max(part.rows, minimum)) for part in measured.parts))
-
-
-@dataclass(frozen=True)
-class FlowKeep:
-    block: Block
-    prefer: bool = False
-    following: bool = False
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        measured = self.block.measure(context, available_width)
-        return replace(measured, prefer_keep=self.prefer or measured.prefer_keep,
-                       keep_with_next=self.following or measured.keep_with_next)
+    return tuple(span * PITCH for span in proportional_spans(weights, grid_units(width)))
 
 
 _NUMBER = re.compile(r"[-+−]?\d[\d,.]*")
@@ -325,7 +285,7 @@ def blocks_for(units: Sequence[Unit]) -> tuple[Block, ...]:
                             # A right-aligned "－" would touch the next number
                             # and read as a minus sign; centre placeholders.
                             align = "center" if value in _BLANK else "right"
-                        cells.append(Cell(WrappedCell(value, align, minimum=unit.row_height), padding=0,
+                        cells.append(Cell(wrapped_cell(value, align, minimum=unit.row_height), padding=0,
                                           align=align, colspan=colspan, rowspan=rowspan))
                     elif isinstance(value, (Header, VerticalHeader)):
                         cells.append(Cell(value, colspan=colspan, rowspan=rowspan, padding=0))
@@ -335,19 +295,21 @@ def blocks_for(units: Sequence[Unit]) -> tuple[Block, ...]:
             blocks.append(table(column_widths(unit.weights), rows, row_heights=None,
                                 header_rows=unit.header_rows, block_id=unit.identifier))
         elif unit.kind == "equation":
-            blocks.append(MinimumLeading(equation_group(unit.value, left=unit.left, first_equal=276.72,
-                                         second_equal=436.44 if unit.value.result is not None else None,
-                                         result_right=565.08 if unit.value.result is not None else None,
-                                         block_id=unit.identifier)))
+            blocks.append(Leading(equation_group(unit.value, left=unit.left, first_equal=276.72,
+                                  second_equal=436.44 if unit.value.result is not None else None,
+                                  result_right=565.08 if unit.value.result is not None else None,
+                                  block_id=unit.identifier), grid_units(BODY_LEADING), minimum=True))
         elif unit.kind == "math":
-            blocks.append(IndentTo(CellLines((unit.value,), style=BODY, min_height=14.28,
-                                             block_id=unit.identifier), unit.left))
+            blocks.append(indent_to(CellLines((unit.value,), style=BODY, min_height=14.28,
+                                              block_id=unit.identifier), unit.left))
         else:
             blocks.append(paragraph(plain(unit.value), left=unit.left, block_id=unit.identifier))
         next_is_table = index + 1 < len(units) and units[index + 1].kind == "table"
         following = unit.keep_with_next or (next_is_table and (unit.kind != "table" or len(unit.value) == 1))
-        if unit.kind == "table" or following:
-            blocks[-1] = FlowKeep(blocks[-1], prefer=unit.kind == "table", following=following)
+        if unit.kind == "table":
+            blocks[-1] = PreferKeepTogether(blocks[-1])
+        if following:
+            blocks[-1] = KeepWithNext(blocks[-1])
     return tuple(blocks)
 
 

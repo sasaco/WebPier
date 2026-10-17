@@ -10,16 +10,16 @@ from pathlib import Path
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, Cell, CellLines, Document, Equation, Insets, LayoutContext,
-    LayoutPart, Line, Literal, MathNode, MeasuredBlock, Point,
-    Polyline, Rectangle, Row, Script, Spacer, Text, measure_block, render_pdf, wrap_text,
+    Block, Cell, CellLines, Document, Equation, Insets, KeepWithNext, LayoutContext,
+    LayoutPart, Leading, Line, Literal, MeasuredBlock, Point,
+    Polyline, Rectangle, Row, Script, Spacer, Text, measure_block, render_pdf,
 )
 
 from ...frame_outline import Dimension, FrameLayout, TextExtent, build_outline, dimension_text, fit_frame, frame_dimensions
-from ..document import IndentTo, Leading, heading, paragraph, report, spacer
+from ..document import heading, indent_to, paragraph, report, spacer
 from ..equations import equation_group, script
-from ..figures import figure
-from ..styles import BODY, HEADING
+from ..figures import figure, outline_segment
+from ..styles import BODY, BODY_LEADING, HEADING, grid_units
 from ..tables import table
 
 
@@ -105,35 +105,15 @@ class Tagged:
                                        or self.identifier.endswith("actions.note")))
 
 
-@dataclass(frozen=True)
-class HeadingGap:
+def heading_gap() -> Block:
     """One reference leading before a heading, retained with that heading."""
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        return replace(measure_block(spacer(), context, available_width), keep_with_next=True)
+    return KeepWithNext(spacer())
 
 
-@dataclass(frozen=True)
-class WrappedCell:
+def wrapped_cell(value: Any, align: str = "left", minimum: float = 14.28) -> CellLines:
     """Wrap authored text at its fixed font size before native row allocation."""
-
-    value: Any
-    align: str = "left"
-    minimum: float = 14.28
-    header: bool = False
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        style = BODY
-        lines: list[str | MathNode] = []
-        source = self.value if isinstance(self.value, tuple) else (self.value,)
-        for item in source:
-            if isinstance(item, str):
-                lines.extend(line.text for line in wrap_text(item, context.fonts, style, available_width - 2.16))
-            else:
-                lines.append(item)
-        return measure_block(CellLines(tuple(lines), style=style, line_advance=12.84,
-                                       min_height=self.minimum, inner_padding=Insets(1.08, 1.08, 1.08, 1.08),
-                                       align=self.align), context, available_width)
+    return CellLines(value if isinstance(value, tuple) else (value,), style=BODY, line_advance=12.84,
+                     min_height=minimum, inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align=align, wrap=True)
 
 
 @dataclass(frozen=True)
@@ -146,12 +126,12 @@ class AuthoredTable:
     minimum: float = 14.28
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        rows = tuple(tuple(Cell(WrappedCell(value, "right" if col in self.numeric_columns else "center" if row < self.header_rows else "left",
-                                                 self.minimum, row < self.header_rows), padding=0,
+        rows = tuple(tuple(Cell(wrapped_cell(value, "right" if col in self.numeric_columns else "center" if row < self.header_rows else "left",
+                                             self.minimum), padding=0,
                                 align="center" if row < self.header_rows else "right" if col in self.numeric_columns else "left")
                            for col, value in enumerate(unit.value)) for row, unit in enumerate(self.units))
-        child = measure_block(IndentTo(table(self.widths, rows, row_heights=None, header_rows=self.header_rows,
-                                             block_id=self.units[0].identifier + "/table"), self.left), context, available_width)
+        child = measure_block(indent_to(table(self.widths, rows, row_heights=None, header_rows=self.header_rows,
+                                              block_id=self.units[0].identifier + "/table"), self.left), context, available_width)
 
         def tagged(source: tuple[LayoutPart, ...]) -> tuple[LayoutPart, ...]:
             parts = []
@@ -209,17 +189,6 @@ def frame_units(result: dict[str, Any], stage: str) -> tuple[Unit, ...]:
     return tuple(Unit(stage + "/frame." + key, value, "figure") for key, value in values)
 
 
-def _dashed(first: tuple[float, float], second: tuple[float, float]) -> list[Line]:
-    dx, dy = second[0] - first[0], second[1] - first[1]
-    length = math.hypot(dx, dy)
-    if not length:
-        return []
-    return [Line(first[0] + dx * start / length, first[1] + dy * start / length,
-                 first[0] + dx * min(start + 2, length) / length,
-                 first[1] + dy * min(start + 2, length) / length, .35)
-            for start in range(0, math.ceil(length), 4)]
-
-
 @dataclass(frozen=True)
 class SeismicFrame:
     result: dict[str, Any]
@@ -252,7 +221,7 @@ class SeismicFrame:
         for component in outline.components:
             points = tuple(layout.point(*point) for point in component.points)
             for first, second in zip(points, (*points[1:], points[0]), strict=True):
-                for command in _dashed(first, second):
+                for command in outline_segment(first, second):
                     add(command)
         nodes = {node["id"]: node for node in frame["nodes"]}
         for member in frame["members"]:
@@ -533,15 +502,17 @@ def build_units(result: dict[str, Any], units: Sequence[Unit], stage: str) -> Do
             continue
         if unit.kind == "heading":
             if blocks and not isinstance(blocks[-1], Spacer):
-                blocks.append(HeadingGap())
+                blocks.append(heading_gap())
             block = heading(plain(unit.value), left=unit.left, block_id=unit.identifier)
         elif unit.kind == "equation":
             block = Leading(equation_group(unit.value, left=102.48, first_equal=184.44,
                                    second_equal=460.32 if unit.value.result is not None else None,
                                    result_right=525.96 if unit.value.result is not None else None,
-                                   unit_start=530.4 if unit.value.result is not None else None, block_id=unit.identifier), 14.4)
+                                   unit_start=530.4 if unit.value.result is not None else None, block_id=unit.identifier),
+                            grid_units(14.4))
         elif unit.kind == "math":
-            block = Leading(IndentTo(CellLines((unit.value,), style=BODY, line_advance=14.28), unit.left))
+            block = Leading(indent_to(CellLines((unit.value,), style=BODY, line_advance=14.28), unit.left),
+                            grid_units(BODY_LEADING))
         else:
             block = paragraph(plain(unit.value), left=unit.left, align="right" if unit.kind == "right" else "center" if unit.kind == "caption" else "left",
                               block_id=unit.identifier)

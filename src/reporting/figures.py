@@ -9,7 +9,7 @@ import math
 from typing import Any
 
 from gridlayoutpdf import (
-    Arrow, Figure, Label, LayoutContext, LayoutOverflowError, Line, MeasuredBlock,
+    Arrow, Circle, Figure, Label, LayoutContext, LayoutOverflowError, Line, MeasuredBlock,
     Polyline, Rectangle, Text, command_bounds, measure_block,
 )
 
@@ -18,7 +18,7 @@ from .styles import HEADING, grid_units
 from ..frame_outline import TextExtent, build_outline, dimension_text, fit_frame, frame_dimensions
 
 
-def figure(width: float, height: float, *items: Line | Polyline | Rectangle | Text | Arrow | Label,
+def figure(width: float, height: float, *items: Line | Polyline | Rectangle | Circle | Text | Arrow | Label,
            block_id: str = "") -> Figure:
     return Figure(grid_units(width), grid_units(height), *items, block_id=block_id)
 
@@ -93,38 +93,15 @@ def frame_diagram(nodes: Sequence[Node], members: Sequence[tuple[str, str]], *,
     return FrameDiagram(tuple(nodes), tuple(members), width, height, block_id)
 
 
-def _dashed_segment(first: tuple[float, float], second: tuple[float, float]) -> list[Line]:
-    """Native line segments retain the physical outline without raster images."""
-    dx, dy = second[0] - first[0], second[1] - first[1]
-    length = math.hypot(dx, dy)
-    if not length:
-        return []
-    return [Line(first[0] + dx * start / length, first[1] + dy * start / length,
-                 first[0] + dx * min(start + 2, length) / length,
-                 first[1] + dy * min(start + 2, length) / length, .35)
-            for start in range(0, math.ceil(length), 4)]
+def outline_segment(first: tuple[float, float], second: tuple[float, float]) -> list[Line]:
+    """One dashed physical-outline edge (2 pt on, 2 pt off from its start)."""
+    return [Line(*first, *second, .35, dash=(2, 2))] if first != second else []
 
 
-def _white_backing(bounds: tuple[float, float, float, float], padding: float = 1.5) -> list[Line]:
+def _white_backing(bounds: tuple[float, float, float, float]) -> Rectangle:
+    """An opaque white mask, 1.5 pt beyond a label, painted without an outline."""
     left, top, right, bottom = bounds
-    left, top, right, bottom = left - padding, top - padding, right + padding, bottom + padding
-    # Thin native strokes form an opaque mask while their conservative bounds
-    # remain local; a thick stroke would reserve unrelated horizontal padding.
-    count = math.ceil((bottom - top) / .24)
-    thickness = (bottom - top) / count
-    return [Line(left, top + (index + .5) * thickness, right, top + (index + .5) * thickness,
-                 thickness, (1, 1, 1)) for index in range(count)]
-
-
-def _node_disk(x: float, y: float) -> list[Line]:
-    radius, count = 1.7, 16
-    thickness = 2 * radius / count
-    commands = []
-    for index in range(count):
-        offset = -radius + (index + .5) * thickness
-        half_width = math.sqrt(radius * radius - offset * offset)
-        commands.append(Line(x - half_width, y + offset, x + half_width, y + offset, thickness))
-    return commands
+    return Rectangle(left - 1.5, top - 1.5, right - left + 3, bottom - top + 3, fill=(1, 1, 1), stroke=False)
 
 
 @dataclass(frozen=True)
@@ -151,20 +128,20 @@ class PhysicalFrame:
         layout = fit_frame(outline, self.frame["nodes"], (12, 12, self.width - 12, self.height - 12),
                            members=self.frame["members"], dimensions=frame_dimensions(self.frame),
                            measure_text=metrics, preferred_axis_x=212, dimension_label_gap=8)
-        commands: list[Line | Rectangle | Text] = []
+        commands: list[Line | Rectangle | Circle | Text] = []
         for component in outline.components:
             points = tuple(layout.point(*point) for point in component.points)
             for first, second in zip(points, (*points[1:], points[0]), strict=True):
-                commands.extend(_dashed_segment(first, second))
+                commands.extend(outline_segment(first, second))
         for box in layout.annotation_bounds[:len(layout.node_labels)]:
-            commands.extend(_white_backing(box))
+            commands.append(_white_backing(box))
         nodes = {node["id"]: node for node in self.frame["nodes"]}
         for member in self.frame["members"]:
             first, second = nodes[member["node_i"]], nodes[member["node_j"]]
             commands.append(Line(*layout.point(first["x"], first["y"]), *layout.point(second["x"], second["y"]),
                                  width=1.6 if member["behavior"] == "rigid" else .8))
         for node in self.frame["nodes"]:
-            commands.extend(_node_disk(*layout.point(node["x"], node["y"])))
+            commands.append(Circle(*layout.point(node["x"], node["y"]), 1.7, fill=(0, 0, 0), stroke=False))
             x, y = layout.node_labels[node["id"]]
             value = str(node["id"])
             commands.append(Text(x - metrics(value, 9.9).advance, y, value, HEADING))
@@ -173,8 +150,7 @@ class PhysicalFrame:
             value = str(member["id"])
             extent = metrics(value, 8)
             half_width = max(3.5, (extent.right - extent.left) / 2 + 1.08)
-            commands.extend(_white_backing((x - half_width, y - 7, x + half_width, y + 7), 0))
-            commands.append(Rectangle(x - half_width, y - 7, 2 * half_width, 14, stroke_width=.35))
+            commands.append(Rectangle(x - half_width, y - 7, 2 * half_width, 14, stroke_width=.35, fill=(1, 1, 1)))
             commands.append(Text(x - (extent.left + extent.right) / 2, y + 3, value, replace(HEADING, size=8)))
         for dimension, label_y in zip(layout.dimensions, layout.dimension_label_ys, strict=True):
             first_y, second_y = layout.y(dimension.top), layout.y(dimension.bottom)

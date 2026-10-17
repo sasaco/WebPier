@@ -6,23 +6,23 @@ All vertical placement is measured by the native GridLayoutPdf flow engine.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 from pathlib import Path
 import re
 from typing import Any, Iterable, Sequence
 
 from gridlayoutpdf import (
-    Block, BreakHint, Cell, CellLines, Document, Equation, Fraction, Insets, LayoutContext,
-    Literal, MathBlock, MathNode, MeasuredBlock, Operator, Row, Script, TextStyle,
-    render_pdf, wrap_text,
+    Block, BreakHint, Cell, CellLines, Document, Equation, Fraction, Insets, KeepWithNext,
+    LayoutContext, Literal, MathBlock, MathNode, MeasuredBlock, Operator, PreferKeepTogether,
+    Row, Script, render_pdf,
 )
 
 from ...reaction_inputs import SNOW_LOAD_CASES
 from ...reaction_math import VBA_SINGLE_MAX
 from ...reaction_report_layout import format_value
 from ...reaction_report_values import build_display_values, load_content
-from ..document import IndentTo, heading, paragraph, report, spacer
+from ..document import heading, indent_to, paragraph, report, spacer
 from ..equations import equation_group, script
 from ..styles import BODY, HEADING
 from ..tables import cell, math_cell, table
@@ -929,7 +929,7 @@ class ReactionFigure:
 
 def _figure_block(unit: Unit) -> Block:
     kind, result = unit.value
-    return IndentTo(ReactionFigure(kind, result, unit.identifier), 93.96)
+    return indent_to(ReactionFigure(kind, result, unit.identifier), 93.96)
 
 
 def semantic_records(result: dict[str, Any]) -> list[dict[str, Any]]:
@@ -955,35 +955,6 @@ def semantic_key(key: str) -> str:
     return key + ".table" if key in ("longitudinal.summary", "transverse.summary") else key
 
 
-@dataclass(frozen=True)
-class _WrappedCell:
-    text: str
-    style: TextStyle = BODY
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        lines = wrap_text(self.text, context.fonts, self.style, available_width - 2.16,
-                          align="left", max_tracking_em=0)
-        return CellLines(tuple(line.text for line in lines), style=self.style, line_advance=14.28,
-                         min_height=14.28,
-                         inner_padding=Insets(1.08, 1.08, 1.08, 1.08)).measure(context, available_width)
-
-
-@dataclass(frozen=True)
-class _KeepNext:
-    block: Block
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        return replace(self.block.measure(context, available_width), keep_with_next=True)
-
-
-@dataclass(frozen=True)
-class _PreferKeep:
-    block: Block
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        return replace(self.block.measure(context, available_width), prefer_keep=True)
-
-
 def _table_block(unit: Unit) -> Block:
     rows = []
     for row_index, row in enumerate(unit.value):
@@ -994,13 +965,14 @@ def _table_block(unit: Unit) -> Block:
                 cells.append(cell(CellLines(value, style=style, line_advance=14.28, min_height=14.28,
                                             inner_padding=Insets(1.08, 1.08, 1.08, 1.08))))
             elif re.search(r"[\u3040-\u30ff\u3400-\u9fff]", plain(value)):
-                cells.append(cell(_WrappedCell(plain(value), style)))
+                cells.append(cell(CellLines((plain(value),), style=style, line_advance=14.28, min_height=14.28,
+                                            inner_padding=Insets(1.08, 1.08, 1.08, 1.08), wrap=True)))
             else:
                 cells.append(Cell(CellLines((value,), style=style, min_height=14.28,
                                             inner_padding=Insets(1.08, 1.08, 1.08, 1.08)), align="right", padding=0))
         rows.append(cells)
-    return IndentTo(_PreferKeep(table(unit.widths, rows, row_heights=None, header_rows=unit.header_rows,
-                                      block_id=unit.identifier)), 93.96)
+    return indent_to(PreferKeepTogether(table(unit.widths, rows, row_heights=None, header_rows=unit.header_rows,
+                                              block_id=unit.identifier)), 93.96)
 
 
 def _keep_group(key: str) -> str:
@@ -1046,14 +1018,14 @@ def build_report(result: dict[str, Any]) -> Document:
                                          unit_start=523.68 if unit.value.result is not None else None,
                                          block_id=unit.identifier))
         else:
-            blocks.append(IndentTo(MathBlock(unit.value, style=BODY, block_id=unit.identifier), 117))
+            blocks.append(indent_to(MathBlock(unit.value, style=BODY, block_id=unit.identifier), 117))
         if index + 1 < len(units):
             following = units[index + 1]
             if (_keep_group(unit.key) == _keep_group(following.key)
                     or unit.kind == "heading"
                     or unit.kind == "paragraph" and following.kind in ("math", "equation", "table")):
                 for number in range(start, len(blocks)):
-                    blocks[number] = _KeepNext(blocks[number])
+                    blocks[number] = KeepWithNext(blocks[number])
     return report(*blocks, footer="6 - {page}")
 
 

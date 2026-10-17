@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, Cell, CellLines, Document, Equation, Fraction, Insets, LayoutContext, Literal,
-    MathNode, MeasuredBlock, Operator, Root, Row, Script, render_pdf, wrap_text,
+    Block, Cell, CellLines, Document, Equation, Fraction, Insets, KeepWithNext, Literal,
+    MathNode, Operator, Root, Row, Script, render_pdf,
 )
 
-from ..document import IndentTo, heading, paragraph, report, spacer
+from ..document import heading, indent_to, paragraph, report, spacer
 from ..equations import equation_group, script
 from ..formatting import number
 from ..styles import BODY, HEADING
@@ -200,27 +200,10 @@ def semantic_records(result: dict[str, Any]) -> list[dict[str, str]]:
     return [{"id": unit.identifier, "text": plain(unit.value)} for unit in content(result)]
 
 
-@dataclass(frozen=True)
-class _SoilName:
+def _soil_name(text: str) -> CellLines:
     """Native font-measured wrapping, preserving standard one-line row height."""
-
-    text: str
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        lines = wrap_text(self.text, context.fonts, HEADING, available_width - 2.16,
-                          align="center", max_tracking_em=0)
-        content = CellLines(tuple(line.text for line in lines), style=HEADING,
-                            line_advance=14.28, min_height=14.28,
-                            inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align="center")
-        return content.measure(context, available_width)
-
-
-@dataclass(frozen=True)
-class _KeepNext:
-    block: Block
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        return replace(self.block.measure(context, available_width), keep_with_next=True)
+    return CellLines((text,), style=HEADING, line_advance=14.28, min_height=14.28,
+                     inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align="center", wrap=True)
 
 
 def _soil_table(header: Unit, rows: list[Unit]) -> Block:
@@ -244,11 +227,11 @@ def _soil_table(header: Unit, rows: list[Unit]) -> Block:
                                   standard(values[4][0], colspan=2),
                                   merged(values[5]), merged(values[6], source_role="compressive_strength"), merged(values[7])],
                                  [standard(value) for value in values[4][1:]]]
-    authored.extend([Cell(_SoilName(value), align="center", padding=0) if column in (0, 2)
+    authored.extend([Cell(_soil_name(value), align="center", padding=0) if column in (0, 2)
                      else standard(value, align="right")
                      for column, value in enumerate(row.value)] for row in rows)
     widths = (44.4, 58.08, 58.08, 43.56, 58.08, 58.08, 58.08, 58.08, 58.08)
-    return IndentTo(table(widths, authored, row_heights=None, header_rows=2, block_id="0500/soil.table"), 76.92)
+    return indent_to(table(widths, authored, row_heights=None, header_rows=2, block_id="0500/soil.table"), 76.92)
 
 
 def build_report(result: dict[str, Any]) -> Document:
@@ -268,7 +251,7 @@ def build_report(result: dict[str, Any]) -> Document:
                 blocks.append(heading(" ".join(unit.value), left=unit.left, block_id=unit.identifier))
             else:
                 blocks.append(heading(unit.value, left=unit.left, block_id=unit.identifier))
-            blocks.append(_KeepNext(spacer()))
+            blocks.append(KeepWithNext(spacer()))
         elif unit.kind == "caption":
             blocks.append(paragraph(unit.value, left=unit.left, style=HEADING, align="center", block_id=unit.identifier))
         elif unit.kind == "paragraph":
@@ -278,11 +261,11 @@ def build_report(result: dict[str, Any]) -> Document:
                                          second_equal=unit.second_equal, result_right=unit.result_right,
                                          unit_start=unit.unit_start, block_id=unit.identifier))
         else:
-            blocks.append(IndentTo(CellLines((unit.value,), style=BODY, min_height=14.28,
-                                             block_id=unit.identifier), unit.left))
+            blocks.append(indent_to(CellLines((unit.value,), style=BODY, min_height=14.28,
+                                              block_id=unit.identifier), unit.left))
         direction_continues = unit.key.startswith(("Kr.longitudinal.", "Kr.transverse.")) and not unit.key.endswith("short_term")
         if unit.key.endswith(".label") or direction_continues:
-            blocks[-1] = _KeepNext(blocks[-1])
+            blocks[-1] = KeepWithNext(blocks[-1])
     return report(*blocks, footer="5 - {page}")
 
 

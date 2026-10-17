@@ -47,7 +47,10 @@ def _vectors(page: Any, commands: Sequence[Any]) -> int:
     for command, drawing in zip(expected, actual, strict=True):
         width = command.stroke_width if isinstance(command, Rectangle) else command.width
         color = command.color
+        dash = getattr(command, "dash", ())
+        dashes = "[ " + " ".join(f"{length:g}" for length in dash) + " ] 0" if dash else "[] 0"
         if (drawing.get("fill") is not None or abs(drawing["width"] - width) > .001
+                or drawing["dashes"] != dashes
                 or any(abs(a - b) > .001 for a, b in zip(drawing["color"], color, strict=True))):
             raise SemanticMismatch("native vector stroke/color differs")
         if isinstance(command, Rectangle):

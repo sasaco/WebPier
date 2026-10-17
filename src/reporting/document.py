@@ -8,58 +8,17 @@ import json
 from pathlib import Path
 
 from gridlayoutpdf import (
-    Block, Columns, Document, FontRegistry, Heading, LayoutContext, LayoutOverflowError, LayoutPart,
-    Line, MeasuredBlock, PageDecoration, PageProfile, Paragraph, ScenePage, Spacer,
-    TextStyle, layout_trace, measure_block, render_pdf,
+    Block, Columns, Document, FontRegistry, Heading, Indent, Leading, Line, PageDecoration,
+    PageProfile, Paragraph, ScenePage, Spacer, TextStyle, layout_trace, render_pdf,
 )
 
 from .fonts import load_fonts
 from .styles import BODY, BODY_LEADING, HEADING, REPORT_STYLE, finite, grid_units, report_profile
 
 
-@dataclass(frozen=True)
-class Leading:
-    """Reserve an explicit baseline advance while preserving legal line splits."""
-
-    block: Block
-    leading: float = BODY_LEADING
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        rows = grid_units(self.leading, context.profile.grid.pitch_y)
-        if rows <= 0:
-            raise ValueError("leading must be positive")
-        child = measure_block(self.block, context, available_width)
-        if child.prefix:
-            raise ValueError("Leading accepts paragraph/heading lines, not repeating headers")
-        for part in child.parts:
-            if part.rows > rows:
-                raise LayoutOverflowError(
-                    f"{child.block_id}: leading {self.leading} pt is smaller than the measured line",
-                    block_id=child.block_id, needed=part.rows * child.row_pitch, available=self.leading,
-                )
-        return replace(child, parts=tuple(replace(part, rows=rows) for part in child.parts))
-
-
-@dataclass(frozen=True)
-class IndentTo:
-    """Indent to a paper x-coordinate without fixed vertical positioning."""
-
-    block: Block
-    left: float
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        indent = finite(self.left, "left") - context.profile.grid.origin_x
-        if indent < 0 or indent >= available_width:
-            raise LayoutOverflowError("indent leaves no report width", needed=indent, available=available_width)
-        child = measure_block(self.block, context, available_width - indent)
-
-        def shifted(parts: tuple[LayoutPart, ...]) -> tuple[LayoutPart, ...]:
-            return tuple(replace(part, commands=tuple(command.translated(indent, 0)
-                                                     for command in part.commands),
-                                 metadata={**part.metadata, "indent_pt": indent}) for part in parts)
-
-        return replace(child, width=child.width + indent,
-                       parts=shifted(child.parts), prefix=shifted(child.prefix))
+def indent_to(block: Block, left: float) -> Indent:
+    """Place a body block at an authored paper x-coordinate of the report page."""
+    return Indent(block, finite(left, "left") - report_profile().grid.origin_x)
 
 
 def paragraph(
@@ -67,12 +26,13 @@ def paragraph(
     style: TextStyle = BODY, align: str = "left", block_id: str = "",
     min_first: int = 2, min_last: int = 2,
 ) -> Block:
-    return IndentTo(Leading(Paragraph(text, style=style, align=align, block_id=block_id,
-                                     min_first=min_first, min_last=min_last), leading), left)
+    return indent_to(Leading(Paragraph(text, style=style, align=align, block_id=block_id,
+                                       min_first=min_first, min_last=min_last),
+                             grid_units(leading)), left)
 
 
 def heading(text: str, *, left: float = 58.92, block_id: str = "") -> Block:
-    return IndentTo(Leading(Heading(text, style=HEADING, block_id=block_id)), left)
+    return indent_to(Leading(Heading(text, style=HEADING, block_id=block_id), grid_units(BODY_LEADING)), left)
 
 
 def spacer(points: float = BODY_LEADING) -> Spacer:

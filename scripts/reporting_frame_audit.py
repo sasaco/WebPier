@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 from typing import Any, Sequence
 
-from gridlayoutpdf import Line, Polyline, Rectangle, Text, layout_trace
+from gridlayoutpdf import Circle, Line, Polyline, Rectangle, Text, layout_trace
 
 from src.reporting.stages.frame_content import (
     Header, Merged, Unit, VerticalHeader, atoms, plain, semantic_sections,
@@ -133,17 +133,37 @@ def _cell_owner(page: dict[str, Any], placement: dict[str, Any], item: dict[str,
     raise SemanticMismatch(f"table text has no authored cell: {placement['block_id']}")
 
 
+def _paint_matches(command: Any, drawing: dict[str, Any]) -> bool:
+    """Compare the stroke, dash pattern and fill a scene command asks for."""
+    area = isinstance(command, (Rectangle, Circle))
+    stroke, fill = (command.stroke, command.fill) if area else (True, None)
+    if drawing["type"] != ("f" if not stroke else "fs" if fill is not None else "s"):
+        return False
+    if fill is not None and (not _near(fill, drawing["fill"]) or drawing["fill_opacity"] != 1):
+        return False
+    if not stroke:
+        return True
+    width = command.stroke_width if area else command.width
+    dash = getattr(command, "dash", ())
+    dashes = "[ " + " ".join(f"{length:g}" for length in dash) + " ] 0" if dash else "[] 0"
+    return (abs(width - drawing["width"]) <= .003 and _near(command.color, drawing["color"])
+            and drawing["stroke_opacity"] == 1 and drawing["dashes"] == dashes)
+
+
 def _check_vectors(scene: Any, page: Any) -> int:
-    commands = [command for command in scene.commands if isinstance(command, (Line, Polyline, Rectangle))]
+    commands = [command for command in scene.commands if isinstance(command, (Line, Polyline, Rectangle, Circle))]
     drawings = page.get_drawings()
     if len(commands) != len(drawings):
         raise SemanticMismatch("native vector count differs from fixed scene")
     for index, (command, drawing) in enumerate(zip(commands, drawings, strict=True)):
-        width = command.stroke_width if isinstance(command, Rectangle) else command.width
-        if (abs(width - drawing["width"]) > .003 or not _near(command.color, drawing["color"])
-                or drawing["stroke_opacity"] != 1 or drawing["fill"] is not None
-                or drawing["dashes"] != "[] 0"):
+        if not _paint_matches(command, drawing):
             raise SemanticMismatch(f"native vector style differs: page {page.number + 1}, {index}")
+        if isinstance(command, Circle):
+            if not drawing["items"] or any(item[0] != "c" for item in drawing["items"]) or not _near(
+                    (command.x - command.radius, command.y - command.radius,
+                     command.x + command.radius, command.y + command.radius), tuple(drawing["rect"]), .01):
+                raise SemanticMismatch("native circle geometry differs")
+            continue
         if isinstance(command, Rectangle):
             if len(drawing["items"]) != 1 or drawing["items"][0][0] != "re" or not _near(
                     (command.x, command.y, command.x + command.width, command.y + command.height), drawing["items"][0][1]):

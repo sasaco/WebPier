@@ -312,8 +312,8 @@ def build_current_proofs(directory: Path) -> dict[str, dict[str, Any]]:
     diagram = figures.frame_diagram(tuple(figures.Node(str(node["id"]), node["x"], node["y"]) for node in frame["nodes"]),
                                     tuple((str(member["node_i"]), str(member["node_j"])) for member in frame["members"]))
     engineering = [document.heading("地盤・式・現在の骨組", left=93.96), document.spacer(),
-                   document.IndentTo(tables.table((84, 84, 84, 84, 84, 74.4), soil_rows,
-                                                  row_heights=14.28, header_rows=2, block_id="soil"), 76.92),
+                   document.indent_to(tables.table((84, 84, 84, 84, 84, 74.4), soil_rows,
+                                                   row_heights=14.28, header_rows=2, block_id="soil"), 76.92),
                    document.spacer(), properties, document.spacer(), diagram]
     combination_rows = [[tables.cell("組合せ", rowspan=2), tables.cell("基本ケース", rowspan=2),
                          tables.cell("組合せ係数（組内のケース順）", colspan=4, align="center")],
@@ -425,9 +425,9 @@ def test_equation_origins_match_independent_source_roles_and_center_misuse_fails
         assert len(glyphs) == len(roles)
         for glyph, (_, role) in zip(glyphs, roles, strict=True):
             assert abs(glyph[-2][0] - role["source"]["sample"]["x"]) <= .06
-    wrong = document.IndentTo(EquationGroup(Equation("a", "b"),
-                                            anchors=EquationAnchors(styles.grid_units(169.92 - 117)),
-                                            style=styles.BODY), 117)
+    wrong = document.indent_to(EquationGroup(Equation("a", "b"),
+                                             anchors=EquationAnchors(styles.grid_units(169.92 - 117)),
+                                             style=styles.BODY), 117)
     path = document.report(wrong, fonts=fonts).render(tmp_path / "wrong-center.pdf")
     with pymupdf.open(path) as pdf:
         origin = next(entry[-2][0] for entry in native_signature(pdf) if entry[4] == "=")
@@ -534,19 +534,21 @@ def test_native_physical_frame_keeps_vector_layers_and_opaque_node_backing(
         tmp_path: Path, direction: str) -> None:
     import math
     import pymupdf
-    from gridlayoutpdf import Line, Text, render_pdf
+    from gridlayoutpdf import Circle, Line, Rectangle, Text, render_pdf
 
     geometry, frame = physical_frame_fixture("parapet_asymmetric", direction)
     document = api("document").report(api("figures").physical_frame(geometry, frame, direction), footer=None)
     pages = document.layout()
     commands = pages[0].commands
     first_white = next(index for index, command in enumerate(commands)
-                       if isinstance(command, Line) and command.color == (1, 1, 1))
+                       if isinstance(command, Rectangle) and command.fill == (1, 1, 1))
     outlines = commands[:first_white]
-    assert outlines and all(isinstance(command, Line) and command.width == .35
+    assert outlines and all(isinstance(command, Line) and command.width == .35 and command.dash == (2, 2)
                             and command.color == (0, 0, 0) for command in outlines)
-    assert all(0 < math.hypot(command.x2 - command.x1, command.y2 - command.y1) <= 2.000001
-               for command in outlines)
+    assert all(math.hypot(command.x2 - command.x1, command.y2 - command.y1) > 0 for command in outlines)
+    disks = [command for command in commands if isinstance(command, Circle)]
+    assert len(disks) == len(frame["nodes"])
+    assert all(disk.fill == (0, 0, 0) and not disk.stroke and disk.radius == 1.7 for disk in disks)
     members = [index for index, command in enumerate(commands)
                if isinstance(command, Line) and command.width in (.8, 1.6)]
     assert len(members) == len(frame["members"])
@@ -560,27 +562,23 @@ def test_native_physical_frame_keeps_vector_layers_and_opaque_node_backing(
         for drawing in drawings[:len(outlines)]:
             assert drawing["type"] == "s" and drawing["fill"] is None
             assert drawing["color"] == (0, 0, 0) and drawing["width"] == pytest.approx(.35)
-            assert drawing["stroke_opacity"] == 1
+            assert drawing["stroke_opacity"] == 1 and drawing["dashes"] == "[ 2 2 ] 0"
         model = [drawing for drawing in drawings
                  if drawing["width"] == pytest.approx(.8) or drawing["width"] == pytest.approx(1.6)]
         assert len(model) == len(frame["members"])
         first_model = min(drawing["seqno"] for drawing in model)
-        masks = [drawing for drawing in drawings if drawing["color"] == (1, 1, 1)
+        masks = [drawing for drawing in drawings if drawing["fill"] == (1, 1, 1)
                  and len(outlines) <= drawing["seqno"] < first_model]
-        assert masks and all(drawing["stroke_opacity"] == 1 for drawing in masks)
+        assert masks and all(drawing["type"] == "f" and drawing["fill_opacity"] == 1 for drawing in masks)
+        nodes = [drawing for drawing in drawings if drawing["fill"] == (0, 0, 0) and drawing["type"] == "f"]
+        assert len(nodes) == len(frame["nodes"]) and all(first_model < node["seqno"] for node in nodes)
         labels = [span for span in page.get_texttrace() if span["dir"] == (1, 0)
                   and span["size"] == pytest.approx(9.9)]
         assert len(labels) == len(frame["nodes"])
         for label in labels:
             left, top, right, bottom = label["bbox"]
-            strips = sorted((drawing["rect"].y0 - drawing["width"] / 2,
-                             drawing["rect"].y1 + drawing["width"] / 2)
-                            for drawing in masks if drawing["rect"].x0 <= left and drawing["rect"].x1 >= right)
-            covered_to = top
-            for start, end in strips:
-                if start <= covered_to + .002 and end >= covered_to:
-                    covered_to = end
-            assert covered_to >= bottom
+            assert any(drawing["rect"].x0 <= left and drawing["rect"].x1 >= right
+                       and drawing["rect"].y0 <= top and drawing["rect"].y1 >= bottom for drawing in masks)
             assert first_model < label["seqno"]
 
 
