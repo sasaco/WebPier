@@ -23,7 +23,7 @@ from ..document import heading, indent_to, paragraph, report, spacer
 from ..equations import equation_group, script
 from ..numbers import constant, printed, unit
 from ..styles import BODY, HEADING
-from ..tables import table
+from ..tables import REACTION_CELL_PADDING, table
 
 PREFIX = "0500/"
 FOOTER = "5 - {page}"
@@ -248,8 +248,9 @@ def _soil_table(header: Unit, rows: list[Unit]) -> Block:
                     rowspan=2, align="center", padding=0)
 
     def standard(value: str, *, colspan: int = 1, align: str = "center") -> Cell:
+        # Values end at the clearance measured in the reference soil table (0500 p1, as 0600's tables).
         return Cell(CellLines((value,), style=HEADING, min_height=14.28,
-                              inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align=align),
+                              inner_padding=REACTION_CELL_PADDING, align=align),
                     colspan=colspan, align=align, padding=0)
 
     authored: list[list[Cell]] = [[merged(values[0]), merged(values[1]), merged(values[2]), merged(values[3]),

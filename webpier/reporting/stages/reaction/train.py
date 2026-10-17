@@ -34,21 +34,21 @@ def _axle_table(loading: MovingLoadResult) -> TableSpec:
 
 
 def loading_lines(m: Manuscript, key: str, loading: MovingLoadResult, pier: PierInput, load: str) -> None:
-    """RB = P Σa / l and RA = P × (axles) − RB for each girder, from the printed levers."""
+    """RB = P Σa / l and RA = P × (axles) − RB for each girder, from the printed levers and axle counts."""
     spans = pier.spans
     m.table(key + ".axles", _axle_table(loading), SUBSECTION)
     m.start(key + ".reactions")
-    sides = ((Girder.ORIGIN, "B", "A", loading.rb, loading.ra, spans.origin.span),
-             (Girder.END, "C", "D", loading.rc, loading.rd, spans.end.span))
-    for girder, pier_support, far_support, near, far, span in sides:
+    sides = ((Girder.ORIGIN, "B", "A", loading.rb, loading.ra, spans.origin.span, loading.origin_axles),
+             (Girder.END, "C", "D", loading.rc, loading.rd, spans.end.span, loading.end_axles))
+    for girder, pier_support, far_support, near, far, span, count in sides:
         levers = [axle.lever for axle in loading.axles if axle.girder is girder]
         lhs, other = sub("R", pier_support), sub("R", far_support)
         name = f"{key}.{pier_support.lower()}"
-        if levers:
+        if count.value:
             m.formula(name, lhs, symbols(load, "×", "Σa", "/", "l"),
                       (loading.axle_load, "×", "(", *join(levers), ")", "/", span), near, gap=girder is Girder.END)
-            m.formula(f"{key}.{far_support.lower()}", other, symbols(load, "×", f"{len(levers)}", "−", lhs),
-                      (loading.axle_load, "×", len(levers), "−", near), far)
+            m.formula(f"{key}.{far_support.lower()}", other, symbols(load, "×", "軸数", "−", lhs),
+                      (loading.axle_load, "×", count, "−", near), far)
         else:
             m.value(name, lhs, near, gap=girder is Girder.END)
             m.value(f"{key}.{far_support.lower()}", other, far)

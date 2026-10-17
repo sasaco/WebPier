@@ -100,3 +100,13 @@ def test_axles_beyond_the_bridge_are_not_loaded():
 def test_a_zero_axle_load_has_no_maximum():
     with pytest.raises(InputError, match="最大"):
         run(pier().spans, 0.0, 1, 10.0, 2.8, 2.2)
+
+
+def test_the_axle_counts_of_each_girder_are_part_of_the_result():
+    """RA = P × (axles on the origin girder) − RB: the report prints the count from the result."""
+    result = run(pier().spans, 160.0, 10, 20.0, 2.8, 2.2)
+    assert (result.origin_axles.value, result.end_axles.value) == (4, 2)  # Example2 7-1: 160.00×4−272.47, ×2−294.92
+    assert (result.origin_axles.digits, result.origin_axles.unit) == (0, "")
+    lateral = run(pier().spans, 32.0, 1, 10.0, 2.8, 2.2)
+    assert (lateral.origin_axles.value, lateral.end_axles.value) == (2, 2)
+    assert result.origin_axles.value == sum(axle.girder is Girder.ORIGIN for axle in result.axles)

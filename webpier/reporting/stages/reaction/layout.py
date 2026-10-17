@@ -9,15 +9,18 @@ from gridlayoutpdf import Block, Cell, CellLines, Document, KeepWithNext, Prefer
 from ...document import heading, indent_to, paragraph, report, spacer
 from ...equations import equation_group
 from ...styles import BODY
-from ...tables import cell, math_cell, table
+from ...tables import REACTION_CELL_PADDING, cell, math_cell, table
 from .figures import OutlineFigure
-from .manuscript import FOOTER, RESULT_EQUAL, RESULT_RIGHT, UNIT_START, WIDE_LABEL, CellSpec, TableSpec, Unit
+from .manuscript import FOOTER, RESULT_EQUAL, RESULT_RIGHT, UNIT_START, CellSpec, TableSpec, Unit
 
 
 def _cell(spec: CellSpec) -> Cell:
+    """0600 tables use the clearance measured in the reference 0600 tables."""
     if isinstance(spec.content, str):
-        return cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align)
-    return math_cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align)
+        return cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align,
+                    padding=REACTION_CELL_PADDING)
+    return math_cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align,
+                     padding=REACTION_CELL_PADDING)
 
 
 def _table(spec: TableSpec, block_id: str) -> Block:
@@ -39,7 +42,7 @@ def _block(unit: Unit) -> Block:
                               second_equal=RESULT_EQUAL if result else None,
                               result_right=RESULT_RIGHT if result else None,
                               unit_start=UNIT_START if result and unit.value.unit is not None else None,
-                              block_id=unit.identifier, label_width=WIDE_LABEL if unit.value.label else None)
+                              block_id=unit.identifier)
     if unit.kind == "table":
         return indent_to(_table(unit.value, unit.identifier), unit.left)
     if unit.kind == "figure":

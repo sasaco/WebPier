@@ -130,7 +130,8 @@ def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():
 def test_a_girder_without_axles_says_so():
     result, pier = case("current")
     loading = result.train.loading
-    origin_only = replace(loading, axles=tuple(axle for axle in loading.axles if axle.girder.value == "origin"))
+    origin_only = replace(loading, axles=tuple(axle for axle in loading.axles if axle.girder.value == "origin"),
+                          end_axles=Printed(0.0, 0, ""))
     actual = records("", replace(result, train=replace(result.train, loading=origin_only)), pier)
     assert actual["train.loading.c"] == f"RC={text(loading.rc)}kN"
     assert "train.loading.c.none" in actual
@@ -155,3 +156,11 @@ def test_duplicate_keys_and_unknown_nodes_are_rejected():
     with pytest.raises(TypeError, match="bool"):
         operand(True)
     assert operand(1.5) == "1.5" and operand(2) == "2"
+
+
+def test_the_axle_count_of_ra_is_read_from_the_result():
+    """RA = P × (axles on the girder) − RB: the count is the calculator's, not counted by the report."""
+    result, pier = case("current")
+    odd = replace(result.train.loading, origin_axles=Printed(7.0, 0, ""))
+    actual = records("", replace(result, train=replace(result.train, loading=odd)), pier)
+    assert actual["train.loading.a"] == "RA=P×軸数−RB=160.00×7−272.47=367.53kN"

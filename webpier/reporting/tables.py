@@ -13,21 +13,31 @@ from gridlayoutpdf import (
 
 from .styles import BODY, SMALL, grid_units
 
+# Inner clearance of a table cell from the cell boundary (the rule centre), measured in the references
+# (tests/reporting_new/test_table_cell_padding.py) as the gap between a right-aligned number's advance
+# box and the ink of the rule after it, plus half the thin 0.12 pt rule. Vertical: 1.08 pt, so that the
+# measured 12.84-14.88 pt rows hold a 9.9 pt line.
+#   CELL_PADDING: the combination tables of 0610 p10 / 0620 p17, 4.05 pt -> 4.11 pt (the default).
+#   REACTION_CELL_PADDING: the reaction tables of 0600 p12/p32/p37, 6.93 pt -> 6.99 pt
+#   (and 6.45 pt next to a 0.96 pt rule: 6.45 + 0.48 = 6.99 pt).
+CELL_PADDING = Insets(1.08, 4.11, 1.08, 4.11)
+REACTION_CELL_PADDING = Insets(1.08, 6.99, 1.08, 6.99)
+
 
 def cell(content: str | Block, *, colspan: int = 1, rowspan: int = 1,
          align: str | None = None, style: TextStyle = BODY,
-         line_advance: float = 12.84) -> Cell:
+         line_advance: float = 12.84, padding: Insets = CELL_PADDING) -> Cell:
     """Use internal clearance before one rounding, never the default outer 3 pt."""
     if isinstance(content, str):
         content = CellLines(tuple(content.split("\n")), style=style, line_advance=line_advance,
-                            inner_padding=Insets(1.08, 1.08, 1.08, 1.08), align=align or "left")
+                            inner_padding=padding, align=align or "left")
     return Cell(content, colspan=colspan, rowspan=rowspan, align=align, padding=0)
 
 
 def math_cell(content: MathNode, *, colspan: int = 1, rowspan: int = 1,
-              align: str | None = None, style: TextStyle = BODY) -> Cell:
+              align: str | None = None, style: TextStyle = BODY, padding: Insets = CELL_PADDING) -> Cell:
     """Keep MathNode.measure and Block.measure protocols unambiguous."""
-    lines = CellLines((content,), style=style, inner_padding=Insets(1.08, 1.08, 1.08, 1.08))
+    lines = CellLines((content,), style=style, inner_padding=padding)
     return Cell(lines, colspan=colspan, rowspan=rowspan, align=align, padding=0)
 
 

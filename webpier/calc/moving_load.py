@@ -26,9 +26,12 @@ from decimal import Decimal
 from enum import Enum
 
 from ..core.errors import InputError
-from ..core.printed import FORCE, LENGTH, Printed
+from ..core.printed import FORCE, LENGTH, Precision, Printed
 from ..inputs.model import Span
 from ._exact import d, put, total
+
+
+AXLES = Precision(0, "")  # a number of axles, printed in RA = P × (axles) − RB
 
 
 class Girder(Enum):
@@ -53,6 +56,8 @@ class MovingLoadResult:
     rb: Printed  # P × Σ lever / span of the origin girder
     rc: Printed  # P × Σ lever / span of the end girder
     rd: Printed  # P × (axles on the end girder) − RC
+    origin_axles: Printed  # number of axles on the origin girder (RA = P × origin_axles − RB)
+    end_axles: Printed  # number of axles on the end girder (RD = P × end_axles − RC)
 
 
 def _axle_offsets(cars: int, car_length: Decimal, a1: Decimal, a2: Decimal) -> list[Decimal]:
@@ -116,10 +121,12 @@ def search_reactions(origin: Span, end: Span, *, axle_load: Printed, cars: int, 
         for x in best)
     origin_axles = [axle for axle in axles if axle.girder is Girder.ORIGIN]
     end_axles = [axle for axle in axles if axle.girder is Girder.END]
+    counts = AXLES(len(origin_axles)), AXLES(len(end_axles))
     rb = put(FORCE, d(axle_load) * total(axle.lever for axle in origin_axles) / d(origin.span))
     rc = put(FORCE, d(axle_load) * total(axle.lever for axle in end_axles) / d(end.span))
     return MovingLoadResult(
         axle_load=axle_load, axles=axles,
-        ra=put(FORCE, d(axle_load) * len(origin_axles) - d(rb)), rb=rb,
-        rc=rc, rd=put(FORCE, d(axle_load) * len(end_axles) - d(rc)),
+        ra=put(FORCE, d(axle_load) * d(counts[0]) - d(rb)), rb=rb,
+        rc=rc, rd=put(FORCE, d(axle_load) * d(counts[1]) - d(rc)),
+        origin_axles=counts[0], end_axles=counts[1],
     )

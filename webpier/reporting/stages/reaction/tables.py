@@ -59,7 +59,7 @@ def aggregate_table(total: Aggregate) -> TableSpec:
                           row.y, row.moment_y, align="center"))
     rows.append(cells("合計", total.weight, None, total.moment_l, None, total.moment_c, None, total.moment_y,
                       align="center"))
-    return TableSpec((72.6, 58.08, 50.88, 58.08, 50.88, 58.08, 50.88, 58.08), tuple(rows), header_rows=2,
+    return TableSpec((72.6, 58.08, 50.88, 63.36, 50.88, 63.36, 50.88, 63.36), tuple(rows), header_rows=2,
                      row_height=GIRDER_ROW, numeric_columns=tuple(range(1, 8)))
 
 

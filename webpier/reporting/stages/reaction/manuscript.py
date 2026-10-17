@@ -31,7 +31,6 @@ INDENTED = 131.52
 SHORT_LHS, SHORT_EQUAL = 131.52, 160.56
 MEDIUM_EQUAL = 204.12  # a labelled symbol such as RB(D1) or iF(複線)
 WIDE_LHS, WIDE_EQUAL = 175.08, 276.72
-WIDE_LABEL = 86.4  # the derivation lhs text, left-aligned at WIDE_LHS before the first equals
 RESULT_EQUAL, RESULT_RIGHT, UNIT_START = 436.44, 516.48, 523.68
 
 _OPERATORS = {"+", "−", "×", "/", "=", "-"}
