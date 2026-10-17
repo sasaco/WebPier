@@ -44,12 +44,17 @@ def _power(base: str, exponent: str) -> MathNode:
 
 _UNITS: dict[str, str | tuple[str, str]] = {
     "m": "m",
+    "kN": "kN",
+    "kN m": "kN・m",
+    "m3": ("m", "3"),
     "kN/m": "kN/m",
     "kN m/rad": "kN・m/rad",
     "m2": ("m", "2"),
     "m4": ("m", "4"),
     "kN/m2": ("kN/m", "2"),
     "kN/m3": ("kN/m", "3"),
+    "N/mm2": ("N/mm", "2"),
+    "kN/mm2": ("kN/mm", "2"),
 }
 
 
