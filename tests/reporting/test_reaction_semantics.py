@@ -18,6 +18,7 @@ from dataclasses import replace
 import pytest
 
 from reaction_report_cases import CASES, case, dotted, leaves, replaced, text
+from webpier.calc.reaction.self_weight import Part
 from webpier.core.printed import Printed
 
 SENTINEL = 8765.4321
@@ -48,13 +49,27 @@ def pattern(value: Printed) -> re.Pattern[str]:
     return re.compile(r"(?<![\d.])" + re.escape(text(value)) + r"(?![\d])")
 
 
+def omitted(result) -> tuple[str, ...]:
+    """Paths of the values that are not printed: a 桁受け of volume 0 is left out (decision 41)."""
+    sw = result.self_weight
+    if sw.pedestal.volume.value != 0:
+        return ()
+    assert sw.pier_bottom.rows[0].part is Part.PEDESTAL and sw.footing_centre.rows[0].part is Part.PEDESTAL
+    return ("self_weight.pedestal.", "self_weight.pedestal_area", "self_weight.pier_bottom.rows.0.",
+            "self_weight.footing_centre.rows.0.")
+
+
 def test_every_result_value_is_printed_from_the_result_at_its_digits():
     """One value at a time: replaced by a sentinel, it is printed as the sentinel at its digits."""
     result, pier = case("current")
     baseline = "\n".join(records(result, pier).values())
     assert "8765" not in baseline
+    skipped = omitted(result)
+    assert skipped  # the current input has no 桁受け
     missing = []
     for path, value in leaves(result):
+        if dotted(path).startswith(skipped):
+            continue
         mark = sentinel(value)
         changed = "\n".join(records(replaced(result, path, mark), pier).values())
         if not pattern(mark).search(changed):
@@ -125,7 +140,8 @@ def test_the_footing_centre_height_leaves_out_the_soil():
     actual = "\n".join(records(result, pier).values()).replace(" ", "")
     total = result.self_weight.footing_centre
     assert f"={text(total.moment_y)}/{text(total.structure_weight)}={text(total.y)}m" in actual
-    structure = "+".join(text(row.weight) for row in total.rows[:-1])
+    # without the soil, and without the 桁受け of volume 0 (decision 41)
+    structure = "+".join(text(row.weight) for row in total.rows[:-1] if row.part is not Part.PEDESTAL)
     assert f"={structure}={text(total.structure_weight)}kN" in actual
 
 

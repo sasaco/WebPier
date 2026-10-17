@@ -6,6 +6,9 @@
   no Kv/Ks/Kr, no spring table or values), no load diagrams and no enlarged
   figure of the column bottom. Example2 10-7 / 11-7 print the JRSNAP node
   springs; the user's decision wins over the sample.
+- 0600 leaves out 桁受け when its volume V is 0, and the following items close
+  up their numbers; the bearing table lists only occupied bearing slots, under
+  their own G numbers.
 
 The expectations come from the input and the decision, never from the report code.
 """
@@ -18,6 +21,9 @@ import pytest
 from gridlayoutpdf import LayoutContext, Polyline, Text, measure_block
 
 from frame_report_cases import CASES, TRANSVERSE_CASES, chain, transverse_chain
+from reaction_report_cases import CASES as REACTION_CASES
+from reaction_report_cases import case as reaction_case
+from reaction_report_cases import input_document
 
 SPRING = re.compile(r"ばね|バネ|K[vsr]")
 
@@ -81,3 +87,56 @@ def test_0720_shows_no_springs_no_load_diagrams_and_no_enlarged_column_bottom(ca
     drawn = figure_commands(units, "0720/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []
     assert [c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3] == []
+
+
+def _reaction_records(name: str) -> dict[str, str]:
+    from webpier.reporting.stages import reaction
+
+    return {key.removeprefix("0600/"): text for key, text in records(reaction, *reaction_case(name)).items()}
+
+
+WEIGHT_ITEMS = ["橋脚の形状", "はり", "柱", "フーチング", "上載土", "浮力", "柱下端における重量および重心位置",
+                "フーチング中心における重量および重心位置"]
+
+
+def _items(found: dict[str, str]) -> list[str]:
+    return [text for key, text in found.items() if key.startswith("weight.") and re.fullmatch(r"\(\d+\).*", text)]
+
+
+@pytest.mark.parametrize("name", list(REACTION_CASES))
+def test_0600_leaves_out_the_pedestal_when_its_volume_is_zero_and_closes_up_the_numbers(name: str):
+    result, pier = reaction_case(name)
+    found = _reaction_records(name)
+    present = result.self_weight.pedestal.volume.value != 0
+    assert present == (pier.substructure.h[1].value > 0)  # these cases have B3 × W3 > 0
+    items = WEIGHT_ITEMS[:1] + (["桁受け"] if present else []) + WEIGHT_ITEMS[1:]
+    assert _items(found) == [f"({number}){item}" for number, item in enumerate(items, 1)]
+    assert any("桁受け" in text for text in found.values()) == present
+
+
+def test_0600_leaves_out_a_pedestal_without_area():
+    """H1 > 0 but B3 = 0: V = 0, so there is no 桁受け to print."""
+    from webpier.calc.reaction import calculate_reaction
+    from webpier.inputs import parse_input
+    from webpier.reporting.stages import reaction
+
+    document = input_document("pedestal")
+    document["下部構造"]["寸法"]["側面"]["B3"] = 0.0
+    pier = parse_input(document)
+    result = calculate_reaction(pier)
+    assert pier.substructure.h[1].value > 0 and result.self_weight.pedestal.volume.value == 0
+    found = {key.removeprefix("0600/"): text for key, text in records(reaction, result, pier).items()}
+    assert _items(found) == [f"({number}){item}" for number, item in enumerate(WEIGHT_ITEMS, 1)]
+    assert not any("桁受け" in text for text in found.values())
+
+
+@pytest.mark.parametrize("name", list(REACTION_CASES))
+def test_0600_bearing_tables_list_only_the_occupied_slots_under_their_own_numbers(name: str):
+    found = _reaction_records(name)
+    document = input_document(name)
+    for key, side, support in (("origin", "起点側", "B支点"), ("end", "終点側", "C支点")):
+        occupied = [f"G{index + 1}" for index, slot in enumerate(document["上部工反力"][side][support])
+                    if slot is not None]
+        table = found.get(f"dead.{key}.bearings")
+        listed = re.findall(r"\|(G\d+)\|", table) if table is not None else []
+        assert listed == occupied, (key, listed, occupied)

@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 from gridlayoutpdf import MathNode, Row
 
-from ....calc.reaction.self_weight import Aggregate, Body, Part
+from ....calc.reaction.self_weight import Aggregate, Body, Part, WeightRow
 from ....core.printed import Printed
 from .manuscript import CellSpec, TableSpec, cells, sub, sup
 
@@ -48,13 +48,13 @@ def volume_table(body: Body, names: Sequence[str], *, heights: bool = True) -> T
                      numeric_columns=tuple(range(1, count)))
 
 
-def aggregate_table(total: Aggregate) -> TableSpec:
-    """N, x and N·x of each part about a reference point (0600 p10)."""
+def aggregate_table(total: Aggregate, shown: Sequence[WeightRow]) -> TableSpec:
+    """N, x and N·x of the *shown* parts about a reference point, and the totals (0600 p10)."""
     first = ["", "N", sub("x", "L"), Row("N・", sub("x", "L"), gap=0), sub("x", "C"), Row("N・", sub("x", "C"), gap=0),
              "y", "N・y"]
     units = ["", "kN", "m", "kN・m", "m", "kN・m", "m", "kN・m"]
     rows = [header(*first), header(*units)]
-    for row in total.rows:
+    for row in shown:
         rows.append(cells(PART_NAMES[row.part], row.weight, row.x_l, row.moment_l, row.x_c, row.moment_c,
                           row.y, row.moment_y, align="center"))
     rows.append(cells("合計", total.weight, None, total.moment_l, None, total.moment_c, None, total.moment_y,

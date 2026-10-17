@@ -1,14 +1,19 @@
-"""6.2 (7)-(9) Buoyancy at the three water levels, and the weights about the column bottom and the footing centre."""
+"""6.2 (7)-(9) Buoyancy at the three water levels, and the weights about the column bottom and the footing centre.
+
+Without 桁受け (V = 0) the items are (6)-(8) and the pedestal rows are left out
+of the totals; its weight is 0, so the sums of the printed rows do not change
+(decision 41).
+"""
 
 from __future__ import annotations
 
 from gridlayoutpdf import Row
 
-from ....calc.reaction.self_weight import Aggregate, Buoyancy, Part, SelfWeightResult
+from ....calc.reaction.self_weight import Aggregate, Buoyancy, Part, SelfWeightResult, WeightRow
 from ....inputs import PierInput
 from .manuscript import DETAIL, SUBSECTION, Manuscript, call, expr, join, sub, symbols
 from .tables import PART_NAMES, aggregate_table, volume_table
-from .weight_parts import XC, XL, centroid
+from .weight_parts import XC, XL, centroid, pedestal_shown
 
 LEVELS = (("high", "(a) 高水位", "hw1"), ("normal", "(b) 平水位", "hw2"), ("low", "(c) 低水位", "hw3"))
 WATER_ROWS = ("フーチング", "柱", "斜面部", "矩形部")
@@ -69,9 +74,9 @@ def _level(m: Manuscript, key: str, title: str, symbol: str, water: Buoyancy, sw
     centroid(m, key, water.body, heights=False)
 
 
-def _buoyancy(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _buoyancy(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
-    m.heading("weight.water.heading", "(7) 浮力", SUBSECTION)
+    m.heading("weight.water.heading", f"({number}) 浮力", SUBSECTION)
     m.paragraph("weight.water.introduction",
                 "水位はフーチング下面からの高さとする。水中の構造物と土の体積に水の単位体積重量を負として乗じる。"
                 "斜面部・矩形部は、低い側の地表面より上で水没した土である。")
@@ -92,10 +97,12 @@ def _heights(m: Manuscript, key: str, total: Aggregate, sw: SelfWeightResult, pi
     h = pier.substructure.h
     stack = ("H6", "+", "H5", "+", "H4", "+", "H3", "+", "H2") if footing_base else ("H4", "+", "H3", "+", "H2")
     values = (h[6], "+", h[5], "+", h[4], "+", h[3], "+", h[2]) if footing_base else (h[4], "+", h[3], "+", h[2])
+    parts = ((Part.PEDESTAL, sw.pedestal), (Part.BEAM, sw.beam)) if pedestal_shown(sw) else ((Part.BEAM, sw.beam),)
     m.paragraph(key + ".heights.introduction",
-                "桁受け・はりの位置は、各部の表の値（柱の中心軸からの x'、はり天端からの y'）"
+                "・".join(PART_NAMES[part] for part, _ in parts) + "の位置は、"
+                + ("各部の" if len(parts) > 1 else "") + "表の値（柱の中心軸からの x'、はり天端からの y'）"
                 + ("に柱の位置と高さを加える。" if footing_base else "に柱下端からの高さを加える。"))
-    for part, body in ((Part.PEDESTAL, sw.pedestal), (Part.BEAM, sw.beam)):
+    for part, body in parts:
         row = next(item for item in total.rows if item.part is part)
         m.start(f"{key}.{part.value}")
         m.paragraph(f"{key}.{part.value}.label", PART_NAMES[part])
@@ -116,10 +123,16 @@ def _heights(m: Manuscript, key: str, total: Aggregate, sw: SelfWeightResult, pi
         m.end()
 
 
-def _aggregate(m: Manuscript, key: str, total: Aggregate) -> None:
+def _rows(total: Aggregate, sw: SelfWeightResult) -> tuple[WeightRow, ...]:
+    """The printed rows: without 桁受け (V = 0, weight 0) its row is left out."""
+    return tuple(row for row in total.rows if row.part is not Part.PEDESTAL or pedestal_shown(sw))
+
+
+def _aggregate(m: Manuscript, key: str, total: Aggregate, sw: SelfWeightResult) -> None:
+    rows = _rows(total, sw)
     m.start(key + ".totals")
-    m.formula(key + ".weight", "N", "ΣN", join([row.weight for row in total.rows]), total.weight, gap=True)
-    structure = [row.weight for row in total.rows if row.y is not None]
+    m.formula(key + ".weight", "N", "ΣN", join([row.weight for row in rows]), total.weight, gap=True)
+    structure = [row.weight for row in rows if row.y is not None]
     m.formula(key + ".structure", "N'", "ΣN（高さを持つ部材）", join(structure), total.structure_weight)
     for lhs, moment, position, field in ((XL, total.moment_l, total.x_l, "x_l"), (XC, total.moment_c, total.x_c,
                                                                                     "x_c")):
@@ -134,17 +147,19 @@ def _aggregate(m: Manuscript, key: str, total: Aggregate) -> None:
     m.end()
 
 
-def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
-    _buoyancy(m, sw, pier)
-    m.heading("weight.bottom.heading", "(8) 柱下端における重量および重心位置", SUBSECTION)
-    m.paragraph("weight.bottom.introduction", "柱の中心軸と柱下端に対する桁受け・はり・柱の重量と重心位置。")
+def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
+    """Items *number* (buoyancy) to *number* + 2, after the parts of weight_parts."""
+    _buoyancy(m, sw, pier, number)
+    m.heading("weight.bottom.heading", f"({number + 1}) 柱下端における重量および重心位置", SUBSECTION)
+    parts = "・".join(PART_NAMES[row.part] for row in _rows(sw.pier_bottom, sw))
+    m.paragraph("weight.bottom.introduction", f"柱の中心軸と柱下端に対する{parts}の重量と重心位置。")
     _heights(m, "weight.bottom", sw.pier_bottom, sw, pier, footing_base=False)
-    m.table("weight.bottom.table", aggregate_table(sw.pier_bottom), SUBSECTION)
-    _aggregate(m, "weight.bottom", sw.pier_bottom)
-    m.heading("weight.centre.heading", "(9) フーチング中心における重量および重心位置", SUBSECTION)
+    m.table("weight.bottom.table", aggregate_table(sw.pier_bottom, _rows(sw.pier_bottom, sw)), SUBSECTION)
+    _aggregate(m, "weight.bottom", sw.pier_bottom, sw)
+    m.heading("weight.centre.heading", f"({number + 2}) フーチング中心における重量および重心位置", SUBSECTION)
     m.paragraph("weight.centre.introduction",
                 "フーチング中心とフーチング下面に対する重量と重心位置。重量 N と xL・xC は上載土を含み、"
                 "重心高 y は上載土を含まない構造体だけの重量 N' で求める。")
     _heights(m, "weight.centre", sw.footing_centre, sw, pier, footing_base=True)
-    m.table("weight.centre.table", aggregate_table(sw.footing_centre), SUBSECTION)
-    _aggregate(m, "weight.centre", sw.footing_centre)
+    m.table("weight.centre.table", aggregate_table(sw.footing_centre, _rows(sw.footing_centre, sw)), SUBSECTION)
+    _aggregate(m, "weight.centre", sw.footing_centre, sw)

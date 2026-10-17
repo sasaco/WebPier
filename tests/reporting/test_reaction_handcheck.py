@@ -16,6 +16,7 @@ import pytest
 
 from pdf_handcheck import PrintedLine, decimal_of, formula_checks, printed_lines, rounded_like
 from reaction_report_cases import CASES, case
+from webpier.calc.reaction.self_weight import Part
 from webpier.core.printed import Printed
 
 PARTS = {"桁受け", "はり", "ハンチ部", "柱", "フーチング", "上載土", "台形部", "柱控除", "ハンチの層", "ハンチ控除",
@@ -152,12 +153,14 @@ def test_the_table_reader_checks_every_table_cell_with_arithmetic(tmp_path: Path
     result, pier = case("current")
     lines = printed_lines(render(tmp_path, result, pier))
     sw = result.self_weight
-    bodies = (sw.pedestal, sw.beam, sw.column, sw.footing, sw.overburden, sw.buoyancy_high.body,
+    # The current input has no 桁受け (V = 0): neither its volume table nor its weight rows are printed (decision 41).
+    assert sw.pedestal.volume.value == 0
+    bodies = (sw.beam, sw.column, sw.footing, sw.overburden, sw.buoyancy_high.body,
               sw.buoyancy_normal.body, sw.buoyancy_low.body)
     # V·x (2 or 3 per row) and the sums (3 or 4) of each volume table, N·x and sums of the two weight tables.
     volumes = sum(len(body.rows) * (3 if body.moment_y is not None else 2) + (4 if body.moment_y is not None else 3)
                   for body in bodies)
-    weights = sum(sum(2 + (row.moment_y is not None) for row in total.rows) + 4
+    weights = sum(sum(2 + (row.moment_y is not None) for row in total.rows if row.part is not Part.PEDESTAL) + 4
                   for total in (sw.pier_bottom, sw.footing_centre))
     impacts = 3 * 4 * 4  # L = R × ρf, I, L = L × n, I for each of the three groups
     assert table_checks(lines) == volumes + weights + impacts + 10 + 2 * 8

@@ -23,8 +23,7 @@ def content(result: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
     """One ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript()
     dead.section(m, result)
-    weight_parts.section(m, result.self_weight, pier)
-    weight_totals.section(m, result.self_weight, pier)
+    weight_totals.section(m, result.self_weight, pier, weight_parts.section(m, result.self_weight, pier))
     train.section(m, result, pier)
     longitudinal.section(m, result, pier)
     transverse.section(m, result, pier)

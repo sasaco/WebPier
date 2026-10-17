@@ -1,4 +1,8 @@
-"""6.2 (1)-(6) Pier self weight per part: volumes, centroids, weights (and the exact haunch centroid)."""
+"""6.2 (1)-(6) Pier self weight per part: volumes, centroids, weights (and the exact haunch centroid).
+
+桁受け is left out when its volume V is 0, and the following items close up
+their numbers (decision 41).
+"""
 
 from __future__ import annotations
 
@@ -14,6 +18,11 @@ from .manuscript import (
 from .tables import volume_table
 
 XL, XC = sub("x", "L"), sub("x", "C")
+
+
+def pedestal_shown(sw: SelfWeightResult) -> bool:
+    """桁受け is printed only when its volume is not 0 (decision 41)."""
+    return sw.pedestal.volume.value != 0
 
 
 def centroid(m: Manuscript, key: str, body: Body, *, heights: bool = True) -> None:
@@ -52,11 +61,11 @@ def haunch(m: Manuscript, key: str, height_symbol: str, height: Printed, shape: 
     m.equation(key + ".z", "z", expr(height, "×", "(", *top, ")", "/", "(", *bottom, ")"), z)
 
 
-def _pedestal(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _pedestal(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
     b, w, h = s.b, s.w, s.h
     row = sw.pedestal.rows[0]
-    m.heading("weight.pedestal.heading", "(2) 桁受け", SUBSECTION)
+    m.heading("weight.pedestal.heading", f"({number}) 桁受け", SUBSECTION)
     m.start("weight.pedestal.rows")
     m.formula("weight.pedestal.area", "A", symbols("B3", "×", "W3"), (b[3], "×", w[3]), sw.pedestal_area)
     m.formula("weight.pedestal.volume", "V", symbols("A", "×", "H1"), (sw.pedestal_area, "×", h[1]), row.volume)
@@ -72,12 +81,12 @@ def _pedestal(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
     centroid(m, "weight.pedestal", sw.pedestal)
 
 
-def _beam(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _beam(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
     b, w, h = s.b, s.w, s.h
     shape, prism, part = sw.beam_haunch_shape, sw.beam.rows[0], sw.beam.rows[1]
     a1, a2, b0, w0 = sub("A", "1"), sub("A", "2"), sub("b", "0"), sub("w", "0")
-    m.heading("weight.beam.heading", "(3) はり", SUBSECTION)
+    m.heading("weight.beam.heading", f"({number}) はり", SUBSECTION)
     m.start("weight.beam.faces")
     m.formula("weight.beam.top", a1, symbols("B1", "×", "W1"), (b[1], "×", w[1]), sw.beam_top_area)
     m.formula("weight.beam.b0", b0, symbols("B1", "−", "B4", "−", "B5"), (b[1], "−", b[4], "−", b[5]),
@@ -123,11 +132,11 @@ def _beam(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
     centroid(m, "weight.beam", sw.beam)
 
 
-def _column(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _column(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
     b, w, h = s.b, s.w, s.h
     row = sw.column.rows[0]
-    m.heading("weight.column.heading", "(4) 柱", SUBSECTION)
+    m.heading("weight.column.heading", f"({number}) 柱", SUBSECTION)
     m.start("weight.column.rows")
     m.formula("weight.column.area", "A", symbols("B6", "×", "W6"), (b[6], "×", w[6]), sw.column_area)
     m.formula("weight.column.volume", "V", symbols("A", "×", "H4"), (sw.column_area, "×", h[4]), row.volume)
@@ -142,12 +151,12 @@ def _column(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
     centroid(m, "weight.column", sw.column)
 
 
-def _footing(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _footing(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
     b, w, h = s.b, s.w, s.h
     shape, part, prism = sw.footing_haunch_shape, sw.footing.rows[0], sw.footing.rows[1]
     a1, a2, b0, w0 = sub("A", "1"), sub("A", "2"), sub("b", "0"), sub("w", "0")
-    m.heading("weight.footing.heading", "(5) フーチング", SUBSECTION)
+    m.heading("weight.footing.heading", f"({number}) フーチング", SUBSECTION)
     m.start("weight.footing.faces")
     m.formula("weight.footing.length", "B", symbols("B7", "+", "B8", "+", "B9"), (b[7], "+", b[8], "+", b[9]),
               sw.footing_length)
@@ -194,12 +203,12 @@ def _footing(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
     centroid(m, "weight.footing", sw.footing)
 
 
-def _overburden(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def _overburden(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
     s = pier.substructure
     b, h = s.b, s.h
     rows = sw.overburden.rows
     depth = sw.soil_depth_at_column
-    m.heading("weight.soil.heading", "(6) 上載土", SUBSECTION)
+    m.heading("weight.soil.heading", f"({number}) 上載土", SUBSECTION)
     m.paragraph("weight.soil.introduction",
                 "地表面はフーチング上面から起点側 df1、終点側 df2 の高さで直線とし、ハンチの層を含めて"
                 "柱とフーチングのハンチを控除する。")
@@ -238,15 +247,21 @@ def _overburden(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
     centroid(m, "weight.soil", sw.overburden, heights=False)
 
 
-def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> None:
+def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> int:
+    """(1) the shape, then each part; returns the number of the next item."""
+    shown = pedestal_shown(sw)
     m.heading("weight.heading", "6.2 橋脚自重", SECTION)
     m.paragraph("weight.introduction",
-                "重心位置 xL は線路方向、xC は線路直角方向とする。桁受けとはりは柱の中心軸から、高さははり天端"
-                "から上向きを正として測る。柱・フーチング・上載土はフーチング中心から、高さはフーチング下面から測る。")
+                "重心位置 xL は線路方向、xC は線路直角方向とする。" + ("桁受けとはりは" if shown else "はりは")
+                + "柱の中心軸から、高さははり天端から上向きを正として測る。柱・フーチング・上載土はフーチング中心から、"
+                "高さはフーチング下面から測る。")
     m.heading("weight.shape.heading", "(1) 橋脚の形状", SUBSECTION)
     m.figure("weight.shape.figure", outline_figure(pier, sw), ITEM)
-    _pedestal(m, sw, pier)
-    _beam(m, sw, pier)
-    _column(m, sw, pier)
-    _footing(m, sw, pier)
-    _overburden(m, sw, pier)
+    number = 2
+    if shown:
+        _pedestal(m, sw, pier, number)
+        number += 1
+    for part in (_beam, _column, _footing, _overburden):
+        part(m, sw, pier, number)
+        number += 1
+    return number
