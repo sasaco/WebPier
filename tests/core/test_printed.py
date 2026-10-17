@@ -91,3 +91,11 @@ def test_precision_definition_is_validated():
 def test_round_handles_the_whole_float_range():
     assert round_half_away(1.7976931348623157e308, 2) == 1.7976931348623157e308
     assert round_half_away(5e-324, 3) == 0.0
+
+
+@pytest.mark.parametrize("raw,expected", [
+    (150.0, Printed(150, 0, "")), (52.5, Printed(52.5, 1, "")), (10.389999999999999, Printed(10.39, 2, "")),
+    (35.0, Printed(35, 0, "")), (-0.5, Printed(-0.5, 1, "")),
+])
+def test_trimmed_prints_only_the_digits_a_value_has(raw, expected):
+    assert Precision(2, "").trimmed(raw) == expected

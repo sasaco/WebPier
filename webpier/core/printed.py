@@ -81,6 +81,16 @@ class Precision:
             raise ValueError(f"小数{self.digits}桁までで入力してください（入力: {value!r}）")
         return Printed(number, self.digits, self.unit)
 
+    def trimmed(self, raw: float) -> Printed:
+        """Round to these digits, then print only the digits the value has (150, 52.5, 10.39).
+
+        For values that are exact at these digits, such as table interpolation,
+        where padding zeros would suggest a precision that was never rounded to.
+        """
+        value = round_half_away(raw, self.digits)
+        digits = next(places for places in range(self.digits + 1) if round_half_away(value, places) == value)
+        return Printed(value, digits, self.unit)
+
     def total(self, parts: Iterable[Printed]) -> Printed:
         """Sum the printed parts, as a person adding the printed column would."""
         values = []

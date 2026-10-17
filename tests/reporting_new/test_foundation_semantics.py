@@ -25,8 +25,6 @@ REFERENCE = Path(__file__).parents[1] / "fixtures" / "reporting" / "semantic" / 
 
 # Old record → why the new text differs. New records are listed with None.
 DIFFERENCES = {
-    "0500/bearing.normal": "Nγ/Nq は calc の印字桁（小数2桁）で書く。旧帳票と Example2 は 150・85",
-    "0500/bearing.seismic": "同上",
     "0500/soil.surface": None,   # 表層厚 = H6 + H5 + min(df1, df2) を検算できるように印刷する（派生値）
     "0500/kv.soil_type": None,   # 決定18: 土質区分と係数・指数を印刷する
 }
@@ -79,13 +77,13 @@ def expected_records(result, pier) -> dict[str, str]:
     fixed("kv.definition.Bv")
     out["0500/kv.width"] = f"Bv=√Av(=√{area}={width}m)"
     out["0500/kv.area"] = f"Av：フーチング底面積(={text(result.b)}×{text(result.l)}={area}m2)"
-    coefficient = repr(result.coefficient)
+    coefficient = text(result.coefficient)
     out["0500/kv.soil_type"] = (f"支持層の土質区分：{result.soil_type}（kv={coefficient}ρgkEdBv"
                                 f"{result.exponent_text}を用いる）")
     terms = (("long_term", "長期", result.long_term), ("short_term", "短期", result.short_term))
     for term, label, springs in terms:
-        out[f"0500/kv.{term}.label"] = f"・{label}(ρgk={repr(springs.rho)})"
-        out[f"0500/kv.{term}"] = (f"kv={coefficient}×{repr(springs.rho)}×{ed}×{width}{result.exponent_text}"
+        out[f"0500/kv.{term}.label"] = f"・{label}(ρgk={text(springs.rho)})"
+        out[f"0500/kv.{term}"] = (f"kv={coefficient}×{text(springs.rho)}×{ed}×{width}{result.exponent_text}"
                                   f"={text(springs.kv)}kN/m3")
     for key in ("Kv.heading", "Kv.formula", "Kv.definition.Kv", "Kv.definition.kv", "Kv.definition.Av"):
         fixed(key)
@@ -132,8 +130,6 @@ def test_expectation_reproduces_the_reviewed_old_report_except_declared_differen
     assert [key for key in expected if key in reference] == list(reference)
     changed = {key for key in reference if expected[key] != reference[key]}
     assert changed == {key for key, why in DIFFERENCES.items() if why is not None}
-    for key in changed:
-        assert reference[key].replace("150", "150.00").replace("85", "85.00") == expected[key]
 
 
 @pytest.mark.parametrize("name", list(CASES))
@@ -166,7 +162,7 @@ def test_the_report_reads_the_result_not_the_input():
     """A result whose values differ from what the input would give is printed as is."""
     result, pier = case("current")
     sentinel = replace(result, width=Printed(1.234, 3, "m"), n_gamma=Printed(12.34, 2, ""),
-                       surface_thickness=Printed(9.876, 3, "m"), soil_type="粘性土", coefficient=3.8,
+                       surface_thickness=Printed(9.876, 3, "m"), soil_type="粘性土", coefficient=Printed(3.8, 1, ""),
                        exponent_text="-1",
                        long_term=replace(result.long_term, kv=Printed(111.0, 0, "kN/m3"),
                                          Kr_transverse=Printed(7654321.0, 0, "kN m/rad")))

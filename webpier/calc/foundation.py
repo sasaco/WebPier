@@ -18,6 +18,7 @@ REACTION_COEFFICIENT = Precision(0, "kN/m3")
 SPRING = Precision(0, "kN/m")
 ROTATION_SPRING = Precision(0, "kN m/rad")
 BEARING_FACTOR = Precision(2, "")
+CONSTANT = Precision(1, "")
 
 # kv = c·ρ·Ed·Bv^e by soil type; gravel uses the sand equation.
 SOIL_EQUATIONS: dict[str, tuple[float, float, str]] = {
@@ -26,8 +27,8 @@ SOIL_EQUATIONS: dict[str, tuple[float, float, str]] = {
     "砂質土と粘性土の互層": (5.1, -0.75, "-3/4"),
     "粘性土": (3.8, -1.0, "-1"),
 }
-RHO = {"long_term": 0.5, "short_term": 1.0}
-SHEAR_RATIO_TEXT = "1/3"
+RHO = {"long_term": CONSTANT(0.5), "short_term": CONSTANT(1.0)}
+SHEAR_RATIO_TEXT = "1/3"  # λ, 基礎標準 13.2.2.2
 
 # 解説表13.2.2.3-2 地表面が平坦な場合の支持力係数: φ, Nγ, Nq. φ ≥ 42° uses the last row.
 BEARING_FACTOR_TABLE = (
@@ -39,7 +40,7 @@ BEARING_FACTOR_TABLE = (
 
 @dataclass(frozen=True)
 class SpringSet:
-    rho: float
+    rho: Printed
     kv: Printed
     ks: Printed
     Kv: Printed
@@ -59,9 +60,10 @@ class FoundationResult:
     surface_thickness: Printed
     soil_type: str
     deformation_modulus: Printed
-    coefficient: float
+    coefficient: Printed
     exponent: float
     exponent_text: str
+    shear_ratio_text: str
     friction_angle: Printed
     n_gamma: Printed
     n_q: Printed
@@ -72,11 +74,12 @@ class FoundationResult:
 def bearing_factors(phi: float) -> tuple[Printed, Printed]:
     """Linear interpolation in the table; the input layer guarantees 25 ≤ φ < 90."""
     if phi >= BEARING_FACTOR_TABLE[-1][0]:
-        return BEARING_FACTOR(BEARING_FACTOR_TABLE[-1][1]), BEARING_FACTOR(BEARING_FACTOR_TABLE[-1][2])
+        return BEARING_FACTOR.trimmed(BEARING_FACTOR_TABLE[-1][1]), BEARING_FACTOR.trimmed(BEARING_FACTOR_TABLE[-1][2])
     index = math.floor(phi) - BEARING_FACTOR_TABLE[0][0]
     (phi0, gamma0, q0), (phi1, gamma1, q1) = BEARING_FACTOR_TABLE[index], BEARING_FACTOR_TABLE[index + 1]
     fraction = (phi - phi0) / (phi1 - phi0)
-    return BEARING_FACTOR(gamma0 + (gamma1 - gamma0) * fraction), BEARING_FACTOR(q0 + (q1 - q0) * fraction)
+    return (BEARING_FACTOR.trimmed(gamma0 + (gamma1 - gamma0) * fraction),
+            BEARING_FACTOR.trimmed(q0 + (q1 - q0) * fraction))
 
 
 def surface_thickness(pier: PierInput) -> Printed:
@@ -85,9 +88,9 @@ def surface_thickness(pier: PierInput) -> Printed:
     return LENGTH(sub.h[6].value + sub.h[5].value + min(sub.df1.value, sub.df2.value))
 
 
-def _springs(rho: float, coefficient: float, exponent: float, modulus: float,
+def _springs(rho: Printed, coefficient: float, exponent: float, modulus: float,
              area: Printed, width: Printed, inertia_l: Printed, inertia_t: Printed) -> SpringSet:
-    kv = REACTION_COEFFICIENT(coefficient * rho * modulus * width.value ** exponent)
+    kv = REACTION_COEFFICIENT(coefficient * rho.value * modulus * width.value ** exponent)
     ks = REACTION_COEFFICIENT(kv.value / 3)
     return SpringSet(
         rho=rho, kv=kv, ks=ks,
@@ -121,7 +124,8 @@ def calculate_foundation(pier: PierInput) -> FoundationResult:
     return FoundationResult(
         b=b, l=l, area=area, width=width, inertia_longitudinal=inertia_l, inertia_transverse=inertia_t,
         surface_thickness=surface_thickness(pier), soil_type=support.soil_type, deformation_modulus=modulus,
-        coefficient=coefficient, exponent=exponent, exponent_text=exponent_text,
+        coefficient=CONSTANT(coefficient), exponent=exponent, exponent_text=exponent_text,
+        shear_ratio_text=SHEAR_RATIO_TEXT,
         friction_angle=support.friction_angle, n_gamma=n_gamma, n_q=n_q,
         long_term=terms["long_term"], short_term=terms["short_term"],
     )

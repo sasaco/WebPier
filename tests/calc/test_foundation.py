@@ -9,6 +9,7 @@ import pytest
 
 from webpier.calc.foundation import calculate_foundation
 from webpier.core.errors import InputError
+from webpier.core.printed import Printed
 from webpier.inputs import parse_input
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -36,8 +37,10 @@ def test_example2_springs_as_printed():
     result = calculate_foundation(pier())
     assert (result.b.value, result.l.value, result.area.value, result.width.value) == (7.0, 9.0, 63.0, 7.937)
     assert (result.inertia_longitudinal.value, result.inertia_transverse.value) == (257.25, 425.25)
-    assert (result.coefficient, result.exponent_text) == (6.9, "-1/2")
-    assert (result.n_gamma.value, result.n_q.value) == (150, 85)
+    assert (result.coefficient, result.exponent_text) == (Printed(6.9, 1, ""), "-1/2")
+    assert (result.long_term.rho, result.short_term.rho) == (Printed(0.5, 1, ""), Printed(1.0, 1, ""))
+    assert result.shear_ratio_text == "1/3"
+    assert (result.n_gamma, result.n_q) == (Printed(150, 0, ""), Printed(85, 0, ""))
     for term in ("long_term", "short_term"):
         springs = getattr(result, term)
         for key, value in EXAMPLE2[term].items():
@@ -91,6 +94,13 @@ def test_springs_use_the_printed_width_and_area():
 def test_bearing_factors_interpolate_the_flat_ground_table(phi, n_gamma, n_q):
     result = calculate_foundation(pier(**{"地盤データ/層/1/内部摩擦角_φd": phi}))
     assert (result.n_gamma.value, result.n_q.value) == (n_gamma, n_q)
+
+
+@pytest.mark.parametrize("phi,digits", [(42.0, (0, 0)), (37.5, (1, 0)), (31.3, (2, 2)), (25.0, (1, 1))])
+def test_bearing_factors_print_only_the_digits_they_have(phi, digits):
+    # Table interpolation with φ to 0.1° is exact at 2 decimals; nothing is rounded, so no zeros are padded.
+    result = calculate_foundation(pier(**{"地盤データ/層/1/内部摩擦角_φd": phi}))
+    assert (result.n_gamma.digits, result.n_q.digits) == digits
 
 
 def test_surface_thickness_is_derived_and_printed():

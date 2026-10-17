@@ -16,7 +16,7 @@ from gridlayoutpdf import (
     MathNode, Operator, Root, Row, Script,
 )
 
-from ...calc.foundation import SHEAR_RATIO_TEXT, SOIL_EQUATIONS, FoundationResult
+from ...calc.foundation import SOIL_EQUATIONS, FoundationResult
 from ...core.printed import Printed
 from ...inputs import PierInput
 from ..document import heading, indent_to, paragraph, report, spacer
@@ -163,17 +163,17 @@ def content(result: FoundationResult, pier: PierInput) -> tuple[Unit, ...]:
              printed(result.width), Row(unit(result.width.unit), ")", gap=0))
     add("kv.area", Row(sub("A", "v"), "：フーチング底面積(=", printed(result.b), Operator("×"), printed(result.l),
                        "=", printed(result.area), unit(result.area.unit), ")", gap=0))
-    coefficient = constant(result.coefficient)
+    coefficient = printed(result.coefficient)
     # 決定18: the soil type and the coefficient/exponent of the equation used are printed.
     add("kv.soil_type", Row("支持層の土質区分：" + result.soil_type + "（", sub("k", "v"), "=", coefficient,
                             sub("ρ", "gk"), sub("E", "d"), power(sub("B", "v"), result.exponent_text), "を用いる）"),
         left=152.04)
     for term, label in _TERMS:
         springs = getattr(result, term)
-        add("kv." + term + ".label", Row("・" + label + " ( ", sub("ρ", "gk"), "=", constant(springs.rho), ")", gap=0),
+        add("kv." + term + ".label", Row("・" + label + " ( ", sub("ρ", "gk"), "=", printed(springs.rho), ")", gap=0),
             left=152.04)
         equation("kv." + term, sub("k", "v"),
-                 Row(coefficient, Operator("×"), constant(springs.rho), Operator("×"), printed(modulus),
+                 Row(coefficient, Operator("×"), printed(springs.rho), Operator("×"), printed(modulus),
                      Operator("×"), power(printed(result.width), result.exponent_text)),
                  printed(springs.kv), unit(springs.kv.unit))
     title("Kv.heading", "2) フーチング底面の鉛直地盤ばね定数", 137.52, True)
@@ -196,11 +196,11 @@ def content(result: FoundationResult, pier: PierInput) -> tuple[Unit, ...]:
     title("ks.heading", "1) フーチング底面のせん断地盤反力係数", 137.52, True)
     equation("ks.formula", sub("k", "s"), Row("λ", sub("k", "v"), gap=0))
     definition("ks.definition.ks", "k", "s", "フーチング底面のせん断地盤反力係数 ", first=True, unit_power=3)
-    add("ks.definition.lambda", Row("λ：換算係数（ =", ratio(SHEAR_RATIO_TEXT), "とする）"))
+    add("ks.definition.lambda", Row("λ：換算係数（ =", ratio(result.shear_ratio_text), "とする）"))
     for term, label in _TERMS:
         values = getattr(result, term)
         add("ks." + term + ".label", "・" + label, "paragraph", 152.04)
-        equation("ks." + term, sub("k", "s"), Row(ratio(SHEAR_RATIO_TEXT), Operator("×"), printed(values.kv)),
+        equation("ks." + term, sub("k", "s"), Row(ratio(result.shear_ratio_text), Operator("×"), printed(values.kv)),
                  printed(values.ks), unit(values.ks.unit))
     title("Ks.heading", "2) フーチング底面のせん断地盤ばね定数", 137.52, True)
     equation("Ks.formula", sub("K", "s"), Row(sub("k", "s"), sub("A", "v")))
