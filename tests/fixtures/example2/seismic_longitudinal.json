@@ -1,0 +1,3110 @@
+{
+  "basis": "Independently transcribed from the user-provided PDFs; never generated from the application.",
+  "source": {
+    "file": "10_線路(耐震).pdf",
+    "chapter": "§10. 線路方向の計算（地震時）",
+    "pages": "10-1 .. 10-26",
+    "page_count": 26,
+    "program_header": "【Ver5.1-L10】",
+    "run_title": "『線路方向_朝里川温泉P1(Case-1_ρm=1.0_αf=1.0_荷重正方向)/線路方向』"
+  },
+  "conventions": {
+    "value": "printed number as JSON number",
+    "digits": "decimal places as printed",
+    "printed": "exact printed string (minus signs as printed)",
+    "derived": "fields under a 'derived' key are NOT printed; computed by the transcriber from printed values and flagged as such"
+  },
+  "model": {
+    "page": "10-1",
+    "title": "10.1 検討モデル",
+    "nodes": {
+      "page": "10-1",
+      "label": "(1) 節点番号図",
+      "node_numbers_top_to_bottom": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "segment_lengths": [
+        {
+          "from_node": 1,
+          "to_node": 2,
+          "value": 2.0,
+          "digits": 3,
+          "printed": "2.000",
+          "unit": "m"
+        },
+        {
+          "from_node": 2,
+          "to_node": 3,
+          "value": 0.7,
+          "digits": 3,
+          "printed": "0.700",
+          "unit": "m"
+        },
+        {
+          "from_node": 3,
+          "to_node": 4,
+          "value": 4.89,
+          "digits": 3,
+          "printed": "4.890",
+          "unit": "m"
+        },
+        {
+          "from_node": 4,
+          "to_node": 5,
+          "value": 0.01,
+          "digits": 3,
+          "printed": "0.010",
+          "unit": "m"
+        },
+        {
+          "from_node": 5,
+          "to_node": 6,
+          "value": 1.35,
+          "digits": 3,
+          "printed": "1.350",
+          "unit": "m"
+        },
+        {
+          "from_node": 6,
+          "to_node": 7,
+          "value": 1.35,
+          "digits": 3,
+          "printed": "1.350",
+          "unit": "m"
+        }
+      ],
+      "overall_dimensions": [
+        {
+          "from_node": 1,
+          "to_node": 7,
+          "value": 10.3,
+          "digits": 3,
+          "printed": "10.300",
+          "unit": "m"
+        },
+        {
+          "from_node": 1,
+          "to_node": 4,
+          "value": 7.59,
+          "digits": 3,
+          "printed": "7.590",
+          "unit": "m"
+        },
+        {
+          "from_node": 4,
+          "to_node": 5,
+          "value": 0.01,
+          "digits": 3,
+          "printed": "0.010",
+          "unit": "m"
+        },
+        {
+          "from_node": 5,
+          "to_node": 7,
+          "value": 2.7,
+          "digits": 3,
+          "printed": "2.700",
+          "unit": "m"
+        }
+      ],
+      "drawing_notes": "Node 1 = top of beam (pier top); 2 = beam bottom/haunch start; 3 = haunch bottom/column top; 4 = column base (marked with a hinge symbol) at footing top; 5 = 0.010 m below 4; 6 = footing mid-depth; 7 = footing bottom. Node/element/nonlinear/section diagrams 10-1..10-4 repeat the same dimensions.",
+      "derived": {
+        "note": "NOT printed: depth below node 1, cumulative sum of printed segment lengths",
+        "depth_below_node1_m": {
+          "1": 0.0,
+          "2": 2.0,
+          "3": 2.7,
+          "4": 7.59,
+          "5": 7.6,
+          "6": 8.95,
+          "7": 10.3
+        }
+      }
+    },
+    "elements": {
+      "pages": [
+        "10-2",
+        "10-5"
+      ],
+      "label": "要素番号図 / 要素関連データ一覧表",
+      "rows": [
+        {
+          "element": 1,
+          "i_node": 1,
+          "j_node": 2,
+          "nonlinear": "剛域",
+          "section": null
+        },
+        {
+          "element": 2,
+          "i_node": 2,
+          "j_node": 3,
+          "nonlinear": "剛域",
+          "section": null
+        },
+        {
+          "element": 3,
+          "i_node": 3,
+          "j_node": 4,
+          "nonlinear": "剛域",
+          "section": null
+        },
+        {
+          "element": 4,
+          "i_node": 4,
+          "j_node": 5,
+          "nonlinear": 1,
+          "section": 1
+        },
+        {
+          "element": 5,
+          "i_node": 5,
+          "j_node": 6,
+          "nonlinear": "剛域",
+          "section": null
+        },
+        {
+          "element": 6,
+          "i_node": 6,
+          "j_node": 7,
+          "nonlinear": "剛域",
+          "section": null
+        }
+      ],
+      "note": "i/j nodes read from the element-number drawing (10-2); the 10-5 table prints only element/nonlinear/section numbers ('-' printed for section of rigid elements). Element 4 is the 0.010 m column-base micro member; the 4.890 m column (element 3) is a rigid zone."
+    },
+    "nonlinear_numbers": {
+      "page": "10-3",
+      "label": "非線形番号図",
+      "nonlinear_1_at": "element 4 (column base, between nodes 4 and 5)"
+    },
+    "section_numbers": {
+      "page": "10-4",
+      "label": "断面番号図",
+      "section_1_at": "element 4"
+    },
+    "section_1": {
+      "page": "10-6",
+      "label": "断面番号：1 タイトル：躯体",
+      "drawing": {
+        "width_label": "4500",
+        "height_label": "2700",
+        "stirrup_label": "D22-10本(150ピッチ) スターラップ",
+        "depth_labels": [
+          "108",
+          "350",
+          "600",
+          "850",
+          "1100",
+          "1350",
+          "1600",
+          "1850",
+          "2100",
+          "2350",
+          "2592"
+        ]
+      },
+      "dimensions": [
+        {
+          "key": "width",
+          "label": "断面幅",
+          "value": 4500,
+          "digits": 0,
+          "printed": "4500",
+          "unit": "mm"
+        },
+        {
+          "key": "height",
+          "label": "断面高さ",
+          "value": 2700,
+          "digits": 0,
+          "printed": "2700",
+          "unit": "mm"
+        },
+        {
+          "key": "thickness_height_dir",
+          "label": "高さ方向の厚さ",
+          "value": 0,
+          "digits": 0,
+          "printed": "0",
+          "unit": "mm"
+        },
+        {
+          "key": "thickness_width_dir",
+          "label": "幅方向の厚さ",
+          "value": 0,
+          "digits": 0,
+          "printed": "0",
+          "unit": "mm"
+        },
+        {
+          "key": "shear_span",
+          "label": "せん断スパン長",
+          "value": 7600,
+          "digits": 0,
+          "printed": "7600",
+          "unit": "mm"
+        },
+        {
+          "key": "axial_force",
+          "label": "作用軸力",
+          "value": 0,
+          "digits": 0,
+          "printed": "0",
+          "unit": "kN"
+        }
+      ],
+      "concrete": [
+        {
+          "key": "fck",
+          "label": "圧縮強度",
+          "value": 27,
+          "digits": 0,
+          "printed": "27",
+          "unit": "N/mm^2"
+        },
+        {
+          "key": "fbck",
+          "label": "曲げひび割れ強度",
+          "value": 0,
+          "digits": 0,
+          "printed": "0",
+          "unit": "N/mm^2",
+          "note": "(自動算定)"
+        },
+        {
+          "key": "Ec",
+          "label": "弾性係数",
+          "value": 26.5,
+          "digits": 1,
+          "printed": "26.5",
+          "unit": "kN/mm^2"
+        },
+        {
+          "key": "joint_fc",
+          "label": "接合部圧縮強度",
+          "value": 0,
+          "digits": 0,
+          "printed": "0",
+          "unit": "N/mm^2",
+          "note": "(自動算定)"
+        },
+        {
+          "key": "gmax",
+          "label": "粗骨材の最大寸法",
+          "value": 25,
+          "digits": 0,
+          "printed": "25",
+          "unit": "mm"
+        }
+      ],
+      "rebar": [
+        {
+          "key": "grade",
+          "label": "鉄筋種類",
+          "text": "SD390"
+        },
+        {
+          "key": "Es",
+          "label": "弾性係数",
+          "value": 200,
+          "digits": 0,
+          "printed": "200",
+          "unit": "kN/mm^2"
+        },
+        {
+          "key": "tiers",
+          "label": "全段数",
+          "value": 11,
+          "digits": 0,
+          "printed": "11",
+          "unit": "段"
+        },
+        {
+          "key": "yield_position",
+          "label": "降伏位置",
+          "text": "重心位置"
+        }
+      ],
+      "tension_rebar": [
+        {
+          "side": "上面側",
+          "tiers": {
+            "value": 1,
+            "digits": 0,
+            "printed": "1"
+          },
+          "ratio_percent": {
+            "value": 0,
+            "digits": 0,
+            "printed": "0"
+          },
+          "spacing_mm": {
+            "value": 150,
+            "digits": 0,
+            "printed": "150"
+          },
+          "shear_tiers": {
+            "value": 1,
+            "digits": 0,
+            "printed": "1"
+          }
+        },
+        {
+          "side": "下面側",
+          "tiers": {
+            "value": 1,
+            "digits": 0,
+            "printed": "1"
+          },
+          "ratio_percent": {
+            "value": 0,
+            "digits": 0,
+            "printed": "0"
+          },
+          "spacing_mm": {
+            "value": 150,
+            "digits": 0,
+            "printed": "150"
+          },
+          "shear_tiers": {
+            "value": 1,
+            "digits": 0,
+            "printed": "1"
+          }
+        }
+      ],
+      "hoops_and_shear_rebar": [
+        {
+          "kind": "帯鉄筋",
+          "grade": "SD390",
+          "diameter_mm": {
+            "value": 22,
+            "digits": 0,
+            "printed": "22"
+          },
+          "count": {
+            "value": 10,
+            "digits": 0,
+            "printed": "10"
+          },
+          "spacing_mm": {
+            "value": 150,
+            "digits": 0,
+            "printed": "150"
+          },
+          "hoop_ratio_percent": {
+            "value": 0,
+            "digits": 0,
+            "printed": "0"
+          }
+        },
+        {
+          "kind": "せん断補強鉄筋",
+          "grade": "SD390",
+          "diameter_mm": {
+            "value": 22,
+            "digits": 0,
+            "printed": "22"
+          },
+          "count": {
+            "value": 10,
+            "digits": 0,
+            "printed": "10"
+          },
+          "spacing_mm": {
+            "value": 150,
+            "digits": 0,
+            "printed": "150"
+          },
+          "hoop_ratio_percent": "-"
+        }
+      ],
+      "coefficients": [
+        {
+          "key": "gamma_c",
+          "label": "コンクリートの材料係数",
+          "value": 1.3,
+          "digits": 2,
+          "printed": "1.30"
+        },
+        {
+          "key": "gamma_s",
+          "label": "鉄筋の材料係数",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "gamma_b_dl1",
+          "label": "損傷レベル1の制限値に対する部材係数",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "gamma_b_dl2",
+          "label": "損傷レベル2の制限値に対する部材係数",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "gamma_b_dl2_3",
+          "label": "損傷レベル2～3の制限値に対する部材係数",
+          "value": 1.15,
+          "digits": 2,
+          "printed": "1.15"
+        },
+        {
+          "key": "gamma_b_vc",
+          "label": "コンクリートのせん断に対する部材係数",
+          "value": 2.0,
+          "digits": 2,
+          "printed": "2.00"
+        },
+        {
+          "key": "gamma_b_vs",
+          "label": "せん断補強鉄筋のせん断に対する部材係数",
+          "value": 1.3,
+          "digits": 2,
+          "printed": "1.30"
+        },
+        {
+          "key": "gamma_b_vs_vdd",
+          "label": "同上 Vdd算出用",
+          "value": 1.8,
+          "digits": 2,
+          "printed": "1.80"
+        },
+        {
+          "key": "y_point_rise_factor",
+          "label": "Y点上昇係数",
+          "value": 0.9,
+          "digits": 2,
+          "printed": "0.90"
+        }
+      ],
+      "rebar_layout": [
+        {
+          "tier": 1,
+          "depth_from_top": {
+            "value": 108,
+            "digits": 0,
+            "printed": "108",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 32,
+            "digits": 0,
+            "printed": "32",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 29,
+            "digits": 0,
+            "printed": "29"
+          }
+        },
+        {
+          "tier": 2,
+          "depth_from_top": {
+            "value": 350,
+            "digits": 0,
+            "printed": "350",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 3,
+          "depth_from_top": {
+            "value": 600,
+            "digits": 0,
+            "printed": "600",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 4,
+          "depth_from_top": {
+            "value": 850,
+            "digits": 0,
+            "printed": "850",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 5,
+          "depth_from_top": {
+            "value": 1100,
+            "digits": 0,
+            "printed": "1100",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 6,
+          "depth_from_top": {
+            "value": 1350,
+            "digits": 0,
+            "printed": "1350",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 7,
+          "depth_from_top": {
+            "value": 1600,
+            "digits": 0,
+            "printed": "1600",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 8,
+          "depth_from_top": {
+            "value": 1850,
+            "digits": 0,
+            "printed": "1850",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 9,
+          "depth_from_top": {
+            "value": 2100,
+            "digits": 0,
+            "printed": "2100",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 10,
+          "depth_from_top": {
+            "value": 2350,
+            "digits": 0,
+            "printed": "2350",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 19,
+            "digits": 0,
+            "printed": "19",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 2,
+            "digits": 0,
+            "printed": "2"
+          }
+        },
+        {
+          "tier": 11,
+          "depth_from_top": {
+            "value": 2592,
+            "digits": 0,
+            "printed": "2592",
+            "unit": "mm"
+          },
+          "bar_diameter": {
+            "value": 32,
+            "digits": 0,
+            "printed": "32",
+            "unit": "mm"
+          },
+          "count": {
+            "value": 29,
+            "digits": 0,
+            "printed": "29"
+          }
+        }
+      ]
+    },
+    "springs": {
+      "page": "10-7",
+      "label": "節点ばね分布図[CASE-1]",
+      "unit_note": "※数値：節点ばね値　単位はkN/m",
+      "node_springs": [
+        {
+          "key": "node7_horizontal",
+          "label": "節点7 水平ばね",
+          "value": 8525475,
+          "digits": 0,
+          "printed": "8525475",
+          "unit": "kN/m",
+          "node": 7
+        },
+        {
+          "key": "node7_vertical",
+          "label": "節点7 鉛直ばね",
+          "value": 25576488,
+          "digits": 0,
+          "printed": "25576488",
+          "unit": "kN/m",
+          "node": 7
+        }
+      ],
+      "foundation_text": "直接基礎（砂質土，B＝7.000m，L＝9.000m，kv＝405976kN/m3，c＝0.0kN/m3，Df＝3.8m，γ1＝10.0kN/m3,γ2＝11.6kN/m3，φ＝42.2度，k＝2）",
+      "foundation": [
+        {
+          "key": "soil_type",
+          "label": "地盤",
+          "text": "砂質土"
+        },
+        {
+          "key": "B",
+          "label": "B",
+          "value": 7.0,
+          "digits": 3,
+          "printed": "7.000",
+          "unit": "m"
+        },
+        {
+          "key": "L",
+          "label": "L",
+          "value": 9.0,
+          "digits": 3,
+          "printed": "9.000",
+          "unit": "m"
+        },
+        {
+          "key": "kv",
+          "label": "kv",
+          "value": 405976,
+          "digits": 0,
+          "printed": "405976",
+          "unit": "kN/m3"
+        },
+        {
+          "key": "c",
+          "label": "c",
+          "value": 0.0,
+          "digits": 1,
+          "printed": "0.0",
+          "unit": "kN/m3",
+          "note": "unit printed as kN/m3"
+        },
+        {
+          "key": "Df",
+          "label": "Df",
+          "value": 3.8,
+          "digits": 1,
+          "printed": "3.8",
+          "unit": "m"
+        },
+        {
+          "key": "gamma1",
+          "label": "γ1",
+          "value": 10.0,
+          "digits": 1,
+          "printed": "10.0",
+          "unit": "kN/m3"
+        },
+        {
+          "key": "gamma2",
+          "label": "γ2",
+          "value": 11.6,
+          "digits": 1,
+          "printed": "11.6",
+          "unit": "kN/m3"
+        },
+        {
+          "key": "phi",
+          "label": "φ",
+          "value": 42.2,
+          "digits": 1,
+          "printed": "42.2",
+          "unit": "度"
+        },
+        {
+          "key": "k",
+          "label": "k",
+          "value": 2,
+          "digits": 0,
+          "printed": "2"
+        }
+      ],
+      "rotational_spring_see": "checks.foundation_rotational_spring (10-23): Kr printed there, not on 10-7"
+    }
+  },
+  "actions": {
+    "page": "10-8",
+    "title": "10.2 作用の計算",
+    "scope_note": "下記以外の作用については, §8. 線路方向の計算（地震時以外）と同様とする.",
+    "train_vertical": {
+      "label": "(1) 列車荷重 ・単線載荷",
+      "columns": [
+        "鉛直力 (kN)",
+        "アーム (m)",
+        "ﾓｰﾒﾝﾄ(kN･m)"
+      ],
+      "rows": [
+        {
+          "key": "RB",
+          "label": "起点側 RB",
+          "vertical": {
+            "value": 320.0,
+            "digits": 2,
+            "printed": "320.00",
+            "unit": "kN"
+          },
+          "arm": {
+            "value": -0.325,
+            "digits": 3,
+            "printed": "-0.325",
+            "unit": "m"
+          },
+          "moment": {
+            "value": -104.0,
+            "digits": 2,
+            "printed": "-104.00",
+            "unit": "kN·m"
+          }
+        },
+        {
+          "key": "RC",
+          "label": "終点側 RC",
+          "vertical": {
+            "value": 160.0,
+            "digits": 2,
+            "printed": "160.00",
+            "unit": "kN"
+          },
+          "arm": {
+            "value": 0.675,
+            "digits": 3,
+            "printed": "0.675",
+            "unit": "m"
+          },
+          "moment": {
+            "value": 108.0,
+            "digits": 2,
+            "printed": "108.00",
+            "unit": "kN·m"
+          }
+        }
+      ],
+      "total": {
+        "label": "合計",
+        "vertical": {
+          "value": 480.0,
+          "digits": 2,
+          "printed": "480.00",
+          "unit": "kN"
+        },
+        "moment": {
+          "value": 4.0,
+          "digits": 2,
+          "printed": "4.00",
+          "unit": "kN·m"
+        }
+      }
+    },
+    "bearing_horizontal": {
+      "label": "(2) 水平荷重 1) 支承に働く水平荷重のまとめ",
+      "columns": [
+        "起点桁 (kN)",
+        "終点桁 (kN)"
+      ],
+      "group": "地震時",
+      "rows": [
+        {
+          "key": "EQ_girder",
+          "label": "1.0 EQ (桁荷重)",
+          "start_girder": {
+            "value": 6790.0,
+            "digits": 2,
+            "printed": "6790.00",
+            "unit": "kN"
+          },
+          "end_girder": {
+            "value": 4740.0,
+            "digits": 2,
+            "printed": "4740.00",
+            "unit": "kN"
+          }
+        },
+        {
+          "key": "EQ_train",
+          "label": "1.0 EQ (列車荷重)",
+          "start_girder": {
+            "value": 64.0,
+            "digits": 2,
+            "printed": "64.00",
+            "unit": "kN"
+          },
+          "end_girder": {
+            "value": 64.0,
+            "digits": 2,
+            "printed": "64.00",
+            "unit": "kN"
+          }
+        }
+      ]
+    },
+    "self_weight_inertia": {
+      "label": "(3) 自重による地震時慣性力",
+      "items": [
+        {
+          "key": "Kh",
+          "label": "設計水平震度 Kh",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "Hw1",
+          "label": "はり Hw1 (橋脚く体に作用する水平力)",
+          "formula": "Hw1 = 2.70 × 9.00 × 24.5 × 1.00",
+          "operands": [
+            {
+              "value": 2.7,
+              "digits": 2,
+              "printed": "2.70"
+            },
+            {
+              "value": 9.0,
+              "digits": 2,
+              "printed": "9.00"
+            },
+            {
+              "value": 24.5,
+              "digits": 1,
+              "printed": "24.5"
+            },
+            {
+              "value": 1.0,
+              "digits": 2,
+              "printed": "1.00"
+            }
+          ],
+          "result": {
+            "value": 595.35,
+            "digits": 2,
+            "printed": "595.35"
+          },
+          "unit": "kN/m"
+        },
+        {
+          "key": "Hw3",
+          "label": "柱 Hw3 (橋脚く体に作用する水平力)",
+          "formula": "Hw3 = 4.50 × 2.70 × 24.5 × 1.00",
+          "operands": [
+            {
+              "value": 4.5,
+              "digits": 2,
+              "printed": "4.50"
+            },
+            {
+              "value": 2.7,
+              "digits": 2,
+              "printed": "2.70"
+            },
+            {
+              "value": 24.5,
+              "digits": 1,
+              "printed": "24.5"
+            },
+            {
+              "value": 1.0,
+              "digits": 2,
+              "printed": "1.00"
+            }
+          ],
+          "result": {
+            "value": 297.68,
+            "digits": 2,
+            "printed": "297.68"
+          },
+          "unit": "kN/m",
+          "note": "unrounded product 297.675; label Hw3 here but Hw2 on load diagram 10-11"
+        },
+        {
+          "key": "H_footing",
+          "label": "フーチング重心に作用する水平力 H",
+          "formula": "H = 7.00 × 9.00 × 2.70 × ( 24.5 − 18.0 ) × 1.00",
+          "operands": [
+            {
+              "value": 7.0,
+              "digits": 2,
+              "printed": "7.00"
+            },
+            {
+              "value": 9.0,
+              "digits": 2,
+              "printed": "9.00"
+            },
+            {
+              "value": 2.7,
+              "digits": 2,
+              "printed": "2.70"
+            },
+            {
+              "value": 24.5,
+              "digits": 1,
+              "printed": "24.5"
+            },
+            {
+              "value": 18.0,
+              "digits": 1,
+              "printed": "18.0"
+            },
+            {
+              "value": 1.0,
+              "digits": 2,
+              "printed": "1.00"
+            }
+          ],
+          "result": {
+            "value": 1105.65,
+            "digits": 2,
+            "printed": "1105.65"
+          },
+          "unit": "kN",
+          "note": "operand order as printed; 18.0 is subtracted from 24.5 inside parentheses"
+        }
+      ]
+    }
+  },
+  "load_cases": {
+    "pages": [
+      "10-9",
+      "10-10",
+      "10-11"
+    ],
+    "title": "10.3 荷重図",
+    "cases": [
+      {
+        "case": 1,
+        "page": "10-9",
+        "label": "固定死荷重 (D1)",
+        "items": [
+          {
+            "key": "N",
+            "label": "N",
+            "value": 8299.53,
+            "digits": 2,
+            "printed": "8299.53",
+            "unit": "kN"
+          },
+          {
+            "key": "M",
+            "label": "M",
+            "value": -610.0,
+            "digits": 2,
+            "printed": "-610.00",
+            "unit": "kN·m"
+          },
+          {
+            "key": "q",
+            "label": "q",
+            "value": 297.68,
+            "digits": 2,
+            "printed": "297.68",
+            "unit": "kN/m"
+          },
+          {
+            "key": "P",
+            "label": "P",
+            "value": 4167.45,
+            "digits": 2,
+            "printed": "4167.45",
+            "unit": "kN"
+          }
+        ],
+        "diagram": "N and M at top of the member line; q dashed along the line down to the first dot; P points to the second (lower) dot (appears to be footing centre, node 6)"
+      },
+      {
+        "case": 2,
+        "page": "10-9",
+        "label": "付加死荷重 (D2)",
+        "items": [
+          {
+            "key": "N",
+            "label": "N",
+            "value": 780.0,
+            "digits": 2,
+            "printed": "780.00",
+            "unit": "kN"
+          },
+          {
+            "key": "M",
+            "label": "M",
+            "value": 6.5,
+            "digits": 2,
+            "printed": "6.50",
+            "unit": "kN·m"
+          },
+          {
+            "key": "P",
+            "label": "P",
+            "value": 1830.6,
+            "digits": 2,
+            "printed": "1830.60",
+            "unit": "kN"
+          }
+        ],
+        "diagram": "N, M at top; P at lower dot"
+      },
+      {
+        "case": 3,
+        "page": "10-10",
+        "label": "浮力 (Wp)",
+        "items": [
+          {
+            "key": "P",
+            "label": "P",
+            "value": -1701.0,
+            "digits": 1,
+            "printed": "-1701.0",
+            "unit": "kN"
+          }
+        ],
+        "diagram": "P upward arrow at lower dot"
+      },
+      {
+        "case": 4,
+        "page": "10-10",
+        "label": "雪荷重 (S)",
+        "items": [
+          {
+            "key": "N",
+            "label": "N",
+            "value": 710.0,
+            "digits": 2,
+            "printed": "710.00",
+            "unit": "kN"
+          },
+          {
+            "key": "M",
+            "label": "M",
+            "value": 19.25,
+            "digits": 2,
+            "printed": "19.25",
+            "unit": "kN·m"
+          }
+        ]
+      },
+      {
+        "case": 5,
+        "page": "10-10",
+        "label": "列車荷重（地震時）",
+        "items": [
+          {
+            "key": "N",
+            "label": "N",
+            "value": 480.0,
+            "digits": 2,
+            "printed": "480.00",
+            "unit": "kN"
+          },
+          {
+            "key": "M",
+            "label": "M",
+            "value": 4.0,
+            "digits": 2,
+            "printed": "4.00",
+            "unit": "kN·m"
+          }
+        ]
+      },
+      {
+        "case": 6,
+        "page": "10-11",
+        "label": "地震時桁荷重慣性力(Ｋh=1.00)",
+        "Kh": {
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        "items": [
+          {
+            "key": "H",
+            "label": "H",
+            "value": 11530.0,
+            "digits": 2,
+            "printed": "11530.00",
+            "unit": "kN"
+          }
+        ],
+        "diagram": "H leftward arrow at top of member line"
+      },
+      {
+        "case": 7,
+        "page": "10-11",
+        "label": "地震時列車荷重慣性力(Ｋh=0.20)",
+        "Kh": {
+          "value": 0.2,
+          "digits": 2,
+          "printed": "0.20"
+        },
+        "items": [
+          {
+            "key": "H",
+            "label": "H",
+            "value": 128.0,
+            "digits": 2,
+            "printed": "128.00",
+            "unit": "kN"
+          }
+        ],
+        "diagram": "H leftward arrow at top of member line"
+      },
+      {
+        "case": 8,
+        "page": "10-11",
+        "label": "自重による地震時慣性力(Ｋh=1.00)",
+        "Kh": {
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        "items": [
+          {
+            "key": "Hw1",
+            "label": "Hw1",
+            "value": 595.35,
+            "digits": 2,
+            "printed": "595.35",
+            "unit": "kN/m"
+          },
+          {
+            "key": "Hw2",
+            "label": "Hw2",
+            "value": 297.68,
+            "digits": 2,
+            "printed": "297.68",
+            "unit": "kN/m"
+          },
+          {
+            "key": "H",
+            "label": "H",
+            "value": 1105.65,
+            "digits": 2,
+            "printed": "1105.65",
+            "unit": "kN"
+          }
+        ],
+        "diagram_dimensions": [
+          {
+            "value": 2.0,
+            "digits": 3,
+            "printed": "2.000",
+            "unit": "m",
+            "applies_to": "Hw1 block (beam)"
+          },
+          {
+            "value": 0.7,
+            "digits": 3,
+            "printed": "0.700",
+            "unit": "m",
+            "applies_to": "tapered transition Hw1->Hw2 (haunch)"
+          },
+          {
+            "value": 4.9,
+            "digits": 3,
+            "printed": "4.900",
+            "unit": "m",
+            "applies_to": "Hw2 block (column) down to first dot"
+          }
+        ],
+        "diagram": "Hw1 rectangle over 2.000, taper over 0.700, Hw2 over 4.900 ending at the upper dot; H leftward arrow at the lower dot"
+      }
+    ]
+  },
+  "basic_cases": {
+    "page": "10-12",
+    "title": "10.4 作用の組合せ 基本Case",
+    "columns": [
+      "Case",
+      "記号",
+      "作用方向",
+      "荷重種別",
+      "荷重名称"
+    ],
+    "rows": [
+      {
+        "case": 1,
+        "symbol": "D1",
+        "direction": "↓",
+        "type": "固定",
+        "name": "固定死荷重"
+      },
+      {
+        "case": 2,
+        "symbol": "D2",
+        "direction": "↓",
+        "type": "固定",
+        "name": "付加死荷重"
+      },
+      {
+        "case": 3,
+        "symbol": "Wp",
+        "direction": "↑",
+        "type": "固定",
+        "name": "浮力"
+      },
+      {
+        "case": 4,
+        "symbol": "Sw2",
+        "direction": "↓",
+        "type": "固定",
+        "name": "雪荷重 (2年確率)"
+      },
+      {
+        "case": 5,
+        "symbol": "L",
+        "direction": "↓",
+        "type": "固定",
+        "name": "列車荷重"
+      },
+      {
+        "case": 6,
+        "symbol": "EQ1",
+        "direction": "←",
+        "type": "増分",
+        "name": "地震時桁荷重慣性力(Kh=1.00)"
+      },
+      {
+        "case": 7,
+        "symbol": "EQL",
+        "direction": "←",
+        "type": "限定増分",
+        "name": "地震時列車荷重慣性力(Kh=0.20)"
+      },
+      {
+        "case": 8,
+        "symbol": "EQ2",
+        "direction": "←",
+        "type": "増分",
+        "name": "自重による地震時慣性力(Kh=1.00)"
+      }
+    ]
+  },
+  "combinations": {
+    "page": "10-12",
+    "title": "組合せCase",
+    "columns_basic_cases": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "rows": [
+      {
+        "combination": 1,
+        "alpha_f": {
+          "value": 1.0,
+          "digits": 1,
+          "printed": "1.0"
+        },
+        "rho_m": {
+          "value": 1.0,
+          "digits": 1,
+          "printed": "1.0"
+        },
+        "direction": "←",
+        "printed_expression": "1 + 2 + 3 + 4 + 5 + 6 + 7 + 8",
+        "coefficients": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "5": 1,
+          "6": 1,
+          "7": 1,
+          "8": 1
+        },
+        "coefficients_note": "no explicit factors printed; 1 assumed for each listed case (header '荷重補正係数+基本Case')",
+        "ground_resistance_type": {
+          "value": 1,
+          "digits": 0,
+          "printed": "1"
+        }
+      }
+    ]
+  },
+  "checks": {
+    "pushover": {
+      "page": "10-13",
+      "title": "10.5 応答値の算定 Case1 ← ρm=1.0, αf=1.0 荷重(P)～変位(δ)曲線",
+      "observed_node": 1,
+      "chart_labels": [
+        {
+          "key": "Kheq",
+          "label": "Kheq",
+          "value": 0.368,
+          "digits": 3,
+          "printed": "0.368"
+        },
+        {
+          "key": "KhL1",
+          "label": "KhL1",
+          "value": 0.214,
+          "digits": 3,
+          "printed": "0.214"
+        },
+        {
+          "key": "delta_eq",
+          "label": "δeq",
+          "value": 30.5,
+          "digits": 1,
+          "printed": "30.5",
+          "unit": "mm"
+        },
+        {
+          "key": "delta_r_restorability",
+          "label": "δr (復旧性)",
+          "value": 176.3,
+          "digits": 1,
+          "printed": "176.3",
+          "unit": "mm"
+        },
+        {
+          "key": "delta_r_safety",
+          "label": "δr (安全性)",
+          "value": 284.3,
+          "digits": 1,
+          "printed": "284.3",
+          "unit": "mm"
+        }
+      ],
+      "table_label": "水平震度と水平変位",
+      "table_columns": [
+        "増分ステップ",
+        "水平震度 Kh",
+        "変位量 δ (mm)",
+        "状態"
+      ],
+      "table": [
+        {
+          "step": {
+            "value": 15.1,
+            "digits": 1,
+            "printed": "15.1"
+          },
+          "Kh": {
+            "value": 0.214,
+            "digits": 3,
+            "printed": "0.214"
+          },
+          "delta_mm": {
+            "value": 16.0,
+            "digits": 1,
+            "printed": "16.0"
+          },
+          "marker": "KhL1",
+          "state": "復旧性L1震度"
+        },
+        {
+          "step": {
+            "value": 29,
+            "digits": 0,
+            "printed": "29"
+          },
+          "Kh": {
+            "value": 0.35,
+            "digits": 3,
+            "printed": "0.350"
+          },
+          "delta_mm": {
+            "value": 29.0,
+            "digits": 1,
+            "printed": "29.0"
+          },
+          "marker": "④-2:Khy",
+          "state": "要素番号4が損傷レベル2に達した"
+        },
+        {
+          "step": {
+            "value": 30,
+            "digits": 0,
+            "printed": "30"
+          },
+          "Kh": {
+            "value": 0.36,
+            "digits": 3,
+            "printed": "0.360"
+          },
+          "delta_mm": {
+            "value": 30.0,
+            "digits": 1,
+            "printed": "30.0"
+          },
+          "marker": "△7-1",
+          "state": "節点番号7を有する基礎が安定レベル1の制限値に達した"
+        },
+        {
+          "step": {
+            "value": 33,
+            "digits": 0,
+            "printed": "33"
+          },
+          "Kh": {
+            "value": 0.368,
+            "digits": 3,
+            "printed": "0.368"
+          },
+          "delta_mm": {
+            "value": 33.0,
+            "digits": 1,
+            "printed": "33.0"
+          },
+          "marker": "(Khy+Khm)/2",
+          "state": ""
+        },
+        {
+          "step": {
+            "value": 177,
+            "digits": 0,
+            "printed": "177"
+          },
+          "Kh": {
+            "value": 0.385,
+            "digits": 3,
+            "printed": "0.385"
+          },
+          "delta_mm": {
+            "value": 176.3,
+            "digits": 1,
+            "printed": "176.3"
+          },
+          "marker": "δr",
+          "state": "復旧性の応答値"
+        },
+        {
+          "step": {
+            "value": 245,
+            "digits": 0,
+            "printed": "245"
+          },
+          "Kh": {
+            "value": 0.386,
+            "digits": 3,
+            "printed": "0.386"
+          },
+          "delta_mm": {
+            "value": 245.0,
+            "digits": 1,
+            "printed": "245.0"
+          },
+          "marker": "④-3:Khm",
+          "state": "要素番号4が損傷レベル3に達した"
+        },
+        {
+          "step": {
+            "value": 285,
+            "digits": 0,
+            "printed": "285"
+          },
+          "Kh": {
+            "value": 0.359,
+            "digits": 3,
+            "printed": "0.359"
+          },
+          "delta_mm": {
+            "value": 284.3,
+            "digits": 1,
+            "printed": "284.3"
+          },
+          "marker": "δr",
+          "state": "安全性の応答値"
+        }
+      ]
+    },
+    "spectrum": {
+      "page": "10-14",
+      "title": "(2)非線形応答スペクトル法による設計応答値の算定",
+      "yield": [
+        {
+          "key": "Kheq",
+          "label": "降伏震度 Kheq",
+          "value": 0.368,
+          "digits": 3,
+          "printed": "0.368"
+        },
+        {
+          "key": "delta_eq",
+          "label": "降伏変位 δeq",
+          "value": 30.5,
+          "digits": 1,
+          "printed": "30.5",
+          "unit": "mm"
+        },
+        {
+          "key": "yield_part",
+          "label": "降伏部位",
+          "text": "柱"
+        },
+        {
+          "key": "Teq",
+          "label": "等価固有周期 Teq",
+          "formula": "Teq = 2.0 × √(δeq/Kheq) = 2.0 × √(0.031/0.368)",
+          "operands": [
+            {
+              "value": 2.0,
+              "digits": 1,
+              "printed": "2.0"
+            },
+            {
+              "value": 0.031,
+              "digits": 3,
+              "printed": "0.031"
+            },
+            {
+              "value": 0.368,
+              "digits": 3,
+              "printed": "0.368"
+            }
+          ],
+          "result": {
+            "value": 0.576,
+            "digits": 3,
+            "printed": "0.576"
+          },
+          "unit": "sec"
+        }
+      ],
+      "safety": [
+        {
+          "key": "motion",
+          "label": "設計地震動",
+          "text": "L2地震動 (スペクトルII)"
+        },
+        {
+          "key": "structure_type",
+          "label": "構造物種別",
+          "text": "上部構造(RC, SRC系)"
+        },
+        {
+          "key": "ground",
+          "label": "地盤種別",
+          "text": "G2地盤"
+        },
+        {
+          "key": "Kheq",
+          "label": "降伏震度",
+          "value": 0.368,
+          "digits": 3,
+          "printed": "0.368"
+        },
+        {
+          "key": "Teq",
+          "label": "等価固有周期",
+          "value": 0.576,
+          "digits": 3,
+          "printed": "0.576",
+          "unit": "sec"
+        },
+        {
+          "key": "mu",
+          "label": "応答塑性率 μ",
+          "value": 9.32,
+          "digits": 2,
+          "printed": "9.32"
+        },
+        {
+          "key": "delta_r",
+          "label": "最大応答変位 δr",
+          "formula": "δr = μ・δeq = 9.32 × 30.5",
+          "operands": [
+            {
+              "value": 9.32,
+              "digits": 2,
+              "printed": "9.32"
+            },
+            {
+              "value": 30.5,
+              "digits": 1,
+              "printed": "30.5"
+            }
+          ],
+          "result": {
+            "value": 284.3,
+            "digits": 1,
+            "printed": "284.3"
+          },
+          "unit": "mm",
+          "step": "285 / 300"
+        },
+        {
+          "key": "Khr",
+          "label": "最大応答震度 Khr",
+          "value": 0.386,
+          "digits": 3,
+          "printed": "0.386",
+          "step": "245 / 300"
+        }
+      ],
+      "restorability": [
+        {
+          "key": "motion",
+          "label": "設計地震動",
+          "text": "L2地震動 (スペクトルII)"
+        },
+        {
+          "key": "structure_type",
+          "label": "構造物種別",
+          "text": "上部構造(RC, SRC系)"
+        },
+        {
+          "key": "ground",
+          "label": "地盤種別",
+          "text": "G2地盤"
+        },
+        {
+          "key": "region_factor",
+          "label": "地域別係数",
+          "value": 0.7,
+          "digits": 2,
+          "printed": "0.70"
+        },
+        {
+          "key": "Kheq",
+          "label": "降伏震度",
+          "value": 0.368,
+          "digits": 3,
+          "printed": "0.368"
+        },
+        {
+          "key": "Teq",
+          "label": "等価固有周期",
+          "value": 0.576,
+          "digits": 3,
+          "printed": "0.576",
+          "unit": "sec"
+        },
+        {
+          "key": "mu",
+          "label": "応答塑性率 μ",
+          "value": 5.78,
+          "digits": 2,
+          "printed": "5.78"
+        },
+        {
+          "key": "delta_r",
+          "label": "最大応答変位 δr",
+          "formula": "δr = μ・δeq = 5.78 × 30.5",
+          "operands": [
+            {
+              "value": 5.78,
+              "digits": 2,
+              "printed": "5.78"
+            },
+            {
+              "value": 30.5,
+              "digits": 1,
+              "printed": "30.5"
+            }
+          ],
+          "result": {
+            "value": 176.3,
+            "digits": 1,
+            "printed": "176.3"
+          },
+          "unit": "mm",
+          "step": "177 / 300"
+        },
+        {
+          "key": "Khr",
+          "label": "最大応答震度 Khr",
+          "value": 0.385,
+          "digits": 3,
+          "printed": "0.385",
+          "step": "177 / 300"
+        }
+      ],
+      "L1": [
+        {
+          "key": "ground",
+          "label": "地盤種別",
+          "text": "G2地盤"
+        },
+        {
+          "key": "region_factor",
+          "label": "地域別係数",
+          "value": 0.7,
+          "digits": 2,
+          "printed": "0.70"
+        },
+        {
+          "key": "Khy",
+          "label": "降伏震度 Khy",
+          "value": 0.35,
+          "digits": 3,
+          "printed": "0.350"
+        },
+        {
+          "key": "Teq",
+          "label": "等価固有周期",
+          "value": 0.576,
+          "digits": 3,
+          "printed": "0.576",
+          "unit": "sec"
+        },
+        {
+          "key": "KhL1",
+          "label": "L1地震 設計震度 KhL1",
+          "value": 0.214,
+          "digits": 3,
+          "printed": "0.214",
+          "step": "16 / 300"
+        }
+      ]
+    },
+    "diagrams": {
+      "note": "10-15 変位図 has no numbers. Labels below are red (安全性) labels on 10-16..10-18; '-' printed before each value. Labels at the same y overlap; where two different strings overlap they are reported as illegible.",
+      "moment": {
+        "page": "10-16",
+        "unit": "kN·m",
+        "labels": [
+          {
+            "location": "node 1",
+            "value": -580.25,
+            "digits": 2,
+            "printed": "-580.25"
+          },
+          {
+            "location": "node 2",
+            "value": -9568.45,
+            "digits": 2,
+            "printed": "-9568.45"
+          },
+          {
+            "location": "node 3",
+            "value": -12907.57,
+            "digits": 2,
+            "printed": "-12907.57"
+          },
+          {
+            "location": "node 4/5",
+            "value": -37755.28,
+            "digits": 2,
+            "printed": "-37755.28",
+            "note": "drawn twice (overlapping, identical)"
+          },
+          {
+            "location": "node 6",
+            "value": -44967.82,
+            "digits": 2,
+            "printed": "-44967.82"
+          },
+          {
+            "location": "node 7",
+            "value": -52716.21,
+            "digits": 2,
+            "printed": "-52716.21"
+          }
+        ]
+      },
+      "shear": {
+        "page": "10-17",
+        "unit": "kN",
+        "labels": [
+          {
+            "location": "node 1",
+            "value": -4280.37,
+            "digits": 2,
+            "printed": "-4280.37"
+          },
+          {
+            "location": "node 2",
+            "value": -4707.83,
+            "digits": 2,
+            "printed": "-4707.83"
+          },
+          {
+            "location": "node 3",
+            "value": -4820.04,
+            "digits": 2,
+            "printed": "-4820.04"
+          },
+          {
+            "location": "node 4/5",
+            "value": -5342.62,
+            "digits": 2,
+            "printed": "-5342.62",
+            "note": "drawn twice (overlapping, identical)"
+          },
+          {
+            "location": "node 6",
+            "illegible": true,
+            "printed_overlap": "-5342.62 / -5739.55 (two labels overprinted; reading uncertain)"
+          },
+          {
+            "location": "node 7",
+            "value": -5739.55,
+            "digits": 2,
+            "printed": "-5739.55"
+          }
+        ]
+      },
+      "axial": {
+        "page": "10-18",
+        "unit": "kN",
+        "labels": [
+          {
+            "location": "node 1",
+            "value": -10269.53,
+            "digits": 2,
+            "printed": "-10269.53"
+          },
+          {
+            "location": "node 2",
+            "value": -10864.89,
+            "digits": 2,
+            "printed": "-10864.89"
+          },
+          {
+            "location": "node 3",
+            "value": -11073.27,
+            "digits": 2,
+            "printed": "-11073.27"
+          },
+          {
+            "location": "node 4/5",
+            "illegible": true,
+            "printed_overlap": "two labels overprinted; one appears to be -12528.92"
+          },
+          {
+            "location": "node 6",
+            "illegible": true,
+            "printed_overlap": "two labels overprinted; one may be -16825.97, other starts -143.. (uncertain)"
+          },
+          {
+            "location": "node 7",
+            "value": -16825.97,
+            "digits": 2,
+            "printed": "-16825.97"
+          }
+        ]
+      },
+      "damage": {
+        "page": "10-19",
+        "note": "損傷状況図: all elements grey (剛域) except a yellow marker (損傷レベル3) at element 4 / node 4"
+      }
+    },
+    "member_summary_m_theta": {
+      "pages": [
+        "10-20",
+        "10-25"
+      ],
+      "note": "10-20 (rotated table 設計総括表(M-θ部材)) and 10-25 (設計総括表(Docu-SE式)) carry the same values; transcribed from both",
+      "items": [
+        {
+          "key": "dl_element",
+          "label": "DL番号(要素番号)",
+          "text": "1(4)"
+        },
+        {
+          "key": "title",
+          "label": "タイトル(部位等)",
+          "text": "躯体"
+        },
+        {
+          "key": "Vdmax",
+          "label": "設計せん断力:Vdmax",
+          "value": 5732.9,
+          "digits": 1,
+          "printed": "5732.9",
+          "unit": "kN"
+        },
+        {
+          "key": "Vud",
+          "label": "設計せん断耐力:Vud",
+          "value": 19578.3,
+          "digits": 1,
+          "printed": "19578.3",
+          "unit": "kN"
+        },
+        {
+          "key": "gamma_i_shear",
+          "label": "γi",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "Vd_Vud",
+          "label": "γi・Vdmax/Vud",
+          "value": 0.293,
+          "digits": 3,
+          "printed": "0.293"
+        },
+        {
+          "key": "shear_check",
+          "label": "照査",
+          "text": "OK"
+        },
+        {
+          "key": "failure_mode_result",
+          "label": "破壊形態の検討結果",
+          "text": "OK"
+        },
+        {
+          "key": "damage_limit",
+          "label": "損傷レベルの制限",
+          "value": 3,
+          "digits": 0,
+          "printed": "3"
+        },
+        {
+          "key": "theta_d",
+          "label": "応答部材回転角:θd",
+          "value": -0.035392,
+          "digits": 6,
+          "printed": "-0.035392",
+          "unit": "rad"
+        },
+        {
+          "key": "Nd",
+          "label": "応答軸力(+引張,-圧縮):Nd",
+          "value": -12528.9,
+          "digits": 1,
+          "printed": "-12528.9",
+          "unit": "kN"
+        },
+        {
+          "key": "theta1",
+          "label": "損傷レベル1制限値:θ1",
+          "value": -0.002614,
+          "digits": 6,
+          "printed": "-0.002614",
+          "unit": "rad"
+        },
+        {
+          "key": "theta2",
+          "label": "損傷レベル2制限値:θ2",
+          "value": -0.029959,
+          "digits": 6,
+          "printed": "-0.029959",
+          "unit": "rad"
+        },
+        {
+          "key": "theta3",
+          "label": "損傷レベル3制限値:θ3",
+          "value": -0.037156,
+          "digits": 6,
+          "printed": "-0.037156",
+          "unit": "rad"
+        },
+        {
+          "key": "gamma_i",
+          "label": "γi",
+          "value": 1.0,
+          "digits": 2,
+          "printed": "1.00"
+        },
+        {
+          "key": "ratio1",
+          "label": "γi・θd/θ1",
+          "value": 13.539,
+          "digits": 3,
+          "printed": "13.539"
+        },
+        {
+          "key": "ratio2",
+          "label": "γi・θd/θ2",
+          "value": 1.181,
+          "digits": 3,
+          "printed": "1.181"
+        },
+        {
+          "key": "ratio3",
+          "label": "γi・θd/θ3",
+          "value": 0.953,
+          "digits": 3,
+          "printed": "0.953"
+        },
+        {
+          "key": "damage_level",
+          "label": "損傷レベル",
+          "value": 3,
+          "digits": 0,
+          "printed": "3"
+        },
+        {
+          "key": "damage_result",
+          "label": "損傷レベルの照査結果",
+          "text": "OK"
+        },
+        {
+          "key": "overall",
+          "label": "総合的な照査結果",
+          "text": "OK"
+        }
+      ],
+      "docu_se_10_25": [
+        {
+          "key": "main_rebar",
+          "label": "主鉄筋 径・本数",
+          "text": "D32-29本"
+        },
+        {
+          "key": "main_rebar_grade",
+          "label": "種別",
+          "text": "SD390"
+        },
+        {
+          "key": "stirrup",
+          "label": "スターラップ 径・本数 ピッチ",
+          "text": "D22-10本@150"
+        },
+        {
+          "key": "stirrup_grade",
+          "label": "種別",
+          "text": "SD390"
+        },
+        {
+          "key": "gamma_i",
+          "label": "構造物係数 γi",
+          "value": 1.0,
+          "digits": 1,
+          "printed": "1.0"
+        },
+        {
+          "key": "deform_case",
+          "label": "解析ケース(要素番号)",
+          "text": "1 (4)"
+        },
+        {
+          "key": "deform_step",
+          "label": "対応ステップ",
+          "value": 285,
+          "digits": 0,
+          "printed": "285"
+        },
+        {
+          "key": "N",
+          "label": "応答軸力",
+          "value": -12528.9,
+          "digits": 1,
+          "printed": "-12528.9",
+          "unit": "kN"
+        },
+        {
+          "key": "theta_d",
+          "label": "応答部材回転角",
+          "value": -0.035392,
+          "digits": 6,
+          "printed": "-0.035392",
+          "unit": "rad"
+        },
+        {
+          "key": "theta_limit",
+          "label": "損傷レベルの制限値",
+          "value": -0.037156,
+          "digits": 6,
+          "printed": "-0.037156",
+          "unit": "rad"
+        },
+        {
+          "key": "damage_check",
+          "label": "損傷レベルの照査",
+          "text": "0.953<1.00"
+        },
+        {
+          "key": "damage_level_vs_limit",
+          "label": "損傷レベル／損傷レベルの制限値",
+          "text": "3 / 3"
+        },
+        {
+          "key": "shear_case",
+          "label": "せん断 解析ケース(要素番号)",
+          "text": "1 (4)"
+        },
+        {
+          "key": "shear_step",
+          "label": "対応ステップ",
+          "value": 244,
+          "digits": 0,
+          "printed": "244"
+        },
+        {
+          "key": "Vd",
+          "label": "設計せん断力 Vd",
+          "value": 5732.9,
+          "digits": 1,
+          "printed": "5732.9",
+          "unit": "kN"
+        },
+        {
+          "key": "Vud",
+          "label": "設計せん断耐力 Vud",
+          "value": 19578.3,
+          "digits": 1,
+          "printed": "19578.3",
+          "unit": "kN"
+        },
+        {
+          "key": "shear_ratio",
+          "label": "γi・Vd/Vud",
+          "text": "0.293<1.00"
+        },
+        {
+          "key": "L1_Kh",
+          "label": "L1 設計震度 Kh",
+          "value": 0.214,
+          "digits": 3,
+          "printed": "0.214"
+        },
+        {
+          "key": "L1_Khy",
+          "label": "降伏震度 Khy",
+          "value": 0.35,
+          "digits": 3,
+          "printed": "0.350"
+        },
+        {
+          "key": "L1_ratio",
+          "label": "Kh／Khy",
+          "text": "0.612<1.00"
+        },
+        {
+          "key": "L1_damage",
+          "label": "損傷レベル",
+          "text": "1 / 1"
+        }
+      ]
+    },
+    "foundation_checks": {
+      "pages": [
+        "10-21",
+        "10-26"
+      ],
+      "note": "10-21 is a rotated copy of 10-26; transcribed from 10-26",
+      "restorability_L1": {
+        "vertical": {
+          "case": 1,
+          "step": {
+            "value": 16,
+            "digits": 0,
+            "printed": "16"
+          },
+          "node": 7,
+          "gamma_a": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "Vd": {
+            "value": 16826.0,
+            "digits": 1,
+            "printed": "16826.0",
+            "unit": "kN"
+          },
+          "Rvd": {
+            "value": 86173.5,
+            "digits": 1,
+            "printed": "86173.5",
+            "unit": "kN"
+          },
+          "gamma_i": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "ratio": {
+            "value": 0.195,
+            "digits": 3,
+            "printed": "0.195"
+          },
+          "result": "OK"
+        },
+        "horizontal": {
+          "case": 1,
+          "step": {
+            "value": 16,
+            "digits": 0,
+            "printed": "16"
+          },
+          "node": 7,
+          "gamma_a": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "Hd": {
+            "value": 3609.5,
+            "digits": 1,
+            "printed": "3609.5",
+            "unit": "kN"
+          },
+          "Rhd": {
+            "value": 12663.2,
+            "digits": 1,
+            "printed": "12663.2",
+            "unit": "kN"
+          },
+          "gamma_i": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "ratio": {
+            "value": 0.285,
+            "digits": 3,
+            "printed": "0.285"
+          },
+          "result": "OK"
+        },
+        "residual_tilt": {
+          "case": 1,
+          "step": {
+            "value": 16,
+            "digits": 0,
+            "printed": "16"
+          },
+          "node": 7,
+          "gamma_a": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "Md": {
+            "value": 33423.8,
+            "digits": 1,
+            "printed": "33423.8",
+            "unit": "kN·m"
+          },
+          "Mmd": {
+            "value": 53918.3,
+            "digits": 1,
+            "printed": "53918.3",
+            "unit": "kN·m"
+          },
+          "gamma_i": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "ratio": {
+            "value": 0.62,
+            "digits": 3,
+            "printed": "0.620"
+          },
+          "result": "OK"
+        }
+      },
+      "restorability_L2": {
+        "plasticization": {
+          "case": 1,
+          "step": {
+            "value": 30,
+            "digits": 0,
+            "printed": "30"
+          },
+          "node": 7,
+          "Ird": {
+            "value": 10.657,
+            "digits": 3,
+            "printed": "10.657"
+          },
+          "Ild": {
+            "value": 16.7,
+            "digits": 3,
+            "printed": "16.700"
+          },
+          "ratio": {
+            "value": 0.638,
+            "digits": 3,
+            "printed": "0.638"
+          },
+          "result": "OK"
+        },
+        "horizontal": {
+          "case": 1,
+          "step": {
+            "value": 177,
+            "digits": 0,
+            "printed": "177"
+          },
+          "node": 7,
+          "gamma_a": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "Hd": {
+            "value": 6139.6,
+            "digits": 1,
+            "printed": "6139.6",
+            "unit": "kN"
+          },
+          "Rhd": {
+            "value": 15256.9,
+            "digits": 1,
+            "printed": "15256.9",
+            "unit": "kN"
+          },
+          "gamma_i": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "ratio": {
+            "value": 0.402,
+            "digits": 3,
+            "printed": "0.402"
+          },
+          "result": "OK"
+        },
+        "rotation": {
+          "case": 1,
+          "step": {
+            "value": 177,
+            "digits": 0,
+            "printed": "177"
+          },
+          "node": 7,
+          "theta_d_1e-3rad": {
+            "value": 1.53,
+            "digits": 3,
+            "printed": "1.530"
+          },
+          "theta_L_1e-3rad": {
+            "value": 20.0,
+            "digits": 3,
+            "printed": "20.000"
+          },
+          "ratio": {
+            "value": 0.077,
+            "digits": 3,
+            "printed": "0.077"
+          },
+          "result": "OK"
+        }
+      },
+      "safety": {
+        "plasticization": {
+          "case": 1,
+          "step": {
+            "value": 30,
+            "digits": 0,
+            "printed": "30"
+          },
+          "node": 7,
+          "Ird": {
+            "value": 10.657,
+            "digits": 3,
+            "printed": "10.657"
+          },
+          "Ild": {
+            "value": 25.0,
+            "digits": 3,
+            "printed": "25.000"
+          },
+          "ratio": {
+            "value": 0.426,
+            "digits": 3,
+            "printed": "0.426"
+          },
+          "result": "OK"
+        },
+        "horizontal": {
+          "case": 1,
+          "step": {
+            "value": 244,
+            "digits": 0,
+            "printed": "244"
+          },
+          "node": 7,
+          "gamma_a": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "Hd": {
+            "value": 6159.7,
+            "digits": 1,
+            "printed": "6159.7",
+            "unit": "kN"
+          },
+          "Rhd": {
+            "value": 15256.9,
+            "digits": 1,
+            "printed": "15256.9",
+            "unit": "kN"
+          },
+          "gamma_i": {
+            "value": 1.0,
+            "digits": 1,
+            "printed": "1.0"
+          },
+          "ratio": {
+            "value": 0.404,
+            "digits": 3,
+            "printed": "0.404"
+          },
+          "result": "OK"
+        },
+        "rotation": {
+          "case": 1,
+          "step": {
+            "value": 244,
+            "digits": 0,
+            "printed": "244"
+          },
+          "node": 7,
+          "theta_d_1e-3rad": {
+            "value": 1.566,
+            "digits": 3,
+            "printed": "1.566"
+          },
+          "theta_L_1e-3rad": {
+            "value": 30.0,
+            "digits": 3,
+            "printed": "30.000"
+          },
+          "ratio": {
+            "value": 0.052,
+            "digits": 3,
+            "printed": "0.052"
+          },
+          "result": "OK"
+        }
+      }
+    },
+    "ground_reaction": {
+      "page": "10-22",
+      "label": "地盤反力分布図",
+      "case_no": 31,
+      "items": [
+        {
+          "key": "qd",
+          "label": "反力度",
+          "value": 2506.24,
+          "digits": 2,
+          "printed": "2506.24",
+          "unit": "kN/m2"
+        },
+        {
+          "key": "x1",
+          "label": "反力分布幅",
+          "value": 0.746,
+          "digits": 3,
+          "printed": "0.746",
+          "unit": "m"
+        },
+        {
+          "key": "rest",
+          "label": "残り幅",
+          "value": 6.254,
+          "digits": 3,
+          "printed": "6.254",
+          "unit": "m"
+        },
+        {
+          "key": "B",
+          "label": "全幅",
+          "value": 7.0,
+          "digits": 3,
+          "printed": "7.000",
+          "unit": "m"
+        }
+      ]
+    },
+    "foundation_rotational_spring": {
+      "page": "10-23",
+      "label": "＜出力データ リスト：直接基礎底面回転ばねの算定値 (増分ステップ回数 ＝ 31) ＞",
+      "step": 31,
+      "acting_forces": [
+        {
+          "key": "H",
+          "label": "Ｈ",
+          "value": 5747.86,
+          "digits": 3,
+          "printed": "5747.860",
+          "unit": "kN"
+        },
+        {
+          "key": "V",
+          "label": "Ｖ",
+          "value": 16825.971,
+          "digits": 3,
+          "printed": "16825.971",
+          "unit": "kN"
+        },
+        {
+          "key": "M",
+          "label": "Ｍ",
+          "value": 52784.781,
+          "digits": 3,
+          "printed": "52784.781",
+          "unit": "kN*m"
+        }
+      ],
+      "vertical_support": [
+        {
+          "key": "qvd",
+          "label": "ｑvd＝ｆrγ×Ｉγ×βb×Ｂe×γe1×Ｎr＋ｆrq×Ｉq×γe2×Ｄf×(Ｎq-1)",
+          "formula": "＝1.0×0.306×0.484× 0.726×10.00×150.00＋1.0×0.625×11.60× 3.78×( 85.00-1)",
+          "operands": [
+            {
+              "value": 1.0,
+              "digits": 1,
+              "printed": "1.0"
+            },
+            {
+              "value": 0.306,
+              "digits": 3,
+              "printed": "0.306"
+            },
+            {
+              "value": 0.484,
+              "digits": 3,
+              "printed": "0.484"
+            },
+            {
+              "value": 0.726,
+              "digits": 3,
+              "printed": "0.726"
+            },
+            {
+              "value": 10.0,
+              "digits": 2,
+              "printed": "10.00"
+            },
+            {
+              "value": 150.0,
+              "digits": 2,
+              "printed": "150.00"
+            },
+            {
+              "value": 1.0,
+              "digits": 1,
+              "printed": "1.0"
+            },
+            {
+              "value": 0.625,
+              "digits": 3,
+              "printed": "0.625"
+            },
+            {
+              "value": 11.6,
+              "digits": 2,
+              "printed": "11.60"
+            },
+            {
+              "value": 3.78,
+              "digits": 2,
+              "printed": "3.78"
+            },
+            {
+              "value": 85.0,
+              "digits": 2,
+              "printed": "85.00"
+            },
+            {
+              "value": 1,
+              "digits": 0,
+              "printed": "1"
+            }
+          ],
+          "result": {
+            "value": 2462.4,
+            "digits": 2,
+            "printed": "2462.40"
+          },
+          "unit": "kN/m2",
+          "note": "(ｆrγ=1.0, ｆrq=1.0としています); recomputing from printed operands gives 2463.31"
+        },
+        {
+          "key": "qd",
+          "label": "ｑd ＝ｑvd＋γe2×ｄf",
+          "formula": "2462.40+11.60× 3.78",
+          "operands": [
+            {
+              "value": 2462.4,
+              "digits": 2,
+              "printed": "2462.40"
+            },
+            {
+              "value": 11.6,
+              "digits": 2,
+              "printed": "11.60"
+            },
+            {
+              "value": 3.78,
+              "digits": 2,
+              "printed": "3.78"
+            }
+          ],
+          "result": {
+            "value": 2506.24,
+            "digits": 2,
+            "printed": "2506.24"
+          },
+          "unit": "kN/m2"
+        },
+        {
+          "key": "Rvd",
+          "label": "Ｒvd＝Ａ'(Ｂ'×Ｌ)×ｑd",
+          "formula": "＝Ａ'( 0.726× 9.000)×   2506.24)",
+          "operands": [
+            {
+              "value": 0.726,
+              "digits": 3,
+              "printed": "0.726"
+            },
+            {
+              "value": 9.0,
+              "digits": 3,
+              "printed": "9.000"
+            },
+            {
+              "value": 2506.24,
+              "digits": 2,
+              "printed": "2506.24"
+            }
+          ],
+          "result": {
+            "value": 16371.21,
+            "digits": 2,
+            "printed": "16371.21"
+          },
+          "unit": "kN",
+          "note": "printed parentheses unbalanced as shown"
+        },
+        {
+          "key": "Vd_vs_Rvd",
+          "label": "判定",
+          "text": "Ｖd ＝ 16826.0＞ Ｒvd＝ 16371.2"
+        }
+      ],
+      "max_reaction": [
+        {
+          "key": "Pd1",
+          "label": "反力度(左) Pd1",
+          "value": 2506.244,
+          "digits": 3,
+          "printed": "2506.244",
+          "unit": "kN/m2"
+        },
+        {
+          "key": "Pd2",
+          "label": "反力度(右) Pd2",
+          "value": 0.0,
+          "digits": 3,
+          "printed": "0.000",
+          "unit": "kN/m2"
+        },
+        {
+          "key": "X1",
+          "label": "反力分布幅 X1",
+          "value": 0.746,
+          "digits": 3,
+          "printed": "0.746",
+          "unit": "m"
+        },
+        {
+          "key": "X2",
+          "label": "X2",
+          "value": 0.0,
+          "digits": 3,
+          "printed": "0.000",
+          "unit": "m"
+        },
+        {
+          "key": "shape",
+          "label": "分布形状",
+          "value": 4,
+          "digits": 0,
+          "printed": "4"
+        }
+      ],
+      "plasticization": {
+        "key": "bottom_plasticization",
+        "label": "底面塑性化率＝Ｖd／(ｑd×Ｂ×Ｌ)",
+        "formula": "16825.97／( 2506.24× 7.000× 9.000)",
+        "operands": [
+          {
+            "value": 16825.97,
+            "digits": 2,
+            "printed": "16825.97"
+          },
+          {
+            "value": 2506.24,
+            "digits": 2,
+            "printed": "2506.24"
+          },
+          {
+            "value": 7.0,
+            "digits": 3,
+            "printed": "7.000"
+          },
+          {
+            "value": 9.0,
+            "digits": 3,
+            "printed": "9.000"
+          }
+        ],
+        "result": {
+          "value": 0.10657,
+          "digits": 5,
+          "printed": "0.10657"
+        }
+      },
+      "resistance_points": [
+        {
+          "key": "M1",
+          "label": "Ｍ1",
+          "value": 19630.3,
+          "digits": 1,
+          "printed": "19630.3",
+          "unit": "kN*m"
+        },
+        {
+          "key": "theta1",
+          "label": "θ1",
+          "value": 0.00018796,
+          "digits": 8,
+          "printed": "0.00018796",
+          "unit": "rad"
+        },
+        {
+          "key": "Mmd_raw",
+          "label": "Ｍmd＝Ｂ×Ｖd／2.0－Ｖd^2／(2.0×ｑd×Ｌ)",
+          "formula": "7.000× 16826.0／2.0－ 16826.0^2／(2.0× 2506.24× 9.000)",
+          "operands": [
+            {
+              "value": 7.0,
+              "digits": 3,
+              "printed": "7.000"
+            },
+            {
+              "value": 16826.0,
+              "digits": 1,
+              "printed": "16826.0"
+            },
+            {
+              "value": 2.0,
+              "digits": 1,
+              "printed": "2.0"
+            },
+            {
+              "value": 16826.0,
+              "digits": 1,
+              "printed": "16826.0"
+            },
+            {
+              "value": 2.0,
+              "digits": 1,
+              "printed": "2.0"
+            },
+            {
+              "value": 2506.24,
+              "digits": 2,
+              "printed": "2506.24"
+            },
+            {
+              "value": 9.0,
+              "digits": 3,
+              "printed": "9.000"
+            }
+          ],
+          "result": {
+            "value": 52615.17,
+            "digits": 2,
+            "printed": "52615.17"
+          },
+          "unit": "kN*m",
+          "note": "recomputing from printed operands gives 52615.24"
+        },
+        {
+          "key": "Mmd",
+          "label": "Ｍmd＝αf×Ｍmd",
+          "formula": "1.0× 52615.2",
+          "operands": [
+            {
+              "value": 1.0,
+              "digits": 1,
+              "printed": "1.0"
+            },
+            {
+              "value": 52615.2,
+              "digits": 1,
+              "printed": "52615.2"
+            }
+          ],
+          "result": {
+            "value": 52615.2,
+            "digits": 1,
+            "printed": "52615.2"
+          },
+          "unit": "kN*m"
+        },
+        {
+          "key": "theta2",
+          "label": "θ2",
+          "value": 0.00081963,
+          "digits": 8,
+          "printed": "0.00081963",
+          "unit": "rad"
+        }
+      ],
+      "spring_table": {
+        "node": 7,
+        "direction": "回",
+        "Kr": {
+          "value": 104437000.0,
+          "digits": 6,
+          "printed": "0.104437E+09",
+          "unit": "kN*m/rad"
+        },
+        "Kr_prime": {
+          "value": 52218699.99999999,
+          "digits": 6,
+          "printed": "0.522187E+08",
+          "unit": "kN*m/rad"
+        },
+        "M1_plus": {
+          "value": 19630.3,
+          "digits": 6,
+          "printed": "0.196303E+05",
+          "unit": "kN*m"
+        },
+        "M1_minus": {
+          "value": 19630.3,
+          "digits": 6,
+          "printed": "0.196303E+05",
+          "unit": "kN*m"
+        },
+        "Mmd_plus": {
+          "value": 52615.2,
+          "digits": 6,
+          "printed": "0.526152E+05",
+          "unit": "kN*m"
+        },
+        "Mmd_minus": {
+          "value": 52615.2,
+          "digits": 6,
+          "printed": "0.526152E+05",
+          "unit": "kN*m"
+        }
+      },
+      "messages": [
+        "○○○ Ｒｖｄ到達（増分ステップ＝ 31）○○○",
+        "到達時の荷重増分ステップ数は 360です。"
+      ]
+    },
+    "response_summary": {
+      "page": "10-24",
+      "title": "10.6 応答値一覧表",
+      "ground_note": "地盤区分 G2地盤 (地域別係数:0.70), スペクトルI,II 大きいほう",
+      "items": [
+        {
+          "key": "No",
+          "label": "No",
+          "value": 1,
+          "digits": 0,
+          "printed": "1"
+        },
+        {
+          "key": "alpha_f",
+          "label": "αf",
+          "value": 1.0,
+          "digits": 1,
+          "printed": "1.0"
+        },
+        {
+          "key": "rho_m",
+          "label": "ρm",
+          "value": 1.0,
+          "digits": 1,
+          "printed": "1.0"
+        },
+        {
+          "key": "Khy",
+          "label": "初期降伏震度 Khy",
+          "value": 0.35,
+          "digits": 3,
+          "printed": "0.350"
+        },
+        {
+          "key": "Kheq",
+          "label": "全体系折曲点震度 Kheq",
+          "value": 0.368,
+          "digits": 3,
+          "printed": "0.368"
+        },
+        {
+          "key": "delta_eq",
+          "label": "降伏変位 δeq(mm)",
+          "value": 30.5,
+          "digits": 1,
+          "printed": "30.5",
+          "unit": "mm"
+        },
+        {
+          "key": "yield_part",
+          "label": "降伏個所",
+          "text": "柱"
+        },
+        {
+          "key": "Teq",
+          "label": "等価固有周期 Teq(sec)",
+          "value": 0.576,
+          "digits": 3,
+          "printed": "0.576",
+          "unit": "sec"
+        },
+        {
+          "key": "restor_mu",
+          "label": "復旧性 応答塑性率 μ",
+          "value": 5.78,
+          "digits": 2,
+          "printed": "5.78"
+        },
+        {
+          "key": "restor_delta",
+          "label": "復旧性 最大応答変位 δmax(mm)",
+          "value": 176.3,
+          "digits": 1,
+          "printed": "176.3",
+          "unit": "mm"
+        },
+        {
+          "key": "restor_Khmax",
+          "label": "復旧性 最大応答震度 Khmax",
+          "value": 0.385,
+          "digits": 3,
+          "printed": "0.385"
+        },
+        {
+          "key": "KhL1",
+          "label": "L1地震動 KhL1",
+          "value": 0.214,
+          "digits": 3,
+          "printed": "0.214"
+        },
+        {
+          "key": "safety_mu",
+          "label": "安全性 応答塑性率 μ",
+          "value": 9.32,
+          "digits": 2,
+          "printed": "9.32"
+        },
+        {
+          "key": "safety_delta",
+          "label": "安全性 最大応答変位 δmax(mm)",
+          "value": 284.3,
+          "digits": 1,
+          "printed": "284.3",
+          "unit": "mm"
+        },
+        {
+          "key": "safety_Khmax",
+          "label": "安全性 最大応答震度 Khmax",
+          "value": 0.386,
+          "digits": 3,
+          "printed": "0.386"
+        }
+      ],
+      "name_note": "名称 cell printed in unreadably small font"
+    }
+  },
+  "not_transcribed": [
+    "10-15 変位図 (graph only, no printed numbers)",
+    "10-13 load-displacement curve geometry (only labels and the table are transcribed)",
+    "overprinted diagram labels listed as illegible in checks.diagrams"
+  ]
+}
