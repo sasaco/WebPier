@@ -197,3 +197,15 @@ def test_load_factors_must_be_positive(key, value):
     document = data()
     document["上部構造"]["列車"]["荷重修正係数"][key] = value
     fails(document, f"上部構造.列車.荷重修正係数.{key}: 正の数値が必要です")
+
+
+def test_friction_angles_of_any_layer_stay_below_90_degrees():
+    document = data()
+    document["地盤データ"]["層"][0]["内部摩擦角_φd"] = 90.0
+    fails(document, "地盤データ.層[0].内部摩擦角_φd: 90度未満が必要です")
+
+
+def test_support_friction_angle_is_within_the_bearing_factor_table():
+    document = data()
+    document["地盤データ"]["層"][1]["内部摩擦角_φd"] = 24.9
+    fails(document, "地盤データ.層[1].内部摩擦角_φd: 25度以上90度未満が必要です")

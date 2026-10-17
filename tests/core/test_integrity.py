@@ -62,3 +62,7 @@ def test_canonical_sha256_ignores_key_order_but_not_values():
     assert canonical_sha256({"a": 1}) != canonical_sha256({"a": 2})
     with pytest.raises(ValueError):
         canonical_sha256({"a": math.inf})
+
+
+def test_load_json_keeps_finite_floats():
+    assert load_json(b'{"a": 1.25, "b": -0.5e3}') == {"a": 1.25, "b": -500.0}

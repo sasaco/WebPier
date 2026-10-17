@@ -106,10 +106,9 @@ def calculate_foundation(pier: PierInput) -> FoundationResult:
     try:
         b = LENGTH.total(sub.b[index] for index in (7, 8, 9))
         l = LENGTH.total(sub.w[index] for index in (7, 8, 9))
+        # B8 and W8 are positive (parse), so the area and its root are positive too.
         area = AREA(b.value * l.value)
         width = LENGTH(math.sqrt(area.value))
-        if area.value <= 0 or width.value <= 0:
-            raise InputError("下部構造.寸法: 基礎底面積または換算幅が0になります")
         inertia_l = INERTIA_6(l.value * b.value ** 3 / 12)
         inertia_t = INERTIA_6(b.value * l.value ** 3 / 12)
         coefficient, exponent, exponent_text = SOIL_EQUATIONS[support.soil_type]
@@ -118,8 +117,6 @@ def calculate_foundation(pier: PierInput) -> FoundationResult:
         terms = {term: _springs(rho, coefficient, exponent, modulus.value, area, width, inertia_l, inertia_t)
                  for term, rho in RHO.items()}
     except (OverflowError, ValueError) as exc:
-        if isinstance(exc, InputError):
-            raise
         raise InputError(f"0500: 入力が大きすぎるため地盤ばねを計算できません（{exc}）") from exc
     return FoundationResult(
         b=b, l=l, area=area, width=width, inertia_longitudinal=inertia_l, inertia_transverse=inertia_t,
