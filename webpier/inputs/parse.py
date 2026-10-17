@@ -12,9 +12,10 @@ from ..core.printed import Precision, Printed
 from ..core.reader import Reader, Sign
 from . import choices
 from .model import (
-    Bearing, EndReaction, Materials, PierInput, Pile, Reactions, Reserved, Shares,
+    Bearing, EndReaction, Jrsnap, JrsnapConditions, Materials, PierInput, Pile, Reactions, Reserved, Shares,
     Soil, SoilLayer, Span, Spans, Substructure, Train,
 )
+from .rebar import parse_rebar
 
 # Digits of the input sheet (.claude/docs/Example橋脚/pre/input-*.pdf).
 LENGTH = Precision(3, "m")
@@ -30,6 +31,10 @@ FRICTION_ANGLE = Precision(1, "°")
 N_VALUE = Precision(0, "")
 STRESS = Precision(0, "kN/m2")
 STRENGTH = Precision(1, "N/mm2")
+SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
+AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
+SHEAR_FACTOR_MAX = 99.99
+AGGREGATE_RANGE = (0.1, 999_999)
 
 SCHEMA_VERSION = 2
 BEARING_SLOTS = 10
@@ -240,6 +245,21 @@ def _reserved(root: Reader) -> Reserved:
     )
 
 
+def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
+    node = root.at(key).only("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm")
+    factors = []
+    for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd"):
+        factor = _optional(node, name, SHEAR_FACTOR, sign="positive")
+        if factor is not None and factor.value > SHEAR_FACTOR_MAX:
+            raise node.at(name).error(f"{SHEAR_FACTOR_MAX}以下が必要です")
+        factors.append(factor)
+    aggregate = node.at("aggregate_max_mm")
+    size = None if aggregate.is_null else aggregate.printed(AGGREGATE)
+    if size is not None and not AGGREGATE_RANGE[0] <= size.value <= AGGREGATE_RANGE[1]:
+        raise aggregate.error(f"{AGGREGATE_RANGE[0]}～{AGGREGATE_RANGE[1]} mmが必要です")
+    return JrsnapConditions(*factors, aggregate_max=size)
+
+
 TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋",
             "jrsnap_longitudinal", "jrsnap_transverse")
 
@@ -264,4 +284,7 @@ def parse_input(data: Any) -> PierInput:
         soil=_soil(root),
         materials=_materials(root),
         reserved=_reserved(root),
+        rebar=parse_rebar(root),
+        jrsnap=Jrsnap(longitudinal=_jrsnap_conditions(root, "jrsnap_longitudinal"),
+                      transverse=_jrsnap_conditions(root, "jrsnap_transverse")),
     )

@@ -8,8 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from ..core.printed import Printed
+
+if TYPE_CHECKING:  # rebar.py reads the choices, which read this module
+    from .rebar import RebarInput
 
 
 class BrakingRule(Enum):
@@ -178,6 +182,22 @@ class Reserved:
 
 
 @dataclass(frozen=True)
+class JrsnapConditions:
+    """The editable JRSNAP section conditions of one direction (CONTEXT.md JRSNAP入力モデル); None is blank."""
+
+    shear_factor_vcd: Printed | None  # γb of Vcd
+    shear_factor_vsd: Printed | None  # γb of Vsd
+    shear_factor_vdd: Printed | None  # γb of Vdd
+    aggregate_max: Printed | None  # Dmax, mm
+
+
+@dataclass(frozen=True)
+class Jrsnap:
+    longitudinal: JrsnapConditions  # jrsnap_longitudinal (0710)
+    transverse: JrsnapConditions  # jrsnap_transverse (0720)
+
+
+@dataclass(frozen=True)
 class PierInput:
     substructure: Substructure
     spans: Spans
@@ -186,3 +206,5 @@ class PierInput:
     soil: Soil
     materials: Materials
     reserved: Reserved
+    rebar: RebarInput
+    jrsnap: Jrsnap

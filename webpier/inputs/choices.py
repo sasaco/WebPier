@@ -22,3 +22,22 @@ SKEW_TYPES = (1, 2)
 
 LAYER_SURFACE = "表層"
 LAYER_SUPPORT = "支持層"
+
+# 鉄筋 (rebar). The grade name is its characteristic yield strength (JIS G 3112: SD390 → 390 N/mm2).
+STEEL_GRADES = ("SD295", "SD345", "SD390")
+REBAR_DIRECTIONS = ("線路", "直角")
+COVER_MODES = ("自動", "指定")
+COVER_AUTOMATIC, COVER_SPECIFIED = COVER_MODES
+ENDPOINTS = ("含む", "含めない")
+ENDPOINTS_INCLUDED = ENDPOINTS[0]
+DISTRIBUTION_MODES = ("等分", "中央ピッチ", "両端＋中央ピッチ")
+EQUAL, CENTRE_PITCH, EDGE_AND_PITCH = DISTRIBUTION_MODES
+POSITION_MODES = ("基本", "指定")
+POSITION_BASIC, POSITION_MANUAL = POSITION_MODES
+BEAM_FACES = ("上", "下")
+BAR_TYPES = ("ループ筋", "直筋")
+STIRRUP_POSITIONS = ("内側", "外側")
+BAND_TYPES = ("外巻き", "内側")
+LEGS_MODES = ("自動", "指定")
+LEGS_AUTOMATIC = LEGS_MODES[0]
+WIDTH_MODES = ("間隔", "密度")
