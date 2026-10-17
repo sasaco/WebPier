@@ -86,3 +86,8 @@ def test_precision_definition_is_validated():
     with pytest.raises(ValueError):
         Precision(-1, "m")
     assert Precision(0, "kN/m").digits == 0
+
+
+def test_round_handles_the_whole_float_range():
+    assert round_half_away(1.7976931348623157e308, 2) == 1.7976931348623157e308
+    assert round_half_away(5e-324, 3) == 0.0

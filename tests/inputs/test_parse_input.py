@@ -103,12 +103,12 @@ def test_ea17_selects_the_ea17_braking_rule():
     assert parse_input(document).train.braking_rule is BrakingRule.EA17
 
 
-def test_soil_type_choices_include_rock():
+def test_soil_type_choices_follow_the_ground_reaction_equations():
     document = data()
-    document["地盤データ"]["層"][1]["土質区分"] = "岩盤"
-    assert parse_input(document).soil.layers[1].soil_type == "岩盤"
+    document["地盤データ"]["層"][1]["土質区分"] = "砂質土と粘性土の互層"
+    assert parse_input(document).soil.layers[1].soil_type == "砂質土と粘性土の互層"
     document["地盤データ"]["層"][1]["土質区分"] = "安山岩"
-    fails(document, "地盤データ.層[1].土質区分: 「砂質土」「砂礫」「粘性土」「岩盤」のいずれか")
+    fails(document, "地盤データ.層[1].土質区分: 「砂質土」「砂礫」「粘性土」「砂質土と粘性土の互層」のいずれか")
 
 
 def test_unsupported_foundation_type_is_reserved_but_rejected():

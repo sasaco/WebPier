@@ -7,7 +7,7 @@ VEHICLES: dict[str, BrakingRule] = {
     "P-16": BrakingRule.AXLE,
 }
 
-SOIL_TYPES = ("砂質土", "砂礫", "粘性土", "岩盤")
+SOIL_TYPES = ("砂質土", "砂礫", "粘性土", "砂質土と粘性土の互層")
 
 FOUNDATION_TYPES = ("直接基礎", "場所打ち杭")
 SUPPORTED_FOUNDATION = "直接基礎"

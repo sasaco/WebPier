@@ -10,9 +10,11 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Context, Decimal
 
 MAX_DIGITS = 10
+# Enough significant digits for any finite double quantized to MAX_DIGITS places.
+_CONTEXT = Context(prec=400)
 
 
 def _check_digits(digits: object) -> int:
@@ -38,7 +40,8 @@ def round_half_away(value: float, digits: int) -> float:
     """
     number = _check_real(value)
     places = _check_digits(digits)
-    rounded = float(Decimal(repr(number)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+    rounded = float(Decimal(repr(number)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP,
+                                                   context=_CONTEXT))
     return rounded + 0.0  # turn -0.0 into 0.0
 
 
