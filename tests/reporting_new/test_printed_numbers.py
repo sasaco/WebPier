@@ -69,3 +69,26 @@ def test_unit_presentation_is_fixed_per_unit_text():
         assert (node.base.text, node.superscript.text, node.subscript) == (base, exponent, None)
     with pytest.raises(ValueError, match="単位"):
         unit("furlong")
+
+
+def test_decimal_constant_prints_a_calculator_constant_with_its_zeros():
+    from decimal import Decimal
+
+    from webpier.reporting.numbers import decimal_constant
+
+    assert decimal_constant(Decimal("1.00")) == "1.00"
+    assert decimal_constant(Decimal("0.20")) == "0.20"
+    assert decimal_constant(Decimal(200)) == "200"
+    for value in (1.0, "1.00", Decimal("NaN"), Decimal("Infinity")):
+        with pytest.raises((TypeError, ValueError)):
+            decimal_constant(value)
+
+
+def test_force_volume_and_moment_units_of_0600():
+    from gridlayoutpdf import Script
+    from webpier.reporting.numbers import unit
+
+    assert unit("kN") == "kN"
+    assert unit("kN m") == "kN・m"
+    node = unit("m3")
+    assert isinstance(node, Script) and (node.base.text, node.superscript.text) == ("m", "3")

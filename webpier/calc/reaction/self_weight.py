@@ -67,11 +67,22 @@ class Body:
 
 
 @dataclass(frozen=True)
+class HaunchShape:
+    """Plan of a haunch whose sides vary linearly from its lower face to its upper face (decision 22)."""
+
+    lower_length: Printed  # b0, along the track at the lower face
+    lower_width: Printed  # w0, across the track at the lower face
+    length_change: Printed  # Δb = upper − lower
+    width_change: Printed  # Δw
+
+
+@dataclass(frozen=True)
 class Buoyancy:
     """Buoyancy at one water level."""
 
     level: Printed  # water level above the footing base
     rise: Printed  # water above the lower soil surface, at most the soil-surface step |df1 − df2|
+    submerged: Printed  # max(rise, 0): the submerged height of the sloped soil zone
     wedge: Printed  # width along the track where the sloped soil surface is under water
     rectangle: Printed  # remaining width, where the submerged soil is a full rectangle
     body: Body  # rows: footing plan below the lower soil surface, column above the soil, wedge, rectangle
@@ -112,6 +123,7 @@ class SelfWeightResult:
     pedestal: Body  # 桁受け, one prism of height H1 on the beam top
     beam_top_area: Printed  # A1 = B1 × W1
     beam_bottom_area: Printed  # A2 = (B1−B4−B5)(W1−W4−W5)
+    beam_haunch_shape: HaunchShape  # lower face B1 − B4 − B5 by W1 − W4 − W5, up to B1 × W1
     beam_haunch_centroid: Printed  # z: haunch centroid above its lower (smaller) face A2, exact (decision 22)
     beam: Body  # rows: prism (H2), haunch (H3)
     column_area: Printed  # B6 × W6
@@ -120,8 +132,12 @@ class SelfWeightResult:
     footing_width: Printed  # W = W7 + W8 + W9
     footing_top_area: Printed  # A1 = B8 × W8
     footing_bottom_area: Printed  # A2 = B × W
+    footing_haunch_shape: HaunchShape  # lower face B × W, up to B8 × W8
     footing_haunch_centroid: Printed  # z: haunch centroid above its lower (larger) face A2
     footing: Body  # rows: haunch (H5), prism (H6)
+    footing_height: Printed  # H5 + H6
+    soil_low: Printed  # min(df1, df2): the lower soil cover above the footing top
+    soil_step: Printed  # |df1 − df2|: the height of the sloped soil zone
     soil_depth_at_column: Printed  # soil depth above the footing top at the column axis
     overburden: Body  # rows: trapezoid, column deduction, haunch layer, footing-haunch deduction
     buoyancy_high: Buoyancy  # hw1
@@ -168,13 +184,19 @@ def _area(a: Decimal, b: Decimal, name: str) -> Printed:
     return area
 
 
-def _haunch_centroid(height: Printed, lower: tuple[Decimal, Decimal], upper: tuple[Decimal, Decimal]) -> Printed:
+def _haunch_shape(lower: tuple[Decimal, Decimal], upper: tuple[Decimal, Decimal]) -> HaunchShape:
+    return HaunchShape(put(LENGTH, lower[0]), put(LENGTH, lower[1]),
+                       put(LENGTH, upper[0] - lower[0]), put(LENGTH, upper[1] - lower[1]))
+
+
+def _haunch_centroid(height: Printed, shape: HaunchShape) -> Printed:
     """Centroid above the lower face of a haunch whose sides b and w both vary linearly (decision 22).
 
     z = ∫z·b·w dz / ∫b·w dz = h (b0w0/2 + (b0Δw + w0Δb)/3 + ΔbΔw/4) / (b0w0 + (b0Δw + w0Δb)/2 + ΔbΔw/3),
     consistent with the prismatoid volume; for similar sections it equals the frustum formula.
     """
-    (b0, w0), (db, dw) = lower, (upper[0] - lower[0], upper[1] - lower[1])
+    b0, w0, db, dw = (d(value) for value in (shape.lower_length, shape.lower_width,
+                                              shape.length_change, shape.width_change))
     cross = b0 * dw + w0 * db
     return put(LENGTH, d(height) * (b0 * w0 / 2 + cross / 3 + db * dw / 4) / (b0 * w0 + cross / 2 + db * dw / 3))
 
@@ -185,13 +207,13 @@ def _scaled(offset: Printed, z: Printed, height: Printed) -> Printed:
 
 
 def _buoyancy(level: Printed, pier: PierInput, footing_area: Printed, column_area: Printed, column: Body,
-              soil_depth: Printed, bf: Printed, wf: Printed) -> Buoyancy:
-    s = pier.substructure
-    df1, df2 = d(s.df1), d(s.df2)
-    base, low, step = d(s.h[5]) + d(s.h[6]), min(df1, df2), abs(df1 - df2)
+              soil_depth: Printed, bf: Printed, wf: Printed, levels: tuple[Printed, Printed, Printed]) -> Buoyancy:
+    df1, df2 = d(pier.substructure.df1), d(pier.substructure.df2)
+    base, low, step = (d(value) for value in levels)
     hw = d(level)
     rise = put(LENGTH, min(hw - base - low, step))
-    wet = max(d(rise), ZERO)
+    submerged = put(LENGTH, max(d(rise), ZERO))
+    wet = d(submerged)
     wedge = put(LENGTH, min(d(bf) * wet / step, d(bf))) if step and wet else LENGTH(0)
     rectangle = put(LENGTH, d(bf) - d(wedge))
     half = d(bf) / 2
@@ -206,7 +228,8 @@ def _buoyancy(level: Printed, pier: PierInput, footing_area: Printed, column_are
         _row(put(VOLUME, d(wedge) * d(wf) * wet / 2), put(LENGTH, wedge_x), zero),
         _row(put(VOLUME, d(rectangle) * d(wf) * wet), put(LENGTH, rectangle_x), zero),
     )
-    return Buoyancy(level=level, rise=rise, wedge=wedge, rectangle=rectangle, body=_body("浮力", rows, WATER))
+    return Buoyancy(level=level, rise=rise, submerged=submerged, wedge=wedge, rectangle=rectangle,
+                    body=_body("浮力", rows, WATER))
 
 
 def _weight_row(part: Part, weight: Printed, x_l: Printed, x_c: Printed, y: Printed | None) -> WeightRow:
@@ -250,7 +273,8 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     lower_b, lower_w = b[1] - b[4] - b[5], w[1] - w[4] - w[5]
     top_area, bottom_area = _area(b[1], w[1], "はり上面"), _area(lower_b, lower_w, "はり下面")
     beam_x_l, beam_x_c = put(LENGTH, (b[5] - b[4]) / 2), put(LENGTH, (w[5] - w[4]) / 2)
-    z = _haunch_centroid(s.h[3], (lower_b, lower_w), (b[1], w[1]))
+    beam_shape = _haunch_shape((lower_b, lower_w), (b[1], w[1]))
+    z = _haunch_centroid(s.h[3], beam_shape)
     beam = _body("はり", [
         _row(put(VOLUME, d(top_area) * h[2]), beam_x_l, beam_x_c, put(LENGTH, -h[2] / 2)),
         _row(put(VOLUME, h[3] / 6 * (lower_b * w[1] + b[1] * lower_w + 2 * (d(top_area) + d(bottom_area)))),
@@ -264,7 +288,8 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     # フーチング: haunch (H5) on the base prism (H6); z from the larger lower face.
     bf, wf = LENGTH.total(s.b[i] for i in (7, 8, 9)), LENGTH.total(s.w[i] for i in (7, 8, 9))
     footing_top, footing_bottom = put(AREA, b[8] * w[8]), _area(d(bf), d(wf), "フーチング下面")
-    zf = _haunch_centroid(s.h[5], (d(bf), d(wf)), (b[8], w[8]))
+    footing_shape = _haunch_shape((d(bf), d(wf)), (b[8], w[8]))
+    zf = _haunch_centroid(s.h[5], footing_shape)
     footing_haunch = _row(put(VOLUME, h[5] / 6 * (d(bf) * w[8] + b[8] * d(wf) + 2 * (d(footing_top) + d(footing_bottom)))),
                           _scaled(column.x_l, zf, s.h[5]), _scaled(column.x_c, zf, s.h[5]), put(LENGTH, h[6] + d(zf)))
     footing = _body("フーチング", [footing_haunch, _row(put(VOLUME, d(footing_bottom) * h[6]), LENGTH(0), LENGTH(0),
@@ -283,7 +308,8 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
         _row(put(VOLUME, -d(footing_haunch.volume)), footing_haunch.x_l, footing_haunch.x_c),
     ], s.unit_weight_overburden)
 
-    water = [_buoyancy(level, pier, footing_bottom, column_area, column, soil_depth, bf, wf)
+    levels = (put(LENGTH, h[5] + h[6]), put(LENGTH, min(df1, df2)), put(LENGTH, abs(df1 - df2)))
+    water = [_buoyancy(level, pier, footing_bottom, column_area, column, soil_depth, bf, wf, levels)
              for level in (s.hw1, s.hw2, s.hw3)]
 
     # 柱下端: the pedestal enters by its weight and in the transverse moment (decision 20).
@@ -305,10 +331,12 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     ])
     return SelfWeightResult(
         pedestal_area=pedestal_area, pedestal=pedestal,
-        beam_top_area=top_area, beam_bottom_area=bottom_area, beam_haunch_centroid=z, beam=beam,
+        beam_top_area=top_area, beam_bottom_area=bottom_area, beam_haunch_shape=beam_shape,
+        beam_haunch_centroid=z, beam=beam,
         column_area=column_area, column=column,
         footing_length=bf, footing_width=wf, footing_top_area=footing_top, footing_bottom_area=footing_bottom,
-        footing_haunch_centroid=zf, footing=footing,
+        footing_haunch_shape=footing_shape, footing_haunch_centroid=zf, footing=footing,
+        footing_height=levels[0], soil_low=levels[1], soil_step=levels[2],
         soil_depth_at_column=soil_depth, overburden=overburden,
         buoyancy_high=water[0], buoyancy_normal=water[1], buoyancy_low=water[2],
         pier_bottom=pier_bottom, footing_centre=footing_centre,

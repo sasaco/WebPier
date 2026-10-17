@@ -29,6 +29,7 @@ class _PaperEquations:
     result_right: float | None
     unit_start: float | None
     block_id: str
+    label_width: float | None = None
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
         pitch = context.profile.grid.pitch_x
@@ -53,7 +54,8 @@ class _PaperEquations:
             assert first is not None
             anchors = EquationAnchors(first, relation_center(self.second_equal, equation.result_relation),
                                       relative(self.result_right), relative(self.unit_start))
-            measured = measure_block(EquationGroup(equation, anchors=anchors, style=BODY,
+            labels = None if self.label_width is None else grid_units(self.label_width, pitch)
+            measured = measure_block(EquationGroup(equation, anchors=anchors, style=BODY, label_columns=labels,
                                                      gap=4.08, block_id=self.block_id), context, available_width)
             parts.extend(replace(part, metadata={**part.metadata, "equation_index": index}) for part in measured.parts)
         return MeasuredBlock(available_width, context.profile.grid.pitch_y, tuple(parts),
@@ -62,12 +64,15 @@ class _PaperEquations:
 
 def equation_group(*equations: Equation, left: float = 117, first_equal: float = 169.92,
                    second_equal: float | None = None, result_right: float | None = None,
-                   unit_start: float | None = None, block_id: str = "") -> Block:
+                   unit_start: float | None = None, block_id: str = "",
+                   label_width: float | None = None) -> Block:
     """Use paper text-origin x values for relations, and right edges for results.
 
     Relation centers are rounded to the nearest 0.12 pt grid column at measure
     time, so their native text origins differ by at most 0.06 pt from the target.
     Each equation resolves its own relation font/width; no text is resized.
+    An equation label (text written left-aligned at *left*, before the lhs) needs
+    an explicit *label_width*: GridLayoutPdf sizes automatic labels for coarse grids.
     """
     return indent_to(_PaperEquations(equations, left, first_equal, second_equal,
-                                     result_right, unit_start, block_id), left)
+                                     result_right, unit_start, block_id, label_width), left)

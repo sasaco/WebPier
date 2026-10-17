@@ -335,3 +335,23 @@ def test_a_section_that_rounds_to_zero_area_is_an_input_error():
     with pytest.raises(InputError, match="はり下面"):
         calculate_self_weight(pier(**{"下部構造/寸法/側面/B4": 1.349, "下部構造/寸法/側面/B5": 1.35,
                                       "下部構造/寸法/正面/W4": 4.4, "下部構造/寸法/正面/W5": 4.5}))
+
+
+def test_haunch_shapes_and_soil_levels_are_the_printed_operands():
+    """The 0600 report writes the haunch and buoyancy formulas with these values (ADR-0003)."""
+    result = calculate_self_weight(pier(**ASYMMETRIC))
+    beam, footing = result.beam_haunch_shape, result.footing_haunch_shape
+    # Beam lower face B1 − B4 − B5 = 3.000 − 0.400 − 0.200, W1 − W4 − W5 = 8.000 − 1.500 − 2.000; up to 3.000 × 8.000.
+    assert [x.value for x in (beam.lower_length, beam.lower_width, beam.length_change, beam.width_change)] == [
+        2.4, 4.5, 0.6, 3.5]
+    # Footing lower face B7 + B8 + B9 = 6.000, W7 + W8 + W9 = 9.000; up to B8 × W8 = 2.400 × 4.600.
+    assert [x.value for x in (footing.lower_length, footing.lower_width, footing.length_change,
+                              footing.width_change)] == [6.0, 9.0, -3.6, -4.4]
+    assert result.beam_bottom_area.value == 10.8  # A2 = b0 × w0 = 2.400 × 4.500
+    assert result.footing_height.value == 1.9  # H5 + H6 = 0.400 + 1.500
+    assert (result.soil_low.value, result.soil_step.value) == (0.6, 0.6)  # min(1.2, 0.6), 1.2 − 0.6
+    assert result.buoyancy_high.submerged.value == 0.3  # max(rise 0.300, 0)
+    assert result.buoyancy_low.rise.value == -3.0 and result.buoyancy_low.submerged.value == 0.0
+    for value in (beam.lower_length, footing.width_change, result.footing_height, result.soil_step,
+                  result.buoyancy_low.submerged):
+        assert (value.digits, value.unit) == (3, "m")

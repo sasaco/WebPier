@@ -25,7 +25,10 @@ MAIN_SIZE = 8.0          # body text is 9.9 pt, scripts 6.5 pt
 GAP = 1.5                # a wider horizontal gap separates two runs (a space)
 MATH_STROKE = (0.3, 0.9)  # fraction bars and radicals; table rules are 0.12/0.96 pt
 TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|[=×+\-−()/,]|\S")
-FUNCTIONS = {"min": min, "sqrt": math.sqrt}
+FUNCTIONS = {"min": min, "max": max, "sqrt": math.sqrt}
+# Evaluated in decimal arithmetic, as a person with a calculator: 14.517 × 0.5 + 0.100 is 7.3585, not 7.35849999.
+_DECIMAL = {"min": min, "max": max, "sqrt": lambda value: value.sqrt(), "D": Decimal}
+CONTINUATION = {"=", "+", "-", "−", "×", "/"}  # a wrapped formula continues on the next line with an operator
 
 Token = tuple[Any, ...]
 
@@ -173,8 +176,8 @@ def read_lines(page: pymupdf.Page) -> list[tuple[float, list[Token]]]:
         groups.append(_Group("root", x0, anchor, [body]))
     lines: list[tuple[float, list[Token]]] = []
     for baseline, tokens in _lines(chars, groups):
-        if lines and tokens[:1] == [("op", "=")]:
-            # A wrapped formula continues on the next line with its relation.
+        if lines and tokens and tokens[0][0] == "op" and tokens[0][1] in CONTINUATION:
+            # A wrapped formula continues on the next line with its relation or an operator.
             lines[-1] = (lines[-1][0], lines[-1][1] + tokens)
         else:
             lines.append((baseline, tokens))
@@ -229,14 +232,15 @@ def _expression(tokens: list[Token]) -> str | None:
     return "".join(out)
 
 
-def _evaluate(expression: str) -> float:
-    if not re.fullmatch(r"(?:[\d.+\-*/(),]|min|sqrt)+", expression):
+def _evaluate(expression: str) -> Decimal:
+    if not re.fullmatch(r"(?:[\d.+\-*/(),]|min|max|sqrt)+", expression):
         raise ValueError(f"not a numeric expression: {expression}")
-    return float(eval(expression, {"__builtins__": {}}, FUNCTIONS))  # noqa: S307 - validated above
+    exact = re.sub(r"\d+(?:\.\d+)?", lambda match: f"D('{match.group()}')", expression)
+    return Decimal(eval(exact, {"__builtins__": {}}, _DECIMAL))  # noqa: S307 - validated above
 
 
-def _round(value: float, decimals: int) -> Decimal:
-    return Decimal(repr(value)).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
+def _round(value: Decimal, decimals: int) -> Decimal:
+    return value.quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
 
 
 def formula_checks(path: str | Path) -> list[FormulaCheck]:
@@ -249,12 +253,67 @@ def formula_checks(path: str | Path) -> list[FormulaCheck]:
                 for start, end in zip(equals, equals[1:]):
                     segment = tokens[start + 1:end]
                     expression = _expression(segment)
-                    if (expression is None or end + 1 >= len(tokens) or tokens[end + 1][0] != "num"
-                            or not re.search(r"[*/+\-]|min|sqrt", expression.lstrip("-"))):
+                    result = tokens[end + 1:end + 3]
+                    sign = ""
+                    if result[:1] in ([("op", "-")], [("op", "−")]):  # a negative result
+                        sign, result = "-", result[1:]
+                    if (expression is None or not result or result[0][0] != "num"
+                            or not re.search(r"[*/+\-]|min|max|sqrt", expression.lstrip("-"))):
                         continue
-                    printed = tokens[end + 1][1]
-                    decimals = len(printed.partition(".")[2])
+                    printed = sign + result[0][1]
+                    decimals = len(printed.partition(".")[2])  # the sign is not a digit
                     computed = _evaluate(expression)
                     ok = _round(computed, decimals) == Decimal(printed.replace(",", ""))
-                    checks.append(FormulaCheck(page.number + 1, tokens_text(tokens), expression, printed, computed, ok))
+                    checks.append(FormulaCheck(page.number + 1, tokens_text(tokens), expression, printed,
+                                               float(computed), ok))
     return checks
+
+
+CELL_GAP = 3.0  # table cells are separated by rules and padding; words within a cell by less
+BODY_SIZE = 9.5  # body and table text is 9.9 pt; figure dimensions (8 pt) and scripts are not table cells
+
+
+@dataclass(frozen=True)
+class PrintedLine:
+    page: int
+    baseline: float
+    cells: tuple[str, ...]
+
+
+def printed_lines(path: str | Path) -> list[PrintedLine]:
+    """Every printed line as its runs of main-size text (table cells), top to bottom, page by page.
+
+    Scripts (units such as m3, subscripts of xL) and figure labels are left out; a run ends at a gap
+    wider than a space, so each table cell is one run and a number is never split.
+    """
+    lines = []
+    with pymupdf.open(path) as pdf:
+        for page in pdf:
+            chars = sorted((char for char in _chars(page) if char.size >= BODY_SIZE), key=lambda char: char.baseline)
+            rows: list[list[Char]] = []
+            for char in chars:
+                if rows and abs(char.baseline - rows[-1][0].baseline) <= 0.6:
+                    rows[-1].append(char)
+                else:
+                    rows.append([char])
+            for row in rows:
+                cells: list[str] = []
+                previous = None
+                for char in sorted(row, key=lambda char: char.x0):
+                    if previous is None or char.x0 - previous.x1 > CELL_GAP:
+                        cells.append(char.c)
+                    else:
+                        cells[-1] += char.c
+                    previous = char
+                lines.append(PrintedLine(page.number + 1, row[0].baseline, tuple(cells)))
+    return lines
+
+
+def decimal_of(text: str) -> Decimal | None:
+    """A printed number as written, or None for anything else (a dash, a word)."""
+    return Decimal(text.replace(",", "")) if re.fullmatch(r"-?\d[\d,]*(?:\.\d+)?", text) else None
+
+
+def rounded_like(value: Decimal, printed: str) -> Decimal:
+    """*value* rounded half away from zero to the decimals of *printed*."""
+    return _round(value, len(printed.partition(".")[2]))

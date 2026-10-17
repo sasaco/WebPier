@@ -38,6 +38,15 @@ def constant(value: float) -> str:
     return repr(value)
 
 
+def decimal_constant(value: Decimal) -> str:
+    """A calculator constant held as a Decimal (Kh = 1.00, μ = 0.20) as written, with its zeros."""
+    if not isinstance(value, Decimal):
+        raise TypeError(f"定数は Decimal が必要です（入力: {value!r}）")
+    if not value.is_finite():
+        raise ValueError(f"定数は有限の値が必要です（入力: {value!r}）")
+    return format(value, "f")
+
+
 def _power(base: str, exponent: str) -> MathNode:
     return script(base, superscript=exponent)
 
