@@ -86,7 +86,7 @@ FEMPythonソースHEAD=`7488c8fb4d6c100438a9691747ceb11fd9e66358`（確認時cle
 
 最終統合候補の通常all実行は12成果物を生成し、実GUI完了検証関数で全SHA・共通publication_id・4PDF順序を確認した（`integrated/verification.json`）。0610 nativeはMCP検証済みbytesと一致した。
 
-並行担当のnon-Tk全3144件では3139成功・旧`test_report_cli.py`の5件が失敗した。履歴fixtureのB6=1.75によるqH=2.625→2.63と、L2未設定による片側ゼロ候補を、新0620検査が拒否したためである。0500固有2試験はstageを明示し、全工程公開3試験のコピーだけB6=1.76・両側d1/d2のL2=0.5を明記した。元fixtureは保持し、A/Izは独立の固定値、その他の骨組期待値と全stage同値比較を維持した。調整後の同ファイル11件はすべて成功（`P7橋脚/.agents/logs/transverse-publication-report-cli-green-2.log`）。製品処理の緩和はなく、旧条件の拒否試験も別に保持する。
+並行担当のnon-Tk全3144件では3139成功・旧`test_report_cli.py`の5件が失敗した。履歴fixtureのB6=1.75によるqH=2.625→2.63と、L2未設定による片側ゼロ候補を、新0620検査が拒否したためである。0500固有2試験はstageを明示し、全工程公開3試験のコピーだけB6=1.76・両側d1/d2のL2=0.5を明記した。元fixtureは保持し、A/Izは独立の固定値、その他の骨組期待値と全stage同値比較を維持した。調整後の同ファイル11件はすべて成功（`./.agents/logs/transverse-publication-report-cli-green-2.log`）。製品処理の緩和はなく、旧条件の拒否試験も別に保持する。
 
 通常の `run_design.py --stage 0610 --overwrite` で本番4成果物を公開した。`delivery-receipt.json` のpublication_idは `ec960b036ca5455e8eeaa0560bff1a3a`、schema2、selected_stages=[0610]。native SHAは上記MCP入力と一致し、付帯JSON・生成元の全SHAも照合済み。`delivery-scope.json` では入力と他段階の成果物が不変。0610結果JSONも不変で、PDFは生成日時等によりSHAが変わったが、全8頁の文字と描画pixelsが以前の計算書と一致した。開始時152ファイルの監査でも元資料・入力の変更、ファイル欠損はない。
 

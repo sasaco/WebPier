@@ -27,7 +27,7 @@ Example橋脚2/08_線路.pdfのp1–5・p9–11と0610の比較結果を、今�
 
 生成呼出しと荷重図専用描画・専用試験を削除し、既存帳票試験を8頁・荷重図なし・連番・内容順へ更新済み。計算・JSON契約・入力・他成果物は不変。訂正後の候補生成・残存頁比較・320係数／JSON不変確認・正式公開と公開SHA確認まで完了した。旧11頁の候補記録は `tmp/longitudinal-example2-parity/history/20261016-remove-load-diagrams/previous-candidate` に保存し、以下の旧11頁QA／公開SHAとともに履歴として扱う。
 
-訂正の検証：Rootの関連2 target（帳票／canonical CLI）は29 passed in 20.87s、exit 0。ログは `P7橋脚/.agents/logs/longitudinal-remove-extra-load-diagrams.log`。本訂正ではこの関連29件を実行し、全体ゲートは再実行していない。旧3144 passedは訂正前の結果であり、新8頁版の全体試験結果へ読み替えない。
+訂正の検証：Rootの関連2 target（帳票／canonical CLI）は29 passed in 20.87s、exit 0。ログは `./.agents/logs/longitudinal-remove-extra-load-diagrams.log`。本訂正ではこの関連29件を実行し、全体ゲートは再実行していない。旧3144 passedは訂正前の結果であり、新8頁版の全体試験結果へ読み替えない。
 
 8頁候補のmanual QAと12自動条件はPASS、第7頁の320係数は一致。新p1～5のPNGは旧p1～5とbytes一致し、新p6～8は旧p9～11の見出し／フッター番号だけを変更。全8頁で許可領域外の本文pixelsと番号を正規化したtextが一致する。JSON・独立106数値・入力は不変。証跡は `tmp/longitudinal-example2-parity/candidate/qa/page-removal-verification.json` と同ディレクトリの `navigator-pdf-qa.json`。
 
@@ -40,24 +40,24 @@ Example橋脚2/08_線路.pdfのp1–5・p9–11と0610の比較結果を、今�
 以下はリポジトリ相対パス。新規モジュール名は責務の分割案であり、必要な範囲で統合してよい。
 
 - New files:
-  - P7橋脚/pier_design/longitudinal_example2_cases.py：20基本、16組合せ、Define、抽出、意味付きIDと出典。
-  - P7橋脚/pier_design/longitudinal_actions.py：無係数L、0600用途別橋脚衝撃係数を使うIの解決、雪3種類。名目係数と適用済み係数を区別。
-  - P7橋脚/pier_design/longitudinal_example2_report.py：正規結果だけを使用する専用帳票。旧layout・原PDF・実入力を再読込みしない。
-  - P7橋脚/pier_design/longitudinal_design_conditions.py：既存部位別f'ckの専用parser、RcDan表によるEc補間、資料例外。beam/column/footingを持つfrozen dataclassで保持し、強度の別入力や新GUIは作らない。
-  - P7橋脚/pier_design/foundation_springs.py：0500正規結果から方向・長短期を指定してKv/Ks/Krを返す小さな共通アダプター。
-  - P7橋脚/tests/fixtures/longitudinal_example2_cases.json：PDFから独立転記した20基本・320係数・Define・抽出と出典。衝撃期待値はExample数値と区別。
-  - P7橋脚/tests/test_longitudinal_example2_reference.py：独立fixture自身の品質検査（製品TDDのRedとは区別）。
-  - P7橋脚/tests/test_longitudinal_example2_cases.py、test_longitudinal_example2_pipeline.py、test_longitudinal_design_conditions.py、test_foundation_springs.py：新契約の検証。
-  - 必要な場合のみP7橋脚/pier_design/longitudinal_legacy.py：旧xls監査経路。
+  - src/longitudinal_example2_cases.py：20基本、16組合せ、Define、抽出、意味付きIDと出典。
+  - src/longitudinal_actions.py：無係数L、0600用途別橋脚衝撃係数を使うIの解決、雪3種類。名目係数と適用済み係数を区別。
+  - src/longitudinal_example2_report.py：正規結果だけを使用する専用帳票。旧layout・原PDF・実入力を再読込みしない。
+  - src/longitudinal_design_conditions.py：既存部位別f'ckの専用parser、RcDan表によるEc補間、資料例外。beam/column/footingを持つfrozen dataclassで保持し、強度の別入力や新GUIは作らない。
+  - src/foundation_springs.py：0500正規結果から方向・長短期を指定してKv/Ks/Krを返す小さな共通アダプター。
+  - ./tests/fixtures/longitudinal_example2_cases.json：PDFから独立転記した20基本・320係数・Define・抽出と出典。衝撃期待値はExample数値と区別。
+  - ./tests/test_longitudinal_example2_reference.py：独立fixture自身の品質検査（製品TDDのRedとは区別）。
+  - ./tests/test_longitudinal_example2_cases.py、test_longitudinal_example2_pipeline.py、test_longitudinal_design_conditions.py、test_foundation_springs.py：新契約の検証。
+  - 必要な場合のみsrc/longitudinal_legacy.py：旧xls監査経路。
 - Modified files:
-  - P7橋脚/pier_design/longitudinal_calculator.py、longitudinal_combinations.py：新正規モデル／用途別作用の接続と旧監査データの分離。
-  - P7橋脚/pier_design/frame_model.py：0610の材料参照を部位へ対応。既存形状・断面・剛域・節点を維持。
-  - P7橋脚/pier_design/transverse_calculator.py：C02の全支持ばねの方向・精度接続だけ。0620材料・荷重・ケース体系は対象外。
-  - P7橋脚/pier_design/frame_model_report.py：初期C02で方向別ばね注記を対応済み。新0610帳票はgraph描画だけ再利用し、旧材料注記は利用しない。longitudinal_report_reference.pyは旧監査用に保持。
-  - P7橋脚/pier_design/longitudinal_report.py：必要な場合のみ公開入口の接続更新。
-  - P7橋脚/tools/build_longitudinal_report_layout.py：明示legacy計算へ移行。既存assets/longitudinal_report_layout.jsonは再生成・改変しない。
-  - P7橋脚/tests/test_longitudinal_calculator.py、test_longitudinal_report.py、test_longitudinal_cli.py、test_reaction_snow_integration.py、test_transverse_calculator.py、test_transverse_report.pyと必要な入力／frame試験：正規契約と旧監査試験を分離。
-  - P7橋脚/README.md：入力由来f'ck、RcDan表によるEc補間、支持ばね方向、C05許容差、ケース体系・schema・公開範囲。
+  - src/longitudinal_calculator.py、longitudinal_combinations.py：新正規モデル／用途別作用の接続と旧監査データの分離。
+  - src/frame_model.py：0610の材料参照を部位へ対応。既存形状・断面・剛域・節点を維持。
+  - src/transverse_calculator.py：C02の全支持ばねの方向・精度接続だけ。0620材料・荷重・ケース体系は対象外。
+  - src/frame_model_report.py：初期C02で方向別ばね注記を対応済み。新0610帳票はgraph描画だけ再利用し、旧材料注記は利用しない。longitudinal_report_reference.pyは旧監査用に保持。
+  - src/longitudinal_report.py：必要な場合のみ公開入口の接続更新。
+  - ./tools/build_longitudinal_report_layout.py：明示legacy計算へ移行。既存assets/longitudinal_report_layout.jsonは再生成・改変しない。
+  - ./tests/test_longitudinal_calculator.py、test_longitudinal_report.py、test_longitudinal_cli.py、test_reaction_snow_integration.py、test_transverse_calculator.py、test_transverse_report.pyと必要な入力／frame試験：正規契約と旧監査試験を分離。
+  - ./README.md：入力由来f'ck、RcDan表によるEc補間、支持ばね方向、C05許容差、ケース体系・schema・公開範囲。
 - 読取り・回帰対象：calculator.py、report.py、reaction_calculator.py、reaction_weights.py、moving_load.py、rebar_model.py、cli.py、editor_calculation.py。既存の0600結果にraw_reactions／train.pierの用途別係数があるため、0600計算変更は原則不要。
 - Dependencies：既存Python、pytest、ReportLab、PyMuPDF、pypdf。追加依存、実行時Excel/PDF読取りなし。
 - 保持：本計画は0500の計算・旧macro、0600の橋脚低減式・用途別係数・丸め・出力を変更しない。初期C02後、0620は別計画transverse-example2-parityがschema 2へ移行中。現在の0620材料／荷重／ケース／帳票／公開は別作業所有であり、本計画の旧状態へ戻さない。

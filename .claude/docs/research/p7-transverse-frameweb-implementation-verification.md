@@ -6,7 +6,7 @@
 ## 実装した経路
 
 `--stage 0620` は通常の0620計算結果から、PDF・計算JSONと同時に
-`P7橋脚/post/線路直角方向.json` と `線路直角方向.provenance.json` を生成する。
+`./post/線路直角方向.json` と `線路直角方向.provenance.json` を生成する。
 `--stage all` とGUIの全工程計算は、線路方向を含む12成果物を検証する。
 表示する帳票は従来どおり4 PDF。カスタム出力先の場合はその配下の `post`、
 `--post-dir` 指定時は指定先を使用する。
@@ -16,10 +16,10 @@ PDF表示桁から数値を復元せず、元の数値精度を保持する。
 Exampleの符号差・風モーメント端数差・風載荷区間差は既存調査文書に分離し、
 P7の正規作用を優先した。計算式、入力条件、Example原本は変更しない。
 
-実装箇所は `P7橋脚/pier_design/frameweb_export.py`、
+実装箇所は `src/frameweb_export.py`、
 `frameweb_transverse_cases.py`、`frameweb_artifacts.py`、
 `artifact_publication.py`、`cli.py`、`editor_calculation.py`。
-再生成方法と外部ソフトの制約は `P7橋脚/README.md` に記載した。
+再生成方法と外部ソフトの制約は `./README.md` に記載した。
 
 ## 変換の確認結果
 
@@ -117,7 +117,7 @@ CLI 0620・CLI all・実CalculationControllerのall再計算で直角nativeが�
 
 関連329試験PASS、Tkを使う3試験のみ別プロセス実行へ分離したカバレッジは95%
 （基準85%、6対象module、1251行中1184行を実行）。
-ログは `P7橋脚/.agents/logs/transverse-frameweb-root-coverage-nontk.log`。
+ログは `./.agents/logs/transverse-frameweb-root-coverage-nontk.log`。
 
 初回 `.agents/check.ps1` の全体ゲートはTk初期化/イベント処理の待ち時間を調べて中断した。
 停止した実行を全体ゲートPASSとして数えない。全nodeの収集結果に基づく非Tk3144件は
@@ -148,7 +148,7 @@ setup/call/teardownがすべてPASSしている。
 通常の納品コマンド:
 
 ```powershell
-uv run --project P7橋脚 --locked python -X utf8 P7橋脚/run_design.py --stage 0620 --overwrite
+uv run --project . --locked python -X utf8 ./run_design.py --stage 0620 --overwrite
 ```
 
 exit0、publication ID `811e843be7d04b9f89f496871a0a93dd`。
@@ -156,10 +156,10 @@ exit0、publication ID `811e843be7d04b9f89f496871a0a93dd`。
 
 | 本番成果物 | SHA-256 |
 |---|---|
-| `P7橋脚/post/線路直角方向.json` | `b692a9ec5157af8daf0000bd31e70085b2fe697140515e3765322dde1f769dba` |
-| `P7橋脚/post/線路直角方向.provenance.json` | `dbbaf75326610adcc5a4d30fc93ae3e4faf271001da515ce3462b788c5db3ce8` |
-| `P7橋脚/output/0620_直角方向荷重.pdf` | `64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a` |
-| `P7橋脚/output/0620_直角方向荷重.json` | `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca` |
+| `./post/線路直角方向.json` | `b692a9ec5157af8daf0000bd31e70085b2fe697140515e3765322dde1f769dba` |
+| `./post/線路直角方向.provenance.json` | `dbbaf75326610adcc5a4d30fc93ae3e4faf271001da515ce3462b788c5db3ce8` |
+| `./output/0620_直角方向荷重.pdf` | `64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a` |
+| `./output/0620_直角方向荷重.json` | `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca` |
 
 nativeは指定runnerの受入候補とbytes一致（18,744 bytes）。
 0620 PDF・計算JSONは開始時とbytes一致。

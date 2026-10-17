@@ -26,21 +26,21 @@
 
 **New files**
 
-- `P7橋脚/pier_design/frame_model.py` — 共通の節点・接続・role・断面・荷重帰属参照の生成と検証。
-- `P7橋脚/tests/test_frame_model.py` — 明示期待値による両方向のモデル、縮退・偏心・参照整合性検証。
-- `P7橋脚/tests/fixtures/pier_models/parapet-asymmetric.json` — 既存独立検証の `pedestal_nonzero` に基づく完全入力。
-- `P7橋脚/tests/fixtures/pier_models/asymmetric-footing.json` — 既存独立検証の `geometry_water` に基づく完全入力。
-- `P7橋脚/tests/fixtures/pier_models/expectations.json` と `README.md` — 独立に固定した座標・接続・断面・出典・再実行手順。
+- `src/frame_model.py` — 共通の節点・接続・role・断面・荷重帰属参照の生成と検証。
+- `./tests/test_frame_model.py` — 明示期待値による両方向のモデル、縮退・偏心・参照整合性検証。
+- `./tests/fixtures/pier_models/parapet-asymmetric.json` — 既存独立検証の `pedestal_nonzero` に基づく完全入力。
+- `./tests/fixtures/pier_models/asymmetric-footing.json` — 既存独立検証の `geometry_water` に基づく完全入力。
+- `./tests/fixtures/pier_models/expectations.json` と `README.md` — 独立に固定した座標・接続・断面・出典・再実行手順。
 
 **Modified files**
 
-- `P7橋脚/pier_design/longitudinal_calculator.py`、`transverse_calculator.py` — 元セルの計算を保ち、拡張frameを共通生成する。旧「全節点x=0」の注記を主幹と偏心H1の説明へ更新する。
-- `P7橋脚/pier_design/frame_outline.py` — パラペット外形、任意の節点x/yと部材接続、意味別寸法、番号の配置。
-- `P7橋脚/pier_design/longitudinal_report_reference.py`、`transverse_report_style.py` — 実接続からの骨組図と、実節点／部材の動的表。
-- `P7橋脚/tests/test_longitudinal_calculator.py`、`test_transverse_calculator.py`、`test_frame_outline.py`、`test_longitudinal_report.py`、`test_transverse_report.py` — 4節点・隣接部材・H1非表示の固定期待を新契約へ更新し、既存数値検証を保持する。
-- `P7橋脚/tests/test_longitudinal_cli.py`、`test_transverse_cli.py`、`test_report_cli.py` — サンプルの全経路、共通SHA、段階別エラー時の非公開を既存パターンで検証する。
-- `P7橋脚/README.md` — モデル契約、等価断面の継承、H1偏心・エラー条件、サンプルと実行例を記載する。
-- 検証完了後の再生成は `P7橋脚/output/0610_線路方向荷重.{pdf,json}`、`0620_直角方向荷重.{pdf,json}` の4ファイル。
+- `src/longitudinal_calculator.py`、`transverse_calculator.py` — 元セルの計算を保ち、拡張frameを共通生成する。旧「全節点x=0」の注記を主幹と偏心H1の説明へ更新する。
+- `src/frame_outline.py` — パラペット外形、任意の節点x/yと部材接続、意味別寸法、番号の配置。
+- `src/longitudinal_report_reference.py`、`transverse_report_style.py` — 実接続からの骨組図と、実節点／部材の動的表。
+- `./tests/test_longitudinal_calculator.py`、`test_transverse_calculator.py`、`test_frame_outline.py`、`test_longitudinal_report.py`、`test_transverse_report.py` — 4節点・隣接部材・H1非表示の固定期待を新契約へ更新し、既存数値検証を保持する。
+- `./tests/test_longitudinal_cli.py`、`test_transverse_cli.py`、`test_report_cli.py` — サンプルの全経路、共通SHA、段階別エラー時の非公開を既存パターンで検証する。
+- `./README.md` — モデル契約、等価断面の継承、H1偏心・エラー条件、サンプルと実行例を記載する。
+- 検証完了後の再生成は `./output/0610_線路方向荷重.{pdf,json}`、`0620_直角方向荷重.{pdf,json}` の4ファイル。
 
 **対象外・Dependencies**
 

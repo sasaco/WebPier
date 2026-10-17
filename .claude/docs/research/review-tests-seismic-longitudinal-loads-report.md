@@ -10,13 +10,13 @@ Independent read-only review on 2026-10-16. One Medium gap was confirmed and the
 - Evidence: `tmp/seismic-longitudinal-loads-implementation/root-validation.json`, `diff-evidence.json`, the slug-specific review patch, and implementation work logs with retained test results.
 - Coverage: **not measured**. `gather_diff.py` reports `coverage: null`; no percentage is inferred and no coverage dependency was installed.
 - Existing dependency changes and concurrent FrameWeb helper refactoring were excluded from the owned feature review.
-- Follow-up scope: `P7橋脚/tests/test_longitudinal_cli.py`, added by root after the full gate exposed an overlooked eight-file all-stage expectation.
+- Follow-up scope: `./tests/test_longitudinal_cli.py`, added by root after the full gate exposed an overlooked eight-file all-stage expectation.
 
 ## Findings
 
 ### [Medium, resolved] Nonround input precision was untested in report substitution expressions
 
-- Files: `P7橋脚/tests/test_seismic_longitudinal_report.py:151`; affected renderer `P7橋脚/src/seismic_longitudinal_report.py:153` and footing factor formatting in `_inertia`.
+- Files: `./tests/test_seismic_longitudinal_report.py:151`; affected renderer `./src/seismic_longitudinal_report.py:153` and footing factor formatting in `_inertia`.
 - The calculator mutation at `test_seismic_longitudinal_calculator.py:196` uses `b1=3.113`, `w1=9.377`, and `unit_weight_body=25.237`. Their product is `736.683197437`, rounded to `736.68 kN/m`. Before the fix, the PDF displays `3.11 × 9.38 × 25.2 = 736.68`, although the displayed factors give `735.13 kN/m`.
 - Existing report variants check final action values and layout, but retain the default one-decimal unit weight and do not assert the high-precision factors. Thus this meaningful input-change regression escapes those tests.
 - Required regression: render valid nonround geometry and unit weights, assert the displayed substitution factors preserve the input precision and the adopted final value, including the footing factors; retain the baseline formatting and three-page readable bounds. The test should consume the real calculated snapshot, not a fabricated PDF text expectation alone.

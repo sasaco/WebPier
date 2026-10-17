@@ -8,15 +8,15 @@ Verdict: **PASS** — no actionable introduced security findings.
 
 Reviewed the approved plan and the initial complete nonempty patch `.agents/logs/review-diff-p7-calculation-print-preview.patch` (128461 bytes), with source inspection of the unchanged CLI publication contract. A focused follow-up below covers the output-status fix in the regenerated 151667-byte patch.
 
-- `P7橋脚/pier_design/editor_calculation.py`
-- `P7橋脚/pier_design/editor_gui.py`
-- `P7橋脚/pier_design/pdf_preview.py`
-- `P7橋脚/tests/test_editor_calculation.py`
-- `P7橋脚/tests/test_editor_gui.py`
-- `P7橋脚/tests/test_pdf_preview.py`
-- `P7橋脚/pyproject.toml`
-- `P7橋脚/uv.lock`
-- `P7橋脚/README.md`
+- `src/editor_calculation.py`
+- `src/editor_gui.py`
+- `src/pdf_preview.py`
+- `./tests/test_editor_calculation.py`
+- `./tests/test_editor_gui.py`
+- `./tests/test_pdf_preview.py`
+- `./pyproject.toml`
+- `./uv.lock`
+- `./README.md`
 
 Focus: command execution, path and file handling, output integrity, bounded logs, PDF resource handling, and dependency changes.
 

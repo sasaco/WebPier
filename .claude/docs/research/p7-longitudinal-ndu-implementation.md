@@ -14,7 +14,7 @@
 ## 開始時の証拠
 
 - 現在入力SHA: `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`。
-- 同一バイトの受入スナップショット: `P7橋脚/pre/snapshots/ndu-origin-d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78.json`。
+- 同一バイトの受入スナップショット: `./pre/snapshots/ndu-origin-d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78.json`。
 - 現0710 PDF/JSON、Example NDU、既存post4ファイルの開始SHAは `tmp/p7-ndu-implementation/root/baseline-hashes.json` に保存。
 - 実装前の `.agents/check.ps1` はuvの既存lock不整合でテスト起動前に停止。ログ `tmp/quality-gates/pytest-20261017-122254-8304706.log`。依存更新を行わず、`UV_NO_SYNC=1`で既存環境の同じ全pytestを実行して確認する。
 
@@ -58,7 +58,7 @@ field map確定、製品実装、回帰検証、独立レビュー、P7実値に
 ユーザー回答「見本値を初期値にして作成する」で4項目の今回採用が確定した。`pre/input.json` の `jrsnap_longitudinal` に `shear_factor_vcd=2.0`、`shear_factor_vsd=1.3`、`shear_factor_vdd=1.8`、`aggregate_max_mm=25` を追加した。他のJSON値は旧起点と完全一致。
 
 - 新入力SHA: `7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93`。
-- 新起点: `P7橋脚/pre/snapshots/ndu-origin-7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93.json`。全バイト一致、旧起点は保存継続。
+- 新起点: `./pre/snapshots/ndu-origin-7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93.json`。全バイト一致、旧起点は保存継続。
 - 差分証拠: `tmp/p7-ndu-implementation/root/approved-input-additions.json`。
 - PDF skillの作成開始markerをこの時点で1回実行、exit0。0710更新1PDFとして記録。
 
@@ -90,7 +90,7 @@ Windowsの所有権/diff helperはPYTHONUTF8・PYTHONIOENCODINGを子プロセ�
 
 第2回開始後、別作業の帳票ライブラリ移行が同じP7へ新規 `pier_design/reporting/`、`tests/reporting/`、そのfixture・scripts・docsを追加し、uv.lockも更新したことを検出した。新規移行試験が未実装機能を要求して失敗していたため、NDU作業の試験として扱わずrootの実行だけを中断（`final-gate-external-tests-interrupted.json`、pytest exit-1）。他作業のプロセス・ファイルを停止・削除・復元していない。
 
-13:13:05より `.agents/check.ps1` を `UV_NO_SYNC=1`、`PYTEST_ADDOPTS=--ignore=P7橋脚/tests/reporting` で再実行。従来の全top-level試験と今回のNDU試験を対象とし、同時追加された別機能の試験だけを除外する。ログ `tmp/quality-gates/pytest-20261017-131305-6511426.log`。結果は帳票移行の合格証拠にはしない。
+13:13:05より `.agents/check.ps1` を `UV_NO_SYNC=1`、`PYTEST_ADDOPTS=--ignore=./tests/reporting` で再実行。従来の全top-level試験と今回のNDU試験を対象とし、同時追加された別機能の試験だけを除外する。ログ `tmp/quality-gates/pytest-20261017-131305-6511426.log`。結果は帳票移行の合格証拠にはしない。
 
 全差分は125パス・21MBに増えた。所有権と今回の研究資料に絞った33パス・408373bytesを `tmp/p7-ndu-implementation/root/review-task-scope.json` / `review-task.patch` に保存し、別作業と以前から存在するスキル類を明記して分離した。今回更新したNDUスキル参照文書は含む。製品と試験の固定SHAを `final-gate-source-hashes.json` に保管し、今回の対象ソースに変更がないことを確認している。
 
@@ -124,7 +124,7 @@ rootによる修正後の隔離版gateはexit0・overall pass、**224 passed, 37
 
 - 受入記録: [p7-longitudinal-ndu-acceptance-20261017-final.json](p7-longitudinal-ndu-acceptance-20261017-final.json)、status=`complete`。
 - 公開ID: `ec20665af3a04ab192b8fbd6a70e91c7`。入力SHAは承認済み `7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93`。
-- 正式4ファイル: `P7橋脚/output/0710_線路方向荷重.pdf` と同JSON、`P7橋脚/post/線路方向.ndu` と `線路方向.ndu.provenance.json`。隔離版から共有の承認済み入力を読み、候補を保持したまま実アプリ受入後に一括公開した。
+- 正式4ファイル: `./output/0710_線路方向荷重.pdf` と同JSON、`./post/線路方向.ndu` と `線路方向.ndu.provenance.json`。隔離版から共有の承認済み入力を読み、候補を保持したまま実アプリ受入後に一括公開した。
 - NDU SHA: `02e2475aa4c16be3ffbc2ba94f770adb02e3df5e35bfa1e987e71857ea26ed71`。CP932・CRLF。Df=4.7 m、γ2=12.3 kN/m³、4追加入力は承認済みの2.0／1.3／1.8／25 mm。
 - JRSNAP 5.2-L03（File/Product 5.2.3.0、Assembly 5.2.3.1）で候補の複製を読込・2回保存し、候補と各保存で166レコード・623欄・8荷重ケースを独立照合。正式NDUは保持していた候補bytesをそのまま公開し、アプリ正規化後bytesと取り替えていない。
 - 公開後4ファイル・証拠のSHA、Example原本と既存FrameWeb等5ファイルの不変を再検証。0710全3頁は目視済み候補と本文・レンダー画素が完全一致。`tmp/p7-ndu-implementation/root/final-verification.json` はpass。

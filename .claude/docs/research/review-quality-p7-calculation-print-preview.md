@@ -8,13 +8,13 @@ PASS — independent source re-review confirms that the one initial Medium findi
 
 - Approved plan: `.agents/docs/plans/p7-calculation-print-preview.md`.
 - Scope diff: `.agents/logs/review-diff-p7-calculation-print-preview.patch` (initial review snapshot, 128461 bytes).
-- Product: `P7橋脚/pier_design/editor_calculation.py`, `editor_gui.py`, `pdf_preview.py`; runtime dependency move in `P7橋脚/pyproject.toml` and `uv.lock`; `P7橋脚/README.md`.
-- Tests: `P7橋脚/tests/test_editor_calculation.py`, `test_editor_gui.py`, `test_pdf_preview.py`.
+- Product: `src/editor_calculation.py`, `editor_gui.py`, `pdf_preview.py`; runtime dependency move in `./pyproject.toml` and `uv.lock`; `./README.md`.
+- Tests: `./tests/test_editor_calculation.py`, `test_editor_gui.py`, `test_pdf_preview.py`.
 - Focus: worker/main-thread boundary, busy and closing guards, save/provenance checks, result freshness, PDF lifecycle, callback cleanup and approved-plan compliance. Existing CLI publication, calculation formulas and report layouts were outside the edit scope.
 
 ## Findings
 
-- [Medium, RESOLVED] Initial `P7橋脚/pier_design/editor_gui.py:458` — A generated PDF replaced after a successful run was displayed as the current calculation result. `_refresh_pdf_list()` derived current-result badges only from cached success state and path membership; `_pdf_selected()` and preview reload/render reopened the current file without comparing its identity with the verified artifact. Replacing the one-page generated PDF with a different valid two-page PDF and clicking the list refresh displayed the replacement while retaining both `今回の計算結果` and calculation success. This could attribute an unrelated engineering report to the current input. The approved plan explicitly requires detecting external updates at display time. A later replacement is distinct from the excluded concurrent-writer/shared-lock problem.
+- [Medium, RESOLVED] Initial `src/editor_gui.py:458` — A generated PDF replaced after a successful run was displayed as the current calculation result. `_refresh_pdf_list()` derived current-result badges only from cached success state and path membership; `_pdf_selected()` and preview reload/render reopened the current file without comparing its identity with the verified artifact. Replacing the one-page generated PDF with a different valid two-page PDF and clicking the list refresh displayed the replacement while retaining both `今回の計算結果` and calculation success. This could attribute an unrelated engineering report to the current input. The approved plan explicitly requires detecting external updates at display time. A later replacement is distinct from the excluded concurrent-writer/shared-lock problem.
 
   Minimal correction: retain the final verified metadata snapshots of generated artifacts. Compare them before setting current-result badges and before reopening/rendering a selected PDF. On observable deletion, replacement or modification, mark the result stale and remove current-result badges without attempting output rollback. Keep pure image conversion errors separate when artifact snapshots are unchanged. Do not trigger a recursive full preview refresh from the render callback.
 

@@ -22,9 +22,9 @@
 リポジトリのルートから一時出力へ再実行できます。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --input "P7橋脚/tests/fixtures/pier_models/parapet-asymmetric.json" --output-dir "tmp/pier-model-samples/parapet"
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --input "P7橋脚/tests/fixtures/pier_models/asymmetric-footing.json" --output-dir "tmp/pier-model-samples/footing"
-uv run --project "P7橋脚" --locked --group dev pytest "P7橋脚/tests/test_pier_model_samples.py" "P7橋脚/tests/test_frame_model.py" -q
+uv run --project "." --locked python "./run_design.py" --stage all --input "./tests/fixtures/pier_models/parapet-asymmetric.json" --output-dir "tmp/pier-model-samples/parapet"
+uv run --project "." --locked python "./run_design.py" --stage all --input "./tests/fixtures/pier_models/asymmetric-footing.json" --output-dir "tmp/pier-model-samples/footing"
+uv run --project "." --locked --group dev pytest "./tests/test_pier_model_samples.py" "./tests/test_frame_model.py" -q
 ```
 
-再実行で同名の一時成果物を更新する場合は`--overwrite`を追加します。編集アプリで開く場合は`edit_input.py --input`にサンプルのパスを指定し、「名前を付けて保存」で作業コピーを作ってください。編集アプリの「保存して計算・PDF出力」は本番の`P7橋脚/output`へ出力するため、上記一時出力の確認にはCLIを使用します。
+再実行で同名の一時成果物を更新する場合は`--overwrite`を追加します。編集アプリで開く場合は`edit_input.py --input`にサンプルのパスを指定し、「名前を付けて保存」で作業コピーを作ってください。編集アプリの「保存して計算・PDF出力」は本番の`./output`へ出力するため、上記一時出力の確認にはCLIを使用します。

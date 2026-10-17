@@ -38,7 +38,7 @@
     "column_base_micro_member"
   ],
   "historical_raw_input": {
-    "path": "tmp\\column-rebar-implementation\\baseline\\P7橋脚\\pre\\input.json",
+    "path": "tmp\\column-rebar-implementation\\baseline\\.\\pre\\input.json",
     "sha256": "0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408",
     "matches_0710_provenance": true
   },

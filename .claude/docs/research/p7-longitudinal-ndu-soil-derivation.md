@@ -25,7 +25,7 @@ P7では、同一実行の0500地盤値と0710が採用する平水位から **D
 
 ## P7へ同じ手順を適用
 
-根拠は [0500_直接基礎.pdf](../../../P7橋脚/output/0500_直接基礎.pdf) 1頁、現 [input.json](../../../P7橋脚/pre/input.json)、同じ入力からの計算コード。
+根拠は [0500_直接基礎.pdf](../../.././output/0500_直接基礎.pdf) 1頁、現 [input.json](../../.././pre/input.json)、同じ入力からの計算コード。
 
 | 項目 | P7の入力・値 |
 |---|---|
@@ -51,7 +51,7 @@ P7では、同一実行の0500地盤値と0710が採用する平水位から **D
 - `pier_design/reaction_weights.py:322–329`: hwを底面起算で使う浸水体積式。
 - `pier_design/seismic_longitudinal_calculator.py:219–226`: 0710が `0610.vertical.water.normal` を使う根拠。
 
-相対コードパスはすべて `P7橋脚/` 配下。現rawのSHA-256は `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`。
+相対コードパスはすべて `./` 配下。現rawのSHA-256は `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`。
 
 ## 古いExcel値との区別
 

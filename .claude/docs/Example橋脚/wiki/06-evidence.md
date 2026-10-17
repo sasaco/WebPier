@@ -22,7 +22,7 @@ VBAはOLEから取り出したテキストをUTF-8・LFへ正規化したもの�
 
 ## 2. 調査手順
 
-1. Gitの作業状態を確認。開始時から `pre/input.xls`、`0500_直接基礎.xls`、`P7橋脚/pre/input.json` に既存の差分があった。
+1. Gitの作業状態を確認。開始時から `pre/input.xls`、`0500_直接基礎.xls`、`./pre/input.json` に既存の差分があった。
 2. `oletools.olevba.VBA_Parser` でサンプル内の10冊からVBAを静的に抽出。
 3. `xlrd` で同じファイルのシート・定義名・保存セル値を取得し、SHA-256を記録。
 4. 独立したExcelインスタンスを作り、`AutomationSecurity=3`、`EnableEvents=False`、`UpdateLinks=0`、`ReadOnly=True` で主経路5冊を読取り。

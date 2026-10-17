@@ -8,10 +8,10 @@
 ### Scope
 - New files: 製品ファイルの追加なし。必要な検証資料は `tmp/pdfs/omit-zero-volume-girder-support/` に保存する。
 - Modified files:
-  - `P7橋脚/pier_design/reaction_report_pagination.py`: 体積ゼロ時だけ、原本4頁の描画対象を「はり」の帯へ変更する。
-  - `P7橋脚/pier_design/reaction_report.py`: 計算済み体積から省略条件を渡す。既存の水平荷重描画経路を保持する。
-  - `P7橋脚/tests/test_reaction_report.py`: 省略・連番・描画位置・非ゼロ・境界条件・反復描画の回帰検証を追加する。
-  - `P7橋脚/output/0600_上部工反力.pdf` および `.json`: 検証完了後、現在の入力で再生成する。ユーザー確認済み。
+  - `src/reaction_report_pagination.py`: 体積ゼロ時だけ、原本4頁の描画対象を「はり」の帯へ変更する。
+  - `src/reaction_report.py`: 計算済み体積から省略条件を渡す。既存の水平荷重描画経路を保持する。
+  - `./tests/test_reaction_report.py`: 省略・連番・描画位置・非ゼロ・境界条件・反復描画の回帰検証を追加する。
+  - `./output/0600_上部工反力.pdf` および `.json`: 検証完了後、現在の入力で再生成する。ユーザー確認済み。
 - Dependencies: 既存のReportLab、pypdf、PyMuPDF、pytest、`uv`。追加ライブラリや実行時Excelは不要。
 - 対象外: 計算式・丸め規則・入力値・入力GUI、(4)(5)の重量・重心集計表の桁受け行、全体図、0500/0610/0620の成果物、共有 `_Report` / `WIDTH`。現在の入力から再計算するため保存済み0600 JSONとの数値差は生じ得るが、今回の改修前後で同じ入力を計算した結果は同一とする。
 
@@ -39,7 +39,7 @@
 一時生成には、既存CLIの `--input` と `--output-dir` を用いる。例（非ゼロfixtureも同様に一時JSONから生成する）:
 
 ```powershell
-uv run --project "P7橋脚" --locked python -X utf8 "P7橋脚/run_design.py" --stage 0600 --input "tmp/pdfs/omit-zero-volume-girder-support/input-snapshot.json" --output-dir "tmp/pdfs/omit-zero-volume-girder-support/before"
+uv run --project "." --locked python -X utf8 "./run_design.py" --stage 0600 --input "tmp/pdfs/omit-zero-volume-girder-support/input-snapshot.json" --output-dir "tmp/pdfs/omit-zero-volume-girder-support/before"
 ```
 
 改修後の候補は同じコマンドで出力先だけ `after` に変え、最終公開と同一の計算・描画経路を使用する。
@@ -63,7 +63,7 @@ uv run --project "P7橋脚" --locked python -X utf8 "P7橋脚/run_design.py" --s
 対象テスト:
 
 ```powershell
-uv run --project "P7橋脚" --locked --group dev python -X utf8 -m pytest "P7橋脚/tests/test_reaction_report.py" "P7橋脚/tests/test_reaction_report_snow.py" "P7橋脚/tests/test_reaction_weights.py" "P7橋脚/tests/test_reaction_calculator.py" "P7橋脚/tests/test_reaction_cli.py" -q -rs
+uv run --project "." --locked --group dev python -X utf8 -m pytest "./tests/test_reaction_report.py" "./tests/test_reaction_report_snow.py" "./tests/test_reaction_weights.py" "./tests/test_reaction_calculator.py" "./tests/test_reaction_cli.py" -q -rs
 ```
 
 #### Step 4: 実PDFを目視し、現在入力で0600を更新する
@@ -74,7 +74,7 @@ uv run --project "P7橋脚" --locked --group dev python -X utf8 -m pytest "P7橋
 **Verification**: 全体ゲートと視覚確認が完了し、最終0600 PDF・JSONの整合が取れる。旧保存成果物からの数値変化は、ユーザーが承認した現在入力での再計算によるものとして、今回の印字変更と分けて報告する。計画作成中には本工程を実行しない。
 
 ```powershell
-uv run --project "P7橋脚" --locked python -X utf8 "P7橋脚/run_design.py" --stage 0600 --overwrite
+uv run --project "." --locked python -X utf8 "./run_design.py" --stage 0600 --overwrite
 powershell -NoProfile -ExecutionPolicy Bypass -File .agents/check.ps1 -ProjectRoot "K:\ニュージャパンコンサルタンツ\26_LRT鉄道照査"
 ```
 

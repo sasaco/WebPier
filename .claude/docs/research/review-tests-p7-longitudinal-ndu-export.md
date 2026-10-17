@@ -12,7 +12,7 @@ Critical / High の指摘はない。Medium として報告した T1 は、修�
 
 ### [Medium / 解消済み] T1: 実 exporter / serializer の全フィールドを独立 oracle と照合する通常回帰テストがない
 
-- 場所: `P7橋脚/tests/test_jrsnap_cli.py:247`、特に `:260`。関連: `P7橋脚/tests/test_jrsnap_acceptance.py:31`、`:58`。
+- 場所: `./tests/test_jrsnap_cli.py:247`、特に `:260`。関連: `./tests/test_jrsnap_acceptance.py:31`、`:58`。
 - `test_real_engine_single_and_all_use_identical_ndu_bytes` は実生成物を本番 `validate_ndu_bytes` で検証し、件数・メタデータ・0710/all の同一バイトを確認する。一方、`test_independent_native_oracle_checks_fields_and_integrates_all_eight_cases` は同じ oracle から作った `reference_bytes()` を検証する。そのため通常テスト内では「本番の生成物」と「承認済みの独立した全フィールド期待値」が交差しない。
 - 再現: 製品ファイルを変更せず、別 Python プロセスの `_PROFILE['section']['safety']['GBVO']` だけを 1.3 から 1.4 に変更した。実 CLI 0710/all、exporter の幾何・配筋・支持、native framing/determinism、独立 oracle 自体の検査という該当 4 テストは **4 passed in 7.86s**。同じプロセスで現入力から生成したバイトを `verify_readback` へ渡すと、期待どおり `SectSafe1[12]: 1.4 != 1.3` で拒否された。全 suite を変異状態で実行したとは主張しない。
 - 影響: 正値の誤った係数や許容範囲内の誤ったフィールド割当ては、本番形式 validator と独立 parser の単体試験の両方を通り得る。初回実アプリ受入では検出できるが、通常 pytest の将来の回帰検出には残らない。
@@ -21,7 +21,7 @@ Critical / High の指摘はない。Medium として報告した T1 は、修�
 
 ### T1 修正後の再確認
 
-`P7橋脚/tests/test_jrsnap_acceptance.py:45` の `approved_snapshot_bytes()` は literal oracle の input SHA を使って immutable snapshot を選び、実バイトの SHA 一致を assert する。`:54` の新テストは実 `_calculate_stages` による 0500/0710、実 `build_longitudinal_ndu_model`、実 `serialize_ndu` を通した結果を `verify_readback` に渡す。期待値を本番定数から生成していないことをコードで確認した。
+`./tests/test_jrsnap_acceptance.py:45` の `approved_snapshot_bytes()` は literal oracle の input SHA を使って immutable snapshot を選び、実バイトの SHA 一致を assert する。`:54` の新テストは実 `_calculate_stages` による 0500/0710、実 `build_longitudinal_ndu_model`、実 `serialize_ndu` を通した結果を `verify_readback` に渡す。期待値を本番定数から生成していないことをコードで確認した。
 
 隔離ファイルの SHA は `56f4b235a230cad3e8141dc4beeefb136232f19e9bcb00b2e4439d08b674f884` で owner の報告と一致。`tmp/p7-ndu-implementation/acceptance/review-fixes/validation-results.json` により、修正後 acceptance 71 passed / 9.14s、同じ in-memory GBVO=1.4 変異で新テストが `SectSafe1[12]: 1.4 != 1.3` を検出して期待どおり失敗したことを確認した。修正後 lead gate は **224 passed, 3712 deselected in 33.29s、overall=pass**。これで T1 を閉じる。全テスト・実アプリの重複実行はしていない。
 

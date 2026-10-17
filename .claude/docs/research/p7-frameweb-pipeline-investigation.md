@@ -1,6 +1,6 @@
 # P7 線路方向 FrameWeb 出力経路の調査
 
-調査日: 2026-10-16。実装計画のための読取専用調査。製品コード、入力、既存出力は変更していない。本メモのみ新規作成した。対象は現在の `P7橋脚/output/0610_線路方向荷重.pdf` と同時生成 JSON。通常の `0610` / `all` 計算でも `P7橋脚/post/frameWebForJS.json` を自動更新する方針は、親エージェント経由のユーザー回答で確定した。
+調査日: 2026-10-16。実装計画のための読取専用調査。製品コード、入力、既存出力は変更していない。本メモのみ新規作成した。対象は現在の `./output/0610_線路方向荷重.pdf` と同時生成 JSON。通常の `0610` / `all` 計算でも `./post/frameWebForJS.json` を自動更新する方針は、親エージェント経由のユーザー回答で確定した。
 
 ## 結論
 
@@ -14,7 +14,7 @@ PDF は数値・載荷位置・ケースの検証資料とし、実行時の変�
 
 | ファイル | SHA256 |
 | --- | --- |
-| P7橋脚/pre/input.json | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
+| ./pre/input.json | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
 | output/0500_直接基礎.json | `2fd013e9b75180b534e9dc2f64bcecd29c3d3b11c23fe6cca242bb9672d39745` |
 | output/0600_上部工反力.json | `ba2c335818a03cee1c8bd86692a980ec32871d3a2d56621a7e683892a10e12b4` |
 | output/0610_線路方向荷重.pdf | `85334ee02cf775b8914f9cc73c6db107d522bb1625ed0fe5b7f6e66ad438383f` |
@@ -24,7 +24,7 @@ PDF は数値・載荷位置・ケースの検証資料とし、実行時の変�
 - PDF は 8 頁。各頁の入力 SHA 表示は `82d5a2769dfb`。既存計画 `.agents/docs/plans/longitudinal-example2-parity.md:26–36` の最新 8 頁公開版と PDF/JSON SHA が一致する。旧 11 頁の履歴を現物と取り違えない。
 - 現入力・現コードから 0500/0600/0610 をメモリ上だけで再計算し、CLI 同等の `json.dumps(ensure_ascii=False, indent=2, allow_nan=False) + newline` を Windows CRLF に合わせて比較した。3 JSON とも保存 bytes に完全一致した。出力の再生成・書込はしていない。
 - 初期の Python オブジェクト比較には tuple/list 差があったが、JSON 化後は全て一致した。これをコード世代差・数値差と分類しない。
-- 調査時 `P7橋脚/post` は空で、既存 FrameWeb 出力はない。
+- 調査時 `./post` は空で、既存 FrameWeb 出力はない。
 
 ## 正規パイプラインと参照位置
 

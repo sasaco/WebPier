@@ -2,7 +2,7 @@
   "schema_version": 1,
   "origin": "pre-migration old-code result/PDF capture",
   "freeze_manifest_sha256": "65852dac070f03b5c3ba5f24420c9b4b1612cbda5af026ae8e662f4688527bf9",
-  "fixture_source_run": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tmp\\reporting-grid-migration\\baseline-20261017T035601697852Z",
+  "fixture_source_run": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\tmp\\reporting-grid-migration\\baseline-20261017T035601697852Z",
   "files": [
     {
       "path": "0610-native.json",

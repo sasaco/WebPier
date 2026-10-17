@@ -6,7 +6,7 @@
 
 ### Purpose
 
-現在の `P7橋脚/pre/input.json` から、地震時の線路方向荷重を3ページの `P7橋脚/output/0710_線路方向荷重.pdf` として再生成できるようにする。`Example橋脚2/08_線路.pdf` の物理p1を骨組図の見本とし、`Example橋脚2/10_線路(耐震).pdf` の物理p8・p12の作用計算と組合せを続ける。
+現在の `./pre/input.json` から、地震時の線路方向荷重を3ページの `./output/0710_線路方向荷重.pdf` として再生成できるようにする。`Example橋脚2/08_線路.pdf` の物理p1を骨組図の見本とし、`Example橋脚2/10_線路(耐震).pdf` の物理p8・p12の作用計算と組合せを続ける。
 
 ユーザー確認済み事項:
 
@@ -19,17 +19,17 @@
 ### Scope
 
 - New files:
-  - `P7橋脚/pier_design/seismic_longitudinal_calculator.py`: 計算済み0610のメモリ内結果から、0710専用の作用・8基本ケース・1組合せを構成する小さな純粋アダプター。
-  - `P7橋脚/pier_design/seismic_longitudinal_report.py`: 結果だけを受け取り3ページを描画する専用帳票。
-  - `P7橋脚/tests/fixtures/seismic_longitudinal_example2.json`: 原本から独立転記する期待値・ケース・出典。
-  - `P7橋脚/tests/test_seismic_longitudinal_calculator.py`、`test_seismic_longitudinal_report.py`、`test_seismic_longitudinal_cli.py`。
-  - 正式成果物 `P7橋脚/output/0710_線路方向荷重.pdf` と同名 `.json`。
+  - `src/seismic_longitudinal_calculator.py`: 計算済み0610のメモリ内結果から、0710専用の作用・8基本ケース・1組合せを構成する小さな純粋アダプター。
+  - `src/seismic_longitudinal_report.py`: 結果だけを受け取り3ページを描画する専用帳票。
+  - `./tests/fixtures/seismic_longitudinal_example2.json`: 原本から独立転記する期待値・ケース・出典。
+  - `./tests/test_seismic_longitudinal_calculator.py`、`test_seismic_longitudinal_report.py`、`test_seismic_longitudinal_cli.py`。
+  - 正式成果物 `./output/0710_線路方向荷重.pdf` と同名 `.json`。
 - Modified files:
-  - `P7橋脚/pier_design/cli.py`: 0710選択・上流計算・描画・既存の一括公開経路。
-  - `P7橋脚/pier_design/frameweb_artifacts.py`: `REPORT_STEMS` に0710を追加。`FRAMEWEB_STAGES` の対象は既存2方向のまま。
-  - `P7橋脚/pier_design/editor_calculation.py`: 5帳票の一覧・検証を共通台帳に接続。
-  - `P7橋脚/pier_design/editor_gui.py`: 計算対象の表示を5段階へ更新。
-  - `P7橋脚/README.md`: 0710、3ページ、GUI/CLI生成、成果物一覧の説明。
+  - `src/cli.py`: 0710選択・上流計算・描画・既存の一括公開経路。
+  - `src/frameweb_artifacts.py`: `REPORT_STEMS` に0710を追加。`FRAMEWEB_STAGES` の対象は既存2方向のまま。
+  - `src/editor_calculation.py`: 5帳票の一覧・検証を共通台帳に接続。
+  - `src/editor_gui.py`: 計算対象の表示を5段階へ更新。
+  - `./README.md`: 0710、3ページ、GUI/CLI生成、成果物一覧の説明。
   - 既存の `tests/test_report_cli.py`、`test_reaction_cli.py`、`test_longitudinal_canonical_cli.py`、`test_longitudinal_cli.py`、`test_transverse_cli.py`、`test_frameweb_cli.py`、`test_frameweb_publication.py`、`test_editor_calculation.py`、`test_editor_gui.py`、`test_pdf_preview_dialog.py` のうち、既定all・件数・成果物manifest・順序の契約に影響する試験。
 - Dependencies:
   - 既存Python、ReportLab、日本語フォント、PyMuPDF、pytest、pypdfを利用。依存追加・更新なし。
@@ -136,7 +136,7 @@ N/M/H等の作用成分は上流の符号付き値を保持する。Wp=-1701.0�
 - **資料と現寸法の差**: 原本8-1の下段6.000mなどを固定転記せず現在入力を図へ反映する。柱下端0.010 mはH4から分割し、全高へ加算しない。
 - **表示の固定化**: 現行例だけでなく、支承配分・寸法・地震列車・S2・桁受けが変わる条件で計算と代入式が追随することを検証する。
 - **公開経路の件数増加**: 0710の追加がall・GUI・既存FrameWeb sidecarのmanifestに影響する。単独公開とallの一時実行を分け、既存正式出力を無用に更新しない。
-- **並行変更と環境**: 実装時にdirtyと現在入力を再確認。現行環境は `P7橋脚/.venv`、または `uv run --project P7橋脚 --locked --group dev`。共通rules/STATE/DESIGN/PROGRESSは未作成のため、別プロジェクトのFrameWebルールを仮定しない。
+- **並行変更と環境**: 実装時にdirtyと現在入力を再確認。現行環境は `./.venv`、または `uv run --project . --locked --group dev`。共通rules/STATE/DESIGN/PROGRESSは未作成のため、別プロジェクトのFrameWebルールを仮定しない。
 
 ### Open Questions
 
@@ -173,7 +173,7 @@ N/M/H等の作用成分は上流の符号付き値を保持する。Wp=-1701.0�
 - 正式公開は `--stage 0710 --overwrite` のみ。PDF/JSONは検証済み候補とバイト一致し、PDF全3ページを再読込・再描画済み。検討モデル→作用の計算→作用の組合せ、ばね記号・表・Kv/Ks/Krなし。
 - 正式PDF SHA256: `90e53877bc2d3e94b87b09e4abb39ebb8cbbf9bf424bd18987ac1c74b86fe445`。入力SHA256: `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b`。
 - 最終照合: 入力・原本・既存成果物等155ファイルのSHA変更なし。最終生成時から製品コードのSHA変更なし。既存4帳票のJSON完全一致、PDF本文・ページ数一致。検証証跡: `tmp/seismic-longitudinal-loads-implementation/root-validation.json`。
-- 成果物: `P7橋脚/output/0710_線路方向荷重.pdf`、同名 `.json`。アプリの帳票台帳・CLI・GUI再生成経路へ登録済み。
+- 成果物: `./output/0710_線路方向荷重.pdf`、同名 `.json`。アプリの帳票台帳・CLI・GUI再生成経路へ登録済み。
 
 ### 2026-10-17 model correction
 

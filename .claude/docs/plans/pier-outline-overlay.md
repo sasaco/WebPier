@@ -2,7 +2,7 @@
 
 ### Purpose
 
-線路方向 `P7橋脚/output/0610_線路方向荷重.pdf` と線路直角方向 `P7橋脚/output/0620_直角方向荷重.pdf` の1ページ目で、既存の骨組み図に、現在の入力寸法から作成した橋脚の外形を重ねる。`Example橋脚2/08_線路.pdf` と `Example橋脚2/09_直角.pdf` のように、柱・梁／ハンチ・フーチングを薄い点線または短い破線で表す。
+線路方向 `./output/0610_線路方向荷重.pdf` と線路直角方向 `./output/0620_直角方向荷重.pdf` の1ページ目で、既存の骨組み図に、現在の入力寸法から作成した橋脚の外形を重ねる。`Example橋脚2/08_線路.pdf` と `Example橋脚2/09_直角.pdf` のように、柱・梁／ハンチ・フーチングを薄い点線または短い破線で表す。
 
 ### Scope
 
@@ -16,20 +16,20 @@
 
 **New files**
 
-- `P7橋脚/pier_design/frame_outline.py` — 方向別の外形座標、図枠へ収める共通座標変換、Canvasへの外形描画。既存ページラッパーには依存させない。
-- `P7橋脚/tests/test_frame_outline.py` — 入力からの形状、座標合わせ、非対称寸法、縮尺と描画範囲の小さな検証。
+- `src/frame_outline.py` — 方向別の外形座標、図枠へ収める共通座標変換、Canvasへの外形描画。既存ページラッパーには依存させない。
+- `./tests/test_frame_outline.py` — 入力からの形状、座標合わせ、非対称寸法、縮尺と描画範囲の小さな検証。
 
 **Modified files**
 
-- `P7橋脚/pier_design/longitudinal_report_reference.py` — `_frame` に線路方向の外形と共通変換を組み込む。
-- `P7橋脚/pier_design/transverse_report_style.py` — `_frame` に直角方向の外形と同じ変換方式を組み込む。
-- `P7橋脚/tests/test_longitudinal_report.py`、`P7橋脚/tests/test_transverse_report.py` — 実際のPDF内の外形、骨組みとの位置関係、実線／破線、既存帳票の回帰確認。
-- `P7橋脚/README.md` — 外形が現在入力に追従すること、解析モデルとの違いと今回の表示範囲を追記する。
+- `src/longitudinal_report_reference.py` — `_frame` に線路方向の外形と共通変換を組み込む。
+- `src/transverse_report_style.py` — `_frame` に直角方向の外形と同じ変換方式を組み込む。
+- `./tests/test_longitudinal_report.py`、`./tests/test_transverse_report.py` — 実際のPDF内の外形、骨組みとの位置関係、実線／破線、既存帳票の回帰確認。
+- `./README.md` — 外形が現在入力に追従すること、解析モデルとの違いと今回の表示範囲を追記する。
 - 最終確認後の再生成対象は0610／0620のPDFと、既存CLIが対で出力する同名JSONのみ。JSONの内容は同一入力の実装前結果と一致させる。
 
 **Dependencies / current-state evidence**
 
-- 既存の ReportLab と PyMuPDF、dev の pytest／pypdf を使い、新規依存は追加しない（`P7橋脚/pyproject.toml:6`）。PDFはベクトル描画を維持する。
+- 既存の ReportLab と PyMuPDF、dev の pytest／pypdf を使い、新規依存は追加しない（`./pyproject.toml:6`）。PDFはベクトル描画を維持する。
 - 公開入口は再エクスポートであり、変更は不要（`longitudinal_report.py:3`、`transverse_report.py:2`）。実描画箇所は `longitudinal_report_reference.py:54`、`transverse_report_style.py:65`。
 - 形状の根拠は `reaction_report_diagrams.py:134` の `_overall` と `reaction_inputs.py:163` の寸法契約。既存の全体図を直接呼ぶと地盤や追加寸法まで描くため、形状規則だけを再利用する。0600側の描画やその共通化は今回変更しない。
 - 帳票が必要とする寸法は計算済み `result["input"]["geometry"]` に存在する（`longitudinal_calculator.py:139`、`transverse_calculator.py:347`）。描画時の入力JSON／見本PDF／Excel再読込は不要。
@@ -91,16 +91,16 @@
 
 ```powershell
 # 変更前後の基準生成・検証用。input.jsonは本番入力の同名コピー。
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --input "tmp/pier-outline-overlay/input.json" --output-dir "tmp/pier-outline-overlay/baseline" --stage 0610
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --input "tmp/pier-outline-overlay/input.json" --output-dir "tmp/pier-outline-overlay/baseline" --stage 0620
+uv run --project "." --locked python "./run_design.py" --input "tmp/pier-outline-overlay/input.json" --output-dir "tmp/pier-outline-overlay/baseline" --stage 0610
+uv run --project "." --locked python "./run_design.py" --input "tmp/pier-outline-overlay/input.json" --output-dir "tmp/pier-outline-overlay/baseline" --stage 0620
 # 実装後は別のoutput-dir（after）へ出力する。
 
-uv run --project "P7橋脚" --locked --group dev python -m pytest "P7橋脚/tests/test_frame_outline.py" "P7橋脚/tests/test_longitudinal_report.py" "P7橋脚/tests/test_transverse_report.py" "P7橋脚/tests/test_longitudinal_calculator.py" "P7橋脚/tests/test_transverse_calculator.py" -q
+uv run --project "." --locked --group dev python -m pytest "./tests/test_frame_outline.py" "./tests/test_longitudinal_report.py" "./tests/test_transverse_report.py" "./tests/test_longitudinal_calculator.py" "./tests/test_transverse_calculator.py" -q
 & .agents/check.ps1
 
 # 最終確認後の実出力更新。
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0610 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0620 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0610 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0620 --overwrite
 ```
 
 ### Risks & Considerations

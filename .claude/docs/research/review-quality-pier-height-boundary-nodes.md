@@ -10,7 +10,7 @@ No outstanding Critical, High, or Medium findings. The review identified one Low
 
 ### Q1 — Low: a positive H6 can disappear without the required input-range error
 
-- File: `P7橋脚/pier_design/frame_model.py:113` (reviewed snapshot).
+- File: `src/frame_model.py:113` (reviewed snapshot).
 - Reproduction: start with the default otherwise-valid geometry/legacy frame; set `H1=0`, `H2=H3=H4=H5=1`, `H6=1e-100`, and legacy centroid `hG=.5`. In both directions, `build_frame_model()` succeeds and returns `footing_top.y == 1.0 == H5`. Thus the positive H6 contribution disappears in the initial sum.
 - Cause: `_add_height(base, height, path)` rejects loss of its second operand only. For `H6 + H5`, a small positive first operand can disappear without triggering that guard.
 - Impact: an extreme-input case violates the approved rule that positive heights lost to coordinate precision produce an input-range error. Ordinary samples and existing numeric results are unaffected.
@@ -19,15 +19,15 @@ No outstanding Critical, High, or Medium findings. The review identified one Low
 
 ### Q2 — Medium: README states the opposite B9 contract from the approved parser
 
-- Files: `P7橋脚/README.md:120`, `:156`, `:313` in the reviewed snapshot (the early paragraph covers all automatic fields; later paragraphs explicitly force B9=B7). The live fixture README was also overwritten by the concurrent session.
+- Files: `./README.md:120`, `:156`, `:313` in the reviewed snapshot (the early paragraph covers all automatic fields; later paragraphs explicitly force B9=B7). The live fixture README was also overwritten by the concurrent session.
 - Reproduction: pass `tests/fixtures/pier_models/asymmetric-footing.json` to the approved parsers. `parse_input(...).b_parts == (.35, 5.5, .2)` and `parse_reaction_input(...).geometry.b9 == .2`, while the README states that CLI ignores explicit B9 and uses B7.
 - Impact: the documented CLI behavior and asymmetric-sample interpretation contradict the user-approved explicit-B9 policy.
 - Fix: distinguish GUI automatic B9 from calculation parsing; explicit numeric B9, including zero, wins; missing/null falls back to B7. Explain that GUI save normalizes .2 to .35 for these samples and that the original asymmetric samples should be verified through CLI.
-- Status: **fixed and independently rechecked**. Both proposed documents under `tmp/pier-height-boundary-nodes/approved-docs/P7橋脚/` were independently read. The correction resolves all three contradictions, preserves the other session's 15-significant-digit display sentence, and correctly explains the Single centroid and historical adapters. Both live documents now match these checked proposals byte-for-byte. Live README SHA256: `c556c03dcebf0cd07bc16afc274501f0ac7d8c9503f29f4ea67c06d31cfda55b`; fixture README SHA256: `e1fcf66337c7d375cc9df2118e767a512fe354504f7ae1104cd3077f3138f799`.
+- Status: **fixed and independently rechecked**. Both proposed documents under `tmp/pier-height-boundary-nodes/approved-docs/./` were independently read. The correction resolves all three contradictions, preserves the other session's 15-significant-digit display sentence, and correctly explains the Single centroid and historical adapters. Both live documents now match these checked proposals byte-for-byte. Live README SHA256: `c556c03dcebf0cd07bc16afc274501f0ac7d8c9503f29f4ea67c06d31cfda55b`; fixture README SHA256: `e1fcf66337c7d375cc9df2118e767a512fe354504f7ae1104cd3077f3138f799`.
 
 ### Q3 — Low, optional: tiny nonzero elevation differences round to the same table text
 
-- File: `P7橋脚/pier_design/frame_model_report.py:98`.
+- File: `src/frame_model_report.py:98`.
 - Reproduction: `_coordinate(10.0)` and `_coordinate(10.0 + 1e-13)` both return `10.000`.
 - Impact: distinct valid nodes remain distinct in JSON, topology, and member references, but a very small nonzero vertical interval is not visible from the three-decimal coordinate text alone. The existing scientific notation branch covers small absolute coordinates, rather than differences at a nonzero elevation.
 - Suggested improvement: optionally choose coordinate precision collectively when distinct coordinates would produce the same text, keeping the normal engineering-scale table unchanged.

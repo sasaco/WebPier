@@ -6,9 +6,9 @@
 
 ### Purpose
 
-`Example橋脚2/09_直角.pdf` と `Example橋脚2/09_直角/frameWebForJS.json` の数値対応を明らかにし、P7の0620帳票と同じ骨組・作用を、指定FEMPython内のFrameWebforCS GUIと既存headlessで読み込み解析できる `P7橋脚/post/線路直角方向.json` に出力する。これはnative保存JSONであり、Python解析エンジンへ直接渡す入力形式ではない。
+`Example橋脚2/09_直角.pdf` と `Example橋脚2/09_直角/frameWebForJS.json` の数値対応を明らかにし、P7の0620帳票と同じ骨組・作用を、指定FEMPython内のFrameWebforCS GUIと既存headlessで読み込み解析できる `./post/線路直角方向.json` に出力する。これはnative保存JSONであり、Python解析エンジンへ直接渡す入力形式ではない。
 
-前回のユーザー回答「通常の橋脚計算でもJSONを自動更新する」と今回の「同様に」を引き継ぎ、通常の `--stage 0620` / `--stage all` とGUI全工程計算に組み込む。現物の資料名は **`P7橋脚/output/0620_直角方向荷重.pdf`** であり、指定の「0620_線路直角方向荷重.pdf」に相当する。資料名を変更せず、生成先はユーザー指定名にする。
+前回のユーザー回答「通常の橋脚計算でもJSONを自動更新する」と今回の「同様に」を引き継ぎ、通常の `--stage 0620` / `--stage all` とGUI全工程計算に組み込む。現物の資料名は **`./output/0620_直角方向荷重.pdf`** であり、指定の「0620_線路直角方向荷重.pdf」に相当する。資料名を変更せず、生成先はユーザー指定名にする。
 
 ### Scope
 
@@ -26,9 +26,9 @@
 |---|---|
 | `Example橋脚2/09_直角.pdf`（29頁） | `b6a7f5658b9f98ee8a7d6b29691edcb0209bc7455fa8309d4e3a2e16605474de` |
 | `Example橋脚2/09_直角/frameWebForJS.json` | `8ff9e589ffd70af6cba3c89cb999b2735ce9f7734801df29015b7cc1e5cbf5ff` |
-| `P7橋脚/pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
-| `P7橋脚/output/0620_直角方向荷重.pdf`（12頁） | `64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a` |
-| `P7橋脚/output/0620_直角方向荷重.json` | `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca` |
+| `./pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
+| `./output/0620_直角方向荷重.pdf`（12頁） | `64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a` |
+| `./output/0620_直角方向荷重.json` | `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca` |
 
 現入力・現コードから0500/0600/0620をメモリ内で再計算した結果は、CLIと同じ直列化・改行によって保存済み3 JSONとbytes一致した。PDFの入力SHAも同じ。既存成果物の上書きはしていない。証跡は `tmp/p7-transverse-frameweb-plan/`。実装時は最新世代を再確認し、ここに記載したSHAを将来入力の固定条件にしない。
 
@@ -38,18 +38,18 @@
 
 | 対象 | 変更内容 |
 |---|---|
-| 共通拡張 `P7橋脚/pier_design/frameweb_export.py` | 追加された0610変換器の共通直列化を抽出し、方向別adapter・検証profileからnativeを構築する |
-| 新規 `P7橋脚/pier_design/frameweb_transverse_cases.py` | 0620の17基本、用途別L+I補助、Define/Combine/Pickup、出典対応 |
-| 共通拡張 `P7橋脚/pier_design/frameweb_artifacts.py` | 現0610固定のファイル名・規約版・付帯JSON・検証をstage別登録と全体manifestへ拡張 |
-| 共通拡張 `P7橋脚/pier_design/artifact_publication.py` | 追加された親別staging/backup/復元を再利用し、必要な公開後検証・journalだけを拡張 |
-| `P7橋脚/pier_design/cli.py` | 0620/allへの接続、共通 `--post-dir`、stage別成果物登録 |
-| `P7橋脚/pier_design/editor_calculation.py` | post成果物を含めた完了検証・改変検知、明示的な4 PDF一覧 |
-| `P7橋脚/README.md` | 出力先、補助ケース、係数、ソフト互換・再生成方法 |
-| 新規 `P7橋脚/tests/test_frameweb_transverse_export.py`、`test_frameweb_transverse_cases.py` | 方向固有の独立期待値・全状態・異常入力 |
+| 共通拡張 `src/frameweb_export.py` | 追加された0610変換器の共通直列化を抽出し、方向別adapter・検証profileからnativeを構築する |
+| 新規 `src/frameweb_transverse_cases.py` | 0620の17基本、用途別L+I補助、Define/Combine/Pickup、出典対応 |
+| 共通拡張 `src/frameweb_artifacts.py` | 現0610固定のファイル名・規約版・付帯JSON・検証をstage別登録と全体manifestへ拡張 |
+| 共通拡張 `src/artifact_publication.py` | 追加された親別staging/backup/復元を再利用し、必要な公開後検証・journalだけを拡張 |
+| `src/cli.py` | 0620/allへの接続、共通 `--post-dir`、stage別成果物登録 |
+| `src/editor_calculation.py` | post成果物を含めた完了検証・改変検知、明示的な4 PDF一覧 |
+| `./README.md` | 出力先、補助ケース、係数、ソフト互換・再生成方法 |
+| 新規 `./tests/test_frameweb_transverse_export.py`、`test_frameweb_transverse_cases.py` | 方向固有の独立期待値・全状態・異常入力 |
 | 共通 `test_frameweb_cli.py`、既存 `test_transverse_cli.py`、`test_editor_calculation.py` 等 | 方向間非干渉、公開失敗・復元、GUI世代検証 |
-| 新規 `P7橋脚/tests/fixtures/frameweb_transverse_example2_mapping.json`、`frameweb_transverse_p7_reference.json` | PDF/JSONから独立転記する数値、既知差異、全240名目係数、37状態 |
-| 納品 `P7橋脚/post/線路直角方向.json` | FEMPython native保存JSON |
-| 同時出力 `P7橋脚/post/線路直角方向.provenance.json` | 入力・0620 PDF/計算JSON・nativeのSHA、変換版、全ケース/補助/出典対応 |
+| 新規 `./tests/fixtures/frameweb_transverse_example2_mapping.json`、`frameweb_transverse_p7_reference.json` | PDF/JSONから独立転記する数値、既知差異、全240名目係数、37状態 |
+| 納品 `./post/線路直角方向.json` | FEMPython native保存JSON |
+| 同時出力 `./post/線路直角方向.provenance.json` | 入力・0620 PDF/計算JSON・nativeのSHA、変換版、全ケース/補助/出典対応 |
 
 線路方向側 `frameweb_cases.py` と共有するのは形式・モデル直列化・公開処理。0610と0620の作用schemaや衝撃の意味は方向別adapterで明示する。共有CLI/publisher/controllerの変更担当を一人に集約し、進行中の0610実装を上書きしない。
 
@@ -188,7 +188,7 @@ Pickup1～8の参照先は順に `[1,2,3,4] / [5] / [6] / [7] / [8,9] / [10,11,1
 
 - stage別登録で0610→`frameWebForJS.json`、0620→`線路直角方向.json`、それぞれ同名stemの `.provenance.json` を管理する。前のユーザー指定名を変えない。
 - 0620単独はPDF/計算JSON/native/sidecarの4件。0610単独は線路側のみ、0500/0600単独はpostを触らない。直角だけ実装済みのallは既存8+直角2＝10件、両方向実装後は12件。途中状態を最終両方向完了と報告しない。
-- 共通 `--post-dir` は明示値を最優先。既定のproduction outputなら `P7橋脚/post`、カスタムoutputならその配下 `post`。CLI/GUI/検証が同じ解決関数と成果物登録を使う。
+- 共通 `--post-dir` は明示値を最優先。既定のproduction outputなら `./post`、カスタムoutputならその配下 `post`。CLI/GUI/検証が同じ解決関数と成果物登録を使う。
 - 各出力親内にstaging/backupを作り、全旧版退避→全新規配置→sidecar最後の順で公開する。途中例外では新規を除去し旧版へ逆順復元。別volume間のrenameは行わない。既存ファイルなしの場合や復元失敗の復旧先も扱う。
 - 強制終了後は次回起動時に未完了journal/世代混在を検出し、成功表示を止めて退避先と復旧対象を示す。自動復旧で他の並行計算を上書きする機能は今回追加しない。通常例外時の自動復元と区別してREADMEへ記す。
 - 真の複数ファイルOS原子性は保証できない。各sidecarは対象のPDF/計算JSON/native/input SHAと同じpublication IDを持ち、ジョブ全体の宣言成果物を検証してから成功とする。共通 `artifact_manifest` に**その公開ジョブの全非sidecar成果物**の役割・パス・SHAを列挙し、`expected_sidecars` に必要sidecarの役割・パスを記す。両方向allなら非sidecar10件＋sidecar2件。両sidecarのmanifest・publication IDが一致し、宣言集合がジョブ登録と完全一致することを確認する。sidecar同士のSHAを相互参照する循環は作らない。一方が存在するだけでall成功とせず、プロセス停止後の混在も検知する。
@@ -258,7 +258,7 @@ Pickup1～8の参照先は順に `[1,2,3,4] / [5] / [6] / [7] / [8,9] / [10,11,1
 - [x] 関連pytestと公開/GUI試験を実施する。共有部に変更するため `.agents/check.ps1` 全体ゲートを1回実行し、既存変更由来の失敗と今回差分を区別する。
 - [x] 0610も実装済みなら両方向の通常allを一時出力先で検証し、線路側の骨組/ケース/出力名を壊していないことを確認する。未実装ならその状態を明記する。
 - [x] 本番更新前の候補SHA、runner path/hash/engineVersion、native/計算結果/PDF対応表、22/19/16/8、37状態、ゼロ省略、解析検証、GUI往復結果を保存する。
-- [x] 通常0620経路から `P7橋脚/post/線路直角方向.json` と付帯JSONを生成し、最終SHAと参照を検証する。入力・元Example・他stage成果物・先行計画を意図せず変更していないことを確認する。
+- [x] 通常0620経路から `./post/線路直角方向.json` と付帯JSONを生成し、最終SHAと参照を検証する。入力・元Example・他stage成果物・先行計画を意図せず変更していないことを確認する。
 
 **Verification**: 数値対応、全状態、外部ソフト読込み/解析、通常生成、失敗復元の各条件を満たす。納品ファイルが実在し、生成元と同じ入力世代である。これは入力変換とソフト互換の検証であり、橋脚の構造安全性照査完了とは区別して報告する。
 
@@ -283,7 +283,7 @@ Pickup1～8の参照先は順に `[1,2,3,4] / [5] / [6] / [7] / [8,9] / [10,11,1
 
 ### Open Questions
 
-- 出力先は `P7橋脚/post/線路直角方向.json`、通常0620/all自動更新を採用。既存PDFの実名を使う。追加のユーザー回答が必要な入力条件は現時点でない。
+- 出力先は `./post/線路直角方向.json`、通常0620/all自動更新を採用。既存PDFの実名を使う。追加のユーザー回答が必要な入力条件は現時点でない。
 - ExampleのLF符号・風の端数/1.08m除外理由は未確定だが、P7の正規作用を優先するので実装を止める条件ではない。設計式を変更する必要が判明した場合は変換実装とは切り分け、具体的差異を提示する。
 - 外部ソフト直接解析、GUI data-service往復、37状態の独立応答検証は実装後に完了した。実GUIウィンドウ操作とは区別する。詳細は実装・検証記録を参照。
 - 完全剛体やGUI内Double保持への変更は今回の対象外。必要になれば外部ソフト/モデルの別変更として判断する。

@@ -4,11 +4,11 @@
 
 ## 結論と境界
 
-0710の同一計算実行からNDUを作るための荷重・寸法・柱配筋・並進ばねの根拠は揃う。0710単体は支持や非線形構成則を持たない帳票スナップショットなので、NDU生成には同一実行の0500結果、0710結果、読込み済み入力JSON、明示的なJRSNAP設定を渡す構成が必要。既存0710契約へ支持データを暗黙に混ぜない。根拠: `P7橋脚/pier_design/cli.py:64`、`:71`、`:80`、`:92`、`P7橋脚/pier_design/seismic_frame.py:66`、`P7橋脚/tests/test_seismic_longitudinal_calculator.py:147`。
+0710の同一計算実行からNDUを作るための荷重・寸法・柱配筋・並進ばねの根拠は揃う。0710単体は支持や非線形構成則を持たない帳票スナップショットなので、NDU生成には同一実行の0500結果、0710結果、読込み済み入力JSON、明示的なJRSNAP設定を渡す構成が必要。既存0710契約へ支持データを暗黙に混ぜない。根拠: `src/cli.py:64`、`:71`、`:80`、`:92`、`src/seismic_frame.py:66`、`./tests/test_seismic_longitudinal_calculator.py:147`。
 
 **追加調査による訂正**: DF/GAM2の元情報は揃っている。見本 `08_線路.pdf` 28頁に平水位の加重平均式が明記され、P7にも適用できる。DF=4.7、GAM2=12.255319…（見本同様1桁採用なら12.3）。必須手入力の提案を撤回する。[詳細な根拠と適用条件](p7-longitudinal-ndu-soil-derivation.md)。モデルはユーザーが見本同様を選択済み。解析profileの詳細確認は残る。旧見本の数値をコピーしない原則は維持する。
 
-現`P7橋脚/post`にあるのはFrameWeb方向別JSON/付帯JSONの4ファイルで、NDUはない。PythonのNDU exporter/templateも見つからない。現在の公開登録はFrameWebについて0610/0620のみ: `P7橋脚/pier_design/frameweb_artifacts.py:33`。0710はPDF/JSONのみを宣言する既存テストがある: `P7橋脚/tests/test_frameweb_publication.py:44`。
+現`./post`にあるのはFrameWeb方向別JSON/付帯JSONの4ファイルで、NDUはない。PythonのNDU exporter/templateも見つからない。現在の公開登録はFrameWebについて0610/0620のみ: `src/frameweb_artifacts.py:33`。0710はPDF/JSONのみを宣言する既存テストがある: `./tests/test_frameweb_publication.py:44`。
 
 ## 必須情報と取得元
 
@@ -35,7 +35,7 @@
 | KR2/最終勾配 | V5.2マニュアルPDF155/515頁 | 5.2既定はKR2=2、最終勾配1/20。5.3既定を使わない。明示profileとして記録可能 |
 | 解析ステップ・収束・制御節点・安全係数等 | 0710では定義しない | 設定profileが必要。見本の`DataInfo`、`SectSafe`等の全フィールドを一度版別に意味確認し、既知項目だけを明示的に保持する |
 
-上表のPython相対パスは `P7橋脚/pier_design/` 配下。マニュアル抽出JSONは `.agents/agents/jrsnap-operator/manual-comparison-data/JRSNAP.json`。
+上表のPython相対パスは `src/` 配下。マニュアル抽出JSONは `.agents/agents/jrsnap-operator/manual-comparison-data/JRSNAP.json`。
 
 ## DF=3.78、GAM2=11.6の検討結果
 
@@ -43,7 +43,7 @@
 
 P7の現入力では:
 
-- H5=0、H6=2.7: `P7橋脚/pre/input.json:500`。
+- H5=0、H6=2.7: `./pre/input.json:500`。
 - df1=df2=2.0: 同`:504`。
 - 高水位hw1=3.78、平水位hw2=2.7: 同`:509`。
 - 表層湿潤18、水中8: 同`:634`。支持層湿潤19、水中10、φ42.2、qu0、Ed165760: 同`:648`。
@@ -64,7 +64,7 @@ P7の現入力では:
 
 ## 再利用するコードと変更候補
 
-- 新規候補: `P7橋脚/pier_design/jrsnap_export.py`（純粋変換とCP932/CRLF serializer/構造検証）、`jrsnap_profile.py`（5.2用既知設定・材料対応・設定検証）、`jrsnap_artifacts.py`（出力先・付帯根拠）。名前は計画時の候補。
+- 新規候補: `src/jrsnap_export.py`（純粋変換とCP932/CRLF serializer/構造検証）、`jrsnap_profile.py`（5.2用既知設定・材料対応・設定検証）、`jrsnap_artifacts.py`（出力先・付帯根拠）。名前は計画時の候補。
 - `cli.py:98`付近: 同一メモリ計算結果から0710 exporterを呼ぶ。現入力は`:64`で一度読む。既存PDF/JSONの再読込みやPDF逆抽出は不要。
 - `frameweb_artifacts.py:62`または抽出先の汎用公開登録: `0710.native=post/線路方向.ndu`と付帯情報を登録。現在FrameWebのみ分岐する境界を明示的に拡張する。
 - `cli.py:112`、`:125`、`:133`、`:149`: 既存のステージング、全成果物ハッシュ、公開後検証を再利用。NDUを単発writeしてPDFと世代が混じる経路を作らない。
@@ -92,4 +92,4 @@ P7の現入力では:
 
 ## 現在の保存出力を直接再利用しない理由
 
-調査時 raw `P7橋脚/pre/input.json` のSHA-256は `D8DA41D8D87A04B33A35CC45226231564EBD1DC1DCDCF3ABCE397D7487887F78`。保存0500結果の`provenance.input_sha256`は `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` (`P7橋脚/output/0500_直接基礎.json:107`)。保存済みJSONと現入力の世代が異なるため、NDU生成はPDF/JSONファイルを後読込みせず、CLIが現入力を一度読んで算出したメモリ値を使う必要がある。
+調査時 raw `./pre/input.json` のSHA-256は `D8DA41D8D87A04B33A35CC45226231564EBD1DC1DCDCF3ABCE397D7487887F78`。保存0500結果の`provenance.input_sha256`は `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` (`./output/0500_直接基礎.json:107`)。保存済みJSONと現入力の世代が異なるため、NDU生成はPDF/JSONファイルを後読込みせず、CLIが現入力を一度読んで算出したメモリ値を使う必要がある。

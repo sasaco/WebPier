@@ -10,7 +10,7 @@ Three Medium findings were independently reproduced, reported, fixed by the core
 
 ### Q1 — Medium, resolved: reversed physical endpoints produced negative EQ2 resultants
 
-Original location: `P7橋脚/pier_design/seismic_transverse_calculator.py`, `_validate_geometry` and `_self_inertia`; final orientation guard is at line 357.
+Original location: `src/seismic_transverse_calculator.py`, `_validate_geometry` and `_self_inertia`; final orientation guard is at line 357.
 
 Swapping `node_i` and `node_j` on an otherwise canonical H2 or H3 member passed the absolute-length geometry validation. EQ2 then used signed endpoint subtraction: H2 produced length -2.0 m and resultant -1190.7 kN; H3 produced length -0.7000000000000002 m and resultant -312.56050000000005 kN. H3 endpoint intensities also acquired the wrong physical orientation.
 
@@ -18,7 +18,7 @@ The fix requires downward H2/H3/H4 members in the 0720 geometry validator before
 
 ### Q2 — Medium, resolved: shared adopted weights could disagree between EQ2 and D1
 
-Original location: `P7橋脚/pier_design/seismic_transverse_calculator.py`, `_self_inertia`; final consistency checks are at lines 273–290.
+Original location: `src/seismic_transverse_calculator.py`, `_self_inertia`; final consistency checks are at lines 273–290.
 
 Doubling finite `0600.macro_handoff_single.フーチング.N` while retaining the input snapshot and canonical 0620 result changed EQ2 footing force from 1105.65 to 2211.30 kN, while the copied D1 footing weight remained 4167.4501953125 kN. The input identity and finite-value checks did not detect the inconsistent source pair.
 
@@ -26,7 +26,7 @@ The narrow fix compares the already-consumed 0600 footing weight with the canoni
 
 ### Q3 — Medium, resolved: decimal-equivalent upper heights could create a spurious member
 
-Original location: `P7橋脚/pier_design/seismic_transverse_calculator.py`, upper-level input construction, and `seismic_frame.py`, exact-coordinate lookup; final arithmetic fix is at calculator lines 377–378.
+Original location: `src/seismic_transverse_calculator.py`, upper-level input construction, and `seismic_frame.py`, exact-coordinate lookup; final arithmetic fix is at calculator lines 377–378.
 
 With geometry H2=0, H3=0, H4=0.011, H5=0.004, H6=0.005 m, the cap is at 0.020 m. B h1=0.1, h2=0.2 and C h1=0.3, h2=0 created two upper nodes connected by a 5.551115123125783e-17 m geometry-only member. The ordinary 10.3 m cap masks this issue because coordinate addition rounds both levels to the same float.
 
@@ -44,7 +44,7 @@ The fix sums each side's input decimal values with `Decimal(str(h1)) + Decimal(s
 
 - Independent before-fix reproductions executed all three Codex candidates; the original consult's static claims were not accepted on trust.
 - Independent after-fix reproduction: exit 0. Evidence: `tmp/seismic-transverse-implementation/quality-review-final-repros.json`.
-- Targeted reviewer pytest: `P7橋脚/.venv/Scripts/python.exe -X utf8 -m pytest tests/test_seismic_transverse_calculator.py tests/test_seismic_transverse_report.py -q`, run from `P7橋脚`: **114 passed in 22.94 s**, exit 0.
+- Targeted reviewer pytest: `./.venv/Scripts/python.exe -X utf8 -m pytest tests/test_seismic_transverse_calculator.py tests/test_seismic_transverse_report.py -q`, run from `.`: **114 passed in 22.94 s**, exit 0.
 - The lead supplied broader regression and 0710 JSON/PDF/pixel equivalence evidence; those results are not described here as independently rerun by this reviewer.
 - The shared `uv --locked` gate is known to stop before pytest because of the existing environment/lock mismatch. The approved plan allows the existing P7 virtual environment fallback. The lead also reported an unrelated concurrent reinforcement-reference failure in the broader suite. This review does not claim a fully green repository or completed GUI verification.
 

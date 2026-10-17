@@ -10,7 +10,7 @@
 - 親がメモリ内再計算した `tmp/longitudinal-example2-plan/current-{0600,0610}.json` と `factor-1-23-{0600,0610}.json` を現コードの数値根拠として使用した。後者はメモリ内で係数だけ1.23にした比較条件で、実入力は変更していない。
 - 前提計画 `.agents/docs/plans/train-reaction-joint-boundary.md` を確認済み。列車境界の再修正を新計画に重複計上しない。
 
-以下の製品コードパスは `P7橋脚/` 基準。頁はPDFの物理頁で、Exampleの印字頁とも一致する。
+以下の製品コードパスは `./` 基準。頁はPDFの物理頁で、Exampleの印字頁とも一致する。
 
 ## 1. 材料: 原因確定、未解消
 

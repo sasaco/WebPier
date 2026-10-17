@@ -29,14 +29,14 @@
 
 ### [Medium, known, resolved] READMEのB9説明が承認済みbackendの動作と逆
 
-- **Location:** `P7橋脚/README.md:120`、`:156`、`:313`（固定レビューコピー）。最初の箇所は自動表示一覧後の包括的な説明です。live版は別編集により行位置がずれる可能性があります。
+- **Location:** `./README.md:120`、`:156`、`:313`（固定レビューコピー）。最初の箇所は自動表示一覧後の包括的な説明です。live版は別編集により行位置がずれる可能性があります。
 - **Reproduction:** `tests/fixtures/pier_models/parapet-asymmetric.json` はB7=0.35、B9=0.2です。固定コピーの両parserはB9=0.2を保持しますが、READMEは「計算時は参照元から再計算」「B7＋B8＋B7」「GUI・CLIともB7」と説明します。CLIを使う利用者が、明示入力が採用されないと誤認します。
 - **Fix:** 自動表示段落を「GUIでは上記の欄を自動表示し、更新・保存します。計算時のB9は後述の明示入力優先に従います。」とし、他の数式項目の再計算説明は維持してください。0500段落とサンプル段落には「JSONにB9が明示されていれば、その値（0を含む）を使用し、欠落/nullの場合だけB7を用います。基礎幅はB7＋B8＋採用したB9です。GUIのB9自動計算は従来どおりです。」と記載してください。既存の15有効桁表示の説明は維持してください。
 - **Status:** 主担当へ通知後、修正案を確認し、下記のlive適用まで確認して解消しました。
 
 #### 修正提案の確認
 
-`tmp/pier-height-boundary-nodes/approved-docs/P7橋脚/README.md` と同 `tests/fixtures/pier_models/README.md` を確認しました。3箇所とも明示B9（0を含む）を優先し、欠落/nullのみB7を採用する説明へ揃い、指摘解決案として妥当です。GUIで開いて保存すると例のB9=.2がB7=.35へ更新されること、CLIへ原JSONを直接渡す経路、重心高Single `1.1779999732971191 m`、typed adapterは過去の元数式snapshot照合に限ることも明示されています。15有効桁表示の説明は保持されています。
+`tmp/pier-height-boundary-nodes/approved-docs/./README.md` と同 `tests/fixtures/pier_models/README.md` を確認しました。3箇所とも明示B9（0を含む）を優先し、欠落/nullのみB7を採用する説明へ揃い、指摘解決案として妥当です。GUIで開いて保存すると例のB9=.2がB7=.35へ更新されること、CLIへ原JSONを直接渡す経路、重心高Single `1.1779999732971191 m`、typed adapterは過去の元数式snapshot照合に限ることも明示されています。15有効桁表示の説明は保持されています。
 
 #### Live適用の確認
 

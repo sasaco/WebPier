@@ -29,7 +29,7 @@ The four-page interpretation is internally consistent: model, action calculation
 
 The reference total height 13.050 m is 2.750 + physical height 10.300 m. The displayed 10.340 m dimension ends at node 5 above the micro member, and is not the total above-footing height (10.350 m). Do not copy 13.050 or 10.340 as fixed constants.
 
-Current inputs match those dimensions: lower H1=0, H2=2, H3=.7, H4=4.9, H5=0, H6=2.7 (`P7橋脚/pre/input.json:495`). Upper B h1+h2=.15+2.60=2.750 and C h1+h2=.10+2.65=2.750 (`input.json:393`, `input.json:416`). These are distinct from the input aggregate inertia centroid heights hs=2.9520833333333334 and 3.0662447257383967 (`input.json:398`, `input.json:421`).
+Current inputs match those dimensions: lower H1=0, H2=2, H3=.7, H4=4.9, H5=0, H6=2.7 (`./pre/input.json:495`). Upper B h1+h2=.15+2.60=2.750 and C h1+h2=.10+2.65=2.750 (`input.json:393`, `input.json:416`). These are distinct from the input aggregate inertia centroid heights hs=2.9520833333333334 and 3.0662447257383967 (`input.json:398`, `input.json:421`).
 
 The interpretation of the 2.750 m upper member as h1+h2 is supported by the visual slab/bearing geometry and exact current-input correspondence. The source page does not explicitly label this dimension with the input variable names. Treat it as a documented mapping, not as proof that hs equals 2.750.
 
@@ -56,7 +56,7 @@ Current input supports this directly: L1=down, L2=up, matching the existing `TRA
 
 Reference p8 H=6720+2360=9080 kN at Kh=1. Its moment table contains B girder 5520*2.750=15180, B shelter vertical torque rows (-530*-3.8)+(-210*-1.5)+(210*1.5)+(530*3.8)=4658, C girder 1720*2.750=4730, C shelter (-430*-2.95)+(430*2.95)=2537. Total M=27105 kN m.
 
-Current input expressly excludes a separate shelter feature and represents the aggregate with D1+D2+S2 and freely entered equivalent hs (`input.json:21`; `P7橋脚/README.md:205`, `:298`). Current 0600 implementation already calculates H=D1+D2+S2 and M=H*hs (`reaction_calculator.py:299`, `:330`, `:334`). Thus:
+Current input expressly excludes a separate shelter feature and represents the aggregate with D1+D2+S2 and freely entered equivalent hs (`input.json:21`; `./README.md:205`, `:298`). Current 0600 implementation already calculates H=D1+D2+S2 and M=H*hs (`reaction_calculator.py:299`, `:330`, `:334`). Thus:
 
 | Side | D1 | D2 | S2 | H at Kh=1 (kN) | hs (m) | M (kN m) |
 |---|---:|---:|---:|---:|---:|---:|

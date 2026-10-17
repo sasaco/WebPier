@@ -1,24 +1,24 @@
 # P7 0710 → JRSNAP 5.2-L03 NDU 出力の現状調査
 
-調査は読取り専用。元入力、コード、PDF/JSON、post、NDUは変更していない。新規成果物はこの調査資料と `tmp/p7-ndu-plan/input-snapshot-comparison.json`。対象版はユーザー指定の JRSNAP 5.2-L03、予定出力は `P7橋脚/post/線路方向.ndu`。
+調査は読取り専用。元入力、コード、PDF/JSON、post、NDUは変更していない。新規成果物はこの調査資料と `tmp/p7-ndu-plan/input-snapshot-comparison.json`。対象版はユーザー指定の JRSNAP 5.2-L03、予定出力は `./post/線路方向.ndu`。
 
 ## 1. 現状経路
 
-- 正規入口は `P7橋脚/run_design.py:3` → `pier_design.cli.main`。引数は input/output-dir/post-dir/overwrite/stage のみ。`--frameweb`、`--excel` は存在しない（`P7橋脚/pier_design/cli.py:47`–53）。
+- 正規入口は `./run_design.py:3` → `pier_design.cli.main`。引数は input/output-dir/post-dir/overwrite/stage のみ。`--frameweb`、`--excel` は存在しない（`src/cli.py:47`–53）。
 - CLIは入力バイトを1回だけ読み、同じSHAを全結果へ付与する（`cli.py:64`–78）。`0710` は現在入力から 0500 → 0600 → 正規0610 → 0710 をメモリ内で計算し、保存済み0610/0710 JSONやPDFを読み戻さない（`cli.py:71`–93）。
-- 0610は部位別コンクリート強度の既存入力を `parse_longitudinal_design_conditions(data)` で取得する（`cli.py:80`–83、`P7橋脚/pier_design/longitudinal_design_conditions.py:80`–91）。Ecは RcDan テーブル補間による kN/m²（同ファイル:54–65）。
-- 0710は正規0610 schema2を要求し、選択した旧監査情報から地震列車・桁・自重慣性力を採用する純粋アダプター（`P7橋脚/pier_design/seismic_longitudinal_calculator.py:173`–203）。結果は schema1 / stage0710 / direction longitudinal、8基本ケース・1組合せ（同:204–216、242–255）。
-- 帳票レンダラは `P7橋脚/pier_design/seismic_longitudinal_report.py:431`、CLI接続は `cli.py:104`–118。最終0710は3ページ。renderは結果だけを使い、入力を変更しない契約がある（`P7橋脚/tests/test_seismic_longitudinal_report.py:142`）。
-- 現行postの対象は0610と0620のみ（`P7橋脚/pier_design/frameweb_artifacts.py:33`–40）。`0710`単独はPDF/JSONの2件、allは6帳票12件＋FrameWeb2方向4件＝16件（`P7橋脚/README.md:21`、63–67）。
-- GUI「保存して計算・PDF出力」は入力保存後に同CLIの `--stage all --overwrite` を起動する（`P7橋脚/pier_design/editor_gui.py:516`、`P7橋脚/pier_design/editor_calculation.py:168`–186）。既存実行ボタンに、新規の任意チェックを接続する候補となる。
+- 0610は部位別コンクリート強度の既存入力を `parse_longitudinal_design_conditions(data)` で取得する（`cli.py:80`–83、`src/longitudinal_design_conditions.py:80`–91）。Ecは RcDan テーブル補間による kN/m²（同ファイル:54–65）。
+- 0710は正規0610 schema2を要求し、選択した旧監査情報から地震列車・桁・自重慣性力を採用する純粋アダプター（`src/seismic_longitudinal_calculator.py:173`–203）。結果は schema1 / stage0710 / direction longitudinal、8基本ケース・1組合せ（同:204–216、242–255）。
+- 帳票レンダラは `src/seismic_longitudinal_report.py:431`、CLI接続は `cli.py:104`–118。最終0710は3ページ。renderは結果だけを使い、入力を変更しない契約がある（`./tests/test_seismic_longitudinal_report.py:142`）。
+- 現行postの対象は0610と0620のみ（`src/frameweb_artifacts.py:33`–40）。`0710`単独はPDF/JSONの2件、allは6帳票12件＋FrameWeb2方向4件＝16件（`./README.md:21`、63–67）。
+- GUI「保存して計算・PDF出力」は入力保存後に同CLIの `--stage all --overwrite` を起動する（`src/editor_gui.py:516`、`src/editor_calculation.py:168`–186）。既存実行ボタンに、新規の任意チェックを接続する候補となる。
 
 ## 2. 0710にある情報・ない情報
 
 ### 骨組
 
-- `seismic_frame._physical_frame` は nodes/members/node_ids/sections/materials だけをallowlist複写し、support modelをコピーしない（`P7橋脚/pier_design/seismic_frame.py:66`–129）。
+- `seismic_frame._physical_frame` は nodes/members/node_ids/sections/materials だけをallowlist複写し、support modelをコピーしない（`src/seismic_frame.py:66`–129）。
 - 柱下端0.010mを既存H4から切り出す。柱長へ0.010mを加算しない。behavior=nonlinearは原本分類だけで、構成則・剛性・拘束は未定義（同:161–208）。
-- 節点は高さ降順、部材は中点高さ降順に連番。node_idsと微小部材参照も更新する（同:132–158）。標準入力は節点1–7、要素1–6、微小要素4 = node4→5。H1ありでは増えるため7/6を固定してはいけない（同:193–216、`P7橋脚/tests/test_seismic_longitudinal_calculator.py:401`）。
+- 節点は高さ降順、部材は中点高さ降順に連番。node_idsと微小部材参照も更新する（同:132–158）。標準入力は節点1–7、要素1–6、微小要素4 = node4→5。H1ありでは増えるため7/6を固定してはいけない（同:193–216、`./tests/test_seismic_longitudinal_calculator.py:401`）。
 - 0710 provenanceも「他部材の剛域化は今回再現しない」と明記する（`seismic_longitudinal_calculator.py:232`）。見本NDUの「微小要素以外は全剛域」を0710へ無条件適用すると既存骨組の意味が変わる。
 
 ### 荷重・符号
@@ -31,16 +31,16 @@
 ### 支持・非線形・解析条件の欠落
 
 - 0710は支持モデル、非線形構成則、応答解析を定義しない（`seismic_longitudinal_calculator.py:1`–5、230–254、`CONTEXT.md:23`付近の「検討モデルの骨組図」）。したがって、PDFの「ばね非表示」を固定支持や無支持へ読み替えてはいけない。
-- 0500正規結果には方向別 long_term/short_term Kv/Ks/Kr があり、既存 `foundation_spring_set(foundation,'longitudinal')` が未丸めDoubleと出典を返す（`P7橋脚/pier_design/foundation_springs.py:27`–58）。これは既存0610用の線形ばねの取得経路であり、そのままJRSNAP耐震モデルの支持条件として採用する設計決定ではない。
-- 支持地盤や基礎形状のraw値は既存0500 parserにある（`P7橋脚/pier_design/inputs.py:81`–166）。5.2-L03の回転ばね/直接基礎照査/解析制御へ必要な入力は、版別マッピングと不足判定を別途固める必要がある。
+- 0500正規結果には方向別 long_term/short_term Kv/Ks/Kr があり、既存 `foundation_spring_set(foundation,'longitudinal')` が未丸めDoubleと出典を返す（`src/foundation_springs.py:27`–58）。これは既存0610用の線形ばねの取得経路であり、そのままJRSNAP耐震モデルの支持条件として採用する設計決定ではない。
+- 支持地盤や基礎形状のraw値は既存0500 parserにある（`src/inputs.py:81`–166）。5.2-L03の回転ばね/直接基礎照査/解析制御へ必要な入力は、版別マッピングと不足判定を別途固める必要がある。
 
 ### 配筋の再利用
 
 - raw `鉄筋` は `ReactionInput` / 0710.input へ含まれない。0710.inputは geometry/spans/train/dead/warnings/snow のみ（`seismic_longitudinal_calculator.py:181`、244、調査JSONのstored_0710_input_keys）。
-- 配筋は既存 `rebar_model.load_member` → `section_geometry` → `member_preview` → `directional_rows(bars,'線路')` を再利用できる。線路断面は width=W6、height=B6、単位mm、配筋座標は左上原点X=直角/Y=線路（`P7橋脚/pier_design/rebar_model.py:1`–7、310–345、676–692）。
+- 配筋は既存 `rebar_model.load_member` → `section_geometry` → `member_preview` → `directional_rows(bars,'線路')` を再利用できる。線路断面は width=W6、height=B6、単位mm、配筋座標は左上原点X=直角/Y=線路（`src/rebar_model.py:1`–7、310–345、676–692）。
 - `directional_rows` は実物の芯位置・径・材質で集計し、NDU SectReinへの候補となる（同:676–692）。同位置の異径/異材質を無断合算しない。
 - GUI向けpreviewは欠落入力をwarningとして許す部分がある。NDU exporterは warnings / incomplete / stale manual_basis を明示エラーにするか許容仕様を定める必要がある（同:592–604、1038–1058）。
-- 現在の柱入力には線路方向SD390/D22/有効本数10/pitch150がある（`P7橋脚/pre/input.json:663`–732）。方向別有効本数を帯筋の組数へ置換しない（`CONTEXT.md`の対応定義）。
+- 現在の柱入力には線路方向SD390/D22/有効本数10/pitch150がある（`./pre/input.json:663`–732）。方向別有効本数を帯筋の組数へ置換しない（`CONTEXT.md`の対応定義）。
 - コンクリートEcは0710 frameでkN/m²、NDU断面でkN/mm²なら1e6換算が必要（`longitudinal_design_conditions.py:27`、54–65、`seismic_longitudinal_calculator.py:251`–252）。m→mm、N/Mの符号と単位も出典表へ残す。
 
 ## 3. 入力世代・現行資産の監査
@@ -49,13 +49,13 @@
 
 |ファイル|SHA256|
 |---|---|
-|`P7橋脚/pre/input.json`|`d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`|
-|`P7橋脚/output/0710_線路方向荷重.json`|`b3589b770b72f68e2b8411b8bcb3d164b39228aaf8717375dcda4d4d84995d26`|
-|`P7橋脚/output/0710_線路方向荷重.pdf`|`d2b9f888e0a27d9dad55bf1566a44dd817e6216b46e4846e1c830fb5e25a03b5`|
+|`./pre/input.json`|`d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`|
+|`./output/0710_線路方向荷重.json`|`b3589b770b72f68e2b8411b8bcb3d164b39228aaf8717375dcda4d4d84995d26`|
+|`./output/0710_線路方向荷重.pdf`|`d2b9f888e0a27d9dad55bf1566a44dd817e6216b46e4846e1c830fb5e25a03b5`|
 
-0710 JSONが記録する入力SHAは `0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408`（`P7橋脚/output/0710_線路方向荷重.json:1030`）で、現在入力と不一致。
+0710 JSONが記録する入力SHAは `0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408`（`./output/0710_線路方向荷重.json:1030`）で、現在入力と不一致。
 
-ただし、そのSHAに完全一致するraw入力を `tmp/column-rebar-implementation/baseline/P7橋脚/pre/input.json` で発見した。これが指定0710生成時の再現可能な全入力。`tmp/column-rebar-implementation/baseline-sha256.json:8`も同SHAを記録する。
+ただし、そのSHAに完全一致するraw入力を `tmp/column-rebar-implementation/baseline/./pre/input.json` で発見した。これが指定0710生成時の再現可能な全入力。`tmp/column-rebar-implementation/baseline-sha256.json:8`も同SHAを記録する。
 
 現行との差分は次の8項目のみ（構造比較の完全記録: `tmp/p7-ndu-plan/input-snapshot-comparison.json`）:
 
@@ -83,7 +83,7 @@
 
 ### 再利用する公開処理
 
-- `ArtifactStaging` は出力先と同一filesystemに一時領域を作り、対応するpathへ書き出す（`P7橋脚/pier_design/artifact_publication.py:118`–159）。
+- `ArtifactStaging` は出力先と同一filesystemに一時領域を作り、対応するpathへ書き出す（`src/artifact_publication.py:118`–159）。
 - `validate_destinations` は入力とのパス衝突、重複、symlink、非通常ファイル、overwriteなしの既存ファイル、readonlyを拒否する（同:96–115）。
 - `publish_outputs` は全旧成果物退避後に置換し、final_validator成功までbackupを保持。途中失敗時は全復元、復元失敗時はjournal/backupを残す（同:162–246）。NDUもこの同じ公開トランザクションに含める。
 - JSON生成/描画/既存FrameWeb検証を全てstageしてから公開する現在順序を維持する（`cli.py:98`–157）。
@@ -120,35 +120,35 @@
 
 ### 新設候補
 
-- `P7橋脚/pier_design/jrsnap_export.py`: 0710計算結果＋同一runで確定した柱配筋/支持/解析設定から、5.2-L03用のモデル・荷重・断面を構築する純粋変換。I/O・再計算を持たない。
-- `P7橋脚/pier_design/jrsnap_ndu.py`: CP932/CRLFの5.2-L03 serializer、再読込validator、カウント/参照/符号/荷重型検証。具体的モジュール分割は規模に合わせる。
-- `P7橋脚/pier_design/jrsnap_artifacts.py`: 専用path/manifest/validator。同じ公開トランザクションへ参加。
-- `P7橋脚/pier_design/jrsnap_design_conditions.py`: 支持・非線形・材料係数/解析設定の出典付き型と必須値検査。raw入力スキーマ追加が必要なら既存inputモデル/UIにも限定追加。
-- `P7橋脚/pier_design/assets/jrsnap_52_*.ndu` または対応する構造化template: 版確認済の静的規約だけ。Example案件値を日常runtimeの入力元にしない。
-- `P7橋脚/tests/test_jrsnap_export.py`、`test_jrsnap_ndu.py`、`test_jrsnap_cli.py`、`test_jrsnap_publication.py`、独立fixture。
+- `src/jrsnap_export.py`: 0710計算結果＋同一runで確定した柱配筋/支持/解析設定から、5.2-L03用のモデル・荷重・断面を構築する純粋変換。I/O・再計算を持たない。
+- `src/jrsnap_ndu.py`: CP932/CRLFの5.2-L03 serializer、再読込validator、カウント/参照/符号/荷重型検証。具体的モジュール分割は規模に合わせる。
+- `src/jrsnap_artifacts.py`: 専用path/manifest/validator。同じ公開トランザクションへ参加。
+- `src/jrsnap_design_conditions.py`: 支持・非線形・材料係数/解析設定の出典付き型と必須値検査。raw入力スキーマ追加が必要なら既存inputモデル/UIにも限定追加。
+- `src/assets/jrsnap_52_*.ndu` または対応する構造化template: 版確認済の静的規約だけ。Example案件値を日常runtimeの入力元にしない。
+- `./tests/test_jrsnap_export.py`、`test_jrsnap_ndu.py`、`test_jrsnap_cli.py`、`test_jrsnap_publication.py`、独立fixture。
 
 ### 変更必須または候補
 
-- `P7橋脚/pier_design/cli.py`: `--jrsnap`、0710/all opt-in分岐、raw入力から配筋/専用設定を読み取る、exporterを0710と同じ計算結果へ接続、NDU bytes/sidecarをstage・verify・publish、結果path表示。
-- `P7橋脚/pier_design/editor_calculation.py`: jobのjrsnap選択伝播、有効時だけNDU/sidecar追加、専用validator/世代確認、成功後の再確認を16または18件へ適用（現状 `validate_outputs`:113–152）。
-- `P7橋脚/pier_design/editor_gui.py`: default offの任意チェック、startへの選択伝播、実行中disable、選択に応じた完了表示（現状:506–523、699–701、725）。
-- `P7橋脚/pier_design/frameweb_artifacts.py`: 専用manifest方式なら内部schema2変更を避けられる。中立の台帳へ切り出す別案を採るなら既存public API互換が必要。
-- `P7橋脚/README.md`: 0710/all出力一覧、postと上書き、NDU target版、初回入力起点と支持/解析スコープ、構造解析を自動実行しないことの説明。
+- `src/cli.py`: `--jrsnap`、0710/all opt-in分岐、raw入力から配筋/専用設定を読み取る、exporterを0710と同じ計算結果へ接続、NDU bytes/sidecarをstage・verify・publish、結果path表示。
+- `src/editor_calculation.py`: jobのjrsnap選択伝播、有効時だけNDU/sidecar追加、専用validator/世代確認、成功後の再確認を16または18件へ適用（現状 `validate_outputs`:113–152）。
+- `src/editor_gui.py`: default offの任意チェック、startへの選択伝播、実行中disable、選択に応じた完了表示（現状:506–523、699–701、725）。
+- `src/frameweb_artifacts.py`: 専用manifest方式なら内部schema2変更を避けられる。中立の台帳へ切り出す別案を採るなら既存public API互換が必要。
+- `./README.md`: 0710/all出力一覧、postと上書き、NDU target版、初回入力起点と支持/解析スコープ、構造解析を自動実行しないことの説明。
 - `CONTEXT.md`: NDU入力モデルと荷重帳票/解析結果の区別が必要なら用語を追記。既存用語を変えない。
 
 ## 6. 既存試験・追加が必要な検証
 
 ### 再利用すべき試験
 
-- `P7橋脚/tests/test_seismic_longitudinal_calculator.py:101` 独立見本値/ケース、:133 符号/係数二重適用防止、:147 detached/support排除、:240 形状/単重/H1感度、:281 不正値、:366 微小部材、:401 再採番順、:418以降 不正H4/座標精度。
-- `P7橋脚/tests/test_seismic_longitudinal_report.py:69` 3頁/表示値、:142 snapshot-only、:162 微小部材/番号、:202 形状差、:236 表示精度、:301 描画失敗時無変更。
-- `P7橋脚/tests/test_seismic_longitudinal_cli.py:46` 1回読込/同一upstream、:95 単独/all値一致、:109 選択外保護、:126 生成/公開失敗復元、:171 改変/欠落0710検出。現状 :87 の「postなし」期待と :92 の16件期待はdefault offで維持し、onの4/18件試験を追加。
-- `P7橋脚/tests/test_frameweb_cli.py:94` 0710 default offのpost非変更期待を維持。:126 overwrite/衝突、:163 公開失敗復元、:216 既存sidecarのmanifest/世代、:243 方向別保護、:282 final bytes validation失敗。NDU有効時にも既存FrameWeb native規約を変えないことを別途確認。
-- `P7橋脚/tests/test_frameweb_publication.py:41` 台帳契約、:66 staged bytes、:80不完全manifest、:100旧schema1制限、:119方向/破損。専用manifest方式では既存期待を原則維持。
-- `P7橋脚/tests/test_artifact_publication.py:15` cross-dir復元、:40重複、:80復元失敗backup保存、:162 final validate前backup保持、:181中断journal、:310pending marker。機構の全面改修は不要。
-- `P7橋脚/tests/test_editor_calculation.py:43` fixture生成器、:149/:468 16件assert、:293各artifact欠落、:302改変0710、:383入力外部変更、:425実CLI、:463成功後のartifact改変。NDU2件のcoverageを追加。
-- `P7橋脚/tests/test_column_rebar_reference.py:81` 見本独立Oracle、:121 76本と線路11段/直角31段の全配置、:146現行P7一致。NDU行をこの独立fixtureと比較し、実装から期待値を生成しない。
-- `P7橋脚/tests/test_frameweb_export.py:39` 正規結果native化、:76変形、:96非連番、:171再読込検証、:195精度喪失拒否は新exporter設計のパターン（FrameWebの規約値自体はNDUへコピーしない）。
+- `./tests/test_seismic_longitudinal_calculator.py:101` 独立見本値/ケース、:133 符号/係数二重適用防止、:147 detached/support排除、:240 形状/単重/H1感度、:281 不正値、:366 微小部材、:401 再採番順、:418以降 不正H4/座標精度。
+- `./tests/test_seismic_longitudinal_report.py:69` 3頁/表示値、:142 snapshot-only、:162 微小部材/番号、:202 形状差、:236 表示精度、:301 描画失敗時無変更。
+- `./tests/test_seismic_longitudinal_cli.py:46` 1回読込/同一upstream、:95 単独/all値一致、:109 選択外保護、:126 生成/公開失敗復元、:171 改変/欠落0710検出。現状 :87 の「postなし」期待と :92 の16件期待はdefault offで維持し、onの4/18件試験を追加。
+- `./tests/test_frameweb_cli.py:94` 0710 default offのpost非変更期待を維持。:126 overwrite/衝突、:163 公開失敗復元、:216 既存sidecarのmanifest/世代、:243 方向別保護、:282 final bytes validation失敗。NDU有効時にも既存FrameWeb native規約を変えないことを別途確認。
+- `./tests/test_frameweb_publication.py:41` 台帳契約、:66 staged bytes、:80不完全manifest、:100旧schema1制限、:119方向/破損。専用manifest方式では既存期待を原則維持。
+- `./tests/test_artifact_publication.py:15` cross-dir復元、:40重複、:80復元失敗backup保存、:162 final validate前backup保持、:181中断journal、:310pending marker。機構の全面改修は不要。
+- `./tests/test_editor_calculation.py:43` fixture生成器、:149/:468 16件assert、:293各artifact欠落、:302改変0710、:383入力外部変更、:425実CLI、:463成功後のartifact改変。NDU2件のcoverageを追加。
+- `./tests/test_column_rebar_reference.py:81` 見本独立Oracle、:121 76本と線路11段/直角31段の全配置、:146現行P7一致。NDU行をこの独立fixtureと比較し、実装から期待値を生成しない。
+- `./tests/test_frameweb_export.py:39` 正規結果native化、:76変形、:96非連番、:171再読込検証、:195精度喪失拒否は新exporter設計のパターン（FrameWebの規約値自体はNDUへコピーしない）。
 
 ### 新規試験の焦点
 

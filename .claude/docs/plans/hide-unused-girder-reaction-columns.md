@@ -3,17 +3,17 @@
 実施済み（2026-10-16）。ユーザーの「シンプルに作業」の指示に合わせ、描画処理1ファイルと関連テスト・READMEを修正した。関連テスト56件通過、先頭2ページを目視確認済み。作業中に入力が別途変更されたため、正規PDFは保存済み0600 JSONから描画だけを更新した。計算JSON、支点反力表、3ページ目以降、他段階の成果物は不変。以下は当初計画で、全体ゲートとCLIによる再計算公開は今回省略した。
 
 ### Purpose
-`P7橋脚/output/0600_上部工反力.pdf` の「(2) 主桁反力」で、支承位置が未入力の主桁列を表示しない。現在の入力では起点側をG1～G4、終点側をG1～G2とし、不要な列の数値・見出し・罫線、および空になるG6～G10の表を省略する。
+`./output/0600_上部工反力.pdf` の「(2) 主桁反力」で、支承位置が未入力の主桁列を表示しない。現在の入力では起点側をG1～G4、終点側をG1～G2とし、不要な列の数値・見出し・罫線、および空になるG6～G10の表を省略する。
 
 ### Scope
 - New files: 製品ファイルの新設なし。確認用PDF・PNG・比較記録は `tmp/hide-unused-girder-reaction-columns/` に保存する。
 - Modified files:
-  - `P7橋脚/pier_design/reaction_report_snow.py`: 主桁表の表示対象、列幅・罫線・空ブロックを調整する。
-  - `P7橋脚/tests/test_reaction_report.py`: 表示対象と元のG番号・数値の対応を検証する。
-  - `P7橋脚/tests/test_reaction_report_snow.py`: 雪荷重、可変列の罫線、既存座標、入力・共有レイアウトの不変性を検証する。
-  - `P7橋脚/README.md`: 主桁表の表示判定と、計算・JSONの集計対象を変更しないことを短く記載する。
-  - `P7橋脚/output/0600_上部工反力.pdf`: 実装・検証後に再生成する。
-  - `P7橋脚/output/0600_上部工反力.json`: 既存CLIがPDFと一括生成するため再出力対象になるが、JSON全体の内容一致を必須とする。
+  - `src/reaction_report_snow.py`: 主桁表の表示対象、列幅・罫線・空ブロックを調整する。
+  - `./tests/test_reaction_report.py`: 表示対象と元のG番号・数値の対応を検証する。
+  - `./tests/test_reaction_report_snow.py`: 雪荷重、可変列の罫線、既存座標、入力・共有レイアウトの不変性を検証する。
+  - `./README.md`: 主桁表の表示判定と、計算・JSONの集計対象を変更しないことを短く記載する。
+  - `./output/0600_上部工反力.pdf`: 実装・検証後に再生成する。
+  - `./output/0600_上部工反力.json`: 既存CLIがPDFと一括生成するため再出力対象になるが、JSON全体の内容一致を必須とする。
 - Dependencies: 既存のReportLab・PyMuPDF・pytestと帳票テンプレートを使用し、追加依存は導入しない。
 - 対象外: 入力項目・GUI・計算式・集計対象・結果JSONスキーマ・「(1) 支点反力」・他の節・0500/0610/0620成果物・ページ統合。Gitのcommitや既存変更の巻き戻しは行わない。
 
@@ -26,11 +26,11 @@
 - 位置未入力でも非ゼロの荷重を受け付ける既存仕様は変更しない。その列は上記条件により非表示だが、集計・計算・JSONには従来どおり含める。非ゼロ値による表示の復活、入力拒否、別表の追加は行わない。
 
 **現状と根拠**
-- `P7橋脚/pier_design/reaction_inputs.py:107` / `:310`: 位置は `float | None`。支承は各側10枠固定で、数値項目の空欄は0になる。現在の入力は起点側4位置・終点側2位置が設定済み。
-- `P7橋脚/pier_design/reaction_weights.py:36` / `:48` / `:75`: 死荷重の `slots` に位置を保持し、死荷重・列車分担・雪荷重を全10枠で集計する。`reaction_calculator.py:415` が `dead_loads` を結果へ格納するため、計算側への情報追加は不要。
-- `P7橋脚/pier_design/reaction_report_snow.py:34` / `:76` / `:131`: 元レイアウトのコピーへ雪荷重行を挿入する。現状は各側2組の5列を固定描画し、雪荷重用罫線も固定幅。
-- `P7橋脚/pier_design/reaction_report_pagination.py:55`: 起点側・終点側は別ページ。今回の入力で既存PDFは31ページ、変更対象は先頭2ページ。
-- `P7橋脚/tests/test_reaction_report.py:196` と `tests/test_reaction_report_snow.py:33` / `:192`: 位置未設定のG10等へ荷重だけを入れる既存テストがある。表示を意図するテスト入力には位置を明示し、数値検証の強度を維持する必要がある。
+- `src/reaction_inputs.py:107` / `:310`: 位置は `float | None`。支承は各側10枠固定で、数値項目の空欄は0になる。現在の入力は起点側4位置・終点側2位置が設定済み。
+- `src/reaction_weights.py:36` / `:48` / `:75`: 死荷重の `slots` に位置を保持し、死荷重・列車分担・雪荷重を全10枠で集計する。`reaction_calculator.py:415` が `dead_loads` を結果へ格納するため、計算側への情報追加は不要。
+- `src/reaction_report_snow.py:34` / `:76` / `:131`: 元レイアウトのコピーへ雪荷重行を挿入する。現状は各側2組の5列を固定描画し、雪荷重用罫線も固定幅。
+- `src/reaction_report_pagination.py:55`: 起点側・終点側は別ページ。今回の入力で既存PDFは31ページ、変更対象は先頭2ページ。
+- `./tests/test_reaction_report.py:196` と `tests/test_reaction_report_snow.py:33` / `:192`: 位置未設定のG10等へ荷重だけを入れる既存テストがある。表示を意図するテスト入力には位置を明示し、数値検証の強度を維持する必要がある。
 
 ### Implementation Steps
 比較基準を保存し、表示条件と描画を変更してから、回帰検証・成果物更新の順に進める。
@@ -63,14 +63,14 @@
 - [ ] 検証済みコード・同一入力から一時出力したPDF/JSONを再確認し、実装中に入力が外部変更されていないことを確認する。変更があれば新しい入力で比較基準と検証を取り直す。
 - [ ] `--stage 0600 --overwrite` で正規出力のPDF/JSONのみを更新する。既存CLIの一括公開・失敗時復元を利用する。
 - [ ] 正規出力と確認済み候補の一致、0600 JSON全体の内容不変、入力と0500/0610/0620成果物のSHA256不変、最終差分が対象範囲内であることを確認する。
-**Verification**: `P7橋脚/output/0600_上部工反力.pdf` の先頭2ページが確認済みの候補と一致し、起点側G5以降・終点側G3以降が表枠ごと非表示。入力、計算内容、他段階の成果物は維持される。
+**Verification**: `./output/0600_上部工反力.pdf` の先頭2ページが確認済みの候補と一致し、起点側G5以降・終点側G3以降が表枠ごと非表示。入力、計算内容、他段階の成果物は維持される。
 
 **実行コマンド（実装承認後、リポジトリルートから）**
 ```powershell
-uv run --project "P7橋脚" --locked --group dev python -X utf8 -m pytest "P7橋脚/tests/test_reaction_report.py" "P7橋脚/tests/test_reaction_report_snow.py" "P7橋脚/tests/test_reaction_cli.py" -q
+uv run --project "." --locked --group dev python -X utf8 -m pytest "./tests/test_reaction_report.py" "./tests/test_reaction_report_snow.py" "./tests/test_reaction_cli.py" -q
 powershell -NoProfile -File .agents/check.ps1 -ProjectRoot 'K:\ニュージャパンコンサルタンツ\26_LRT鉄道照査'
-uv run --project "P7橋脚" --locked python -X utf8 "P7橋脚/run_design.py" --stage 0600 --output-dir "tmp/hide-unused-girder-reaction-columns/after"
-uv run --project "P7橋脚" --locked python -X utf8 "P7橋脚/run_design.py" --stage 0600 --overwrite
+uv run --project "." --locked python -X utf8 "./run_design.py" --stage 0600 --output-dir "tmp/hide-unused-girder-reaction-columns/after"
+uv run --project "." --locked python -X utf8 "./run_design.py" --stage 0600 --overwrite
 ```
 変更前の比較用生成には別の `before` 出力先を使う。PDFのPNG化には既存のPyMuPDFを使用できる。
 

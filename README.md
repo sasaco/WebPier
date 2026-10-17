@@ -1,4 +1,4 @@
-# P7橋脚 直接基礎・上部工反力・線路方向／直角方向荷重の計算
+# . 直接基礎・上部工反力・線路方向／直角方向荷重の計算
 
 `pre/input.json`を読み、0500の地盤ばね、0600の上部工反力・橋脚自重、0610の線路方向荷重、0620の直角方向荷重、0710の地震時線路方向荷重、0720の地震時線路直角方向荷重と組合せ係数を計算してPDFと結果JSONを作成します。計算はPython、計算書の組版はGridLayoutPdf、PDF描画はそのReportLabバックエンドを使用します。実行時にExcelや元のxls/PDFは不要です。
 
@@ -9,24 +9,24 @@
 リポジトリのルートで次を実行します。初回は`uv`がPythonと依存ライブラリを準備します。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py"
+uv run --project "." --locked python "./run_design.py"
 ```
 
 入力を編集して再計算する場合:
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --overwrite
+uv run --project "." --locked python "./run_design.py" --overwrite
 ```
 
 `--stage {0500,0600,0610,0620,0710,0720,all}`を指定できます。既定の`--stage all`は6段階を計算し、PDF/結果JSONの12ファイルと両方向のFrameWeb入力・付帯JSONの4ファイル、計16ファイルをまとめて更新します。選んだ段階だけを更新する場合:
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0500 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0600 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0610 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0620 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0710 --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0720 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0500 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0600 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0610 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0620 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0710 --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0720 --overwrite
 ```
 
 | 出力 | 内容 |
@@ -57,7 +57,7 @@ uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 072
 別の入力・出力先を指定する場合:
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --input "案件/pre/input.json" --output-dir "案件/output"
+uv run --project "." --locked python "./run_design.py" --input "案件/pre/input.json" --output-dir "案件/output"
 ```
 
 既定の入出力先はプログラムの場所を基準に決まります。指定した相対パスは実行ディレクトリを基準とします。既存成果物は`--overwrite`を付けた場合に更新します。入力ファイルは変更しません。ネットワークドライブで仮想環境の作成に時間がかかる場合は、`UV_PROJECT_ENVIRONMENT`にローカルの専用環境パスを指定できます。
@@ -81,15 +81,15 @@ uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --input "�
 `--jrsnap`を明示すると、同じ実行で読み込んだ入力と0500・対象方向の地震時計算結果からJRSNAP **5.2-L03**用のNDUと付帯JSONを生成します。`--stage 0710`は`post/線路方向.ndu`と`post/線路方向.ndu.provenance.json`、`--stage 0720`は`post/線路直角方向.ndu`と`post/線路直角方向.ndu.provenance.json`を対象とし、それぞれPDF/JSONと合わせて4ファイルを一括公開します。単独実行で他方向のNDUやFrameWebは変更しません。`--stage all`では両方向を含む20ファイルを一括公開します。他の単独stageとの併用はエラーです。指定しない場合は従来の出力数を維持し、既存NDUには触れません。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0710 --jrsnap --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0720 --jrsnap --overwrite
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --jrsnap --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0710 --jrsnap --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0720 --jrsnap --overwrite
+uv run --project "." --locked python "./run_design.py" --stage all --jrsnap --overwrite
 ```
 
 GridLayoutPdfは`pyproject.toml`に記載したローカルパスから導入します。ライブラリのソースを更新した場合は、同じversion番号でもインストール済みの内容が自動で置き換わるとは限らないため、次を実行します。現在のlockには描画に必要なPillow依存も含まれています。
 
 ```powershell
-uv sync --project "P7橋脚" --locked --reinstall-package gridlayoutpdf
+uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
 入力画面の「計算・印刷」には線路方向と線路直角方向の設定表があり、それぞれ次の4項目を入力します。「両方向のJRSNAP入力ファイルも出力」を選ぶと、通常の全帳票計算とともに両方向を出力します。チェックは起動時OFFです。未入力の欄は空欄のまま表示し、見本値や他方向の値を自動補完しません。編集した値だけを入力JSONへ保存します。旧入力でも通常の帳票計算は引き続き利用できます。
@@ -133,10 +133,10 @@ NDUでは柱下端0.010 mをM-θ部材、その他の部材を剛域とし、基
 
 通常の0610/all計算で `post/frameWebForJS.json` も更新します。FEMPython / FrameWebforCSで開くファイルはこれです。PDFの読取りやExcel、FEMPythonの起動は日常の入力生成に必要ありません。
 
-`--post-dir` でFrameWeb入力の出力先を指定できます。省略時は、通常の `P7橋脚/output` に対して `P7橋脚/post`、別の `--output-dir` に対してはその配下の `post` を使います。検証用の別出力先から本番postを更新しません。
+`--post-dir` でFrameWeb入力の出力先を指定できます。省略時は、通常の `./output` に対して `./post`、別の `--output-dir` に対してはその配下の `post` を使います。検証用の別出力先から本番postを更新しません。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0610 --output-dir "案件/output" --post-dir "案件/post" --overwrite
+uv run --project "." --locked python "./run_design.py" --stage 0610 --output-dir "案件/output" --post-dir "案件/post" --overwrite
 ```
 
 基本荷重1～20に、列車・衝撃の用途別ケース21～28を加えます。PDFの組合せ表は名目係数ですが、衝撃荷重には用途別係数が含まれ、列車モーメントは係数適用後に支点別で丸められます。補助ケースへ解決済み値を入れ、組合せでは係数1で参照することで二重適用と丸め差を避けます。水平荷重13～20だけを正負選択し、各荷重の長期／短期ばねを使った解析結果を重ね合わせます。現在は保存28荷重・28Define、16Combine・8Pickupで、荷重行のないWP3だけが解析時に省略されます。
@@ -174,18 +174,18 @@ uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 061
 
 ## 入力編集アプリ（Tkinter / tksheet）
 
-リポジトリのルートで起動すると、`P7橋脚/pre/input.json`を開きます。Excelは不要です。
+リポジトリのルートで起動すると、`./pre/input.json`を開きます。Excelは不要です。
 
 VS Codeでこのリポジトリのルートを開き、**F5**で「橋脚 入力データ編集 (Tkinter)」を起動できます。起動先は`edit_input.py`です。`src/cli.py`は計算・PDF生成用で、入力画面の起動先ではありません。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/edit_input.py"
+uv run --project "." --locked python "./edit_input.py"
 ```
 
 別の入力を開く場合:
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/edit_input.py" --input "案件/pre/input.json"
+uv run --project "." --locked python "./edit_input.py" --input "案件/pre/input.json"
 ```
 
 左側から入力画面を選びます。基本の数値表は **tksheetによるExcel風入力** とし、鉄筋の配置条件は選択した行の欄で調整します。縦横のスクロールに対応しています。
@@ -257,7 +257,7 @@ PythonにTkがない場合はTkinterを含むPython環境を利用してくだ�
 
 ### 計算・印刷とPDFプレビュー
 
-左側の **「05 計算・印刷」** を開き、**「保存して計算・PDF出力」** を押します。編集中のセルも確定して現在の入力JSONを保存し、0500・0600・0610・0620・0710・0720を一括計算します。出力先は入力JSONの場所や起動ディレクトリにかかわらず **`P7橋脚/output`** です。同名の6 PDF・6結果JSONと、P7橋脚/postのFrameWeb入力・付帯JSONを更新します。入力の不正値、保存失敗、外部からの入力変更を検出した場合は計算を開始しません。
+左側の **「05 計算・印刷」** を開き、**「保存して計算・PDF出力」** を押します。編集中のセルも確定して現在の入力JSONを保存し、0500・0600・0610・0620・0710・0720を一括計算します。出力先は入力JSONの場所や起動ディレクトリにかかわらず **`./output`** です。同名の6 PDF・6結果JSONと、./postのFrameWeb入力・付帯JSONを更新します。入力の不正値、保存失敗、外部からの入力変更を検出した場合は計算を開始しません。
 
 6 PDF・6結果JSONとpostの両方向4ファイルの検証まで正常に完了すると、PDFプレビューのモーダルダイアログが自動で開きます。画面を選んだだけの場合や計算失敗時には開きません。主画面の **「PDFプレビュー」** から既存出力を手動で確認でき、PDFがまだない場合も空の一覧で開けます。ダイアログを開いている間は主画面を操作できません。閉じるボタン、Escape、ウィンドウの×で閉じ、入力編集や再計算に戻ります。同時に開くプレビューは1つで、閉じた後も選択したPDFを記憶します。開き直すとそのPDFの先頭から表示します。
 
@@ -293,7 +293,7 @@ PythonにTkがない場合はTkinterを含むPython環境を利用してくだ�
 
 ## 見本PDFと現在の入力の違い
 
-現在の`P7橋脚/pre/input.json`の支持層は**砂礫**、内部摩擦角φd=42.2°、変形係数Ed=165,760 kN/m²、基礎底面寸法は7×9 mです。砂礫を砂質土に分類し、`Example橋脚2/04_地盤のモデル化.pdf`の地盤ばね12値と支持力係数Nγ=150・Nq=85を再現します。
+現在の`./pre/input.json`の支持層は**砂礫**、内部摩擦角φd=42.2°、変形係数Ed=165,760 kN/m²、基礎底面寸法は7×9 mです。砂礫を砂質土に分類し、`Example橋脚2/04_地盤のモデル化.pdf`の地盤ばね12値と支持力係数Nγ=150・Nq=85を再現します。
 
 鉛直地盤反力係数の式は**砂質土・砂礫に係数6.9・指数−1/2**、粘性土に3.8・−1、それ以外に5.1・−3/4を使います。安山岩は従来どおり「それ以外」に該当します。
 
@@ -495,17 +495,17 @@ CLIはサンプルのJSONを実際の製品parserへ渡し、明示されたB9=.
 本番出力を変更せず、一時出力で全6段階を確認できます。歴史サンプルの原本は変更せず、作業コピーを作り、梁・柱・フーチングの既存`concrete_strength_mpa`欄へ検証用の正値を設定してください。下記はそのコピーを使う例です。
 
 ```powershell
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --input "tmp/pier-model-samples/parapet-input.json" --output-dir "tmp/pier-model-samples/parapet"
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --input "tmp/pier-model-samples/footing-input.json" --output-dir "tmp/pier-model-samples/footing"
-uv run --project "P7橋脚" --locked python "P7橋脚/edit_input.py" --input "P7橋脚/tests/fixtures/pier_models/parapet-asymmetric.json"
+uv run --project "." --locked python "./run_design.py" --stage all --input "tmp/pier-model-samples/parapet-input.json" --output-dir "tmp/pier-model-samples/parapet"
+uv run --project "." --locked python "./run_design.py" --stage all --input "tmp/pier-model-samples/footing-input.json" --output-dir "tmp/pier-model-samples/footing"
+uv run --project "." --locked python "./edit_input.py" --input "./tests/fixtures/pier_models/parapet-asymmetric.json"
 ```
 
-同名の一時成果物を更新する場合は`--overwrite`を追加します。編集時は「名前を付けて保存」で作業コピーを作ってください。編集アプリの計算ボタンは`P7橋脚/output`へ出力するため、一時出力先を使う確認は上記CLIで行います。
+同名の一時成果物を更新する場合は`--overwrite`を追加します。編集時は「名前を付けて保存」で作業コピーを作ってください。編集アプリの計算ボタンは`./output`へ出力するため、一時出力先を使う確認は上記CLIで行います。
 
 ## 検証
 
 ```powershell
-uv run --project "P7橋脚" --locked --group dev pytest "P7橋脚/tests" -q
+uv run --project "." --locked --group dev pytest "./tests" -q
 ```
 
 Microsoft Excel 16.0で元ブックの一時コピーを実際に再計算し、安山岩・砂質土・粘性土・互層・寸法とφの変更という5条件の結果を取得しました。`tests/fixtures/excel_oracle.json`にセル番地と値を保存し、地盤ばねの各計算値とVBAのSingle変換値を比較します。元ブックの支持力係数45・31は旧仕様の記録として保持し、現在の支持力係数の期待値には使いません。支持力係数は提示表の全18節点・中間値・上限・適用外入力を検証し、砂礫のばね12値はExample2を照合先とします。テスト時にはExcelを必要としません。

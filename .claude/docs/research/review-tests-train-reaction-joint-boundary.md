@@ -8,7 +8,7 @@ Coverage: not measured
 ## Review Scope
 
 - 承認計画 `.agents/docs/plans/train-reaction-joint-boundary.md`、開始前スナップショット、`tmp/train-reaction-joint-boundary/task-only.patch` を基準にレビューした。他作業を含むHEAD差分を今回の変更と混同していない。
-- 対象は `P7橋脚/tests/test_moving_load_boundary.py`、`tests/fixtures/moving_load_boundary_cases.json`、`tests/test_moving_load.py`、`src/moving_load.py`。下流の組合せデータ形状は `src/transverse_calculator.py` でも確認した。
+- 対象は `./tests/test_moving_load_boundary.py`、`tests/fixtures/moving_load_boundary_cases.json`、`tests/test_moving_load.py`、`src/moving_load.py`。下流の組合せデータ形状は `src/transverse_calculator.py` でも確認した。
 - Coverage: not measured。測定済みの網羅率を示すものではない。
 
 ## Findings

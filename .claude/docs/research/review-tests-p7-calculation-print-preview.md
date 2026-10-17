@@ -14,7 +14,7 @@ Reviewed the approved plan and nonempty initial scoped patch `.agents/logs/revie
 
 ## Findings
 
-- **[Medium — resolved] `P7橋脚/tests/test_editor_gui.py` / calculation result labels and preview reload:** the initial tests did not assert revocation of the prior “今回の計算結果” label when a generated PDF was externally replaced after success. The fix retains the final validated snapshots for all eight artifacts and checks identity/readability at list refresh and before/after preview metadata reads and rendering.
+- **[Medium — resolved] `./tests/test_editor_gui.py` / calculation result labels and preview reload:** the initial tests did not assert revocation of the prior “今回の計算結果” label when a generated PDF was externally replaced after success. The fix retains the final validated snapshots for all eight artifacts and checks identity/readability at list refresh and before/after preview metadata reads and rendering.
 
   The new GUI regression replaces a generated PDF with a different valid three-page file, then covers refresh, reload, page navigation, and zoom. Every case requires stale state, an old-output label, and a recalculation message; non-refresh cases also prohibit recursive list refresh from the preview callback. Additional cases cover deletion, corruption, read denial, and changed sibling JSON. `PendingCalculation` inherits the production `check_current_outputs()` implementation, so these GUI assertions do not mock away the fix.
 

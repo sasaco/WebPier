@@ -1,6 +1,6 @@
 # P7 直角方向 FrameWeb native JSON・FEMPython 契約追加調査
 
-調査日: 2026-10-16。実装計画用の読取調査。対象は `Example橋脚2/09_直角/frameWebForJS.json`、予定出力は `P7橋脚/post/線路直角方向.json`。製品ソース、Example 原本、P7 入出力、既存調査メモを変更していない。調査用コピー・計算結果は `tmp/p7-transverse-frameweb-plan/fem_contract/` のみに作成した。
+調査日: 2026-10-16。実装計画用の読取調査。対象は `Example橋脚2/09_直角/frameWebForJS.json`、予定出力は `./post/線路直角方向.json`。製品ソース、Example 原本、P7 入出力、既存調査メモを変更していない。調査用コピー・計算結果は `tmp/p7-transverse-frameweb-plan/fem_contract/` のみに作成した。
 
 共通契約は [線路方向の調査メモ](p7-frameweb-fem-contract.md) を再利用する。本メモは直角方向固有の荷重・包絡・風分布荷重を補足する。GUI 実操作と PDF 生成は今回実施していない。
 
@@ -130,7 +130,7 @@ Example は対称のため同じ方向が選ばれやすく、正常結果だけ
 
 この診断により、native の独立 DEFINE では禁止組合せを作れること、および事前複合候補で相関を保持できることを確認した。
 
-P7 正本の `define_cases` 9/11 と resolved candidates は `single_track` の up/down を共有する。`P7橋脚/pier_design/transverse_actions.py:255,262,278,281,288,290,294` は L/I を用途別係数で実効化し、`factor_applications=1,remaining_multiplier=1` と compatibility group を持たせている。生成器はこの **resolved 実効荷重** を一度だけ合計し、native COMBINE では1倍とする。元の名目係数を再び掛けない。
+P7 正本の `define_cases` 9/11 と resolved candidates は `single_track` の up/down を共有する。`src/transverse_actions.py:255,262,278,281,288,290,294` は L/I を用途別係数で実効化し、`factor_applications=1,remaining_multiplier=1` と compatibility group を持たせている。生成器はこの **resolved 実効荷重** を一度だけ合計し、native COMBINE では1倍とする。元の名目係数を再び掛けない。
 
 親調査側と合意した計画上の対応は次のとおり。実装はしていない。
 

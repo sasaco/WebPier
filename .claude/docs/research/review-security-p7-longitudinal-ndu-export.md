@@ -23,7 +23,7 @@
 
 以下は修正前の問題と再現記録。修正確認は直後の「SEC-1 Close-out」に記載した。
 
-- **場所**: `P7橋脚/scripts/accept_jrsnap_ndu.py:317`（315–318行の衝突検査）。関連する相対パスの生成は `P7橋脚/pier_design/cli.py:289`。
+- **場所**: `./scripts/accept_jrsnap_ndu.py:317`（315–318行の衝突検査）。関連する相対パスの生成は `src/cli.py:289`。
 - **原因**: 受入記録の `path` は `.resolve()` 済みだが、`candidate.artifact_hashes` のPDF/JSONキーは `--output-dir` の相対Pathを保持する。`path in candidate.artifact_hashes` は同じ実ファイルを表す相対Pathと絶対Pathを一致と判定しない。
 - **再現条件**: 新規の出力先で `--output-dir output --receipt output/0710_線路方向荷重.json` を指定する。正しいP7入力、実計算・実NDUシリアライザーを使用し、実アプリの複製読戻し部分のみ `first=second=candidate bytes` を返すmockへ差し替えて再現した。入力は一時ディレクトリへ全バイト複製し、製品ファイルには触れていない。
 - **実測結果**: `InputError: 候補生成後に出力先が変更されました: output\0710_線路方向荷重.json` で失敗する。一方、失敗後のこの結果JSONパスには `status="verified_pending_publication"` の受入記録が残る。その他の正式成果物は未公開だった。
@@ -36,7 +36,7 @@
 - 修正後の凍結版 `scripts/accept_jrsnap_ndu.py:317` は `{artifact.resolve() for artifact in candidate.artifact_hashes}` と解決済みreceiptパスを比較する。受入記録・evidence・snapshotの作成より前に同一実パスを拒否することをコードで確認した。
 - スクリプトの実測SHA-256は `9072b6367acba2dada486fd8bffe684d1c4cb320b3249f9b04b88db3be544add` で、担当者の修正証拠と一致した。
 - `tests/test_jrsnap_acceptance.py:71` の追加テストは実生成経路、相対output、JSON/PDFの2ケースを使い、`Receipt collides` での拒否と、入力以外のファイル・snapshot・evidenceが残らないことを検証する。
-- レビュアーが隔離版で `python -X utf8 -m pytest P7橋脚/tests/test_jrsnap_acceptance.py -q -p no:cacheprovider -k receipt_collision_with_relative_real_output` を独立実行し、**2 passed / 69 deselected / 4.44s、exit0**を確認した。実アプリ・全体ゲートは再実行していない。
+- レビュアーが隔離版で `python -X utf8 -m pytest ./tests/test_jrsnap_acceptance.py -q -p no:cacheprovider -k receipt_collision_with_relative_real_output` を独立実行し、**2 passed / 69 deselected / 4.44s、exit0**を確認した。実アプリ・全体ゲートは再実行していない。
 - `tmp/p7-ndu-implementation/acceptance/review-fixes/validation-results.json` の隔離71 passed / exit0とruff passを確認した。`after-hashes.json` では共有側の既存差分保持も記録されている。共有側では並行編集によりPDFケースがsource driftで停止したため、その実行を全件passと扱わない。解消判定は凍結版のコードと成功した隔離検証に基づく。
 - 受入スクリプトのソースSHAが変わったため、下記の実V52受入証拠は修正前の履歴である。修正後の最終ゲート・正式受入はリード担当であり、この再レビューで実施済みとは主張しない。
 

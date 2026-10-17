@@ -1,4 +1,4 @@
-"""Run with: uv run --project P7橋脚 python P7橋脚/run_design.py"""
+"""Run with: uv run --project . python ./run_design.py"""
 
 from src.cli import main
 

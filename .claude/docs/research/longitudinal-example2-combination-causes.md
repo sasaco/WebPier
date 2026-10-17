@@ -6,7 +6,7 @@
 
 根本原因は入力値の違いではなく、0610の組合せが `Example橋脚/0610_線路方向荷重.xls` を固定採用し、Example2の体系へ置き換わっていないこと。
 
-| 差 | 直接の実装根拠（`P7橋脚/` 基準） |
+| 差 | 直接の実装根拠（`./` 基準） |
 |---|---|
 | 旧21基本・20組合せを保持 | `pier_design/longitudinal_combinations.py:10-55` の固定表を `longitudinal_calculator.py:344-361` が無条件採用。出典も同144、150に旧xlsと旧表保持を明記 |
 | 使用性永久＋変動が単線 | `longitudinal_calculator.py:102-108` が使用性の列車・衝撃を単線だけ転記。`_load_groups` の328-329、`_combinations` の347-348が用途別2基本に固定。固定表 `longitudinal_combinations.py:42-43` がその単線基本を使う |

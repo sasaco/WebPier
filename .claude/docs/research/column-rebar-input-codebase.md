@@ -4,8 +4,8 @@ Date: 2026-10-17. Read-only investigation by delegated analysis collaborator; no
 
 ## Existing model and UI
 
-- `P7橋脚/pier_design/rebar_model.py:3,292,321`: reinforcement units are mm, column X=transverse, Y=longitudinal, origin at upper left; geometry is W6 x B6 converted from m. `tests/test_rebar_model.py:3,6` explicitly defines one physical arrangement, with directional tables derived from it.
-- `P7橋脚/pre/input.json:479,490,665-699`: current section 4500 x 2700; D32 29/face, D19 11/face, pure cover 70, automatic center, no hoops.
+- `src/rebar_model.py:3,292,321`: reinforcement units are mm, column X=transverse, Y=longitudinal, origin at upper left; geometry is W6 x B6 converted from m. `tests/test_rebar_model.py:3,6` explicitly defines one physical arrangement, with directional tables derived from it.
+- `./pre/input.json:479,490,665-699`: current section 4500 x 2700; D32 29/face, D19 11/face, pure cover 70, automatic center, no hoops.
 - `rebar_model.py:348-389,450`: automatic center requires enclosing hoop diameter. Missing hoop input leaves center unresolved and bars ungenerated. Automatic center formula is pure cover + hoop diameter + main diameter / 2.
 - `rebar_model.py:458-466`: existing column basic input uses the same center cover for face depth and both ends of the row, then evenly spaces bars. This cannot express the reference 192-mm end gaps and 150-mm interior gaps or independently chosen 350-mm first side bar.
 - `rebar_model.py:407,471`: shared corners require same location, diameter and material, from different directions. Other overlaps are rejected.
@@ -19,7 +19,7 @@ Date: 2026-10-17. Read-only investigation by delegated analysis collaborator; no
 - `rebar_model.py:164,179,268`: missing/null/zero and unknown fields are preserved. Viewing alone must not materialize virtual defaults into the saved document.
 - `rebar_model.py:206,825`: incomplete input may be saved; impossible complete geometry must be rejected.
 - `editor_gui.py:339`: editor values and reinforcement drafts are merged into a candidate document, fully validated, then applied atomically. `rebar_model.py:865` validates non-visible members too.
-- `P7橋脚/README.md:5,149`: section resistance/seismic verification and main rebar solver integration are not implemented. Input usability work must not claim to provide them.
+- `./README.md:5,149`: section resistance/seismic verification and main rebar solver integration are not implemented. Input usability work must not claim to provide them.
 - `longitudinal_design_conditions.py:80`: concrete_strength_mpa participates in calculation material conditions; schema changes must preserve it.
 
 ## Change candidates
@@ -28,8 +28,8 @@ Date: 2026-10-17. Read-only investigation by delegated analysis collaborator; no
 - `rebar_model.py` plus a focused new `column_rebar.py`: physical generation, explicit row-position input, validation and compatibility adapters.
 - `editor_gui.py`: integration with existing atomic save path only if needed.
 - `tests/test_rebar_model.py`, `tests/test_rebar_ui.py`, new column-focused tests and independent reference fixture.
-- `P7橋脚/README.md`, root `CONTEXT.md`.
-- `P7橋脚/pre/input.json`: only if user explicitly includes reference-data correction; never an implicit migration.
+- `./README.md`, root `CONTEXT.md`.
+- `./pre/input.json`: only if user explicitly includes reference-data correction; never an implicit migration.
 
 ## Tests and gaps
 

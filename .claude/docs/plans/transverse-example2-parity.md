@@ -32,8 +32,8 @@ Example橋脚/output/0600_上部工反力.pdfを起点に作られた橋脚ア�
 
 ### Scope
 
-- New files: P7橋脚/pier_design/transverse_actions.py、transverse_example2_cases.py、transverse_report_example2.py、tests/fixtures/transverse_example2_cases.json、tests/test_transverse_example2_reference.py、test_transverse_example2_cases.py、test_transverse_example2_pipeline.py、専用帳票試験。
-- Modified files: P7橋脚/pier_design/transverse_calculator.py、transverse_report.py、cli.py、関連tests/test_transverse_*.py、必要なREADME記述。transverse_combinations.pyとtransverse_report_style.pyは旧監査の固定表/旧描画として保持し、新定義/描画は別モジュールに置く。frame_model_report.pyは骨組図の描画のみ再利用し、既存固定注記の材料表は呼ばず共有ファイルも変更しない。
+- New files: src/transverse_actions.py、transverse_example2_cases.py、transverse_report_example2.py、tests/fixtures/transverse_example2_cases.json、tests/test_transverse_example2_reference.py、test_transverse_example2_cases.py、test_transverse_example2_pipeline.py、専用帳票試験。
+- Modified files: src/transverse_calculator.py、transverse_report.py、cli.py、関連tests/test_transverse_*.py、必要なREADME記述。transverse_combinations.pyとtransverse_report_style.pyは旧監査の固定表/旧描画として保持し、新定義/描画は別モジュールに置く。frame_model_report.pyは骨組図の描画のみ再利用し、既存固定注記の材料表は呼ばず共有ファイルも変更しない。
 - Reuse/read-only: foundation_springs.py（0500正規値・方向指定）、longitudinal_design_conditions.py（既存部位別強度・RcDan Ec補間）、frame_model.py（形状/断面/剛域は不変）、reaction_calculator.pyのraw_reactionsとtrain.pier用途別衝撃係数、原PDF、旧xls oracle、実入力pre/input.json。longitudinal_actions.pyとlongitudinal_example2_cases.pyは現時点未実装のため依存先にしない。
 - Dependencies: 現Python/pytest/ReportLab/PyMuPDF。実行時PDF/Excel読取り、新依存なし。
 - Step7の追加範囲: `transverse_report_example2_loads.py`と`transverse_report_example2_cases.py`を専用描画helperとして新設し、`transverse_report_example2.py`と専用帳票試験を更新。計算モジュール・実入力・JSON・共有frame描画は不変。公開変更は0620PDFだけ。
@@ -56,7 +56,7 @@ Example橋脚/output/0600_上部工反力.pdfを起点に作られた橋脚ア�
 - [x] ✅ 本計画書を指定フォルダに作成。オーナーの開発背景・シェルター非追加・風M許容を明記。
 - [x] ✅ 最新コードと線路方向計画を照合し、担当別ファイル所有とAPIを確定。actions key=basic.keyに統一。
 - [x] ✅ rootが107ファイルの基準世代を固定（tmp/transverse-example2-parity/baseline/manifest.json、入力SHA先頭fc9cc864）。
-- [x] ✅ 修正前対象回帰110件合格（28.61秒、P7橋脚/.agents/logs/transverse-parity-baseline.log）。
+- [x] ✅ 修正前対象回帰110件合格（28.61秒、./.agents/logs/transverse-parity-baseline.log）。
 - [x] ✅ 原PDFから全係数とDefine/抽出を独立fixture化（17/15/240/8、非ゼロ83セル、品質検査14件合格）。
 - [x] ✅ 計画の形式・存在・Codex手順/妥当性レビューを実施（最終PASS、20261016T034751Z）。
 **Verification**: 必須5節・ファイル存在検証、15 Define×16組合せ＝240係数セルのゼロを含む原本照合、元入力/原本/旧oracleのSHA保護、レビューPASS。
@@ -132,13 +132,13 @@ Example橋脚/output/0600_上部工反力.pdfを起点に作られた橋脚ア�
 
 **after gate初回結果（15:57 JST）**: 8 failed / 3134 passed / 2 skipped in 2014.85s。raw gateは`pytest: {before: pass, after: fail}`、regressions=[pytest]であり合格扱いにしない。うち7失敗は、15:23:49の別担当による線路方向11→8頁訂正中のNameError（削除済み_dead_diagrams参照、CLI1件）と旧11頁/図専用試験をロードしたまま新8頁を生成した世代混在（6件）。残1件はtest_pdf_preview_dialogのwm-close後のfocus_getがNoneになるGUIフォーカス検証。2skipはTk読込み環境。今回の3sourceは15:21の検証SHAから不変。
 
-線路方向の訂正完了・関連29試験PASS・15:29公開を当該計画と公開証跡で確認した。元の入力・計算・0620・本担当のテストは維持し、旧線路テストへ巻き戻さない。別担当が更新したrenderer/試験/0610PDFの履歴はobserved-external-changes.json（6履歴、保護対象4パス）へ追記、計画/公開記録を同tmpへ保存。raw範囲gateが追加検出した`P7橋脚/.agents/logs/longitudinal-remove-extra-load-diagrams.log`も別担当の29試験の証跡であり、本担当作成物ではない。baselineを書換えて隠さず、after結果と独立範囲監査を併記する。
+線路方向の訂正完了・関連29試験PASS・15:29公開を当該計画と公開証跡で確認した。元の入力・計算・0620・本担当のテストは維持し、旧線路テストへ巻き戻さない。別担当が更新したrenderer/試験/0610PDFの履歴はobserved-external-changes.json（6履歴、保護対象4パス）へ追記、計画/公開記録を同tmpへ保存。raw範囲gateが追加検出した`./.agents/logs/longitudinal-remove-extra-load-diagrams.log`も別担当の29試験の証跡であり、本担当作成物ではない。baselineを書換えて隠さず、after結果と独立範囲監査を併記する。
 
 **再検証**: 更新済み世代で同じbaselineを用いるafter gateを15:58 JSTに再実行。初回結果は`.agents/logs/simplify-transverse-report-20261016-after.json`、再実行は同`-after-rerun.json`へ分けて保存。スキル・テスト・製品コードの追加変更、失敗試験の削除/skip追加/閾値変更はしていない。
 
 **最終結果（16:22 JST）**: 再実行は**3137 passed / 2 skipped in 1384.52s**（`tmp/quality-gates/pytest-20261016-155811-1380473.log`）。raw値は`gates={"pytest":{"before":"pass","after":"pass"}}`、`regressions=[]`、`pre_existing_failures=[]`。2skipは既存Tk環境初期化条件であり、合格件数へ加算しない。beforeの総3144件→after総3139件は別担当の線路方向図専用5試験削除によるもの。本担当はテストを変更していない。CLIのNameError、旧線路頁/図の6件、GUIフォーカスの1件は最新世代の全体再実行で解消した。
 
-raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitudinal-remove-extra-load-diagrams.log]`は隠さず保持する。この唯一の検出は別担当が15:26:35に作成した29試験ログ（SHA b0a1e98a…）で、`external-created-files.json`に帰属根拠を保存。元baselineやscopeは拡張/改変していない。`scope-audit.json`は日本語名を復号し、宣言4パス、gate生成patch、当該外部ログを区別して**未帰属の範囲外変更0**を確認した。
+raw gateの`ok=false`/exit2と`out_of_scope_files=[./.agents/logs/longitudinal-remove-extra-load-diagrams.log]`は隠さず保持する。この唯一の検出は別担当が15:26:35に作成した29試験ログ（SHA b0a1e98a…）で、`external-created-files.json`に帰属根拠を保存。元baselineやscopeは拡張/改変していない。`scope-audit.json`は日本語名を復号し、宣言4パス、gate生成patch、当該外部ログを区別して**未帰属の範囲外変更0**を確認した。
 
 全体再実行後に4条件のPDF bytes完全一致とJSON非破壊を再確認✅。3 sourceのSHAは15:21検証時から不変（main acc1f4db… / loads a41aeab9… / cases 851c6c62…）。保護対象146パス中142は開始時SHA不変、4は上記の別担当更新と一致。実入力82d5a276…、0620 JSON07f76b31…、12頁PDF64a5ac23…は開始時のまま。最終根拠は`behavior-after.json`、`scope-audit.json`、`annotation-audit.json`、`refactor.patch`、rootの`review.md`。帳票体裁・荷重計算・シェルター非追加・許容された風M差を保持した。
 
@@ -232,10 +232,10 @@ raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitu
 
 ### Progress / Findings / Tips
 
-- 2026-10-16 14:17:16 JST（体裁復元完了）: 最後の表示修正後report+CLIは**17 passed in 34.53s**（P7橋脚/.agents/logs/transverse-layout-restore-final-tests.log）。root/独立担当が原本との直接比較をPASSとし、同世代の0620PDFだけを再公開。公開後SHAは`64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a`、再openで12頁と章/ケースを確認。`tmp/pdfs/transverse-layout-restore-20261016/publication-manifest.json`のbefore/afterを読み、入力82d5…・0620JSON07f76…・他6成果物が**今回体裁復元baselineから公開後まで**完全不変と確認した。生成sourcehashと最初2頁のpixelも一致。数値実装初回公開時の「他成果物は公開操作中のみ不変」とは期間が異なるため区別する。
+- 2026-10-16 14:17:16 JST（体裁復元完了）: 最後の表示修正後report+CLIは**17 passed in 34.53s**（./.agents/logs/transverse-layout-restore-final-tests.log）。root/独立担当が原本との直接比較をPASSとし、同世代の0620PDFだけを再公開。公開後SHAは`64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a`、再openで12頁と章/ケースを確認。`tmp/pdfs/transverse-layout-restore-20261016/publication-manifest.json`のbefore/afterを読み、入力82d5…・0620JSON07f76…・他6成果物が**今回体裁復元baselineから公開後まで**完全不変と確認した。生成sourcehashと最初2頁のpixelも一致。数値実装初回公開時の「他成果物は公開操作中のみ不変」とは期間が異なるため区別する。
 - 2026-10-16（体裁復元・最終独立QA）: 最終12頁候補SHA`64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a`のp4/p5/p7/p8を原本対応頁と直接比較し、残指摘解消✅PASS。浮力3代入式、列車全行側名、風H/N/腕/Mの開放4列＋実B/C2行＋総計線を確認。既確認p3/p6/p9/ケースp10–12と合わせ全変更対象頁の独立目視QA完了。rootの全12頁bounds/p1・2pixel完全一致/renderer JSON非破壊/生成sourceSHA不変もPASS。修正後report+CLI再検証と公開は後続。風の必要差は行内訳と値に限定され、独自式レイアウトの差は解消した。
 - 2026-10-16（体裁復元・風表の最終方針）: rootが原本への書式一致をさらに優先し、風MのHB/HC展開式を原本のH/N/arm/M開放列＋合計線へ戻す方針を確定。行はcanonicalに実在するB/C集計2行だけとし、シェルター/架空支承行は作らない。現在値と必要なモデル差を保持しながら書式差を縮める。最終候補では浮力/列車に加えp7/8も再レビューする。
-- 2026-10-16（体裁復元・対象回帰）: 第二候補の関連4module（新帳票6、方向別基礎ばね、旧帳票、CLI11を含む）は**48 passed in 67.72s**（P7橋脚/.agents/logs/transverse-layout-restore-tests.log）。独立目視の浮力3代入式/列車全行側ラベルはrootが採用し担当修正中。最後の2表示修正後に新帳票6件と候補生成/視覚QAを再実行する。風のHB/HC式は現在の集計済み2側を正しく説明する必要な表示差としてrootと合意し、シェルター寄与の架空分解は行わない。
+- 2026-10-16（体裁復元・対象回帰）: 第二候補の関連4module（新帳票6、方向別基礎ばね、旧帳票、CLI11を含む）は**48 passed in 67.72s**（./.agents/logs/transverse-layout-restore-tests.log）。独立目視の浮力3代入式/列車全行側ラベルはrootが採用し担当修正中。最後の2表示修正後に新帳票6件と候補生成/視覚QAを再実行する。風のHB/HC式は現在の集計済み2側を正しく説明する必要な表示差としてrootと合意し、シェルター寄与の架空分解は行わない。
 - 2026-10-16（体裁復元・荷重第二候補）: PDF SHA515f327d0bb9…のp3–9を独立目視。D1/D2同頁、W3/載荷土/等価梁の代入式、N/腕/M座標、雪3/列車3/基本I3同頁、使用性I補足を確認。p1/2 pixel一致・全12頁bounds・renderer JSON非破壊・生成前後source一致はroot確認済み。残りはp4浮力がh/U値列に留まり原本の体積×単位水重の代入式を欠くため、担当へ修正依頼。列車p5の側名毎行表示も小差として通知。風はシェルター/元Mに合わせた架空の寄与表を作らず、現モデルのHB/HCと腕の式で説明する必要な構成差として記録する。対象試験/再公開は未完了。
 - 2026-10-16（体裁復元・第一統合候補）: 新候補は12頁。rootがp1/2 pixel完全一致、rendererによるJSON非破壊、全頁text boundsを確認。計画担当が候補p10–12を原本p13–15と直接目視比較し、ケース頁の体裁復元を独立PASSとした。基本＋Define同頁、全240セルの90°回転1枚表、抽出C1–C4の小表を確認。係数clip機械検証PASSは`tmp/transverse-example2-parity/cases-layout-qa/verification.md`、独立目視根拠はlayout-restoration-review.md。荷重p3–9は数値列位置/毎行側ラベル/フーチング・載荷土式/D2開始位置をrootが追加指摘し修正中なので、Step7全体完了とはしない。
 - 2026-10-16（公開後の受入再対応）: ユーザーからp3以降の汎用表への体裁変更は未依頼としてFailed判定。数値変更と様式変更を分けるべきだった。原本全対象頁と現公開17頁を直接目視し、本文の字体/位置、開いた算式、総計下線、意味ごとの同頁構成、基本＋Define同頁、組合せの向き/1枚構成、抽出C1–C4を復元基準として固定した。可読性/枠外検査の成功は見本への体裁一致を保証しない。Step7で計算/JSON/入力を固定してrendererだけを修正する。
@@ -243,7 +243,7 @@ raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitu
 - 2026-10-16: 初版計画を先行保存。線路方向計画は材料専用parserとfoundation_springs共通アダプターを既に採用しているため、新しい同等helperを作らず直角側から再利用する。支持ばね修正は今回の再実装対象ではない。
 - 2026-10-16: 原本の組合せ行列は17基本ではなく15Defineを参照するため、独立照合対象は240セル。上/下の列車と衝撃は対応した候補同士に限定。基本1–8のばね1、9–17のばね2を保持する。
 - 2026-10-16: 原本p13–15は比較担当がPNGで全頁確認済み。転記根拠はtmp/pdfs/transverse-example2-20261016/agent-cases.txt節2/6/7。fixtureは製品定数のexportで生成しない。原本記号のL3/I3対L2/I2揺れと組合せ9のW1を勝手に補正しない。
-- 2026-10-16: rootによるbaseline回帰110件合格。Windows runnerの子プロセス出力で初回decode失敗したため、以後`PYTHONUTF8=1`、`PYTHONIOENCODING=utf-8`を設定する。PowerShellで日本語をpipeする場合はOutputEncodingもUTF-8にする。Python実行は`P7橋脚/.venv/Scripts/python.exe -X utf8`、作業ディレクトリを明示する。
+- 2026-10-16: rootによるbaseline回帰110件合格。Windows runnerの子プロセス出力で初回decode失敗したため、以後`PYTHONUTF8=1`、`PYTHONIOENCODING=utf-8`を設定する。PowerShellで日本語をpipeする場合はOutputEncodingもUTF-8にする。Python実行は`./.venv/Scripts/python.exe -X utf8`、作業ディレクトリを明示する。
 - 2026-10-16: 独立検証の重要な追加条件は、I支点総量先丸め→支承配分、率和0のsigned作用、LFのρ0/無係数反力。旧の分担率二重適用を直すだけでは丸め差やゼロ除算が残るため先行契約化した。
 - 2026-10-16: Step1の独立fixtureとreference試験✅。tests/fixtures/transverse_example2_cases.json、tests/test_transverse_example2_reference.pyを作成し、原PDF SHA b6a7f565…5474de一致を確認。REDは4 failed、GREENは14 passed（transverse-reference-red-1.log / transverse-reference-green-1.log）。製品定数や旧oracleから生成していない。製品のRed/Greenとは分けた基準資料品質検査である。
 - 2026-10-16: API契約✅。荷重とcaseの意味付きkeyを統一し、basic.key=actions keyを必須とした。ActionLoadsの作用位置・単位・raw/丸め・I係数を分離し、組合せはDefine候補ごとのresolved_componentsを保持する。rendererはcanonical actions/frameのみを参照する。
@@ -253,11 +253,11 @@ raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitu
 - 2026-10-16: Step3ケース担当のサイクル1は7件PASS。標準/ρ1.231/ρ1.235/ρ0/service変更と全240係数の一致を確認。破損参照・符号・上下候補の拒否を次サイクルで確認中。
 - 2026-10-16: consumer移行検証は旧帳票/雪26件PASS、モデルsample/列車境界22件PASS。初回canonical consumer100件中4失敗のうち3件は試験側の既存synthetic位置欠落（載荷10支承に位置を明示）とlegacy_nodesの通常加算残差（4e-15で検証）を修正した。残りのpublicばねPDF試験は新renderer接続待ち。元fixture/oracleは不変。
 - 2026-10-16: rootの新renderer/facade/CLI材料接続✅。専用帳票3試験PASS（transverse-report-red/greenログ）。全240セル描画、legacy_audit無しでの描画、枠外文字なし、製品禁止語なしを検証。未入力支承行はactive flagを荷重側へ追加し表示を省略する調整中。全頁目視/CLI総合/公開は後続Stepで確認する。
-- 2026-10-16: 既存consumer6ファイルの移行✅、最終専用ゲート**126 passed in 39.40s**（P7橋脚/.agents/logs/transverse-consumer-migration-final.log、expected=passed/observed=passed/exit0）。旧oracle/旧PDF/雪地震の監査を保持し、canonicalの部位材料・原形状・正規6ばね・ばねによる作用非変化・macro欠落/毒化非依存・入力非破壊・公開PDF値/工学方向・LF係数一度を検証。旧独立fixture/入力/原PDFには変更なし。
+- 2026-10-16: 既存consumer6ファイルの移行✅、最終専用ゲート**126 passed in 39.40s**（./.agents/logs/transverse-consumer-migration-final.log、expected=passed/observed=passed/exit0）。旧oracle/旧PDF/雪地震の監査を保持し、canonicalの部位材料・原形状・正規6ばね・ばねによる作用非変化・macro欠落/毒化非依存・入力非破壊・公開PDF値/工学方向・LF係数一度を検証。旧独立fixture/入力/原PDFには変更なし。
 - 2026-10-16: ケース製品検証✅。cases63＋reference14＝77 passed（transverse-cases-green-2.log）。全240係数、係数入力境界、上下候補結合、水平符号、未知/重複/bool ID、係数改変、抽出参照の拒否を確認。coverage90要求の実行はpytest-cov未導入でpytest usage error4/observed=null（transverse-cases-coverage.log）。これはカバレッジ未測定であり合格扱いせず、依存追加もしていない。
 - 2026-10-16: 荷重担当Step2✅。最終専用14試験PASS（2.96秒）、旧legacy回帰63件を含む77件PASS（6.28秒）。全雪、C腕、複線一回、単線両方向、I支点丸め後分配/signed率和0、service1.4、ρ0、H1柱/H2H3梁/footing剛域、材料/ばね分離を検証。coefficient_traceにapplied_factorとfactor_applications=1を追加し、service名目0.75と実採用service係数の相違を監査追跡できるようにした。
 - 2026-10-16: 独立case/validator/専用試験レビュー✅PASS、Medium以上指摘なし（tmp/transverse-example2-parity/case-validator-review.md）。全定義/240係数・用途/丸め・候補結合/符号・不正型・破損検証と独立fixtureの相互補完を確認。ActionLoads物理検証は荷重/統合試験の責任とし、validatorへ構造応答判定を混入させない。
-- 2026-10-16: rootの使用性係数0の帳票境界試験はRED確認後に修正し、帳票＋CLI24件PASS（P7橋脚/.agents/logs/transverse-report-cli-final.log）。初回候補の新17頁PDFをcontact sheetで全頁目視確認済み（I修正/最新入力世代による再生成前の確認）。全体gateを実行中。専用試験の成功だけで全体回帰/公開完了とはしない。
+- 2026-10-16: rootの使用性係数0の帳票境界試験はRED確認後に修正し、帳票＋CLI24件PASS（./.agents/logs/transverse-report-cli-final.log）。初回候補の新17頁PDFをcontact sheetで全頁目視確認済み（I修正/最新入力世代による再生成前の確認）。全体gateを実行中。専用試験の成功だけで全体回帰/公開完了とはしない。
 - 2026-10-16: 公開前の世代確認で外部作業による実入力変更を検出。hs、旧シェルター入力の除去、出典が更新され、現入力SHAは**82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b**。root/本作業が変更したものではなく、旧baselineへ戻さない。他出力の変更は外部0600 PDFのみ。詳細はtmp/transverse-example2-parity/prepublication-diff.json。最新入力で最終候補を再生成し、旧SHAの候補を公開しない。
 - 2026-10-16: 独立荷重レビューが符号付き率(-0.5,+0.50001)による衝撃M消失を検出。率和が厳密0の場合だけ分岐すると、微小な非0和の支点Iが0.1kN丸めで0となり、両側の非0作用/偶力まで失われる。荷重担当が再開し、近接相殺にも妥当な配分契約と独立試験を追加中。解法/適用条件の確定前に完了扱いや広い許容差での吸収をしない。
 
@@ -267,12 +267,12 @@ raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitu
 - 2026-10-16: 近接相殺I修正✅、旧式で独立7試験RED→共通残差配分式でGREEN。最終荷重専用27＋legacy63＝**90 passed in 6.33s**。δはmath.fsum(raw_forces)との差で求め、signed率和による割算とthreshold分岐は除去。非対称C腕[-2,+5]・率[-0.5,0.50049/0.50051]でN0/0.1、M350.17/350.33を確認し、全率符号反転4点も検証。side traceにraw_impact_total/rounding_residual/absolute_rate_sum/distribution_policy、rowにunrounded_impact/rounding_correctionを追加。
 - 2026-10-16: 新I規約で現入力の単線M絶対値は、基本I364.42→364.43、使用性272.75→272.73、有効a1.23では448.25→448.26、a1.35では491.97→491.98。支点総I/Nおよび複線は不変。これは符号付き入力の支点丸め補正を安全に局所化した結果で、Example未低減Iへ戻す変更ではない。最終PDFはこれらの変更と最新入力SHAを反映して再生成する。
 - 2026-10-16: 全体gate初回は**10 failed / 3083 passed / 1 skipped**（tmp/quality-gates/pytest-20261016-130200-2244597.log）。5件は実行中の並行test_editor_formulas変更（現在legacy呼出へ変更済み）による旧ロード状態の可能性がありrootが最新再検証。残5件はtest_report_cli.pyの旧baselineに部位材料がないconsumer移行漏れで、本作業の修正対象として計画担当へ追加。原fixtureを変更せずテスト用入力コピーだけへ梁/柱/フーチング各27を明示し、全stage実行と単独/all同一SHA・結果一致契約を保持して再検証する。skipを合格に数えない。
-- 2026-10-16: test_report_cli consumer追補✅、同module **11 passed in 16.07s**（P7橋脚/.agents/logs/transverse-all-cli-consumer-fix.log、wrapper expected/observed passed/exit0）。新材料条件はテスト入力コピーだけへ付与し、元baseline/モデルfixtureのbytes不変、全4stageの単独/all結果・入力SHA一致、BOM、上書き/失敗復元を保持した。0620の部材material_refだけ新契約へ合わせ、原物理グラフ期待値を変えていない。
+- 2026-10-16: test_report_cli consumer追補✅、同module **11 passed in 16.07s**（./.agents/logs/transverse-all-cli-consumer-fix.log、wrapper expected/observed passed/exit0）。新材料条件はテスト入力コピーだけへ付与し、元baseline/モデルfixtureのbytes不変、全4stageの単独/all結果・入力SHA一致、BOM、上書き/失敗復元を保持した。0620の部材material_refだけ新契約へ合わせ、原物理グラフ期待値を変えていない。
 
-- 2026-10-16: root最終対象統合 **255 passed in 40.39s**（P7橋脚/.agents/logs/transverse-final-integration.log）。これは対象統合の成功であり、初回全体gate（10 failed/3083 passed/1 skipped）を全体PASSへ読み替えない。test_report_cliの5失敗は同module11PASSで解消済み。残test_editor_formulasの5失敗は現ソースがlegacy呼出へ変わった後の再検証中。
+- 2026-10-16: root最終対象統合 **255 passed in 40.39s**（./.agents/logs/transverse-final-integration.log）。これは対象統合の成功であり、初回全体gate（10 failed/3083 passed/1 skipped）を全体PASSへ読み替えない。test_report_cliの5失敗は同module11PASSで解消済み。残test_editor_formulasの5失敗は現ソースがlegacy呼出へ変わった後の再検証中。
 - 2026-10-16: 最終候補を最新入力SHA82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628bで再生成し、17頁の全PNG目視QA✅PASS。新単線IのM364.43を反映。生成前後および再確認のsourcehashは同一。tmp/transverse-example2-parity/candidate-manifest.jsonへ候補世代を保存。PDF SHA=`632e73114754a6496f1a120fbf7a8691016b3125f0bb393ce8b5aec99954d6c2`、JSON SHA=`07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca`。候補確認であり、公開完了は公開後SHA照合の記録を待つ。
 
-- 2026-10-16: 最後のtest_editor_formulas再検証は**59 passed / 1 skipped**（Tk環境によるskip、P7橋脚/.agents/logs/transverse-editor-api-recheck.log）。初回全体の5失敗は並行作業が旧API検証をlegacy呼出へ移した現在ソースで解消。最終対象統合255＋report_cli11＋editor59＝**325 passed / 1 skipped**。全体gate初回の10失敗は全て該当module再検証で解消したが、全体gateを再実行してPASSしたとの主張はしない。
+- 2026-10-16: 最後のtest_editor_formulas再検証は**59 passed / 1 skipped**（Tk環境によるskip、./.agents/logs/transverse-editor-api-recheck.log）。初回全体の5失敗は並行作業が旧API検証をlegacy呼出へ移した現在ソースで解消。最終対象統合255＋report_cli11＋editor59＝**325 passed / 1 skipped**。全体gate初回の10失敗は全て該当module再検証で解消したが、全体gateを再実行してPASSしたとの主張はしない。
 - 2026-10-16 13:22:23 JST: **0620 PDF/JSONを公開✅**。既存cli._publish_outputsで2ファイルだけを公開し、公開後のbytes/SHAは検証済み候補と一致。PDF `632e73114754a6496f1a120fbf7a8691016b3125f0bb393ce8b5aec99954d6c2`、JSON `07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca`、入力 `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b`。生成元source全hashは候補生成/再確認/公開時で同一。tmp/transverse-example2-parity/publication-manifest.jsonに記録。
 - 公開時の他6成果物（0500/0600/0610各PDF/JSON）は直前SHAを保持し、本公開で上書きしていない。待機中に外部作業が0500JSON/0600pair/0610pairを更新しているため、「開始時から他成果物不変」とは表現しない。並行変更を戻さず、公開操作の影響をその時点のSHAで確認した。
 
@@ -280,7 +280,7 @@ raw gateの`ok=false`/exit2と`out_of_scope_files=[P7橋脚/.agents/logs/longitu
 
 - **Step8 `$simplify`完了✅**。renderer3ファイルの責務整理と型ヒント追加。4条件PDF bytes完全一致、63関数型監査、全体pytest pass→pass（最終3137pass/2skip）を確認した。raw scope gateの別担当ログ1件の検出は上記のとおり記録し、gate全体PASSとは表現しない。本作業の未帰属範囲外変更は0。入力・0620 PDF/JSON・計算・本担当のテストは変更せず、再公開なし。
 
-- **Step1–7の実装・検証・公開完了✅**。最新公開成果物は`P7橋脚/output/0620_直角方向荷重.pdf`（12頁、2026-10-16 14:17:16 JST、SHA64a5ac238053…）と計算内容を保持した同名JSON（SHA07f76b318c48…）。先行17頁版の体裁受入Failedを受けて、見本に沿う式・罫線・章分け・改頁へ復元した。数値世代は`tmp/transverse-example2-parity/`のcandidate/publication-manifest、復元版の公開証跡は`tmp/pdfs/transverse-layout-restore-20261016/publication-manifest.json`へ分けて保存。
+- **Step1–7の実装・検証・公開完了✅**。最新公開成果物は`./output/0620_直角方向荷重.pdf`（12頁、2026-10-16 14:17:16 JST、SHA64a5ac238053…）と計算内容を保持した同名JSON（SHA07f76b318c48…）。先行17頁版の体裁受入Failedを受けて、見本に沿う式・罫線・章分け・改頁へ復元した。数値世代は`tmp/transverse-example2-parity/`のcandidate/publication-manifest、復元版の公開証跡は`tmp/pdfs/transverse-layout-restore-20261016/publication-manifest.json`へ分けて保存。
 - 受入済み差は冒頭比較表のD1 N0.01、橋脚衝撃低減、風M。シェルター機能は追加せず、構造解析・最大応答・部材照査も追加していない。
 - 正規schema2の17基本/15Define/16組合せ/8抽出と240係数を使用する。旧Excel監査はcalculate_transverse_legacy/旧rendererで保持し、正規legacy_auditは参照metadataのみ。
 - 再開時は最新実入力・生成sourceのSHAを確認し、この公開世代と混同しない。Windows UTF-8環境変数、全率共通のI丸め残差配分、材料がない旧fixtureはテスト用コピーへ明示材料条件を付ける運用を継承する。

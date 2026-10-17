@@ -47,16 +47,16 @@
 
 **New files**
 
-- `P7橋脚/pier_design/pdf_preview_dialog.py` — 左一覧と既存ビューアーを組み合わせる `PdfPreviewDialog`、モーダルの寿命、ファイル選択・次PDF送り。
-- `P7橋脚/tests/test_pdf_preview_dialog.py` — モーダル、一覧、ファイル間の自動送り、リソース解放のテスト。
+- `src/pdf_preview_dialog.py` — 左一覧と既存ビューアーを組み合わせる `PdfPreviewDialog`、モーダルの寿命、ファイル選択・次PDF送り。
+- `./tests/test_pdf_preview_dialog.py` — モーダル、一覧、ファイル間の自動送り、リソース解放のテスト。
 
 **Modified files**
 
-- `P7橋脚/pier_design/pdf_preview.py` — 明示的な縦入力の入口、ページ末尾の判定、ページ送りと文書末尾通知、連続入力・古い操作の無効化。
-- `P7橋脚/pier_design/editor_gui.py` — 主画面のプレビュー起動、ダイアログ管理、一覧・選択・freshnessと表示部品の分離、成功後の自動表示、cleanup。
-- `P7橋脚/tests/test_pdf_preview.py` — ページ末尾・スクロール方向・描画待ち・連続入力の検証追加。
-- `P7橋脚/tests/test_editor_gui.py` — 埋込みビューアー／コンボボックス前提を置換し、計算ガード・結果ラベル・外部変更検知の既存検証を維持。
-- `P7橋脚/README.md` — モーダルの開閉、左一覧、末尾からの自動送りと停止条件の説明。
+- `src/pdf_preview.py` — 明示的な縦入力の入口、ページ末尾の判定、ページ送りと文書末尾通知、連続入力・古い操作の無効化。
+- `src/editor_gui.py` — 主画面のプレビュー起動、ダイアログ管理、一覧・選択・freshnessと表示部品の分離、成功後の自動表示、cleanup。
+- `./tests/test_pdf_preview.py` — ページ末尾・スクロール方向・描画待ち・連続入力の検証追加。
+- `./tests/test_editor_gui.py` — 埋込みビューアー／コンボボックス前提を置換し、計算ガード・結果ラベル・外部変更検知の既存検証を維持。
+- `./README.md` — モーダルの開閉、左一覧、末尾からの自動送りと停止条件の説明。
 
 **Dependencies / current-state evidence**
 
@@ -125,7 +125,7 @@
 - [x] modal内のWindowsホイール・Button-4/5と一覧・Scrollbar操作が親の入力画面へ漏れず、1入力で二重処理しないことを確認する。Escapeで閉じた後は通常入力のスクロールと編集へ復帰する。新しいキーボードでのページ／PDF送りは対象外とする。
 - [x] 既存のPDF描画・計算controller・CLI／帳票テストを再利用し、本番 `pre/input.json` と `output` は書き換えない。
 
-**Verification**: `uv run --project "P7橋脚" --locked --group dev python -X utf8 -m pytest "P7橋脚/tests/test_pdf_preview.py" "P7橋脚/tests/test_pdf_preview_dialog.py" "P7橋脚/tests/test_editor_gui.py" "P7橋脚/tests/test_editor_calculation.py" -q -rs` が成功すること。末尾操作はメソッド直接呼出しだけでなくmappedなCanvas／Scrollbarのイベント経路でも確認し、Tk初期化skipは理由を記録して実環境で該当テストを再実行する。
+**Verification**: `uv run --project "." --locked --group dev python -X utf8 -m pytest "./tests/test_pdf_preview.py" "./tests/test_pdf_preview_dialog.py" "./tests/test_editor_gui.py" "./tests/test_editor_calculation.py" -q -rs` が成功すること。末尾操作はメソッド直接呼出しだけでなくmappedなCanvas／Scrollbarのイベント経路でも確認し、Tk初期化skipは理由を記録して実環境で該当テストを再実行する。
 
 #### Step 5: 画面確認と利用手順を仕上げる
 

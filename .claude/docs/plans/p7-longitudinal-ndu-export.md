@@ -6,7 +6,7 @@
 
 ### Purpose
 
-0710の線路方向荷重を計算する同一実行内の情報を用い、JRSNAP 5.2-L03用の `P7橋脚/post/線路方向.ndu` を繰り返し生成できる機能を追加する。PDFに表示した丸め値を読み戻さず、読み込んだ入力、0500基礎計算、0710の形状・作用、配筋情報から出力する。
+0710の線路方向荷重を計算する同一実行内の情報を用い、JRSNAP 5.2-L03用の `./post/線路方向.ndu` を繰り返し生成できる機能を追加する。PDFに表示した丸め値を読み戻さず、読み込んだ入力、0500基礎計算、0710の形状・作用、配筋情報から出力する。
 
 ユーザー確認済み: **単発ファイル作成ではなく出力機能の追加、対象版はJRSNAP 5.2-L03**。
 
@@ -26,26 +26,26 @@ NDU出力とその入力・検証・公開経路に変更を限定する。以�
 
 #### New files
 
-- `P7橋脚/pier_design/jrsnap_design_conditions.py`: 5.2用解析プロファイル、既存地盤条件からのDf/γ2導出・検証、対象材料・基礎の対応範囲。
-- `P7橋脚/pier_design/jrsnap_export.py`: 同一入力のraw/0500/0710からNDU専用モデルを構築する純粋変換。
-- `P7橋脚/pier_design/jrsnap_ndu.py`: 確認済み部分仕様のCP932/CRLFシリアライザー、件数・参照・保存バイトの検証。
-- `P7橋脚/pier_design/jrsnap_artifacts.py`: NDU専用の出力パス、provenance、同一世代・ハッシュ検証。
-- `P7橋脚/scripts/accept_jrsnap_ndu.py`: 初回受入用。CLIと同じ生成関数で候補一式を保持し、複製の実アプリ検証後に保持したバイトを共通公開処理へ渡す。通常CLIの実行時依存にはしない。
-- `P7橋脚/tests/fixtures/jrsnap_v52_longitudinal_expected.json`: 独立に確定したフィールド対応、幾何、配筋、作用、単位・符号の期待値。
-- `P7橋脚/tests/test_jrsnap_design_conditions.py`、`test_jrsnap_export.py`、`test_jrsnap_ndu.py`、`test_jrsnap_artifacts.py`、`test_jrsnap_cli.py`。
-- 正式成果物: `P7橋脚/post/線路方向.ndu`、`P7橋脚/post/線路方向.ndu.provenance.json`。初回公開は実入力値確定後に限る。
+- `src/jrsnap_design_conditions.py`: 5.2用解析プロファイル、既存地盤条件からのDf/γ2導出・検証、対象材料・基礎の対応範囲。
+- `src/jrsnap_export.py`: 同一入力のraw/0500/0710からNDU専用モデルを構築する純粋変換。
+- `src/jrsnap_ndu.py`: 確認済み部分仕様のCP932/CRLFシリアライザー、件数・参照・保存バイトの検証。
+- `src/jrsnap_artifacts.py`: NDU専用の出力パス、provenance、同一世代・ハッシュ検証。
+- `./scripts/accept_jrsnap_ndu.py`: 初回受入用。CLIと同じ生成関数で候補一式を保持し、複製の実アプリ検証後に保持したバイトを共通公開処理へ渡す。通常CLIの実行時依存にはしない。
+- `./tests/fixtures/jrsnap_v52_longitudinal_expected.json`: 独立に確定したフィールド対応、幾何、配筋、作用、単位・符号の期待値。
+- `./tests/test_jrsnap_design_conditions.py`、`test_jrsnap_export.py`、`test_jrsnap_ndu.py`、`test_jrsnap_artifacts.py`、`test_jrsnap_cli.py`。
+- 正式成果物: `./post/線路方向.ndu`、`./post/線路方向.ndu.provenance.json`。初回公開は実入力値確定後に限る。
 - 実装時の仕様資料: `.agents/docs/research/p7-longitudinal-ndu-field-map.md`。静的profileはPythonで版管理し、他案件のNDUを実行時テンプレートにしない。
-- 初回入力の受入証拠: `P7橋脚/pre/snapshots/ndu-origin-<raw SHA256>.json`。選択済みの現在入力を全バイト保持で保存し、SHA名と一致する既存同内容ファイルだけを再利用する。上書きしない。受入記録にパスとSHAを結び付け、正式4/18成果物と公開rollbackの対象には含めない。
+- 初回入力の受入証拠: `./pre/snapshots/ndu-origin-<raw SHA256>.json`。選択済みの現在入力を全バイト保持で保存し、SHA名と一致する既存同内容ファイルだけを再利用する。上書きしない。受入記録にパスとSHAを結び付け、正式4/18成果物と公開rollbackの対象には含めない。
 
 #### Modified files
 
-- `P7橋脚/pier_design/cli.py`: 新しい `--jrsnap` オプション、同一実行の変換、共通トランザクションへの参加。計算・候補生成/検証・公開を呼出可能な関数へ必要最小限に分け、初回受入スクリプトから同じ処理を利用できるようにする。
-- `P7橋脚/pier_design/editor_calculation.py`: JRSNAP選択のCLI伝播、成功時の専用成果物検証。
-- `P7橋脚/pier_design/editor_gui.py`: 「JRSNAP入力ファイルも出力」の選択（既定OFF）。せん断部材係数Vcd/Vsd/Vddと粗骨材最大寸法の4入力欄を追加する。Df/γ2の重複入力フォームは追加しない。
-- `P7橋脚/README.md`: 使用方法、入力値、対象版、出力先、再生成・上書き、検証範囲。
+- `src/cli.py`: 新しい `--jrsnap` オプション、同一実行の変換、共通トランザクションへの参加。計算・候補生成/検証・公開を呼出可能な関数へ必要最小限に分け、初回受入スクリプトから同じ処理を利用できるようにする。
+- `src/editor_calculation.py`: JRSNAP選択のCLI伝播、成功時の専用成果物検証。
+- `src/editor_gui.py`: 「JRSNAP入力ファイルも出力」の選択（既定OFF）。せん断部材係数Vcd/Vsd/Vddと粗骨材最大寸法の4入力欄を追加する。Df/γ2の重複入力フォームは追加しない。
+- `./README.md`: 使用方法、入力値、対象版、出力先、再生成・上書き、検証範囲。
 - 既存 `test_seismic_longitudinal_cli.py`、`test_editor_calculation.py`、`test_editor_gui.py` の該当箇所。新機能未選択時の既存期待値を変えず、選択時の経路を追加する。
 - `CONTEXT.md`: 必要最小限の用語追加（荷重帳票とNDU解析入力の区別）。
-- `P7橋脚/pre/input.json` は本機能のために変更しない。Df/γ2の数値や見本値を重複保存しない。
+- `./pre/input.json` は本機能のために変更しない。Df/γ2の数値や見本値を重複保存しない。
 
 #### Dependencies / protected files
 
@@ -68,7 +68,7 @@ NDU出力とその入力・検証・公開経路に変更を限定する。以�
 - `artifact_publication.py:96-115,118-159,162-246`: 出力先検査、ステージング、全体置換と失敗時復元。NDUも同じ処理に含める。
 - `frameweb_artifacts.py:143-169,190-223`: FrameWeb固有検証。専用sidecarが必要な理由。
 
-調査時の現入力SHAは `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`、保存済み0710の入力SHAは `0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408`。差分8件は配筋関連で、形状・荷重・地盤・コンクリート材料は同じ。旧SHAに一致するraw全体は `tmp/column-rebar-implementation/baseline/P7橋脚/pre/input.json` に存在する。0710のJSON内スナップショットだけでは鉄筋・地盤raw全体を復元できない。実装開始時に再測定する。
+調査時の現入力SHAは `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`、保存済み0710の入力SHAは `0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408`。差分8件は配筋関連で、形状・荷重・地盤・コンクリート材料は同じ。旧SHAに一致するraw全体は `tmp/column-rebar-implementation/baseline/./pre/input.json` に存在する。0710のJSON内スナップショットだけでは鉄筋・地盤raw全体を復元できない。実装開始時に再測定する。
 
 #### Export contract
 
@@ -187,7 +187,7 @@ NDU出力とその入力・検証・公開経路に変更を限定する。以�
 - [x] 初回の正式公開直前に入力/profile・対象既存ファイルの競合変更を再確認し、**再生成せず保持した候補一式**を共通公開関数で公開する。公開後も全候補SHAとの一致を確認し、受入記録を完了状態にする。正規化後バイトを公開用として混ぜない。sidecarの `app_read_verified` はfalseのままで、実アプリで確認した内容は一致する外部受入記録で提示する。記録更新が失敗した場合は上記の再試行手順に従い、受入未完了と報告する。
 - [x] 0710、NDU、sidecar、検証記録を提示。NDT出力・解析実行・応答値の一致は未実施と明記する。
 
-**Verification**: 指定の `P7橋脚/post/線路方向.ndu` が存在し、最新の承認済み入力・同時生成0710・sidecarと一致。実アプリ検証済み候補とのNDU bytes一致、対象外ファイルとExample原本のSHA不変。初回公開に必要な値が未確定なら、この工程は未完了のまま残す。
+**Verification**: 指定の `./post/線路方向.ndu` が存在し、最新の承認済み入力・同時生成0710・sidecarと一致。実アプリ検証済み候補とのNDU bytes一致、対象外ファイルとExample原本のSHA不変。初回公開に必要な値が未確定なら、この工程は未完了のまま残す。
 
 ### Risks & Considerations
 

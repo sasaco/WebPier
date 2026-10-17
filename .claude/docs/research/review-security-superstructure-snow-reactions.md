@@ -8,10 +8,10 @@ The review used `tmp/snow-reactions/preservation.json` as the scope manifest and
 
 ## Review Scope
 
-- Core input and calculation boundaries: `P7橋脚/pier_design/reaction_inputs.py`, `reaction_weights.py`, and `reaction_calculator.py`, together with their scoped tests.
-- Virtual missing inputs, type preservation, readonly totals, and saving: `P7橋脚/pier_design/editor_model.py`, `editor_gui.py`, and `editor_forms.py`, with the snow-specific model/GUI/formula tests and field-path fixture changes.
-- Report data isolation: `P7橋脚/pier_design/reaction_report_snow.py`, `reaction_report_pagination.py`, and report tests.
-- Initial data/documentation and integration: `P7橋脚/pre/input.json`, `README.md`, and the snow-specific CLI/0610/0620 regression tests listed in the scope manifest.
+- Core input and calculation boundaries: `src/reaction_inputs.py`, `reaction_weights.py`, and `reaction_calculator.py`, together with their scoped tests.
+- Virtual missing inputs, type preservation, readonly totals, and saving: `src/editor_model.py`, `editor_gui.py`, and `editor_forms.py`, with the snow-specific model/GUI/formula tests and field-path fixture changes.
+- Report data isolation: `src/reaction_report_snow.py`, `reaction_report_pagination.py`, and report tests.
+- Initial data/documentation and integration: `./pre/input.json`, `README.md`, and the snow-specific CLI/0610/0620 regression tests listed in the scope manifest.
 - New dependencies, dynamic execution, file destinations, secrets, and outbound calls in the scoped additions.
 
 ## Findings

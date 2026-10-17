@@ -6,7 +6,7 @@
 
 ### Purpose
 
-橋脚自動設計アプリの柱配筋を、径・片面本数・ピッチ・かぶりから自動配置し、断面図を見ながら必要な位置だけ修正できるようにする。`P7橋脚/pre/input.json` の柱配筋を指定原本に合わせ、同じ76本の主鉄筋から線路方向11段・直角方向31段の鉄筋配置表を再現する。
+橋脚自動設計アプリの柱配筋を、径・片面本数・ピッチ・かぶりから自動配置し、断面図を見ながら必要な位置だけ修正できるようにする。`./pre/input.json` の柱配筋を指定原本に合わせ、同じ76本の主鉄筋から線路方向11段・直角方向31段の鉄筋配置表を再現する。
 
 ユーザー確認済み:
 
@@ -19,18 +19,18 @@
 ### Scope
 
 - New files:
-  - `P7橋脚/pier_design/column_rebar.py`: 柱固有の配置規則、帯筋入力、生成・詳細編集状態の純粋な処理。
-  - `P7橋脚/pier_design/column_rebar_ui.py`: 柱専用の入力・プレビュー・詳細修正・再配置確認。
-  - `P7橋脚/tests/test_column_rebar.py`、`P7橋脚/tests/test_column_rebar_ui.py`。
-  - `P7橋脚/tests/test_column_rebar_reference.py`、`P7橋脚/tests/test_column_rebar_reference_ui.py`: 独立原本照合と実P7の保存・再読込。
-  - `P7橋脚/tests/fixtures/column_rebar_example2.json`: 原本から独立転記した両方向の全行と、対応する物理位置・出典。
+  - `src/column_rebar.py`: 柱固有の配置規則、帯筋入力、生成・詳細編集状態の純粋な処理。
+  - `src/column_rebar_ui.py`: 柱専用の入力・プレビュー・詳細修正・再配置確認。
+  - `./tests/test_column_rebar.py`、`./tests/test_column_rebar_ui.py`。
+  - `./tests/test_column_rebar_reference.py`、`./tests/test_column_rebar_reference_ui.py`: 独立原本照合と実P7の保存・再読込。
+  - `./tests/fixtures/column_rebar_example2.json`: 原本から独立転記した両方向の全行と、対応する物理位置・出典。
 - Modified files:
-  - `P7橋脚/pier_design/rebar_model.py`: 保存形式1/2、柱専用処理への接続、全体検証と既存部材の互換性。
-  - `P7橋脚/pier_design/rebar_ui.py`: 柱画面への振分け。梁・フーチングは現在の画面と処理を維持。
-  - `P7橋脚/pier_design/editor_gui.py`: 既存の候補document収集・保存・画面切替へ接続する範囲に限定。
-  - `P7橋脚/tests/test_rebar_ui.py`: 柱の明示的な詳細・自動切替に合わせた操作試験。既存の座標・保存値・退避位置の検証は保持。
-  - `P7橋脚/pre/input.json`: 実装・検証後に柱の指定項目と必要な形式番号だけ更新。
-  - `P7橋脚/README.md`、`CONTEXT.md`: 操作と用語。計画時の用語追記は実施済み。
+  - `src/rebar_model.py`: 保存形式1/2、柱専用処理への接続、全体検証と既存部材の互換性。
+  - `src/rebar_ui.py`: 柱画面への振分け。梁・フーチングは現在の画面と処理を維持。
+  - `src/editor_gui.py`: 既存の候補document収集・保存・画面切替へ接続する範囲に限定。
+  - `./tests/test_rebar_ui.py`: 柱の明示的な詳細・自動切替に合わせた操作試験。既存の座標・保存値・退避位置の検証は保持。
+  - `./pre/input.json`: 実装・検証後に柱の指定項目と必要な形式番号だけ更新。
+  - `./README.md`、`CONTEXT.md`: 操作と用語。計画時の用語追記は実施済み。
 - Dependencies: 現在のPython、Tkinter、tksheet、pytestを利用。依存追加・更新なし。
 - 既存`test_rebar_model.py`と`test_editor_gui.py`も全体回帰試験に含めた。本タスクでは両ファイルを変更していない。同時進行の耐震作業による`test_editor_gui.py`の0720対応は保持した。
 - 対象: 原本と同じ矩形柱。既存の複数段配筋、材質、帯筋高さ区間、指定XYを保持する。
@@ -223,4 +223,4 @@
 - Root実行`column-rebar-full-final`: **3802 passed / failed0 / skipped0**、811.01秒。新規純粋処理96%、専用UI90%、合計92%（閾値80%）。ログ: `.agents/logs/column-rebar-full-final.log`。JUnit: `tmp/column-rebar-implementation/full-suite.xml`。
 - 途中でTk初期化によりスキップされたケースも、この全体試験ではすべて実行・合格。追加のスキップ再実行は不要。
 - 全体試験前後で対象ソース・試験・入力・READMEのSHA256が一致。`git diff --check`合格。最終保持監査: `tmp/column-rebar-implementation/final-audit.json`。
-- 操作手順: `P7橋脚/README.md`「柱配筋の入力とP7の設定例」。確認画像: `tmp/column-rebar-implementation/qa-final-*.png`。計算書出力や構造照査の追加は行っていない。
+- 操作手順: `./README.md`「柱配筋の入力とP7の設定例」。確認画像: `tmp/column-rebar-implementation/qa-final-*.png`。計算書出力や構造照査の追加は行っていない。

@@ -20,7 +20,7 @@ import pymupdf
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "Example橋脚" / "0600_上部工反力.xls"
-DESTINATION = ROOT / "P7橋脚" / "src" / "assets" / "reaction_report_layout.json"
+DESTINATION = ROOT / "." / "src" / "assets" / "reaction_report_layout.json"
 SCALE = 14.28 / 15.75
 LEFT = 58.08
 TOP = 71.4

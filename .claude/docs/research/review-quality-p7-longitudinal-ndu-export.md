@@ -4,7 +4,7 @@ Review date: 2026-10-17. Reviewer: quality-reviewer. Status: complete. One High 
 
 ## Review Scope
 
-Product source was reviewed in `C:/Users/sasai/AppData/Local/Temp/p7-ndu-final-review-20261017`, the frozen feature over git HEAD baseline. The shared K: implementation is under an unrelated reporting migration and is not the reviewed integration target. Principal files: `P7橋脚/pier_design/jrsnap_design_conditions.py`, `jrsnap_export.py`, `jrsnap_ndu.py`, `jrsnap_readback.py`, relevant `jrsnap_artifacts.py`, baseline rebar/frame/0610/0710 mappings, and `test_jrsnap_export.py`. The approved plan, field map and soil derivation in the original workspace are authoritative context.
+Product source was reviewed in `C:/Users/sasai/AppData/Local/Temp/p7-ndu-final-review-20261017`, the frozen feature over git HEAD baseline. The shared K: implementation is under an unrelated reporting migration and is not the reviewed integration target. Principal files: `src/jrsnap_design_conditions.py`, `jrsnap_export.py`, `jrsnap_ndu.py`, `jrsnap_readback.py`, relevant `jrsnap_artifacts.py`, baseline rebar/frame/0610/0710 mappings, and `test_jrsnap_export.py`. The approved plan, field map and soil derivation in the original workspace are authoritative context.
 
 Pre-fix source SHA256: `jrsnap_export.py` = `90d7cbb509e978518140f4f0a4f167e14b104233ee6449f193a7a84cdb60f560`; `jrsnap_design_conditions.py` = `2c12c07068d1e2581ab24c7f9552283205f605b8555a2e04376890f24668e901`; `jrsnap_ndu.py` = `fc7b590b0adf170811494366f7819d29ccb40f19a4f7d956bf6d6101f5e6662e`. Q1 line numbers and reproductions refer to this pre-fix state.
 
@@ -12,12 +12,12 @@ Pre-fix source SHA256: `jrsnap_export.py` = `90d7cbb509e978518140f4f0a4f167e14b1
 
 ### Q1 — High, resolved: automatic reinforcement rows could select the wrong tension reinforcement
 
-- Location in the frozen source: `P7橋脚/pier_design/jrsnap_export.py:170` and `:212`; serialized by `P7橋脚/pier_design/jrsnap_ndu.py:112` and `:113`.
+- Location in the frozen source: `src/jrsnap_export.py:170` and `:212`; serialized by `src/jrsnap_ndu.py:112` and `:113`.
 - `_section()` determines `main_face_layers` from the number of longitudinal basic-input rows, but `section.rebar` contains all physical bars sorted by actual y coordinate. It never establishes that the intended longitudinal bars are exactly the first/last N native rows. A transverse-face row can precede or interleave the intended longitudinal rows while all layout checks pass. `SectJikuNum` then applies the chosen bending/shear tension counts to different rows. Automatic reinforcement ratios and the selected tension-steel centroid can therefore describe a different reinforcement selection.
 - This is not the documented exclusion of manually moved bars: both reproductions use complete, valid automatic basic layouts. The current standard P7 11-row/76-bar input is unaffected.
 - Root and the mapping owner were notified and accepted the issue for a minimal v1 rejection fix.
 
-Reproduction, from the isolated `P7橋脚` directory using its test helpers and the existing Python environment (no product file edits):
+Reproduction, from the isolated `.` directory using its test helpers and the existing Python environment (no product file edits):
 
 ```python
 import sys
@@ -57,7 +57,7 @@ Recommended fix: before serialization, establish that the intended longitudinal 
 
 Resolution: the mapping owner added this representability check using automatic layout `row_indices` to identify intended longitudinal physical bars, preserving shared corner bars once. The selected bars are aggregated with the existing direction-row API and compared with both native end ranges, including coordinates, diameter, material and count. No source geometry or tension count is silently altered. Post-fix isolated `jrsnap_export.py` SHA256 is `3f7830dce0b073d0005235a2be8f70a712991974e0672de9c03782953b4c7bea`.
 
-Independent reviewer verification after that hash was frozen (Python stdin script, isolated `P7橋脚`, exit 0, 4.76 s): reproduction A and B both raised `InputError` containing `先頭・末尾の主筋段数分の配筋行と線路主筋が一致しません`. A contiguous second longitudinal layer at 200 mm was accepted and serialized to 6349 bytes, with selected centers `[108, 200, 2500, 2592]` and `SectJikuNum1=13,2,2,2,2,0`. The owner separately reported 95 core tests passed, including same-row side-bar contamination rejection and shared-corner acceptance; standard P7 NDU remains 6298 bytes and SHA `02e2475aa4c16be3ffbc2ba94f770adb02e3df5e35bfa1e987e71857ea26ed71`. This reviewer inspected the fix itself and reran the original two negative cases plus the positive two-layer case, without repeating the full suite.
+Independent reviewer verification after that hash was frozen (Python stdin script, isolated `.`, exit 0, 4.76 s): reproduction A and B both raised `InputError` containing `先頭・末尾の主筋段数分の配筋行と線路主筋が一致しません`. A contiguous second longitudinal layer at 200 mm was accepted and serialized to 6349 bytes, with selected centers `[108, 200, 2500, 2592]` and `SectJikuNum1=13,2,2,2,2,0`. The owner separately reported 95 core tests passed, including same-row side-bar contamination rejection and shared-corner acceptance; standard P7 NDU remains 6298 bytes and SHA `02e2475aa4c16be3ffbc2ba94f770adb02e3df5e35bfa1e987e71857ea26ed71`. This reviewer inspected the fix itself and reran the original two negative cases plus the positive two-layer case, without repeating the full suite.
 
 ## Verified Mapping
 

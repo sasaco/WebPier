@@ -3319,83 +3319,83 @@
   "artifact_manifest": [
     {
       "role": "0500.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0500_直接基礎.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0500_直接基礎.pdf",
       "sha256": "9deec383f93f3f3cc7c4ea9452b1033b424b81e9a61cf8cf5f3bd22cfab48804"
     },
     {
       "role": "0500.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0500_直接基礎.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0500_直接基礎.json",
       "sha256": "16b75446ac1de14f4411e8465b63fc6fe9636a0d9945a7227a86fda0cc75b0c9"
     },
     {
       "role": "0600.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0600_上部工反力.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0600_上部工反力.pdf",
       "sha256": "b5b92024c8a8fa61d3103cd343af0a26b59d68c0eadbc21d7a11cbdcff142433"
     },
     {
       "role": "0600.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0600_上部工反力.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0600_上部工反力.json",
       "sha256": "f63e8c1429bcf4f6d49bccac4c22c6e78e07bbf2870b3a4614856fe3f5de33a0"
     },
     {
       "role": "0610.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0610_線路方向荷重.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0610_線路方向荷重.pdf",
       "sha256": "904c7a17aee10c099a4d048cd3bbd9fa42f71fe1908cbf4010b871f38e1c68e8"
     },
     {
       "role": "0610.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0610_線路方向荷重.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0610_線路方向荷重.json",
       "sha256": "af104ad57b85b14dba62c65c6d63da12d287b122f2690b9867b31fcf4c53dde1"
     },
     {
       "role": "0620.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0620_直角方向荷重.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0620_直角方向荷重.pdf",
       "sha256": "dd5a4eb9247b7f81d3669d97200800bcfa16e7f03653967d92e41512b6fd66d7"
     },
     {
       "role": "0620.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0620_直角方向荷重.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0620_直角方向荷重.json",
       "sha256": "22b22fc6f548a526b4a43c4fe0bdd3e73cf1047ba0c93585a7a86123671b3b50"
     },
     {
       "role": "0710.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0710_線路方向荷重.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0710_線路方向荷重.pdf",
       "sha256": "e40e6148467654bd9eaa7aadffd09d17f2728c84db233e9fd832f0661f968555"
     },
     {
       "role": "0710.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0710_線路方向荷重.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0710_線路方向荷重.json",
       "sha256": "6462b164aba8a8ea9146324aad7b970aae476ac6347e960bee6be29d4cc4e09b"
     },
     {
       "role": "0720.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0720_線路直角方向荷重.pdf",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0720_線路直角方向荷重.pdf",
       "sha256": "971faf1cdd5b2a88e1d094cc8dcae2ad3b4307a222cfc56887c5d79d3f590855"
     },
     {
       "role": "0720.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0720_線路直角方向荷重.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0720_線路直角方向荷重.json",
       "sha256": "d11baf43e333e741186d4e5e8af8d2e78a0ccc6fa659f01b6022f5c28a2b2f5b"
     },
     {
       "role": "0610.native",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\frameWebForJS.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\frameWebForJS.json",
       "sha256": "1abaa2b50e94bbc5eb833db63b40f2cfc84e9ea2248f1e6ed2b9f06213dbb5d2"
     },
     {
       "role": "0620.native",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\線路直角方向.json",
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\線路直角方向.json",
       "sha256": "b692a9ec5157af8daf0000bd31e70085b2fe697140515e3765322dde1f769dba"
     }
   ],
   "expected_sidecars": [
     {
       "role": "0610.sidecar",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\frameWebForJS.provenance.json"
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\frameWebForJS.provenance.json"
     },
     {
       "role": "0620.sidecar",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\線路直角方向.provenance.json"
+      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\線路直角方向.provenance.json"
     }
   ]
 }

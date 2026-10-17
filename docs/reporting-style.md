@@ -9,7 +9,7 @@
 原本のSHA-256は各fixtureに保存し、検査時に再確認する。測定器は `scripts/reporting_appearance.py`、抽出器は PyMuPDF 1.28.2。原本を変更・再保存せず、製品コードや新しいbuilderをimportしない。
 
 ```powershell
-$p7Root = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/P7橋脚'
+$p7Root = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/.'
 $referenceRoot = 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/Example橋脚/output'
 & "$p7Root/.venv/Scripts/python.exe" -X utf8 "$p7Root/scripts/reporting_appearance.py" $referenceRoot "$p7Root/tests/fixtures/reporting/appearance/reference-census.json"
 & "$p7Root/.venv/Scripts/python.exe" -X utf8 "$p7Root/scripts/reporting_appearance.py" $referenceRoot "$p7Root/tests/fixtures/reporting/appearance/reference-style.json" --style

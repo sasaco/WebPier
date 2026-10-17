@@ -8,7 +8,7 @@
 
 ### Purpose
 
-`Example橋脚2/08_線路.pdf` と同フォルダー配下の `08_線路/frameWebForJS.json` の数値対応を明らかにし、`P7橋脚/output/0610_線路方向荷重.pdf` に示された骨組・作用をFEMPythonで開いて計算できる `P7橋脚/post/frameWebForJS.json` として出力する。
+`Example橋脚2/08_線路.pdf` と同フォルダー配下の `08_線路/frameWebForJS.json` の数値対応を明らかにし、`./output/0610_線路方向荷重.pdf` に示された骨組・作用をFEMPythonで開いて計算できる `./post/frameWebForJS.json` として出力する。
 
 ユーザーの追加回答により、単発の手入力ではなく、通常の `run_design.py --stage 0610` / `--stage all` とGUIからの全工程計算に自動生成を組み込む。PDF・計算結果JSON・FrameWeb入力は、同じ入力から得た同じ0610計算結果を使う。
 
@@ -28,9 +28,9 @@
 |---|---|
 | `Example橋脚2/08_線路.pdf`（32頁） | `91e288880677f6e121afa887314d183000371478852b96663a6c753f76806706` |
 | `Example橋脚2/08_線路/frameWebForJS.json` | `244085acff3aee31a78f466e506cab317e920c0d506b0fd6aa9a7e14fadb70b3` |
-| `P7橋脚/output/0610_線路方向荷重.pdf`（8頁） | `85334ee02cf775b8914f9cc73c6db107d522bb1625ed0fe5b7f6e66ad438383f` |
-| `P7橋脚/output/0610_線路方向荷重.json` | `ad98ba14bb10a9af67b0e8fcc3e4714a597beef7230ba567512713ffe89d8e66` |
-| `P7橋脚/pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
+| `./output/0610_線路方向荷重.pdf`（8頁） | `85334ee02cf775b8914f9cc73c6db107d522bb1625ed0fe5b7f6e66ad438383f` |
+| `./output/0610_線路方向荷重.json` | `ad98ba14bb10a9af67b0e8fcc3e4714a597beef7230ba567512713ffe89d8e66` |
+| `./pre/input.json` | `82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b` |
 
 現在の入力・コードで0500/0600/0610をメモリ内再計算し、CLIと同じJSON直列化・改行にすると保存済み3 JSONとbytes一致した。既存成果物の再生成・上書きはしていない。P7のPDFも同じ入力SHAを表示する。証跡は `tmp/p7-frameweb-plan/`。実装開始時には最新世代を再確認し、この表の値を将来の実行条件に固定しない。
 
@@ -38,16 +38,16 @@
 
 #### 変更するファイルと成果物
 
-- 新規 `P7橋脚/pier_design/frameweb_export.py`：正規0610結果からnative保存形式を作る純粋な変換。ファイルI/O、再計算、PDF解析は持たせない。
-- 新規 `P7橋脚/pier_design/frameweb_cases.py`：L/Iの用途別補助ケース、Define/Combine/Pickup、出典対応を構成する。小さければ上記モジュールへ統合可。
-- 新規 `P7橋脚/pier_design/artifact_publication.py`：既存 `_publish_outputs` の復元保証を保持して複数出力ディレクトリへ拡張。既存呼出しの互換性を保つ。
-- 変更 `P7橋脚/pier_design/cli.py`：0610/allで変換を呼び、既存PDF/JSONと新規post成果物を一括公開する。`--post-dir` を追加。
-- 変更 `P7橋脚/pier_design/editor_calculation.py`：GUI計算ジョブの出力先・完了検証にpost成果物を追加。PDF表示順は既存4帳票を維持。
-- 変更 `P7橋脚/README.md`：出力先、実行方法、用途別補助ケース、名目係数と実際の入力係数の違いを説明。
-- 新規試験 `P7橋脚/tests/test_frameweb_export.py`、`test_frameweb_cases.py`、`test_frameweb_cli.py`。既存 `test_editor_calculation.py`、CLI・全工程・公開失敗試験の必要箇所を更新する。
-- 新規独立期待値 `P7橋脚/tests/fixtures/frameweb_example2_mapping.json` と `frameweb_p7_reference.json`。元資料の数値・出典・既知差異を持ち、変換関数を呼んで期待値を作らない。
-- 納品 `P7橋脚/post/frameWebForJS.json`：FEMPythonのnative保存JSON。
-- 同時出力 `P7橋脚/post/frameWebForJS.provenance.json`：入力SHA、0610 PDF/JSONのSHA、native JSONのSHA、出典JSON path、基本/補助/組合せの対応、採用規約の版を記録する小さな付帯JSON。nativeファイルに独自キーを混在させない。
+- 新規 `src/frameweb_export.py`：正規0610結果からnative保存形式を作る純粋な変換。ファイルI/O、再計算、PDF解析は持たせない。
+- 新規 `src/frameweb_cases.py`：L/Iの用途別補助ケース、Define/Combine/Pickup、出典対応を構成する。小さければ上記モジュールへ統合可。
+- 新規 `src/artifact_publication.py`：既存 `_publish_outputs` の復元保証を保持して複数出力ディレクトリへ拡張。既存呼出しの互換性を保つ。
+- 変更 `src/cli.py`：0610/allで変換を呼び、既存PDF/JSONと新規post成果物を一括公開する。`--post-dir` を追加。
+- 変更 `src/editor_calculation.py`：GUI計算ジョブの出力先・完了検証にpost成果物を追加。PDF表示順は既存4帳票を維持。
+- 変更 `./README.md`：出力先、実行方法、用途別補助ケース、名目係数と実際の入力係数の違いを説明。
+- 新規試験 `./tests/test_frameweb_export.py`、`test_frameweb_cases.py`、`test_frameweb_cli.py`。既存 `test_editor_calculation.py`、CLI・全工程・公開失敗試験の必要箇所を更新する。
+- 新規独立期待値 `./tests/fixtures/frameweb_example2_mapping.json` と `frameweb_p7_reference.json`。元資料の数値・出典・既知差異を持ち、変換関数を呼んで期待値を作らない。
+- 納品 `./post/frameWebForJS.json`：FEMPythonのnative保存JSON。
+- 同時出力 `./post/frameWebForJS.provenance.json`：入力SHA、0610 PDF/JSONのSHA、native JSONのSHA、出典JSON path、基本/補助/組合せの対応、採用規約の版を記録する小さな付帯JSON。nativeファイルに独自キーを混在させない。
 
 依存は既存Python標準ライブラリ・pytest・PDF照合用PyMuPDF/pypdfを使う。日常のJSON生成にFEMPythonの起動、Excel、PDFのOCR、外部通信を要求しない。FEMPythonは実装受入時の互換性・解析検証に使う。
 
@@ -160,7 +160,7 @@ D1天端荷重は既に重複自重を控除済み：P7 p3は `9103.26−297.68�
 - `--stage 0610`：0610のPDF/結果JSONと、native JSON/付帯JSONの計4ファイル。
 - `--stage all`：既存4段階のPDF/結果JSON計8ファイル＋postの2ファイル＝計10ファイル。
 - `0500/0600/0620` 単独実行はpostを更新しない。
-- `--post-dir` 明示時はそのディレクトリへ出す。省略時、解決後のoutput-dirが通常の `P7橋脚/output` と同じなら `P7橋脚/post`、それ以外は `<output-dir>/post`。テスト・候補生成が本番postへ漏れない規則とする。
+- `--post-dir` 明示時はそのディレクトリへ出す。省略時、解決後のoutput-dirが通常の `./output` と同じなら `./post`、それ以外は `<output-dir>/post`。テスト・候補生成が本番postへ漏れない規則とする。
 - GUIは計算ジョブが持つoutput/postのパスを子プロセスへ渡す。cwdや選択入力ファイルの親ディレクトリから出力先を決めない。
 - native/付帯JSONまで生成・検証してから公開する。各出力先と同じファイルシステム内に一時ファイル・旧版退避を置き、全旧版退避→新規配置→失敗時の逆順復元を行う。異なるドライブ間の `os.replace` を避ける。
 - 複数ファイルの置換はOSレベルで一瞬に確定するトランザクションではない。現行同様の失敗時復元に加え、付帯JSONを最後に置いて成功世代を識別し、GUIは全ファイルSHAを確認して成功とする。復元不能時は退避先を保存してエラーを返す。
@@ -230,7 +230,7 @@ D1天端荷重は既に重複自重を控除済み：P7 p3は `9103.26−297.68�
 - [x] 剛域のA/Izを検証用コピーだけで10倍・100倍にし、EA/EI・剛域変形・代表変位・柱断面力・反力の感度を記録した。完全剛体との等価性を保証せず、候補の採用値は変更していない。
 - [x] P7 PDF p1～8との数値照合表、Example既知差異、追加ケース対応、runner情報を証跡に残す。既存PDFを改版して帳尻を合わせない。
 - [x] `.agents/check.ps1` の全体ゲートを完走。3379成功・旧CLI試験5失敗・Tk初期化1スキップ。旧CLI試験は入力条件を明記して11件再試験成功、スキップ項目も同じソースの個別実行で成功。全3385項目を照合済み。単一の全体コマンドが緑だったとは扱わない。
-- [x] 正常候補を通常0610経路で本番へ生成し、`P7橋脚/post/frameWebForJS.json` と付帯JSONを納品する。nativeはMCP候補とbytes一致。0610以外の成果物・元資料・入力のSHA不変、0610 PDF全8頁の文字・描画一致を確認した。
+- [x] 正常候補を通常0610経路で本番へ生成し、`./post/frameWebForJS.json` と付帯JSONを納品する。nativeはMCP候補とbytes一致。0610以外の成果物・元資料・入力のSHA不変、0610 PDF全8頁の文字・描画一致を確認した。
 
 **Verification**: native構造、全作用対応、FEMPython読込/解析、釣合い、保存往復、CLI/GUI、公開復元の各チェックが完了。ファイルが存在する・runnerがexit0だけでは受入にしない。P7には比較用解析結果が無いため、「入力再現とソフト互換を確認した」と「構造安全性の照査が完了した」を区別する。
 

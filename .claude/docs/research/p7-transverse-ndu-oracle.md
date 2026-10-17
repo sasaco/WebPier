@@ -4,7 +4,7 @@
 
 ## 根拠と確認範囲
 
-- 現在入力: `P7橋脚/pre/input.json`。独立取得した実0500/0720の全文を `tmp/p7-transverse-ndu/acceptance/current-0500.json` と `current-0720.json` に保存した。元の保存済み0720は別入力SHAなので、その保存JSONを今回の入力世代の証拠に流用しない。
+- 現在入力: `./pre/input.json`。独立取得した実0500/0720の全文を `tmp/p7-transverse-ndu/acceptance/current-0500.json` と `current-0720.json` に保存した。元の保存済み0720は別入力SHAなので、その保存JSONを今回の入力世代の証拠に流用しない。
 - 見本: `Example橋脚2/11_直角(耐震)/直角方向_朝里川温泉P1.ndu`、CP932、SHA `229db4e7950eb7b958555a1b360ea4a7fcb16806c4f4a29581916d0c8c15176f`。`DataInfo`、節点、断面、主筋、荷重、支持、組合せを直接読んだ。
 - native の共通欄は前回独立照合済みの literal fixture と `.agents/docs/research/p7-longitudinal-ndu-field-map.md` に従う。共通既定値の再利用と、今回の方向別期待値を区別する。
 - 現0720の組合せの出典は見本PDF物理13頁。ケース5下り／6上りという既存計算の確定条件を使用する。旧見本NDUは8ケースで、列車Mが正の1ケースだけであるため、そのケース列を今回へコピーしない。

@@ -8,13 +8,13 @@ This was an independent static review of the approved plan, owned patch, source 
 
 ## Review Scope
 
-- `P7橋脚/src/pdf_preview.py`
-- `P7橋脚/src/pdf_preview_dialog.py`
-- `P7橋脚/src/editor_gui.py`
-- `P7橋脚/tests/test_pdf_preview.py`
-- `P7橋脚/tests/test_pdf_preview_dialog.py`
-- `P7橋脚/tests/test_editor_gui.py`
-- `P7橋脚/README.md` — PDF modal/scroll workflow hunks only; the concurrent 骨組み図 hunk was excluded and preserved.
+- `./src/pdf_preview.py`
+- `./src/pdf_preview_dialog.py`
+- `./src/editor_gui.py`
+- `./tests/test_pdf_preview.py`
+- `./tests/test_pdf_preview_dialog.py`
+- `./tests/test_editor_gui.py`
+- `./README.md` — PDF modal/scroll workflow hunks only; the concurrent 骨組み図 hunk was excluded and preserved.
 - Approved behavior: `.agents/docs/plans/p7-pdf-preview-modal-continuous.md`.
 - Scope and exclusions: `.agents/logs/agent-teams/team-execute-p7-pdf-preview-modal-continuous/review-scope.json`.
 - Patch: `.agents/logs/review-diff-p7-pdf-preview-modal-continuous-owned.patch`.

@@ -6,7 +6,7 @@
 
 ### Purpose
 
-現在の `P7橋脚/pre/input.json` から `P7橋脚/output/0720_線路直角方向荷重.pdf` と同名計算JSONを再生成する機能をP7橋脚アプリへ追加する。検討モデル、作用の計算（1）、作用の計算（2）、作用の組合せの4ページとし、CLI・GUIの通常生成経路から使えるようにする。
+現在の `./pre/input.json` から `./output/0720_線路直角方向荷重.pdf` と同名計算JSONを再生成する機能を.アプリへ追加する。検討モデル、作用の計算（1）、作用の計算（2）、作用の組合せの4ページとし、CLI・GUIの通常生成経路から使えるようにする。
 
 2026-10-17の確認事項:
 
@@ -18,20 +18,20 @@
 ### Scope
 
 - New files:
-  - `P7橋脚/pier_design/seismic_frame.py`: 0710から切り出す、物理骨組の抽出・柱下端分割・再採番の小さな共通処理。0720の上部高さだけを追加引数で扱う。
-  - `P7橋脚/pier_design/seismic_transverse_calculator.py`: 0720専用の計算結果、作用、9基本ケースと1組合せ。
-  - `P7橋脚/pier_design/seismic_transverse_report.py`: 結果だけを受け取る4ページ描画。
-  - `P7橋脚/tests/test_seismic_transverse_calculator.py`、`test_seismic_transverse_report.py`、`test_seismic_transverse_cli.py`。
-  - `P7橋脚/tests/fixtures/seismic_transverse_example2.json`: 原本から独立転記する期待値と出典。
-  - `P7橋脚/tests/fixtures/seismic_transverse_input.json`、`seismic_transverse_current_input.json`: 凍結した検証用入力と、その入力に対する独立期待値。実入力の代用や原本fixtureの上書きに用いない。
-  - 正式成果物 `P7橋脚/output/0720_線路直角方向荷重.pdf` と `.json`。
+  - `src/seismic_frame.py`: 0710から切り出す、物理骨組の抽出・柱下端分割・再採番の小さな共通処理。0720の上部高さだけを追加引数で扱う。
+  - `src/seismic_transverse_calculator.py`: 0720専用の計算結果、作用、9基本ケースと1組合せ。
+  - `src/seismic_transverse_report.py`: 結果だけを受け取る4ページ描画。
+  - `./tests/test_seismic_transverse_calculator.py`、`test_seismic_transverse_report.py`、`test_seismic_transverse_cli.py`。
+  - `./tests/fixtures/seismic_transverse_example2.json`: 原本から独立転記する期待値と出典。
+  - `./tests/fixtures/seismic_transverse_input.json`、`seismic_transverse_current_input.json`: 凍結した検証用入力と、その入力に対する独立期待値。実入力の代用や原本fixtureの上書きに用いない。
+  - 正式成果物 `./output/0720_線路直角方向荷重.pdf` と `.json`。
 - Modified files:
-  - `P7橋脚/pier_design/seismic_longitudinal_calculator.py`: 共通骨組処理への委譲のみ。0710の既存結果契約を維持する。
-  - `P7橋脚/pier_design/cli.py`: 0720の段階選択、依存計算、描画、エラー処理。
-  - `P7橋脚/pier_design/frameweb_artifacts.py`: 帳票台帳への0720追加。
-  - `P7橋脚/pier_design/editor_calculation.py`: 固定件数の説明を更新。実行時は既存台帳参照を使う。
-  - `P7橋脚/README.md`、`CONTEXT.md`: 6帳票、再生成、作用と形状の区別、対象範囲を記録。CONTEXTは用語のみ。
-  - `P7橋脚/tests/test_seismic_longitudinal_calculator.py`、`test_seismic_longitudinal_cli.py`、`test_frameweb_publication.py`、`test_editor_calculation.py`、`test_editor_gui.py`、`test_report_cli.py`、`test_reaction_cli.py`、`test_longitudinal_cli.py`、`test_longitudinal_canonical_cli.py`、`test_transverse_cli.py`、`test_frameweb_cli.py` のうち、共通処理・all成果物・件数・順序に影響する試験。
+  - `src/seismic_longitudinal_calculator.py`: 共通骨組処理への委譲のみ。0710の既存結果契約を維持する。
+  - `src/cli.py`: 0720の段階選択、依存計算、描画、エラー処理。
+  - `src/frameweb_artifacts.py`: 帳票台帳への0720追加。
+  - `src/editor_calculation.py`: 固定件数の説明を更新。実行時は既存台帳参照を使う。
+  - `./README.md`、`CONTEXT.md`: 6帳票、再生成、作用と形状の区別、対象範囲を記録。CONTEXTは用語のみ。
+  - `./tests/test_seismic_longitudinal_calculator.py`、`test_seismic_longitudinal_cli.py`、`test_frameweb_publication.py`、`test_editor_calculation.py`、`test_editor_gui.py`、`test_report_cli.py`、`test_reaction_cli.py`、`test_longitudinal_cli.py`、`test_longitudinal_canonical_cli.py`、`test_transverse_cli.py`、`test_frameweb_cli.py` のうち、共通処理・all成果物・件数・順序に影響する試験。
 - Dependencies:
   - 現在のPython環境、ReportLab、日本語フォント、PyMuPDF、pytest。依存追加・更新なし。
   - 現行0600、正規0620、`frame_outline`、`frame_model_report`、`longitudinal_example2_report` のページ・フォント部品、既存の成果物公開機構。
@@ -169,7 +169,7 @@ rendererは結果だけを使用する。0710の数式精度検証と微小部�
 - **丸めと表示式**: 0600の通常精度EQと既存Single重量の境界を明示。丸め済み表示因子で違う答えになる式を出さず、必要桁を増やす。
 - **様式の退行**: 0620で以前発生した汎用表化を繰り返さず、原本画像との直接比較を受入条件にする。
 - **共通化と並行変更**: 0710の出力互換を守り、既存dirtyへ小さく追記。入力・FrameWeb・依存関係にある他作業を戻さない。
-- **実行環境**: 共有rules/STATE/DESIGN/PROGRESSとFrameWebフォルダーは欠落した既知の環境。実在するCONTEXT/README/計画/ソースを根拠にする。`uv --locked` 不整合の修復を本作業へ混ぜない。Windows UTF-8設定と既存 `P7橋脚/.venv/Scripts/python.exe -X utf8` を使用する。
+- **実行環境**: 共有rules/STATE/DESIGN/PROGRESSとFrameWebフォルダーは欠落した既知の環境。実在するCONTEXT/README/計画/ソースを根拠にする。`uv --locked` 不整合の修復を本作業へ混ぜない。Windows UTF-8設定と既存 `./.venv/Scripts/python.exe -X utf8` を使用する。
 
 ### Open Questions
 
@@ -198,7 +198,7 @@ rendererは結果だけを使用する。0710の数式精度検証と微小部�
 - 関連試験は100（0720計算）＋90（既存0710計算）＋14（0720帳票）＋374（影響する統合11モジュール）＝578件に通過証拠あり。単一一括実行の件数ではない。最終修正後、親の帳票/0720 CLI試験49件、独立レビュアーの計算/帳票114件も通過。
 - `.agents/check.ps1`は実行済み、最終exit2・overall=`fail`。`uv --locked`の既存lock不整合によりpytest開始前に停止。依存・lockは本作業で変更せず、承認済み方針に従い既存venvで対象と残りを分割実行。元のtoolsオブジェクトは `tmp/seismic-transverse-implementation/shared-check-final.json` と `verification.json` にそのまま保存。
 - 補完回帰は3122 passed／1 failed／2 skipped。失敗は並行配筋作業の`test_column_rebar_reference.py:155`が実入力鉄筋version2を要求し、保持中の実入力がversion1である不一致。0720実装とは分離し入力を変更しない。Tkスキップ2件の再実行は1 passed／1 skipped。今回と無関係な配筋UI2モジュールの追加試験は、関連578件と正式成果物の検証完了後に親が中断し、完了/合格に数えない（停止対象PID・理由を記録）。全リポジトリゲートの合格とはしない。Ruff未導入、coverage未計測。
-- 正式成果物: `P7橋脚/output/0720_線路直角方向荷重.pdf`（4ページ）と同名`.json`。生成コマンド: `P7橋脚/.venv/Scripts/python.exe -X utf8 P7橋脚/run_design.py --stage 0720 --input P7橋脚/pre/input.json --output-dir P7橋脚/output --overwrite`。
+- 正式成果物: `./output/0720_線路直角方向荷重.pdf`（4ページ）と同名`.json`。生成コマンド: `./.venv/Scripts/python.exe -X utf8 ./run_design.py --stage 0720 --input ./pre/input.json --output-dir ./output --overwrite`。
 - 入力SHA: `0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408`。PDF SHA: `7bef98957d4aac5d8d72dcebb73115f60346d7848cd88b045a5f0df974b29712`。JSON SHA: `4b50bdcb27f96c8c45c7e129a9e55c12c8928c89988bc08d4608e6a792fe4a18`。正式PDF/JSONは検証候補と完全一致、正式PDFそのものを再画像化して4ページすべて目視済み。
 - 公開直前/直後で実入力・原本2件・他帳票・postの計17ファイルが不変。初期175ファイル基準と今回24所有ファイルの差分を保持し、並行配筋の変更は戻していない。生のownership reconcileは既存/並行変更と親管理文書をunownedとしてexit2、overlaps=[]・idle_owners=[]。今回の製品差分は所有割当内に収まる。全dirtyを今回の変更とは扱わない。
 - レビュー3報告、実装/レビュー作業ログ6件は存在/形式検証PASS。証拠総覧: `tmp/seismic-transverse-implementation/verification.json`、`formal-audit.json`、`task-diff-manifest.json`、`.agents/docs/research/review-{security,quality,tests}-p7-seismic-transverse-report-regeneration.md`。

@@ -182,7 +182,7 @@ FEMPython ルートから PowerShell で実行する。output-dir は絶対パ�
 
 ```powershell
 & 'FrameWebforCS/Headless/bin/Release/net10.0-windows/FrameWebforCS.Headless.exe' run `
-  --input 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/P7橋脚/post/frameWebForJS.json' `
+  --input 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/./post/frameWebForJS.json' `
   --output-dir 'K:/ニュージャパンコンサルタンツ/26_LRT鉄道照査/tmp/p7-frameweb-validation/first-run' `
   --generate-pdf true `
   --generate-pik true `

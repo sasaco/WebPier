@@ -959,7 +959,7 @@ class InputEditor(InputSheets):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="橋脚 input.json のTkinter編集アプリ")
-    parser.add_argument("--input", type=Path, default=Path(__file__).resolve().parents[1] / "pre" / "input.json", help="編集するJSON（既定: P7橋脚/pre/input.json）")
+    parser.add_argument("--input", type=Path, default=Path(__file__).resolve().parents[1] / "pre" / "input.json", help="編集するJSON（既定: ./pre/input.json）")
     args = parser.parse_args(argv)
     root = tk.Tk()
     root.withdraw()

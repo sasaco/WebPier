@@ -8,12 +8,12 @@ Verdict: PASS — High 0 / Medium 0 / Low 0
 
 承認済み計画 `.agents/docs/plans/train-reaction-joint-boundary.md` と、開始時スナップショットとの差分 `tmp/train-reaction-joint-boundary/task-only.patch` を基準にレビューした。
 
-- `P7橋脚/pier_design/moving_load.py`
-- `P7橋脚/pier_design/reaction_calculator.py` の provenance.method 変更
-- `P7橋脚/README.md` の本修正による追記
-- `P7橋脚/tests/test_moving_load.py`
-- `P7橋脚/tests/test_moving_load_boundary.py`
-- `P7橋脚/tests/fixtures/moving_load_boundary_cases.json`
+- `src/moving_load.py`
+- `src/reaction_calculator.py` の provenance.method 変更
+- `./README.md` の本修正による追記
+- `./tests/test_moving_load.py`
+- `./tests/test_moving_load_boundary.py`
+- `./tests/fixtures/moving_load_boundary_cases.json`
 
 HEADとの差分に含まれる開始前の入力・帳票・出力変更は本修正に帰属させていない。成果物の公開、PDF表示、入力ファイル不変の最終確認は親担当の責務とした。
 

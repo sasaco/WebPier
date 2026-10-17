@@ -12,21 +12,21 @@
 
 ### Scope
 
-対象は `P7橋脚` のPython入力編集アプリ、0600の入力読込・集計・結果JSON、および指定された2表。
+対象は `.` のPython入力編集アプリ、0600の入力読込・集計・結果JSON、および指定された2表。
 
 - New files:
-  - `P7橋脚/pier_design/reaction_report_snow.py`: 最初の2ページに限定した表の行追加・配置処理。元レイアウトの書式を再利用する。
-  - `P7橋脚/tests/test_reaction_report_snow.py`: 雪行の値・座標・罫線・連続描画の回帰検証。
+  - `src/reaction_report_snow.py`: 最初の2ページに限定した表の行追加・配置処理。元レイアウトの書式を再利用する。
+  - `./tests/test_reaction_report_snow.py`: 雪行の値・座標・罫線・連続描画の回帰検証。
 - Modified files:
-  - `P7橋脚/pier_design/reaction_inputs.py`: 3種類の雪荷重入力定義と互換読込。
-  - `P7橋脚/pier_design/reaction_weights.py`: 死荷重とは独立した雪荷重の支点・桁別集計。
-  - `P7橋脚/pier_design/reaction_calculator.py`: 結果辞書に `snow_loads` を追加。
-  - `P7橋脚/pier_design/editor_model.py`, `P7橋脚/pier_design/editor_gui.py`, `P7橋脚/pier_design/editor_forms.py`: 欠落キーの編集、数値扱い、雪3行、B/C集計。
-  - `P7橋脚/pier_design/reaction_report.py`, `P7橋脚/pier_design/reaction_report_pagination.py`: 新描画処理への接続、最初2ページの配置・見出し。
-  - `P7橋脚/pre/input.json`, `P7橋脚/README.md`: 空欄の新入力項目と操作・計算範囲の説明。
-  - `P7橋脚/tests/fixtures/editor_field_paths.json`, `P7橋脚/tests/test_editor_model.py`, `P7橋脚/tests/test_editor_gui.py`, `P7橋脚/tests/test_editor_formulas.py`: 入力パスと編集回帰。
-  - `P7橋脚/tests/test_reaction_inputs.py`, `P7橋脚/tests/test_reaction_weights.py`, `P7橋脚/tests/test_reaction_calculator.py`, `P7橋脚/tests/test_reaction_report.py`, `P7橋脚/tests/test_reaction_cli.py`: 型・集計・帳票・保存結果の検証。
-  - `P7橋脚/tests/test_longitudinal_calculator.py`, `P7橋脚/tests/test_transverse_calculator.py`: 雪だけを変更しても下流計算が変わらないことの検証。
+  - `src/reaction_inputs.py`: 3種類の雪荷重入力定義と互換読込。
+  - `src/reaction_weights.py`: 死荷重とは独立した雪荷重の支点・桁別集計。
+  - `src/reaction_calculator.py`: 結果辞書に `snow_loads` を追加。
+  - `src/editor_model.py`, `src/editor_gui.py`, `src/editor_forms.py`: 欠落キーの編集、数値扱い、雪3行、B/C集計。
+  - `src/reaction_report.py`, `src/reaction_report_pagination.py`: 新描画処理への接続、最初2ページの配置・見出し。
+  - `./pre/input.json`, `./README.md`: 空欄の新入力項目と操作・計算範囲の説明。
+  - `./tests/fixtures/editor_field_paths.json`, `./tests/test_editor_model.py`, `./tests/test_editor_gui.py`, `./tests/test_editor_formulas.py`: 入力パスと編集回帰。
+  - `./tests/test_reaction_inputs.py`, `./tests/test_reaction_weights.py`, `./tests/test_reaction_calculator.py`, `./tests/test_reaction_report.py`, `./tests/test_reaction_cli.py`: 型・集計・帳票・保存結果の検証。
+  - `./tests/test_longitudinal_calculator.py`, `./tests/test_transverse_calculator.py`: 雪だけを変更しても下流計算が変わらないことの検証。
 - Dependencies: 既存のPython、tksheet、ReportLab、PyMuPDF、pytest、pypdfを使用。追加依存なし。
 - 対象外: 雪荷重の設計値算定、D1+D2への雪の加算、3確率同士の加算、摩擦・衝撃・地震・水平荷重・0610/0620の荷重や組合せへの連携、構造解析・部材照査。
 - 維持する出典: `reaction_report_layout.json`、元Excel/PDF、保存済みExcel oracleは変更しない。雪用の架空のExcelセル番地を作らない。0610/0620の計算・帳票本体と共用 `_Report` / `WIDTH` も変更対象としない。
@@ -39,7 +39,7 @@
 - `reaction_calculator.py:95-110,133-146,300-340`: 死荷重が衝撃・摩擦・公開値・後段転記へ使われる境界。
 - `assets/reaction_report_layout.json:1`: 元ページ1・死荷重シートのD7/D15に指定の表があり、支点表は行9～12。主桁表はBのG1～G5/G6～G10、CのG1～G5/G6～G10の4ブロック。
 - `reaction_report_pagination.py:17-18,49-54` と `reaction_report_layout.py:22-24,206-223`: 有効高さ730pt、最初2ページの固定帯、レイアウトキャッシュと途中クリップ禁止。
-- `longitudinal_calculator.py:90-92`, `transverse_calculator.py:127-136`: 後段の既存D1/D2転記。以上の略記パスは `P7橋脚/pier_design/` 基準。
+- `longitudinal_calculator.py:90-92`, `transverse_calculator.py:127-136`: 後段の既存D1/D2転記。以上の略記パスは `src/` 基準。
 
 ### Implementation Steps
 
@@ -110,9 +110,9 @@ A/Dそれぞれの明示的0、同じ明細合計と異なる直接入力、d10�
 **Verification**: 新雪の独立期待値と既存Excel oracleがともに一致する。正常入力で4段階の8成果物が一時ディレクトリに生成され、不正な雪入力はパス付きで失敗し、既存公開物を更新しない。既存の一括更新・失敗復元試験も維持する。全テスト、GUI操作確認、PDF目視、差分確認の結果を記録する。
 
 ```powershell
-uv run --project "P7橋脚" --locked --group dev pytest "P7橋脚/tests" -q
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage 0600 --input "<一時入力>" --output-dir "<一時出力0600>"
-uv run --project "P7橋脚" --locked python "P7橋脚/run_design.py" --stage all --input "<一時入力>" --output-dir "<一時出力all>"
+uv run --project "." --locked --group dev pytest "./tests" -q
+uv run --project "." --locked python "./run_design.py" --stage 0600 --input "<一時入力>" --output-dir "<一時出力0600>"
+uv run --project "." --locked python "./run_design.py" --stage all --input "<一時入力>" --output-dir "<一時出力all>"
 ```
 
 ### Risks & Considerations

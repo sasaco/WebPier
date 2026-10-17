@@ -10,20 +10,20 @@
 ### Scope
 
 - New files:
-  - `P7橋脚/tests/test_moving_load_boundary.py`: 小数継目、Example条件、反力釣合い、共通計算と後続転記の回帰試験。
-  - `P7橋脚/tests/fixtures/moving_load_boundary_cases.json`: Exampleの寸法・載荷位置・独立算定値、および影響する長支間ケースの根拠。現行の可変input.jsonに依存しない固定試験条件。
+  - `./tests/test_moving_load_boundary.py`: 小数継目、Example条件、反力釣合い、共通計算と後続転記の回帰試験。
+  - `./tests/fixtures/moving_load_boundary_cases.json`: Exampleの寸法・載荷位置・独立算定値、および影響する長支間ケースの根拠。現行の可変input.jsonに依存しない固定試験条件。
   - 診断・候補成果物・PNG・確認記録は `tmp/train-reaction-joint-boundary/` に保存する。
 - Modified files:
-  - `P7橋脚/pier_design/moving_load.py`: 継目の所属比較を既存の0.001 m位置グリッドに統一し、VBA完全一致という説明に境界修正の例外を明記する。
-  - `P7橋脚/pier_design/reaction_calculator.py`: provenance.methodの計算方式説明に境界補正を明記する（計算・データ形状は変更しない）。
-  - `P7橋脚/tests/test_moving_load.py`: 旧Single oracleと意図した境界修正の差を区別する。影響のない比較は引き続き厳密に検証する。
-  - `P7橋脚/README.md`: 境界判定の数値精度と旧Excelとの差、Example検証条件を簡潔に記載する。
-  - 検証済みの `P7橋脚/output/0600_上部工反力.{json,pdf}`、`0610_線路方向荷重.{json,pdf}`、`0620_直角方向荷重.{json,pdf}` を最終更新する。
+  - `src/moving_load.py`: 継目の所属比較を既存の0.001 m位置グリッドに統一し、VBA完全一致という説明に境界修正の例外を明記する。
+  - `src/reaction_calculator.py`: provenance.methodの計算方式説明に境界補正を明記する（計算・データ形状は変更しない）。
+  - `./tests/test_moving_load.py`: 旧Single oracleと意図した境界修正の差を区別する。影響のない比較は引き続き厳密に検証する。
+  - `./README.md`: 境界判定の数値精度と旧Excelとの差、Example検証条件を簡潔に記載する。
+  - 検証済みの `./output/0600_上部工反力.{json,pdf}`、`0610_線路方向荷重.{json,pdf}`、`0620_直角方向荷重.{json,pdf}` を最終更新する。
 - Dependencies: 既存Python、pytest、PyMuPDF、ReportLabを使用。依存追加なし。
 - 検証する連携先: `reaction_calculator.py`、`reaction_report.py`、`cli.py`、`longitudinal_calculator.py`、`transverse_calculator.py`。公開データ構造を維持し、上記のprovenance説明変更を除き、これらの計算・帳票実装は変更しない。
 - 対象外: 車両横荷重の荷重修正係数、風荷重モデル、重心高、雪・シェルターの扱い、荷重組合せ、構造解析・部材照査の新設。実入力、元Example PDF/Excel、既存のExcel oracle/legacy oracle、帳票レイアウトは変更しない。0500成果物は更新しない。
 
-確定条件と調査根拠（以下の製品相対パスは `P7橋脚/` 基準）:
+確定条件と調査根拠（以下の製品相対パスは `./` 基準）:
 
 - `pier_design/moving_load.py:71-104,123-160`: Single演算の継目 `la` と、小数3桁に丸めた候補位置を直接比較している。(.575,18.85,.575)の合計が20.000001907348633となり、位置20.0の軸がB側になる。最大化対象はRB+RC、全軸・全7点を列挙し、同点は先行候補を保持する。継目一致時は大きい反力側、同値ならCを選ぶ。
 - `tests/test_moving_load.py:20-47`: 旧独立Single oracleと整数10 m継目の試験はあるが、小数継目の丸め差を網羅していない。長支間(.85,72.6,.85)×2、軸重150 kNの既存ケースは今回の一般修正で変化し得る。
@@ -69,7 +69,7 @@
 
 - [x] 実装時点の入力のコピーを一時領域で固定し、0600/0610/0620を候補出力へ生成する。実入力と候補provenanceのSHA256を照合する。
 - [x] 0600の列車載荷図・反力式・支点値、車両横荷重図の2軸/2軸所属、線路方向まとめ、および0610/0620の該当荷重・組合せをPDF文字抽出とPNG目視で確認する。見出しでページを特定し、旧31ページ等を固定条件にしない。
-- [x] `uv run --project P7橋脚 --locked --group dev python -X utf8 -m pytest P7橋脚/tests/test_moving_load.py P7橋脚/tests/test_moving_load_boundary.py P7橋脚/tests/test_reaction_calculator.py P7橋脚/tests/test_reaction_cli.py -q` を実行する。
+- [x] `uv run --project . --locked --group dev python -X utf8 -m pytest ./tests/test_moving_load.py ./tests/test_moving_load_boundary.py ./tests/test_reaction_calculator.py ./tests/test_reaction_cli.py -q` を実行する。
 - [x] 最終の全体試験は `.agents/check.ps1 -ProjectRoot 'K:\ニュージャパンコンサルタンツ\26_LRT鉄道照査'` で行う。新しい故障・変更がない限り、同一全体試験を重複実行しない。
 - [x] 独立レビューで修正範囲・境界条件・期待値の独立性・既存差分保持を確認する。最終公開前に入力・対象コード等の外部変更を再確認し、更新があれば候補を作り直す。
 - [x] CLIには3段階をまとめて指定する選択肢がないため、候補は --stage all --output-dir tmp/train-reaction-joint-boundary/after で生成する。正規公開は一時スクリプトから既存cli._publish_outputsへ対象6ファイルだけを渡し、出力ディレクトリ内stagingと失敗時復元を再利用する。CLIに新しい機能を追加せず、検証済みの0600/0610/0620のPDF/JSONを一式として更新する。0500のバイト列は保持する。更新後のprovenance、候補との内容一致、入力不変、開始前差分の保持を確認する。

@@ -6,11 +6,11 @@ PASS。承認計画、対象差分と実ソースを独立に照合し、今回�
 
 ## Review Scope
 
-- `P7橋脚/pier_design/pdf_preview.py` — ページ／文書境界、縦入力の休止判定、長い同期描画後の残余イベント、after と画像の解放。
-- `P7橋脚/pier_design/pdf_preview_dialog.py` — Path による一覧、手動／自動選択、モーダル、部分構築失敗、grab・focus・親破棄。
-- `P7橋脚/pier_design/editor_gui.py` — singleton、計算成功後の表示、freshness の再入抑止、保存失敗・別名保存・再計算・終了との接続。
-- `P7橋脚/tests/test_pdf_preview.py`、`P7橋脚/tests/test_pdf_preview_dialog.py`、`P7橋脚/tests/test_editor_gui.py` — 実イベント経路、境界条件、既存 assertion の適応と Guardrail 証拠。
-- `P7橋脚/README.md` — PDF 操作説明の変更部分。
+- `src/pdf_preview.py` — ページ／文書境界、縦入力の休止判定、長い同期描画後の残余イベント、after と画像の解放。
+- `src/pdf_preview_dialog.py` — Path による一覧、手動／自動選択、モーダル、部分構築失敗、grab・focus・親破棄。
+- `src/editor_gui.py` — singleton、計算成功後の表示、freshness の再入抑止、保存失敗・別名保存・再計算・終了との接続。
+- `./tests/test_pdf_preview.py`、`./tests/test_pdf_preview_dialog.py`、`./tests/test_editor_gui.py` — 実イベント経路、境界条件、既存 assertion の適応と Guardrail 証拠。
+- `./README.md` — PDF 操作説明の変更部分。
 - 基準: `.agents/docs/plans/p7-pdf-preview-modal-continuous.md`、`.agents/logs/agent-teams/team-execute-p7-pdf-preview-modal-continuous/review-scope.json`、`.agents/logs/review-diff-p7-pdf-preview-modal-continuous-owned.patch`。
 - 並行作業の骨組み外形・帳票・`.coverage` と README の「骨組み図の橋脚外形」追記は対象外。共通 rules / STATE / DESIGN / PROGRESS の未配置はユーザー承認済みの扱いを引き継ぎました。
 
