@@ -22,6 +22,7 @@ from ..inputs.fields import path_text
 from .binding import Bindings
 from .document import EditorDocument, EditorError, fingerprint
 from .form import Form
+from .lifecycle import destroy_children
 from . import pages, reaction_page
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
@@ -55,6 +56,7 @@ class InputEditor:
         self.b7_button: ttk.Button | None = None
         self.soil_sheet: Sheet | None = None
         self.view: Any = None  # the rebar or calculation page object
+        self.rebar_state: dict[str, Any] = {}  # member, group, direction and selection of the rebar page
         self._calculation_controller = calculation
         self.closed = False
         root.title("橋脚 入力データ編集")
@@ -194,8 +196,7 @@ class InputEditor:
         if self.view is not None:
             self.view.dispose()
             self.view = None
-        for widget in self.form.winfo_children():
-            widget.destroy()
+        destroy_children(self.form)
         self.bindings.clear()
         self.reaction_sheets.clear()
         self.same_buttons.clear()

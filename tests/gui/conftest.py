@@ -28,6 +28,10 @@ def tk_root():
     root.report_callback_exception = lambda *args: errors.append(args)
     yield root
     try:
+        # A timer of a destroyed root would still fire during a later test. Cancel it in Tcl only: after_cancel
+        # would delete the callback's command, which its widget then fails to delete again, stopping destroy().
+        for event in root.tk.splitlist(root.tk.call("after", "info")):
+            root.tk.call("after", "cancel", event)
         root.destroy()
     except tk.TclError:
         pass

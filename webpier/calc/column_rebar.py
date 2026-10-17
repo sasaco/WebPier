@@ -243,8 +243,13 @@ def _manual(column: ColumnBars, width: Printed, height: Printed) -> list[Bar]:
 
 
 def column_layout(pier: PierInput) -> ColumnLayout:
-    column = pier.rebar.column
-    width, height = _mm(pier.substructure.w[6]), _mm(pier.substructure.b[6])
+    return section_layout(pier.rebar.column, pier.substructure.w[6], pier.substructure.b[6])
+
+
+def section_layout(column: ColumnBars, w6: Printed, b6: Printed) -> ColumnLayout:
+    """The layout of *column* in a W6 × B6 section (m); the editor previews it before the rest of the input is
+    complete."""
+    width, height = _mm(w6), _mm(b6)
     placer = _Placer(column, width, height)
     rows = [row for row in (placer.row(index) for index in range(len(column.main_rows))) if row is not None]
     automatic = placer.bars(rows)
