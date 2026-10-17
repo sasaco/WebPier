@@ -21,14 +21,18 @@ from ..calc.foundation import calculate_foundation
 from ..calc.longitudinal import calculate_longitudinal
 from ..calc.reaction import calculate_reaction
 from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
+from ..calc.seismic_transverse import calculate_seismic_transverse
+from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json
-from ..export.frameweb import build_frameweb
+from ..export.frameweb import build_frameweb, build_frameweb_transverse
 from ..inputs import PierInput
 from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
+from ..reporting.stages.seismic_transverse import render_seismic_transverse
+from ..reporting.stages.transverse import render_transverse
 
 Results = Mapping[str, Any]
 ALL = "all"
@@ -146,8 +150,16 @@ STAGES = Registry((
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
               lambda results, pier, path: render_longitudinal(results["0610"], results["0600"], pier, path),
               (Export("frameweb", "frameWebForJS.json", _frameweb("0610", build_frameweb)),)),
+    StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
+              lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
+              lambda results, pier, path: render_transverse(results["0620"], results["0600"], pier, path),
+              (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),)),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),
               lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path)),
+    StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
+              lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
+                                                                 results["0620"]),
+              lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path)),
 ))
