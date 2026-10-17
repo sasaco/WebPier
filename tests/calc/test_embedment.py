@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytest
 
 from reaction_support import document, pier, q
-from webpier.calc.embedment import calculate_embedment
+from webpier.calc.embedment import applicable_embedment, calculate_embedment
 from webpier.calc.foundation import calculate_foundation
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
@@ -68,3 +68,11 @@ def test_one_surface_layer_on_the_supporting_layer():
     p = parse_input(data)
     with pytest.raises(InputError, match=re.escape("地盤データ.層: 表層と支持層の2層だけに対応します（3層）")):
         calculate_embedment(p, calculate_foundation(p))
+
+
+def test_outside_the_procedure_there_is_no_embedment_result():
+    # The 0500 report prints γ2 only where the procedure applies; elsewhere it is not defined (not an error there).
+    p = pier(**{"下部構造/土かぶり/終点側_df2": 1.9})
+    assert applicable_embedment(p, calculate_foundation(p)) is None
+    p = pier()
+    assert applicable_embedment(p, calculate_foundation(p)) == calculate_embedment(p, calculate_foundation(p))

@@ -35,7 +35,7 @@ MAX_ROWS = 100
 _COLUMN = "鉄筋.柱"
 
 
-def _need(value, path: str):
+def need(value, path: str):
     if value is None:
         raise InputError(f"{path}: 値が必要です")
     return value
@@ -91,8 +91,8 @@ def _shear(profile: Profile, pier: PierInput) -> Shear:
     material = row.material or column.materials.transverse
     if material is None:
         raise InputError(f"{here}.material: 値が必要です（行と{_COLUMN}.materials.transverse が空欄）")
-    return Shear(yield_strength=yield_strength(material), diameter=_need(row.diameter, f"{here}.diameter_mm"),
-                 legs=_need(row.effective_legs, f"{here}.effective_legs"), pitch=_need(row.pitch, f"{here}.pitch_mm"))
+    return Shear(yield_strength=yield_strength(material), diameter=need(row.diameter, f"{here}.diameter_mm"),
+                 legs=need(row.effective_legs, f"{here}.effective_legs"), pitch=need(row.pitch, f"{here}.pitch_mm"))
 
 
 def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, frame: Frame, control: Node
@@ -116,12 +116,12 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
         raise InputError(f"{_COLUMN}: 主鉄筋の材質が1種類ではありません（{'・'.join(grades)}）")
     conditions = getattr(pier.jrsnap, profile.jrsnap)
     key = f"jrsnap_{profile.jrsnap}"
-    factors = [_need(getattr(conditions, name), f"{key}.{name}")
+    factors = [need(getattr(conditions, name), f"{key}.{name}")
                for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd")]
     return SectionData(
         width=width, height=height, shear_span=span, fck=concrete.strength,
         ec=put(EC_KN_MM2, d(concrete.modulus) * Decimal(10)),  # mantissa × 10^7 kN/m2 = × 10 kN/mm2
-        aggregate_max=_need(conditions.aggregate_max, f"{key}.aggregate_max_mm"),
+        aggregate_max=need(conditions.aggregate_max, f"{key}.aggregate_max_mm"),
         yield_strength=yield_strength(grades[0]), main_layers=layers, main_pitch=pitch,
         rows=tuple(RebarRow(row.center, row.diameter, row.count) for row in rows), shear=_shear(profile, pier),
         safety=(*SAFETY_BEFORE, factors[0], factors[1], SAFETY_GBS, SAFETY_K, factors[2], SAFETY_GBVO))

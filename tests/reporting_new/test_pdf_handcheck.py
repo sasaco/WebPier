@@ -12,18 +12,19 @@ from pdf_handcheck import formula_checks, tokens_text
 from webpier.core.printed import Printed
 from webpier.reporting.stages.foundation import render_foundation
 
-# surface 1, Bv 1, Av 1, kv 2, Kv 2, ks 2, Ks 2, Iv 2, Kr 4
+# surface 1, Bv 1, Av 1, kv 2, Kv 2, ks 2, Ks 2, Iv 2, Kr 4; and γ2 where it applies (decision 40)
 FOUNDATION_FORMULAS = 17
 
 
-def render(tmp_path: Path, result, pier, name: str = "0500.pdf") -> Path:
-    return render_foundation(result, pier, tmp_path / name)
+def render(tmp_path: Path, result, pier, embedment, name: str = "0500.pdf") -> Path:
+    return render_foundation(result, pier, embedment, tmp_path / name)
 
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_every_printed_formula_reproduces_its_result(tmp_path: Path, name: str):
-    checks = formula_checks(render(tmp_path, *case(name)))
-    assert len(checks) == FOUNDATION_FORMULAS
+    result, pier, embedment = case(name)
+    checks = formula_checks(render(tmp_path, result, pier, embedment))
+    assert len(checks) == FOUNDATION_FORMULAS + (embedment is not None)
     assert [check for check in checks if not check.ok] == []
 
 
@@ -37,6 +38,8 @@ def test_the_reader_sees_products_powers_fractions_roots_and_min(tmp_path: Path)
     assert "((1)/(3))*202988" in expressions
     assert "((9.000*7.000**(3))/(12))" in expressions
     assert "405976*425.250000" in expressions
+    gamma = next(check for check in checks if check.printed == "12.3")
+    assert (gamma.expression, gamma.ok) == ("(((4.700-2.700)*18.0+2.700*8.0)/(4.700))", True)
     kr = next(check for check in checks if check.expression == "405976*425.250000")
     assert (kr.printed, kr.page) == ("172,641,294", 3)
 
@@ -67,10 +70,16 @@ def wrong(result, field: str):
     ("area", {"7.000*9.000", "202988*63.001", "405976*63.001", "67663*63.001", "135325*63.001"}),
 ])
 def test_a_value_that_does_not_follow_from_the_printed_factors_is_found(tmp_path: Path, field: str, expected: set[str]):
-    result, pier = case("current")
-    checks = formula_checks(render(tmp_path, wrong(result, field), pier))
-    assert len(checks) == FOUNDATION_FORMULAS
+    result, pier, embedment = case("current")
+    checks = formula_checks(render(tmp_path, wrong(result, field), pier, embedment))
+    assert len(checks) == FOUNDATION_FORMULAS + 1
     assert {check.expression for check in checks if not check.ok} == expected
+
+
+def test_a_gamma2_that_does_not_follow_from_the_printed_values_is_found(tmp_path: Path):
+    result, pier, embedment = case("current")
+    checks = formula_checks(render(tmp_path, result, pier, replace(embedment, unit_weight=Printed(12.2, 1, "kN/m3"))))
+    assert {check.expression for check in checks if not check.ok} == {"(((4.700-2.700)*18.0+2.700*8.0)/(4.700))"}
 
 
 def test_a_wrapped_formula_is_read_across_its_lines(tmp_path: Path):

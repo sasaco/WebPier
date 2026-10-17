@@ -1,7 +1,8 @@
 """0500 直接基礎: the ground-spring report, authored as native GridLayoutPdf blocks.
 
-Every number is a Printed value of the FoundationResult (or of the input it
-echoes), written at its digits by reporting.numbers. Nothing is calculated
+Every number is a Printed value of the FoundationResult, of the EmbedmentResult
+(Df and γ2, decision 40: printed where the procedure applies, None elsewhere) or
+of the input it echoes, written at its digits by reporting.numbers. Nothing is calculated
 here; the wording, the layout and the unit notation are this module's.
 """
 
@@ -16,6 +17,7 @@ from gridlayoutpdf import (
     MathNode, Operator, Root, Row, Script,
 )
 
+from ...calc.embedment import EmbedmentResult
 from ...calc.foundation import SOIL_EQUATIONS, FoundationResult
 from ...core.printed import Printed
 from ...inputs import PierInput
@@ -96,7 +98,7 @@ def _optional(value: Printed | None, *, thousands: bool = False) -> str:
     return "" if value is None else printed(value, thousands=thousands)
 
 
-def content(result: FoundationResult, pier: PierInput) -> tuple[Unit, ...]:
+def content(result: FoundationResult, pier: PierInput, embedment: EmbedmentResult | None) -> tuple[Unit, ...]:
     """One ordered manuscript, used by both the layout and the semantic tests."""
     units: list[Unit] = []
 
@@ -143,6 +145,8 @@ def content(result: FoundationResult, pier: PierInput) -> tuple[Unit, ...]:
              f"H6+H5+min(df1, df2) = {printed(sub_.h[6])}+{printed(sub_.h[5])}"
              f"+min({printed(sub_.df1)}, {printed(sub_.df2)})",
              printed(result.surface_thickness), unit(result.surface_thickness.unit), left=123)
+    if embedment is not None:
+        _embedment(embedment, add, equation)
     add("bearing.heading", "支持層の支持力係数", "paragraph", 123)
     for key, label in (("normal", "地震時を除く"), ("seismic", "地震時")):
         add("bearing." + key, Row(sub("N", "γ"), "=", printed(result.n_gamma), ",",
@@ -225,8 +229,32 @@ def content(result: FoundationResult, pier: PierInput) -> tuple[Unit, ...]:
     return tuple(units)
 
 
-def semantic_records(result: FoundationResult, pier: PierInput) -> list[dict[str, str]]:
-    return [{"id": item.identifier, "text": plain(item.value)} for item in content(result, pier)]
+def _embedment(e: EmbedmentResult, add: Any, equation: Any) -> None:
+    """γ2 of the cover, the FootInfo value of the JRSNAP direct foundation (Example2 08 p.8-28)."""
+    depth, water, gamma2 = sub("D", "f"), sub("h", "w2"), sub("γ", "2")
+    wet, submerged = sub("γ", "wet"), sub("γ", "sub")
+    add("embedment.heading", "有効根入れ深さと表層の平均有効単位重量", "paragraph", 123)
+    equation("embedment.formula", gamma2,
+             Fraction(Row("(", depth, Operator("−"), water, ")", Operator("×"), wet, "+", water, Operator("×"),
+                          submerged, gap=0), depth), symbolic=True)
+    equation("embedment.gamma2", gamma2,
+             Fraction(Row("(", printed(e.depth), Operator("−"), printed(e.water), ")", Operator("×"),
+                          printed(e.unit_weight_wet), "+", printed(e.water), Operator("×"),
+                          printed(e.unit_weight_submerged), gap=0), printed(e.depth)),
+             printed(e.unit_weight), unit(e.unit_weight.unit))
+    add("embedment.definition.Df", Row("ここに、", depth, "：有効根入れ深さ（表層の層厚", printed(e.depth),
+                                       unit(e.depth.unit), "）", gap=0))
+    add("embedment.definition.hw2", Row(water, "：基礎底面からの平水位（", printed(e.water), unit(e.water.unit), "）",
+                                        gap=0))
+    for key, symbol, label, value in (("wet", wet, "湿潤", e.unit_weight_wet),
+                                      ("sub", submerged, "水中", e.unit_weight_submerged)):
+        add("embedment.definition." + key, Row(symbol, f"：表層の{label}単位体積重量（", printed(value),
+                                               unit(value.unit), "）", gap=0))
+
+
+def semantic_records(result: FoundationResult, pier: PierInput,
+                     embedment: EmbedmentResult | None) -> list[dict[str, str]]:
+    return [{"id": item.identifier, "text": plain(item.value)} for item in content(result, pier, embedment)]
 
 
 def _soil_name(text: str) -> CellLines:
@@ -264,9 +292,9 @@ def _soil_table(header: Unit, rows: list[Unit]) -> Block:
     return indent_to(table(widths, authored, row_heights=None, header_rows=2, block_id=PREFIX + "soil.table"), 76.92)
 
 
-def build_foundation(result: FoundationResult, pier: PierInput) -> Document:
+def build_foundation(result: FoundationResult, pier: PierInput, embedment: EmbedmentResult | None) -> Document:
     """The 0500 report as a GridLayoutPdf Document (lay out or render it)."""
-    units = content(result, pier)
+    units = content(result, pier, embedment)
     blocks: list[Block] = []
     for index, item in enumerate(units):
         if item.kind == "soil_row":
@@ -299,6 +327,10 @@ def build_foundation(result: FoundationResult, pier: PierInput) -> Document:
     return report(*blocks, footer=FOOTER)
 
 
-def render_foundation(result: FoundationResult, pier: PierInput, path: str | Path) -> Path:
-    """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
-    return build_foundation(result, pier).render(path, invariant=True)
+def render_foundation(result: FoundationResult, pier: PierInput, embedment: EmbedmentResult | None,
+                      path: str | Path) -> Path:
+    """Lay out completely, then atomically replace *path*; the same input gives the same bytes.
+
+    *embedment* is calc.embedment.applicable_embedment(pier, result): γ2 is printed when it is not None.
+    """
+    return build_foundation(result, pier, embedment).render(path, invariant=True)

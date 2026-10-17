@@ -57,9 +57,9 @@ def squeeze(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
-def expected_drawing(result, pier) -> str:
+def expected_drawing(result, pier, embedment) -> str:
     parts = []
-    for unit in content(result, pier):
+    for unit in content(result, pier, embedment):
         if unit.key == "soil.header":
             # The second header row (湿潤・水中) is drawn after the first row.
             first = tuple(value if index != 4 else value[0] for index, value in enumerate(unit.value))
@@ -76,11 +76,11 @@ def scene_texts(pages) -> list[str]:
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, name: str):
-    result, pier = case(name)
-    document = build_foundation(result, pier)
+    result, pier, embedment = case(name)
+    document = build_foundation(result, pier, embedment)
     pages = document.layout()
-    assert squeeze("".join(scene_texts(pages))) == expected_drawing(result, pier)
-    path = render_foundation(result, pier, tmp_path / "0500.pdf")
+    assert squeeze("".join(scene_texts(pages))) == expected_drawing(result, pier, embedment)
+    path = render_foundation(result, pier, embedment, tmp_path / "0500.pdf")
     with pymupdf.open(path) as pdf:
         assert len(pdf) == len(pages)
         for number, (page, scene) in enumerate(zip(pdf, pages), 1):
@@ -111,22 +111,22 @@ def test_render_replaces_the_target_only_after_a_complete_layout(tmp_path: Path)
     from gridlayoutpdf import LayoutError
     from webpier.core.printed import Printed
 
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     huge = replace(pier.soil.layers[1], deformation_modulus=Printed(1e100, 0, "kN/m2"))
     pier = replace(pier, soil=Soil((pier.soil.layers[0], huge)))
     path = tmp_path / "previous.pdf"
     path.write_bytes(b"previous-published-bytes")
     with pytest.raises(LayoutError):
-        render_foundation(result, pier, path)
+        render_foundation(result, pier, embedment, path)
     assert path.read_bytes() == b"previous-published-bytes"
 
 
 def test_a_long_soil_table_keeps_every_row_across_pages(tmp_path: Path):
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     template = pier.soil.layers[1]
     layers = (pier.soil.layers[0], *(replace(template, name=f"層{index:03d}") for index in range(60)))
     layers = (*layers[:30], replace(layers[30], soil_type="砂質土と粘性土の互層を含む区分"), *layers[31:])
-    path = render_foundation(result, replace(pier, soil=Soil(layers)), tmp_path / "long.pdf")
+    path = render_foundation(result, replace(pier, soil=Soil(layers)), embedment, tmp_path / "long.pdf")
     with pymupdf.open(path) as pdf:
         text = "".join(page.get_text() for page in pdf)
         assert len(pdf) > 3
@@ -135,10 +135,10 @@ def test_a_long_soil_table_keeps_every_row_across_pages(tmp_path: Path):
 
 
 def test_long_names_wrap_without_shrinking_and_labels_stay_with_their_equations(tmp_path: Path):
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     name, soil_type = "長い地層名称と砂礫を含む地層", "砂質土と粘性土の互層を含む区分"
     surface = replace(pier.soil.layers[0], name=name, soil_type=soil_type)
-    path = render_foundation(result, replace(pier, soil=Soil((surface, pier.soil.layers[1]))), tmp_path / "names.pdf")
+    path = render_foundation(result, replace(pier, soil=Soil((surface, pier.soil.layers[1]))), embedment, tmp_path / "names.pdf")
     with pymupdf.open(path) as pdf:
         text = "".join(page.get_text() for page in pdf).replace("\n", "")
         assert text.count(name) == 1 and text.count(soil_type) == 1
@@ -162,9 +162,9 @@ ROLES = ("chapter", "section", "body", "subsection", "subsubsection", "table_hea
 def test_typography_and_soil_table_match_the_independent_reference_roles(tmp_path: Path):
     from reportlab.pdfbase.ttfonts import TTFont
 
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))
-    document = build_foundation(result, pier)
+    document = build_foundation(result, pier, embedment)
     path = document.render(tmp_path / "appearance.pdf", invariant=True)
     faces = {TTFont(f"verify-{name}", str(face.path), subfontIndex=face.face_index).face.name.decode("ascii"): face
              for name in ("body", "heading") for face in (document.fonts.resolve(name),)}

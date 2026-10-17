@@ -18,6 +18,15 @@ LOCAL_Y = 1  # trapezoidal, normal to the element (self-weight inertia)
 
 
 @dataclass(frozen=True)
+class Analysis:
+    """The displacement-increment analysis of DataInfo, from the input conditions of the direction."""
+
+    steps: int  # divisions of the target displacement
+    limited_final_step: int  # last step of the limited incremental load (EQL)
+    target: Printed  # target horizontal displacement of the control node, signed as the earthquake
+
+
+@dataclass(frozen=True)
 class Joint:
     number: int
     x: Printed
@@ -125,6 +134,7 @@ class Combination:
 @dataclass(frozen=True)
 class NduModel:
     profile: Profile
+    analysis: Analysis
     control: int  # joint
     origin: int  # joint at the footing top
     joints: tuple[Joint, ...]

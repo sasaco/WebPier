@@ -35,6 +35,7 @@ SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
 SHEAR_FACTOR_MAX = 99.99
 AGGREGATE_RANGE = (0.1, 999_999)
+MAX_STEPS = 100_000
 
 SCHEMA_VERSION = 2
 BEARING_SLOTS = 10
@@ -246,7 +247,8 @@ def _reserved(root: Reader) -> Reserved:
 
 
 def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
-    node = root.at(key).only("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm")
+    node = root.at(key).only("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm",
+                             "analysis_steps", "limited_final_step", "target_displacement_m")
     factors = []
     for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd"):
         factor = _optional(node, name, SHEAR_FACTOR, sign="positive")
@@ -257,7 +259,15 @@ def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
     size = None if aggregate.is_null else aggregate.printed(AGGREGATE)
     if size is not None and not AGGREGATE_RANGE[0] <= size.value <= AGGREGATE_RANGE[1]:
         raise aggregate.error(f"{AGGREGATE_RANGE[0]}～{AGGREGATE_RANGE[1]} mmが必要です")
-    return JrsnapConditions(*factors, aggregate_max=size)
+    steps, limited = (None if node.at(name).is_null else node.at(name).integer(1, MAX_STEPS)
+                      for name in ("analysis_steps", "limited_final_step"))
+    if steps is not None and limited is not None and limited > steps:
+        raise node.at("limited_final_step").error(f"analysis_steps（{steps}）以下が必要です")
+    target = _optional(node, "target_displacement_m", LENGTH, sign="any")
+    if target is not None and target.value == 0:
+        raise node.at("target_displacement_m").error("0以外が必要です")
+    return JrsnapConditions(*factors, aggregate_max=size, steps=steps, limited_final_step=limited,
+                            target_displacement=target)
 
 
 TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋",

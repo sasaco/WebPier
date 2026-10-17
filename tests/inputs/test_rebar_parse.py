@@ -72,6 +72,42 @@ def test_the_jrsnap_conditions_of_each_direction():
         assert conditions.aggregate_max == mm(25)
 
 
+@pytest.mark.parametrize("key,steps,limited,target", [
+    ("longitudinal", 300, 200, -0.3), ("transverse", 350, 300, 0.35)])  # Example2 10 / 11 NDU DataInfo
+def test_the_analysis_settings_of_each_direction(key, steps, limited, target):
+    conditions = getattr(parse_input(data()).jrsnap, key)
+    assert (conditions.steps, conditions.limited_final_step) == (steps, limited)
+    assert conditions.target_displacement == Printed(target, 3, "m")
+
+
+@pytest.mark.parametrize("key,value,message", [
+    ("analysis_steps", 0, "1～100000の整数が必要です"),
+    ("analysis_steps", 300.0, "1～100000の整数が必要です"),
+    ("limited_final_step", 301, "analysis_steps（300）以下が必要です"),
+    ("limited_final_step", 0, "1～100000の整数が必要です"),
+    ("target_displacement_m", 0, "0以外が必要です"),
+    ("target_displacement_m", -0.3005, "小数3桁までで入力してください"),
+])
+def test_analysis_setting_values(key, value, message):
+    document = data()
+    document["jrsnap_longitudinal"][key] = value
+    fails(document, f"jrsnap_longitudinal.{key}: {message}")
+
+
+@pytest.mark.parametrize("key", ["analysis_steps", "limited_final_step", "target_displacement_m"])
+def test_analysis_settings_are_required_keys(key):
+    document = data()
+    del document["jrsnap_transverse"][key]
+    fails(document, f"入力項目がありません: jrsnap_transverse.{key}")
+
+
+def test_a_blank_step_count_skips_the_limited_step_check():
+    document = data()
+    document["jrsnap_longitudinal"]["analysis_steps"] = None
+    conditions = parse_input(document).jrsnap.longitudinal
+    assert conditions.steps is None and conditions.limited_final_step == 200
+
+
 def test_jrsnap_conditions_may_be_blank_until_exported():
     document = data()
     document["jrsnap_transverse"]["aggregate_max_mm"] = None

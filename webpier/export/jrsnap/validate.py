@@ -31,6 +31,7 @@ TEXT_BYTES = 40
 NONLINEAR_TITLE_BYTES = 20
 UNSET = "-3.402823E+38"
 MAX_JOINTS, MAX_MEMBERS, MAX_ROWS, MAX_LOADS, MAX_COMBINATIONS = 2500, 400, 100, 9999, 99
+MAX_STEPS = 100_000
 COORDINATE = Decimal(20000)
 SIZE = (Decimal("0.1"), Decimal(999999))
 LOAD_LIMIT = Decimal(10) ** 10
@@ -247,14 +248,18 @@ class _Validator:
         self.file.fields(key, *(value if isinstance(value, (int, Decimal)) else str(value) for value in values))
 
     def _head(self) -> None:
-        f, analysis = self.file, self.profile.analysis
+        f = self.file
         f.fields("Virsion", NATIVE_VERSION)
         f.fields("DataName", self.profile.data_name)
         for index in range(1, TITLES + 1):
             f.fields(f"DataTitle{index}", "")
-        info = f.fields("DataInfo", 1, 1, analysis.steps, self.node, LOAD_DIVISIONS, analysis.limited_final_step,
-                        " ", " ", " ", TRIALS, TRIALS, 1, 1, 1, 1, 1, POSITIVE, POSITIVE,
-                        Decimal(repr(analysis.target.value)), CONVERGENCE, 0, 1, 0, 0, 0, 0)
+        steps = Num(1, MAX_STEPS, integer=True)
+        # The target displacement is not 0 and has the sign of the earthquake of the profile.
+        target = Num(0, open_low=True) if self.profile.earthquake > 0 else Num(high=0, open_high=True)
+        info = f.fields("DataInfo", 1, 1, steps, self.node, LOAD_DIVISIONS, steps, " ", " ", " ", TRIALS, TRIALS,
+                        1, 1, 1, 1, 1, POSITIVE, POSITIVE, target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
+        if info[5] > info[2]:
+            raise _error("DataInfo: 限定増分の最終ステップは分割数以下が必要です")
         self.rho_alpha = info[16:18]
         for key in ("ExOptLoad", "ExOptDisp"):
             self._constant(key, CONSTANT_RECORDS[key])

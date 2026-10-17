@@ -55,7 +55,7 @@ CONSTANT_RECORDS = {
 
 
 def _data_info(model: NduModel) -> tuple[Field, ...]:
-    analysis, first = model.profile.analysis, model.combinations[0]
+    analysis, first = model.analysis, model.combinations[0]
     return (1, 1, analysis.steps, model.control, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, BLANK, BLANK,
             TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, analysis.target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
 

@@ -27,6 +27,14 @@ REFERENCE = Path(__file__).parents[1] / "fixtures" / "reporting" / "semantic" / 
 DIFFERENCES = {
     "0500/soil.surface": None,   # 表層厚 = H6 + H5 + min(df1, df2) を検算できるように印刷する（派生値）
     "0500/kv.soil_type": None,   # 決定18: 土質区分と係数・指数を印刷する
+    # 決定40: JRSNAP の FootInfo に渡す Df・γ2 を検算できるように印刷する（対象の地盤のときだけ）
+    "0500/embedment.heading": None,
+    "0500/embedment.formula": None,
+    "0500/embedment.gamma2": None,
+    "0500/embedment.definition.Df": None,
+    "0500/embedment.definition.hw2": None,
+    "0500/embedment.definition.wet": None,
+    "0500/embedment.definition.sub": None,
 }
 
 
@@ -47,7 +55,7 @@ def reference_records() -> dict[str, str]:
 LABELS = {"砂質土": "（砂質土）", "砂質土と粘性土の互層": "（砂質土，粘性土の互層）", "粘性土": "（粘性土）"}
 
 
-def expected_records(result, pier) -> dict[str, str]:
+def expected_records(result, pier, embedment) -> dict[str, str]:
     """Wording from the reviewed fixture, numbers from the result (never recomputed)."""
     reference = reference_records()
     out: dict[str, str] = {}
@@ -66,6 +74,17 @@ def expected_records(result, pier) -> dict[str, str]:
     sub = pier.substructure
     out["0500/soil.surface"] = (f"表層の層厚=H6+H5+min(df1,df2)={text(sub.h[6])}+{text(sub.h[5])}"
                                 f"+min({text(sub.df1)},{text(sub.df2)})={text(result.surface_thickness)}m")
+    if embedment is not None:
+        e = embedment
+        out["0500/embedment.heading"] = "有効根入れ深さと表層の平均有効単位重量"
+        out["0500/embedment.formula"] = "γ2=(Df−hw2)×γwet+hw2×γsub/Df"
+        out["0500/embedment.gamma2"] = (f"γ2=({text(e.depth)}−{text(e.water)})×{text(e.unit_weight_wet)}"
+                                        f"+{text(e.water)}×{text(e.unit_weight_submerged)}/{text(e.depth)}"
+                                        f"={text(e.unit_weight)}kN/m3")
+        out["0500/embedment.definition.Df"] = f"ここに、Df：有効根入れ深さ（表層の層厚{text(e.depth)}m）"
+        out["0500/embedment.definition.hw2"] = f"hw2：基礎底面からの平水位（{text(e.water)}m）"
+        out["0500/embedment.definition.wet"] = f"γwet：表層の湿潤単位体積重量（{text(e.unit_weight_wet)}kN/m3）"
+        out["0500/embedment.definition.sub"] = f"γsub：表層の水中単位体積重量（{text(e.unit_weight_submerged)}kN/m3）"
     fixed("bearing.heading")
     for key, label in (("normal", "地震時を除く"), ("seismic", "地震時")):
         out["0500/bearing." + key] = f"Nγ={text(result.n_gamma)},Nq={text(result.n_q)}{label}"
@@ -113,10 +132,10 @@ def expected_records(result, pier) -> dict[str, str]:
     return out
 
 
-def actual_records(result, pier) -> dict[str, str]:
+def actual_records(result, pier, embedment) -> dict[str, str]:
     from webpier.reporting.stages.foundation import semantic_records
 
-    records = semantic_records(result, pier)
+    records = semantic_records(result, pier, embedment)
     ids = [record["id"] for record in records]
     assert len(ids) == len(set(ids))
     return {record["id"]: squeeze(record["text"]) for record in records}
@@ -134,9 +153,8 @@ def test_expectation_reproduces_the_reviewed_old_report_except_declared_differen
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_every_record_prints_the_result_values_at_their_digits(name: str):
-    result, pier = case(name)
-    expected = expected_records(result, pier)
-    actual = actual_records(result, pier)
+    expected = expected_records(*case(name))
+    actual = actual_records(*case(name))
     assert list(actual) == list(expected)
     for key in expected:
         assert actual[key] == expected[key], key
@@ -158,21 +176,30 @@ def test_variants_really_change_the_printed_values():
     assert expected_records(*case("alternating"))["0500/soil.row.1"].startswith("第2層3.250粘性土12")
 
 
+def test_gamma2_is_printed_where_the_procedure_applies():
+    assert expected_records(*case("current"))["0500/embedment.gamma2"] == "γ2=(4.700−2.700)×18.0+2.700×8.0/4.700=12.3kN/m3"
+    assert expected_records(*case("level"))["0500/embedment.gamma2"] == "γ2=(4.000−1.250)×19.0+1.250×9.5/4.000=16.0kN/m3"
+    for name in ("clay", "alternating", "deep"):
+        assert not any(key.startswith("0500/embedment.") for key in actual_records(*case(name))), name
+
+
 def test_the_report_reads_the_result_not_the_input():
     """A result whose values differ from what the input would give is printed as is."""
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     sentinel = replace(result, width=Printed(1.234, 3, "m"), n_gamma=Printed(12.34, 2, ""),
                        surface_thickness=Printed(9.876, 3, "m"), soil_type="粘性土", coefficient=Printed(3.8, 1, ""),
                        exponent_text="-1",
                        long_term=replace(result.long_term, kv=Printed(111.0, 0, "kN/m3"),
                                          Kr_transverse=Printed(7654321.0, 0, "kN m/rad")))
-    actual = actual_records(sentinel, pier)
+    gamma = replace(embedment, unit_weight=Printed(99.9, 1, "kN/m3"), water=Printed(1.111, 3, "m"))
+    actual = actual_records(sentinel, pier, gamma)
     assert actual["0500/kv.width"].endswith("=1.234m)")
     assert actual["0500/bearing.normal"].startswith("Nγ=12.34,")
     assert actual["0500/soil.row.0"].startswith("表層9.876")
     assert actual["0500/kv.long_term"] == "kv=3.8×0.5×165760×1.234-1=111kN/m3"
     assert actual["0500/Kr.transverse.long_term"] == "Kr=111×425.250000=7,654,321kN・m/rad"
-    assert actual == expected_records(sentinel, pier)
+    assert actual["0500/embedment.gamma2"] == "γ2=(4.700−1.111)×18.0+1.111×8.0/4.700=99.9kN/m3"
+    assert actual == expected_records(sentinel, pier, gamma)
 
 
 def test_manuscript_uses_structured_fraction_root_and_script():
@@ -195,10 +222,10 @@ def test_manuscript_uses_structured_fraction_root_and_script():
 def test_unit_text_follows_the_result_units():
     from webpier.reporting.stages.foundation import semantic_records
 
-    result, pier = case("current")
+    result, pier, embedment = case("current")
     odd = replace(result, long_term=replace(result.long_term, Kv=Printed(1.0, 0, "furlong")))
     with pytest.raises(ValueError, match="単位"):
-        semantic_records(odd, pier)
+        semantic_records(odd, pier, embedment)
 
 
 def test_semantic_text_rejects_an_unknown_node():

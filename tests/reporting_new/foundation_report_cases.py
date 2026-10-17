@@ -7,6 +7,7 @@ from copy import deepcopy
 from decimal import Decimal
 from pathlib import Path
 
+from webpier.calc.embedment import EmbedmentResult, applicable_embedment
 from webpier.calc.foundation import FoundationResult, calculate_foundation
 from webpier.core.printed import Printed
 from webpier.inputs import PierInput, parse_input
@@ -22,6 +23,8 @@ EXTRA_LAYER = {
 
 # Each variant changes the dimensions, the support soil (equation), Ed, φ and the cover,
 # so a value that is not taken from the result cannot coincide with the expectation.
+# Df / γ2 are printed where they apply (calc.embedment): current and level; clay and deep have a
+# sloping cover and alternating three layers.
 CASES: dict[str, dict[str, object]] = {
     "current": {},
     "clay": {
@@ -42,6 +45,12 @@ CASES: dict[str, dict[str, object]] = {
         "下部構造/土かぶり/起点側_df1": 10.125, "下部構造/土かぶり/終点側_df2": 10.5,
         "地盤データ/層/1/内部摩擦角_φd": 29.9,
     },
+    # Level cover with other water and unit weights: γ2 = ((4.000 − 1.250) × 19.0 + 1.250 × 9.5) / 4.000 = 16.0.
+    "level": {
+        "下部構造/寸法/高さ/H6": 2.2, "下部構造/寸法/高さ/H5": 0.3,
+        "下部構造/土かぶり/起点側_df1": 1.5, "下部構造/土かぶり/終点側_df2": 1.5, "下部構造/水位/平水位_hw2": 1.25,
+        "地盤データ/層/0/単位体積重量/湿潤": 19.0, "地盤データ/層/0/単位体積重量/水中": 9.5,
+    },
 }
 
 
@@ -58,9 +67,10 @@ def pier_input(case: str) -> PierInput:
     return parse_input(document)
 
 
-def case(name: str) -> tuple[FoundationResult, PierInput]:
+def case(name: str) -> tuple[FoundationResult, PierInput, EmbedmentResult | None]:
     pier = pier_input(name)
-    return calculate_foundation(pier), pier
+    foundation = calculate_foundation(pier)
+    return foundation, pier, applicable_embedment(pier, foundation)
 
 
 def text(value: Printed | None, *, thousands: bool = False) -> str:

@@ -3,7 +3,8 @@
 The shared code reads the 0710 / 0720 result by its structure (frame, basic cases, combinations) and takes
 everything direction-specific from a ``Profile``: the data name, which 方向別の鉄筋配置表 and hoop row is the
 section, the control node, the displacement-increment settings, the input conditions, the footing plan and the
-load titles. A direction is a profile, not a branch.
+load titles. A direction is a profile, not a branch. The analysis settings (steps, limited step, target
+displacement) are inputs of each direction (decision 40), not profile values.
 
 Sources of the fixed settings: the Example2 NDU files saved by JRSNAP (.claude/docs/Example橋脚2/10_線路(耐震)/
 線路方向_朝里川温泉P1.ndu, 11_直角(耐震)/直角方向_朝里川温泉P1.ndu: DataInfo, SectSafe, the load titles) and the
@@ -20,13 +21,13 @@ from decimal import Decimal
 from enum import Enum
 
 from ...calc.frame import NodeRole, Region
+from ...calc.seismic_longitudinal import EARTHQUAKE as TOWARD_ORIGIN
 from ...calc.seismic_longitudinal import SeismicCase as LongitudinalCase
+from ...calc.seismic_transverse import EARTHQUAKE as TOWARD_W9
 from ...calc.seismic_transverse import SeismicCase as TransverseCase
-from ...core.printed import Precision, Printed
 
 NATIVE_VERSION = "5.2.3.S.4"  # the header JRSNAP 5.2-L03 writes (its key is spelt Virsion)
 TARGET_VERSION = "5.2-L03"
-DISPLACEMENT = Precision(3, "m")
 
 # DataInfo (Example2 NDU): load divisions, trials at intermediate and final steps, convergence factor FTM.
 LOAD_DIVISIONS = 1000
@@ -51,20 +52,12 @@ REGION_TITLES = {
 
 
 @dataclass(frozen=True)
-class Analysis:
-    """The displacement-increment analysis of DataInfo."""
-
-    steps: int  # divisions of the target displacement
-    limited_final_step: int  # last step of the limited incremental load (EQL)
-    target: Printed  # target horizontal displacement of the control node, signed as the earthquake
-
-
-@dataclass(frozen=True)
 class Profile:
     data_name: str
     face: str  # the bending direction: its 方向別の鉄筋配置表 and its hoop row are the section
     control: frozenset[NodeRole]  # the roles of the control node; La runs from it to the footing top
-    analysis: Analysis
+    earthquake: Decimal  # ±1: the direction of the earthquake in x (calc), and of the target displacement
+    earthquake_text: str
     jrsnap: str  # attribute of PierInput.jrsnap (input key jrsnap_<jrsnap>)
     plan: tuple[str, str]  # FoundationResult attributes of FootInfo B (in the plane) and L
     case_titles: Mapping[Enum, str]
@@ -76,7 +69,7 @@ class Profile:
 _L = LongitudinalCase
 LONGITUDINAL = Profile(
     data_name="線路方向", face="線路", control=frozenset({NodeRole.CAP_TOP}),
-    analysis=Analysis(steps=300, limited_final_step=200, target=DISPLACEMENT.exact(-0.3)),  # 10 NDU: ← 0.300 m
+    earthquake=TOWARD_ORIGIN, earthquake_text="−x（←）",
     jrsnap="longitudinal", plan=("b", "l"),
     case_titles={_L.D1: "固定死荷重", _L.D2: "付加死荷重", _L.BUOYANCY: "浮力", _L.SNOW: "雪荷重",
                  _L.TRAIN: "列車荷重（地震時）", _L.GIRDER_INERTIA: "地震時桁荷重慣性力",
@@ -90,7 +83,7 @@ LONGITUDINAL = Profile(
 _T = TransverseCase
 TRANSVERSE = Profile(
     data_name="線路直角方向", face="直角", control=frozenset({NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END}),
-    analysis=Analysis(steps=350, limited_final_step=300, target=DISPLACEMENT.exact(0.35)),  # 11 NDU: → 0.350 m
+    earthquake=TOWARD_W9, earthquake_text="+x（→）",
     jrsnap="transverse", plan=("l", "b"),
     case_titles={_T.D1: "固定死荷重", _T.D2: "付加死荷重", _T.BUOYANCY: "浮力", _T.SNOW: "雪荷重",
                  _T.TRAIN_UP: "列車荷重（地震時・上り線）", _T.TRAIN_DOWN: "列車荷重（地震時・下り線）",

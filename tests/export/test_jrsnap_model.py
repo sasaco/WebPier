@@ -24,7 +24,7 @@ from webpier.calc.column_rebar import column_layout
 from webpier.calc.seismic_longitudinal import MemberLoad
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
-from webpier.export.jrsnap import build_ndu
+from webpier.export.jrsnap import LONGITUDINAL, build_ndu, validate_ndu, write_ndu
 from webpier.inputs import parse_input
 
 
@@ -152,7 +152,26 @@ def test_the_conditions_are_the_input_of_the_direction():
     assert model("longitudinal", **{"jrsnap_longitudinal/aggregate_max_mm": 40}).section.aggregate_max.value == 40
 
 
-@pytest.mark.parametrize("key", ["shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm"])
+@pytest.mark.parametrize("direction,steps,limited,target", [
+    ("longitudinal", 300, 200, -0.3), ("transverse", 350, 300, 0.35)])  # Example2 NDU DataInfo 3, 6, 19
+def test_the_analysis_settings_are_the_input(direction, steps, limited, target):
+    analysis = model(direction).analysis
+    assert (analysis.steps, analysis.limited_final_step, analysis.target) == (steps, limited, Printed(target, 3, "m"))
+    changed = model(direction, **{f"jrsnap_{direction}/analysis_steps": 500,
+                                  f"jrsnap_{direction}/limited_final_step": 120,
+                                  f"jrsnap_{direction}/target_displacement_m": target * 2}).analysis
+    assert (changed.steps, changed.limited_final_step, changed.target.value) == (500, 120, target * 2)
+
+
+@pytest.mark.parametrize("direction,target,arrow", [("longitudinal", 0.3, "−x（←）"), ("transverse", -0.35, "+x（→）")])
+def test_the_target_displacement_follows_the_earthquake(direction, target, arrow):
+    with pytest.raises(InputError, match=re.escape(
+            f"jrsnap_{direction}.target_displacement_m: 地震の向き {arrow} と同じ符号が必要です")):
+        model(direction, **{f"jrsnap_{direction}/target_displacement_m": target})
+
+
+@pytest.mark.parametrize("key", ["shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm",
+                                 "analysis_steps", "limited_final_step", "target_displacement_m"])
 def test_blank_conditions_are_errors(key):
     with pytest.raises(InputError, match=re.escape(f"jrsnap_longitudinal.{key}: 値が必要です")):
         model("longitudinal", **{f"jrsnap_longitudinal/{key}": None})
@@ -214,10 +233,41 @@ def test_zero_loads_have_no_rows():
     assert snowless.cases[3].title == "雪荷重" and snowless.cases[3].joint_loads == ()
 
 
-def test_an_inclined_member_is_not_supported():
-    asymmetric = {"下部構造/寸法/側面/B7": 2.5, "下部構造/寸法/側面/B9": 1.8}
-    with pytest.raises(InputError, match=re.escape("骨組の部材5（フーチング上）が斜めです")):
-        model("longitudinal", **asymmetric)
+ASYMMETRIC = {"下部構造/寸法/側面/B7": 2.5, "下部構造/寸法/側面/B9": 1.8}  # column axis (B7 − B9)/2 = 0.350 off
+
+
+def test_an_inclined_rigid_member_is_a_vertical_and_a_horizontal_rigid_element():
+    # Decision 40: the rigid offset from the column axis to the footing centroid of an asymmetric footing.
+    built = model("longitudinal", **ASYMMETRIC)
+    top, centroid, base = (built.joints[n - 1] for n in (5, 6, 7))
+    assert abs(top.x.value) == 0.35 and (centroid.x.value, base.x.value) == (0, 0)
+    corner = built.joints[-1]
+    assert (corner.number, corner.x, corner.y) == (8, top.x, centroid.y)  # a new joint below the footing top
+    vertical, horizontal, lower = built.elements[4:7]
+    assert (vertical.i, vertical.j, vertical.length.value, vertical.nonlinear) == (5, 8, 1.35, False)
+    left, right = sorted((8, 6), key=lambda n: built.joints[n - 1].x.value)
+    assert (horizontal.i, horizontal.j, horizontal.length.value) == (left, right, 0.35)
+    assert vertical.title == horizontal.title == "フーチング上"
+    assert (lower.number, lower.i, lower.j) == (7, 6, 7) and len(built.elements) == 7
+    summary = validate_ndu(write_ndu(built), LONGITUDINAL)
+    assert (summary.joints, summary.elements) == (8, 7)
+
+
+def test_member_loads_follow_the_renumbered_elements():
+    built = model("longitudinal", **ASYMMETRIC, **PEDESTAL)
+    pedestal = built.elements[-1]
+    assert pedestal.title == "桁受け" and pedestal.number == 9  # member 8 after the split footing member
+    assert pedestal.number in {load.element for load in built.cases[7].member_loads}
+
+
+def test_an_inclined_elastic_member_is_not_supported():
+    p, foundation, embedment, layout, seismic = results("longitudinal", document(**ASYMMETRIC))
+    frame = seismic.frame
+    upper = frame.members[4]
+    elastic = replace(upper, section=frame.column_section, material=frame.materials.column)
+    broken = replace(seismic, frame=replace(frame, members=(*frame.members[:4], elastic, *frame.members[5:])))
+    with pytest.raises(InputError, match=re.escape("骨組の部材5（フーチング上）が斜めの弾性部材です")):
+        build_ndu(PROFILES["longitudinal"], p, foundation, embedment, layout, broken)
 
 
 def test_girders_at_different_heights_have_no_single_control_node():

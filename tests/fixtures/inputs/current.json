@@ -543,12 +543,18 @@
     "shear_factor_vcd": 2.0,
     "shear_factor_vsd": 1.3,
     "shear_factor_vdd": 1.8,
-    "aggregate_max_mm": 25
+    "aggregate_max_mm": 25,
+    "analysis_steps": 300,
+    "limited_final_step": 200,
+    "target_displacement_m": -0.3
   },
   "jrsnap_transverse": {
     "shear_factor_vcd": 2.0,
     "shear_factor_vsd": 1.3,
     "shear_factor_vdd": 1.8,
-    "aggregate_max_mm": 25
+    "aggregate_max_mm": 25,
+    "analysis_steps": 350,
+    "limited_final_step": 300,
+    "target_displacement_m": 0.35
   }
 }
