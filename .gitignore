@@ -5,3 +5,11 @@ __pycache__/
 .agents/logs/
 .claude/logs/
 tmp/
+
+# 生成物（python -m webpier の出力。追跡しない）
+output/
+post/
+
+# エディタの退避ファイルとカバレッジ
+*.bak
+.coverage
