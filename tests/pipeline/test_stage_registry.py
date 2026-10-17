@@ -47,6 +47,9 @@ def test_frameweb_is_written_for_the_non_seismic_frames_and_jrsnap_only_on_reque
             assert stage.id in ({"0610", "0620"} if item.kind == "frameweb" else {"0710", "0720"})
     files = {stage.id: [item.file_name for item in stage.exports if item.kind == "frameweb"] for stage in STAGES.stages}
     assert (files["0610"], files["0620"]) == (["frameWebForJS.json"], ["線路直角方向.json"])
+    ndu = {stage.id: [item.file_name for item in stage.exports if item.kind == "jrsnap"] for stage in STAGES.stages}
+    assert (ndu["0710"], ndu["0720"]) == (["線路方向.ndu"], ["線路直角方向.ndu"])
+    assert STAGES.opt_in_kinds == ("jrsnap",)
 
 
 def test_closure_adds_transitive_dependencies_in_registry_order():

@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..calc.column_rebar import column_layout
+from ..calc.embedment import calculate_embedment
 from ..calc.foundation import calculate_foundation
 from ..calc.longitudinal import calculate_longitudinal
 from ..calc.reaction import calculate_reaction
@@ -26,6 +28,9 @@ from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json
 from ..export.frameweb import build_frameweb, build_frameweb_transverse
+from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
+from ..export.jrsnap import build_ndu, write_ndu
+from ..export.jrsnap.profile import TARGET_VERSION
 from ..inputs import PierInput
 from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.longitudinal import render_longitudinal
@@ -139,6 +144,17 @@ def _frameweb(stage_id: str, build: Callable[[Any], dict[str, Any]]) -> Callable
     return lambda results, pier: dump_json(build(results[stage_id]))
 
 
+def _jrsnap(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput], bytes]:
+    def build(results: Results, pier: PierInput) -> bytes:
+        foundation = results["0500"]
+        return write_ndu(build_ndu(profile, pier, foundation, calculate_embedment(pier, foundation),
+                                   column_layout(pier), results[stage_id]))
+    return build
+
+
+# A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
+_NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
+
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
@@ -157,9 +173,11 @@ STAGES = Registry((
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),
-              lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path)),
+              lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path),
+              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), opt_in=True, metadata=_NDU),)),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
-              lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path)),
+              lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path),
+              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), opt_in=True, metadata=_NDU),)),
 ))
