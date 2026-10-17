@@ -32,6 +32,18 @@ def test_load_json_rejects_numbers_that_overflow_to_infinity():
         load_json(b'{"a": 1e400}')
 
 
+@pytest.mark.parametrize("text", [r'"\ud800"', r'{"\udc00": null}', r'{"a": ["x\ud83d"]}'])
+def test_load_json_rejects_a_lone_surrogate_that_could_not_be_written_back(text):
+    # Found by hypothesis: {"\ud800": null} loaded, then dump_json raised UnicodeEncodeError (and a layer name
+    # with it failed only when the report was drawn).
+    with pytest.raises(InputError, match="対になっていないサロゲート"):
+        load_json(text.encode("ascii"))
+
+
+def test_load_json_keeps_an_escaped_surrogate_pair():
+    assert load_json(rb'{"\ud83d\ude00": "\ud83d\ude00"}') == {"😀": "😀"}
+
+
 def test_load_json_rejects_non_utf8():
     with pytest.raises(InputError, match="JSONを読み込めません"):
         load_json("{\"a\": \"橋\"}".encode("cp932"))

@@ -35,13 +35,32 @@ def _finite_float(text: str) -> float:
     return value
 
 
+def _reject_lone_surrogates(value: Any) -> None:
+    """An escape such as \\ud800 loads as a lone surrogate, which UTF-8 cannot write back."""
+    pending = [value]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, str):
+            try:
+                item.encode("utf-8")
+            except UnicodeEncodeError as exc:
+                raise InputError(f"JSONの文字列に対になっていないサロゲートがあります: {item[exc.start]!r}") from None
+        elif isinstance(item, dict):
+            pending.extend(item)
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+
+
 def load_json(data: bytes) -> Any:
-    """Parse UTF-8 JSON (BOM allowed); reject duplicate keys and non-finite numbers."""
+    """Parse UTF-8 JSON (BOM allowed); reject duplicate keys, non-finite numbers and lone surrogates."""
     try:
-        return json.loads(data.decode("utf-8-sig"), object_pairs_hook=_unique_object,
-                          parse_constant=_reject_constant, parse_float=_finite_float)
+        value = json.loads(data.decode("utf-8-sig"), object_pairs_hook=_unique_object,
+                           parse_constant=_reject_constant, parse_float=_finite_float)
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise InputError(f"JSONを読み込めません: {exc}") from exc
+    _reject_lone_surrogates(value)
+    return value
 
 
 def dump_json(value: Any) -> bytes:
