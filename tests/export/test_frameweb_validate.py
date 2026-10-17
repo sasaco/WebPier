@@ -1,8 +1,11 @@
 """The native rules of a FrameWeb input (2D frame) that WebPier writes, checked on the saved JSON.
 
-Sources: the Example2 FrameWeb file (format, types and the rigid-region convention) and the FrameWeb behaviour
+Sources: the Example2 FrameWeb files (format, types and the rigid-region convention) and the FrameWeb behaviour
 recorded in README (spring value 1 is a fixed support, empty member rows are rejected, member load intensities
-are projected to 0.01, an empty Combine is dropped, the Combine grid shows 50 Define columns).
+are projected to 0.01, an empty Combine is dropped, the Combine grid shows 50 Define columns). Partial and
+varying member loads follow FrameWebforCS (calculation/CalculationRequest.cs): for a distributed load (mark 2)
+L1 is the distance of the load start from the member start and L2 the margin from the member end, both projected
+to 0.001 m; P1 acts at L1 and P2 at the end of the load; a symbol "LL" makes the case a moving load.
 """
 
 import json
@@ -10,10 +13,10 @@ from copy import deepcopy
 
 import pytest
 
-from frameweb_support import EXAMPLE2, longitudinal
+from frameweb_support import CURVE, EXAMPLE2, EXAMPLE2_09, T_PEDESTAL, WIDTHS, ground, longitudinal, transverse
 from webpier.core.errors import InputError
 from webpier.core.integrity import dump_json, load_json
-from webpier.export.frameweb import build_frameweb, validate_frameweb
+from webpier.export.frameweb import build_frameweb, build_frameweb_transverse, validate_frameweb
 
 
 @pytest.fixture(scope="module")
@@ -100,6 +103,7 @@ INVALID = {
     "load_spring_bool": (("load", "1", "fix_node"), True),
     "load_type": (("load", "1", "element"), 2),
     "load_symbol": (("load", "1", "symbol"), None),
+    "load_symbol_moving": (("load", "1", "symbol"), "LL"),
     "load_pitch": (("load", "1", "LL_pitch"), 0),
     "load_rate": (("load", "1", "rate"), -1),
     "load_fields": (("load", "1", "fix_member"), 1),
@@ -116,11 +120,15 @@ INVALID = {
     "member_row_ref2": (("load", "1", "load_member", 0, "m2"), "9"),
     "member_row_mark": (("load", "1", "load_member", 0, "mark"), 1),
     "member_row_direction": (("load", "1", "load_member", 0, "direction"), "z"),
-    "member_row_partial": (("load", "1", "load_member", 0, "L1"), 0.5),
-    "member_row_partial_end": (("load", "1", "load_member", 0, "L2"), "0"),
-    "member_row_varying": (("load", "1", "load_member", 0, "P2"), -297.0),
-    "member_row_zero": (("load", "1", "load_member", 0, "P1"), 0),
+    "member_row_start_negative": (("load", "1", "load_member", 0, "L1"), -0.5),
+    "member_row_start_projection": (("load", "1", "load_member", 0, "L1"), 0.0005),
+    "member_row_margin_text": (("load", "1", "load_member", 0, "L2"), "0"),
+    "member_row_margin_negative": (("load", "1", "load_member", 0, "L2"), -1),
+    "member_row_margin_projection": (("load", "1", "load_member", 0, "L2"), 1.2344),
+    "member_row_no_length": (("load", "1", "load_member", 0, "L1"), 2),  # member 1 is 2.000 long
+    "member_row_beyond_length": (("load", "1", "load_member", 0, "L2"), 2.5),
     "member_row_projection": (("load", "1", "load_member", 0, "P1"), -297.681),
+    "member_row_end_projection": (("load", "1", "load_member", 0, "P2"), -297.685),
     "member_row_null": (("load", "1", "load_member", 0, "P1"), None),
     "define_reference": (("define", "1", "C1"), 99),
     "define_reference_zero": (("define", "1", "C1"), 0),
@@ -172,3 +180,52 @@ def test_a_member_load_range_may_span_members(current):
     document = json.loads(json.dumps(current))
     document["load"]["1"]["load_member"] = [{**document["load"]["1"]["load_member"][0], "m2": "3"}]
     validate_frameweb(document)
+
+
+def member_row(document, **changes):
+    document = json.loads(json.dumps(document))
+    row = document["load"]["1"]["load_member"][0]
+    row.update(changes)
+    return document
+
+
+@pytest.mark.parametrize("changes", [
+    {"L1": 0.5}, {"L2": 1.08}, {"L1": 0.25, "L2": 1.749}, {"P2": -297.0}, {"P1": 0}, {"P2": 0},
+    {"L1": 0.3, "P1": -9.6, "P2": -8.7}], ids=["start", "margin", "inside", "trapezoid", "from_zero", "to_zero",
+                                               "partial_trapezoid"])
+def test_partial_and_varying_loads_on_one_member_are_valid(current, changes):
+    # Member 1 is 2.000 long: the load runs from L1 to 2.000 − L2, P1 at its start and P2 at its end.
+    validate_frameweb(member_row(current, **changes))
+
+
+@pytest.mark.parametrize("changes", [{"P1": 0, "P2": 0}, {"L1": 1, "L2": 1}, {"L1": 1.5, "L2": 0.5}],
+                         ids=["no_intensity", "no_length", "margin_reaches_start"])
+def test_rejects_an_empty_member_load(current, changes):
+    with pytest.raises(InputError, match="load.1.load_member"):
+        validate_frameweb(member_row(current, **changes))
+
+
+@pytest.mark.parametrize("changes", [{"m2": "3", "L1": 0.5}, {"m2": "3", "L2": 0.5}, {"m2": "3", "P2": -297.0}],
+                         ids=["start", "margin", "varying"])
+def test_a_member_load_range_is_uniform_over_whole_members(current, changes):
+    # FrameWeb repeats L1 / L2 on every member of a range and carries P1 on, so a partial or varying load is one
+    # row per member.
+    with pytest.raises(InputError, match="load.1.load_member"):
+        validate_frameweb(member_row(current, **changes))
+
+
+@pytest.mark.parametrize("changes", [{}, T_PEDESTAL, CURVE, WIDTHS | ground(5.2)],
+                         ids=["current", "pedestal", "curve", "haunch_cut"])
+def test_the_transverse_document_is_valid_after_a_json_round_trip(changes):
+    validate_frameweb(load_json(dump_json(build_frameweb_transverse(transverse(**changes)))))
+
+
+def test_the_example2_09_model_tables_follow_the_same_format():
+    # Example2 09 without its member loads (range rows in local axes, see test_frameweb_transverse_loads) and
+    # without the GUI-only keys of its load cases.
+    example = {key: deepcopy(EXAMPLE2_09[key]) for key in ("node", "fix_node", "member", "element", "load", "define",
+                                                           "combine", "pickup", "dimension")}
+    for case in example["load"].values():
+        for key in ("fix_member", "joint", "load_member"):
+            case.pop(key, None)
+    validate_frameweb(example)

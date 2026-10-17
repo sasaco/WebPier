@@ -1,10 +1,12 @@
-"""The FrameWeb input is a pure function of the calc result: same result, same keys in the same order, same bytes."""
+"""The FrameWeb inputs are pure functions of the calc results: same result, same keys in the same order, same bytes."""
 
 import pytest
 
-from frameweb_support import ASYMMETRIC, PEDESTAL, longitudinal
+from frameweb_support import (
+    ASYMMETRIC, CURVE, PEDESTAL, T_ASYMMETRIC, T_PEDESTAL, WIDTHS, ground, longitudinal, transverse,
+)
 from webpier.core.integrity import dump_json, sha256
-from webpier.export.frameweb import build_frameweb
+from webpier.export.frameweb import build_frameweb, build_frameweb_transverse
 from webpier.export.frameweb.build import frameweb_document
 from webpier.export.frameweb.cases import frameweb_cases
 from webpier.export.frameweb.longitudinal import LONGITUDINAL
@@ -38,3 +40,17 @@ def test_zero_coefficients_are_left_out():
     document = frameweb_document(result.frame, frameweb_cases(result, LONGITUDINAL))
     assert {key for key in document["combine"]["5"] if key.startswith("C")} == {"C1", "C2", "C6", "C14"}
     assert {key for key in document["combine"]["7"] if key.startswith("C")} == set()
+
+
+@pytest.mark.parametrize("changes", [{}, T_PEDESTAL, T_ASYMMETRIC, CURVE, WIDTHS | ground(5.2)],
+                         ids=["current", "pedestal", "asymmetric", "curve", "haunch_cut"])
+def test_same_transverse_result_same_bytes(changes):
+    first, second = transverse(**changes), transverse(**changes)
+    a, b = build_frameweb_transverse(first), build_frameweb_transverse(second)
+    assert a == b and dump_json(a) == dump_json(b)
+    assert build_frameweb_transverse(first) == a
+    for table in ("node", "member", "load", "define", "combine", "pickup"):
+        assert list(a[table]) == [str(n) for n in range(1, len(a[table]) + 1)], table
+    for case in a["load"].values():
+        assert [row["row"] for row in case.get("load_member", [])] == list(
+            range(1, len(case.get("load_member", [])) + 1))

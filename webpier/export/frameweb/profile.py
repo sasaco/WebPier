@@ -3,9 +3,9 @@
 The shared code reads the calc result by its structure (basic cases, Define cases, combinations, extractions)
 and takes everything stage-specific from a ``Profile``: the FrameWeb names of the load cases, of the load cases
 added for a factor on another action than the basic one, of the combinations and pickups, and which FrameWeb
-spring set each spring term of the stage is. A second direction is a second profile, not a branch; where its
-result has another shape (0620 Define cases with alternatives over basic cases), its entry point builds
-``cases.Cases`` itself and shares the document and the validator.
+spring set each spring term of the stage is. A second direction is a second profile, not a branch; its entry
+point reads its result into ``cases.Source`` (0620: Define cases with alternatives over basic cases) and shares
+the tables, the document and the validator.
 """
 
 from __future__ import annotations

@@ -5,8 +5,16 @@ FrameWeb入力): a spring value 1 means a fixed support and 0 a free one, so spr
 member rows without a load are rejected (unsupported mark); member load intensities are projected to 0.01; a
 load case without rows is skipped, so a Combine with only such cases is dropped and its Pickup fails, and a
 Define that has both empty and loaded candidates changes its envelope; the Combine grid shows 50 Define
-columns. On top of the format, the subset WebPier writes: tables numbered 1, 2, ... in order, one section
-type, uniform loads over whole members in global axes, and every node connected to the support.
+columns; the symbol "LL" makes a case a moving load.
+
+A distributed member load (mark 2) runs from L1 after the member start to L2 before the member end, P1 at its
+start and P2 at its end, linear between (FrameWebforCS calculation/CalculationRequest.cs, FrameWeb
+fem/legacy_beam.py); FrameWeb projects L1 / L2 to 0.001 m and drops a load whose length is not positive. A row
+over a range of members repeats L1 / L2 on each and carries P1 on, so only a uniform load over whole members is
+written that way.
+
+On top of the format, the subset WebPier writes: tables numbered 1, 2, ... in order, one section type, member
+loads in global axes, and every node connected to the support.
 """
 
 from __future__ import annotations
@@ -111,7 +119,7 @@ def _connected(nodes: Iterable[int], edges: Mapping[int, set[int]], start: set[i
         _fail(path, f"支点につながらない節点があります: {sorted(set(nodes) - reached)}")
 
 
-def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], set[int], set[int], set[int]]:
+def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], dict[int, float], set[int], set[int]]:
     nodes = {}
     for number, node in _numbered(root["node"], "node"):
         path = f"node.{number}"
@@ -133,18 +141,19 @@ def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], set
         sections.add(number)
 
     edges: dict[int, set[int]] = {number: set() for number in nodes}
-    members = set()
+    members = {}  # number -> length
     for number, member in _numbered(root["member"], "member"):
         path = f"member.{number}"
         _record(member, path, ("ni", "nj", "e", "cg"))
         _null(member, ("cg",), path)
         ni, nj = (_reference(member[key], nodes, f"{path}.{key}") for key in ("ni", "nj"))
         _reference(member["e"], sections, f"{path}.e")
-        if not math.dist(nodes[ni], nodes[nj]) > 0:
+        length = math.dist(nodes[ni], nodes[nj])
+        if not length > 0:
             _fail(path, "長さ0の部材です")
         edges[ni].add(nj)
         edges[nj].add(ni)
-        members.add(number)
+        members[number] = length
 
     supports = set()
     for number, rows in _numbered(root["fix_node"], "fix_node"):
@@ -176,22 +185,39 @@ def _node_rows(rows: object, nodes: Mapping[int, Any], path: str) -> None:
             _fail(where, "0 の成分は null、成分のない行は書きません")
 
 
-def _member_rows(rows: object, members: set[int], path: str) -> None:
+def _units(value: float, digits: int) -> int:
+    """*value* in units of 10^−digits as FrameWeb projects it (half up)."""
+    return math.floor(value * 10 ** digits + 0.5)
+
+
+def _projected(value: float, digits: int) -> bool:
+    """Whether FrameWeb's projection to *digits* decimals keeps *value*."""
+    return _units(value, digits) / 10 ** digits == value
+
+
+def _member_rows(rows: object, members: Mapping[int, float], path: str) -> None:
     for index, row in enumerate(_rows(rows, path), 1):
         where = f"{path}[{index}]"
         _record(row, where, MEMBER_LOAD_KEYS)
         _row_number(row, index, where)
-        for key in ("m1", "m2"):
-            _named(row[key], members, f"{where}.{key}")
+        first, last = (_named(row[key], members, f"{where}.{key}") for key in ("m1", "m2"))
         if type(row["mark"]) is not int or row["mark"] != 2 or row["direction"] not in ("gx", "gy"):
             _fail(where, "全体座標 gx / gy の分布荷重（mark 2）が必要です")
-        if _number(row["L1"], f"{where}.L1") or _number(row["L2"], f"{where}.L2"):
-            _fail(where, "部材の全長に載荷します（L1 = L2 = 0）")
-        p1 = _number(row["P1"], f"{where}.P1")
-        if not p1 or math.floor(p1 * 100 + 0.5) / 100 != p1:
-            _fail(f"{where}.P1", f"0 でない小数2桁までの強度が必要です（FrameWeb は 0.01 に丸めて解析します: {p1!r}）")
-        if _number(row["P2"], f"{where}.P2") != p1:
-            _fail(f"{where}.P2", "等分布荷重（P1 = P2）が必要です")
+        start, margin = (_number(row[key], f"{where}.{key}") for key in ("L1", "L2"))
+        for key, distance in (("L1", start), ("L2", margin)):
+            if distance < 0 or not _projected(distance, 3):
+                _fail(f"{where}.{key}", f"0 以上で小数3桁までの距離が必要です（FrameWeb は 0.001 m に丸めます: {distance!r}）")
+        p1, p2 = (_number(row[key], f"{where}.{key}") for key in ("P1", "P2"))
+        for key, intensity in (("P1", p1), ("P2", p2)):
+            if not _projected(intensity, 2):
+                _fail(f"{where}.{key}", f"小数2桁までの強度が必要です（FrameWeb は 0.01 に丸めて解析します: {intensity!r}）")
+        if not (p1 or p2):
+            _fail(where, "強度が 0 の行は書きません")
+        if first != last:
+            if start or margin or p1 != p2:
+                _fail(where, "部材の範囲には全長の等分布荷重だけを書きます（部分・変化する荷重は部材ごとの行）")
+        elif _units(members[first], 3) - _units(start, 3) - _units(margin, 3) <= 0:
+            _fail(where, f"載荷長が 0 以下です（部材長 {members[first]!r}、L1 {start!r}、L2 {margin!r}）")
 
 
 def validate_frameweb(document: object) -> None:
@@ -209,6 +235,8 @@ def validate_frameweb(document: object) -> None:
         _reference(case["element"], types, f"{path}.element")
         for key in ("symbol", "name"):
             _text(case[key], f"{path}.{key}")
+        if case["symbol"] == "LL":
+            _fail(f"{path}.symbol", "LL は移動荷重のケースになります")
         for key in ("LL_pitch", "rate"):
             _number(case[key], f"{path}.{key}", positive=True)
         if "load_node" in case:

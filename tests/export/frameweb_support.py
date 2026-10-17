@@ -1,4 +1,4 @@
-"""Shared helpers for the FrameWeb export tests: input variants, the 0610 chain and the Example2 FrameWeb file.
+"""Shared helpers for the FrameWeb export tests: input variants, the 0610 and 0620 chains and the Example2 files.
 
 ``EXAMPLE2`` is the FrameWeb input of Example2 (.claude/docs/Example橋脚2/08_線路/frameWebForJS.json, saved by
 FrameWeb itself; tests/fixtures/frameweb_example2_mapping.json is a direct copy with its SHA). Its format and its
@@ -13,6 +13,7 @@ from pathlib import Path
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
+from webpier.calc.transverse import calculate_transverse
 from webpier.inputs import parse_input
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -54,3 +55,31 @@ def longitudinal(**changes):
 def D(value):
     """The decimal a person reads from a printed or written number."""
     return Decimal(repr(float(value)))
+
+
+# 0620. EXAMPLE2_09 is the FrameWeb input of Example2 09 (.claude/docs/Example橋脚2/09_直角/frameWebForJS.json, saved
+# by FrameWeb itself; tests/fixtures/frameweb_transverse_example2_file.json is a direct copy with its SHA). T09 is
+# the independent transcription of 09_直角.pdf.
+EXAMPLE2_09 = json.loads((FIXTURES / "frameweb_transverse_example2_file.json").read_text(encoding="utf-8"))
+T09 = {section["key"]: section
+       for section in json.loads((FIXTURES / "example2" / "transverse.json").read_text(encoding="utf-8"))["sections"]}
+DF = ("下部構造/土かぶり/起点側_df1", "下部構造/土かぶり/終点側_df2")
+
+
+def ground(depth):
+    """Both soil depths over the footing: the ground is the footing top + depth."""
+    return dict.fromkeys(DF, depth)
+
+
+EXAMPLE2_GROUND = ground(1.08)  # Example2 9-12 / 8-28: Df − H6 = 1.080 (current.json has 2.000)
+# Pedestal across the track at xC = (2 × 0.500 + 7.000 − 9.000)/2 = −0.500 from the column axis: an arm and a stub.
+T_PEDESTAL = dims(B2=0.85, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
+T_ASYMMETRIC = dims(W7=2.5, W9=2.0, H5=0.5, H6=2.2, B8=3.0, W8=5.0)
+# Beam 3.200 wide, haunch from 3.200 down to 3.200 − 0.100 − 0.200 = 2.900, column 2.500 (decision 12).
+WIDTHS = dims(B1=3.2, B4=0.1, B5=0.2, B6=2.5)
+CURVE = {"上部構造/起点側/曲線半径": 600, "上部構造/起点側/列車速度": 130}  # decision 33: centrifugal on R ≠ 0
+
+
+def transverse(**changes):
+    p = pier(**changes)
+    return calculate_transverse(p, calculate_foundation(p), calculate_reaction(p))
