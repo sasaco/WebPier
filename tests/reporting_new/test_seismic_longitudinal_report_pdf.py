@@ -124,7 +124,7 @@ def test_horizontal_forces_print_as_magnitude_and_direction_and_match_their_prin
     found = [(m[1], m[2], m[3]) for m in directed if m]
     assert all(arrow == "←" for *_, arrow in found)
     assert not any(re.search(r"(H|Hw\d)=-", line) for line in lines)
-    # The load diagrams draw no stroke the reader could take for a fraction bar (0.3 to 0.9 pt, horizontal).
+    # The reader does not take the strokes of the load diagrams for fraction bars.
     assert not any("()/()" in line for line in lines)
     # (the vertical 地震時 label of the table interleaves its characters with the rows)
     girder = next(line for line in lines if "1.0E" in line and "（桁荷重）" in line)

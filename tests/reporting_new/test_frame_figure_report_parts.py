@@ -59,7 +59,7 @@ def test_distributed_loads_of_either_sign_and_axial_load_on_one_member():
                                ((beam.number, .5, "w1"), (beam.number, .5, "w2"))),
               AxialGlyph((column.number,), "q"))
     drawn = measure(LoadDiagram(f, glyphs), 240)
-    arrows = [c for c in drawn if isinstance(c, Line) and c.width == .25 and c.y1 == c.y2 and c.x1 != c.x2]
+    arrows = [c for c in drawn if isinstance(c, Line) and c.width == .3 and c.y1 == c.y2 and c.x1 != c.x2]
     # + loads point toward +x (away from the member); the short pedestal gets no arrow.
     shafts = [c for c in arrows if abs(c.x2 - c.x1) > 3 and c.x2 > c.x1]
     assert len(shafts) >= 2

@@ -183,7 +183,7 @@ class FrameFigure:
         texts: list[Text] = []
         for polygon in self.outline.polygons:
             for (x0, y0), (x1, y1) in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
-                drawn.append(Line(X(x0), Y(y0), X(x1), Y(y1), .25, dash=(2, 2)))
+                drawn.append(Line(X(x0), Y(y0), X(x1), Y(y1), .35, dash=(2, 2)))
         nodes = {node.number: (X(node.x.value), Y(node.y.value)) for node in self.frame.nodes}
         for member in self.frame.members:
             drawn.append(Line(*nodes[member.start], *nodes[member.end], 2.0 if member.rigid else .8))
@@ -265,8 +265,8 @@ class FrameFigure:
 
         # Springs at the support (8-1): Kv down, Ks to the end side, Kr as a coil on the origin side.
         sx, sy = nodes[support]
-        drawn += [zigzag((sx + 2, sy), (sx + 22, sy)), Line(sx + 22, sy - 4, sx + 22, sy + 4, .25),
-                  zigzag((sx, sy + 2), (sx, sy + 22)), Line(sx - 4, sy + 22, sx + 4, sy + 22, .25),
+        drawn += [zigzag((sx + 2, sy), (sx + 22, sy)), Line(sx + 22, sy - 4, sx + 22, sy + 4, .5),
+                  zigzag((sx, sy + 2), (sx, sy + 22)), Line(sx - 4, sy + 22, sx + 4, sy + 22, .5),
                   _coil(sx - 13, sy + 9)]
         texts += subscripted(fonts, sx + 6, sy + 20, "K", "v")
         texts += subscripted(fonts, sx + 25, sy + 3.5, "K", "s")
@@ -290,4 +290,4 @@ def _coil(x: float, y: float) -> Polyline:
         angle = step / 48 * 4 * math.pi
         radius = 1 + 4 * step / 48
         points.append(Point(x + radius * math.cos(angle), y - radius * math.sin(angle)))
-    return Polyline(tuple(points), .25)
+    return Polyline(tuple(points), .5)

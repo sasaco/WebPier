@@ -167,10 +167,14 @@ def read_lines(page: pymupdf.Page) -> list[tuple[float, list[Token]]]:
     for x0, x1, y in bars:
         numerator = _claim(chars, x0, x1, y - 14, y)
         denominator = _claim(chars, x0, x1, y, y + 16)
+        if not numerator or not denominator:
+            continue  # a drawing stroke (an arrow with its label, an outline), not a fraction bar
         chars = [char for char in chars if char not in numerator and char not in denominator]
         groups.append(_Group("frac", x0, y + 2.5, [numerator, denominator]))
     for x0, x1, y in roots:
         body = _claim(chars, x0, x1, y, y + 14)
+        if not body:
+            continue  # a stroke with a horizontal end (a spring), not a radical
         chars = [char for char in chars if char not in body]
         anchor = max((char.baseline for char in body if char.size >= MAIN_SIZE), default=y + 9)
         groups.append(_Group("root", x0, anchor, [body]))

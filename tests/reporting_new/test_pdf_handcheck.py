@@ -89,3 +89,24 @@ def test_tokens_text_shows_the_structure_read_back():
     assert tokens_text([("num", "7.937"), ("sup", [("op", "-"), ("num", "1"), ("op", "/"), ("num", "2")])]) == "7.937^(-1/2)"
     assert tokens_text([("frac", [("num", "1")], [("num", "3")]), ("root", [("num", "63.000")]),
                         ("word", "B"), ("sub", [("word", "v")])]) == "(1)/(3)√(63.000)B_(v)"
+
+
+def test_figure_strokes_are_not_read_as_fraction_bars_or_radicals(tmp_path: Path):
+    """A horizontal 0.5-0.8 pt stroke is a fraction bar only with text above and below it, and a
+    radical only with text under it; an arrow with its label, or a spring, keeps the label as text."""
+    import pymupdf
+    from gridlayoutpdf import Figure, Line, Polyline, Text
+    from pdf_handcheck import read_lines
+    from webpier.reporting.document import report, paragraph
+    from webpier.reporting.styles import BODY, grid_units
+
+    figure = Figure(grid_units(240), grid_units(72),
+                    Line(20, 30, 70, 30, .8), Text(40, 26, "H", BODY),  # an arrow shaft with its label above
+                    Polyline(((100, 40), (105, 35), (110, 40), (120, 30), (160, 30)), .5),  # a spring lead
+                    Text(130, 44, "Hw3", BODY), Text(170, 34, "P", BODY))
+    path = report(figure, paragraph("x = 1 + 2 = 3")).render(tmp_path / "strokes.pdf")
+    with pymupdf.open(path) as pdf:
+        texts = [tokens_text(tokens) for _, tokens in read_lines(pdf[0])]
+    assert "H" in texts and not any("/" in text or "√" in text for text in texts)
+    assert any(text.startswith("Hw3") for text in texts)
+    assert [check.ok for check in formula_checks(path)] == [True]

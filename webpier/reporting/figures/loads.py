@@ -87,7 +87,7 @@ class LoadDiagram:
         nodes = {node.number: (ox + node.x.value * scale, top_margin + (max(ys) - node.y.value) * scale)
                  for node in self.frame.nodes}
         members = {member.number: member for member in self.frame.members}
-        drawn: list = [Line(*nodes[m.start], *nodes[m.end], 1.2) for m in self.frame.members]
+        drawn: list = [Line(*nodes[m.start], *nodes[m.end], .8) for m in self.frame.members]
         drawn += [Circle(*nodes[number], 1.5, fill=(0, 0, 0), stroke=False) for number in sorted(nodes)]
         texts: list[Text] = []
         cap = cap_height(fonts, LOAD_STYLE)
@@ -129,16 +129,16 @@ class LoadDiagram:
                 s = glyph.sign
                 if glyph.kind == "N":
                     ends = ((x, y - 34), (x, y - 1)) if s > 0 else ((x, y - 1), (x, y - 34))
-                    drawn.append(Arrow(*ends[0], *ends[1], head_length=5, head_width=3.4, width=1.0))
+                    drawn.append(Arrow(*ends[0], *ends[1], head_length=5, head_width=3.4, width=.8))
                     label((x - 4, y - 28, "right"), (x + 4, y - 28, "left"), (x - 4, y - 16, "right"),
                           value=glyph.label)
                 elif glyph.kind == "H":
                     tail = x - 36 * s
-                    drawn.append(Arrow(tail, y, x - s, y, head_length=5, head_width=3.4, width=1.0))
+                    drawn.append(Arrow(tail, y, x - s, y, head_length=5, head_width=3.4, width=.8))
                     label((tail, y - 4, "center"), (tail, y + cap + 4, "center"), value=glyph.label)
                 elif glyph.kind == "P":
                     ends = ((x - 14, y - 34), (x - 1, y - 1)) if s > 0 else ((x - 1, y - 1), (x - 14, y - 34))
-                    drawn.append(Arrow(*ends[0], *ends[1], head_length=5, head_width=3.4, width=1.0))
+                    drawn.append(Arrow(*ends[0], *ends[1], head_length=5, head_width=3.4, width=.8))
                     label((x - 17, y - 28, "right"), (x - 17, y - 16, "right"), value=glyph.label)
                 else:  # M: clockwise over the top for +
                     drawn.extend(arc((x, y), 11, 160, 20) if s > 0 else arc((x, y), 11, 20, 160))
@@ -160,15 +160,15 @@ class LoadDiagram:
                     (x0, y0), (x1, y1) = member(number)
                     a, b = x0 + 6 + abs(start) * k, x1 + 6 + abs(end) * k
                     drawn.append(Line(a, y0, b, y1, .5))
-                    drawn += [Line(x0 + 6, y0, x1 + 6, y1, .25), Line(x0 + 6, y0, a, y0, .25),
-                              Line(x1 + 6, y1, b, y1, .25)]
+                    drawn += [Line(x0 + 6, y0, x1 + 6, y1, .3), Line(x0 + 6, y0, a, y0, .3),
+                              Line(x1 + 6, y1, b, y1, .3)]
                     middle = (start + end) / 2
                     if middle and abs(y1 - y0) >= 8:
                         outer, inner = (a + b) / 2, (x0 + x1) / 2 + 6
                         tip, tail = (inner, outer) if middle < 0 else (outer - 1, inner)
                         if abs(tip - tail) >= 6:
                             drawn.append(Arrow(tail, (y0 + y1) / 2, tip, (y0 + y1) / 2, head_length=4,
-                                               head_width=2.8, width=.25))
+                                               head_width=2.8, width=.3))
                 for number, where, text in glyph.labels:
                     (x0, y0), (x1, y1) = member(number)
                     start, end = next((s, e) for n, s, e in glyph.segments if n == number)
