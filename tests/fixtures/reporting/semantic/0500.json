@@ -1,0 +1,883 @@
+{
+  "schema_version": 1,
+  "stage": "0500",
+  "source_display_sha256": "2ca54b57b648e94dc668f68a8ed147e3d8e26209139cc267b6d80e69b49a00a1",
+  "source_pdf_sha256": "29643c304224b7e393199fadacaec5e46702bc3489f1d3cca5cd1742ecc0775f",
+  "mapping_basis": "Frozen old PDF native spans and reviewed old report.py meaning/visible order",
+  "normalization": "Whitespace only; preserve every non-whitespace sign, factor, unit and symbol",
+  "records": [
+    {
+      "id": "0500/title",
+      "source_ids": [
+        "0500/display/000001"
+      ],
+      "source_text": "§5. 地盤のモデル化"
+    },
+    {
+      "id": "0500/soil.heading",
+      "source_ids": [
+        "0500/display/000002"
+      ],
+      "source_text": "5.1 地盤の諸数値の設計用値のまとめ"
+    },
+    {
+      "id": "0500/soil.introduction",
+      "source_ids": [
+        "0500/display/000003"
+      ],
+      "source_text": "本橋脚の設計に用いる地盤の諸数値の設計用値を表 2.4.8 に示す."
+    },
+    {
+      "id": "0500/soil.caption",
+      "source_ids": [
+        "0500/display/000004"
+      ],
+      "source_text": "地盤の諸数値の設計用値のまとめ"
+    },
+    {
+      "id": "0500/soil.header",
+      "source_ids": [
+        "0500/display/000005",
+        "0500/display/000008",
+        "0500/display/000009",
+        "0500/display/000006",
+        "0500/display/000007",
+        "0500/display/000010",
+        "0500/display/000011",
+        "0500/display/000012",
+        "0500/display/000013",
+        "0500/display/000016",
+        "0500/display/000014",
+        "0500/display/000017",
+        "0500/display/000018",
+        "0500/display/000019",
+        "0500/display/000015",
+        "0500/display/000020",
+        "0500/display/000021",
+        "0500/display/000022"
+      ],
+      "source_text": "層番層厚(m)土質区分Ｎ値単位体積重量湿潤水中内部摩擦角φd(°)一軸圧縮強度qu(kN/m2)変形係数Ed(kN/m2)"
+    },
+    {
+      "id": "0500/soil.row.0",
+      "source_ids": [
+        "0500/display/000023",
+        "0500/display/000024",
+        "0500/display/000025",
+        "0500/display/000026",
+        "0500/display/000027",
+        "0500/display/000028"
+      ],
+      "source_text": "表層4.700砂質土018.08.0"
+    },
+    {
+      "id": "0500/soil.row.1",
+      "source_ids": [
+        "0500/display/000029",
+        "0500/display/000030",
+        "0500/display/000031",
+        "0500/display/000032",
+        "0500/display/000033",
+        "0500/display/000034",
+        "0500/display/000035",
+        "0500/display/000036"
+      ],
+      "source_text": "支持層砂礫9019.010.042.20165,760"
+    },
+    {
+      "id": "0500/bearing.heading",
+      "source_ids": [
+        "0500/display/000037"
+      ],
+      "source_text": "支持層の支持力係数"
+    },
+    {
+      "id": "0500/bearing.normal",
+      "source_ids": [
+        "0500/display/000038",
+        "0500/display/000039",
+        "0500/display/000040",
+        "0500/display/000041",
+        "0500/display/000042",
+        "0500/display/000043",
+        "0500/display/000044",
+        "0500/display/000045",
+        "0500/display/000046",
+        "0500/display/000047",
+        "0500/display/000048"
+      ],
+      "source_text": "Nγ=150 ,Nq=85地震時を除く"
+    },
+    {
+      "id": "0500/bearing.seismic",
+      "source_ids": [
+        "0500/display/000049",
+        "0500/display/000050",
+        "0500/display/000051",
+        "0500/display/000052",
+        "0500/display/000053",
+        "0500/display/000054",
+        "0500/display/000055",
+        "0500/display/000056",
+        "0500/display/000057",
+        "0500/display/000058",
+        "0500/display/000059"
+      ],
+      "source_text": "Nγ=150 ,Nq=85地震時"
+    },
+    {
+      "id": "0500/spring.heading",
+      "source_ids": [
+        "0500/display/000060"
+      ],
+      "source_text": "5.2 地盤反力係数の算定"
+    },
+    {
+      "id": "0500/vertical.heading",
+      "source_ids": [
+        "0500/display/000061"
+      ],
+      "source_text": "(1) フーチング底面の鉛直地盤ばね定数"
+    },
+    {
+      "id": "0500/kv.heading",
+      "source_ids": [
+        "0500/display/000062",
+        "0500/display/000063"
+      ],
+      "source_text": "1) フーチング底面の鉛直地盤反力係数【基礎標準 13.2.2.2】"
+    },
+    {
+      "id": "0500/kv.sand",
+      "source_ids": [
+        "0500/display/000064",
+        "0500/display/000065",
+        "0500/display/000066",
+        "0500/display/000067",
+        "0500/display/000068",
+        "0500/display/000069",
+        "0500/display/000070",
+        "0500/display/000071",
+        "0500/display/000072",
+        "0500/display/000073",
+        "0500/display/000074",
+        "0500/display/000075",
+        "0500/display/000076",
+        "0500/display/000077"
+      ],
+      "source_text": "kv =6.9 ρgkEdBv-1/2（砂質土）"
+    },
+    {
+      "id": "0500/kv.alternating",
+      "source_ids": [
+        "0500/display/000078",
+        "0500/display/000079",
+        "0500/display/000080",
+        "0500/display/000081",
+        "0500/display/000082",
+        "0500/display/000083",
+        "0500/display/000084",
+        "0500/display/000085",
+        "0500/display/000086",
+        "0500/display/000087",
+        "0500/display/000088",
+        "0500/display/000089",
+        "0500/display/000090",
+        "0500/display/000091"
+      ],
+      "source_text": "kv =5.1 ρgkEdBv-3/4（砂質土，粘性土の互層）"
+    },
+    {
+      "id": "0500/kv.clay",
+      "source_ids": [
+        "0500/display/000092",
+        "0500/display/000093",
+        "0500/display/000094",
+        "0500/display/000095",
+        "0500/display/000096",
+        "0500/display/000097",
+        "0500/display/000098",
+        "0500/display/000099",
+        "0500/display/000100",
+        "0500/display/000101",
+        "0500/display/000102",
+        "0500/display/000103",
+        "0500/display/000104",
+        "0500/display/000105"
+      ],
+      "source_text": "kv =3.8 ρgkEdBv-1（粘性土）"
+    },
+    {
+      "id": "0500/kv.definition.kv",
+      "source_ids": [
+        "0500/display/000106",
+        "0500/display/000107",
+        "0500/display/000108",
+        "0500/display/000109",
+        "0500/display/000110",
+        "0500/display/000111"
+      ],
+      "source_text": "ここに、kv ：フーチング底面の鉛直地盤反力係数 (kN/m3)"
+    },
+    {
+      "id": "0500/kv.definition.rho",
+      "source_ids": [
+        "0500/display/000112",
+        "0500/display/000113",
+        "0500/display/000114",
+        "0500/display/000115"
+      ],
+      "source_text": "ρgk ：地盤反力係数に関する地盤修正係数"
+    },
+    {
+      "id": "0500/kv.definition.Ed",
+      "source_ids": [
+        "0500/display/000116",
+        "0500/display/000117",
+        "0500/display/000118",
+        "0500/display/000119",
+        "0500/display/000120",
+        "0500/display/000121",
+        "0500/display/000122",
+        "0500/display/000123",
+        "0500/display/000124"
+      ],
+      "source_text": "Ed ：地盤の変形係数(=165760kN/m2)"
+    },
+    {
+      "id": "0500/kv.definition.Bv",
+      "source_ids": [
+        "0500/display/000125",
+        "0500/display/000126",
+        "0500/display/000127",
+        "0500/display/000128"
+      ],
+      "source_text": "Bv ：フーチング底面の換算幅 (m)"
+    },
+    {
+      "id": "0500/kv.width",
+      "source_ids": [
+        "0500/display/000129",
+        "0500/display/000130",
+        "0500/display/000131",
+        "0500/display/000132",
+        "0500/display/000133",
+        "0500/display/000134",
+        "0500/display/000135",
+        "0500/display/000136",
+        "0500/display/000137",
+        "0500/display/000138",
+        "0500/display/000139"
+      ],
+      "source_text": "Bv = √Av(=63.000=7.937 m)",
+      "vector_atoms": [
+        {
+          "offset": 10,
+          "text": "√",
+          "source_page": 1,
+          "source_drawing_indices": [
+            25,
+            26,
+            27
+          ],
+          "meaning": "numeric radicand root; three native line strokes in frozen PDF"
+        }
+      ]
+    },
+    {
+      "id": "0500/kv.area",
+      "source_ids": [
+        "0500/display/000140",
+        "0500/display/000141",
+        "0500/display/000142",
+        "0500/display/000143",
+        "0500/display/000144",
+        "0500/display/000145",
+        "0500/display/000146",
+        "0500/display/000147",
+        "0500/display/000148",
+        "0500/display/000149",
+        "0500/display/000150",
+        "0500/display/000151",
+        "0500/display/000152",
+        "0500/display/000153"
+      ],
+      "source_text": "Av ：フーチング底面積(=7.000×9.000=63.000 m2)"
+    },
+    {
+      "id": "0500/kv.long_term.label",
+      "source_ids": [
+        "0500/display/000154",
+        "0500/display/000155",
+        "0500/display/000156",
+        "0500/display/000157",
+        "0500/display/000158",
+        "0500/display/000159"
+      ],
+      "source_text": "・長期 ( ρgk =0.5)"
+    },
+    {
+      "id": "0500/kv.long_term",
+      "source_ids": [
+        "0500/display/000160",
+        "0500/display/000161",
+        "0500/display/000162",
+        "0500/display/000163",
+        "0500/display/000164",
+        "0500/display/000169",
+        "0500/display/000165",
+        "0500/display/000170",
+        "0500/display/000166",
+        "0500/display/000171",
+        "0500/display/000167",
+        "0500/display/000172",
+        "0500/display/000173",
+        "0500/display/000168",
+        "0500/display/000174",
+        "0500/display/000175"
+      ],
+      "source_text": "kv =6.9×0.5×165760×7.937-1/2=202988kN/m3"
+    },
+    {
+      "id": "0500/kv.short_term.label",
+      "source_ids": [
+        "0500/display/000176",
+        "0500/display/000177",
+        "0500/display/000178",
+        "0500/display/000179",
+        "0500/display/000180",
+        "0500/display/000181"
+      ],
+      "source_text": "・短期 ( ρgk =1.0)"
+    },
+    {
+      "id": "0500/kv.short_term",
+      "source_ids": [
+        "0500/display/000182",
+        "0500/display/000183",
+        "0500/display/000184",
+        "0500/display/000185",
+        "0500/display/000186",
+        "0500/display/000191",
+        "0500/display/000187",
+        "0500/display/000192",
+        "0500/display/000188",
+        "0500/display/000193",
+        "0500/display/000189",
+        "0500/display/000194",
+        "0500/display/000195",
+        "0500/display/000190",
+        "0500/display/000196",
+        "0500/display/000197"
+      ],
+      "source_text": "kv =6.9×1.0×165760×7.937-1/2=405976kN/m3"
+    },
+    {
+      "id": "0500/Kv.heading",
+      "source_ids": [
+        "0500/display/000198",
+        "0500/display/000199"
+      ],
+      "source_text": "2) フーチング底面の鉛直地盤ばね定数【基礎標準 13.2.2.2】"
+    },
+    {
+      "id": "0500/Kv.formula",
+      "source_ids": [
+        "0500/display/000200",
+        "0500/display/000201",
+        "0500/display/000202",
+        "0500/display/000203",
+        "0500/display/000204",
+        "0500/display/000205",
+        "0500/display/000206",
+        "0500/display/000207",
+        "0500/display/000208"
+      ],
+      "source_text": "Kv = kvAv"
+    },
+    {
+      "id": "0500/Kv.definition.Kv",
+      "source_ids": [
+        "0500/display/000209",
+        "0500/display/000210",
+        "0500/display/000211",
+        "0500/display/000212"
+      ],
+      "source_text": "ここに、Kv ：フーチング底面の鉛直地盤ばね定数 (kN/m)"
+    },
+    {
+      "id": "0500/Kv.definition.kv",
+      "source_ids": [
+        "0500/display/000213",
+        "0500/display/000214",
+        "0500/display/000215",
+        "0500/display/000216",
+        "0500/display/000217",
+        "0500/display/000218"
+      ],
+      "source_text": "kv ：フーチング底面の鉛直地盤反力係数 (kN/m3)"
+    },
+    {
+      "id": "0500/Kv.definition.Av",
+      "source_ids": [
+        "0500/display/000219",
+        "0500/display/000220",
+        "0500/display/000221",
+        "0500/display/000222",
+        "0500/display/000223",
+        "0500/display/000224"
+      ],
+      "source_text": "Av ：フーチング底面積 (m2)"
+    },
+    {
+      "id": "0500/Kv.long_term.label",
+      "source_ids": [
+        "0500/display/000225"
+      ],
+      "source_text": "・長期"
+    },
+    {
+      "id": "0500/Kv.long_term",
+      "source_ids": [
+        "0500/display/000226",
+        "0500/display/000227",
+        "0500/display/000228",
+        "0500/display/000229",
+        "0500/display/000230",
+        "0500/display/000231",
+        "0500/display/000232",
+        "0500/display/000233",
+        "0500/display/000234",
+        "0500/display/000235"
+      ],
+      "source_text": "Kv =202988×63.000=12,788,244kN/m"
+    },
+    {
+      "id": "0500/Kv.short_term.label",
+      "source_ids": [
+        "0500/display/000236"
+      ],
+      "source_text": "・短期"
+    },
+    {
+      "id": "0500/Kv.short_term",
+      "source_ids": [
+        "0500/display/000237",
+        "0500/display/000238",
+        "0500/display/000239",
+        "0500/display/000240",
+        "0500/display/000241",
+        "0500/display/000242",
+        "0500/display/000243",
+        "0500/display/000244",
+        "0500/display/000245",
+        "0500/display/000246"
+      ],
+      "source_text": "Kv =405976×63.000=25,576,488kN/m"
+    },
+    {
+      "id": "0500/shear.heading",
+      "source_ids": [
+        "0500/display/000247"
+      ],
+      "source_text": " (2) フーチング底面のせん断地盤ばね定数"
+    },
+    {
+      "id": "0500/ks.heading",
+      "source_ids": [
+        "0500/display/000248",
+        "0500/display/000249"
+      ],
+      "source_text": "1) フーチング底面のせん断地盤反力係数【基礎標準 13.2.2.2】"
+    },
+    {
+      "id": "0500/ks.formula",
+      "source_ids": [
+        "0500/display/000250",
+        "0500/display/000251",
+        "0500/display/000252",
+        "0500/display/000253",
+        "0500/display/000254",
+        "0500/display/000255",
+        "0500/display/000256"
+      ],
+      "source_text": "ks = λkv"
+    },
+    {
+      "id": "0500/ks.definition.ks",
+      "source_ids": [
+        "0500/display/000257",
+        "0500/display/000258",
+        "0500/display/000259",
+        "0500/display/000260",
+        "0500/display/000261",
+        "0500/display/000262"
+      ],
+      "source_text": "ここに、ks ：フーチング底面のせん断地盤反力係数 (kN/m3)"
+    },
+    {
+      "id": "0500/ks.definition.lambda",
+      "source_ids": [
+        "0500/display/000263",
+        "0500/display/000264",
+        "0500/display/000265",
+        "0500/display/000266",
+        "0500/display/000267",
+        "0500/display/000268"
+      ],
+      "source_text": "λ ：換算係数（ =1/3とする）"
+    },
+    {
+      "id": "0500/ks.long_term.label",
+      "source_ids": [
+        "0500/display/000269"
+      ],
+      "source_text": "・長期"
+    },
+    {
+      "id": "0500/ks.long_term",
+      "source_ids": [
+        "0500/display/000270",
+        "0500/display/000271",
+        "0500/display/000272",
+        "0500/display/000273",
+        "0500/display/000274",
+        "0500/display/000275",
+        "0500/display/000276",
+        "0500/display/000277",
+        "0500/display/000278",
+        "0500/display/000279",
+        "0500/display/000280"
+      ],
+      "source_text": "ks =1/3×202988=67663kN/m3"
+    },
+    {
+      "id": "0500/ks.short_term.label",
+      "source_ids": [
+        "0500/display/000281"
+      ],
+      "source_text": "・短期"
+    },
+    {
+      "id": "0500/ks.short_term",
+      "source_ids": [
+        "0500/display/000282",
+        "0500/display/000283",
+        "0500/display/000284",
+        "0500/display/000285",
+        "0500/display/000286",
+        "0500/display/000287",
+        "0500/display/000288",
+        "0500/display/000289",
+        "0500/display/000290",
+        "0500/display/000291",
+        "0500/display/000292"
+      ],
+      "source_text": "ks =1/3×405976=135325kN/m3"
+    },
+    {
+      "id": "0500/Ks.heading",
+      "source_ids": [
+        "0500/display/000293",
+        "0500/display/000294"
+      ],
+      "source_text": "2) フーチング底面のせん断地盤ばね定数【基礎標準 13.2.2.2】"
+    },
+    {
+      "id": "0500/Ks.formula",
+      "source_ids": [
+        "0500/display/000295",
+        "0500/display/000296",
+        "0500/display/000297",
+        "0500/display/000298",
+        "0500/display/000299",
+        "0500/display/000300",
+        "0500/display/000301",
+        "0500/display/000302",
+        "0500/display/000303"
+      ],
+      "source_text": "Ks = ksAv"
+    },
+    {
+      "id": "0500/Ks.definition.Ks",
+      "source_ids": [
+        "0500/display/000304",
+        "0500/display/000305",
+        "0500/display/000306",
+        "0500/display/000307"
+      ],
+      "source_text": "ここに、Ks ：フーチング底面のせん断地盤ばね定数 (kN/m)"
+    },
+    {
+      "id": "0500/Ks.definition.ks",
+      "source_ids": [
+        "0500/display/000308",
+        "0500/display/000309",
+        "0500/display/000310",
+        "0500/display/000311",
+        "0500/display/000312",
+        "0500/display/000313"
+      ],
+      "source_text": "ks ：フーチング底面のせん断地盤反力係数 (kN/m3)"
+    },
+    {
+      "id": "0500/Ks.definition.Av",
+      "source_ids": [
+        "0500/display/000314",
+        "0500/display/000315",
+        "0500/display/000316",
+        "0500/display/000317",
+        "0500/display/000318",
+        "0500/display/000319"
+      ],
+      "source_text": "Av ：フーチング底面積 (m2)"
+    },
+    {
+      "id": "0500/Ks.long_term.label",
+      "source_ids": [
+        "0500/display/000320"
+      ],
+      "source_text": "・長期"
+    },
+    {
+      "id": "0500/Ks.long_term",
+      "source_ids": [
+        "0500/display/000321",
+        "0500/display/000322",
+        "0500/display/000323",
+        "0500/display/000324",
+        "0500/display/000325",
+        "0500/display/000326",
+        "0500/display/000327",
+        "0500/display/000328",
+        "0500/display/000329",
+        "0500/display/000330"
+      ],
+      "source_text": "Ks =67663×63.000=4,262,769kN/m"
+    },
+    {
+      "id": "0500/Ks.short_term.label",
+      "source_ids": [
+        "0500/display/000331"
+      ],
+      "source_text": "・短期"
+    },
+    {
+      "id": "0500/Ks.short_term",
+      "source_ids": [
+        "0500/display/000332",
+        "0500/display/000333",
+        "0500/display/000334",
+        "0500/display/000335",
+        "0500/display/000336",
+        "0500/display/000337",
+        "0500/display/000338",
+        "0500/display/000339",
+        "0500/display/000340",
+        "0500/display/000341"
+      ],
+      "source_text": "Ks =135325×63.000=8,525,475kN/m"
+    },
+    {
+      "id": "0500/rotation.heading",
+      "source_ids": [
+        "0500/display/000342",
+        "0500/display/000343"
+      ],
+      "source_text": " (3) フーチング底面の回転地盤ばね定数【基礎標準 13.2.2.2】"
+    },
+    {
+      "id": "0500/Kr.formula",
+      "source_ids": [
+        "0500/display/000344",
+        "0500/display/000345",
+        "0500/display/000346",
+        "0500/display/000347",
+        "0500/display/000348",
+        "0500/display/000349",
+        "0500/display/000350",
+        "0500/display/000351",
+        "0500/display/000352"
+      ],
+      "source_text": "Kr = kvIv"
+    },
+    {
+      "id": "0500/Kr.definition.Kr",
+      "source_ids": [
+        "0500/display/000353",
+        "0500/display/000354",
+        "0500/display/000355",
+        "0500/display/000356"
+      ],
+      "source_text": "ここに、Kr ：フーチング底面の回転地盤ばね定数 (kN・m/rad)"
+    },
+    {
+      "id": "0500/Kr.definition.kv",
+      "source_ids": [
+        "0500/display/000357",
+        "0500/display/000358",
+        "0500/display/000359",
+        "0500/display/000360",
+        "0500/display/000361",
+        "0500/display/000362"
+      ],
+      "source_text": "kv ：フーチング底面の鉛直地盤反力係数(kN/m3)"
+    },
+    {
+      "id": "0500/Kr.definition.Iv",
+      "source_ids": [
+        "0500/display/000363",
+        "0500/display/000364",
+        "0500/display/000365",
+        "0500/display/000366",
+        "0500/display/000367",
+        "0500/display/000368"
+      ],
+      "source_text": "Iv ：フーチング底面の断面二次モーメント(m4)"
+    },
+    {
+      "id": "0500/Kr.longitudinal.heading",
+      "source_ids": [
+        "0500/display/000369"
+      ],
+      "source_text": "1) 線路方向"
+    },
+    {
+      "id": "0500/Kr.longitudinal.inertia",
+      "source_ids": [
+        "0500/display/000370",
+        "0500/display/000371",
+        "0500/display/000372",
+        "0500/display/000373",
+        "0500/display/000374",
+        "0500/display/000375",
+        "0500/display/000376",
+        "0500/display/000377",
+        "0500/display/000378",
+        "0500/display/000379",
+        "0500/display/000380",
+        "0500/display/000381",
+        "0500/display/000382"
+      ],
+      "source_text": "Iv =9.000×7.0003 / 12 =257.250000m4"
+    },
+    {
+      "id": "0500/Kr.longitudinal.long_term.label",
+      "source_ids": [
+        "0500/display/000383"
+      ],
+      "source_text": "・長期"
+    },
+    {
+      "id": "0500/Kr.longitudinal.long_term",
+      "source_ids": [
+        "0500/display/000384",
+        "0500/display/000385",
+        "0500/display/000386",
+        "0500/display/000387",
+        "0500/display/000388",
+        "0500/display/000389",
+        "0500/display/000390",
+        "0500/display/000391",
+        "0500/display/000392",
+        "0500/display/000393"
+      ],
+      "source_text": "Kr =202988×257.250000=52,218,663kN・m/rad"
+    },
+    {
+      "id": "0500/Kr.longitudinal.short_term.label",
+      "source_ids": [
+        "0500/display/000394"
+      ],
+      "source_text": "・短期"
+    },
+    {
+      "id": "0500/Kr.longitudinal.short_term",
+      "source_ids": [
+        "0500/display/000395",
+        "0500/display/000396",
+        "0500/display/000397",
+        "0500/display/000398",
+        "0500/display/000399",
+        "0500/display/000400",
+        "0500/display/000401",
+        "0500/display/000402",
+        "0500/display/000403",
+        "0500/display/000404"
+      ],
+      "source_text": "Kr =405976×257.250000=104,437,326kN・m/rad"
+    },
+    {
+      "id": "0500/Kr.transverse.heading",
+      "source_ids": [
+        "0500/display/000405"
+      ],
+      "source_text": "2) 線路直角方向"
+    },
+    {
+      "id": "0500/Kr.transverse.inertia",
+      "source_ids": [
+        "0500/display/000406",
+        "0500/display/000407",
+        "0500/display/000408",
+        "0500/display/000409",
+        "0500/display/000410",
+        "0500/display/000411",
+        "0500/display/000412",
+        "0500/display/000413",
+        "0500/display/000414",
+        "0500/display/000415",
+        "0500/display/000416",
+        "0500/display/000417",
+        "0500/display/000418"
+      ],
+      "source_text": "Iv =7.000×9.0003 / 12 =425.250000m4"
+    },
+    {
+      "id": "0500/Kr.transverse.long_term.label",
+      "source_ids": [
+        "0500/display/000419"
+      ],
+      "source_text": "・長期"
+    },
+    {
+      "id": "0500/Kr.transverse.long_term",
+      "source_ids": [
+        "0500/display/000420",
+        "0500/display/000421",
+        "0500/display/000422",
+        "0500/display/000423",
+        "0500/display/000424",
+        "0500/display/000425",
+        "0500/display/000426",
+        "0500/display/000427",
+        "0500/display/000428",
+        "0500/display/000429"
+      ],
+      "source_text": "Kr =202988×425.250000=86,320,647kN・m/rad"
+    },
+    {
+      "id": "0500/Kr.transverse.short_term.label",
+      "source_ids": [
+        "0500/display/000430"
+      ],
+      "source_text": "・短期"
+    },
+    {
+      "id": "0500/Kr.transverse.short_term",
+      "source_ids": [
+        "0500/display/000431",
+        "0500/display/000432",
+        "0500/display/000433",
+        "0500/display/000434",
+        "0500/display/000435",
+        "0500/display/000436",
+        "0500/display/000437",
+        "0500/display/000438",
+        "0500/display/000439",
+        "0500/display/000440"
+      ],
+      "source_text": "Kr =405976×425.250000=172,641,294kN・m/rad"
+    }
+  ]
+}

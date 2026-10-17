@@ -1,0 +1,21 @@
+{
+  "example2": {
+    "source": "Example橋脚2/07_荷重計算.pdf, 7-1: moment equilibrium about each support",
+    "search": {"lengths": [0.575, 18.85, 0.575, 0.375, 9.25, 0.375], "car_count": 10, "car_length": 20, "a1": 2.8, "a2": 2.2, "axle_load": 160},
+    "positions": [22.2, 20, 17.2, 15, 2.2, 0],
+    "sides": ["C", "C", "B", "B", "B", "B"],
+    "display_reactions": [367.53, 272.47, 294.92, 25.08],
+    "candidate_count": 280,
+    "lateral": [
+      {"factor": 1.23, "axle_load": 39.36, "display_rb_rc": [64.83, 72.55]},
+      {"factor": 1.231, "axle_load": 39.39, "display_rb_rc": [64.88, 72.61]}
+    ]
+  },
+  "long_span": {
+    "source": "Exact rational event search and support moment equilibrium; legacy Single oracle is retained separately, not regenerated",
+    "search": {"lengths": [0.85, 72.6, 0.85, 0.85, 72.6, 0.85], "car_count": 10, "car_length": 16.4, "a1": 4, "a2": 2, "axle_load": 150},
+    "legacy_reactions": [1410.537109375, 1289.462890625, 1438.2230224609375, 1261.7769775390625],
+    "max_rb_rc_fraction": "330050/121",
+    "note": "There are multiple mathematical maxima. Joint assignment uses the millimetre grid; the right arm removes only Single addition noise within a few ULP and retains real sub-millimetre dimensions. Any selected exact optimum is validated by independent moments and force balance. Candidate traversal and strict score update remain unchanged."
+  }
+}

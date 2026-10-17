@@ -1,0 +1,137 @@
+{
+  "input": [
+    {
+      "name": "ご利用方法",
+      "codeName": "InputSheet",
+      "macroButtons": []
+    },
+    {
+      "name": "上部構造",
+      "codeName": "上部構造Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "上部工反力",
+      "codeName": "上部工反力Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "下部構造",
+      "codeName": "下部構造Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "地盤データ",
+      "codeName": "地盤データSheet",
+      "macroButtons": []
+    },
+    {
+      "name": "計算印刷",
+      "codeName": "計算印刷Sheet",
+      "macroButtons": [
+        {
+          "onAction": "input.xls!計算スタートボタン_Click",
+          "name": "Button 1"
+        }
+      ]
+    }
+  ],
+  "0500_直接基礎": [
+    {
+      "name": "支持層",
+      "codeName": "支持層Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "○地盤ばね (2)",
+      "codeName": "Sheet2",
+      "macroButtons": []
+    }
+  ],
+  "0600_上部工反力": [
+    {
+      "name": "死荷重",
+      "codeName": "死荷重Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "橋脚自重",
+      "codeName": "橋脚自重Sheet",
+      "macroButtons": [
+        {
+          "onAction": "'0600_上部工反力.xls'!橋脚形状作成_Click",
+          "name": "橋脚形状図"
+        }
+      ]
+    },
+    {
+      "name": "列車荷重",
+      "codeName": "列車荷重Sheet",
+      "macroButtons": [
+        {
+          "onAction": "'0600_上部工反力.xls'!test_Click",
+          "name": "Button 8764"
+        }
+      ]
+    },
+    {
+      "name": "線路荷重",
+      "codeName": "線路荷重Sheet",
+      "macroButtons": []
+    },
+    {
+      "name": "直角荷重",
+      "codeName": "直角荷重Sheet",
+      "macroButtons": [
+        {
+          "onAction": "'0600_上部工反力.xls'!車両横荷重_Click",
+          "name": "Button 54527"
+        }
+      ]
+    }
+  ],
+  "0610_線路方向荷重": [
+    {
+      "name": "骨組図",
+      "codeName": "Sheet1",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重計算",
+      "codeName": "Sheet2",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重図",
+      "codeName": "Sheet3",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重組合せ",
+      "codeName": "Sheet4",
+      "macroButtons": []
+    }
+  ],
+  "0620_直角方向荷重": [
+    {
+      "name": "骨組図",
+      "codeName": "Sheet1",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重計算",
+      "codeName": "Sheet2",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重図",
+      "codeName": "Sheet3",
+      "macroButtons": []
+    },
+    {
+      "name": "荷重組合せ",
+      "codeName": "Sheet4",
+      "macroButtons": []
+    }
+  ]
+}

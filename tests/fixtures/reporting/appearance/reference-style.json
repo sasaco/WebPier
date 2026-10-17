@@ -1,0 +1,1029 @@
+{
+  "schema_version": 1,
+  "purpose": "appearance only; no calculation or page-count expectations",
+  "sources": [
+    {
+      "file": "0500_直接基礎.pdf",
+      "sha256": "d590a30537940d9d538692536efb4291e346b5b2965dee90503c90d5510cb339"
+    },
+    {
+      "file": "0600_上部工反力.pdf",
+      "sha256": "048129c2212a03e09807e1df89ee96230f12c19e6adc467dc6b2ff77c0e1f977"
+    },
+    {
+      "file": "0610_線路方向荷重.pdf",
+      "sha256": "0b818254445b835a63545d7687406e5c4278d1ad0b5752e3b882a680368214a9"
+    },
+    {
+      "file": "0620_直角方向荷重.pdf",
+      "sha256": "fa512f294118def518cab2466a36d1b5710c28303d6401d98743d47816f27a1e"
+    }
+  ],
+  "user_transform": "All native text and values black; table fills white; rules black.",
+  "roles": {
+    "foundation.chapter": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "§5. 地盤のモデル化",
+        "occurrence": 0,
+        "sample": {
+          "text": "§5. 地盤のモデル化",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 93.95999908447266,
+          "baseline": 97.7979736328125,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 93.96
+      },
+      "relative_x_pt": -0.0
+    },
+    "foundation.section": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "5.1 地盤の諸数値の設計用値のまとめ",
+        "occurrence": 0,
+        "sample": {
+          "text": "5.1 地盤の諸数値の設計用値のまとめ",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 108.4800033569336,
+          "baseline": 126.35797119140625,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 93.96
+      },
+      "relative_x_pt": 14.52
+    },
+    "foundation.body": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "本橋脚の設計に用いる地盤の諸数値の設計用値を表 2.4.8 に示す.",
+        "occurrence": 0,
+        "sample": {
+          "text": "本橋脚の設計に用いる地盤の諸数値の設計用値を表 2.4.8 に示す.",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 123.0,
+          "baseline": 154.91802978515625,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 93.96
+      },
+      "relative_x_pt": 29.04
+    },
+    "foundation.subsection": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "(1) フーチング底面の鉛直地盤ばね定数",
+        "occurrence": 0,
+        "sample": {
+          "text": "(1) フーチング底面の鉛直地盤ばね定数",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 123.0,
+          "baseline": 509.63800048828125,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 93.96
+      },
+      "relative_x_pt": 29.04
+    },
+    "foundation.subsubsection": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "1) フーチング底面の鉛直地盤反力係数",
+        "occurrence": 0,
+        "sample": {
+          "text": "1) フーチング底面の鉛直地盤反力係数",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 137.52000427246094,
+          "baseline": 538.197998046875,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 93.96
+      },
+      "relative_x_pt": 43.56
+    },
+    "foundation.table_header": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "層番",
+        "occurrence": 0,
+        "sample": {
+          "text": "層番",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 89.04000091552734,
+          "baseline": 203.03802490234375,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "foundation.table_header_compressive": {
+      "font": "MS-Gothic",
+      "size_pt": 8.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "一軸圧縮強度",
+        "occurrence": 0,
+        "sample": {
+          "text": "一軸圧縮強度",
+          "font": "MS-Gothic",
+          "size": 8.899999618530273,
+          "x": 457.32000732421875,
+          "baseline": 195.5980224609375,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "foundation.table_value": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "4.000",
+        "occurrence": 0,
+        "sample": {
+          "text": "4.000",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 147.239990234375,
+          "baseline": 226.3179931640625,
+          "color": 16711680,
+          "page": 1
+        }
+      }
+    },
+    "common.chapter": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 1,
+        "selector_exact_text": "§6. 上部工反力 及び 橋脚自重",
+        "occurrence": 0,
+        "sample": {
+          "text": "§6. 上部工反力 及び 橋脚自重",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 58.91999816894531,
+          "baseline": 97.7979736328125,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": -0.0
+    },
+    "common.section": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 1,
+        "selector_exact_text": "6.1 死荷重",
+        "occurrence": 0,
+        "sample": {
+          "text": "6.1 死荷重",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 73.44000244140625,
+          "baseline": 126.35797119140625,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 14.52
+    },
+    "common.subsection": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 1,
+        "selector_exact_text": "(1) 支点反力",
+        "occurrence": 0,
+        "sample": {
+          "text": "(1) 支点反力",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 87.95999908447266,
+          "baseline": 154.91802978515625,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 29.04
+    },
+    "common.subsubsection": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 1,
+        "selector_exact_text": "1) 起点側桁",
+        "occurrence": 0,
+        "sample": {
+          "text": "1) 起点側桁",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 102.4800033569336,
+          "baseline": 297.718017578125,
+          "color": 0,
+          "page": 1
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 43.56
+    },
+    "common.body": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 13,
+        "selector_exact_text": "橋脚く体の下端に対して次式で求める.",
+        "occurrence": 0,
+        "sample": {
+          "text": "橋脚く体の下端に対して次式で求める.",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 117.0,
+          "baseline": 126.35797119140625,
+          "color": 0,
+          "page": 13
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 58.08
+    },
+    "common.detail_heading": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 16,
+        "selector_exact_text": "(a) 使用性の照査におけるひび割れの検討",
+        "occurrence": 0,
+        "sample": {
+          "text": "(a) 使用性の照査におけるひび割れの検討",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 117.0,
+          "baseline": 154.91802978515625,
+          "color": 0,
+          "page": 16
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 58.08
+    },
+    "common.table_header": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 10,
+        "selector_exact_text": "荷重名称",
+        "occurrence": 0,
+        "sample": {
+          "text": "荷重名称",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 131.8800048828125,
+          "baseline": 174.5980224609375,
+          "color": 0,
+          "page": 10
+        }
+      }
+    },
+    "common.table_value": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 10,
+        "selector_exact_text": "21",
+        "occurrence": 0,
+        "sample": {
+          "text": "21",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 67.19999694824219,
+          "baseline": 497.75799560546875,
+          "color": 0,
+          "page": 10
+        }
+      }
+    },
+    "horizontal.formula_lhs": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 26,
+        "selector_exact_text": "T / n",
+        "occurrence": 0,
+        "sample": {
+          "text": "T / n",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 175.0800018310547,
+          "baseline": 83.51800537109375,
+          "color": 0,
+          "page": 26
+        },
+        "anchor_x_pt": 58.92
+      },
+      "relative_x_pt": 116.16
+    },
+    "figure.caption": {
+      "font": "MS-PGothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 3,
+        "selector_exact_text": "側面図",
+        "occurrence": 0,
+        "sample": {
+          "text": "側面図",
+          "font": "MS-PGothic",
+          "size": 9.899999618530273,
+          "x": 281.3999938964844,
+          "baseline": 141.35797119140625,
+          "color": 0,
+          "page": 3
+        }
+      }
+    },
+    "figure.dimension": {
+      "font": "Calibri",
+      "size_pt": 8.0,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 3,
+        "selector_exact_text": "4500",
+        "occurrence": 0,
+        "sample": {
+          "text": "4500",
+          "font": "Calibri",
+          "size": 8.0,
+          "x": 256.55999755859375,
+          "baseline": 160.7979736328125,
+          "color": 0,
+          "page": 3
+        }
+      }
+    },
+    "frame.node": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 1,
+        "selector_exact_text": "1",
+        "occurrence": 0,
+        "sample": {
+          "text": "1",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 246.83999633789062,
+          "baseline": 413.1579895019531,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "frame.member": {
+      "font": "MS-Gothic",
+      "size_pt": 8.0,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 1,
+        "selector_exact_text": "4",
+        "occurrence": 0,
+        "sample": {
+          "text": "4",
+          "font": "MS-Gothic",
+          "size": 8.0,
+          "x": 246.83999633789062,
+          "baseline": 641.6380004882812,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "frame.dimension": {
+      "font": "MS-Gothic",
+      "size_pt": 9.9,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 1,
+        "selector_exact_text": "16.000",
+        "occurrence": 0,
+        "sample": {
+          "text": "16.000",
+          "font": "MS-Gothic",
+          "size": 9.899999618530273,
+          "x": 366.1199951171875,
+          "baseline": 420.2380065917969,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "foundation.symbolic_equals": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "relative_x_pt": 75.96,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "=",
+        "selector_x_pt": 169.92,
+        "selector_font": "MS-Mincho",
+        "occurrence": 0,
+        "anchor_x_pt": 93.96,
+        "sample": {
+          "text": "=",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 169.9199981689453,
+          "baseline": 565.91796875,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "foundation.substitution_equals": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "relative_x_pt": 90.48,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 2,
+        "selector_exact_text": "=",
+        "selector_x_pt": 184.44,
+        "selector_font": "MS-Mincho",
+        "occurrence": 0,
+        "anchor_x_pt": 93.96,
+        "sample": {
+          "text": "=",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 184.44000244140625,
+          "baseline": 125.51800537109375,
+          "color": 0,
+          "page": 2
+        }
+      }
+    },
+    "foundation.result_equals": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "relative_x_pt": 366.36,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "=",
+        "selector_x_pt": 460.32,
+        "selector_font": "MS-Mincho",
+        "occurrence": 0,
+        "anchor_x_pt": 93.96,
+        "sample": {
+          "text": "=",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 460.32000732421875,
+          "baseline": 680.1580200195312,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "horizontal.first_equals": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "relative_x_pt": 217.8,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 26,
+        "selector_exact_text": "＝",
+        "selector_x_pt": 276.72,
+        "selector_font": "MS-Mincho",
+        "occurrence": 0,
+        "anchor_x_pt": 58.92,
+        "sample": {
+          "text": "＝",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 276.7200012207031,
+          "baseline": 83.51800537109375,
+          "color": 0,
+          "page": 26
+        }
+      }
+    },
+    "horizontal.result_equals": {
+      "font": "MS-Mincho",
+      "size_pt": 9.9,
+      "relative_x_pt": 377.52,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 26,
+        "selector_exact_text": "＝",
+        "selector_x_pt": 436.44,
+        "selector_font": "MS-Mincho",
+        "occurrence": 0,
+        "anchor_x_pt": 58.92,
+        "sample": {
+          "text": "＝",
+          "font": "MS-Mincho",
+          "size": 9.899999618530273,
+          "x": 436.44000244140625,
+          "baseline": 83.51800537109375,
+          "color": 0,
+          "page": 26
+        }
+      }
+    },
+    "common.subscript": {
+      "font": "MS-Mincho",
+      "size_pt": 6.5,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "baseline_delta_pt": 1.92,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "v",
+        "occurrence": 0,
+        "reference_baseline_pt": 565.558,
+        "sample": {
+          "text": "v",
+          "font": "MS-Mincho",
+          "size": 6.5,
+          "x": 158.75999450683594,
+          "baseline": 567.47802734375,
+          "color": 0,
+          "page": 1
+        }
+      }
+    },
+    "common.superscript": {
+      "font": "MS-Mincho",
+      "size_pt": 6.5,
+      "size_tolerance_pt": 0.1,
+      "anchor_tolerance_pt": 0.5,
+      "monochrome": true,
+      "baseline_delta_pt": -4.92,
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "selector_exact_text": "-1/2",
+        "occurrence": 0,
+        "reference_baseline_pt": 565.558,
+        "sample": {
+          "text": "-1/2",
+          "font": "MS-Mincho",
+          "size": 6.5,
+          "x": 247.0800018310547,
+          "baseline": 560.6380004882812,
+          "color": 0,
+          "page": 1
+        }
+      }
+    }
+  },
+  "tables": {
+    "foundation.soil": {
+      "nominal_row_height_pt": 14.28,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Two header rows; unit-weight heading spans two columns; other headings span two rows.",
+      "source": {
+        "file": "0500_直接基礎.pdf",
+        "page": 1,
+        "crossing_x_pt": 310,
+        "top_pt": 185.6,
+        "bottom_pt": 371.3,
+        "boundaries_pt": [
+          185.63796997070312,
+          199.97802734375,
+          214.25799560546875,
+          228.53802490234375,
+          242.8179931640625,
+          257.0980224609375,
+          271.37799072265625,
+          285.65802001953125,
+          299.93798828125,
+          314.218017578125,
+          328.49798583984375,
+          342.77801513671875,
+          357.0580139160156,
+          371.2779998779297
+        ],
+        "heights_pt": [
+          14.3401,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.22
+        ]
+      }
+    },
+    "reaction.girder": {
+      "nominal_row_height_pt": 14.88,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Support heading spans five values; train ratio label spans three rows.",
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 1,
+        "crossing_x_pt": 250,
+        "top_pt": 314.7,
+        "bottom_pt": 419.0,
+        "boundaries_pt": [
+          314.7579650878906,
+          329.697998046875,
+          344.5179901123047,
+          359.4580078125,
+          374.2779998779297,
+          389.218017578125,
+          404.0979919433594,
+          418.9180145263672
+        ],
+        "heights_pt": [
+          14.94,
+          14.82,
+          14.94,
+          14.82,
+          14.94,
+          14.88,
+          14.82
+        ]
+      }
+    },
+    "reaction.impact": {
+      "nominal_row_height_pt": 14.88,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Safety/repair and serviceability labels span six rows; groups of three loads have selected thick rules.",
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 13,
+        "crossing_x_pt": 350,
+        "top_pt": 286.1,
+        "bottom_pt": 480.0,
+        "boundaries_pt": [
+          286.1979675292969,
+          301.0779724121094,
+          316.25799560546875,
+          331.13800048828125,
+          345.95799255371094,
+          360.89801025390625,
+          375.77801513671875,
+          390.59800720214844,
+          405.5379943847656,
+          420.4179992675781,
+          435.2379913330078,
+          450.1780090332031,
+          465.0580139160156,
+          479.8780059814453
+        ],
+        "heights_pt": [
+          14.88,
+          15.18,
+          14.88,
+          14.82,
+          14.94,
+          14.88,
+          14.82,
+          14.94,
+          14.88,
+          14.82,
+          14.94,
+          14.88,
+          14.82
+        ]
+      }
+    },
+    "reaction.horizontal_summary": {
+      "nominal_row_height_pt": 23.04,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Header height 28.56; body load-type labels span selected rows.",
+      "source": {
+        "file": "0600_上部工反力.pdf",
+        "page": 37,
+        "crossing_x_pt": 350,
+        "top_pt": 142.8,
+        "bottom_pt": 327.2,
+        "boundaries_pt": [
+          142.8580322265625,
+          165.89801025390625,
+          188.93798828125,
+          211.97802734375,
+          235.01800537109375,
+          258.0579833984375,
+          281.0980224609375,
+          304.13800048828125,
+          327.1180114746094
+        ],
+        "heights_pt": [
+          23.04,
+          23.04,
+          23.04,
+          23.04,
+          23.04,
+          23.04,
+          23.04,
+          22.98
+        ]
+      }
+    },
+    "longitudinal.combination": {
+      "nominal_row_height_pt": 14.28,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Four header bands; grouped safety/service columns; basic case labels span the header.",
+      "source": {
+        "file": "0610_線路方向荷重.pdf",
+        "page": 10,
+        "crossing_x_pt": 230,
+        "top_pt": 200.0,
+        "bottom_pt": 500.0,
+        "boundaries_pt": [
+          200.03799438476562,
+          214.37799072265625,
+          228.65802001953125,
+          242.93798828125,
+          257.218017578125,
+          271.49798583984375,
+          285.77801513671875,
+          300.0579833984375,
+          314.3380126953125,
+          328.61798095703125,
+          342.89801025390625,
+          357.1780090332031,
+          371.4580078125,
+          385.7380065917969,
+          400.01800537109375,
+          414.2980041503906,
+          428.5780029296875,
+          442.8580017089844,
+          457.13800048828125,
+          471.4179992675781,
+          485.697998046875,
+          499.9180145263672
+        ],
+        "heights_pt": [
+          14.34,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.28,
+          14.22
+        ]
+      }
+    },
+    "transverse.combination": {
+      "nominal_row_height_pt": 12.84,
+      "tolerance_pt": 0.5,
+      "thin_rule_pt": 0.12,
+      "thick_rule_pt": 0.96,
+      "merged_structure": "Four header bands; repeated load labels; vertical column labels use 64.2 pt bottom band.",
+      "source": {
+        "file": "0620_直角方向荷重.pdf",
+        "page": 17,
+        "crossing_x_pt": 230,
+        "top_pt": 187.0,
+        "bottom_pt": 495.3,
+        "boundaries_pt": [
+          187.07797241210938,
+          199.97802734375,
+          212.8179931640625,
+          225.65802001953125,
+          238.49798583984375,
+          251.3380126953125,
+          264.177978515625,
+          277.01800537109375,
+          289.8580322265625,
+          302.697998046875,
+          315.53802490234375,
+          328.37799072265625,
+          341.218017578125,
+          354.0580139160156,
+          366.89801025390625,
+          379.7380065917969,
+          392.5780029296875,
+          405.4179992675781,
+          418.25799560546875,
+          431.0979919433594,
+          443.93798828125,
+          456.77801513671875,
+          469.6180114746094,
+          482.4580078125,
+          495.2379913330078
+        ],
+        "heights_pt": [
+          12.9001,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.84,
+          12.78
+        ]
+      }
+    }
+  },
+  "common_measures": {
+    "hierarchy_indent_pt": 14.52,
+    "body_leading_pt": 14.28,
+    "section_gap_pt": 28.56,
+    "script_size_pt": 6.5,
+    "measured_increment_pt": 0.12
+  },
+  "layout_proposal": {
+    "page_size_pt": [
+      595,
+      842
+    ],
+    "frame_pt": [
+      48,
+      72,
+      576,
+      792
+    ],
+    "first_baseline_offset_pt": 11.52,
+    "status": "implementation choice supported by source envelopes, not exact source frame"
+  },
+  "blank_source_pages": {
+    "0610": [
+      8
+    ],
+    "0620": [
+      14,
+      15
+    ]
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "foundation": {
+    "B": 7.0,
+    "L": 9.0,
+    "area": 63.0,
+    "equivalent_width": 7.937,
+    "inertia_longitudinal": 257.25,
+    "inertia_transverse": 425.25
+  },
+  "layers": [
+    {
+      "name": "表層",
+      "thickness": 4.7,
+      "soil_type": "砂質土",
+      "n_value": 0.0,
+      "unit_weight_wet": 18.0,
+      "unit_weight_submerged": 8.0,
+      "friction_angle": null,
+      "friction_angle_limit": null,
+      "compressive_strength": null,
+      "deformation_modulus": null
+    },
+    {
+      "name": "支持層",
+      "thickness": null,
+      "soil_type": "砂礫",
+      "n_value": 90.0,
+      "unit_weight_wet": 19.0,
+      "unit_weight_submerged": 10.0,
+      "friction_angle": 42.2,
+      "friction_angle_limit": null,
+      "compressive_strength": 0.0,
+      "deformation_modulus": 165760.0
+    }
+  ],
+  "support_layer": {
+    "name": "支持層",
+    "thickness": null,
+    "soil_type": "砂礫",
+    "n_value": 90.0,
+    "unit_weight_wet": 19.0,
+    "unit_weight_submerged": 10.0,
+    "friction_angle": 42.2,
+    "friction_angle_limit": null,
+    "compressive_strength": 0.0,
+    "deformation_modulus": 165760.0
+  },
+  "model": {
+    "coefficient": 6.9,
+    "exponent": -0.5,
+    "rho_long_term": 0.5,
+    "rho_short_term": 1.0,
+    "shear_ratio": 0.3333333333333333,
+    "bearing_n_gamma": 150,
+    "bearing_n_q": 85
+  },
+  "long_term": {
+    "kv": 202988,
+    "Kv": 12788244,
+    "ks": 67663,
+    "Ks": 4262769,
+    "Kr_longitudinal": 52218663,
+    "Kr_transverse": 86320647
+  },
+  "short_term": {
+    "kv": 405976,
+    "Kv": 25576488,
+    "ks": 135325,
+    "Ks": 8525475,
+    "Kr_longitudinal": 104437326,
+    "Kr_transverse": 172641294
+  },
+  "macro_handoff_single": {
+    "long_term": {
+      "Kv": 12788244.0,
+      "Ks": 4262769.0,
+      "Kr": 86320648.0
+    },
+    "short_term": {
+      "Kv": 25576488.0,
+      "Ks": 8525475.0,
+      "Kr": 172641296.0
+    }
+  },
+  "units": {
+    "length": "m",
+    "area": "m²",
+    "inertia": "m⁴",
+    "Ed": "kN/m²",
+    "kv": "kN/m³",
+    "ks": "kN/m³",
+    "Kv": "kN/m",
+    "Ks": "kN/m",
+    "Kr_longitudinal": "kN·m/rad",
+    "Kr_transverse": "kN·m/rad"
+  },
+  "provenance": {
+    "macro": "Example橋脚/pre/input.xls!直接基礎計算.計算",
+    "workbook": "Example橋脚/0500_直接基礎.xls",
+    "sheet": "支持層",
+    "bearing_factors": "解説表13.2.2.3-2「地表面が平坦な場合の支持力係数」。支持層の内部摩擦角_φdから線形補間、42度以上はNγ=150・Nq=85、25度未満は適用外。地震時を除く・地震時に同じ係数を使用。",
+    "constants": "I37:I39, L48, L51, Q76, Q110, Q121の保存値を移植。砂礫は砂質土に分類し、係数6.9・指数-1/2を使用。",
+    "surface_thickness": "input.xls 地盤データ!F5 = H6+H5+MIN(df1,df2)",
+    "rounding": "Excel ROUND（中間値も同じ桁数で丸める）。B/LはVBA Singleで逐次加算。",
+    "input_file": "input.json",
+    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b"
+  },
+  "warnings": []
+}

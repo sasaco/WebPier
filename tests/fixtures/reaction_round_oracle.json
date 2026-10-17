@@ -1,0 +1,1062 @@
+{
+  "oracle": "Microsoft Excel COM ROUND in new unsaved workbook; no project functions imported",
+  "excel_version": "16.0",
+  "cases": [
+    {
+      "input": 639.9749999999999,
+      "input_repr": "639.9749999999999",
+      "excel_input_value": 639.9749999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 1,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 2,
+          "excel": 639.98,
+          "decimal_str": 639.97,
+          "decimal_15g": 639.98
+        },
+        {
+          "places": 3,
+          "excel": 639.975,
+          "decimal_str": 639.975,
+          "decimal_15g": 639.975
+        }
+      ]
+    },
+    {
+      "input": -639.9749999999999,
+      "input_repr": "-639.9749999999999",
+      "excel_input_value": -639.9749999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 1,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 2,
+          "excel": -639.98,
+          "decimal_str": -639.97,
+          "decimal_15g": -639.98
+        },
+        {
+          "places": 3,
+          "excel": -639.975,
+          "decimal_str": -639.975,
+          "decimal_15g": -639.975
+        }
+      ]
+    },
+    {
+      "input": 639.9749999999,
+      "input_repr": "639.9749999999",
+      "excel_input_value": 639.9749999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 1,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 2,
+          "excel": 639.97,
+          "decimal_str": 639.97,
+          "decimal_15g": 639.97
+        },
+        {
+          "places": 3,
+          "excel": 639.975,
+          "decimal_str": 639.975,
+          "decimal_15g": 639.975
+        }
+      ]
+    },
+    {
+      "input": -639.9749999999,
+      "input_repr": "-639.9749999999",
+      "excel_input_value": -639.9749999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 1,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 2,
+          "excel": -639.97,
+          "decimal_str": -639.97,
+          "decimal_15g": -639.97
+        },
+        {
+          "places": 3,
+          "excel": -639.975,
+          "decimal_str": -639.975,
+          "decimal_15g": -639.975
+        }
+      ]
+    },
+    {
+      "input": 639.975,
+      "input_repr": "639.975",
+      "excel_input_value": 639.975,
+      "places": [
+        {
+          "places": 0,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 1,
+          "excel": 640.0,
+          "decimal_str": 640.0,
+          "decimal_15g": 640.0
+        },
+        {
+          "places": 2,
+          "excel": 639.98,
+          "decimal_str": 639.98,
+          "decimal_15g": 639.98
+        },
+        {
+          "places": 3,
+          "excel": 639.975,
+          "decimal_str": 639.975,
+          "decimal_15g": 639.975
+        }
+      ]
+    },
+    {
+      "input": -639.975,
+      "input_repr": "-639.975",
+      "excel_input_value": -639.975,
+      "places": [
+        {
+          "places": 0,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 1,
+          "excel": -640.0,
+          "decimal_str": -640.0,
+          "decimal_15g": -640.0
+        },
+        {
+          "places": 2,
+          "excel": -639.98,
+          "decimal_str": -639.98,
+          "decimal_15g": -639.98
+        },
+        {
+          "places": 3,
+          "excel": -639.975,
+          "decimal_str": -639.975,
+          "decimal_15g": -639.975
+        }
+      ]
+    },
+    {
+      "input": 25.314999999999998,
+      "input_repr": "25.314999999999998",
+      "excel_input_value": 25.314999999999998,
+      "places": [
+        {
+          "places": 0,
+          "excel": 25.0,
+          "decimal_str": 25.0,
+          "decimal_15g": 25.0
+        },
+        {
+          "places": 1,
+          "excel": 25.3,
+          "decimal_str": 25.3,
+          "decimal_15g": 25.3
+        },
+        {
+          "places": 2,
+          "excel": 25.32,
+          "decimal_str": 25.31,
+          "decimal_15g": 25.32
+        },
+        {
+          "places": 3,
+          "excel": 25.315,
+          "decimal_str": 25.315,
+          "decimal_15g": 25.315
+        }
+      ]
+    },
+    {
+      "input": -25.314999999999998,
+      "input_repr": "-25.314999999999998",
+      "excel_input_value": -25.314999999999998,
+      "places": [
+        {
+          "places": 0,
+          "excel": -25.0,
+          "decimal_str": -25.0,
+          "decimal_15g": -25.0
+        },
+        {
+          "places": 1,
+          "excel": -25.3,
+          "decimal_str": -25.3,
+          "decimal_15g": -25.3
+        },
+        {
+          "places": 2,
+          "excel": -25.32,
+          "decimal_str": -25.31,
+          "decimal_15g": -25.32
+        },
+        {
+          "places": 3,
+          "excel": -25.315,
+          "decimal_str": -25.315,
+          "decimal_15g": -25.315
+        }
+      ]
+    },
+    {
+      "input": 25.315,
+      "input_repr": "25.315",
+      "excel_input_value": 25.315,
+      "places": [
+        {
+          "places": 0,
+          "excel": 25.0,
+          "decimal_str": 25.0,
+          "decimal_15g": 25.0
+        },
+        {
+          "places": 1,
+          "excel": 25.3,
+          "decimal_str": 25.3,
+          "decimal_15g": 25.3
+        },
+        {
+          "places": 2,
+          "excel": 25.32,
+          "decimal_str": 25.32,
+          "decimal_15g": 25.32
+        },
+        {
+          "places": 3,
+          "excel": 25.315,
+          "decimal_str": 25.315,
+          "decimal_15g": 25.315
+        }
+      ]
+    },
+    {
+      "input": -25.315,
+      "input_repr": "-25.315",
+      "excel_input_value": -25.315,
+      "places": [
+        {
+          "places": 0,
+          "excel": -25.0,
+          "decimal_str": -25.0,
+          "decimal_15g": -25.0
+        },
+        {
+          "places": 1,
+          "excel": -25.3,
+          "decimal_str": -25.3,
+          "decimal_15g": -25.3
+        },
+        {
+          "places": 2,
+          "excel": -25.32,
+          "decimal_str": -25.32,
+          "decimal_15g": -25.32
+        },
+        {
+          "places": 3,
+          "excel": -25.315,
+          "decimal_str": -25.315,
+          "decimal_15g": -25.315
+        }
+      ]
+    },
+    {
+      "input": 25.3149999999,
+      "input_repr": "25.3149999999",
+      "excel_input_value": 25.3149999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 25.0,
+          "decimal_str": 25.0,
+          "decimal_15g": 25.0
+        },
+        {
+          "places": 1,
+          "excel": 25.3,
+          "decimal_str": 25.3,
+          "decimal_15g": 25.3
+        },
+        {
+          "places": 2,
+          "excel": 25.31,
+          "decimal_str": 25.31,
+          "decimal_15g": 25.31
+        },
+        {
+          "places": 3,
+          "excel": 25.315,
+          "decimal_str": 25.315,
+          "decimal_15g": 25.315
+        }
+      ]
+    },
+    {
+      "input": -25.3149999999,
+      "input_repr": "-25.3149999999",
+      "excel_input_value": -25.3149999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": -25.0,
+          "decimal_str": -25.0,
+          "decimal_15g": -25.0
+        },
+        {
+          "places": 1,
+          "excel": -25.3,
+          "decimal_str": -25.3,
+          "decimal_15g": -25.3
+        },
+        {
+          "places": 2,
+          "excel": -25.31,
+          "decimal_str": -25.31,
+          "decimal_15g": -25.31
+        },
+        {
+          "places": 3,
+          "excel": -25.315,
+          "decimal_str": -25.315,
+          "decimal_15g": -25.315
+        }
+      ]
+    },
+    {
+      "input": 1.2344999999999997,
+      "input_repr": "1.2344999999999997",
+      "excel_input_value": 1.2344999999999997,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 1.2,
+          "decimal_str": 1.2,
+          "decimal_15g": 1.2
+        },
+        {
+          "places": 2,
+          "excel": 1.23,
+          "decimal_str": 1.23,
+          "decimal_15g": 1.23
+        },
+        {
+          "places": 3,
+          "excel": 1.235,
+          "decimal_str": 1.234,
+          "decimal_15g": 1.235
+        }
+      ]
+    },
+    {
+      "input": -1.2344999999999997,
+      "input_repr": "-1.2344999999999997",
+      "excel_input_value": -1.2344999999999997,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -1.2,
+          "decimal_str": -1.2,
+          "decimal_15g": -1.2
+        },
+        {
+          "places": 2,
+          "excel": -1.23,
+          "decimal_str": -1.23,
+          "decimal_15g": -1.23
+        },
+        {
+          "places": 3,
+          "excel": -1.235,
+          "decimal_str": -1.234,
+          "decimal_15g": -1.235
+        }
+      ]
+    },
+    {
+      "input": 1.2345000000000002,
+      "input_repr": "1.2345000000000002",
+      "excel_input_value": 1.2345000000000002,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 1.2,
+          "decimal_str": 1.2,
+          "decimal_15g": 1.2
+        },
+        {
+          "places": 2,
+          "excel": 1.23,
+          "decimal_str": 1.23,
+          "decimal_15g": 1.23
+        },
+        {
+          "places": 3,
+          "excel": 1.235,
+          "decimal_str": 1.235,
+          "decimal_15g": 1.235
+        }
+      ]
+    },
+    {
+      "input": -1.2345000000000002,
+      "input_repr": "-1.2345000000000002",
+      "excel_input_value": -1.2345000000000002,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -1.2,
+          "decimal_str": -1.2,
+          "decimal_15g": -1.2
+        },
+        {
+          "places": 2,
+          "excel": -1.23,
+          "decimal_str": -1.23,
+          "decimal_15g": -1.23
+        },
+        {
+          "places": 3,
+          "excel": -1.235,
+          "decimal_str": -1.235,
+          "decimal_15g": -1.235
+        }
+      ]
+    },
+    {
+      "input": 1.2344999999999,
+      "input_repr": "1.2344999999999",
+      "excel_input_value": 1.2344999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 1.2,
+          "decimal_str": 1.2,
+          "decimal_15g": 1.2
+        },
+        {
+          "places": 2,
+          "excel": 1.23,
+          "decimal_str": 1.23,
+          "decimal_15g": 1.23
+        },
+        {
+          "places": 3,
+          "excel": 1.234,
+          "decimal_str": 1.234,
+          "decimal_15g": 1.234
+        }
+      ]
+    },
+    {
+      "input": -1.2344999999999,
+      "input_repr": "-1.2344999999999",
+      "excel_input_value": -1.2344999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -1.2,
+          "decimal_str": -1.2,
+          "decimal_15g": -1.2
+        },
+        {
+          "places": 2,
+          "excel": -1.23,
+          "decimal_str": -1.23,
+          "decimal_15g": -1.23
+        },
+        {
+          "places": 3,
+          "excel": -1.234,
+          "decimal_str": -1.234,
+          "decimal_15g": -1.234
+        }
+      ]
+    },
+    {
+      "input": 1.2345000000001,
+      "input_repr": "1.2345000000001",
+      "excel_input_value": 1.2345000000001,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 1.2,
+          "decimal_str": 1.2,
+          "decimal_15g": 1.2
+        },
+        {
+          "places": 2,
+          "excel": 1.23,
+          "decimal_str": 1.23,
+          "decimal_15g": 1.23
+        },
+        {
+          "places": 3,
+          "excel": 1.235,
+          "decimal_str": 1.235,
+          "decimal_15g": 1.235
+        }
+      ]
+    },
+    {
+      "input": -1.2345000000001,
+      "input_repr": "-1.2345000000001",
+      "excel_input_value": -1.2345000000001,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -1.2,
+          "decimal_str": -1.2,
+          "decimal_15g": -1.2
+        },
+        {
+          "places": 2,
+          "excel": -1.23,
+          "decimal_str": -1.23,
+          "decimal_15g": -1.23
+        },
+        {
+          "places": 3,
+          "excel": -1.235,
+          "decimal_str": -1.235,
+          "decimal_15g": -1.235
+        }
+      ]
+    },
+    {
+      "input": 1.005,
+      "input_repr": "1.005",
+      "excel_input_value": 1.005,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 1.0,
+          "decimal_str": 1.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 2,
+          "excel": 1.01,
+          "decimal_str": 1.01,
+          "decimal_15g": 1.01
+        },
+        {
+          "places": 3,
+          "excel": 1.005,
+          "decimal_str": 1.005,
+          "decimal_15g": 1.005
+        }
+      ]
+    },
+    {
+      "input": -1.005,
+      "input_repr": "-1.005",
+      "excel_input_value": -1.005,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -1.0,
+          "decimal_str": -1.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 2,
+          "excel": -1.01,
+          "decimal_str": -1.01,
+          "decimal_15g": -1.01
+        },
+        {
+          "places": 3,
+          "excel": -1.005,
+          "decimal_str": -1.005,
+          "decimal_15g": -1.005
+        }
+      ]
+    },
+    {
+      "input": 2.675,
+      "input_repr": "2.675",
+      "excel_input_value": 2.675,
+      "places": [
+        {
+          "places": 0,
+          "excel": 3.0,
+          "decimal_str": 3.0,
+          "decimal_15g": 3.0
+        },
+        {
+          "places": 1,
+          "excel": 2.7,
+          "decimal_str": 2.7,
+          "decimal_15g": 2.7
+        },
+        {
+          "places": 2,
+          "excel": 2.68,
+          "decimal_str": 2.68,
+          "decimal_15g": 2.68
+        },
+        {
+          "places": 3,
+          "excel": 2.675,
+          "decimal_str": 2.675,
+          "decimal_15g": 2.675
+        }
+      ]
+    },
+    {
+      "input": -2.675,
+      "input_repr": "-2.675",
+      "excel_input_value": -2.675,
+      "places": [
+        {
+          "places": 0,
+          "excel": -3.0,
+          "decimal_str": -3.0,
+          "decimal_15g": -3.0
+        },
+        {
+          "places": 1,
+          "excel": -2.7,
+          "decimal_str": -2.7,
+          "decimal_15g": -2.7
+        },
+        {
+          "places": 2,
+          "excel": -2.68,
+          "decimal_str": -2.68,
+          "decimal_15g": -2.68
+        },
+        {
+          "places": 3,
+          "excel": -2.675,
+          "decimal_str": -2.675,
+          "decimal_15g": -2.675
+        }
+      ]
+    },
+    {
+      "input": 0.49999999999999994,
+      "input_repr": "0.49999999999999994",
+      "excel_input_value": 0.49999999999999994,
+      "places": [
+        {
+          "places": 0,
+          "excel": 1.0,
+          "decimal_str": 0.0,
+          "decimal_15g": 1.0
+        },
+        {
+          "places": 1,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        },
+        {
+          "places": 2,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        },
+        {
+          "places": 3,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        }
+      ]
+    },
+    {
+      "input": -0.49999999999999994,
+      "input_repr": "-0.49999999999999994",
+      "excel_input_value": -0.49999999999999994,
+      "places": [
+        {
+          "places": 0,
+          "excel": -1.0,
+          "decimal_str": -0.0,
+          "decimal_15g": -1.0
+        },
+        {
+          "places": 1,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        },
+        {
+          "places": 2,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        },
+        {
+          "places": 3,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        }
+      ]
+    },
+    {
+      "input": 0.4999999999999,
+      "input_repr": "0.4999999999999",
+      "excel_input_value": 0.4999999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 0.0,
+          "decimal_str": 0.0,
+          "decimal_15g": 0.0
+        },
+        {
+          "places": 1,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        },
+        {
+          "places": 2,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        },
+        {
+          "places": 3,
+          "excel": 0.5,
+          "decimal_str": 0.5,
+          "decimal_15g": 0.5
+        }
+      ]
+    },
+    {
+      "input": -0.4999999999999,
+      "input_repr": "-0.4999999999999",
+      "excel_input_value": -0.4999999999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 0.0,
+          "decimal_str": -0.0,
+          "decimal_15g": -0.0
+        },
+        {
+          "places": 1,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        },
+        {
+          "places": 2,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        },
+        {
+          "places": 3,
+          "excel": -0.5,
+          "decimal_str": -0.5,
+          "decimal_15g": -0.5
+        }
+      ]
+    },
+    {
+      "input": 12.349999999999998,
+      "input_repr": "12.349999999999998",
+      "excel_input_value": 12.349999999999998,
+      "places": [
+        {
+          "places": 0,
+          "excel": 12.0,
+          "decimal_str": 12.0,
+          "decimal_15g": 12.0
+        },
+        {
+          "places": 1,
+          "excel": 12.4,
+          "decimal_str": 12.3,
+          "decimal_15g": 12.4
+        },
+        {
+          "places": 2,
+          "excel": 12.35,
+          "decimal_str": 12.35,
+          "decimal_15g": 12.35
+        },
+        {
+          "places": 3,
+          "excel": 12.35,
+          "decimal_str": 12.35,
+          "decimal_15g": 12.35
+        }
+      ]
+    },
+    {
+      "input": -12.349999999999998,
+      "input_repr": "-12.349999999999998",
+      "excel_input_value": -12.349999999999998,
+      "places": [
+        {
+          "places": 0,
+          "excel": -12.0,
+          "decimal_str": -12.0,
+          "decimal_15g": -12.0
+        },
+        {
+          "places": 1,
+          "excel": -12.4,
+          "decimal_str": -12.3,
+          "decimal_15g": -12.4
+        },
+        {
+          "places": 2,
+          "excel": -12.35,
+          "decimal_str": -12.35,
+          "decimal_15g": -12.35
+        },
+        {
+          "places": 3,
+          "excel": -12.35,
+          "decimal_str": -12.35,
+          "decimal_15g": -12.35
+        }
+      ]
+    },
+    {
+      "input": 12.3499999999,
+      "input_repr": "12.3499999999",
+      "excel_input_value": 12.3499999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": 12.0,
+          "decimal_str": 12.0,
+          "decimal_15g": 12.0
+        },
+        {
+          "places": 1,
+          "excel": 12.3,
+          "decimal_str": 12.3,
+          "decimal_15g": 12.3
+        },
+        {
+          "places": 2,
+          "excel": 12.35,
+          "decimal_str": 12.35,
+          "decimal_15g": 12.35
+        },
+        {
+          "places": 3,
+          "excel": 12.35,
+          "decimal_str": 12.35,
+          "decimal_15g": 12.35
+        }
+      ]
+    },
+    {
+      "input": -12.3499999999,
+      "input_repr": "-12.3499999999",
+      "excel_input_value": -12.3499999999,
+      "places": [
+        {
+          "places": 0,
+          "excel": -12.0,
+          "decimal_str": -12.0,
+          "decimal_15g": -12.0
+        },
+        {
+          "places": 1,
+          "excel": -12.3,
+          "decimal_str": -12.3,
+          "decimal_15g": -12.3
+        },
+        {
+          "places": 2,
+          "excel": -12.35,
+          "decimal_str": -12.35,
+          "decimal_15g": -12.35
+        },
+        {
+          "places": 3,
+          "excel": -12.35,
+          "decimal_str": -12.35,
+          "decimal_15g": -12.35
+        }
+      ]
+    }
+  ],
+  "comparisons": 128,
+  "decimal_str_mismatches": [
+    {
+      "input": 639.9749999999999,
+      "places": 2,
+      "excel": 639.98,
+      "candidate": 639.97
+    },
+    {
+      "input": -639.9749999999999,
+      "places": 2,
+      "excel": -639.98,
+      "candidate": -639.97
+    },
+    {
+      "input": 25.314999999999998,
+      "places": 2,
+      "excel": 25.32,
+      "candidate": 25.31
+    },
+    {
+      "input": -25.314999999999998,
+      "places": 2,
+      "excel": -25.32,
+      "candidate": -25.31
+    },
+    {
+      "input": 1.2344999999999997,
+      "places": 3,
+      "excel": 1.235,
+      "candidate": 1.234
+    },
+    {
+      "input": -1.2344999999999997,
+      "places": 3,
+      "excel": -1.235,
+      "candidate": -1.234
+    },
+    {
+      "input": 0.49999999999999994,
+      "places": 0,
+      "excel": 1.0,
+      "candidate": 0.0
+    },
+    {
+      "input": -0.49999999999999994,
+      "places": 0,
+      "excel": -1.0,
+      "candidate": -0.0
+    },
+    {
+      "input": 12.349999999999998,
+      "places": 1,
+      "excel": 12.4,
+      "candidate": 12.3
+    },
+    {
+      "input": -12.349999999999998,
+      "places": 1,
+      "excel": -12.4,
+      "candidate": -12.3
+    }
+  ],
+  "decimal_15g_mismatches": []
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "SoilStructure Input"
+  short_description: "SoilStructure入力JSONを安全に作成・検証"
+  default_prompt: "Use $soilstructure-input to prepare and validate a SoilStructure schemaVersion 1 input from the stated design conditions."

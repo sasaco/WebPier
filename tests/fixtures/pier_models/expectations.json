@@ -1,0 +1,3797 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "method": "Independent literal geometry and explicit aliases/connectivity from the approved model contract; no production frame builder/calculator was imported to construct expectations.",
+    "units": {
+      "x": "m",
+      "y": "m",
+      "area": "m2",
+      "inertia": "m4"
+    },
+    "legacy_cell_note": "Old cap-top cells retain original left-associated sum; active heights accumulate once from footing upward.",
+    "tiny_eccentric_note": "Decimal relation yields exactly +0.000000000001 m in both directions, which must not merge with zero."
+  },
+  "cases": {
+    "default": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {},
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "parapet_asymmetric": {
+      "source_case": "pedestal_nonzero",
+      "input_fixture": "parapet-asymmetric.json",
+      "geometry_overrides": {},
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 7,
+              "x": -0.5,
+              "y": 11.2,
+              "roles": [
+                "parapet_base"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": -0.5,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 7,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 6,
+              "node_i": 1,
+              "node_j": 7,
+              "region": "parapet_arm",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 7,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.9,
+              "depth": 0.6,
+              "area": 0.54,
+              "inertia": 0.0162
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 7,
+              "x": -3.375,
+              "y": 11.2,
+              "roles": [
+                "parapet_base"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": -3.375,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 7,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 6,
+              "node_i": 1,
+              "node_j": 7,
+              "region": "parapet_arm",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 7,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.6,
+              "depth": 0.9,
+              "area": 0.54,
+              "inertia": 0.03645
+            }
+          }
+        }
+      }
+    },
+    "asymmetric_footing": {
+      "source_case": "geometry_water",
+      "input_fixture": "asymmetric-footing.json",
+      "geometry_overrides": {},
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.6,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2.4,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1.1779999732971191,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.425,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 10.2,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.6,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2.4,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1.1779999732971191,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.6,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2.4,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1.1779999732971191,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.425,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 10.2,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.6,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2.4,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1.1779999732971191,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "h2_zero": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {
+        "h": {
+          "H2": 0
+        }
+      },
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "cap_top",
+                "h2_h3"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 1,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 2,
+              "node_i": 1,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.025,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "cap_top",
+                "h2_h3"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 1,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 2,
+              "node_i": 1,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.025,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "h3_zero": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {
+        "h": {
+          "H3": 0
+        }
+      },
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.975,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h2_h3",
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 5
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 5,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.975000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.975,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h2_h3",
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 5
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 5,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 10.975000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "h2_h3_zero": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {
+        "h": {
+          "H2": 0,
+          "H3": 0
+        }
+      },
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "cap_top",
+                "h2_h3",
+                "h3_h4"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 1,
+            "h3_h4": 1
+          },
+          "members": [
+            {
+              "id": 3,
+              "node_i": 1,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 9.8,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "cap_top",
+                "h2_h3",
+                "h3_h4"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 1,
+            "h3_h4": 1
+          },
+          "members": [
+            {
+              "id": 3,
+              "node_i": 1,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 9.8,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "hg_zero": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {},
+      "hg_override": 0,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_centroid",
+                "footing_bottom"
+              ],
+              "source_rows": [
+                83,
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 4,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 4,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 4
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 0,
+              "source_row": 83,
+              "active_node_id": 4
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_centroid",
+                "footing_bottom"
+              ],
+              "source_rows": [
+                81,
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 4,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 4,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 4
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 0,
+              "source_row": 81,
+              "active_node_id": 4
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "hg_top": {
+      "source_case": "current_input",
+      "input_fixture": null,
+      "geometry_overrides": {},
+      "hg_override": 2,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top",
+                "footing_centroid"
+              ],
+              "source_rows": [
+                82,
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 2,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 5,
+              "node_i": 2,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 2
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 2,
+              "source_row": 83,
+              "active_node_id": 2
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top",
+                "footing_centroid"
+              ],
+              "source_rows": [
+                80,
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 2,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 5,
+              "node_i": 2,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 2
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 2,
+              "source_row": 81,
+              "active_node_id": 2
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            }
+          }
+        }
+      }
+    },
+    "parapet_centered": {
+      "source_case": "pedestal_nonzero",
+      "input_fixture": "parapet-asymmetric.json",
+      "geometry_overrides": {
+        "b": {
+          "B2": 0.75
+        },
+        "w": {
+          "W2": 3.675
+        }
+      },
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top",
+                "parapet_base"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": 0,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 1,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 1,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.9,
+              "depth": 0.6,
+              "area": 0.54,
+              "inertia": 0.0162
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top",
+                "parapet_base"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": 0,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 1,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 1,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.6,
+              "depth": 0.9,
+              "area": 0.54,
+              "inertia": 0.03645
+            }
+          }
+        }
+      }
+    },
+    "parapet_tiny_eccentric": {
+      "source_case": "pedestal_nonzero",
+      "input_fixture": "parapet-asymmetric.json",
+      "geometry_overrides": {
+        "b": {
+          "B2": 0.750000000001
+        },
+        "w": {
+          "W2": 3.675000000001
+        }
+      },
+      "hg_override": null,
+      "directions": {
+        "b": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                83
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                84
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 7,
+              "x": 1e-12,
+              "y": 11.2,
+              "roles": [
+                "parapet_base"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": 1e-12,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 7,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 6,
+              "node_i": 1,
+              "node_j": 7,
+              "region": "parapet_arm",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 7,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 81,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 82,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 83,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 84,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 6.5,
+              "depth": 1.75,
+              "area": 11.375,
+              "inertia": 2.90299,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.9,
+              "depth": 0.6,
+              "area": 0.54,
+              "inertia": 0.0162
+            }
+          }
+        },
+        "w": {
+          "model_version": 2,
+          "nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.2,
+              "roles": [
+                "cap_top"
+              ],
+              "source_rows": [
+                79
+              ]
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "roles": [
+                "footing_top"
+              ],
+              "source_rows": [
+                80
+              ]
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "roles": [
+                "footing_centroid"
+              ],
+              "source_rows": [
+                81
+              ]
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "roles": [
+                "footing_bottom"
+              ],
+              "source_rows": [
+                82
+              ]
+            },
+            {
+              "id": 5,
+              "x": 0,
+              "y": 10.025,
+              "roles": [
+                "h2_h3"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 6,
+              "x": 0,
+              "y": 9.8,
+              "roles": [
+                "h3_h4"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 7,
+              "x": 1e-12,
+              "y": 11.2,
+              "roles": [
+                "parapet_base"
+              ],
+              "source_rows": []
+            },
+            {
+              "id": 8,
+              "x": 1e-12,
+              "y": 11.6,
+              "roles": [
+                "parapet_top"
+              ],
+              "source_rows": []
+            }
+          ],
+          "node_ids": {
+            "cap_top": 1,
+            "footing_top": 2,
+            "footing_centroid": 3,
+            "footing_bottom": 4,
+            "h2_h3": 5,
+            "h3_h4": 6,
+            "parapet_base": 7,
+            "parapet_top": 8
+          },
+          "members": [
+            {
+              "id": 1,
+              "node_i": 1,
+              "node_j": 5,
+              "region": "h2",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 2,
+              "node_i": 5,
+              "node_j": 6,
+              "region": "h3",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 3,
+              "node_i": 6,
+              "node_j": 2,
+              "region": "h4",
+              "behavior": "elastic",
+              "section_ref": "body",
+              "material_ref": "body"
+            },
+            {
+              "id": 4,
+              "node_i": 2,
+              "node_j": 3,
+              "region": "footing_top_to_centroid",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 5,
+              "node_i": 3,
+              "node_j": 4,
+              "region": "footing_centroid_to_bottom",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 6,
+              "node_i": 1,
+              "node_j": 7,
+              "region": "parapet_arm",
+              "behavior": "rigid",
+              "section_ref": null,
+              "material_ref": null
+            },
+            {
+              "id": 7,
+              "node_i": 7,
+              "node_j": 8,
+              "region": "h1",
+              "behavior": "elastic",
+              "section_ref": "parapet",
+              "material_ref": "body"
+            }
+          ],
+          "support_node_id": 4,
+          "load_anchors": {
+            "cap_top": {
+              "node_id": 1
+            },
+            "footing_centroid": {
+              "node_id": 3
+            },
+            "column_line_load": {
+              "from_node_id": 1,
+              "to_node_id": 2,
+              "member_ids": [
+                1,
+                2,
+                3
+              ]
+            },
+            "pedestal": {
+              "equivalent_node_id": 1,
+              "automatic_self_weight": false
+            }
+          },
+          "legacy_nodes": [
+            {
+              "id": 1,
+              "x": 0,
+              "y": 11.200000000000001,
+              "source_row": 79,
+              "active_node_id": 1
+            },
+            {
+              "id": 2,
+              "x": 0,
+              "y": 2,
+              "source_row": 80,
+              "active_node_id": 2
+            },
+            {
+              "id": 3,
+              "x": 0,
+              "y": 1,
+              "source_row": 81,
+              "active_node_id": 3
+            },
+            {
+              "id": 4,
+              "x": 0,
+              "y": 0,
+              "source_row": 82,
+              "active_node_id": 4
+            }
+          ],
+          "sections": {
+            "body": {
+              "width": 1.75,
+              "depth": 6.5,
+              "area": 11.375,
+              "inertia": 40.04948,
+              "footing": "rigid"
+            },
+            "parapet": {
+              "width": 0.6,
+              "depth": 0.9,
+              "area": 0.54,
+              "inertia": 0.03645
+            }
+          }
+        }
+      }
+    }
+  }
+}

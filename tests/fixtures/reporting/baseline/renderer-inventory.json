@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "public": {
+    "0500": "src.report:render_report",
+    "0600": "src.reaction_report:render_reaction_report",
+    "0610": "src.longitudinal_report:render_longitudinal_report",
+    "0620": "src.transverse_report:render_transverse_report",
+    "0710": "src.seismic_longitudinal_report:render_seismic_longitudinal_report",
+    "0720": "src.seismic_transverse_report:render_seismic_transverse_report"
+  },
+  "compatibility": {
+    "0610": "src.longitudinal_report_reference:render_longitudinal_report",
+    "0620": "src.transverse_report_style:render_transverse_report"
+  },
+  "definitions": [
+    {
+      "entry": "src.longitudinal_example2_report:render_longitudinal_report",
+      "line": 338,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.longitudinal_report_reference:render_longitudinal_report",
+      "line": 215,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.reaction_report:render_reaction_report",
+      "line": 58,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.report:render_report",
+      "line": 387,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.seismic_longitudinal_report:render_seismic_longitudinal_report",
+      "line": 431,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.seismic_transverse_report:render_seismic_transverse_report",
+      "line": 534,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.transverse_report_example2:render_transverse_report",
+      "line": 145,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    },
+    {
+      "entry": "src.transverse_report_style:render_transverse_report",
+      "line": 151,
+      "parameters": [
+        "result",
+        "output_path"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "entry": "src.cli:render_longitudinal_report",
+      "source_module": "longitudinal_report",
+      "line": 250
+    },
+    {
+      "entry": "src.cli:render_reaction_report",
+      "source_module": "reaction_report",
+      "line": 251
+    },
+    {
+      "entry": "src.cli:render_report",
+      "source_module": "report",
+      "line": 252
+    },
+    {
+      "entry": "src.cli:render_seismic_longitudinal_report",
+      "source_module": "seismic_longitudinal_report",
+      "line": 253
+    },
+    {
+      "entry": "src.cli:render_seismic_transverse_report",
+      "source_module": "seismic_transverse_report",
+      "line": 254
+    },
+    {
+      "entry": "src.cli:render_transverse_report",
+      "source_module": "transverse_report",
+      "line": 255
+    },
+    {
+      "entry": "src.longitudinal_report:render_longitudinal_report",
+      "source_module": "longitudinal_example2_report",
+      "line": 3
+    },
+    {
+      "entry": "src.transverse_report:render_transverse_report",
+      "source_module": "transverse_report_example2",
+      "line": 2
+    }
+  ],
+  "canvas_calls": [
+    {
+      "module": "src.longitudinal_example2_report",
+      "line": 342
+    },
+    {
+      "module": "src.longitudinal_report_reference",
+      "line": 225
+    },
+    {
+      "module": "src.reaction_report",
+      "line": 70
+    },
+    {
+      "module": "src.report",
+      "line": 401
+    },
+    {
+      "module": "src.seismic_longitudinal_report",
+      "line": 440
+    },
+    {
+      "module": "src.seismic_transverse_report",
+      "line": 549
+    },
+    {
+      "module": "src.transverse_report_example2",
+      "line": 25
+    },
+    {
+      "module": "src.transverse_report_style",
+      "line": 156
+    }
+  ],
+  "readers_only": [
+    "src.pdf_preview",
+    "src.pdf_preview_dialog"
+  ],
+  "generation_boundary": "src.cli:_render_reports",
+  "candidate_boundary": "src.cli:prepare_generation"
+}

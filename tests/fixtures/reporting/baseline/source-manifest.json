@@ -1,0 +1,1621 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-17T03:56:40.456603+00:00",
+  "app": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚",
+  "grid": "C:\\Users\\sasai\\Documents\\GridLayoutPdf",
+  "git_head": "744e9389fa69c62906d85d42c823940f924a9251",
+  "git_status": " M ../CONTEXT.md\n M README.md\n M src/cli.py\n M src/editor_calculation.py\n M src/editor_gui.py\n M src/editor_model.py\n M pre/input.json\n M tests/test_editor_calculation.py\n M tests/test_editor_gui.py\n M tests/test_editor_model.py\n?? ../.agents/docs/plans/p7-longitudinal-ndu-export.md\n?? ../.agents/docs/research/p7-longitudinal-ndu-field-map.md\n?? ../.agents/docs/research/p7-longitudinal-ndu-implementation.md\n?? ../.agents/docs/research/p7-longitudinal-ndu-input-comparison.json\n?? ../.agents/docs/research/p7-longitudinal-ndu-mapping.md\n?? ../.agents/docs/research/p7-longitudinal-ndu-pipeline.md\n?? ../.agents/docs/research/p7-longitudinal-ndu-soil-derivation.md\n?? ../.agents/skills/jrsnap-input-launch/\n?? ../.agents/skills/jrsnap-input-open-save/\n?? ../.agents/skills/jrsnap-ndu-edit/\n?? ../.agents/skills/jrsnap-soil-analysis/\n?? src/jrsnap_artifacts.py\n?? src/jrsnap_design_conditions.py\n?? src/jrsnap_export.py\n?? src/jrsnap_ndu.py\n?? src/jrsnap_readback.py\n?? pre/snapshots/\n?? scripts/\n?? tests/fixtures/jrsnap_v52_longitudinal_expected.json\n?? tests/test_jrsnap_acceptance.py\n?? tests/test_jrsnap_artifacts.py\n?? tests/test_jrsnap_cli.py\n?? tests/test_jrsnap_design_conditions.py\n?? tests/test_jrsnap_export.py\n?? tests/test_jrsnap_ndu.py\n?? ../output/jrsnap-p1/\n",
+  "files": [
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\__init__.py",
+      "copy": "app/src/__init__.py",
+      "sha256": "bcdc100b3cafafde521bcdfc4c22874a62cc20090500e4836df40e3c052bd303",
+      "size": 240,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\artifact_publication.py",
+      "copy": "app/src/artifact_publication.py",
+      "sha256": "268d0024c31de390ac8387648cbc1fd710c0f1b4fbdb02d15973ba42d0bafbe1",
+      "size": 13089,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\longitudinal_report_layout.json",
+      "copy": "app/src/assets/longitudinal_report_layout.json",
+      "sha256": "bd034fe21295cdc106784af1fe7a4733eb1e0fecdd7637a10da806b375b6a266",
+      "size": 159902,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\reaction_report_layout.json",
+      "copy": "app/src/assets/reaction_report_layout.json",
+      "sha256": "79d160dcfc6628a90ae1086c9baff2484765d6a393799d8225b5683bf94ee1ac",
+      "size": 815498,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\reactions.png",
+      "copy": "app/src/assets/reactions.png",
+      "sha256": "7b2c482402b0d58d044ca42ebbf4dd5f2e9e8a406f7f4d5e7bd2b4be2e60a562",
+      "size": 8561,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\reactions_large.png",
+      "copy": "app/src/assets/reactions_large.png",
+      "sha256": "e33e9fd2f081b65ad5d31418bf7e4d0742d9ad4adca8abd6bef811b1f81f0ba1",
+      "size": 21461,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\README.md",
+      "copy": "app/src/assets/README.md",
+      "sha256": "1dcd351a3d859b659cbc56f60c1c1515d6d3943875a10440de7d6778a8f41bda",
+      "size": 1198,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\skew.png",
+      "copy": "app/src/assets/skew.png",
+      "sha256": "8cd0d6a9adeeb912a80dc987c5c4b19502703bee8a017956b49080676895d778",
+      "size": 10630,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\skew_large.png",
+      "copy": "app/src/assets/skew_large.png",
+      "sha256": "d6dc8420c5faee133b9f53b708fc3e4a1c3b6f949f5c6f6109b3c0f620b6324f",
+      "size": 28253,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\substructure.png",
+      "copy": "app/src/assets/substructure.png",
+      "sha256": "bfddfd4041b8431a14d7a534ced3ee1a42d8a4ede468f06832c6e6348a56a63b",
+      "size": 19925,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\substructure_large.png",
+      "copy": "app/src/assets/substructure_large.png",
+      "sha256": "5622636d447cda8fa39c660f58413b9965fe0f63305e63a37db180d0fbfdfc1f",
+      "size": 50517,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\superstructure.png",
+      "copy": "app/src/assets/superstructure.png",
+      "sha256": "aa28963dd8b34b8fbf068c8bcdd469ac214c1eaa9f1aede680ed84cab3468b86",
+      "size": 6533,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\superstructure_large.png",
+      "copy": "app/src/assets/superstructure_large.png",
+      "sha256": "99de7f2b8c7a91663730558ee5ca4573a20b408eebbc82a0977f8f7bffe2de85",
+      "size": 29774,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\train.png",
+      "copy": "app/src/assets/train.png",
+      "sha256": "30a318a7b0702d5e0502889e0798b9cc6ad5db96d8f2e3c24c04ec3265fcfe70",
+      "size": 10003,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\train_large.png",
+      "copy": "app/src/assets/train_large.png",
+      "sha256": "f90c1176b97b93ef18cd8ba8d6ecbb377f87ad165737baa08937799ede5200a2",
+      "size": 21626,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\assets\\transverse_report_layout.json",
+      "copy": "app/src/assets/transverse_report_layout.json",
+      "sha256": "e47d79a2f0122187792b549a3474cc9f0ed87f0a415894d4cdca368a8b09bb4b",
+      "size": 335602,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\calculator.py",
+      "copy": "app/src/calculator.py",
+      "sha256": "227ca6ad5b3bcfa5fbb32a83ac16cb916d6fdf3fa551cbaabfb6506006d6def2",
+      "size": 7071,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\cli.py",
+      "copy": "app/src/cli.py",
+      "sha256": "160b5f00469193b6396e7a98ea29bb45d4e97f77e7dd1d74a5bc422443aacbd2",
+      "size": 20576,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\column_rebar.py",
+      "copy": "app/src/column_rebar.py",
+      "sha256": "cffc4288cbc1feb76eb49353a1620b7afdfe7b0f1ac54e2008f32342c8912f59",
+      "size": 10297,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\column_rebar_ui.py",
+      "copy": "app/src/column_rebar_ui.py",
+      "sha256": "db40be7e6b189c9bb41b3b0f1caef2a0a69753709205c7bdb409dcf204ec09a4",
+      "size": 36788,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\editor_calculation.py",
+      "copy": "app/src/editor_calculation.py",
+      "sha256": "965a8a76eba4a27eb48edb7b23f994bc364b60673b0d6a06b0c652b20e1b4c02",
+      "size": 13464,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\editor_forms.py",
+      "copy": "app/src/editor_forms.py",
+      "sha256": "38783834dd7737a315209802ca5806bb36cd786d69deedfc9583958b52d4e657",
+      "size": 22147,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\editor_grid.py",
+      "copy": "app/src/editor_grid.py",
+      "sha256": "c5c524c64bbfee90536a6ed7f54e687c8b32bc42ea5780aee7ecc113e5088a91",
+      "size": 4540,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\editor_gui.py",
+      "copy": "app/src/editor_gui.py",
+      "sha256": "410f5836f3d93388eaedfcfc66a69ea080558ab6476f7dab9c8508eff50957e2",
+      "size": 50421,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\editor_model.py",
+      "copy": "app/src/editor_model.py",
+      "sha256": "a36c8bc1a182624d8c5170e34a1814ae5075777dc590b39ea72edd340bbf0496",
+      "size": 16171,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\foundation_springs.py",
+      "copy": "app/src/foundation_springs.py",
+      "sha256": "c28a280ac8d96abbe76e018c29d99530db13fc60ba0a87943f7fc05adf5ac1f8",
+      "size": 2430,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frame_model.py",
+      "copy": "app/src/frame_model.py",
+      "sha256": "5d4fd8e65ab49b0b941d9e88ce31f8c326b065341b479a7c9762d6a4818d171b",
+      "size": 11678,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frame_model_report.py",
+      "copy": "app/src/frame_model_report.py",
+      "sha256": "a10bb6688d076eccd02e7129ab5d8585976ffb707d76300da24057ba95ec1654",
+      "size": 11207,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frame_outline.py",
+      "copy": "app/src/frame_outline.py",
+      "sha256": "d9b6b61847eaff14aec171d786c3c566574421ecb2989491382750af2e4367db",
+      "size": 13642,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frameweb_artifacts.py",
+      "copy": "app/src/frameweb_artifacts.py",
+      "sha256": "4c1b5b99649526c66ae3e9a3ed445d5474156535a6877e4b865b19a11c7acb9c",
+      "size": 12169,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frameweb_cases.py",
+      "copy": "app/src/frameweb_cases.py",
+      "sha256": "a92c2c2b419b8f14fbb2b4bee0d03d04cd0125b8f7d974d1dbcc38c3011635ba",
+      "size": 9960,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frameweb_common.py",
+      "copy": "app/src/frameweb_common.py",
+      "sha256": "b802a8fa3babb2f75a2becd7461696a0d2c98e27bf2dcdafd598832b77ef13ac",
+      "size": 1356,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frameweb_export.py",
+      "copy": "app/src/frameweb_export.py",
+      "sha256": "9c9d924b87580953fa194472f9e7cfcf5f101c5d2909fca0f9681943dbad205a",
+      "size": 32699,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\frameweb_transverse_cases.py",
+      "copy": "app/src/frameweb_transverse_cases.py",
+      "sha256": "66ce03add4c45b6c89ae8f891f85f67055ae832e2a1ecb2e54fea35b6f85fc84",
+      "size": 19705,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\input_formulas.py",
+      "copy": "app/src/input_formulas.py",
+      "sha256": "c167aa267da3a0d08bf67917eaee8078e499b032d732bc90aec98ce578994fe5",
+      "size": 5006,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\inputs.py",
+      "copy": "app/src/inputs.py",
+      "sha256": "c3cc6af66f1fb3fd6fdfee4446f8c71ecd981e492ddcf74c5c4a938041fd8a03",
+      "size": 7602,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\jrsnap_artifacts.py",
+      "copy": "app/src/jrsnap_artifacts.py",
+      "sha256": "0e12f6bed2f56acfcfc73ac18a58a76cd099e293118fad7f28ee3404c018c0a3",
+      "size": 9465,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\jrsnap_design_conditions.py",
+      "copy": "app/src/jrsnap_design_conditions.py",
+      "sha256": "2c12c07068d1e2581ab24c7f9552283205f605b8555a2e04376890f24668e901",
+      "size": 10494,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\jrsnap_export.py",
+      "copy": "app/src/jrsnap_export.py",
+      "sha256": "90d7cbb509e978518140f4f0a4f167e14b104233ee6449f193a7a84cdb60f560",
+      "size": 18942,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\jrsnap_ndu.py",
+      "copy": "app/src/jrsnap_ndu.py",
+      "sha256": "fc7b590b0adf170811494366f7819d29ccb40f19a4f7d956bf6d6101f5e6662e",
+      "size": 27027,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\jrsnap_readback.py",
+      "copy": "app/src/jrsnap_readback.py",
+      "sha256": "e06585011128437c4bec48c109be79930c9103ff69db63d85487faae7918a773",
+      "size": 10512,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_actions.py",
+      "copy": "app/src/longitudinal_actions.py",
+      "sha256": "cde0a18dfc35567fc230122546d15b4c9cf41d5ba8b42561447d18ac489568eb",
+      "size": 14449,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_calculator.py",
+      "copy": "app/src/longitudinal_calculator.py",
+      "sha256": "4a1effdbd1c940af714c896664a34fc31524cb129578326e98f36c5532d4eeb1",
+      "size": 28849,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_combinations.py",
+      "copy": "app/src/longitudinal_combinations.py",
+      "sha256": "ac7d8cff37930c2b0113dd6c3c2600bffdabf51332d4b4079ded67c572491a57",
+      "size": 5027,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_design_conditions.py",
+      "copy": "app/src/longitudinal_design_conditions.py",
+      "sha256": "0ba5d7eb6744b41f440461345229eb30f2c40f66e07ba826a954ba20b08c6855",
+      "size": 5161,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_example2_cases.py",
+      "copy": "app/src/longitudinal_example2_cases.py",
+      "sha256": "77212b81a42abea3eea589f6504a6a05c7ee0d6e58ff9db18d5d103739beac79",
+      "size": 13850,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_example2_report.py",
+      "copy": "app/src/longitudinal_example2_report.py",
+      "sha256": "e852932e5375ae784ebb7406252717eed33604ed3046d081e1ad64cc4ad243eb",
+      "size": 21013,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_report.py",
+      "copy": "app/src/longitudinal_report.py",
+      "sha256": "7bef4c6e023375e407f96f53d21db05e77bfeb677b6de75653575da68e9697de",
+      "size": 147,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\longitudinal_report_reference.py",
+      "copy": "app/src/longitudinal_report_reference.py",
+      "sha256": "c4bef6b5d68af41868bc499cad2a74f7062f0eacd4589079548bb209b6d1bfad",
+      "size": 14476,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\moving_load.py",
+      "copy": "app/src/moving_load.py",
+      "sha256": "93d9182a8001a1be88691ff7e9704a04a0c0cf91d2d40c276529fc10bdefa2be",
+      "size": 7551,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\pdf_preview.py",
+      "copy": "app/src/pdf_preview.py",
+      "sha256": "5bc56498e6047acfaee2d439a2189cec070b72a821158e2995a6a812fcd54e9f",
+      "size": 18505,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\pdf_preview_dialog.py",
+      "copy": "app/src/pdf_preview_dialog.py",
+      "sha256": "f28dfe7af2076b2d3ef17774b12f7cd53c61c18fdb2e816be5d4d9ab6b45b5e4",
+      "size": 13332,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_calculator.py",
+      "copy": "app/src/reaction_calculator.py",
+      "sha256": "15373ac12c72c83f6d85f3abeab782f0ee5377e5783b9249ff35f4e3c2a23fdc",
+      "size": 28211,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_inputs.py",
+      "copy": "app/src/reaction_inputs.py",
+      "sha256": "1a43f3ef91169d2af9e5234eefd737c943cc47be74e6d690f9e5ed25865bbacc",
+      "size": 15319,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_math.py",
+      "copy": "app/src/reaction_math.py",
+      "sha256": "cdf8a3c2a1ec7320c265ad13b1eef9e677293dee1bea1aeaef319ca911e1b101",
+      "size": 1769,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report.py",
+      "copy": "app/src/reaction_report.py",
+      "sha256": "48d61c1021043faa7f2f8a355ce63abf96585cf5629621c4a7e442a88f41a177",
+      "size": 7320,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_diagrams.py",
+      "copy": "app/src/reaction_report_diagrams.py",
+      "sha256": "812b0a02993ec6c4d29ecc7b0df78c7a41af09d2bd42ed6157c1bd419c41cb8f",
+      "size": 21845,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_horizontal.py",
+      "copy": "app/src/reaction_report_horizontal.py",
+      "sha256": "ac1980c5da285bfa4bc660f5ad94a6c9ed737d634ae8248c2c9a00f35236600a",
+      "size": 21172,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_layout.py",
+      "copy": "app/src/reaction_report_layout.py",
+      "sha256": "bab959154415a235cb023b74f28f1e9174a57384f57817b403b0a36cf01d1a4c",
+      "size": 12468,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_pagination.py",
+      "copy": "app/src/reaction_report_pagination.py",
+      "sha256": "9d4d5b3d0819b0a7357c31ae8714b2ea2af83947bf73da141bc640dbc300b9ab",
+      "size": 6294,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_snow.py",
+      "copy": "app/src/reaction_report_snow.py",
+      "sha256": "c6424b7afcb0ed76bbbc47c3bd5b40436877e6b247b1b255a9ba6a6beea2c601",
+      "size": 11871,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_report_values.py",
+      "copy": "app/src/reaction_report_values.py",
+      "sha256": "1b0d68927e5f36396ce0adb1a7ee1d881fb82ec145416c94c5af790928dd1c2d",
+      "size": 7912,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\reaction_weights.py",
+      "copy": "app/src/reaction_weights.py",
+      "sha256": "0f2f58f8074a74bb983373f0a4684edbaf2815bb272951046eb89a2232d6f43a",
+      "size": 18290,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\rebar_model.py",
+      "copy": "app/src/rebar_model.py",
+      "sha256": "3b954f1cffa95f56fe330613152c416e0f1cd46106090bbeacf2135cba87bc69",
+      "size": 55747,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\rebar_ui.py",
+      "copy": "app/src/rebar_ui.py",
+      "sha256": "68ac96aa8d55b1330c4b5680e76fc7630b1466b99e888db171c08c5cd0e8ae43",
+      "size": 46765,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\report.py",
+      "copy": "app/src/report.py",
+      "sha256": "499a7623cdd1a2171b1553c4375c2b582c5bf469f7d192bffb89b7a439554d2b",
+      "size": 18846,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\seismic_frame.py",
+      "copy": "app/src/seismic_frame.py",
+      "sha256": "a05e6be781936192b31702b08fccd039076cf142f6235d7220778287b93914be",
+      "size": 15325,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\seismic_longitudinal_calculator.py",
+      "copy": "app/src/seismic_longitudinal_calculator.py",
+      "sha256": "3cc5fd3c8055ace75c1e85fcd0964d90b2cf6270aa0a68980d4f1e787092c3c6",
+      "size": 14732,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\seismic_longitudinal_report.py",
+      "copy": "app/src/seismic_longitudinal_report.py",
+      "sha256": "ec2d50e7bf4d6e18230d75202c5060bba3ba89d88d5e844fd5ebc3a820e3afcb",
+      "size": 23034,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\seismic_transverse_calculator.py",
+      "copy": "app/src/seismic_transverse_calculator.py",
+      "sha256": "691ef2875d1fc48d6bf11d292dc9e5fe7aa279f37108622e513793e51e0e9b4c",
+      "size": 28697,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\seismic_transverse_report.py",
+      "copy": "app/src/seismic_transverse_report.py",
+      "sha256": "28ca8992daa533c44e671af4831cf2fae2a39d958cd109308d6a2fb2d5f8dccd",
+      "size": 30511,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_actions.py",
+      "copy": "app/src/transverse_actions.py",
+      "sha256": "1844bb1e79fc6843d7571d2d64b5a71daf8fe68ea265591b5381e616583ab59b",
+      "size": 16350,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_calculator.py",
+      "copy": "app/src/transverse_calculator.py",
+      "sha256": "0c553c940bafe6c9c0e13ed9b8a537c4bfdff1ad85497797211d7e5f47c19769",
+      "size": 32837,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_combinations.py",
+      "copy": "app/src/transverse_combinations.py",
+      "sha256": "83e95a8f1211ed194ef4d6ec035f227402c3d4ceafc99957331ad5c56e91df61",
+      "size": 6527,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_example2_cases.py",
+      "copy": "app/src/transverse_example2_cases.py",
+      "sha256": "e8b34b2adf7d14fe5275aca4d58f9c90edb1760546baa725889a1d919c8fc8b1",
+      "size": 12147,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_report.py",
+      "copy": "app/src/transverse_report.py",
+      "sha256": "2ecf21449664b6a8e7b433f056c6700eb7fa960a2aa5c0f6ce66a923d3a67566",
+      "size": 197,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_report_example2.py",
+      "copy": "app/src/transverse_report_example2.py",
+      "sha256": "acc1f4db295e36796efa2c92a3025206087b4cbfa4315668b0f88459b99e695e",
+      "size": 6678,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_report_example2_cases.py",
+      "copy": "app/src/transverse_report_example2_cases.py",
+      "sha256": "851c6c620419484d8a00f60280fd96964d5752a2cffb4e33430fac2bece593e5",
+      "size": 11859,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_report_example2_loads.py",
+      "copy": "app/src/transverse_report_example2_loads.py",
+      "sha256": "a41aeab95514a7351737a4c5165910ae696371ba7421714a6604905bfceed1a7",
+      "size": 19609,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\src\\transverse_report_style.py",
+      "copy": "app/src/transverse_report_style.py",
+      "sha256": "89bac116002b396afb2c479f05868fd0a08bdf3749d41613b0cdddebf8bc2385",
+      "size": 10826,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\scripts\\accept_jrsnap_ndu.py",
+      "copy": "app/scripts/accept_jrsnap_ndu.py",
+      "sha256": "37249785a24ca585a952e975ed40ff1828d853c51ca652e8760f989f5ce13466",
+      "size": 19941,
+      "role": "app-source"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\baseline_input.json",
+      "copy": "app/tests/fixtures/baseline_input.json",
+      "sha256": "11b644a71eb94786891a53c9512150bcb1ba8b6e9e6226f5a9bb1df51edb8ba4",
+      "size": 17605,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\column_rebar_example2.json",
+      "copy": "app/tests/fixtures/column_rebar_example2.json",
+      "sha256": "e118fb9781ebbc65a31955dd990f59616cb14e48cfe4e7b2c68d60f11348e03f",
+      "size": 11513,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\editor_field_paths.json",
+      "copy": "app/tests/fixtures/editor_field_paths.json",
+      "sha256": "6b15dd0f46457a3ee15faaad2e8c4865d31720bc9a838ef46bc817cef7060863",
+      "size": 44277,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\excel_oracle.json",
+      "copy": "app/tests/fixtures/excel_oracle.json",
+      "sha256": "ec2ecdf9ac07f598bcbceb8748ee41d8bc174fd1952cecebcf5d3fafb82073bb",
+      "size": 8387,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\frameweb_example2_mapping.json",
+      "copy": "app/tests/fixtures/frameweb_example2_mapping.json",
+      "sha256": "9ff931ce557d0813b5b942fdc4662b8e87be5da3bf3f606beb309cbfb0e0f9c4",
+      "size": 23556,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\frameweb_p7_reference.json",
+      "copy": "app/tests/fixtures/frameweb_p7_reference.json",
+      "sha256": "931f1be945d98d39b661bfcc738434939b4fd4808db15323b9578cd229ba0ea8",
+      "size": 58959,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\frameweb_transverse_example2_mapping.json",
+      "copy": "app/tests/fixtures/frameweb_transverse_example2_mapping.json",
+      "sha256": "e5b51de914bf582085b340d1133cda4deac6ffb95335c67a993de9ebaa3b1872",
+      "size": 1503,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\frameweb_transverse_p7_reference.json",
+      "copy": "app/tests/fixtures/frameweb_transverse_p7_reference.json",
+      "sha256": "033e9a8b585b5989f80c079943ee1714498279ad12b4c60499d4115207455bde",
+      "size": 1028,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\jrsnap_v52_longitudinal_expected.json",
+      "copy": "app/tests/fixtures/jrsnap_v52_longitudinal_expected.json",
+      "sha256": "ed11364685f69904d4849ecfe126ec9a0c11ce663187de225abd62f534aac207",
+      "size": 17691,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\longitudinal_example2_cases.json",
+      "copy": "app/tests/fixtures/longitudinal_example2_cases.json",
+      "sha256": "c2865020a1e2f90bd9148e97d0898058b53ae68c19774808f140007971d7aaa1",
+      "size": 13734,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\longitudinal_excel_oracle.json",
+      "copy": "app/tests/fixtures/longitudinal_excel_oracle.json",
+      "sha256": "ca06f977603a97c0d3e87ee956594e8e92a3e2df17501590330fdd5c9c6e4403",
+      "size": 457762,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\moving_load_boundary_cases.json",
+      "copy": "app/tests/fixtures/moving_load_boundary_cases.json",
+      "sha256": "345455be797c1a8625f29509759cb4f9f1b54dee7ba7274acc32204e5ca0a55b",
+      "size": 1428,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\pier_models\\asymmetric-footing.json",
+      "copy": "app/tests/fixtures/pier_models/asymmetric-footing.json",
+      "sha256": "e9712704d4ec068d622e16e34f3faa66fd5c54c328825008ef92610d886299ab",
+      "size": 16233,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\pier_models\\expectations.json",
+      "copy": "app/tests/fixtures/pier_models/expectations.json",
+      "sha256": "7976ba9192e8f26700f129863353d5e2e4dd9324ceb950e3e4ed4338c89f6737",
+      "size": 95860,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\pier_models\\parapet-asymmetric.json",
+      "copy": "app/tests/fixtures/pier_models/parapet-asymmetric.json",
+      "sha256": "bc1adb03f2c1669333994dfadcb85cbe262c13d17e95d33e537eaaed30f8d3d1",
+      "size": 16238,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\pier_models\\README.md",
+      "copy": "app/tests/fixtures/pier_models/README.md",
+      "sha256": "e1fcf66337c7d375cc9df2118e767a512fe354504f7ae1104cd3077f3138f799",
+      "size": 4785,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\reaction_excel_oracle.json",
+      "copy": "app/tests/fixtures/reaction_excel_oracle.json",
+      "sha256": "3275c9f0557ce1bb68c136af4a6840a589d4c683917b4fd7760263c22ce014a5",
+      "size": 442969,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\reaction_round_oracle.json",
+      "copy": "app/tests/fixtures/reaction_round_oracle.json",
+      "sha256": "3fbca0a77e3465370590c099a2fa2ab022ea907239add4fb3bf8a01573eddf60",
+      "size": 24189,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_longitudinal_current_input.json",
+      "copy": "app/tests/fixtures/seismic_longitudinal_current_input.json",
+      "sha256": "2bccbc97853feade2ab291f14c358b6351874913d7837de6737fa490489700d7",
+      "size": 962,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_longitudinal_example2.json",
+      "copy": "app/tests/fixtures/seismic_longitudinal_example2.json",
+      "sha256": "953c733729b6a1694f2346c55c4d5f5a8b2ad9b93f5239d3c6768443565569d9",
+      "size": 2036,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_longitudinal_input.json",
+      "copy": "app/tests/fixtures/seismic_longitudinal_input.json",
+      "sha256": "82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b",
+      "size": 22269,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_transverse_current_input.json",
+      "copy": "app/tests/fixtures/seismic_transverse_current_input.json",
+      "sha256": "81be8642320a212cd3e6f3d4e25f2a6613770591bbac97d49a5c81da89295be4",
+      "size": 3539,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_transverse_example2.json",
+      "copy": "app/tests/fixtures/seismic_transverse_example2.json",
+      "sha256": "31dc68b1a7cc8a16bef7eb993120aad9288eee4e2d91192f54b7734ccf6b6fc9",
+      "size": 5385,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\seismic_transverse_input.json",
+      "copy": "app/tests/fixtures/seismic_transverse_input.json",
+      "sha256": "0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408",
+      "size": 22263,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\transverse_example2_cases.json",
+      "copy": "app/tests/fixtures/transverse_example2_cases.json",
+      "sha256": "7cc48e575cfc8541b5cafba6eb412a97aba7114e70dbb397d7fadc15f389f74a",
+      "size": 13806,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\fixtures\\transverse_excel_oracle.json",
+      "copy": "app/tests/fixtures/transverse_excel_oracle.json",
+      "sha256": "c837f090f630bf6c7376f8f66969b5fa0c352a844d778d81e9549ce677a61dc7",
+      "size": 1312315,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\legacy_reaction_oracle.py",
+      "copy": "app/tests/legacy_reaction_oracle.py",
+      "sha256": "fc1d0e4d652b34fd96a4e01c79782dd4cce2e9a212931e2c777418a3a79c8356",
+      "size": 2712,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\reaction_combination_oracle.py",
+      "copy": "app/tests/reaction_combination_oracle.py",
+      "sha256": "e9d0aa03fc3f4490e86d876d650557e295d2f721bb86dfcd339fd7ea8a205175",
+      "size": 6892,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_artifact_publication.py",
+      "copy": "app/tests/test_artifact_publication.py",
+      "sha256": "08afa14511a7837d1639143530f7b4a690d1643a15ca31f1387b526f4d5d7261",
+      "size": 15475,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_bearing_factors.py",
+      "copy": "app/tests/test_bearing_factors.py",
+      "sha256": "ac3026abf10d0fb07a792e85b1485350793b3d5718739c6c810b4d31840d7268",
+      "size": 5602,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_calculator.py",
+      "copy": "app/tests/test_calculator.py",
+      "sha256": "ed5f0d21f5ca6c8a159bec443ff6068ec973ed81bdbf1b56de61a33c59bcfb07",
+      "size": 4607,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_column_rebar.py",
+      "copy": "app/tests/test_column_rebar.py",
+      "sha256": "5fb1ac11c5b4405636048b8bb4146d0d105b2f42e29ac071b2ebda968bb9f081",
+      "size": 29482,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_column_rebar_reference.py",
+      "copy": "app/tests/test_column_rebar_reference.py",
+      "sha256": "40be0ce70b262940fb80a93f0f23542cbc8a9fecb20c713c02c62607de58a34f",
+      "size": 8150,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_column_rebar_reference_ui.py",
+      "copy": "app/tests/test_column_rebar_reference_ui.py",
+      "sha256": "c1c3c4bbb001f9fb7b23b19f633fd15aeeb06a7cd316a7880f8c9880edcc7dc9",
+      "size": 5029,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_column_rebar_ui.py",
+      "copy": "app/tests/test_column_rebar_ui.py",
+      "sha256": "4b2d2ddc2a84ebf28ce8b24bf72f3e4dbf427db6ca5c5e59f5d1ac1e0b516c26",
+      "size": 25541,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_editor_calculation.py",
+      "copy": "app/tests/test_editor_calculation.py",
+      "sha256": "3350637461717769a24ae1cdcda6f6cc3c0da041361285c37699523d73e54c99",
+      "size": 23922,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_editor_formulas.py",
+      "copy": "app/tests/test_editor_formulas.py",
+      "sha256": "ebe42fa2e3b9fba9b7a5dbd14c6e308f84f071ead9e6a5efcec0b5443bfebd5a",
+      "size": 27391,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_editor_gui.py",
+      "copy": "app/tests/test_editor_gui.py",
+      "sha256": "b0be308b51d9f2928051413089256637e441a522927d7633d60211369a9f354f",
+      "size": 74310,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_editor_model.py",
+      "copy": "app/tests/test_editor_model.py",
+      "sha256": "fd3f283497ebd7efef8d8b44c8a83eac89cc10d0df8a8190eb544b7f238640e7",
+      "size": 16737,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_foundation_springs.py",
+      "copy": "app/tests/test_foundation_springs.py",
+      "sha256": "db663e40201460bf29cdce0ddf9c9525a33e63b9329623b68b031d5ad1f2d84e",
+      "size": 5445,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frame_model.py",
+      "copy": "app/tests/test_frame_model.py",
+      "sha256": "fe8ea51c961076f80b1ecfe5af1516f263211cdb8ba5a657067f33c6dd6070f4",
+      "size": 15098,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frame_outline.py",
+      "copy": "app/tests/test_frame_outline.py",
+      "sha256": "235188b9d5867610263de794864c76320c4025411acfd41eebc4c1568d522f6a",
+      "size": 29292,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_cases.py",
+      "copy": "app/tests/test_frameweb_cases.py",
+      "sha256": "98b0ca61f9b65cddef5c8183fb67483b5ee703a5a026168fd757409661d8307d",
+      "size": 11157,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_cli.py",
+      "copy": "app/tests/test_frameweb_cli.py",
+      "sha256": "eff45298119186327fc8c558466f316189a296e420113543c7aa724ccffb4e9a",
+      "size": 14980,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_editor.py",
+      "copy": "app/tests/test_frameweb_editor.py",
+      "sha256": "0216e74aea188f50997086b1dabd0e3b6fd18f5ae8c69551ea9c008e1fcb602d",
+      "size": 11656,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_export.py",
+      "copy": "app/tests/test_frameweb_export.py",
+      "sha256": "f7e71af61e24afff7cc50af6d963a6515e07a9d561893ded40beaec5fc0f1d3b",
+      "size": 11104,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_publication.py",
+      "copy": "app/tests/test_frameweb_publication.py",
+      "sha256": "403862c7fc9e81945500efd0dd3bba881a5c68fb5dc698274e9b029646c12403",
+      "size": 7372,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_transverse_cases.py",
+      "copy": "app/tests/test_frameweb_transverse_cases.py",
+      "sha256": "6abe1c2878fbf005ec6e2f05b4ab01551ba67e23e9fea05c139f526c374d8f49",
+      "size": 11988,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_frameweb_transverse_export.py",
+      "copy": "app/tests/test_frameweb_transverse_export.py",
+      "sha256": "c18faf2a11cad51f0e36f030b7aeb6fafdb8480f242a2cd012877272ca6b5f9f",
+      "size": 11478,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_input_formulas.py",
+      "copy": "app/tests/test_input_formulas.py",
+      "sha256": "846b6184299b219bbb09512ef9f9fc7f9ae5e31d205519a7c1d5a47714608922",
+      "size": 8668,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_acceptance.py",
+      "copy": "app/tests/test_jrsnap_acceptance.py",
+      "sha256": "84a97989f956cbc50e7301db035e4389492ce545b2776b27f372ce8837ee755a",
+      "size": 20645,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_artifacts.py",
+      "copy": "app/tests/test_jrsnap_artifacts.py",
+      "sha256": "db9064e5212e0928436aec7809135a668e2ccdfadfb8ce34bdf777b452312613",
+      "size": 3801,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_cli.py",
+      "copy": "app/tests/test_jrsnap_cli.py",
+      "sha256": "695b6e1323c1edd212c80f547c310f116ca2f5e913289b5aaba61cfbbfe9fb24",
+      "size": 12612,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_design_conditions.py",
+      "copy": "app/tests/test_jrsnap_design_conditions.py",
+      "sha256": "020cb5ad6c94e5ac52436fa8e36b58c5d9ed0f2b0206a622dede4f4478943fba",
+      "size": 4549,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_export.py",
+      "copy": "app/tests/test_jrsnap_export.py",
+      "sha256": "2e82167a324a3990cf3db46e230a9e1c6b8cbe04e2dd2851efc620c7678e2f39",
+      "size": 9907,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_jrsnap_ndu.py",
+      "copy": "app/tests/test_jrsnap_ndu.py",
+      "sha256": "ac5f8d440bd5693bee03e84c59fb6e4185d44e7f0063440ec3f8395d073a637b",
+      "size": 3339,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_calculator.py",
+      "copy": "app/tests/test_longitudinal_calculator.py",
+      "sha256": "466916f1e0bbdc0814592daf375f65ff241c3c76f39743613cc77f1bf81434f8",
+      "size": 17607,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_canonical_calculator.py",
+      "copy": "app/tests/test_longitudinal_canonical_calculator.py",
+      "sha256": "3e42d995e0addb131bf9c8d6c79c10482a5037eb65be366ae5cc5da37622ca34",
+      "size": 29927,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_canonical_cli.py",
+      "copy": "app/tests/test_longitudinal_canonical_cli.py",
+      "sha256": "dc9e537a276a3991a1124d486b98ba2c6687afee7adf5dc2fc272ac0242430c7",
+      "size": 9790,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_cli.py",
+      "copy": "app/tests/test_longitudinal_cli.py",
+      "sha256": "9c2a9977223cef61b6580f3d51ec2fc3ecdc33847a8f9aae3f1e7b9167156aca",
+      "size": 10422,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_design_conditions.py",
+      "copy": "app/tests/test_longitudinal_design_conditions.py",
+      "sha256": "8c6f75a0ea79f3d8276c99109f2f8be07e43691881f6ff7b7bd50cb8bb85883a",
+      "size": 8342,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_example2_cases.py",
+      "copy": "app/tests/test_longitudinal_example2_cases.py",
+      "sha256": "280711e3636f67b60e0821df9dcc128cf677cd6360ccacf9408d527032c96076",
+      "size": 7747,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_example2_reference.py",
+      "copy": "app/tests/test_longitudinal_example2_reference.py",
+      "sha256": "224aace4f8ad35d45b745334d7e24632d103a5c3a92a708dd74db6fa749f125c",
+      "size": 4130,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_example2_report.py",
+      "copy": "app/tests/test_longitudinal_example2_report.py",
+      "sha256": "6e4437a5a20e8024c3e3d01bf7ac23fcf3315e41d64daa74e41ce5d82d48983a",
+      "size": 16221,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_longitudinal_report.py",
+      "copy": "app/tests/test_longitudinal_report.py",
+      "sha256": "613490adc3170d14829ff1a2d59c8c884eaa54eb6aee7becf5019e40359e17f4",
+      "size": 19565,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_moving_load.py",
+      "copy": "app/tests/test_moving_load.py",
+      "sha256": "7c7ba4334066a80ee241311b8c21833182c64c01edd256666bfc9b09651855bd",
+      "size": 3504,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_moving_load_boundary.py",
+      "copy": "app/tests/test_moving_load_boundary.py",
+      "sha256": "c40e2478a30e4aea42d4853277b557b1ae7bba954ae6efe9da8557813aa24170",
+      "size": 13585,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_pdf_preview.py",
+      "copy": "app/tests/test_pdf_preview.py",
+      "sha256": "19761bb0fc3483bd1621bbac6a6417a5936c803901040a1b9aafac455107cc1f",
+      "size": 22937,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_pdf_preview_dialog.py",
+      "copy": "app/tests/test_pdf_preview_dialog.py",
+      "sha256": "9161d64bf76db4ad79f173863ba54d377f270d150f9c6bf37115c903c715ae3e",
+      "size": 18796,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_pier_model_samples.py",
+      "copy": "app/tests/test_pier_model_samples.py",
+      "sha256": "94c8c6dae22534ff4ebd75b35026fc5088b0e53a750f85db64241f5a5e84ba79",
+      "size": 6589,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_calculator.py",
+      "copy": "app/tests/test_reaction_calculator.py",
+      "sha256": "42659967b78f8057d086d3afc681f77be818518825baca7ad1a2db53232fce96",
+      "size": 14966,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_cli.py",
+      "copy": "app/tests/test_reaction_cli.py",
+      "sha256": "d0d0c98c0c1394c8d1dfefeaf733fc2b86ee3bf55a4bed87daf78841e75ae6d4",
+      "size": 16386,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_existing_model.py",
+      "copy": "app/tests/test_reaction_existing_model.py",
+      "sha256": "1c94fd641ff76e0f18da51fedf56f25c3600ef1ec03ebcd97b3abb2b0a71a6ad",
+      "size": 1416,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_inputs.py",
+      "copy": "app/tests/test_reaction_inputs.py",
+      "sha256": "810e383fef9a92a15fc61a1e44bc1570bab2d0011429a318e2863a431b5944b7",
+      "size": 20116,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_load_rules.py",
+      "copy": "app/tests/test_reaction_load_rules.py",
+      "sha256": "454523243428d0ee8ba35be487438fa7dbc87c85b47dfe2042dc9114860e5493",
+      "size": 23835,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_math.py",
+      "copy": "app/tests/test_reaction_math.py",
+      "sha256": "6a85ea9e96bc70f434ad1dbca1a6b355bd45ceaa1aa08337e883740fd615ec06",
+      "size": 2326,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_report.py",
+      "copy": "app/tests/test_reaction_report.py",
+      "sha256": "917413e416faa142869de82e6479273245416c7d0d0ad7cfedcccd85ddc5fb9b",
+      "size": 17066,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_report_pagination.py",
+      "copy": "app/tests/test_reaction_report_pagination.py",
+      "sha256": "397d736dce7b900d6000d30563cc4066524450c061c5e8a9196327d7274a969c",
+      "size": 5482,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_report_snow.py",
+      "copy": "app/tests/test_reaction_report_snow.py",
+      "sha256": "456cde106f637a58387eabdc29ec5e4b6b9bd354819868dd2641cce5f761aee8",
+      "size": 20722,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_snow_integration.py",
+      "copy": "app/tests/test_reaction_snow_integration.py",
+      "sha256": "4853bbb496a327bc34615175a8a3a0a26722471b7f8d4cfa0cea8638811d27ff",
+      "size": 12344,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reaction_weights.py",
+      "copy": "app/tests/test_reaction_weights.py",
+      "sha256": "7674ed1703b6b7b06c6772f5a59de85b7d6a86087ff2837c6c427ebc3e136314",
+      "size": 12409,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_rebar_model.py",
+      "copy": "app/tests/test_rebar_model.py",
+      "sha256": "a54c345c2617c0e936de71e2feb601d7ebcdebb99e687f2e0e07f647a976a760",
+      "size": 32564,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_rebar_ui.py",
+      "copy": "app/tests/test_rebar_ui.py",
+      "sha256": "e2ee2fdca614fd319d00bbfb2106f0e536f68b537afeb524ca2a43e85bfbe987",
+      "size": 48157,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_reference_workbook.py",
+      "copy": "app/tests/test_reference_workbook.py",
+      "sha256": "317648ce727ca5cfc677eb24b7d13a10c6e25cdf07d4e885ff6c24350738ff6c",
+      "size": 3826,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_report_cli.py",
+      "copy": "app/tests/test_report_cli.py",
+      "sha256": "81e8be4ae65bd640a368566e11e1d7773fa0883016b864473bf8634c4d51e344",
+      "size": 10172,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_longitudinal_calculator.py",
+      "copy": "app/tests/test_seismic_longitudinal_calculator.py",
+      "sha256": "1d257f7596b64677ece693c04d820551ad8a0c4cba4fa6d11ba123414766500e",
+      "size": 24814,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_longitudinal_cli.py",
+      "copy": "app/tests/test_seismic_longitudinal_cli.py",
+      "sha256": "f4c2999be56a600296ae511ef68604bd7455d442e6cc704d750a9f37dac5dc86",
+      "size": 7616,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_longitudinal_report.py",
+      "copy": "app/tests/test_seismic_longitudinal_report.py",
+      "sha256": "557723d71cd91110f903a2938880b6dff305e40ab155880b3bfc3ed895e5c855",
+      "size": 15519,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_transverse_calculator.py",
+      "copy": "app/tests/test_seismic_transverse_calculator.py",
+      "sha256": "12f57b1d51e072ebb7aed0392f526722e83f0db5596f23fa5572bac7ebbe8893",
+      "size": 27361,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_transverse_cli.py",
+      "copy": "app/tests/test_seismic_transverse_cli.py",
+      "sha256": "71cb65db8580cfaa82dfb450040b5c5a273a0d5e205b6834c8ad48104ddbb3f9",
+      "size": 12760,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_seismic_transverse_report.py",
+      "copy": "app/tests/test_seismic_transverse_report.py",
+      "sha256": "431d3dcd6d588d4edf4f950eeba620f12709bbeb052d6409889f1a639932f2f2",
+      "size": 13531,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_actions.py",
+      "copy": "app/tests/test_transverse_actions.py",
+      "sha256": "04b72e85b3836781fbd97cb942f158a3a23ade2056d60071ec48142a3ff37acf",
+      "size": 14879,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_calculator.py",
+      "copy": "app/tests/test_transverse_calculator.py",
+      "sha256": "627e3f66d814d6670f4608ee40342a1af01feb0d3f0343a8d51e5a594052292b",
+      "size": 18945,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_cli.py",
+      "copy": "app/tests/test_transverse_cli.py",
+      "sha256": "db836fe3c06ba937733b69500ff6e547aefe90a4efc92c1692c62e70d1f3da24",
+      "size": 12443,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_example2_cases.py",
+      "copy": "app/tests/test_transverse_example2_cases.py",
+      "sha256": "fcf02492a53b1c6265c16d8bdeeecd1fd97b51ae91522258fed109eba504cb1d",
+      "size": 11326,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_example2_reference.py",
+      "copy": "app/tests/test_transverse_example2_reference.py",
+      "sha256": "c0c801bbfe4a367acdf5d28066982f2445e7e8bb05b2e2ed8cc716ec35208a6d",
+      "size": 8468,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_example2_report.py",
+      "copy": "app/tests/test_transverse_example2_report.py",
+      "sha256": "9498caae994ba9a98ba96f0b0d2a4be5d3f56d33a0f6fb49c8ba0e64630f1d28",
+      "size": 8242,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_foundation_routing.py",
+      "copy": "app/tests/test_transverse_foundation_routing.py",
+      "sha256": "c7dc62194e38f616104311153cd0f989afeeac27ac4249a2f275055098b407b8",
+      "size": 9301,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\tests\\test_transverse_report.py",
+      "copy": "app/tests/test_transverse_report.py",
+      "sha256": "e54a14081d48fa5379680e8e67e918a519302ad21ac29767c16f8780e7bc8713",
+      "size": 18555,
+      "role": "existing-test"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\pyproject.toml",
+      "copy": "app/pyproject.toml",
+      "sha256": "f0e035bf04a0c4d0e9d6a987431969556df88d23b9086b4ac2967005a3a4ab02",
+      "size": 538,
+      "role": "app-config"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\uv.lock",
+      "copy": "app/uv.lock",
+      "sha256": "fd4740a6dcac9c30f5b1c8040f7b359545f989e17697053adb94f24fe7c36d4c",
+      "size": 74560,
+      "role": "app-config"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\run_design.py",
+      "copy": "app/run_design.py",
+      "sha256": "41c20a3a3d2662496783567ecfce8ccd9d455bb8ba5c799c0e71ff341138ba0f",
+      "size": 163,
+      "role": "app-config"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\edit_input.py",
+      "copy": "app/edit_input.py",
+      "sha256": "1ff1d8883f8f53021845955c7eee01343967e46142423036961ece8824a999ee",
+      "size": 171,
+      "role": "app-config"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\README.md",
+      "copy": "app/README.md",
+      "sha256": "cc116fddccb35bbedb4d2cddf88ac0a6cf06ede04c24707f135e64b013e011dd",
+      "size": 90243,
+      "role": "app-config"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\pre\\input.json",
+      "copy": "app/pre/input.json",
+      "sha256": "7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93",
+      "size": 23299,
+      "role": "input"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0500_直接基礎.json",
+      "copy": "published/output/0500_直接基礎.json",
+      "sha256": "2fd013e9b75180b534e9dc2f64bcecd29c3d3b11c23fe6cca242bb9672d39745",
+      "size": 3192,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0500_直接基礎.pdf",
+      "copy": "published/output/0500_直接基礎.pdf",
+      "sha256": "29643c304224b7e393199fadacaec5e46702bc3489f1d3cca5cd1742ecc0775f",
+      "size": 60100,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0600_上部工反力.json",
+      "copy": "published/output/0600_上部工反力.json",
+      "sha256": "ba2c335818a03cee1c8bd86692a980ec32871d3a2d56621a7e683892a10e12b4",
+      "size": 88622,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0600_上部工反力.pdf",
+      "copy": "published/output/0600_上部工反力.pdf",
+      "sha256": "d327007324215a33c8b23ad65e01ead602e4b5266ef7ba1e1436c4a67d42c4b7",
+      "size": 164830,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0610_線路方向荷重.json",
+      "copy": "published/output/0610_線路方向荷重.json",
+      "sha256": "ad98ba14bb10a9af67b0e8fcc3e4714a597beef7230ba567512713ffe89d8e66",
+      "size": 1779031,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0610_線路方向荷重.pdf",
+      "copy": "published/output/0610_線路方向荷重.pdf",
+      "sha256": "9e630c07e8fa1dd867d688a67f815266c4a3dabd0453a75c6274a318c146d2e3",
+      "size": 116546,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0620_直角方向荷重.json",
+      "copy": "published/output/0620_直角方向荷重.json",
+      "sha256": "07f76b318c482d92353a6b037c2bb522fbcdb44158a513322066cbbbe49a2bca",
+      "size": 1221628,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0620_直角方向荷重.pdf",
+      "copy": "published/output/0620_直角方向荷重.pdf",
+      "sha256": "64a5ac2380530b4fb1996889b11a375a31fc7b6821669731d022eba1fff3140a",
+      "size": 110035,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0710_線路方向荷重.json",
+      "copy": "published/output/0710_線路方向荷重.json",
+      "sha256": "b3589b770b72f68e2b8411b8bcb3d164b39228aaf8717375dcda4d4d84995d26",
+      "size": 21015,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0710_線路方向荷重.pdf",
+      "copy": "published/output/0710_線路方向荷重.pdf",
+      "sha256": "d2b9f888e0a27d9dad55bf1566a44dd817e6216b46e4846e1c830fb5e25a03b5",
+      "size": 55949,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0720_線路直角方向荷重.json",
+      "copy": "published/output/0720_線路直角方向荷重.json",
+      "sha256": "4b50bdcb27f96c8c45c7e129a9e55c12c8928c89988bc08d4608e6a792fe4a18",
+      "size": 140227,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\output\\0720_線路直角方向荷重.pdf",
+      "copy": "published/output/0720_線路直角方向荷重.pdf",
+      "sha256": "7bef98957d4aac5d8d72dcebb73115f60346d7848cd88b045a5f0df974b29712",
+      "size": 60540,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\frameWebForJS.json",
+      "copy": "published/post/frameWebForJS.json",
+      "sha256": "1abaa2b50e94bbc5eb833db63b40f2cfc84e9ea2248f1e6ed2b9f06213dbb5d2",
+      "size": 20611,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\frameWebForJS.provenance.json",
+      "copy": "published/post/frameWebForJS.provenance.json",
+      "sha256": "72739abef4d26adc1f6b48eb780a5f9dd813f014500ea48b8874a68d6629666b",
+      "size": 106863,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\線路直角方向.json",
+      "copy": "published/post/線路直角方向.json",
+      "sha256": "b692a9ec5157af8daf0000bd31e70085b2fe697140515e3765322dde1f769dba",
+      "size": 18744,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\P7橋脚\\post\\線路直角方向.provenance.json",
+      "copy": "published/post/線路直角方向.provenance.json",
+      "sha256": "dbbaf75326610adcc5a4d30fc93ae3e4faf271001da515ce3462b788c5db3ce8",
+      "size": 85194,
+      "role": "published"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\Example橋脚\\output\\0500_直接基礎.pdf",
+      "copy": "reference/0500_直接基礎.pdf",
+      "sha256": "d590a30537940d9d538692536efb4291e346b5b2965dee90503c90d5510cb339",
+      "size": 127549,
+      "role": "reference"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\Example橋脚\\output\\0600_上部工反力.pdf",
+      "copy": "reference/0600_上部工反力.pdf",
+      "sha256": "048129c2212a03e09807e1df89ee96230f12c19e6adc467dc6b2ff77c0e1f977",
+      "size": 355517,
+      "role": "reference"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\Example橋脚\\output\\0610_線路方向荷重.pdf",
+      "copy": "reference/0610_線路方向荷重.pdf",
+      "sha256": "0b818254445b835a63545d7687406e5c4278d1ad0b5752e3b882a680368214a9",
+      "size": 138277,
+      "role": "reference"
+    },
+    {
+      "source": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\Example橋脚\\output\\0620_直角方向荷重.pdf",
+      "copy": "reference/0620_直角方向荷重.pdf",
+      "sha256": "fa512f294118def518cab2466a36d1b5710c28303d6401d98743d47816f27a1e",
+      "size": 149634,
+      "role": "reference"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\__init__.py",
+      "copy": "grid-src/gridlayoutpdf/__init__.py",
+      "sha256": "12ba82595cca453e4b66a16bc8c023b0f2b6021081670dbe71cae47a7443635b",
+      "size": 2235,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\blocks.py",
+      "copy": "grid-src/gridlayoutpdf/blocks.py",
+      "sha256": "f2777675d10743a87ff29ff261736feea92d76d2e6a59ec9c7bf73b1e87aae38",
+      "size": 4477,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\bounds.py",
+      "copy": "grid-src/gridlayoutpdf/bounds.py",
+      "sha256": "014545dd481986e9db687522233ca634351125a9676ca8fd5569873d118aa5c8",
+      "size": 2227,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\cell_content.py",
+      "copy": "grid-src/gridlayoutpdf/cell_content.py",
+      "sha256": "15e8acdbaac30714030847e0850abf00231b6a1f8165d39a7b13aef831eec32a",
+      "size": 9527,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\containers.py",
+      "copy": "grid-src/gridlayoutpdf/containers.py",
+      "sha256": "496a41f817d779b886693bfef251991b2f200727479399fc99176ace22ca9c29",
+      "size": 8159,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\diagnostics.py",
+      "copy": "grid-src/gridlayoutpdf/diagnostics.py",
+      "sha256": "00465dda87d5971c29bf0e59d8abfbe633bfdc15abbbaa573b51a3f9b045e9c3",
+      "size": 4576,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\document.py",
+      "copy": "grid-src/gridlayoutpdf/document.py",
+      "sha256": "df7166787b933a026e9c6a07e681f345e57f125247361cbe0f09ae476fe41794",
+      "size": 16373,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\equations.py",
+      "copy": "grid-src/gridlayoutpdf/equations.py",
+      "sha256": "d2f524648536202d83c6a30793d8c6352f665512059bb44519c942df0aa7b454",
+      "size": 24871,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\errors.py",
+      "copy": "grid-src/gridlayoutpdf/errors.py",
+      "sha256": "250817ba0cfea3e1ca7cb1f83ae5d9c4f68bbb0f57831d01036805257f27f027",
+      "size": 689,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\figures.py",
+      "copy": "grid-src/gridlayoutpdf/figures.py",
+      "sha256": "836c7ef4611689f2296b5e65f73157333cd9f78746692b96c51e536e7eb71cc7",
+      "size": 13412,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\fonts.py",
+      "copy": "grid-src/gridlayoutpdf/fonts.py",
+      "sha256": "7d96c58849b33df94875dc075323e5799047b2f8f969d76d5774a534ef8dd8e1",
+      "size": 8335,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\geometry.py",
+      "copy": "grid-src/gridlayoutpdf/geometry.py",
+      "sha256": "a7994311217a97fe886e9b04f587d95505f45f88217e5ec40943984af80ba354",
+      "size": 4438,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\layout.py",
+      "copy": "grid-src/gridlayoutpdf/layout.py",
+      "sha256": "33b13b87bc68f4a1f654004958d59b6fc02880a628999184e9eba33c7cf235c3",
+      "size": 13294,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\math.py",
+      "copy": "grid-src/gridlayoutpdf/math.py",
+      "sha256": "31a76dc69d03d02c2fe92bc2858df932468f9c493bbe032dcc64d84eb3b713bf",
+      "size": 19015,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\profiles.py",
+      "copy": "grid-src/gridlayoutpdf/profiles.py",
+      "sha256": "a71b6859f63b2e7923c77c3d2a6add817d5ae39afd4c034e043781f5ec8d61e0",
+      "size": 3968,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\renderers\\__init__.py",
+      "copy": "grid-src/gridlayoutpdf/renderers/__init__.py",
+      "sha256": "4766ca2cc70f82efed5d16d6cb3cb9174bff252eb999e809223ca410730789c7",
+      "size": 119,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\renderers\\reportlab.py",
+      "copy": "grid-src/gridlayoutpdf/renderers/reportlab.py",
+      "sha256": "66bae56074265af28d29c15a2d5674d4d3afcc44a586473b901e9d5e4014fa0a",
+      "size": 7318,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\rotation.py",
+      "copy": "grid-src/gridlayoutpdf/rotation.py",
+      "sha256": "92fd414505db10b498ce4ff4f9c70c63b2c8725e229e0313abb0b6efb770f041",
+      "size": 6518,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\scene.py",
+      "copy": "grid-src/gridlayoutpdf/scene.py",
+      "sha256": "b82dabf35d2710cb22e4384afc5af750704afb80b0f1df0d986fde1acd0bcdc4",
+      "size": 8383,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\styles.py",
+      "copy": "grid-src/gridlayoutpdf/styles.py",
+      "sha256": "1b621a87ca5ad1228f73e67be8875aabd5a57f8495bea0c184721e7172c25928",
+      "size": 3401,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\tables.py",
+      "copy": "grid-src/gridlayoutpdf/tables.py",
+      "sha256": "99785f135d3001a4e710a99e450d85bba8251ce6bdddaaae91acb765ef113427",
+      "size": 23776,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Users\\sasai\\Documents\\GridLayoutPdf\\src\\gridlayoutpdf\\text.py",
+      "copy": "grid-src/gridlayoutpdf/text.py",
+      "sha256": "c3c296ce6519ecedafde97f4bdc14cb3e3ea4b77b579b7bc8c5f33a5b70ce4c8",
+      "size": 9394,
+      "role": "grid-source"
+    },
+    {
+      "source": "C:\\Windows\\Fonts\\msmincho.ttc",
+      "copy": "fonts/msmincho.ttc",
+      "sha256": "ceb8d745001f56b61ce768d84172d35bdf68e498423c9320dcb22e7c900944c2",
+      "size": 10091072,
+      "role": "font"
+    },
+    {
+      "source": "C:\\Windows\\Fonts\\msgothic.ttc",
+      "copy": "fonts/msgothic.ttc",
+      "sha256": "4bde3e6392b96910fb59094c6c1a4dbfae18fee78d0bf13dc30616837c4f95db",
+      "size": 8990160,
+      "role": "font"
+    }
+  ],
+  "source_changes_during_freeze": []
+}

@@ -1,0 +1,5741 @@
+{
+  "schema_version": 1,
+  "stage": "0720",
+  "direction": "transverse",
+  "case_model_version": "seismic-transverse-example2-v1",
+  "input": {
+    "geometry": {
+      "b1": 2.7,
+      "b2": 0.0,
+      "b3": 0.0,
+      "b4": 0.0,
+      "b5": 0.0,
+      "b6": 2.7,
+      "b7": 2.15,
+      "b8": 2.7,
+      "b9": 2.15,
+      "w1": 9.0,
+      "w2": 0.0,
+      "w3": 0.0,
+      "w4": 2.25,
+      "w5": 2.25,
+      "w6": 4.5,
+      "w7": 2.25,
+      "w8": 4.5,
+      "w9": 2.25,
+      "h1": 0.0,
+      "h2": 2.0,
+      "h3": 0.7,
+      "h4": 4.9,
+      "h5": 0.0,
+      "h6": 2.7,
+      "df1": 2.0,
+      "df2": 2.0,
+      "hw1": 3.78,
+      "hw2": 2.7,
+      "hw3": 0.0,
+      "unit_weight_body": 24.5,
+      "unit_weight_footing": 24.5,
+      "unit_weight_soil": 18.0,
+      "unit_weight_displaced_soil": 18.0
+    },
+    "spans": {
+      "b": {
+        "l1": 0.575,
+        "span": 18.85,
+        "l2": 0.575,
+        "impact": 0.245,
+        "radius": 0.0,
+        "speed": 350.0,
+        "h1": 0.15,
+        "h2": 2.6,
+        "h3": 1.1,
+        "h4": 9.433333,
+        "hs": 2.9520833333333334,
+        "f": 0.325,
+        "bearing": "可動",
+        "mu": 0.1,
+        "recovery_brake_coefficient": null
+      },
+      "c": {
+        "l1": 0.375,
+        "span": 9.25,
+        "l2": 0.375,
+        "impact": 0.546,
+        "radius": 0.0,
+        "speed": 350.0,
+        "h1": 0.1,
+        "h2": 2.65,
+        "h3": 1.1,
+        "h4": 10.766667,
+        "hs": 3.0662447257383967,
+        "f": 0.675,
+        "bearing": "固定",
+        "mu": 0.1,
+        "recovery_brake_coefficient": 1.0
+      }
+    },
+    "train": {
+      "length": 20.0,
+      "a1": 2.8,
+      "a2": 2.2,
+      "axle_load": 160.0,
+      "earthquake_load": 32.0,
+      "n": 10,
+      "height_wind": 3.5,
+      "height_centrifugal": 1.5,
+      "height_seismic": 1.5,
+      "factors_service": 1.0,
+      "factors_ultimate": 1.231,
+      "factors_fatigue": 1.0,
+      "name": "P-16"
+    },
+    "dead": {
+      "b": [
+        {
+          "position": -3.8,
+          "d1": 1530.0,
+          "d2": 160.0,
+          "factors": [
+            0.471,
+            -0.02,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": -1.5,
+          "d1": 1340.0,
+          "d2": 100.0,
+          "factors": [
+            0.373,
+            0.176,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 1.5,
+          "d1": 1340.0,
+          "d2": 100.0,
+          "factors": [
+            0.176,
+            0.373,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 3.8,
+          "d1": 1530.0,
+          "d2": 160.0,
+          "factors": [
+            -0.02,
+            0.471,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "c": [
+        {
+          "position": -2.95,
+          "d1": 930.0,
+          "d2": 130.0,
+          "factors": [
+            0.857,
+            0.143,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 2.95,
+          "d1": 930.0,
+          "d2": 130.0,
+          "factors": [
+            0.143,
+            0.857,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "a": {
+        "d1": 5740.0,
+        "d2": 660.0
+      },
+      "d": {
+        "d1": 1860.0,
+        "d2": 260.0
+      }
+    },
+    "warnings": [
+      "B・C支点の合計は支承明細から再計算します。A・D支点の死荷重は入力値を使用し、未入力の項目は A＝B、D＝C とします。"
+    ],
+    "snow": {
+      "b": [
+        [
+          200.0,
+          320.0,
+          360.0
+        ],
+        [
+          30.0,
+          50.0,
+          50.0
+        ],
+        [
+          30.0,
+          50.0,
+          50.0
+        ],
+        [
+          200.0,
+          320.0,
+          360.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "c": [
+        [
+          125.0,
+          200.0,
+          225.0
+        ],
+        [
+          125.0,
+          200.0,
+          225.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "a": [
+        460.0,
+        740.0,
+        820.0
+      ],
+      "d": [
+        250.0,
+        400.0,
+        450.0
+      ]
+    }
+  },
+  "frame": {
+    "model_version": 2,
+    "shape_eccentricity": 0.0,
+    "nodes": [
+      {
+        "id": 1,
+        "x": 0.0,
+        "y": 13.05,
+        "roles": [
+          "superstructure_b",
+          "superstructure_c"
+        ]
+      },
+      {
+        "id": 2,
+        "roles": [
+          "cap_top"
+        ],
+        "x": 0.0,
+        "y": 10.3
+      },
+      {
+        "id": 3,
+        "roles": [
+          "h2_h3"
+        ],
+        "x": 0.0,
+        "y": 8.3
+      },
+      {
+        "id": 4,
+        "roles": [
+          "h3_h4"
+        ],
+        "x": 0.0,
+        "y": 7.6000000000000005
+      },
+      {
+        "id": 5,
+        "x": 0.0,
+        "y": 2.71,
+        "roles": [
+          "column_base_micro_top"
+        ]
+      },
+      {
+        "id": 6,
+        "roles": [
+          "footing_top"
+        ],
+        "x": 0.0,
+        "y": 2.7
+      },
+      {
+        "id": 7,
+        "roles": [
+          "footing_centroid"
+        ],
+        "x": 0.0,
+        "y": 1.350000023841858
+      },
+      {
+        "id": 8,
+        "roles": [
+          "footing_bottom"
+        ],
+        "x": 0.0,
+        "y": 0.0
+      }
+    ],
+    "members": [
+      {
+        "id": 1,
+        "node_i": 1,
+        "node_j": 2,
+        "region": "upper_geometry",
+        "behavior": "geometry_only",
+        "section_ref": null,
+        "material_ref": null
+      },
+      {
+        "id": 2,
+        "node_i": 2,
+        "node_j": 3,
+        "region": "h2",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "beam"
+      },
+      {
+        "id": 3,
+        "node_i": 3,
+        "node_j": 4,
+        "region": "h3",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "beam"
+      },
+      {
+        "id": 4,
+        "node_i": 4,
+        "node_j": 5,
+        "region": "h4",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "column"
+      },
+      {
+        "id": 5,
+        "node_i": 5,
+        "node_j": 6,
+        "region": "column_base_micro_member",
+        "behavior": "nonlinear",
+        "section_ref": "body",
+        "material_ref": "column"
+      },
+      {
+        "id": 6,
+        "node_i": 6,
+        "node_j": 7,
+        "region": "footing_top_to_centroid",
+        "behavior": "rigid",
+        "section_ref": null,
+        "material_ref": null
+      },
+      {
+        "id": 7,
+        "node_i": 7,
+        "node_j": 8,
+        "region": "footing_centroid_to_bottom",
+        "behavior": "rigid",
+        "section_ref": null,
+        "material_ref": null
+      }
+    ],
+    "node_ids": {
+      "cap_top": 2,
+      "footing_top": 6,
+      "footing_centroid": 7,
+      "footing_bottom": 8,
+      "h2_h3": 3,
+      "h3_h4": 4,
+      "column_base_micro_top": 5,
+      "superstructure_b": 1,
+      "superstructure_c": 1
+    },
+    "sections": {
+      "body": {
+        "width": 2.7,
+        "depth": 4.5,
+        "area": 12.15,
+        "inertia": 20.50313
+      }
+    },
+    "materials": {
+      "beam": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      },
+      "column": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      },
+      "footing": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      }
+    },
+    "section": {
+      "width": 2.7,
+      "depth": 4.5,
+      "area": 12.15,
+      "inertia": 20.50313
+    },
+    "frame_spec_version": "seismic-transverse-upper-column-base-micro-v1",
+    "column_base_micro_member": {
+      "node_id": 5,
+      "member_id": 5,
+      "nominal_length": 0.01
+    },
+    "upper_levels": {
+      "B": {
+        "height": 2.75,
+        "node_id": 1
+      },
+      "C": {
+        "height": 2.75,
+        "node_id": 1
+      }
+    },
+    "load_anchors": {
+      "cap_top": {
+        "node_id": 2
+      },
+      "footing_centroid": {
+        "node_id": 7
+      },
+      "column_line_load": {
+        "from_node_id": 2,
+        "to_node_id": 6,
+        "member_ids": [
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "pedestal": {
+        "equivalent_node_id": 2,
+        "automatic_self_weight": false
+      }
+    }
+  },
+  "seismic_conditions": {
+    "girder_Kh": 1.0,
+    "train_Kh": 0.3,
+    "pier_Kh": 1.0,
+    "self_Kh": 1.0,
+    "train_coefficient_applied": true
+  },
+  "actions": {
+    "dead_fixed": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 8299.52,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "anchor": "footing_centroid",
+          "node_id": 7,
+          "N": 4167.4501953125,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "line_loads": [
+        {
+          "anchor": "column_line_load",
+          "from_node_id": 2,
+          "to_node_id": 6,
+          "member_ids": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "qN": 297.68,
+          "qH": 0.0,
+          "unit": "kN/m"
+        }
+      ],
+      "rows": [
+        {
+          "side": "B",
+          "bearing": 1,
+          "label": "B G1",
+          "bearing_position": -3.8,
+          "active": true,
+          "arm": -3.8,
+          "raw_N": 1530.0,
+          "raw_M": -5814.0,
+          "N": 1530.0,
+          "H": 0.0,
+          "M": -5814.0
+        },
+        {
+          "side": "B",
+          "bearing": 2,
+          "label": "B G2",
+          "bearing_position": -1.5,
+          "active": true,
+          "arm": -1.5,
+          "raw_N": 1340.0,
+          "raw_M": -2010.0,
+          "N": 1340.0,
+          "H": 0.0,
+          "M": -2010.0
+        },
+        {
+          "side": "B",
+          "bearing": 3,
+          "label": "B G3",
+          "bearing_position": 1.5,
+          "active": true,
+          "arm": 1.5,
+          "raw_N": 1340.0,
+          "raw_M": 2010.0,
+          "N": 1340.0,
+          "H": 0.0,
+          "M": 2010.0
+        },
+        {
+          "side": "B",
+          "bearing": 4,
+          "label": "B G4",
+          "bearing_position": 3.8,
+          "active": true,
+          "arm": 3.8,
+          "raw_N": 1530.0,
+          "raw_M": 5814.0,
+          "N": 1530.0,
+          "H": 0.0,
+          "M": 5814.0
+        },
+        {
+          "side": "B",
+          "bearing": 5,
+          "label": "B G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 6,
+          "label": "B G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 7,
+          "label": "B G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 8,
+          "label": "B G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 9,
+          "label": "B G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 10,
+          "label": "B G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 1,
+          "label": "C G1",
+          "bearing_position": -2.95,
+          "active": true,
+          "arm": -2.95,
+          "raw_N": 930.0,
+          "raw_M": -2743.5,
+          "N": 930.0,
+          "H": 0.0,
+          "M": -2743.5
+        },
+        {
+          "side": "C",
+          "bearing": 2,
+          "label": "C G2",
+          "bearing_position": 2.95,
+          "active": true,
+          "arm": 2.95,
+          "raw_N": 930.0,
+          "raw_M": 2743.5,
+          "N": 930.0,
+          "H": 0.0,
+          "M": 2743.5
+        },
+        {
+          "side": "C",
+          "bearing": 3,
+          "label": "C G3",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 4,
+          "label": "C G4",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 5,
+          "label": "C G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 6,
+          "label": "C G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 7,
+          "label": "C G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 8,
+          "label": "C G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 9,
+          "label": "C G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 10,
+          "label": "C G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": null,
+          "bearing": null,
+          "label": "桁受け",
+          "bearing_position": null,
+          "active": true,
+          "arm": -4.5,
+          "raw_N": 0.0,
+          "raw_M": -0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": -0.0
+        },
+        {
+          "side": null,
+          "bearing": null,
+          "label": "はり・ハンチ等価荷重",
+          "bearing_position": null,
+          "active": true,
+          "arm": 0.0,
+          "raw_N": 1503.260009765625,
+          "raw_M": 0.0,
+          "N": 1503.26,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 8299.52,
+        "H": 0.0,
+        "M": 0.0
+      },
+      "details": {
+        "column_intensity": 297.68,
+        "overlap_height": 2.7,
+        "overlap_deduction": 803.7360000000001,
+        "gross_top_N": 9103.260009765625,
+        "beam_N": 1503.260009765625,
+        "pedestal_N": 0.0
+      },
+      "provenance": {
+        "source": "input.dead + 0600.macro_handoff_single"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "dead_additional": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 780.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "anchor": "footing_centroid",
+          "node_id": 7,
+          "N": 1830.5999755859375,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "bearing": 1,
+          "label": "B G1",
+          "bearing_position": -3.8,
+          "active": true,
+          "arm": -3.8,
+          "raw_N": 160.0,
+          "raw_M": -608.0,
+          "N": 160.0,
+          "H": 0.0,
+          "M": -608.0
+        },
+        {
+          "side": "B",
+          "bearing": 2,
+          "label": "B G2",
+          "bearing_position": -1.5,
+          "active": true,
+          "arm": -1.5,
+          "raw_N": 100.0,
+          "raw_M": -150.0,
+          "N": 100.0,
+          "H": 0.0,
+          "M": -150.0
+        },
+        {
+          "side": "B",
+          "bearing": 3,
+          "label": "B G3",
+          "bearing_position": 1.5,
+          "active": true,
+          "arm": 1.5,
+          "raw_N": 100.0,
+          "raw_M": 150.0,
+          "N": 100.0,
+          "H": 0.0,
+          "M": 150.0
+        },
+        {
+          "side": "B",
+          "bearing": 4,
+          "label": "B G4",
+          "bearing_position": 3.8,
+          "active": true,
+          "arm": 3.8,
+          "raw_N": 160.0,
+          "raw_M": 608.0,
+          "N": 160.0,
+          "H": 0.0,
+          "M": 608.0
+        },
+        {
+          "side": "B",
+          "bearing": 5,
+          "label": "B G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 6,
+          "label": "B G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 7,
+          "label": "B G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 8,
+          "label": "B G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 9,
+          "label": "B G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 10,
+          "label": "B G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 1,
+          "label": "C G1",
+          "bearing_position": -2.95,
+          "active": true,
+          "arm": -2.95,
+          "raw_N": 130.0,
+          "raw_M": -383.5,
+          "N": 130.0,
+          "H": 0.0,
+          "M": -383.5
+        },
+        {
+          "side": "C",
+          "bearing": 2,
+          "label": "C G2",
+          "bearing_position": 2.95,
+          "active": true,
+          "arm": 2.95,
+          "raw_N": 130.0,
+          "raw_M": 383.5,
+          "N": 130.0,
+          "H": 0.0,
+          "M": 383.5
+        },
+        {
+          "side": "C",
+          "bearing": 3,
+          "label": "C G3",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 4,
+          "label": "C G4",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 5,
+          "label": "C G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 6,
+          "label": "C G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 7,
+          "label": "C G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 8,
+          "label": "C G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 9,
+          "label": "C G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 10,
+          "label": "C G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 780.0,
+        "H": 0.0,
+        "M": 0.0
+      },
+      "details": {},
+      "provenance": {
+        "source": "input.dead + 0600.macro_handoff_single"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "buoyancy_normal": {
+      "points": [
+        {
+          "anchor": "footing_centroid",
+          "node_id": 7,
+          "N": -1701.0,
+          "H": 0.0,
+          "M": -0.0
+        }
+      ],
+      "line_loads": [],
+      "rows": [],
+      "table_totals": {
+        "anchor": "footing_centroid",
+        "N": -1701.0,
+        "H": 0.0,
+        "M": -0.0
+      },
+      "details": {
+        "water_level": 2.7
+      },
+      "provenance": {
+        "source": "0600.macro_handoff_single.平水位"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "snow_2_year": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 710.0,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "bearing": 1,
+          "label": "B G1",
+          "bearing_position": -3.8,
+          "active": true,
+          "arm": -3.8,
+          "raw_N": 200.0,
+          "raw_M": -760.0,
+          "N": 200.0,
+          "H": 0.0,
+          "M": -760.0
+        },
+        {
+          "side": "B",
+          "bearing": 2,
+          "label": "B G2",
+          "bearing_position": -1.5,
+          "active": true,
+          "arm": -1.5,
+          "raw_N": 30.0,
+          "raw_M": -45.0,
+          "N": 30.0,
+          "H": 0.0,
+          "M": -45.0
+        },
+        {
+          "side": "B",
+          "bearing": 3,
+          "label": "B G3",
+          "bearing_position": 1.5,
+          "active": true,
+          "arm": 1.5,
+          "raw_N": 30.0,
+          "raw_M": 45.0,
+          "N": 30.0,
+          "H": 0.0,
+          "M": 45.0
+        },
+        {
+          "side": "B",
+          "bearing": 4,
+          "label": "B G4",
+          "bearing_position": 3.8,
+          "active": true,
+          "arm": 3.8,
+          "raw_N": 200.0,
+          "raw_M": 760.0,
+          "N": 200.0,
+          "H": 0.0,
+          "M": 760.0
+        },
+        {
+          "side": "B",
+          "bearing": 5,
+          "label": "B G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 6,
+          "label": "B G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 7,
+          "label": "B G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 8,
+          "label": "B G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 9,
+          "label": "B G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "B",
+          "bearing": 10,
+          "label": "B G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 1,
+          "label": "C G1",
+          "bearing_position": -2.95,
+          "active": true,
+          "arm": -2.95,
+          "raw_N": 125.0,
+          "raw_M": -368.75,
+          "N": 125.0,
+          "H": 0.0,
+          "M": -368.75
+        },
+        {
+          "side": "C",
+          "bearing": 2,
+          "label": "C G2",
+          "bearing_position": 2.95,
+          "active": true,
+          "arm": 2.95,
+          "raw_N": 125.0,
+          "raw_M": 368.75,
+          "N": 125.0,
+          "H": 0.0,
+          "M": 368.75
+        },
+        {
+          "side": "C",
+          "bearing": 3,
+          "label": "C G3",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 4,
+          "label": "C G4",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 5,
+          "label": "C G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 6,
+          "label": "C G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 7,
+          "label": "C G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 8,
+          "label": "C G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 9,
+          "label": "C G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "side": "C",
+          "bearing": 10,
+          "label": "C G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 710.0,
+        "H": 0.0,
+        "M": 0.0
+      },
+      "details": {
+        "return_period_years": 2
+      },
+      "provenance": {
+        "source": "input.snow.雪荷重_2年確率"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "train_down": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 480.0,
+          "H": 0.0,
+          "M": -1028.62
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "bearing": 1,
+          "label": "B G1",
+          "bearing_position": -3.8,
+          "active": true,
+          "arm": -3.8,
+          "raw_N": 150.72,
+          "raw_M": -572.736,
+          "N": 150.72,
+          "H": 0.0,
+          "M": -572.74,
+          "factor": 0.471,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 2,
+          "label": "B G2",
+          "bearing_position": -1.5,
+          "active": true,
+          "arm": -1.5,
+          "raw_N": 119.36,
+          "raw_M": -179.04,
+          "N": 119.36,
+          "H": 0.0,
+          "M": -179.04,
+          "factor": 0.373,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 3,
+          "label": "B G3",
+          "bearing_position": 1.5,
+          "active": true,
+          "arm": 1.5,
+          "raw_N": 56.31999999999999,
+          "raw_M": 84.47999999999999,
+          "N": 56.32,
+          "H": 0.0,
+          "M": 84.48,
+          "factor": 0.176,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 4,
+          "label": "B G4",
+          "bearing_position": 3.8,
+          "active": true,
+          "arm": 3.8,
+          "raw_N": -6.4,
+          "raw_M": -24.32,
+          "N": -6.4,
+          "H": 0.0,
+          "M": -24.32,
+          "factor": -0.02,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 5,
+          "label": "B G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 6,
+          "label": "B G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 7,
+          "label": "B G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 8,
+          "label": "B G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 9,
+          "label": "B G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "B",
+          "bearing": 10,
+          "label": "B G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 1,
+          "label": "C G1",
+          "bearing_position": -2.95,
+          "active": true,
+          "arm": -2.95,
+          "raw_N": 137.12,
+          "raw_M": -404.504,
+          "N": 137.12,
+          "H": 0.0,
+          "M": -404.5,
+          "factor": 0.857,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 2,
+          "label": "C G2",
+          "bearing_position": 2.95,
+          "active": true,
+          "arm": 2.95,
+          "raw_N": 22.88,
+          "raw_M": 67.496,
+          "N": 22.88,
+          "H": 0.0,
+          "M": 67.5,
+          "factor": 0.143,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 3,
+          "label": "C G3",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 4,
+          "label": "C G4",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 5,
+          "label": "C G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 6,
+          "label": "C G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 7,
+          "label": "C G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 8,
+          "label": "C G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 9,
+          "label": "C G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        },
+        {
+          "side": "C",
+          "bearing": 10,
+          "label": "C G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L1"
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 480.0,
+        "H": 0.0,
+        "M": -1028.62
+      },
+      "details": {
+        "track": "down",
+        "effective_factor": 1.0
+      },
+      "provenance": {
+        "source": "0600.train.earthquake",
+        "factor_applications": 1,
+        "remaining_multiplier": 1,
+        "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "train_up": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 480.0,
+          "H": 0.0,
+          "M": 1028.62
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "bearing": 1,
+          "label": "B G1",
+          "bearing_position": -3.8,
+          "active": true,
+          "arm": -3.8,
+          "raw_N": -6.4,
+          "raw_M": 24.32,
+          "N": -6.4,
+          "H": 0.0,
+          "M": 24.32,
+          "factor": -0.02,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 2,
+          "label": "B G2",
+          "bearing_position": -1.5,
+          "active": true,
+          "arm": -1.5,
+          "raw_N": 56.31999999999999,
+          "raw_M": -84.47999999999999,
+          "N": 56.32,
+          "H": 0.0,
+          "M": -84.48,
+          "factor": 0.176,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 3,
+          "label": "B G3",
+          "bearing_position": 1.5,
+          "active": true,
+          "arm": 1.5,
+          "raw_N": 119.36,
+          "raw_M": 179.04,
+          "N": 119.36,
+          "H": 0.0,
+          "M": 179.04,
+          "factor": 0.373,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 4,
+          "label": "B G4",
+          "bearing_position": 3.8,
+          "active": true,
+          "arm": 3.8,
+          "raw_N": 150.72,
+          "raw_M": 572.736,
+          "N": 150.72,
+          "H": 0.0,
+          "M": 572.74,
+          "factor": 0.471,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 5,
+          "label": "B G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 6,
+          "label": "B G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 7,
+          "label": "B G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 8,
+          "label": "B G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 9,
+          "label": "B G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "B",
+          "bearing": 10,
+          "label": "B G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 320.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 1,
+          "label": "C G1",
+          "bearing_position": -2.95,
+          "active": true,
+          "arm": -2.95,
+          "raw_N": 22.88,
+          "raw_M": -67.496,
+          "N": 22.88,
+          "H": 0.0,
+          "M": -67.5,
+          "factor": 0.143,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 2,
+          "label": "C G2",
+          "bearing_position": 2.95,
+          "active": true,
+          "arm": 2.95,
+          "raw_N": 137.12,
+          "raw_M": 404.504,
+          "N": 137.12,
+          "H": 0.0,
+          "M": 404.5,
+          "factor": 0.857,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 3,
+          "label": "C G3",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 4,
+          "label": "C G4",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 5,
+          "label": "C G5",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 6,
+          "label": "C G6",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 7,
+          "label": "C G7",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 8,
+          "label": "C G8",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 9,
+          "label": "C G9",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        },
+        {
+          "side": "C",
+          "bearing": 10,
+          "label": "C G10",
+          "bearing_position": null,
+          "active": false,
+          "arm": 0.0,
+          "raw_N": 0.0,
+          "raw_M": 0.0,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0,
+          "factor": 0.0,
+          "upstream_N": 160.0,
+          "source_track": "L2"
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 480.0,
+        "H": 0.0,
+        "M": 1028.62
+      },
+      "details": {
+        "track": "up",
+        "effective_factor": 1.0
+      },
+      "provenance": {
+        "source": "0600.train.earthquake",
+        "factor_applications": 1,
+        "remaining_multiplier": 1,
+        "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    },
+    "girder_inertia": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 0.0,
+          "H": 9090.0,
+          "M": 27105.0
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "label": "B",
+          "H": 6720.0,
+          "height": 2.9520833333333334,
+          "arm": 2.9520833333333334,
+          "M": 19838.0,
+          "raw_H": 6720.0,
+          "raw_M": 19838.0,
+          "formula": {
+            "factors": {
+              "D1": 5740.0,
+              "D2": 520.0,
+              "S2": 460.0,
+              "hs": 2.9520833333333334,
+              "Kh": 1.0
+            },
+            "force_unrounded": 6720.0,
+            "force": 6720.0,
+            "moment_unrounded": 19838.0,
+            "moment": 19838.0,
+            "rounding_digits": 2
+          }
+        },
+        {
+          "side": "C",
+          "label": "C",
+          "H": 2370.0,
+          "height": 3.0662447257383967,
+          "arm": 3.0662447257383967,
+          "M": 7267.0,
+          "raw_H": 2370.0,
+          "raw_M": 7267.0,
+          "formula": {
+            "factors": {
+              "D1": 1860.0,
+              "D2": 260.0,
+              "S2": 250.0,
+              "hs": 3.0662447257383967,
+              "Kh": 1.0
+            },
+            "force_unrounded": 2370.0,
+            "force": 2370.0,
+            "moment_unrounded": 7267.0,
+            "moment": 7267.0,
+            "rounding_digits": 2
+          }
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 0.0,
+        "H": 9090.0,
+        "M": 27105.0
+      },
+      "details": {
+        "Kh": 1.0,
+        "coefficient_applied": true,
+        "remaining_multiplier": 1,
+        "application_role": "cap_top"
+      },
+      "provenance": {
+        "source": "0600.transverse.case7",
+        "precision": "direct binary64; not Single handoff",
+        "height_policy": "full equivalent moment about cap_top; no second transfer"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      },
+      "display_totals": {
+        "N": 0.0,
+        "H": 9090.0,
+        "M": 27105.0
+      }
+    },
+    "train_inertia": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 0.0,
+          "H": 144.0,
+          "M": 770.3999999999999
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "label": "B",
+          "H": 96.0,
+          "height": 5.35,
+          "arm": 5.35,
+          "M": 513.5999999999999,
+          "raw_H": 96.0,
+          "raw_M": 513.5999999999999,
+          "formula": {
+            "factors": {
+              "earthquake_reaction": 320.0,
+              "Kh": 0.3,
+              "h1": 0.15,
+              "h2": 2.6,
+              "h3": 1.1,
+              "height_seismic": 1.5
+            },
+            "force_unrounded": 96.0,
+            "force": 96.0,
+            "moment_unrounded": 513.5999999999999,
+            "moment": 513.6,
+            "rounding_digits": 2
+          }
+        },
+        {
+          "side": "C",
+          "label": "C",
+          "H": 48.0,
+          "height": 5.35,
+          "arm": 5.35,
+          "M": 256.79999999999995,
+          "raw_H": 48.0,
+          "raw_M": 256.79999999999995,
+          "formula": {
+            "factors": {
+              "earthquake_reaction": 160.0,
+              "Kh": 0.3,
+              "h1": 0.1,
+              "h2": 2.65,
+              "h3": 1.1,
+              "height_seismic": 1.5
+            },
+            "force_unrounded": 48.0,
+            "force": 48.0,
+            "moment_unrounded": 256.79999999999995,
+            "moment": 256.8,
+            "rounding_digits": 2
+          }
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 0.0,
+        "H": 144.0,
+        "M": 770.3999999999999
+      },
+      "details": {
+        "Kh": 0.3,
+        "coefficient_applied": true,
+        "remaining_multiplier": 1,
+        "application_role": "cap_top"
+      },
+      "provenance": {
+        "source": "0600.transverse.case8",
+        "precision": "direct binary64; not Single handoff",
+        "height_policy": "full equivalent moment about cap_top; no second transfer"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      },
+      "display_totals": {
+        "N": 0.0,
+        "H": 144.0,
+        "M": 770.4
+      }
+    },
+    "self_inertia": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 0.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        {
+          "anchor": "footing_centroid",
+          "node_id": 7,
+          "N": 0.0,
+          "H": 1105.65,
+          "M": 0.0
+        }
+      ],
+      "line_loads": [
+        {
+          "anchor": "h2",
+          "member_ids": [
+            2
+          ],
+          "from_node_id": 2,
+          "to_node_id": 3,
+          "distribution": "constant",
+          "qN": 0.0,
+          "qH_top": 595.35,
+          "qH_bottom": 595.35,
+          "length": 2.0,
+          "resultant_H": 1190.7,
+          "unit": "kN/m"
+        },
+        {
+          "anchor": "h3",
+          "member_ids": [
+            3
+          ],
+          "from_node_id": 3,
+          "to_node_id": 4,
+          "distribution": "linear",
+          "qN": 0.0,
+          "qH_top": 595.35,
+          "qH_bottom": 297.68,
+          "length": 0.7000000000000002,
+          "resultant_H": 312.56050000000005,
+          "unit": "kN/m"
+        },
+        {
+          "anchor": "h4",
+          "member_ids": [
+            4
+          ],
+          "from_node_id": 4,
+          "to_node_id": 5,
+          "distribution": "constant",
+          "qN": 0.0,
+          "qH_top": 297.68,
+          "qH_bottom": 297.68,
+          "length": 4.890000000000001,
+          "resultant_H": 1455.6552000000001,
+          "unit": "kN/m"
+        },
+        {
+          "anchor": "column_base_micro_member",
+          "member_ids": [
+            5
+          ],
+          "from_node_id": 5,
+          "to_node_id": 6,
+          "distribution": "constant",
+          "qN": 0.0,
+          "qH_top": 297.68,
+          "qH_bottom": 297.68,
+          "length": 0.009999999999999787,
+          "resultant_H": 2.976799999999937,
+          "unit": "kN/m"
+        }
+      ],
+      "rows": [],
+      "table_totals": {
+        "anchor": "multiple",
+        "N": 0.0,
+        "H": 1105.65,
+        "M": 0.0,
+        "scope": "point loads only; line loads are separate"
+      },
+      "details": {
+        "Kh": 1.0,
+        "coefficient_applied": true
+      },
+      "provenance": {
+        "source": "input.geometry + 0600.macro_handoff_single weights",
+        "distribution": "H2 constant; H3 linear top-to-bottom; H4 constant including micro segment"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      }
+    }
+  },
+  "vertical": {
+    "train": {
+      "down": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 480.0,
+            "H": 0.0,
+            "M": -1028.62
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": 150.72,
+            "raw_M": -572.736,
+            "N": 150.72,
+            "H": 0.0,
+            "M": -572.74,
+            "factor": 0.471,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 119.36,
+            "raw_M": -179.04,
+            "N": 119.36,
+            "H": 0.0,
+            "M": -179.04,
+            "factor": 0.373,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 56.31999999999999,
+            "raw_M": 84.47999999999999,
+            "N": 56.32,
+            "H": 0.0,
+            "M": 84.48,
+            "factor": 0.176,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": -6.4,
+            "raw_M": -24.32,
+            "N": -6.4,
+            "H": 0.0,
+            "M": -24.32,
+            "factor": -0.02,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 137.12,
+            "raw_M": -404.504,
+            "N": 137.12,
+            "H": 0.0,
+            "M": -404.5,
+            "factor": 0.857,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 22.88,
+            "raw_M": 67.496,
+            "N": 22.88,
+            "H": 0.0,
+            "M": 67.5,
+            "factor": 0.143,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 480.0,
+          "H": 0.0,
+          "M": -1028.62
+        },
+        "details": {
+          "track": "down",
+          "effective_factor": 1.0
+        },
+        "provenance": {
+          "source": "0600.train.earthquake",
+          "factor_applications": 1,
+          "remaining_multiplier": 1,
+          "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      },
+      "up": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 480.0,
+            "H": 0.0,
+            "M": 1028.62
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": -6.4,
+            "raw_M": 24.32,
+            "N": -6.4,
+            "H": 0.0,
+            "M": 24.32,
+            "factor": -0.02,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 56.31999999999999,
+            "raw_M": -84.47999999999999,
+            "N": 56.32,
+            "H": 0.0,
+            "M": -84.48,
+            "factor": 0.176,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 119.36,
+            "raw_M": 179.04,
+            "N": 119.36,
+            "H": 0.0,
+            "M": 179.04,
+            "factor": 0.373,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": 150.72,
+            "raw_M": 572.736,
+            "N": 150.72,
+            "H": 0.0,
+            "M": 572.74,
+            "factor": 0.471,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 22.88,
+            "raw_M": -67.496,
+            "N": 22.88,
+            "H": 0.0,
+            "M": -67.5,
+            "factor": 0.143,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 137.12,
+            "raw_M": 404.504,
+            "N": 137.12,
+            "H": 0.0,
+            "M": 404.5,
+            "factor": 0.857,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 480.0,
+          "H": 0.0,
+          "M": 1028.62
+        },
+        "details": {
+          "track": "up",
+          "effective_factor": 1.0
+        },
+        "provenance": {
+          "source": "0600.train.earthquake",
+          "factor_applications": 1,
+          "remaining_multiplier": 1,
+          "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    }
+  },
+  "horizontal": {
+    "girder": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 0.0,
+          "H": 9090.0,
+          "M": 27105.0
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "label": "B",
+          "H": 6720.0,
+          "height": 2.9520833333333334,
+          "arm": 2.9520833333333334,
+          "M": 19838.0,
+          "raw_H": 6720.0,
+          "raw_M": 19838.0,
+          "formula": {
+            "factors": {
+              "D1": 5740.0,
+              "D2": 520.0,
+              "S2": 460.0,
+              "hs": 2.9520833333333334,
+              "Kh": 1.0
+            },
+            "force_unrounded": 6720.0,
+            "force": 6720.0,
+            "moment_unrounded": 19838.0,
+            "moment": 19838.0,
+            "rounding_digits": 2
+          }
+        },
+        {
+          "side": "C",
+          "label": "C",
+          "H": 2370.0,
+          "height": 3.0662447257383967,
+          "arm": 3.0662447257383967,
+          "M": 7267.0,
+          "raw_H": 2370.0,
+          "raw_M": 7267.0,
+          "formula": {
+            "factors": {
+              "D1": 1860.0,
+              "D2": 260.0,
+              "S2": 250.0,
+              "hs": 3.0662447257383967,
+              "Kh": 1.0
+            },
+            "force_unrounded": 2370.0,
+            "force": 2370.0,
+            "moment_unrounded": 7267.0,
+            "moment": 7267.0,
+            "rounding_digits": 2
+          }
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 0.0,
+        "H": 9090.0,
+        "M": 27105.0
+      },
+      "details": {
+        "Kh": 1.0,
+        "coefficient_applied": true,
+        "remaining_multiplier": 1,
+        "application_role": "cap_top"
+      },
+      "provenance": {
+        "source": "0600.transverse.case7",
+        "precision": "direct binary64; not Single handoff",
+        "height_policy": "full equivalent moment about cap_top; no second transfer"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      },
+      "display_totals": {
+        "N": 0.0,
+        "H": 9090.0,
+        "M": 27105.0
+      }
+    },
+    "train": {
+      "points": [
+        {
+          "anchor": "cap_top",
+          "node_id": 2,
+          "N": 0.0,
+          "H": 144.0,
+          "M": 770.3999999999999
+        }
+      ],
+      "line_loads": [],
+      "rows": [
+        {
+          "side": "B",
+          "label": "B",
+          "H": 96.0,
+          "height": 5.35,
+          "arm": 5.35,
+          "M": 513.5999999999999,
+          "raw_H": 96.0,
+          "raw_M": 513.5999999999999,
+          "formula": {
+            "factors": {
+              "earthquake_reaction": 320.0,
+              "Kh": 0.3,
+              "h1": 0.15,
+              "h2": 2.6,
+              "h3": 1.1,
+              "height_seismic": 1.5
+            },
+            "force_unrounded": 96.0,
+            "force": 96.0,
+            "moment_unrounded": 513.5999999999999,
+            "moment": 513.6,
+            "rounding_digits": 2
+          }
+        },
+        {
+          "side": "C",
+          "label": "C",
+          "H": 48.0,
+          "height": 5.35,
+          "arm": 5.35,
+          "M": 256.79999999999995,
+          "raw_H": 48.0,
+          "raw_M": 256.79999999999995,
+          "formula": {
+            "factors": {
+              "earthquake_reaction": 160.0,
+              "Kh": 0.3,
+              "h1": 0.1,
+              "h2": 2.65,
+              "h3": 1.1,
+              "height_seismic": 1.5
+            },
+            "force_unrounded": 48.0,
+            "force": 48.0,
+            "moment_unrounded": 256.79999999999995,
+            "moment": 256.8,
+            "rounding_digits": 2
+          }
+        }
+      ],
+      "table_totals": {
+        "anchor": "cap_top",
+        "N": 0.0,
+        "H": 144.0,
+        "M": 770.3999999999999
+      },
+      "details": {
+        "Kh": 0.3,
+        "coefficient_applied": true,
+        "remaining_multiplier": 1,
+        "application_role": "cap_top"
+      },
+      "provenance": {
+        "source": "0600.transverse.case8",
+        "precision": "direct binary64; not Single handoff",
+        "height_policy": "full equivalent moment about cap_top; no second transfer"
+      },
+      "units": {
+        "N": "kN",
+        "H": "kN",
+        "M": "kN m",
+        "arm": "m"
+      },
+      "display_totals": {
+        "N": 0.0,
+        "H": 144.0,
+        "M": 770.4
+      }
+    }
+  },
+  "inertia": {
+    "Kh": 1.0,
+    "beam_top": 595.35,
+    "beam_bottom": 297.68,
+    "column": 297.68,
+    "pedestal": {
+      "H": 0.0,
+      "height": 0.0,
+      "M": 0.0
+    },
+    "footing": 1105.65
+  },
+  "formulas": {
+    "beam_top": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 9.0,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 595.35,
+      "value": 595.35,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "beam_bottom": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 4.5,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 297.675,
+      "value": 297.68,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "column": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 4.5,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 297.675,
+      "value": 297.68,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "pedestal": {
+      "expression": "weight*Kh",
+      "moment_expression": "H*height",
+      "factors": {
+        "weight": 0.0,
+        "height": 0.0,
+        "Kh": 1.0,
+        "b": 0.0,
+        "w": 0.0,
+        "h": 0.0
+      },
+      "unrounded": 0.0,
+      "value": 0.0,
+      "moment_unrounded": 0.0,
+      "moment": 0.0,
+      "unit": "kN",
+      "rounding_digits": 2
+    },
+    "footing": {
+      "expression": "weight/unit_weight*(unit_weight-displaced_unit_weight)*Kh",
+      "factors": {
+        "weight": 4167.4501953125,
+        "unit_weight": 24.5,
+        "displaced_unit_weight": 18.0,
+        "Kh": 1.0
+      },
+      "geometry": {
+        "b": 7.0,
+        "w": 9.0,
+        "h5": 0.0,
+        "h6": 2.7
+      },
+      "unrounded": 1105.650051817602,
+      "value": 1105.65,
+      "unit": "kN",
+      "rounding_digits": 2
+    }
+  },
+  "basic_cases": [
+    {
+      "id": 1,
+      "key": "dead_fixed",
+      "symbol": "D1",
+      "label": "固定死荷重",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 8299.52,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "anchor": "footing_centroid",
+            "node_id": 7,
+            "N": 4167.4501953125,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "line_loads": [
+          {
+            "anchor": "column_line_load",
+            "from_node_id": 2,
+            "to_node_id": 6,
+            "member_ids": [
+              2,
+              3,
+              4,
+              5
+            ],
+            "qN": 297.68,
+            "qH": 0.0,
+            "unit": "kN/m"
+          }
+        ],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": 1530.0,
+            "raw_M": -5814.0,
+            "N": 1530.0,
+            "H": 0.0,
+            "M": -5814.0
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 1340.0,
+            "raw_M": -2010.0,
+            "N": 1340.0,
+            "H": 0.0,
+            "M": -2010.0
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 1340.0,
+            "raw_M": 2010.0,
+            "N": 1340.0,
+            "H": 0.0,
+            "M": 2010.0
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": 1530.0,
+            "raw_M": 5814.0,
+            "N": 1530.0,
+            "H": 0.0,
+            "M": 5814.0
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 930.0,
+            "raw_M": -2743.5,
+            "N": 930.0,
+            "H": 0.0,
+            "M": -2743.5
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 930.0,
+            "raw_M": 2743.5,
+            "N": 930.0,
+            "H": 0.0,
+            "M": 2743.5
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": null,
+            "bearing": null,
+            "label": "桁受け",
+            "bearing_position": null,
+            "active": true,
+            "arm": -4.5,
+            "raw_N": 0.0,
+            "raw_M": -0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": -0.0
+          },
+          {
+            "side": null,
+            "bearing": null,
+            "label": "はり・ハンチ等価荷重",
+            "bearing_position": null,
+            "active": true,
+            "arm": 0.0,
+            "raw_N": 1503.260009765625,
+            "raw_M": 0.0,
+            "N": 1503.26,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 8299.52,
+          "H": 0.0,
+          "M": 0.0
+        },
+        "details": {
+          "column_intensity": 297.68,
+          "overlap_height": 2.7,
+          "overlap_deduction": 803.7360000000001,
+          "gross_top_N": 9103.260009765625,
+          "beam_N": 1503.260009765625,
+          "pedestal_N": 0.0
+        },
+        "provenance": {
+          "source": "input.dead + 0600.macro_handoff_single"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "key": "dead_additional",
+      "symbol": "D2",
+      "label": "付加死荷重",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 780.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "anchor": "footing_centroid",
+            "node_id": 7,
+            "N": 1830.5999755859375,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": 160.0,
+            "raw_M": -608.0,
+            "N": 160.0,
+            "H": 0.0,
+            "M": -608.0
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 100.0,
+            "raw_M": -150.0,
+            "N": 100.0,
+            "H": 0.0,
+            "M": -150.0
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 100.0,
+            "raw_M": 150.0,
+            "N": 100.0,
+            "H": 0.0,
+            "M": 150.0
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": 160.0,
+            "raw_M": 608.0,
+            "N": 160.0,
+            "H": 0.0,
+            "M": 608.0
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 130.0,
+            "raw_M": -383.5,
+            "N": 130.0,
+            "H": 0.0,
+            "M": -383.5
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 130.0,
+            "raw_M": 383.5,
+            "N": 130.0,
+            "H": 0.0,
+            "M": 383.5
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 780.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        "details": {},
+        "provenance": {
+          "source": "input.dead + 0600.macro_handoff_single"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "key": "buoyancy_normal",
+      "symbol": "Wp",
+      "label": "浮力（平水位）",
+      "direction": "up",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "footing_centroid",
+            "node_id": 7,
+            "N": -1701.0,
+            "H": 0.0,
+            "M": -0.0
+          }
+        ],
+        "line_loads": [],
+        "rows": [],
+        "table_totals": {
+          "anchor": "footing_centroid",
+          "N": -1701.0,
+          "H": 0.0,
+          "M": -0.0
+        },
+        "details": {
+          "water_level": 2.7
+        },
+        "provenance": {
+          "source": "0600.macro_handoff_single.平水位"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "key": "snow_2_year",
+      "symbol": "Sw2",
+      "label": "雪荷重（2年確率）",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 710.0,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": 200.0,
+            "raw_M": -760.0,
+            "N": 200.0,
+            "H": 0.0,
+            "M": -760.0
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 30.0,
+            "raw_M": -45.0,
+            "N": 30.0,
+            "H": 0.0,
+            "M": -45.0
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 30.0,
+            "raw_M": 45.0,
+            "N": 30.0,
+            "H": 0.0,
+            "M": 45.0
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": 200.0,
+            "raw_M": 760.0,
+            "N": 200.0,
+            "H": 0.0,
+            "M": 760.0
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 125.0,
+            "raw_M": -368.75,
+            "N": 125.0,
+            "H": 0.0,
+            "M": -368.75
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 125.0,
+            "raw_M": 368.75,
+            "N": 125.0,
+            "H": 0.0,
+            "M": 368.75
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 710.0,
+          "H": 0.0,
+          "M": 0.0
+        },
+        "details": {
+          "return_period_years": 2
+        },
+        "provenance": {
+          "source": "input.snow.雪荷重_2年確率"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "key": "train_down",
+      "symbol": "L",
+      "label": "地震時列車荷重 下り",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 480.0,
+            "H": 0.0,
+            "M": -1028.62
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": 150.72,
+            "raw_M": -572.736,
+            "N": 150.72,
+            "H": 0.0,
+            "M": -572.74,
+            "factor": 0.471,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 119.36,
+            "raw_M": -179.04,
+            "N": 119.36,
+            "H": 0.0,
+            "M": -179.04,
+            "factor": 0.373,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 56.31999999999999,
+            "raw_M": 84.47999999999999,
+            "N": 56.32,
+            "H": 0.0,
+            "M": 84.48,
+            "factor": 0.176,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": -6.4,
+            "raw_M": -24.32,
+            "N": -6.4,
+            "H": 0.0,
+            "M": -24.32,
+            "factor": -0.02,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 137.12,
+            "raw_M": -404.504,
+            "N": 137.12,
+            "H": 0.0,
+            "M": -404.5,
+            "factor": 0.857,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 22.88,
+            "raw_M": 67.496,
+            "N": 22.88,
+            "H": 0.0,
+            "M": 67.5,
+            "factor": 0.143,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L1"
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 480.0,
+          "H": 0.0,
+          "M": -1028.62
+        },
+        "details": {
+          "track": "down",
+          "effective_factor": 1.0
+        },
+        "provenance": {
+          "source": "0600.train.earthquake",
+          "factor_applications": 1,
+          "remaining_multiplier": 1,
+          "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "key": "train_up",
+      "symbol": "L",
+      "label": "地震時列車荷重 上り",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 480.0,
+            "H": 0.0,
+            "M": 1028.62
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "bearing": 1,
+            "label": "B G1",
+            "bearing_position": -3.8,
+            "active": true,
+            "arm": -3.8,
+            "raw_N": -6.4,
+            "raw_M": 24.32,
+            "N": -6.4,
+            "H": 0.0,
+            "M": 24.32,
+            "factor": -0.02,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 2,
+            "label": "B G2",
+            "bearing_position": -1.5,
+            "active": true,
+            "arm": -1.5,
+            "raw_N": 56.31999999999999,
+            "raw_M": -84.47999999999999,
+            "N": 56.32,
+            "H": 0.0,
+            "M": -84.48,
+            "factor": 0.176,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 3,
+            "label": "B G3",
+            "bearing_position": 1.5,
+            "active": true,
+            "arm": 1.5,
+            "raw_N": 119.36,
+            "raw_M": 179.04,
+            "N": 119.36,
+            "H": 0.0,
+            "M": 179.04,
+            "factor": 0.373,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 4,
+            "label": "B G4",
+            "bearing_position": 3.8,
+            "active": true,
+            "arm": 3.8,
+            "raw_N": 150.72,
+            "raw_M": 572.736,
+            "N": 150.72,
+            "H": 0.0,
+            "M": 572.74,
+            "factor": 0.471,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 5,
+            "label": "B G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 6,
+            "label": "B G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 7,
+            "label": "B G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 8,
+            "label": "B G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 9,
+            "label": "B G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "B",
+            "bearing": 10,
+            "label": "B G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 320.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 1,
+            "label": "C G1",
+            "bearing_position": -2.95,
+            "active": true,
+            "arm": -2.95,
+            "raw_N": 22.88,
+            "raw_M": -67.496,
+            "N": 22.88,
+            "H": 0.0,
+            "M": -67.5,
+            "factor": 0.143,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 2,
+            "label": "C G2",
+            "bearing_position": 2.95,
+            "active": true,
+            "arm": 2.95,
+            "raw_N": 137.12,
+            "raw_M": 404.504,
+            "N": 137.12,
+            "H": 0.0,
+            "M": 404.5,
+            "factor": 0.857,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 3,
+            "label": "C G3",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 4,
+            "label": "C G4",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 5,
+            "label": "C G5",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 6,
+            "label": "C G6",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 7,
+            "label": "C G7",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 8,
+            "label": "C G8",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 9,
+            "label": "C G9",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          },
+          {
+            "side": "C",
+            "bearing": 10,
+            "label": "C G10",
+            "bearing_position": null,
+            "active": false,
+            "arm": 0.0,
+            "raw_N": 0.0,
+            "raw_M": 0.0,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0,
+            "factor": 0.0,
+            "upstream_N": 160.0,
+            "source_track": "L2"
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 480.0,
+          "H": 0.0,
+          "M": 1028.62
+        },
+        "details": {
+          "track": "up",
+          "effective_factor": 1.0
+        },
+        "provenance": {
+          "source": "0600.train.earthquake",
+          "factor_applications": 1,
+          "remaining_multiplier": 1,
+          "rounding": "N: raw row sum, M: sum of 2-digit row moments"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "key": "girder_inertia",
+      "symbol": "EQ1",
+      "label": "地震時桁荷重慣性力",
+      "direction": "right",
+      "load_type": "incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 0.0,
+            "H": 9090.0,
+            "M": 27105.0
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "label": "B",
+            "H": 6720.0,
+            "height": 2.9520833333333334,
+            "arm": 2.9520833333333334,
+            "M": 19838.0,
+            "raw_H": 6720.0,
+            "raw_M": 19838.0,
+            "formula": {
+              "factors": {
+                "D1": 5740.0,
+                "D2": 520.0,
+                "S2": 460.0,
+                "hs": 2.9520833333333334,
+                "Kh": 1.0
+              },
+              "force_unrounded": 6720.0,
+              "force": 6720.0,
+              "moment_unrounded": 19838.0,
+              "moment": 19838.0,
+              "rounding_digits": 2
+            }
+          },
+          {
+            "side": "C",
+            "label": "C",
+            "H": 2370.0,
+            "height": 3.0662447257383967,
+            "arm": 3.0662447257383967,
+            "M": 7267.0,
+            "raw_H": 2370.0,
+            "raw_M": 7267.0,
+            "formula": {
+              "factors": {
+                "D1": 1860.0,
+                "D2": 260.0,
+                "S2": 250.0,
+                "hs": 3.0662447257383967,
+                "Kh": 1.0
+              },
+              "force_unrounded": 2370.0,
+              "force": 2370.0,
+              "moment_unrounded": 7267.0,
+              "moment": 7267.0,
+              "rounding_digits": 2
+            }
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 0.0,
+          "H": 9090.0,
+          "M": 27105.0
+        },
+        "details": {
+          "Kh": 1.0,
+          "coefficient_applied": true,
+          "remaining_multiplier": 1,
+          "application_role": "cap_top"
+        },
+        "provenance": {
+          "source": "0600.transverse.case7",
+          "precision": "direct binary64; not Single handoff",
+          "height_policy": "full equivalent moment about cap_top; no second transfer"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        },
+        "display_totals": {
+          "N": 0.0,
+          "H": 9090.0,
+          "M": 27105.0
+        }
+      }
+    },
+    {
+      "id": 8,
+      "key": "train_inertia",
+      "symbol": "EQL",
+      "label": "地震時列車荷重慣性力",
+      "direction": "right",
+      "load_type": "limited_incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 0.0,
+            "H": 144.0,
+            "M": 770.3999999999999
+          }
+        ],
+        "line_loads": [],
+        "rows": [
+          {
+            "side": "B",
+            "label": "B",
+            "H": 96.0,
+            "height": 5.35,
+            "arm": 5.35,
+            "M": 513.5999999999999,
+            "raw_H": 96.0,
+            "raw_M": 513.5999999999999,
+            "formula": {
+              "factors": {
+                "earthquake_reaction": 320.0,
+                "Kh": 0.3,
+                "h1": 0.15,
+                "h2": 2.6,
+                "h3": 1.1,
+                "height_seismic": 1.5
+              },
+              "force_unrounded": 96.0,
+              "force": 96.0,
+              "moment_unrounded": 513.5999999999999,
+              "moment": 513.6,
+              "rounding_digits": 2
+            }
+          },
+          {
+            "side": "C",
+            "label": "C",
+            "H": 48.0,
+            "height": 5.35,
+            "arm": 5.35,
+            "M": 256.79999999999995,
+            "raw_H": 48.0,
+            "raw_M": 256.79999999999995,
+            "formula": {
+              "factors": {
+                "earthquake_reaction": 160.0,
+                "Kh": 0.3,
+                "h1": 0.1,
+                "h2": 2.65,
+                "h3": 1.1,
+                "height_seismic": 1.5
+              },
+              "force_unrounded": 48.0,
+              "force": 48.0,
+              "moment_unrounded": 256.79999999999995,
+              "moment": 256.8,
+              "rounding_digits": 2
+            }
+          }
+        ],
+        "table_totals": {
+          "anchor": "cap_top",
+          "N": 0.0,
+          "H": 144.0,
+          "M": 770.3999999999999
+        },
+        "details": {
+          "Kh": 0.3,
+          "coefficient_applied": true,
+          "remaining_multiplier": 1,
+          "application_role": "cap_top"
+        },
+        "provenance": {
+          "source": "0600.transverse.case8",
+          "precision": "direct binary64; not Single handoff",
+          "height_policy": "full equivalent moment about cap_top; no second transfer"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        },
+        "display_totals": {
+          "N": 0.0,
+          "H": 144.0,
+          "M": 770.4
+        }
+      }
+    },
+    {
+      "id": 9,
+      "key": "self_inertia",
+      "symbol": "EQ2",
+      "label": "自重による地震時慣性力",
+      "direction": "right",
+      "load_type": "incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node_id": 2,
+            "N": 0.0,
+            "H": 0.0,
+            "M": 0.0
+          },
+          {
+            "anchor": "footing_centroid",
+            "node_id": 7,
+            "N": 0.0,
+            "H": 1105.65,
+            "M": 0.0
+          }
+        ],
+        "line_loads": [
+          {
+            "anchor": "h2",
+            "member_ids": [
+              2
+            ],
+            "from_node_id": 2,
+            "to_node_id": 3,
+            "distribution": "constant",
+            "qN": 0.0,
+            "qH_top": 595.35,
+            "qH_bottom": 595.35,
+            "length": 2.0,
+            "resultant_H": 1190.7,
+            "unit": "kN/m"
+          },
+          {
+            "anchor": "h3",
+            "member_ids": [
+              3
+            ],
+            "from_node_id": 3,
+            "to_node_id": 4,
+            "distribution": "linear",
+            "qN": 0.0,
+            "qH_top": 595.35,
+            "qH_bottom": 297.68,
+            "length": 0.7000000000000002,
+            "resultant_H": 312.56050000000005,
+            "unit": "kN/m"
+          },
+          {
+            "anchor": "h4",
+            "member_ids": [
+              4
+            ],
+            "from_node_id": 4,
+            "to_node_id": 5,
+            "distribution": "constant",
+            "qN": 0.0,
+            "qH_top": 297.68,
+            "qH_bottom": 297.68,
+            "length": 4.890000000000001,
+            "resultant_H": 1455.6552000000001,
+            "unit": "kN/m"
+          },
+          {
+            "anchor": "column_base_micro_member",
+            "member_ids": [
+              5
+            ],
+            "from_node_id": 5,
+            "to_node_id": 6,
+            "distribution": "constant",
+            "qN": 0.0,
+            "qH_top": 297.68,
+            "qH_bottom": 297.68,
+            "length": 0.009999999999999787,
+            "resultant_H": 2.976799999999937,
+            "unit": "kN/m"
+          }
+        ],
+        "rows": [],
+        "table_totals": {
+          "anchor": "multiple",
+          "N": 0.0,
+          "H": 1105.65,
+          "M": 0.0,
+          "scope": "point loads only; line loads are separate"
+        },
+        "details": {
+          "Kh": 1.0,
+          "coefficient_applied": true
+        },
+        "provenance": {
+          "source": "input.geometry + 0600.macro_handoff_single weights",
+          "distribution": "H2 constant; H3 linear top-to-bottom; H4 constant including micro segment"
+        },
+        "units": {
+          "N": "kN",
+          "H": "kN",
+          "M": "kN m",
+          "arm": "m"
+        }
+      }
+    }
+  ],
+  "combinations": [
+    {
+      "id": 1,
+      "alpha_f": 1.0,
+      "rho_m": 1.0,
+      "direction": "right",
+      "ground_resistance_type": 1,
+      "coefficients": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "units": {
+    "length": "m",
+    "force": "kN",
+    "moment": "kN m",
+    "line_load": "kN/m",
+    "area": "m2",
+    "inertia": "m4",
+    "unit_weight": "kN/m3",
+    "elastic_modulus": "kN/m2"
+  },
+  "provenance": {
+    "references": [
+      {
+        "document": "Example橋脚2/09_直角.pdf",
+        "physical_pages": [
+          1
+        ],
+        "purpose": "physical_frame"
+      },
+      {
+        "document": "Example橋脚2/11_直角(耐震).pdf",
+        "physical_pages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          9,
+          12,
+          13
+        ],
+        "purpose": "seismic_geometry_actions_and_cases"
+      }
+    ],
+    "dependencies": [
+      "current input",
+      "0600.train.earthquake",
+      "0600.transverse.case7",
+      "0600.transverse.case8",
+      "0600.macro_handoff_single weights",
+      "0620.frame",
+      "0620.actions.dead_fixed",
+      "0620.actions.dead_additional",
+      "0620.actions.buoyancy_normal",
+      "0620.actions.snow_2_year"
+    ],
+    "case_authority": "原本物理p13を正とする。Case5下り/Case6上り。p11の逆表記との不一致は2026-10-17ユーザー確認済み。",
+    "reference_section": "11.4作用の組合せを本帳票11.3として構成。",
+    "precision": "EQ1/EQLは0600直接値。自重・固定作用は既存Single受渡し重量を保持。列車Kh0.30適用済み。",
+    "model_scope": "上部は形状表示のみ。微小部材の原本非線形分類は出典であり構成則・応答は未定義。",
+    "input_sha256": "7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93",
+    "input_file": "input.json"
+  },
+  "warnings": [
+    "0720は骨組形状と地震時作用・組合せを示します。構造解析・断面照査は実施しません。"
+  ]
+}

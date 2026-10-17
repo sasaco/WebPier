@@ -1,0 +1,1036 @@
+{
+  "schema_version": 1,
+  "stage": "0710",
+  "direction": "longitudinal",
+  "case_model_version": "seismic-longitudinal-example2-v1",
+  "input": {
+    "geometry": {
+      "b1": 2.7,
+      "b2": 0.0,
+      "b3": 0.0,
+      "b4": 0.0,
+      "b5": 0.0,
+      "b6": 2.7,
+      "b7": 2.15,
+      "b8": 2.7,
+      "b9": 2.15,
+      "w1": 9.0,
+      "w2": 0.0,
+      "w3": 0.0,
+      "w4": 2.25,
+      "w5": 2.25,
+      "w6": 4.5,
+      "w7": 2.25,
+      "w8": 4.5,
+      "w9": 2.25,
+      "h1": 0.0,
+      "h2": 2.0,
+      "h3": 0.7,
+      "h4": 4.9,
+      "h5": 0.0,
+      "h6": 2.7,
+      "df1": 2.0,
+      "df2": 2.0,
+      "hw1": 3.78,
+      "hw2": 2.7,
+      "hw3": 0.0,
+      "unit_weight_body": 24.5,
+      "unit_weight_footing": 24.5,
+      "unit_weight_soil": 18.0,
+      "unit_weight_displaced_soil": 18.0
+    },
+    "spans": {
+      "b": {
+        "l1": 0.575,
+        "span": 18.85,
+        "l2": 0.575,
+        "impact": 0.245,
+        "radius": 0.0,
+        "speed": 350.0,
+        "h1": 0.15,
+        "h2": 2.6,
+        "h3": 1.1,
+        "h4": 9.433333,
+        "hs": 2.9520833333333334,
+        "f": 0.325,
+        "bearing": "可動",
+        "mu": 0.1,
+        "recovery_brake_coefficient": null
+      },
+      "c": {
+        "l1": 0.375,
+        "span": 9.25,
+        "l2": 0.375,
+        "impact": 0.546,
+        "radius": 0.0,
+        "speed": 350.0,
+        "h1": 0.1,
+        "h2": 2.65,
+        "h3": 1.1,
+        "h4": 10.766667,
+        "hs": 3.0662447257383967,
+        "f": 0.675,
+        "bearing": "固定",
+        "mu": 0.1,
+        "recovery_brake_coefficient": 1.0
+      }
+    },
+    "train": {
+      "length": 20.0,
+      "a1": 2.8,
+      "a2": 2.2,
+      "axle_load": 160.0,
+      "earthquake_load": 32.0,
+      "n": 10,
+      "height_wind": 3.5,
+      "height_centrifugal": 1.5,
+      "height_seismic": 1.5,
+      "factors_service": 1.0,
+      "factors_ultimate": 1.231,
+      "factors_fatigue": 1.0,
+      "name": "P-16"
+    },
+    "dead": {
+      "b": [
+        {
+          "position": -3.8,
+          "d1": 1530.0,
+          "d2": 160.0,
+          "factors": [
+            0.471,
+            -0.02,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": -1.5,
+          "d1": 1340.0,
+          "d2": 100.0,
+          "factors": [
+            0.373,
+            0.176,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 1.5,
+          "d1": 1340.0,
+          "d2": 100.0,
+          "factors": [
+            0.176,
+            0.373,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 3.8,
+          "d1": 1530.0,
+          "d2": 160.0,
+          "factors": [
+            -0.02,
+            0.471,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "c": [
+        {
+          "position": -2.95,
+          "d1": 930.0,
+          "d2": 130.0,
+          "factors": [
+            0.857,
+            0.143,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": 2.95,
+          "d1": 930.0,
+          "d2": 130.0,
+          "factors": [
+            0.143,
+            0.857,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position": null,
+          "d1": 0.0,
+          "d2": 0.0,
+          "factors": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "a": {
+        "d1": 5740.0,
+        "d2": 660.0
+      },
+      "d": {
+        "d1": 1860.0,
+        "d2": 260.0
+      }
+    },
+    "warnings": [
+      "B・C支点の合計は支承明細から再計算します。A・D支点の死荷重は入力値を使用し、未入力の項目は A＝B、D＝C とします。"
+    ],
+    "snow": {
+      "b": [
+        [
+          200.0,
+          320.0,
+          360.0
+        ],
+        [
+          30.0,
+          50.0,
+          50.0
+        ],
+        [
+          30.0,
+          50.0,
+          50.0
+        ],
+        [
+          200.0,
+          320.0,
+          360.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "c": [
+        [
+          125.0,
+          200.0,
+          225.0
+        ],
+        [
+          125.0,
+          200.0,
+          225.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "a": [
+        460.0,
+        740.0,
+        820.0
+      ],
+      "d": [
+        250.0,
+        400.0,
+        450.0
+      ]
+    }
+  },
+  "frame": {
+    "model_version": 2,
+    "shape_eccentricity": 0.0,
+    "nodes": [
+      {
+        "id": 1,
+        "roles": [
+          "cap_top"
+        ],
+        "x": 0.0,
+        "y": 10.3
+      },
+      {
+        "id": 2,
+        "roles": [
+          "h2_h3"
+        ],
+        "x": 0.0,
+        "y": 8.3
+      },
+      {
+        "id": 3,
+        "roles": [
+          "h3_h4"
+        ],
+        "x": 0.0,
+        "y": 7.6000000000000005
+      },
+      {
+        "id": 4,
+        "x": 0.0,
+        "y": 2.71,
+        "roles": [
+          "column_base_micro_top"
+        ]
+      },
+      {
+        "id": 5,
+        "roles": [
+          "footing_top"
+        ],
+        "x": 0.0,
+        "y": 2.7
+      },
+      {
+        "id": 6,
+        "roles": [
+          "footing_centroid"
+        ],
+        "x": 0.0,
+        "y": 1.350000023841858
+      },
+      {
+        "id": 7,
+        "roles": [
+          "footing_bottom"
+        ],
+        "x": 0.0,
+        "y": 0.0
+      }
+    ],
+    "members": [
+      {
+        "id": 1,
+        "node_i": 1,
+        "node_j": 2,
+        "region": "h2",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "beam"
+      },
+      {
+        "id": 2,
+        "node_i": 2,
+        "node_j": 3,
+        "region": "h3",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "beam"
+      },
+      {
+        "id": 3,
+        "node_i": 3,
+        "node_j": 4,
+        "region": "h4",
+        "behavior": "elastic",
+        "section_ref": "body",
+        "material_ref": "column"
+      },
+      {
+        "id": 4,
+        "node_i": 4,
+        "node_j": 5,
+        "region": "column_base_micro_member",
+        "behavior": "nonlinear",
+        "section_ref": "body",
+        "material_ref": "column"
+      },
+      {
+        "id": 5,
+        "node_i": 5,
+        "node_j": 6,
+        "region": "footing_top_to_centroid",
+        "behavior": "rigid",
+        "section_ref": null,
+        "material_ref": null
+      },
+      {
+        "id": 6,
+        "node_i": 6,
+        "node_j": 7,
+        "region": "footing_centroid_to_bottom",
+        "behavior": "rigid",
+        "section_ref": null,
+        "material_ref": null
+      }
+    ],
+    "node_ids": {
+      "cap_top": 1,
+      "footing_top": 5,
+      "footing_centroid": 6,
+      "footing_bottom": 7,
+      "h2_h3": 2,
+      "h3_h4": 3,
+      "column_base_micro_top": 4
+    },
+    "sections": {
+      "body": {
+        "width": 4.5,
+        "depth": 2.7,
+        "area": 12.15,
+        "inertia": 7.38113
+      }
+    },
+    "materials": {
+      "beam": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      },
+      "column": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      },
+      "footing": {
+        "fck": 27.0,
+        "Ec": 26500000.0
+      }
+    },
+    "section": {
+      "width": 4.5,
+      "depth": 2.7,
+      "area": 12.15,
+      "inertia": 7.38113
+    },
+    "frame_spec_version": "seismic-longitudinal-column-base-micro-v2",
+    "column_base_micro_member": {
+      "node_id": 4,
+      "member_id": 4,
+      "nominal_length": 0.01
+    }
+  },
+  "seismic_conditions": {
+    "girder_Kh": 1.0,
+    "train_Kh": 0.2,
+    "pier_Kh": 1.0,
+    "train_coefficient_applied": true
+  },
+  "vertical": {
+    "fixed": {
+      "column": {
+        "intensity": 297.68
+      },
+      "top": {
+        "N": 8299.52,
+        "M": -610.0
+      },
+      "footing": {
+        "N": 4167.4501953125,
+        "M": 0.0
+      }
+    },
+    "additional": {
+      "top": {
+        "N": 780.0,
+        "M": 6.5,
+        "B": {
+          "N": 520.0,
+          "arm": -0.325,
+          "M": -169.0
+        },
+        "C": {
+          "N": 260.0,
+          "arm": 0.675,
+          "M": 175.5
+        }
+      },
+      "soil": {
+        "N": 1830.5999755859375,
+        "M": 0.0
+      }
+    },
+    "water": {
+      "normal": {
+        "N": -1701.0,
+        "M": -0.0
+      }
+    },
+    "snow": {
+      "s2": {
+        "N": 710.0,
+        "M": 19.25,
+        "B": {
+          "N": 460.0,
+          "arm": -0.325,
+          "M": -149.5
+        },
+        "C": {
+          "N": 250.0,
+          "arm": 0.675,
+          "M": 168.75
+        }
+      }
+    },
+    "train": {
+      "earthquake": {
+        "N": 480.0,
+        "M": 4.0,
+        "B": {
+          "N": 320.0,
+          "arm": -0.325,
+          "M": -104.0
+        },
+        "C": {
+          "N": 160.0,
+          "arm": 0.675,
+          "M": 108.0
+        }
+      }
+    }
+  },
+  "horizontal": {
+    "girder": {
+      "B": 6790.0,
+      "C": 4740.0,
+      "total": 11530.0,
+      "Kh": 1.0,
+      "coefficient_applied": true
+    },
+    "train": {
+      "B": 64.0,
+      "C": 64.0,
+      "total": 128.0,
+      "Kh": 0.2,
+      "coefficient_applied": true
+    }
+  },
+  "inertia": {
+    "Kh": 1.0,
+    "beam_top": 595.35,
+    "beam_bottom": 297.68,
+    "column": 297.68,
+    "footing": 1105.65,
+    "pedestal": {
+      "H": 0.0,
+      "height": 0.0,
+      "M": 0.0
+    }
+  },
+  "formulas": {
+    "beam_top": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 9.0,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 595.35,
+      "value": 595.35,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "beam_bottom": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 4.5,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 297.675,
+      "value": 297.68,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "column": {
+      "expression": "b*w*unit_weight*Kh",
+      "factors": {
+        "b": 2.7,
+        "w": 4.5,
+        "unit_weight": 24.5,
+        "Kh": 1.0
+      },
+      "unrounded": 297.675,
+      "value": 297.68,
+      "unit": "kN/m",
+      "rounding_digits": 2
+    },
+    "pedestal": {
+      "expression": "weight*Kh",
+      "moment_expression": "H*height",
+      "factors": {
+        "weight": 0.0,
+        "height": 0.0,
+        "Kh": 1.0,
+        "b": 0.0,
+        "w": 0.0,
+        "h": 0.0
+      },
+      "unrounded": 0.0,
+      "value": 0.0,
+      "moment_unrounded": 0.0,
+      "moment": 0.0,
+      "unit": "kN"
+    },
+    "footing": {
+      "expression": "weight/unit_weight*(unit_weight-displaced_unit_weight)*Kh",
+      "factors": {
+        "weight": 4167.4501953125,
+        "unit_weight": 24.5,
+        "displaced_unit_weight": 18.0,
+        "Kh": 1.0
+      },
+      "geometry": {
+        "b": 7.0,
+        "w": 9.0,
+        "h5": 0.0,
+        "h6": 2.7
+      },
+      "unrounded": 1105.650051817602,
+      "value": 1105.65,
+      "unit": "kN",
+      "rounding_digits": 2
+    }
+  },
+  "basic_cases": [
+    {
+      "id": 1,
+      "symbol": "D1",
+      "label": "固定死荷重",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "column": {
+          "intensity": 297.68
+        },
+        "top": {
+          "N": 8299.52,
+          "M": -610.0
+        },
+        "footing": {
+          "N": 4167.4501953125,
+          "M": 0.0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "symbol": "D2",
+      "label": "付加死荷重",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "top": {
+          "N": 780.0,
+          "M": 6.5,
+          "B": {
+            "N": 520.0,
+            "arm": -0.325,
+            "M": -169.0
+          },
+          "C": {
+            "N": 260.0,
+            "arm": 0.675,
+            "M": 175.5
+          }
+        },
+        "soil": {
+          "N": 1830.5999755859375,
+          "M": 0.0
+        }
+      }
+    },
+    {
+      "id": 3,
+      "symbol": "Wp",
+      "label": "浮力（平水位）",
+      "direction": "up",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "N": -1701.0,
+        "M": -0.0
+      }
+    },
+    {
+      "id": 4,
+      "symbol": "Sw2",
+      "label": "雪荷重（2年確率）",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "N": 710.0,
+        "M": 19.25,
+        "B": {
+          "N": 460.0,
+          "arm": -0.325,
+          "M": -149.5
+        },
+        "C": {
+          "N": 250.0,
+          "arm": 0.675,
+          "M": 168.75
+        }
+      }
+    },
+    {
+      "id": 5,
+      "symbol": "L",
+      "label": "地震時列車荷重",
+      "direction": "down",
+      "load_type": "fixed",
+      "coefficient": 1.0,
+      "loads": {
+        "N": 480.0,
+        "M": 4.0,
+        "B": {
+          "N": 320.0,
+          "arm": -0.325,
+          "M": -104.0
+        },
+        "C": {
+          "N": 160.0,
+          "arm": 0.675,
+          "M": 108.0
+        }
+      }
+    },
+    {
+      "id": 6,
+      "symbol": "EQ1",
+      "label": "桁荷重慣性力",
+      "direction": "left",
+      "load_type": "incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "B": 6790.0,
+        "C": 4740.0,
+        "total": 11530.0,
+        "Kh": 1.0,
+        "coefficient_applied": true
+      }
+    },
+    {
+      "id": 7,
+      "symbol": "EQL",
+      "label": "列車荷重慣性力",
+      "direction": "left",
+      "load_type": "limited_incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "B": 64.0,
+        "C": 64.0,
+        "total": 128.0,
+        "Kh": 0.2,
+        "coefficient_applied": true
+      }
+    },
+    {
+      "id": 8,
+      "symbol": "EQ2",
+      "label": "橋脚自重慣性力",
+      "direction": "left",
+      "load_type": "incremental",
+      "coefficient": 1.0,
+      "loads": {
+        "Kh": 1.0,
+        "beam_top": 595.35,
+        "beam_bottom": 297.68,
+        "column": 297.68,
+        "footing": 1105.65,
+        "pedestal": {
+          "H": 0.0,
+          "height": 0.0,
+          "M": 0.0
+        }
+      }
+    }
+  ],
+  "combinations": [
+    {
+      "id": 1,
+      "alpha_f": 1.0,
+      "rho_m": 1.0,
+      "direction": "left",
+      "ground_resistance_type": 1,
+      "coefficients": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "units": {
+    "length": "m",
+    "force": "kN",
+    "moment": "kN m",
+    "line_load": "kN/m",
+    "area": "m2",
+    "inertia": "m4",
+    "unit_weight": "kN/m3",
+    "elastic_modulus": "kN/m2"
+  },
+  "provenance": {
+    "references": [
+      {
+        "document": "Example橋脚2/08_線路.pdf",
+        "physical_pages": [
+          1
+        ],
+        "purpose": "physical_frame"
+      },
+      {
+        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "physical_pages": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "purpose": "column_base_micro_member"
+      },
+      {
+        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "physical_pages": [
+          8,
+          12
+        ],
+        "purpose": "actions_and_cases"
+      },
+      {
+        "document": "Example橋脚2/10_線路(耐震).pdf",
+        "physical_pages": [
+          10
+        ],
+        "purpose": "normal_water_and_s2"
+      }
+    ],
+    "dependencies": [
+      "0610.input",
+      "0610.frame",
+      "0610.vertical.fixed",
+      "0610.vertical.additional",
+      "0610.vertical.water.normal",
+      "0610.vertical.snow.s2",
+      "0610.legacy_audit.vertical.train.earthquake",
+      "0610.legacy_audit.horizontal.case9",
+      "0610.legacy_audit.horizontal.case10",
+      "0610.legacy_audit.inertia"
+    ],
+    "rounding": "0610の符号・転記精度・丸め順序を保持。列車Kh=0.20は適用済みで再乗算しない。",
+    "combination_scope": "8基本ケースと1組合せの作用定義。構造応答・増分解析は実施しない。",
+    "reference_section": "10.4作用の組合せを本帳票10.3として構成。",
+    "model_scope": "柱下端微小要素の形状・原本種別だけを示し、構成則・解析は未定義。他部材の剛域化は今回再現しない。",
+    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b",
+    "input_file": "input.json"
+  },
+  "warnings": [
+    "0710は骨組形状と地震時作用・組合せを示します。構造解析・断面照査は実施しません。"
+  ]
+}

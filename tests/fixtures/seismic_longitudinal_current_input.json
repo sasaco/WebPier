@@ -1,0 +1,26 @@
+{
+  "basis": "Current frozen input expectations, separate from the independently transcribed PDF display values.",
+  "input_sha256": "82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b",
+  "inertia": {
+    "pedestal": {"H": 0.0, "height": 0.0, "M": 0.0},
+    "beam_bottom": 297.68,
+    "column": 297.68
+  },
+  "unrounded": {"beam_top": 595.35, "beam_bottom": 297.675, "column": 297.675},
+  "frame_node_ids": [1, 2, 3, 4, 5, 6, 7],
+  "frame_member_ids": [1, 2, 3, 4, 5, 6],
+  "column_base_micro_member": {
+    "basis": "2026-10-17 user corrections: 0.010 m micro member and top-down numbering; Example橋脚2/10_線路(耐震).pdf physical pages 1-5",
+    "node_id": 4,
+    "member_id": 4,
+    "node_x": 0.0,
+    "node_y": 2.71,
+    "nominal_length": 0.01,
+    "remaining_h4_length": 4.89,
+    "total_height": 10.3,
+    "region": "column_base_micro_member",
+    "behavior": "nonlinear",
+    "section_ref": "body",
+    "material_ref": "column"
+  }
+}
