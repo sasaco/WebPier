@@ -4,7 +4,6 @@ and every printed formula and table row recomputes from the printed numbers."""
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 import sys
 from collections import Counter
@@ -16,7 +15,7 @@ from gridlayoutpdf import Circle, Text
 
 from frame_report_cases import TRANSVERSE_CASES, transverse_chain
 from frame_report_pdf_checks import table_checks
-from pdf_handcheck import formula_checks, read_lines, tokens_text
+from pdf_handcheck import formula_checks
 from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, ROOT, _samples, measure, squeeze
 from webpier.reporting.stages.seismic_transverse import (
     FOOTER, build_seismic_transverse, render_seismic_transverse, semantic_records,
@@ -55,15 +54,6 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     rows = table_checks(path)
     assert Counter(check.kind for check in rows) == {"row": 16, "total": 4}
     assert [check for check in rows if not check.ok] == []
-
-
-def test_horizontal_forces_print_as_magnitude_and_direction_and_match_their_tables(tmp_path: Path):
-    with pymupdf.open(render("current", tmp_path / "0720.pdf")) as pdf:
-        lines = [tokens_text(tokens) for page in pdf for _, tokens in read_lines(page)]
-    directed = [m for line in lines if (m := re.fullmatch(r"(H|Hw\d)=(\d+\.\d{2})kN(?:/m)?（(←|→)）", line))]
-    assert [m[3] for m in directed] == ["→"] * len(directed) and len(directed) == 6
-    totals = [m[1] for line in lines if (m := re.fullmatch(r"水平力H=.*=(\d+\.\d{2})kN", line))]
-    assert [m[2] for m in directed[:2]] == totals[:2]  # Case 7 and 8 are the totals of (6) and (7)
 
 
 def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: Path):

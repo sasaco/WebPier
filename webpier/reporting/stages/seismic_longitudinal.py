@@ -1,12 +1,15 @@
 """0710 線路方向の計算（地震時）: the report of Example2 10 pp.10-1..10-12 on the SeismicLongitudinalResult.
 
 10.1 the model with the 0.010 m column-base micro member (figure, nodes and
-members, the section of the micro member, Ec, springs), 10.2 the actions
-printed here (the seismic train, the bearing horizontal forces and the
-self-weight inertia; the rest is "§8 と同様"), 10.3 the load diagrams of the
-8 basic cases and 10.4 the basic cases and the combination. The pushover and
-the checks (10-13 onward) and the section rebar of 10-6 (JRSNAP output) are
-not part of this stage.
+members, the section of the micro member, Ec), 10.2 the actions printed here
+(the seismic train, the bearing horizontal forces and the self-weight inertia;
+the rest is "§8 と同様") and 10.3 the basic cases and the combination. By the
+user's decision (decision 41) the report shows no springs (no spring symbol,
+no Kv/Ks/Kr, no spring table; Example2 10-7 prints the JRSNAP node springs) and
+no load diagrams (Example2 10.3), so the combination is 10.3 here. Leaving the
+springs out does not mean a fixed base or any other support condition. The
+pushover and the checks (10-13 onward) and the section rebar of 10-6 (JRSNAP
+output) are not part of this stage.
 """
 
 from __future__ import annotations
@@ -24,9 +27,9 @@ from ...calc.seismic_longitudinal import (
 from ...inputs import PierInput
 from ..figures import pier_outline
 from .frame_report import (
-    CaseLoads, Manuscript, Span, TableSpec, Unit, bearing_symbol, diagram_groups, document,
+    Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
     frame_figure, material_lines, member_table, node_table, section_lines, seat_moment,
-    self_weight_inertia, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    self_weight_inertia, semantic_records as records, sub, top_table, used_concretes, value, with_unit,
 )
 
 PREFIX = "0710/"
@@ -41,9 +44,6 @@ _CASES = {
     SeismicCase.TRAIN_INERTIA: (("EQL", ""), "地震時列車荷重慣性力"),
     SeismicCase.SELF_INERTIA: (("EQ", "2"), "自重による地震時慣性力"),
 }
-# Names of the self-weight inertia per metre at the start and end of each member (10-8, 10-11).
-INERTIA_NAMES = {Region.BEAM: ("Hw1", "Hw1"), Region.HAUNCH: ("Hw1", "Hw2"), Region.COLUMN: ("Hw3", "Hw3"),
-                 Region.COLUMN_BASE: ("Hw3", "Hw3"), Region.PEDESTAL: ("Hw4", "Hw4")}
 
 
 def case_name(result: SeismicLongitudinalResult, case: SeismicCase) -> str:
@@ -63,11 +63,12 @@ def _model(m: Manuscript, result: SeismicLongitudinalResult, pier: PierInput) ->
     m.heading("title", "§10. 線路方向の計算（地震時）", 0)
     m.heading("model.heading", "10.1 検討モデル", 1)
     m.heading("model.figure.heading", "(1) 骨組図", 2)
-    m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), block_id=PREFIX + "model.figure"))
+    m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), springs=False,
+                                          block_id=PREFIX + "model.figure"))
     m.paragraph("model.figure.note", f"太線は剛域を示す．◎は柱下端の微小部材（長さ {value(MICRO_MEMBER)} m）を示す．"
                                      "寸法の単位は m．")
     m.heading("model.nodes.heading", "(2) 節点と部材", 2)
-    m.table("model.nodes", node_table(frame))
+    m.table("model.nodes", node_table(frame, springs=False))
     m.table("model.members", member_table(frame))
     m.heading("section.heading", "(3) 部材の断面諸元", 2)
     m.paragraph("section.rigid", "柱下端の微小部材以外の部材はすべて剛域とする．")
@@ -80,8 +81,6 @@ def _model(m: Manuscript, result: SeismicLongitudinalResult, pier: PierInput) ->
     m.heading("section.material.heading", "2) 弾性係数", 3)
     for key, label, concrete in used_concretes(frame):
         material_lines(m, "section.material." + key, label, concrete)
-    m.heading("springs.heading", "(4) フーチング底面のばね", 2)
-    m.table("springs", spring_table(frame))
 
 
 def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
@@ -109,22 +108,8 @@ def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     self_weight_inertia(m, result.self_weight, "(3) 自重による地震時慣性力", "§6")
 
 
-def _diagrams(m: Manuscript, result: SeismicLongitudinalResult) -> None:
-    m.heading("diagrams.heading", "10.3 荷重図", 1)
-    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，モーメント M は時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
-                                 "地震は起点側（←）に作用させる．")
-    groups = []
-    for action in result.basic_cases:
-        loads = tuple((load.member, load.start, load.end) for load in action.member_loads)
-        case = CaseLoads(action.case.value, case_name(result, action.case), action.points, action.line_loads,
-                         loads, INERTIA_NAMES, horizontal=action.direction is ActionDirection.TOWARD_ORIGIN,
-                         magnitudes=True)
-        groups.append((str(action.case.value), case.title, [case]))
-    diagram_groups(m, result.frame, groups, lambda name, cases: f"Case {cases[0].number}　{name}")
-
-
 def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
-    m.heading("combination.heading", "10.4 作用の組合せ", 1)
+    m.heading("combination.heading", "10.3 作用の組合せ", 1)
     m.paragraph("basic.caption", "基本Case", keep=True)
     rows: list[tuple[Any, ...]] = [("Case", "記号", "作用方向", "荷重種別", "荷　重　名　称")]
     for action in result.basic_cases:
@@ -148,7 +133,6 @@ def content(result: SeismicLongitudinalResult, pier: PierInput) -> tuple[Unit, .
     m = Manuscript(PREFIX)
     _model(m, result, pier)
     _actions(m, result)
-    _diagrams(m, result)
     _combinations(m, result)
     return tuple(m.units)
 

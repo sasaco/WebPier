@@ -3,9 +3,9 @@
 The expected records are written here from the results with this module's own
 formatter. Example2 10 prints the JRSNAP pages 10-2..10-7 (element, nonlinear
 and section number figures, the section rebar, the spring distribution); this
-report prints the same model as the node/member tables, the section of the
-micro member and the spring table, and leaves the rebar to the JRSNAP output
-(decision 32).
+report prints the same model as the node/member tables and the section of the
+micro member, and leaves the rebar to the JRSNAP output (decision 32). It shows
+no springs and no load diagrams (decision 41).
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import pytest
 
 from frame_report_cases import CASES, chain, text
 from test_longitudinal_report_semantics import (
-    directed, glyph_labels, material, member_rows, node_rows, point_lines, section, springs, squeeze,
+    material, member_rows, node_rows, section, squeeze,
 )
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import Item
@@ -24,8 +24,6 @@ from webpier.calc.seismic_longitudinal import SeismicCase
 from webpier.core.printed import Printed
 
 t = text
-NAMES = {Region.BEAM: ("Hw1", "Hw1"), Region.HAUNCH: ("Hw1", "Hw2"), Region.COLUMN: ("Hw3", "Hw3"),
-         Region.COLUMN_BASE: ("Hw3", "Hw3"), Region.PEDESTAL: ("Hw4", "Hw4")}
 CASE_NAMES = ["固定死荷重", "付加死荷重", "浮力（平水位）", "雪荷重（2年確率）", "列車荷重", "地震時桁荷重慣性力",
               "地震時列車荷重慣性力", "自重による地震時慣性力"]
 SYMBOLS = ["D1", "D2", "Wp", "Sw2", "L", "EQ1", "EQL", "EQ2"]
@@ -39,7 +37,7 @@ def names(result) -> list[str]:
 def model_figure(frame) -> str:
     out = [str(node.number) for node in frame.nodes] + [str(member.number) for member in frame.members]
     out += [t(member.height) for member in frame.members if member.height.value > 0]
-    out += [t(frame.pier_height), t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y), "KvKsKr"]
+    out += [t(frame.pier_height), t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y)]
     return "".join(out)
 
 
@@ -58,7 +56,7 @@ def expected(case: str) -> dict[str, str]:
     add("model.figure", model_figure(frame))
     add("model.figure.note", "太線は剛域を示す．◎は柱下端の微小部材（長さ0.010m）を示す．寸法の単位はm．")
     add("model.nodes.heading", "(2)節点と部材")
-    add("model.nodes", node_rows(frame))
+    add("model.nodes", node_rows(frame, springs=False))
     add("model.members", member_rows(frame))
     add("section.heading", "(3)部材の断面諸元")
     add("section.rigid", "柱下端の微小部材以外の部材はすべて剛域とする．")
@@ -68,8 +66,6 @@ def expected(case: str) -> dict[str, str]:
     add("section.footing.centroid", f"フーチング重心yG={t(frame.node(NodeRole.FOOTING_CENTROID).y)}m")
     add("section.material.heading", "2)弾性係数")
     out.update({"0710/" + k: v for k, v in material("section.material.column", "柱", frame.materials.column).items()})
-    add("springs.heading", "(4)フーチング底面のばね")
-    add("springs", springs(frame))
     add("actions.heading", "10.2作用の計算")
     add("actions.note", "下記以外の作用については，§8.線路方向の計算（地震時以外）と同様とする．")
     add("train.heading", "(1)列車荷重")
@@ -106,24 +102,7 @@ def expected(case: str) -> dict[str, str]:
     add("inertia.footing.formula", "H=V×(γ−γ')×Kh")
     add("inertia.footing", f"H={t(f.volume)}×({t(f.unit_weight)}−{t(f.displaced)})×{t(f.kh)}={t(f.force)}kN")
     add("inertia.footing.note", "Vはフーチングの体積（§6），γ'は排除した土（表層）の湿潤単位体積重量．")
-    add("diagrams.heading", "10.3荷重図")
-    add("diagrams.note", "鉛直力N・Pは下向き，モーメントMは時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
-                         "地震は起点側（←）に作用させる．")
-    regions = {m.number: m.region for m in frame.members}
-    for action, name in zip(result.basic_cases, names(result), strict=True):
-        horizontal = action.case.value >= 6
-        add(f"diagrams.{action.case.value}.title", f"Case{action.case.value}{name}")
-        labels_ = glyph_labels(action.points, action.line_loads, horizontal)
-        lines = point_lines(action.points, horizontal, magnitudes=True)
-        lines += "".join(f"q={t(line.n)}kN/m" for line in action.line_loads if line.n.value)
-        seen: list[str] = []
-        for load in action.member_loads:
-            for value, label in zip((load.start, load.end), NAMES[regions[load.member]]):
-                if label not in seen:
-                    seen.append(label)
-                    lines += f"{label}={directed(value)}"
-        add(f"diagrams.{action.case.value}", labels_ + "".join(seen) + lines)
-    add("combination.heading", "10.4作用の組合せ")
+    add("combination.heading", "10.3作用の組合せ")
     add("basic.caption", "基本Case")
     arrows = {"downward": "↓", "upward": "↑", "toward_origin": "←"}
     kinds = {"fixed": "固定", "incremental": "増分", "limited_incremental": "限定増分"}
@@ -162,8 +141,6 @@ def test_current_input_prints_the_example2_values():
     assert got["0710/inertia.beam_top"] == "はりHw1=2.700×9.000×24.5×1.00=595.35kN/m"
     assert got["0710/inertia.column"].endswith("=297.68kN/m")
     assert got["0710/inertia.footing"] == "H=170.100×(24.5−18.0)×1.00=1105.65kN"
-    assert got["0710/diagrams.6"].endswith("H=11530.00kN（←）") and got["0710/diagrams.7"].endswith("H=128.00kN（←）")
-    assert got["0710/diagrams.8"].endswith("H=1105.65kN（←）Hw1=595.35kN/m（←）Hw2=297.68kN/m（←）Hw3=297.68kN/m（←）")
     assert "1+2+3+4+5+6+7+8" in got["0710/combination"]
     assert "4.8900.010" in got["0710/model.figure"]  # the column and the micro member below it
 
@@ -171,7 +148,7 @@ def test_current_input_prints_the_example2_values():
 def test_variants_change_what_is_printed():
     pedestal, current = actual("pedestal"), actual("current")
     assert "0710/inertia.pedestal" in pedestal and "0710/inertia.pedestal" not in current
-    assert "0710/train.seat" in pedestal and "Hw4" in pedestal["0710/diagrams.8"]
+    assert "0710/train.seat" in pedestal
 
 
 def test_the_report_reads_the_results_not_the_input():

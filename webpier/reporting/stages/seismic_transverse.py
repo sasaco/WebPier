@@ -3,11 +3,13 @@
 11.1 the transverse model with the 0.010 m column-base micro member and the
 girder level above the bearing seat (11-1 node 1), 11.2 the actions printed
 here (the seismic train of each track, the girder and train inertia, the
-self-weight inertia; the rest is "§9 と同様"), 11.3 the load diagrams of the 9
-basic cases and 11.4 the basic cases and one combination per track (decision
-21). The earthquake acts toward W9 (→, decision 30); horizontal forces print as
-magnitude and direction. The pushover and the checks (11-14 onward) are not
-part of this stage.
+self-weight inertia; the rest is "§9 と同様") and 11.3 the basic cases and one
+combination per track (decision 21). The earthquake acts toward W9 (→,
+decision 30). By the user's decision (decision 41) the report shows no springs
+(no spring symbol, value or table; Example2 11-7 prints the JRSNAP node
+springs), no enlarged figure of the column bottom and no load diagrams
+(Example2 11.3), so the combination is 11.3 here. The pushover and the checks
+(11-14 onward) are not part of this stage.
 """
 
 from __future__ import annotations
@@ -24,11 +26,11 @@ from ...calc.transverse import Track
 from ...inputs import PierInput
 from ..figures import pier_outline
 from .frame_report import (
-    CaseLoads, Manuscript, Span, TableSpec, Unit, diagram_groups, document, frame_figure, joined, material_lines,
+    Manuscript, Span, TableSpec, Unit, document, frame_figure, joined, material_lines,
     member_table, node_table, seat_moment, section_lines, self_weight_inertia, semantic_records as records,
-    spring_table, sub, used_concretes, value, with_unit, expression,
+    sub, used_concretes, value, with_unit, expression,
 )
-from .seismic_longitudinal import INCREMENTS, INERTIA_NAMES
+from .seismic_longitudinal import INCREMENTS
 from .transverse import _train_table, horizontal_table
 
 PREFIX = "0720/"
@@ -63,11 +65,12 @@ def _model(m: Manuscript, result: SeismicTransverseResult, pier: PierInput) -> N
     m.heading("title", "§11. 線路直角方向の計算（地震時）", 0)
     m.heading("model.heading", "11.1 検討モデル", 1)
     m.heading("model.figure.heading", "(1) 骨組図", 2)
-    m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), block_id=PREFIX + "model.figure"))
+    m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), springs=False,
+                                          block_id=PREFIX + "model.figure"))
     m.paragraph("model.figure.note", f"太線は剛域を示す．◎は柱下端の微小部材（長さ {value(MICRO_MEMBER)} m）を示す．"
                                      "最上段の節点は桁の高さ（支承位置から h1 + h2）である．寸法の単位は m．")
     m.heading("model.nodes.heading", "(2) 節点と部材", 2)
-    m.table("model.nodes", node_table(frame))
+    m.table("model.nodes", node_table(frame, springs=False))
     m.table("model.members", member_table(frame))
     m.heading("section.heading", "(3) 部材の断面諸元", 2)
     m.paragraph("section.rigid", "柱下端の微小部材以外の部材はすべて剛域とする．")
@@ -80,8 +83,6 @@ def _model(m: Manuscript, result: SeismicTransverseResult, pier: PierInput) -> N
     m.heading("section.material.heading", "2) 弾性係数", 3)
     for key, label, concrete in used_concretes(frame):
         material_lines(m, "section.material." + key, label, concrete)
-    m.heading("springs.heading", "(4) フーチング底面のばね", 2)
-    m.table("springs", spring_table(frame))
 
 
 def _inertia(m: Manuscript, key: str, heading: str, inertia: HorizontalInertia) -> None:
@@ -108,22 +109,8 @@ def _actions(m: Manuscript, result: SeismicTransverseResult) -> None:
     self_weight_inertia(m, result.self_weight, "(8) 自重による地震時慣性力", "§6")
 
 
-def _diagrams(m: Manuscript, result: SeismicTransverseResult) -> None:
-    m.heading("diagrams.heading", "11.3 荷重図", 1)
-    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，モーメント M は時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
-                                 "地震は W9 側（→）に作用させる．")
-    groups = []
-    for action in result.basic_cases:
-        loads = tuple((load.member, load.start, load.end) for load in action.member_loads)
-        case = CaseLoads(action.case.value, case_name(result, action.case), action.points, action.line_loads,
-                         loads, INERTIA_NAMES, horizontal=action.direction is ActionDirection.TOWARD_W9,
-                         magnitudes=True)
-        groups.append((str(action.case.value), case.title, [case]))
-    diagram_groups(m, result.frame, groups, lambda name, cases: f"Case {cases[0].number}　{name}")
-
-
 def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
-    m.heading("combination.heading", "11.4 作用の組合せ", 1)
+    m.heading("combination.heading", "11.3 作用の組合せ", 1)
     m.paragraph("basic.caption", "基本Case", keep=True)
     rows: list[tuple[Any, ...]] = [("Case", "記号", "作用方向", "荷重種別", "荷　重　名　称")]
     for action in result.basic_cases:
@@ -148,7 +135,6 @@ def content(result: SeismicTransverseResult, pier: PierInput) -> tuple[Unit, ...
     m = Manuscript(PREFIX)
     _model(m, result, pier)
     _actions(m, result)
-    _diagrams(m, result)
     _combinations(m, result)
     return tuple(m.units)
 

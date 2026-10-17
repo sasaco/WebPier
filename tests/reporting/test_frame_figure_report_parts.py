@@ -78,7 +78,7 @@ def test_case_lines_list_horizontal_line_loads_and_all_zero_points():
     point = PointLoad(NodeRole.CAP_TOP, f.node(NodeRole.CAP_TOP).number, Printed(0.0, 2, "kN"),
                       Printed(0.0, 2, "kN"), Printed(0.0, 2, "kN m"))
     case = CaseLoads(1, "wind", (point,), (line,), horizontal=True)
-    assert [plain(item) for item in case_lines(f, case)] == ["H = 0.00 kN", "qh = -3.50 kN/m"]
+    assert [plain(item) for item in case_lines(f, case)] == ["H = 0.00 kN（→）", "qh = 3.50 kN/m（←）"]
     glyphs = case_glyphs(f, case)
     assert isinstance(glyphs[-1], DistributedGlyph) and glyphs[-1].labels[0][2] == "qh"
     assert glyphs[0].kind == "H" and glyphs[0].sign == 1
@@ -123,3 +123,23 @@ def test_a_distributed_load_on_part_of_a_member_stops_where_the_part_ends():
     top, bottom = dots[column.start - 1].y, dots[column.end - 1].y
     outer = next(c for c in drawn if isinstance(c, Line) and c.width == .5)
     assert (outer.y1, outer.y2) == pytest.approx((top, top + (bottom - top) * .25))
+
+
+def test_glyph_runs_split_when_directions_differ_and_zero_fits_either():
+    from webpier.reporting.stages.frame_report import diagram_groups
+
+    frame = chain("current")[2].frame
+    node = frame.node(NodeRole.FOOTING_CENTROID).number
+
+    def case(number: int, n: float) -> CaseLoads:
+        point = PointLoad(NodeRole.FOOTING_CENTROID, node, Printed(n, 2, "kN"), Printed(0.0, 2, "kN"),
+                          Printed(0.0, 2, "kN m"))
+        return CaseLoads(number, f"c{number}", (point,))
+
+    m = Manuscript("x/")
+    diagram_groups(m, frame, [("g", "G", [case(1, 0.0), case(2, -5.0), case(3, 0.0), case(4, 7.0)])],
+                   lambda name, cases: f"{cases[0].number}-{cases[-1].number}")
+    titles = [u.value for u in m.units if u.key.endswith(".title")]
+    assert titles == ["1-3", "4-4　c4"]  # a case split from its group names itself
+    signs = [[g.sign for g in u.value.figure.glyphs] for u in m.units if u.kind == "diagram"]
+    assert signs == [[-1], [1]]

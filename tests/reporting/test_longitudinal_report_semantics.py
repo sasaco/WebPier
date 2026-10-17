@@ -32,7 +32,7 @@ REGIONS = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "�
            Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け", Region.GIRDER: "支承から桁までの剛域"}
 ROLES = {NodeRole.CAP_TOP: "はり天端", NodeRole.BEAM_BOTTOM: "はり下端", NodeRole.COLUMN_TOP: "柱上端",
          NodeRole.MICRO_TOP: "微小部材上端", NodeRole.FOOTING_TOP: "フーチング天端",
-         NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面（ばね）",
+         NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面",
          NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
          NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁"}
 UNITS = {"kN": "kN", "kN m": "kN・m", "kN/m": "kN/m", "m": "m", "m2": "m2", "m4": "m4"}
@@ -64,11 +64,13 @@ def figure_texts(frame, pier, reaction) -> str:
     return "".join(out)
 
 
-def node_rows(frame) -> str:
+def node_rows(frame, springs: bool = True) -> str:
+    """With *springs* the footing bottom is the spring node (0610, 0620); 0710 and 0720 show no springs."""
     out = "節点番号X座標(m)Y座標(m)位置"
     for node in frame.nodes:
-        out += str(node.number) + t(node.x) + t(node.y) + "・".join(name for role, name in ROLES.items()
-                                                                    if role in node.roles)
+        out += str(node.number) + t(node.x) + t(node.y) + "・".join(
+            name + ("（ばね）" if springs and role is NodeRole.FOOTING_BOTTOM else "")
+            for role, name in ROLES.items() if role in node.roles)
     return out
 
 
@@ -146,23 +148,6 @@ def horizontal_names(result, reaction):
 def directed(value: Printed) -> str:
     """A horizontal force as Example2 prints it: the magnitude and its direction."""
     return t(Printed(abs(value.value), value.digits, value.unit)) + u(value) + ("（←）" if value.value < 0 else "（→）")
-
-
-def point_lines(points, horizontal: bool, magnitudes: bool = False) -> str:
-    anchors = {p.anchor for p in points}
-    top_h = any(p.h.value for p in points if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP))
-    out = ""
-    for p in points:
-        if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP):
-            prime = "'" if p.anchor is NodeRole.CAP_TOP and NodeRole.PEDESTAL_TOP in anchors else ""
-            names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
-        else:
-            names = {"n": "P", "m": "MP", "h": "HP" if top_h else "H"}
-        listed = [c for c in "nhm" if getattr(p, c).value] or (["h"] if horizontal else ["n"])
-        for c in listed:
-            value = getattr(p, c)
-            out += f"{names[c]}=" + (directed(value) if magnitudes and c == "h" else t(value) + u(value))
-    return out
 
 
 def glyph_labels(points, line_loads, horizontal: bool) -> str:
@@ -304,25 +289,7 @@ def expected(case: str) -> dict[str, str]:
         rows += (groups[requirement] if requirement != previous else "") + full + t(row.origin) + t(row.end) + t(row.total)
         previous = requirement
     add("horizontal", rows)
-    add("diagrams.heading", "8.3荷重図")
-    add("diagrams.note", "鉛直力N・Pは下向き，水平力Hは終点側（右向き），モーメントMは時計回りを正とし，"
-                         "矢印は作用の向きを示す．N'，M'ははり天端の荷重を示す．")
-    titles = [q for _, q, _ in BASIC] + [f"{r}　{short}" for _, r, _, _, short in horizontal_names(result, reaction)]
-    for key, name, numbers in (("d1", "固定死荷重（D1）", (1,)), ("d2", "付加死荷重（D2）", (2,)),
-                               ("buoyancy", "浮力（Wp）", (3, 4, 5)), ("snow", "雪荷重（Ss）", (6, 7, 8)),
-                               ("train", "列車荷重（L）", (9, 10)), ("impact", "衝撃荷重（I）", (11, 12)),
-                               ("horizontal", "水平荷重（LR+B）", tuple(range(13, 21)))):
-        actions = [result.basic_cases[n - 1] for n in numbers]
-        span = f"Case{numbers[0]}" if len(numbers) == 1 else f"Case{numbers[0]}～{numbers[-1]}"
-        add(f"diagrams.{key}.title", span + name)
-        lines = ""
-        for action in actions:
-            if len(actions) > 1:
-                lines += f"Case{action.case.value}{titles[action.case.value - 1]}"
-            lines += point_lines(action.points, action.horizontal)
-            lines += "".join(f"q={t(line.n)}kN/m" for line in action.line_loads if line.n.value)
-        add(f"diagrams.{key}", glyph_labels(actions[0].points, actions[0].line_loads, actions[0].horizontal) + lines)
-    add("combination.heading", "8.4設計作用の組合せ")
+    add("combination.heading", "8.3設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
     names = [(n, q) for n, q, _ in BASIC] + [(n, f"{r}　{full}") for n, r, full, _, _ in horizontal_names(result, reaction)]
     add("basic", "No荷重名称区分バネ" + "".join(
@@ -409,7 +376,6 @@ def test_variants_change_what_is_printed():
     assert pedestal["0610/impact.service_double.seat"].startswith("桁受け天端M=126.10−321.63×(-0.350)=")
     assert "0610/fixed.footing.moment" in asymmetric and "0610/fixed.footing.moment" not in current
     assert "柱上端" in merged["0610/model.nodes"] and merged["0610/model.nodes"].count("はり天端・はり下端・柱上端") == 1
-    assert pedestal["0610/diagrams.d1"].startswith("NMN'M'Pq")
 
 
 def test_the_report_reads_the_results_not_the_input():
@@ -423,28 +389,6 @@ def test_the_report_reads_the_results_not_the_input():
     assert got["0610/fixed.column"].endswith("=123.45kN/m")
     assert got["0610/fixed.n"] == "鉛直力N=9103.27−123.45×2.700=1.11kN"
     assert got["0610/factors.maximum"].endswith("=9.99")
-
-
-def test_glyph_runs_split_when_directions_differ_and_zero_fits_either():
-    from webpier.calc.frame import PointLoad
-    from webpier.reporting.stages.frame_report import CaseLoads, Manuscript, diagram_groups
-
-    _, _, result, _ = chain("current")
-    frame = result.frame
-    node = frame.node(NodeRole.FOOTING_CENTROID).number
-
-    def case(number: int, n: float) -> CaseLoads:
-        point = PointLoad(NodeRole.FOOTING_CENTROID, node, Printed(n, 2, "kN"), Printed(0.0, 2, "kN"),
-                          Printed(0.0, 2, "kN m"))
-        return CaseLoads(number, f"c{number}", (point,))
-
-    m = Manuscript("x/")
-    diagram_groups(m, frame, [("g", "G", [case(1, 0.0), case(2, -5.0), case(3, 0.0), case(4, 7.0)])],
-                   lambda name, cases: f"{cases[0].number}-{cases[-1].number}")
-    titles = [u.value for u in m.units if u.key.endswith(".title")]
-    assert titles == ["1-3", "4-4　c4"]  # a case split from its group names itself
-    signs = [[g.sign for g in u.value.figure.glyphs] for u in m.units if u.kind == "diagram"]
-    assert signs == [[-1], [1]]
 
 
 def test_unsupported_nodes_and_duplicate_keys_are_rejected():

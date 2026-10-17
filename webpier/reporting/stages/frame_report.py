@@ -1,4 +1,4 @@
-"""Manuscript pieces shared by the frame-load reports (0610 and 0710; 0620/0720 later).
+"""Manuscript pieces shared by the frame-load reports (0610, 0620, 0710 and 0720).
 
 A report is an ordered tuple of ``Unit``: one semantic piece (a heading, an
 equation, a table, a figure) with what it prints. The same units drive the
@@ -343,7 +343,7 @@ def document(units: Sequence[Unit], footer: str) -> Document:
 _ROLE_NAMES = {
     NodeRole.CAP_TOP: "はり天端", NodeRole.BEAM_BOTTOM: "はり下端", NodeRole.COLUMN_TOP: "柱上端",
     NodeRole.MICRO_TOP: "微小部材上端", NodeRole.FOOTING_TOP: "フーチング天端",
-    NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面（ばね）",
+    NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面",
     NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
     NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁",
 }
@@ -354,10 +354,12 @@ REGION_NAMES = {
 }
 
 
-def node_table(frame: Frame) -> TableSpec:
+def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
+    """Nodes and their roles; with *springs* the footing bottom is named as the spring node (0610, 0620)."""
     rows = [("節点番号", "X座標 (m)", "Y座標 (m)", "位置")]
     for node in frame.nodes:
-        names = "・".join(name for role, name in _ROLE_NAMES.items() if role in node.roles)
+        names = "・".join(name + ("（ばね）" if springs and role is NodeRole.FOOTING_BOTTOM else "")
+                         for role, name in _ROLE_NAMES.items() if role in node.roles)
         rows.append((str(node.number), value(node.x), value(node.y), names))
     return TableSpec((60, 84, 84, 204), tuple(rows), (BODY_LEADING,) * len(rows), numeric=frozenset({0, 1, 2}))
 
@@ -563,7 +565,7 @@ def bearing_symbol(side: str) -> MathNode:
     return Row("起点側　" if side == "origin" else "終点側　", sub("R", "B" if side == "origin" else "C"), gap=0)
 
 
-# --- load diagrams (8.3 / 10.3) ------------------------------------------------------------------------------
+# --- load diagrams (0620 9.3; 0610, 0710 and 0720 print none, decision 41) --------------------------------------
 
 
 @dataclass(frozen=True)
@@ -578,7 +580,6 @@ class CaseLoads:
     member_loads: tuple[tuple[Any, ...], ...] = ()
     member_names: dict[Region, tuple[str, str]] = field(default_factory=dict)  # region → names of start, end
     horizontal: bool = False  # an all-zero load is listed as H, otherwise as N
-    magnitudes: bool = False  # horizontal forces as magnitude and direction (←, →), as Example2 10 / 11
 
 
 _TOP = (NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP)
@@ -649,7 +650,7 @@ def case_glyphs(frame: Frame, case: CaseLoads, signs: Sequence[int] | None = Non
 
 
 def directed(number: Printed) -> Row:
-    """A horizontal force as Example2 10 prints it: its magnitude and its direction (+x is →).
+    """A horizontal force as Example2 9-11 prints it: its magnitude and its direction (+x is →).
 
     The sign stays in the calc result; only the way it is written changes.
     """
@@ -658,21 +659,21 @@ def directed(number: Printed) -> Row:
 
 
 def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
-    """The values of one case: ``N = 8299.53 kN`` and so on, in the order of the glyphs."""
+    """The values of one case: ``N = 8299.53 kN`` and so on, in the order of the glyphs.
+
+    Horizontal forces are written as magnitude and direction (Example2 9-11).
+    """
     lines: list[Any] = []
-
-    def written(number: Printed, horizontal: bool) -> Row:
-        return directed(number) if horizontal and case.magnitudes else with_unit(number)
-
     for point, names in _point_names(case):
         for component in _listed(point, case.horizontal):
-            lines.append(Row(_symbol(names[component]), " = ", written(getattr(point, component), component == "h"),
-                             gap=0))
+            number = getattr(point, component)
+            lines.append(Row(_symbol(names[component]), " = ", directed(number) if component == "h" else
+                             with_unit(number), gap=0))
     for line in case.line_loads:
         if line.n.value:
             lines.append(Row("q = ", with_unit(line.n), gap=0))
         if line.h.value:
-            lines.append(Row(sub("q", "h"), " = ", written(line.h, True), gap=0))
+            lines.append(Row(sub("q", "h"), " = ", directed(line.h), gap=0))
     if case.member_loads:
         regions = {member.number: member.region for member in frame.members}
         seen: set[str] = set()
@@ -680,7 +681,7 @@ def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
             for intensity, name in zip((start, end), case.member_names[regions[number]], strict=True):
                 if name not in seen:
                     seen.add(name)
-                    lines.append(Row(name, " = ", written(intensity, True), gap=0))
+                    lines.append(Row(name, " = ", directed(intensity), gap=0))
     return lines
 
 

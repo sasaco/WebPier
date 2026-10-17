@@ -2,8 +2,9 @@
 
 The figure shows the physical outline (dashed), the members (rigid ones
 thicker), the nodes with their numbers, the member numbers in boxes, the
-vertical dimensions, the springs at the support and, optionally, the footing
-dimensions and the bearing types. It works for both directions: the outline
+vertical dimensions, the springs at the support (unless the stage shows no
+springs: 0710 and 0720, decision 41) and, optionally, the footing dimensions
+and the bearing types. It works for both directions: the outline
 takes the B sizes along the track and the W sizes across it.
 
 Every printed number is a Printed value: a member height, the height of a
@@ -119,6 +120,7 @@ class FrameFigure:
     height: float = 432
     horizontal: tuple[HorizontalDimension, ...] = ()
     bearings: tuple[str, str] | None = None  # symbols at the origin side and the end side (M / F)
+    springs: bool = True  # Kv, Ks, Kr at the support; 0710 and 0720 show no springs (decision 41)
     block_id: str = ""
 
     # --- what is printed -------------------------------------------------------------------------------------
@@ -150,7 +152,8 @@ class FrameFigure:
         found += [str(member.number) for member in self.frame.members]
         found += [text for *_, text in self._dimensions()]
         found += [dimension.text for dimension in self.horizontal]
-        found += ["K", "v", "K", "s", "K", "r"]
+        if self.springs:
+            found += ["K", "v", "K", "s", "K", "r"]
         found += list(self.bearings or ())
         return tuple(found)
 
@@ -264,13 +267,14 @@ class FrameFigure:
                 texts.append(Text(centre - width / 2, y - 2.5, dimension.text, DIMENSION_STYLE))
 
         # Springs at the support (8-1): Kv down, Ks to the end side, Kr as a coil on the origin side.
-        sx, sy = nodes[support]
-        drawn += [zigzag((sx + 2, sy), (sx + 22, sy)), Line(sx + 22, sy - 4, sx + 22, sy + 4, .5),
-                  zigzag((sx, sy + 2), (sx, sy + 22)), Line(sx - 4, sy + 22, sx + 4, sy + 22, .5),
-                  _coil(sx - 13, sy + 9)]
-        texts += subscripted(fonts, sx + 6, sy + 20, "K", "v")
-        texts += subscripted(fonts, sx + 25, sy + 3.5, "K", "s")
-        texts += subscripted(fonts, sx - 33, sy + 16, "K", "r")
+        if self.springs:
+            sx, sy = nodes[support]
+            drawn += [zigzag((sx + 2, sy), (sx + 22, sy)), Line(sx + 22, sy - 4, sx + 22, sy + 4, .5),
+                      zigzag((sx, sy + 2), (sx, sy + 22)), Line(sx - 4, sy + 22, sx + 4, sy + 22, .5),
+                      _coil(sx - 13, sy + 9)]
+            texts += subscripted(fonts, sx + 6, sy + 20, "K", "v")
+            texts += subscripted(fonts, sx + 25, sy + 3.5, "K", "s")
+            texts += subscripted(fonts, sx - 33, sy + 16, "K", "r")
 
         if self.bearings:
             cap_left, cap_right, cap_bottom, cap_top = self.outline.cap

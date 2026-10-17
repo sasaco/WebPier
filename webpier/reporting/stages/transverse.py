@@ -344,7 +344,7 @@ def _diagrams(m: Manuscript, result: TransverseResult) -> None:
         member_loads = _wind_loads(result, winds[action.case]) if action.case in winds else ()
         loads[action.case] = CaseLoads(action.case.value, _BASIC[action.case][1] or _BASIC[action.case][0],
                                        action.points, action.line_loads, member_loads, WIND_NAMES,
-                                       horizontal=action.horizontal, magnitudes=True)
+                                       horizontal=action.horizontal)
     groups = [("d1", "固定死荷重（D1）", (BasicCase.D1,)), ("d2", "付加死荷重（D2）", (BasicCase.D2,)),
               ("buoyancy", "浮力（Wp）", (BasicCase.BUOYANCY_HIGH, BasicCase.BUOYANCY_NORMAL, BasicCase.BUOYANCY_LOW)),
               ("snow", "雪荷重（Ss）", (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)),

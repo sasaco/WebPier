@@ -1,8 +1,9 @@
 """0720 semantics: every printed number is a SeismicTransverseResult value at its digits (Example2 11 pp.11-1..11-13).
 
 Example2 11 prints the JRSNAP pages 11-2..11-7; this report prints the same
-model as tables, like 0710. One combination per track (decision 21); the
-earthquake acts toward W9 (→, decision 30) and prints as magnitude and direction.
+model as tables, like 0710, without springs and without load diagrams (decision
+41). One combination per track (decision 21); the earthquake acts toward W9 (→,
+decision 30).
 """
 
 from __future__ import annotations
@@ -12,15 +13,13 @@ from dataclasses import replace
 import pytest
 
 from frame_report_cases import TRANSVERSE_CASES, text, transverse_chain
-from test_longitudinal_report_semantics import directed, material, member_rows, node_rows, section, springs, squeeze
-from test_transverse_report_semantics import bearing, lines
+from test_longitudinal_report_semantics import material, member_rows, node_rows, section, squeeze
+from test_transverse_report_semantics import bearing
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.transverse import Item, Track
 from webpier.core.printed import Printed
 
 t = text
-NAMES = {Region.BEAM: ("Hw1", "Hw1"), Region.HAUNCH: ("Hw1", "Hw2"), Region.COLUMN: ("Hw3", "Hw3"),
-         Region.COLUMN_BASE: ("Hw3", "Hw3"), Region.PEDESTAL: ("Hw4", "Hw4")}
 CASES = ["固定死荷重", "付加死荷重", "浮力（平水位）", "雪荷重（2年確率）", "列車荷重（上り）", "列車荷重（下り）",
          "地震時桁荷重慣性力", "地震時列車荷重慣性力", "自重による地震時慣性力"]
 SYMBOLS = ["D1", "D2", "Wp", "Sw2", "L", "L", "EQ1", "EQL", "EQ2"]
@@ -46,11 +45,11 @@ def expected(case: str) -> dict[str, str]:
     figure = [str(n.number) for n in frame.nodes] + [str(m.number) for m in frame.members]
     figure += [t(m.height) for m in frame.members if m.height.value > 0]
     figure += [t(frame.pier_height), t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y)]
-    add("model.figure", "".join(figure) + "KvKsKr")
+    add("model.figure", "".join(figure))
     add("model.figure.note", "太線は剛域を示す．◎は柱下端の微小部材（長さ0.010m）を示す．最上段の節点は桁の高さ"
                              "（支承位置からh1+h2）である．寸法の単位はm．")
     add("model.nodes.heading", "(2)節点と部材")
-    add("model.nodes", node_rows(frame))
+    add("model.nodes", node_rows(frame, springs=False))
     add("model.members", member_rows(frame))
     add("section.heading", "(3)部材の断面諸元")
     add("section.rigid", "柱下端の微小部材以外の部材はすべて剛域とする．")
@@ -60,8 +59,6 @@ def expected(case: str) -> dict[str, str]:
     add("section.footing.centroid", f"フーチング重心yG={t(frame.node(NodeRole.FOOTING_CENTROID).y)}m")
     add("section.material.heading", "2)弾性係数")
     out.update({"0720/" + k: v for k, v in material("section.material.column", "柱", frame.materials.column).items()})
-    add("springs.heading", "(4)フーチング底面のばね")
-    add("springs", springs(frame))
     add("actions.heading", "11.2作用の計算")
     add("actions.note", "下記以外の作用については，§9.線路直角方向の計算（地震時以外）と同様とする．")
     add("train.heading", "(5)列車荷重")
@@ -96,23 +93,7 @@ def expected(case: str) -> dict[str, str]:
     add("inertia.footing.formula", "H=V×(γ−γ')×Kh")
     add("inertia.footing", f"H={t(f.volume)}×({t(f.unit_weight)}−{t(f.displaced)})×{t(f.kh)}={t(f.force)}kN")
     add("inertia.footing.note", "Vはフーチングの体積（§6），γ'は排除した土（表層）の湿潤単位体積重量．")
-    add("diagrams.heading", "11.3荷重図")
-    add("diagrams.note", "鉛直力N・Pは下向き，モーメントMは時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
-                         "地震はW9側（→）に作用させる．")
-    regions = {m.number: m.region for m in frame.members}
-    for action, name in zip(result.basic_cases, names(result), strict=True):
-        number = action.case.value
-        add(f"diagrams.{number}.title", f"Case{number}{name}")
-        values = lines(action.points, number >= 7)
-        values += "".join(f"q={t(line.n)}kN/m" for line in action.line_loads if line.n.value)
-        seen: list[str] = []
-        for load in action.member_loads:
-            for value, label in zip((load.start, load.end), NAMES[regions[load.member]]):
-                if label not in seen:
-                    seen.append(label)
-                    values += f"{label}={directed(value)}"
-        out[f"0720/diagrams.{number}"] = values
-    add("combination.heading", "11.4作用の組合せ")
+    add("combination.heading", "11.3作用の組合せ")
     add("basic.caption", "基本Case")
     arrows = {"downward": "↓", "upward": "↑", "toward_w9": "→"}
     kinds = {"fixed": "固定", "incremental": "増分", "limited_incremental": "限定増分"}
@@ -134,8 +115,7 @@ def actual(case: str, result=None) -> dict[str, str]:
     pier, _, _, seismic = transverse_chain(case)
     units = content(result or seismic, pier)
     assert len({unit.key for unit in units}) == len(units)
-    return {unit.key: squeeze("".join(plain(line) for line in unit.value.lines) if unit.kind == "diagram"
-                              else plain(unit.value)) for unit in units}
+    return {unit.key: squeeze(plain(unit.value)) for unit in units}
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
@@ -153,7 +133,6 @@ def test_current_input_prints_the_example2_values():
     assert got["0720/train.up"].endswith("合計480.001028.62")
     assert got["0720/train_inertia.h"] == "水平力H=96.00+48.00=144.00kN"
     assert got["0720/train_inertia.table"].endswith("合計144.00770.40")
-    assert got["0720/diagrams.8"] == "H=144.00kN（→）M=770.40kN・m"
     assert "13.050" in got["0720/model.figure"] and "1+2+3+4+5+7+8+9" in got["0720/combination"]
     assert "1+2+3+4+6+7+8+9" in got["0720/combination"]
 

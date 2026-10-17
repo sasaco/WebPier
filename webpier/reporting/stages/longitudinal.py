@@ -1,11 +1,13 @@
 """0610 線路方向荷重（地震時以外）: the report of Example2 08 pp.8-1..8-11 on the LongitudinalResult.
 
 8.1 the model (figure, springs, nodes and members, sections, Ec), 8.2 the
-actions with their formula lines, 8.3 the load diagrams of the 20 basic cases,
-8.4 the basic and Define cases, the combination coefficients as printed, and
-the extraction cases. Member and foundation checks (8-12 onward) are not part
-of this stage. Every number is a Printed value of the LongitudinalResult, of
-the 0600 ReactionResult it was calculated from, or of the input.
+actions with their formula lines, 8.3 the basic and Define cases, the
+combination coefficients as printed, and the extraction cases. Example2's load
+diagrams (8.3, pp.8-6..8-8) are left out by the user's decision (decision 41),
+so the combinations are 8.3 here. Member and foundation checks (8-12 onward)
+are not part of this stage. Every number is a Printed value of the
+LongitudinalResult, of the 0600 ReactionResult it was calculated from, or of
+the input.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from ...inputs import PierInput
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
 from .frame_report import (
-    BODY_LEFT, CaseLoads, Manuscript, Span, TableSpec, Unit, bearing_symbol, diagram_groups, document, expression,
+    BODY_LEFT, Manuscript, Span, TableSpec, Unit, bearing_symbol, document, expression,
     frame_figure, material_lines, member_table, node_table, operand, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
@@ -283,45 +285,8 @@ def _service_point(result: LongitudinalResult, key: str) -> Any:
                 if component.case is case and component.basis is Basis.SERVICE_IMPACT)
 
 
-def case_loads(result: LongitudinalResult, reaction: ReactionResult) -> dict[BasicCase, CaseLoads]:
-    found = {}
-    for action in result.basic_cases:
-        if action.case in _BASIC:
-            title = _BASIC[action.case][1]
-        else:  # the short name; a B factor that differs by bearing is printed in 8.2 (7)
-            case = result.horizontal[action.case.value - BasicCase.SERVICE_LR08.value].case
-            requirement, rail = _HORIZONTAL[case]
-            short = brake_text(reaction, case)[0]
-            title = f"{requirement}　{rail}" + (f" + {short}" if short else "")
-        found[action.case] = CaseLoads(action.case.value, title, action.points, action.line_loads,
-                                       horizontal=action.horizontal)
-    return found
-
-
-_GROUPS = (("d1", "固定死荷重（D1）", (BasicCase.D1,)), ("d2", "付加死荷重（D2）", (BasicCase.D2,)),
-           ("buoyancy", "浮力（Wp）", (BasicCase.BUOYANCY_HIGH, BasicCase.BUOYANCY_NORMAL, BasicCase.BUOYANCY_LOW)),
-           ("snow", "雪荷重（Ss）", (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)),
-           ("train", "列車荷重（L）", (BasicCase.TRAIN_SINGLE, BasicCase.TRAIN_DOUBLE)),
-           ("impact", "衝撃荷重（I）", (BasicCase.IMPACT_SINGLE, BasicCase.IMPACT_DOUBLE)),
-           ("horizontal", "水平荷重（LR+B）", tuple(BasicCase)[12:]))
-
-
-def group_title(name: str, cases: Any) -> str:
-    first, last = cases[0].number, cases[-1].number
-    return f"Case {first}　{name}" if first == last else f"Case {first} ～ {last}　{name}"
-
-
-def _diagrams(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
-    m.heading("diagrams.heading", "8.3 荷重図", 1)
-    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，水平力 H は終点側（右向き），モーメント M は時計回りを正とし，"
-                                 "矢印は作用の向きを示す．N'，M' ははり天端の荷重を示す．")
-    loads = case_loads(result, reaction)
-    diagram_groups(m, result.frame, ((key, name, [loads[case] for case in cases]) for key, name, cases in _GROUPS),
-                   group_title)
-
-
 def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
-    m.heading("combination.heading", "8.4 設計作用の組合せ", 1)
+    m.heading("combination.heading", "8.3 設計作用の組合せ", 1)
     m.heading("basic.heading", "(1) 基本ケース", 2)
     rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "バネ")]
     for action in result.basic_cases:
@@ -370,7 +335,6 @@ def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInpu
     _dead(m, result, reaction, pier)
     _snow_train(m, result, reaction)
     _impact_horizontal(m, result, reaction)
-    _diagrams(m, result, reaction)
     _combinations(m, result, reaction, pier)
     return tuple(m.units)
 

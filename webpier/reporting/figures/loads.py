@@ -1,4 +1,4 @@
-"""Load diagrams of the basic cases (荷重図): Example2 08 pp.8-6..8-8, 10 pp.10-9..10-11.
+"""Load diagrams of the basic cases (荷重図) of 0620: Example2 09 pp.9-9..9-12.
 
 The frame is drawn as a line with its nodes; each glyph is drawn at the node
 or along the members it acts on, in the direction of its sign: N downward and
