@@ -156,7 +156,8 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - FrameWeb のばねの値1は固定支点、0は自由を意味するので、ばねは正で1以外の値が必要です。荷重のない部材行は書きません。部材荷重の強度は FrameWeb が 0.01 に投影します。行のない荷重ケースは FrameWeb が飛ばすので、そのようなケースだけの Combine は落ち、その Pickup は失敗します。Combine の表は Define 50列までです。こうなる入力は公開前にエラーにします。
 - **FrameWeb は係数×荷重を丸めずに組み合わせます**。計算書は作用ごとに係数×作用を印字桁に丸めるので、FrameWeb の組合せは計算書の印刷値と作用ごとに最大0.005程度ずれます。外部の解析ソフトとしてこの差を許容します（決定38）。
 - **0620 の FrameWeb は Example2 の Define の構成のままです**（列車・衝撃・遠心を線ごとに独立に選ぶ）。そのため上り線の列車と下り線の衝撃の組も選びうるので、FrameWeb の包絡は、同じ線どうしだけを組み合わせる計算書より安全側に出ます（決定39）。FrameWeb の形式には Define 同士の選択を連動させる項目がなく（Define・Combine・Pickup の知らないキーは読込みで拒否されます）、各 Define は独立に包絡されるので、同じ線どうしに限定できません。
-- 出力は FrameWebforJS/CS の保存形式のJSONで、FEMPython の解析要求のJSONではありません。`FrameWebforCS.Headless.exe run --input <json> --output-dir <空の絶対パス>` が、保存形式から計算要求への変換・計算・Define/Combine/Pickup までを行います（FEMPython・FrameWeb での読込み確認は、最後の実アプリでの受入で行います）。
+- 出力は FrameWebforJS/CS の保存形式のJSONで、FEMPython の解析要求のJSONではありません。`FrameWebforCS.Headless.exe run --input <json> --output-dir <空の絶対パス>` が、保存形式から計算要求への変換・計算・Define/Combine/Pickup までを行います。FEMPython はこの中で使われる計算エンジンで、保存形式を直接は読みません。
+- **読込みの確認**（2026-10-18、`scripts/check_frameweb_headless.py`、記録 `tests/fixtures/acceptance/frameweb_headless/record.json`）：`pre/input.json` と `current.json` の 0610・0620（両入力で同じバイト）を FrameWebforCS.Headless（FEMPython）で計算させ、節点・部材・Define・Combine・Pickup の数、荷重ケースごとの反力と書いた荷重の釣合い、0610 の組合せ1（FEMPython 22585.1473、計算書 22585.160、作用ごとの丸めの差は最大0.005）を照合しました。行のない荷重ケース5（低水位の浮力が0）とその Define 5 は FrameWeb が飛ばします。0620 は風荷重の終わる位置（y = 4.7 m）に FEMPython が節点を1つ加えます。読込みを確かめるための計算で、構造解析・照査の結果ではありません。生成する FrameWeb 入力が変わると `tests/acceptance` が失敗するので、確認をやり直します。
 - 基礎の剛域は Example2 と同じく、明示した節点・部材に有限の剛性（E = 26,500,000 kN/m²、A = Iz = 1,000）を与えて表します。保存形式の `rigid` 配列は部材端の区間に別の断面を割り当てるだけで、剛体の拘束ではないためです。A・Iz を10倍・100倍にしても柱頭の変位が約0.004 mm 変わるだけで、反力・断面力はほとんど変わりません。
 - `Xp` は熱膨張係数です。G・J・Iy の null は2次元への投影で1になります。荷重ケースの `rate` は計算要求に写されず、倍率として効きません（Example2 と同じく1を書きます）。
 - FrameWebforCS の画面で保存し直すと、知らないトップレベルのキーは捨てられ、多くの数値が Single 精度に変わります（例：回転ばね 52,218,663 → 52,218,664）。付帯JSONのSHA256による保証は、画面で保存し直したファイルには及びません。別名で保存し、生成したファイルと付帯JSONの組を保管してください。
@@ -172,7 +173,8 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - 対象の版は JRSNAP_Input.exe 5.2-L03（FileVersion・ProductVersion 5.2.3.0、AssemblyVersion 5.2.3.1）で、保存のヘッダは `Virsion=5.2.3.S.4`（キーの綴りは JRSNAP のまま）です。Example2 の NDU は 5.1.10 の保存で、5.2-L03 は DataInfo（23→26欄）、SectInfo（12→14欄）、SectSafe（11→12欄、GBVO = 1.3）、FootInfo（12→14欄、KR3 = 20 と未設定値 −3.402823E+38）の末尾に欄を加えます。
 - JRSNAP は NDU を先頭から順に読むので、レコードの順序は変えられません。`Tisou=` は TishouNum = 0 でも空のまま必要です（消すと読込みで例外になります）。`TanbuShiji=0,0` は断面のせん断耐力の算定に使う支持条件で、骨組のばねとは関係ありません。
 - 固定の設定値の根拠は Example2 の NDU と JRSNAP 5.2-L03 の操作説明書（`.claude/agents/jrsnap-operator/JRSNAP_Ver5.2-L03/JRSNAP_操作説明書.pdf`）です：座標 p.38、M-θ の集約 p.32–33、剛域の初期値 1000 m²・1000 m⁴・25 kN/mm² p.144–145、直接基礎の回転ばね KR2 = 2・最終勾配 1/20 p.155・515、La/d ≥ 2 と M-θ の名前20バイト p.143、件数の上限 p.29、SectConc の第5欄（粗骨材最大寸法）p.90・529。
-- 通常の生成は NDU を書くだけで、JRSNAP での読込み・解析はしません。付帯JSONの `app_read_verified` と `analysis_run` は常に false です。実アプリ（JRSNAP 5.2-L03）での受入は最後にやり直します（決定4）。組合せが2つある 0720 の NDU を JRSNAP 5.2 が読めるかもそこで確かめます。
+- 通常の生成は NDU を書くだけで、JRSNAP での読込み・解析はしません。付帯JSONの `app_read_verified` と `analysis_run` は常に false です。
+- **実アプリでの受入**（決定4、2026-10-18、`scripts/accept_jrsnap_ndu.py`、記録 `tests/fixtures/acceptance/jrsnap_v52/`）：`current.json`（Example2 の解析設定）の両方向の NDU の複製を、JRSNAP_Input.exe 5.2-L03 の読込み・保存の処理（スキル `jrsnap-input-open-save`、画面は操作しない）で読込み・保存・再保存しました。保存した NDU は全レコードが同じ順序・同じ値で、違いは JRSNAP の数値の書式（`GanmaA=1.2,1,1,1` → `1.20,1.00,1.00,1.00`）だけです。2回目の保存は1回目とバイト単位で同じです。読込み直後に JRSNAP が保持する件数と組合せ（`scripts/jrsnap_state_probe.cs`）も書いたものと一致し、**0720 の2つの組合せ（上り線・下り線）は両方とも読まれます**（`G_intConbNum = 2`）。このため 0720 は1つの NDU のままです（決定40）。解析（解析用データ出力・SNAP の実行）はしていません。生成する NDU が変わると `tests/acceptance` が失敗するので、受入をやり直します。`pre/input.json` は JRSNAP の解析設定が空欄なので `--jrsnap` は入力エラーになり、受入は `current.json` で行います。
 
 ## Example2 との既知の差
 
@@ -197,9 +199,9 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 ```
 
-`.claude/check.ps1` も同じ全件のゲートです。テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。
+`.claude/check.ps1` も同じ全件のゲートです。テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
 
-- 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。
+- 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。実アプリでの受入記録は期待値ではなく、実アプリが読んだ生成物とその読戻しの記録です。
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。
 - 帳票は、意味内容（印刷された数値・文字が計算結果と印字桁に一致する）、体裁（`tests/fixtures/reporting/appearance` の、見本PDFから独立に測った値に一致する）、印刷物での検算（PDFから読んだ数値だけで各式と合計が再現できる）を確かめます。`appearance` の値は新しい描画結果から作り直しません。
 - GridLayoutPdf のソースを変えたときは、`uv sync --project "." --locked --reinstall-package gridlayoutpdf` で取り込み直します。取り込み直さないと実装の同一性の照合が食い違い、テストが失敗します。

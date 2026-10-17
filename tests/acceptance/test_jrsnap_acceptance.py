@@ -1,0 +1,74 @@
+"""The JRSNAP 5.2-L03 acceptance record still belongs to the current generator (decision 4, CONTEXT.md NDUの受入記録).
+
+tests/fixtures/acceptance/jrsnap_v52 holds what scripts/accept_jrsnap_ndu.py recorded with the installed
+JRSNAP_Input.exe: our candidate NDUs, JRSNAP's saved copies and record.json. These tests do not run JRSNAP. They
+fail (never skip) when the input or the generated NDU is no longer the one JRSNAP read: then the acceptance must be
+redone with ``uv run --project "." --locked python -X utf8 scripts/accept_jrsnap_ndu.py --overwrite``.
+"""
+
+import json
+from pathlib import Path
+
+import pytest
+
+from webpier.core.integrity import load_json, sha256
+from webpier.export.jrsnap.readback import Normalized, compare_readback, compare_state, parse_records, summarize
+from webpier.inputs import parse_input
+from webpier.pipeline.generate import export_bytes
+
+ROOT = Path(__file__).parents[2]
+EVIDENCE = ROOT / "tests" / "fixtures" / "acceptance" / "jrsnap_v52"
+RECORD = json.loads((EVIDENCE / "record.json").read_text(encoding="utf-8"))
+REDO = "受入をやり直してください: uv run --project \".\" --locked python -X utf8 scripts/accept_jrsnap_ndu.py --overwrite"
+STAGES = ("0710", "0720")
+
+
+@pytest.fixture(scope="module")
+def generated():
+    data = (ROOT / RECORD["input"]["path"]).read_bytes()
+    assert sha256(data) == RECORD["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+    pier = parse_input(load_json(data))
+    return {stage: export_bytes(pier, stage, "jrsnap") for stage in STAGES}
+
+
+def test_the_record_is_a_readback_in_jrsnap_5_2_l03_without_analysis():
+    assert RECORD["kind"] == "jrsnap_ndu_acceptance" and RECORD["schema_version"] == 1
+    assert {key: RECORD["application"][key] for key in ("file_version", "product_version", "assembly_version")} == {
+        "file_version": "5.2.3.0", "product_version": "5.2.3.0", "assembly_version": "5.2.3.1"}
+    assert RECORD["analysis_run"] is False and RECORD["gui_operated"] is False
+    assert set(RECORD["directions"]) == set(STAGES)
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_the_accepted_candidate_is_what_the_generator_writes_now(generated, stage):
+    direction = RECORD["directions"][stage]
+    stored = (EVIDENCE / direction["candidate"]["path"]).read_bytes()
+    assert sha256(stored) == direction["candidate"]["sha256"]
+    assert sha256(generated[stage]) == direction["candidate"]["sha256"], f"{stage} の NDU が変わりました。{REDO}"
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_jrsnap_saved_what_we_wrote(stage):
+    direction = RECORD["directions"][stage]
+    candidate = (EVIDENCE / direction["candidate"]["path"]).read_bytes()
+    saved = (EVIDENCE / direction["saved"]["path"]).read_bytes()
+    assert sha256(saved) == direction["saved"]["sha256"]
+    assert direction["read_code"] == 0 and direction["write_code"] == 0 and direction["second_save_identical"]
+    assert saved.startswith(b"Virsion=5.2.3.S.4\r\n")
+    readback = compare_readback(candidate, saved)
+    assert readback.records == direction["candidate"]["records"]
+    # The only differences are JRSNAP's own number format of GanmaA (1.2 → 1.20, 1 → 1.00).
+    assert readback.normalized == tuple(Normalized(**item) for item in direction["normalized"])
+    assert {item.key for item in readback.normalized} == {"GanmaA"}
+    summary = summarize(parse_records(saved))
+    assert (summary["counts"], summary["combinations"]) == (direction["counts"], direction["combinations"])
+    compare_state(parse_records(candidate), direction["jrsnap_state"])
+
+
+def test_jrsnap_reads_both_combinations_of_0720():
+    """Decision 40: JRSNAP 5.2 reads a 0720 NDU with two SNAPConb (上り線・下り線), so one NDU is kept."""
+    state = RECORD["directions"]["0720"]["jrsnap_state"]
+    assert state["counts"]["G_intConbNum"] == 2
+    assert [combination["coefficients"] for combination in state["combinations"]] == [
+        [1, 1, 1, 1, 1, 0, 1, 1, 1], [1, 1, 1, 1, 0, 1, 1, 1, 1]]
+    assert RECORD["directions"]["0710"]["jrsnap_state"]["counts"]["G_intConbNum"] == 1

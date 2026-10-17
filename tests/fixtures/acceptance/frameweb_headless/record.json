@@ -1,0 +1,1195 @@
+{
+  "schema_version": 1,
+  "kind": "frameweb_headless_read_check",
+  "date": "2026-10-18",
+  "verified_at": "2026-10-18T08:05:43+09:00",
+  "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
+  "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
+  "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
+  "application": {
+    "name": "FrameWebforCS.Headless",
+    "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
+    "sha256": "474bc1bc9da6dd5cda466f815753cbb61cdfc53c11473106e5d94e994eff0247",
+    "dll_sha256": "32ff5c0bf93f50249eb4260eeb16d9f05f5028403e79ca48043dcdc7904a4ac6",
+    "fempython_repository": {
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython",
+      "head": "7488c8fb4d6c100438a9691747ceb11fd9e66358",
+      "clean": true
+    }
+  },
+  "implementation_sha256": "8c9b3848b3503470181d1e9d4dec860fc35a6cca7119023323960f1ff0c763e5",
+  "runs": [
+    {
+      "input": {
+        "path": "pre/input.json",
+        "sha256": "db6b349ff334f36a05a56e10b7d3bc90e07fd764b1bf40149dd881147655e5ea"
+      },
+      "stage": "0610",
+      "file": "frameWebForJS.json",
+      "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
+      "envelope": {
+        "engine": "fempython",
+        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "ok": true,
+        "executionStatus": "success",
+        "engineeringStatus": "not_checked",
+        "summary": {
+          "dimension": 2,
+          "nodes": 6,
+          "members": 5,
+          "cases": 21,
+          "results": 21,
+          "pickups": 8,
+          "skippedLoadCases": 1,
+          "pdfSections": []
+        },
+        "messages": [
+          {
+            "level": "warning",
+            "code": "EMPTY_LOAD_CASE_SKIPPED",
+            "text": "Saved load case 5 has no effective loads and was omitted by the shared desktop request projection.",
+            "path": "load.5"
+          }
+        ],
+        "errors": []
+      },
+      "counts": {
+        "nodes": 6,
+        "generated_nodes": 0,
+        "members": 5,
+        "calculated_cases": 21,
+        "skipped_load_cases": [
+          "5"
+        ],
+        "defines": 21,
+        "combines": 16,
+        "pickups": 8
+      },
+      "equilibrium": [
+        {
+          "case": "1",
+          "symbol": "D1",
+          "applied": [
+            0.0,
+            -14729.348
+          ],
+          "reactions": [
+            -7.300000000000001e-66,
+            14729.348
+          ]
+        },
+        {
+          "case": "2",
+          "symbol": "D2",
+          "applied": [
+            0.0,
+            -2610.6
+          ],
+          "reactions": [
+            7.899999999999999e-68,
+            2610.6
+          ]
+        },
+        {
+          "case": "3",
+          "symbol": "Wp1",
+          "applied": [
+            0.0,
+            2381.4
+          ],
+          "reactions": [
+            0.0,
+            -2381.4
+          ]
+        },
+        {
+          "case": "4",
+          "symbol": "Wp2",
+          "applied": [
+            0.0,
+            1701.0
+          ],
+          "reactions": [
+            0.0,
+            -1701.0
+          ]
+        },
+        {
+          "case": "6",
+          "symbol": "Ss2",
+          "applied": [
+            0.0,
+            -710.0
+          ],
+          "reactions": [
+            2.3e-67,
+            710.0
+          ]
+        },
+        {
+          "case": "7",
+          "symbol": "Ss10",
+          "applied": [
+            0.0,
+            -1140.0
+          ],
+          "reactions": [
+            3.6e-67,
+            1140.0
+          ]
+        },
+        {
+          "case": "8",
+          "symbol": "Ss30",
+          "applied": [
+            0.0,
+            -1270.0
+          ],
+          "reactions": [
+            4.5e-67,
+            1270.0
+          ]
+        },
+        {
+          "case": "9",
+          "symbol": "L1",
+          "applied": [
+            0.0,
+            -567.39
+          ],
+          "reactions": [
+            1.3000000000000002e-66,
+            567.39
+          ]
+        },
+        {
+          "case": "10",
+          "symbol": "L2",
+          "applied": [
+            0.0,
+            -1134.78
+          ],
+          "reactions": [
+            2.7e-66,
+            1134.78
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "I1",
+          "applied": [
+            0.0,
+            -227.79
+          ],
+          "reactions": [
+            1.05e-66,
+            227.79
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "I2",
+          "applied": [
+            0.0,
+            -428.29
+          ],
+          "reactions": [
+            2e-66,
+            428.29
+          ]
+        },
+        {
+          "case": "13",
+          "symbol": "0.8LR",
+          "applied": [
+            240.0,
+            0.0
+          ],
+          "reactions": [
+            -240.0,
+            0.0
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "1.0LR+1.0B",
+          "applied": [
+            473.43,
+            0.0
+          ],
+          "reactions": [
+            -473.43,
+            0.0
+          ]
+        },
+        {
+          "case": "16",
+          "symbol": "1.1LR+1.0B",
+          "applied": [
+            513.89,
+            0.0
+          ],
+          "reactions": [
+            -513.89,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "1.0LR+1.1B",
+          "applied": [
+            495.01,
+            0.0
+          ],
+          "reactions": [
+            -495.01,
+            0.0
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "19",
+          "symbol": "1.0LR+1.0B",
+          "applied": [
+            463.71,
+            0.0
+          ],
+          "reactions": [
+            -463.71,
+            0.0
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "21",
+          "symbol": "I1s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            7.9e-67,
+            171.05
+          ]
+        },
+        {
+          "case": "22",
+          "symbol": "I2s",
+          "applied": [
+            0.0,
+            -321.63
+          ],
+          "reactions": [
+            1.5e-66,
+            321.63
+          ]
+        }
+      ],
+      "combination": {
+        "combine": 1,
+        "printed": 22585.16,
+        "unrounded": 22585.1473,
+        "frameweb": 22585.147300000004,
+        "difference": 0.01269999999619647,
+        "largest_action_difference": 0.005
+      }
+    },
+    {
+      "input": {
+        "path": "pre/input.json",
+        "sha256": "db6b349ff334f36a05a56e10b7d3bc90e07fd764b1bf40149dd881147655e5ea"
+      },
+      "stage": "0620",
+      "file": "線路直角方向.json",
+      "candidate_sha256": "e4ea17cf1955c3d895699f581b21f9ed0864dd7135564c3fc977233461f8cc49",
+      "envelope": {
+        "engine": "fempython",
+        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "ok": true,
+        "executionStatus": "success",
+        "engineeringStatus": "not_checked",
+        "summary": {
+          "dimension": 2,
+          "nodes": 7,
+          "members": 5,
+          "cases": 19,
+          "results": 19,
+          "pickups": 8,
+          "skippedLoadCases": 1,
+          "pdfSections": []
+        },
+        "messages": [
+          {
+            "level": "warning",
+            "code": "EMPTY_LOAD_CASE_SKIPPED",
+            "text": "Saved load case 5 has no effective loads and was omitted by the shared desktop request projection.",
+            "path": "load.5"
+          }
+        ],
+        "errors": []
+      },
+      "counts": {
+        "nodes": 6,
+        "generated_nodes": 1,
+        "members": 5,
+        "calculated_cases": 19,
+        "skipped_load_cases": [
+          "5"
+        ],
+        "defines": 16,
+        "combines": 16,
+        "pickups": 8
+      },
+      "equilibrium": [
+        {
+          "case": "1",
+          "symbol": "D1",
+          "applied": [
+            0.0,
+            -14729.348
+          ],
+          "reactions": [
+            0.0,
+            14729.348000000002
+          ]
+        },
+        {
+          "case": "2",
+          "symbol": "D2",
+          "applied": [
+            0.0,
+            -2610.6
+          ],
+          "reactions": [
+            0.0,
+            2610.6
+          ]
+        },
+        {
+          "case": "3",
+          "symbol": "Wp1",
+          "applied": [
+            0.0,
+            2381.4
+          ],
+          "reactions": [
+            0.0,
+            -2381.4
+          ]
+        },
+        {
+          "case": "4",
+          "symbol": "Wp2",
+          "applied": [
+            0.0,
+            1701.0
+          ],
+          "reactions": [
+            0.0,
+            -1701.0
+          ]
+        },
+        {
+          "case": "6",
+          "symbol": "Ss2",
+          "applied": [
+            0.0,
+            -710.0
+          ],
+          "reactions": [
+            0.0,
+            710.0
+          ]
+        },
+        {
+          "case": "7",
+          "symbol": "Ss10",
+          "applied": [
+            0.0,
+            -1140.0
+          ],
+          "reactions": [
+            0.0,
+            1140.0
+          ]
+        },
+        {
+          "case": "8",
+          "symbol": "Ss30",
+          "applied": [
+            0.0,
+            -1270.0
+          ],
+          "reactions": [
+            0.0,
+            1270.0000000000002
+          ]
+        },
+        {
+          "case": "9",
+          "symbol": "L1",
+          "applied": [
+            0.0,
+            -567.38
+          ],
+          "reactions": [
+            3.954636613764028e-64,
+            567.38
+          ]
+        },
+        {
+          "case": "10",
+          "symbol": "L2",
+          "applied": [
+            0.0,
+            -567.38
+          ],
+          "reactions": [
+            -3.954636613764028e-64,
+            567.38
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "L3",
+          "applied": [
+            0.0,
+            -1134.78
+          ],
+          "reactions": [
+            0.0,
+            1134.78
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "I1",
+          "applied": [
+            0.0,
+            -227.77
+          ],
+          "reactions": [
+            1.5802154084873807e-64,
+            227.77
+          ]
+        },
+        {
+          "case": "13",
+          "symbol": "I2",
+          "applied": [
+            0.0,
+            -227.77
+          ],
+          "reactions": [
+            -1.5802154084873807e-64,
+            227.77
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "I3",
+          "applied": [
+            0.0,
+            -428.28
+          ],
+          "reactions": [
+            0.0,
+            428.28
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "Lf",
+          "applied": [
+            111.69,
+            0.0
+          ],
+          "reactions": [
+            -111.6899999999372,
+            0.0
+          ]
+        },
+        {
+          "case": "16",
+          "symbol": "W1",
+          "applied": [
+            328.56,
+            0.0
+          ],
+          "reactions": [
+            -328.5599999997835,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "W2",
+          "applied": [
+            657.11,
+            0.0
+          ],
+          "reactions": [
+            -657.1099999995635,
+            0.0
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "I1s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            1.1864286344494153e-64,
+            171.05
+          ]
+        },
+        {
+          "case": "19",
+          "symbol": "I2s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            -1.1864286344494153e-64,
+            171.05
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "I3s",
+          "applied": [
+            0.0,
+            -321.62
+          ],
+          "reactions": [
+            0.0,
+            321.62
+          ]
+        }
+      ]
+    },
+    {
+      "input": {
+        "path": "tests/fixtures/inputs/current.json",
+        "sha256": "418adcce137176968d4736f0333eaa77a29e6cd41676a92d1d37f87e9215a625"
+      },
+      "stage": "0610",
+      "file": "frameWebForJS.json",
+      "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
+      "envelope": {
+        "engine": "fempython",
+        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "ok": true,
+        "executionStatus": "success",
+        "engineeringStatus": "not_checked",
+        "summary": {
+          "dimension": 2,
+          "nodes": 6,
+          "members": 5,
+          "cases": 21,
+          "results": 21,
+          "pickups": 8,
+          "skippedLoadCases": 1,
+          "pdfSections": []
+        },
+        "messages": [
+          {
+            "level": "warning",
+            "code": "EMPTY_LOAD_CASE_SKIPPED",
+            "text": "Saved load case 5 has no effective loads and was omitted by the shared desktop request projection.",
+            "path": "load.5"
+          }
+        ],
+        "errors": []
+      },
+      "counts": {
+        "nodes": 6,
+        "generated_nodes": 0,
+        "members": 5,
+        "calculated_cases": 21,
+        "skipped_load_cases": [
+          "5"
+        ],
+        "defines": 21,
+        "combines": 16,
+        "pickups": 8
+      },
+      "equilibrium": [
+        {
+          "case": "1",
+          "symbol": "D1",
+          "applied": [
+            0.0,
+            -14729.348
+          ],
+          "reactions": [
+            -7.300000000000001e-66,
+            14729.348
+          ]
+        },
+        {
+          "case": "2",
+          "symbol": "D2",
+          "applied": [
+            0.0,
+            -2610.6
+          ],
+          "reactions": [
+            7.899999999999999e-68,
+            2610.6
+          ]
+        },
+        {
+          "case": "3",
+          "symbol": "Wp1",
+          "applied": [
+            0.0,
+            2381.4
+          ],
+          "reactions": [
+            0.0,
+            -2381.4
+          ]
+        },
+        {
+          "case": "4",
+          "symbol": "Wp2",
+          "applied": [
+            0.0,
+            1701.0
+          ],
+          "reactions": [
+            0.0,
+            -1701.0
+          ]
+        },
+        {
+          "case": "6",
+          "symbol": "Ss2",
+          "applied": [
+            0.0,
+            -710.0
+          ],
+          "reactions": [
+            2.3e-67,
+            710.0
+          ]
+        },
+        {
+          "case": "7",
+          "symbol": "Ss10",
+          "applied": [
+            0.0,
+            -1140.0
+          ],
+          "reactions": [
+            3.6e-67,
+            1140.0
+          ]
+        },
+        {
+          "case": "8",
+          "symbol": "Ss30",
+          "applied": [
+            0.0,
+            -1270.0
+          ],
+          "reactions": [
+            4.5e-67,
+            1270.0
+          ]
+        },
+        {
+          "case": "9",
+          "symbol": "L1",
+          "applied": [
+            0.0,
+            -567.39
+          ],
+          "reactions": [
+            1.3000000000000002e-66,
+            567.39
+          ]
+        },
+        {
+          "case": "10",
+          "symbol": "L2",
+          "applied": [
+            0.0,
+            -1134.78
+          ],
+          "reactions": [
+            2.7e-66,
+            1134.78
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "I1",
+          "applied": [
+            0.0,
+            -227.79
+          ],
+          "reactions": [
+            1.05e-66,
+            227.79
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "I2",
+          "applied": [
+            0.0,
+            -428.29
+          ],
+          "reactions": [
+            2e-66,
+            428.29
+          ]
+        },
+        {
+          "case": "13",
+          "symbol": "0.8LR",
+          "applied": [
+            240.0,
+            0.0
+          ],
+          "reactions": [
+            -240.0,
+            0.0
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "1.0LR+1.0B",
+          "applied": [
+            473.43,
+            0.0
+          ],
+          "reactions": [
+            -473.43,
+            0.0
+          ]
+        },
+        {
+          "case": "16",
+          "symbol": "1.1LR+1.0B",
+          "applied": [
+            513.89,
+            0.0
+          ],
+          "reactions": [
+            -513.89,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "1.0LR+1.1B",
+          "applied": [
+            495.01,
+            0.0
+          ],
+          "reactions": [
+            -495.01,
+            0.0
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "19",
+          "symbol": "1.0LR+1.0B",
+          "applied": [
+            463.71,
+            0.0
+          ],
+          "reactions": [
+            -463.71,
+            0.0
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "1.0LR",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "21",
+          "symbol": "I1s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            7.9e-67,
+            171.05
+          ]
+        },
+        {
+          "case": "22",
+          "symbol": "I2s",
+          "applied": [
+            0.0,
+            -321.63
+          ],
+          "reactions": [
+            1.5e-66,
+            321.63
+          ]
+        }
+      ],
+      "combination": {
+        "combine": 1,
+        "printed": 22585.16,
+        "unrounded": 22585.1473,
+        "frameweb": 22585.147300000004,
+        "difference": 0.01269999999619647,
+        "largest_action_difference": 0.005
+      }
+    },
+    {
+      "input": {
+        "path": "tests/fixtures/inputs/current.json",
+        "sha256": "418adcce137176968d4736f0333eaa77a29e6cd41676a92d1d37f87e9215a625"
+      },
+      "stage": "0620",
+      "file": "線路直角方向.json",
+      "candidate_sha256": "e4ea17cf1955c3d895699f581b21f9ed0864dd7135564c3fc977233461f8cc49",
+      "envelope": {
+        "engine": "fempython",
+        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "ok": true,
+        "executionStatus": "success",
+        "engineeringStatus": "not_checked",
+        "summary": {
+          "dimension": 2,
+          "nodes": 7,
+          "members": 5,
+          "cases": 19,
+          "results": 19,
+          "pickups": 8,
+          "skippedLoadCases": 1,
+          "pdfSections": []
+        },
+        "messages": [
+          {
+            "level": "warning",
+            "code": "EMPTY_LOAD_CASE_SKIPPED",
+            "text": "Saved load case 5 has no effective loads and was omitted by the shared desktop request projection.",
+            "path": "load.5"
+          }
+        ],
+        "errors": []
+      },
+      "counts": {
+        "nodes": 6,
+        "generated_nodes": 1,
+        "members": 5,
+        "calculated_cases": 19,
+        "skipped_load_cases": [
+          "5"
+        ],
+        "defines": 16,
+        "combines": 16,
+        "pickups": 8
+      },
+      "equilibrium": [
+        {
+          "case": "1",
+          "symbol": "D1",
+          "applied": [
+            0.0,
+            -14729.348
+          ],
+          "reactions": [
+            0.0,
+            14729.348000000002
+          ]
+        },
+        {
+          "case": "2",
+          "symbol": "D2",
+          "applied": [
+            0.0,
+            -2610.6
+          ],
+          "reactions": [
+            0.0,
+            2610.6
+          ]
+        },
+        {
+          "case": "3",
+          "symbol": "Wp1",
+          "applied": [
+            0.0,
+            2381.4
+          ],
+          "reactions": [
+            0.0,
+            -2381.4
+          ]
+        },
+        {
+          "case": "4",
+          "symbol": "Wp2",
+          "applied": [
+            0.0,
+            1701.0
+          ],
+          "reactions": [
+            0.0,
+            -1701.0
+          ]
+        },
+        {
+          "case": "6",
+          "symbol": "Ss2",
+          "applied": [
+            0.0,
+            -710.0
+          ],
+          "reactions": [
+            0.0,
+            710.0
+          ]
+        },
+        {
+          "case": "7",
+          "symbol": "Ss10",
+          "applied": [
+            0.0,
+            -1140.0
+          ],
+          "reactions": [
+            0.0,
+            1140.0
+          ]
+        },
+        {
+          "case": "8",
+          "symbol": "Ss30",
+          "applied": [
+            0.0,
+            -1270.0
+          ],
+          "reactions": [
+            0.0,
+            1270.0000000000002
+          ]
+        },
+        {
+          "case": "9",
+          "symbol": "L1",
+          "applied": [
+            0.0,
+            -567.38
+          ],
+          "reactions": [
+            3.954636613764028e-64,
+            567.38
+          ]
+        },
+        {
+          "case": "10",
+          "symbol": "L2",
+          "applied": [
+            0.0,
+            -567.38
+          ],
+          "reactions": [
+            -3.954636613764028e-64,
+            567.38
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "L3",
+          "applied": [
+            0.0,
+            -1134.78
+          ],
+          "reactions": [
+            0.0,
+            1134.78
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "I1",
+          "applied": [
+            0.0,
+            -227.77
+          ],
+          "reactions": [
+            1.5802154084873807e-64,
+            227.77
+          ]
+        },
+        {
+          "case": "13",
+          "symbol": "I2",
+          "applied": [
+            0.0,
+            -227.77
+          ],
+          "reactions": [
+            -1.5802154084873807e-64,
+            227.77
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "I3",
+          "applied": [
+            0.0,
+            -428.28
+          ],
+          "reactions": [
+            0.0,
+            428.28
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "Lf",
+          "applied": [
+            111.69,
+            0.0
+          ],
+          "reactions": [
+            -111.6899999999372,
+            0.0
+          ]
+        },
+        {
+          "case": "16",
+          "symbol": "W1",
+          "applied": [
+            328.56,
+            0.0
+          ],
+          "reactions": [
+            -328.5599999997835,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "W2",
+          "applied": [
+            657.11,
+            0.0
+          ],
+          "reactions": [
+            -657.1099999995635,
+            0.0
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "I1s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            1.1864286344494153e-64,
+            171.05
+          ]
+        },
+        {
+          "case": "19",
+          "symbol": "I2s",
+          "applied": [
+            0.0,
+            -171.05
+          ],
+          "reactions": [
+            -1.1864286344494153e-64,
+            171.05
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "I3s",
+          "applied": [
+            0.0,
+            -321.62
+          ],
+          "reactions": [
+            0.0,
+            321.62
+          ]
+        }
+      ]
+    }
+  ]
+}
