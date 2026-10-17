@@ -13,18 +13,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..core.printed import Precision, Printed
+from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
+from .fields import BASIS_VERSION, LENGTH_MM, read
 
+__all__ = ["BASIS_VERSION", "LENGTH_MM", "RebarInput", "parse_rebar"]  # the digits come from the field table
 REBAR_VERSION = 2
-LENGTH_MM = Precision(1, "mm")  # covers, centres, gaps, pitches, positions
-DIAMETER = Precision(0, "mm")  # nominal bar size (D32 → 32), as Example2 10-6 / 11-6 print it
-SETS = Precision(1, "組")  # the old band input allows a fractional set count
-DENSITY = Precision(1, "本/m")
-MAX_COUNT = 10_000
-MAX_LAYER = 100
-BASIS_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -197,28 +192,9 @@ class RebarInput:
     footing: FootingBars
 
 
-def _length(node: Reader, key: str, *, positive: bool = False) -> Printed | None:
-    child = node.at(key)
-    return None if child.is_null else child.printed(LENGTH_MM, sign="positive" if positive else "nonnegative")
-
-
-def _diameter(node: Reader, key: str = "diameter_mm") -> Printed | None:
-    child = node.at(key)
-    return None if child.is_null else child.printed(DIAMETER, sign="positive")
-
-
-def _count(node: Reader, key: str, minimum: int = 0, maximum: int = MAX_COUNT) -> int | None:
-    child = node.at(key)
-    return None if child.is_null else child.integer(minimum, maximum)
-
-
-def _choice(node: Reader, key: str, options: tuple[str, ...]) -> str | None:
-    child = node.at(key)
-    return None if child.is_null else child.choice(options)
-
-
-def _steel(node: Reader, key: str = "material") -> str | None:
-    return _choice(node, key, choices.STEEL_GRADES)
+def _value(node: Reader, key: str):
+    """A rebar value through the field table; every one may stay blank (None) while it is being entered."""
+    return read(node.at(key))
 
 
 def _ordered(node: Reader, start: Printed | None, end: Printed | None) -> None:
@@ -228,7 +204,7 @@ def _ordered(node: Reader, start: Printed | None, end: Printed | None) -> None:
 
 def _materials(node: Reader) -> SteelMaterials:
     node.only("main", "transverse")
-    return SteelMaterials(main=_steel(node, "main"), transverse=_steel(node, "transverse"))
+    return SteelMaterials(main=_value(node, "main"), transverse=_value(node, "transverse"))
 
 
 COLUMN_ROW_KEYS = ("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "face_direction", "layer",
@@ -239,14 +215,14 @@ def _column_row(node: Reader) -> ColumnMainRow:
     node.only(*COLUMN_ROW_KEYS)
     spacing = node.at("distribution").only("mode", "edge_center_mm", "pitch_mm")
     row = ColumnMainRow(
-        diameter=_diameter(node), material=_steel(node), cover_mode=_choice(node, "cover_mode", choices.COVER_MODES),
-        center=_length(node, "center_mm"), clear_gap=_length(node, "clear_gap_mm"),
-        face_direction=_choice(node, "face_direction", choices.REBAR_DIRECTIONS),
-        layer=_count(node, "layer", 1, MAX_LAYER), per_face_count=_count(node, "per_face_count"),
-        endpoints=_choice(node, "endpoints", choices.ENDPOINTS),
-        distribution=Distribution(mode=_choice(spacing, "mode", choices.DISTRIBUTION_MODES),
-                                  edge_center=_length(spacing, "edge_center_mm"),
-                                  pitch=_length(spacing, "pitch_mm", positive=True)))
+        diameter=_value(node, "diameter_mm"), material=_value(node, "material"), cover_mode=_value(node, "cover_mode"),
+        center=_value(node, "center_mm"), clear_gap=_value(node, "clear_gap_mm"),
+        face_direction=_value(node, "face_direction"),
+        layer=_value(node, "layer"), per_face_count=_value(node, "per_face_count"),
+        endpoints=_value(node, "endpoints"),
+        distribution=Distribution(mode=_value(spacing, "mode"),
+                                  edge_center=_value(spacing, "edge_center_mm"),
+                                  pitch=_value(spacing, "pitch_mm")))
     if row.distribution.mode == choices.EDGE_AND_PITCH and row.per_face_count == 1:
         raise node.at("per_face_count").error(f"{choices.EDGE_AND_PITCH}の配列は2本以上が必要です")
     return row
@@ -257,20 +233,20 @@ def _hoops(node: Reader) -> ColumnHoops:
     rows = []
     for row in node.at("direction_rows").items():
         row.only("direction", "diameter_mm", "material", "effective_legs", "pitch_mm", "start_mm", "end_mm")
-        start, end = _length(row, "start_mm"), _length(row, "end_mm")
+        start, end = _value(row, "start_mm"), _value(row, "end_mm")
         _ordered(row, start, end)
-        rows.append(HoopRow(direction=_choice(row, "direction", choices.REBAR_DIRECTIONS), diameter=_diameter(row),
-                            material=_steel(row), effective_legs=_count(row, "effective_legs", 1),
-                            pitch=_length(row, "pitch_mm", positive=True), start=start, end=end))
-    return ColumnHoops(enclosing_diameter=_diameter(node, "enclosing_diameter_mm"), rows=tuple(rows))
+        rows.append(HoopRow(direction=_value(row, "direction"), diameter=_value(row, "diameter_mm"),
+                            material=_value(row, "material"), effective_legs=_value(row, "effective_legs"),
+                            pitch=_value(row, "pitch_mm"), start=start, end=end))
+    return ColumnHoops(enclosing_diameter=_value(node, "enclosing_diameter_mm"), rows=tuple(rows))
 
 
 def _manual(node: Reader) -> tuple[ManualBar, ...]:
     bars = []
     for row in node.at("manual_positions").items():
         row.only("x_mm", "y_mm", "diameter_mm", "material")
-        bars.append(ManualBar(x=_length(row, "x_mm"), y=_length(row, "y_mm"), diameter=_diameter(row),
-                              material=_steel(row)))
+        bars.append(ManualBar(x=_value(row, "x_mm"), y=_value(row, "y_mm"), diameter=_value(row, "diameter_mm"),
+                              material=_value(row, "material")))
     return tuple(bars)
 
 
@@ -278,19 +254,18 @@ def _basis(node: Reader | None) -> ManualBasis | None:
     if node is None:
         return None
     node.only("generator_version", "geometry", "inputs")
-    node.at("generator_version").integer(BASIS_VERSION, BASIS_VERSION)
+    read(node.at("generator_version"))
     size = node.at("geometry").only("width_mm", "height_mm")
     inputs = node.at("inputs").only("main_rows", "materials", "pure_cover_mm", "column_hoops")
     return ManualBasis(
-        width=size.at("width_mm").printed(LENGTH_MM, sign="positive"),
-        height=size.at("height_mm").printed(LENGTH_MM, sign="positive"),
-        materials=_materials(inputs.at("materials")), pure_cover=_length(inputs, "pure_cover_mm"),
+        width=read(size.at("width_mm")), height=read(size.at("height_mm")),
+        materials=_materials(inputs.at("materials")), pure_cover=_value(inputs, "pure_cover_mm"),
         main_rows=tuple(_column_row(row) for row in inputs.at("main_rows").items()),
         hoops=_hoops(inputs.at("column_hoops")))
 
 
 def _mode(node: Reader) -> str:
-    return node.at("position_mode").choice(choices.POSITION_MODES)
+    return read(node.at("position_mode"))
 
 
 def _column(node: Reader) -> ColumnBars:
@@ -300,7 +275,7 @@ def _column(node: Reader) -> ColumnBars:
         if node.at(key).items():
             raise node.at(key).error("柱では使いません（帯鉄筋は column_hoops に入力します）")
     return ColumnBars(
-        materials=_materials(node.at("materials")), pure_cover=_length(node, "pure_cover_mm"),
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
         main_rows=tuple(_column_row(row) for row in node.at("main_rows").items()),
         hoops=_hoops(node.at("column_hoops")), manual_positions=_manual(node), position_mode=_mode(node),
         manual_basis=_basis(node.optional("manual_basis")))
@@ -310,11 +285,11 @@ def _side_row(node: Reader) -> SideRow:
     node.only("diameter_mm", "material", "per_face_count", "columns", "column_pitch_mm", "start_mm", "pitch_mm",
               "stirrup_position", "cover_mode", "center_mm")
     row = SideRow(
-        diameter=_diameter(node), material=_steel(node), per_face_count=_count(node, "per_face_count"),
-        columns=_count(node, "columns", 1, MAX_LAYER), column_pitch=_length(node, "column_pitch_mm", positive=True),
-        start=_length(node, "start_mm"), pitch=_length(node, "pitch_mm", positive=True),
-        stirrup_position=_choice(node, "stirrup_position", choices.STIRRUP_POSITIONS),
-        cover_mode=_choice(node, "cover_mode", choices.COVER_MODES), center=_length(node, "center_mm"))
+        diameter=_value(node, "diameter_mm"), material=_value(node, "material"),
+        per_face_count=_value(node, "per_face_count"), columns=_value(node, "columns"), column_pitch=_value(node, "column_pitch_mm"),
+        start=_value(node, "start_mm"), pitch=_value(node, "pitch_mm"),
+        stirrup_position=_value(node, "stirrup_position"),
+        cover_mode=_value(node, "cover_mode"), center=_value(node, "center_mm"))
     if row.per_face_count and row.columns is not None and row.columns > row.per_face_count:
         raise node.at("columns").error("片面本数以下が必要です")
     return row
@@ -327,21 +302,21 @@ WIDTH_KEYS = ("distribution_mode", "width_pitch_mm", "density_per_m")
 
 def _band_row(node: Reader, *, footing: bool) -> BandRow:
     node.only(*BAND_KEYS, *(WIDTH_KEYS if footing else ()))
-    start, end = _length(node, "start_mm"), _length(node, "end_mm")
+    start, end = _value(node, "start_mm"), _value(node, "end_mm")
     _ordered(node, start, end)
     sets_node = node.at("sets")
-    sets = None if sets_node.is_null else sets_node.printed(SETS)
+    sets = read(sets_node)
     width_mode = width_pitch = density = None
     if footing:
-        width_mode = _choice(node, "distribution_mode", choices.WIDTH_MODES)
-        width_pitch = _length(node, "width_pitch_mm", positive=True)
-        density_node = node.at("density_per_m")
-        density = None if density_node.is_null else density_node.printed(DENSITY, sign="positive")
+        width_mode = _value(node, "distribution_mode")
+        width_pitch = _value(node, "width_pitch_mm")
+        density = _value(node, "density_per_m")
     row = BandRow(
-        type=_choice(node, "type", choices.BAND_TYPES), direction=_choice(node, "direction", choices.REBAR_DIRECTIONS),
-        diameter=_diameter(node), material=_steel(node), sets=sets, pitch=_length(node, "pitch_mm", positive=True),
-        start=start, end=end, legs_mode=_choice(node, "legs_mode", choices.LEGS_MODES),
-        effective_legs=_count(node, "effective_legs"), width_mode=width_mode, width_pitch=width_pitch, density=density)
+        type=_value(node, "type"), direction=_value(node, "direction"),
+        diameter=_value(node, "diameter_mm"), material=_value(node, "material"), sets=sets,
+        pitch=_value(node, "pitch_mm"),
+        start=start, end=end, legs_mode=_value(node, "legs_mode"),
+        effective_legs=_value(node, "effective_legs"), width_mode=width_mode, width_pitch=width_pitch, density=density)
     if row.legs_mode == choices.LEGS_AUTOMATIC and sets is not None and not (sets.value * 2).is_integer():
         raise sets_node.error("有効脚数（1組＝2脚）が整数にならないため、有効脚数を指定してください")
     return row
@@ -358,12 +333,12 @@ def _beam(node: Reader) -> BeamBars:
         row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "face", "bar_type", "layer",
                  "count")
         rows.append(BeamMainRow(
-            diameter=_diameter(row), material=_steel(row), cover_mode=_choice(row, "cover_mode", choices.COVER_MODES),
-            center=_length(row, "center_mm"), clear_gap=_length(row, "clear_gap_mm"),
-            face=_choice(row, "face", choices.BEAM_FACES), bar_type=_choice(row, "bar_type", choices.BAR_TYPES),
-            layer=_count(row, "layer", 1, MAX_LAYER), count=_count(row, "count")))
+            diameter=_value(row, "diameter_mm"), material=_value(row, "material"), cover_mode=_value(row, "cover_mode"),
+            center=_value(row, "center_mm"), clear_gap=_value(row, "clear_gap_mm"),
+            face=_value(row, "face"), bar_type=_value(row, "bar_type"),
+            layer=_value(row, "layer"), count=_value(row, "count")))
     return BeamBars(
-        materials=_materials(node.at("materials")), pure_cover=_length(node, "pure_cover_mm"), main_rows=tuple(rows),
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
         side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
         band_rows=tuple(_band_row(row, footing=False) for row in node.at("band_rows").items()),
         manual_positions=_manual(node), position_mode=_mode(node))
@@ -376,16 +351,16 @@ def _footing(node: Reader) -> FootingBars:
         row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "direction", "face",
                  "pitch_mm", "layers", "stack_order")
         rows.append(FootingMainRow(
-            diameter=_diameter(row), material=_steel(row), cover_mode=_choice(row, "cover_mode", choices.COVER_MODES),
-            center=_length(row, "center_mm"), clear_gap=_length(row, "clear_gap_mm"),
-            direction=_choice(row, "direction", choices.REBAR_DIRECTIONS),
-            face=_choice(row, "face", choices.BEAM_FACES), pitch=_length(row, "pitch_mm", positive=True),
-            layers=_count(row, "layers", 1, MAX_LAYER), stack_order=_count(row, "stack_order", 1, MAX_LAYER)))
+            diameter=_value(row, "diameter_mm"), material=_value(row, "material"), cover_mode=_value(row, "cover_mode"),
+            center=_value(row, "center_mm"), clear_gap=_value(row, "clear_gap_mm"),
+            direction=_value(row, "direction"),
+            face=_value(row, "face"), pitch=_value(row, "pitch_mm"),
+            layers=_value(row, "layers"), stack_order=_value(row, "stack_order")))
     mode = _mode(node)
     if mode != choices.POSITION_BASIC:
         raise node.at("position_mode").error("フーチングは方向別の芯かぶり・重ね順で配置します")
     return FootingBars(
-        materials=_materials(node.at("materials")), pure_cover=_length(node, "pure_cover_mm"), main_rows=tuple(rows),
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
         side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
         band_rows=tuple(_band_row(row, footing=True) for row in node.at("band_rows").items()),
         manual_positions=_manual(node), position_mode=mode)

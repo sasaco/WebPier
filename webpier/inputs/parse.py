@@ -2,60 +2,43 @@
 
 Nothing is filled in: a missing value is an input error, a value finer than
 the printed digits is an input error, and an unknown key is an input error.
+Every scalar is read through the field table (fields.py), which the editor
+uses too; this module adds the rules between fields.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..core.printed import Precision, Printed
-from ..core.reader import Reader, Sign
+from ..core.printed import Printed
+from ..core.reader import Reader
 from . import choices
+from .fields import SNOW_KEYS, read
 from .model import (
     Bearing, EndReaction, Jrsnap, JrsnapConditions, Materials, PierInput, Pile, Reactions, Reserved, Shares,
     Soil, SoilLayer, Span, Spans, Substructure, Train,
 )
 from .rebar import parse_rebar
 
-# Digits of the input sheet (.claude/docs/Example橋脚/pre/input-*.pdf).
-LENGTH = Precision(3, "m")
-LOAD = Precision(2, "kN")
-LINE_LOAD = Precision(2, "kN/m")
-RATIO = Precision(3, "")
-FRICTION = Precision(2, "")
-UNIT_WEIGHT = Precision(1, "kN/m3")
-RADIUS = Precision(0, "m")
-SPEED = Precision(0, "km/h")
-ANGLE = Precision(0, "°")
-FRICTION_ANGLE = Precision(1, "°")
-N_VALUE = Precision(0, "")
-STRESS = Precision(0, "kN/m2")
-STRENGTH = Precision(1, "N/mm2")
-SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
-AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
-SHEAR_FACTOR_MAX = 99.99
-AGGREGATE_RANGE = (0.1, 999_999)
-MAX_STEPS = 100_000
-
 SCHEMA_VERSION = 2
 BEARING_SLOTS = 10
-SNOW_KEYS = ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率")
 
 
-def _optional(parent: Reader, key: str, precision: Precision, *, sign: Sign = "nonnegative") -> Printed | None:
-    child = parent.at(key)
-    return None if child.is_null else child.printed(precision, sign=sign)
+def _required(node: Reader) -> Printed:
+    """A field the table lets stay blank, which this row needs."""
+    value = read(node)
+    if value is None:
+        raise node.error("値が必要です")
+    return value
 
 
 def _substructure(root: Reader) -> Substructure:
     sub = root.at("下部構造")
     dims = sub.at("寸法").only("側面", "正面", "高さ")
     sized: dict[str, dict[int, Printed]] = {}
-    for group, prefix, count, positive in (("側面", "B", 9, {1, 6, 8}), ("正面", "W", 9, {1, 6, 8}),
-                                           ("高さ", "H", 6, {4, 6})):
+    for group, prefix, count in (("側面", "B", 9), ("正面", "W", 9), ("高さ", "H", 6)):
         node = dims.at(group).only(*(f"{prefix}{index}" for index in range(1, count + 1)))
-        sized[prefix] = {index: node.at(f"{prefix}{index}").printed(
-            LENGTH, sign="positive" if index in positive else "nonnegative") for index in range(1, count + 1)}
+        sized[prefix] = {index: read(node.at(f"{prefix}{index}")) for index in range(1, count + 1)}
     for prefix, group in (("B", "側面"), ("W", "正面")):
         size = sized[prefix]
         if size[1].value <= size[4].value + size[5].value:
@@ -65,13 +48,10 @@ def _substructure(root: Reader) -> Substructure:
     weights = sub.at("単位体積重量").only("梁・躯体", "フーチング", "杭", "上載土")
     return Substructure(
         b=sized["B"], w=sized["W"], h=sized["H"],
-        df1=cover.at("起点側_df1").printed(LENGTH), df2=cover.at("終点側_df2").printed(LENGTH),
-        hw1=water.at("高水位_hw1").printed(LENGTH, sign="any"),
-        hw2=water.at("平水位_hw2").printed(LENGTH, sign="any"),
-        hw3=water.at("低水位_hw3").printed(LENGTH, sign="any"),
-        unit_weight_body=weights.at("梁・躯体").printed(UNIT_WEIGHT, sign="positive"),
-        unit_weight_footing=weights.at("フーチング").printed(UNIT_WEIGHT, sign="positive"),
-        unit_weight_overburden=weights.at("上載土").printed(UNIT_WEIGHT),
+        df1=read(cover.at("起点側_df1")), df2=read(cover.at("終点側_df2")),
+        hw1=read(water.at("高水位_hw1")), hw2=read(water.at("平水位_hw2")), hw3=read(water.at("低水位_hw3")),
+        unit_weight_body=read(weights.at("梁・躯体")), unit_weight_footing=read(weights.at("フーチング")),
+        unit_weight_overburden=read(weights.at("上載土")),
     )
 
 
@@ -83,16 +63,12 @@ def _span(root: Reader, side: str) -> Span:
     support = root.at("上部構造", "支承データ", side).only("支承名", "摩擦係数_μ", "復旧性制動係数")
     brake = support.optional("復旧性制動係数")
     return Span(
-        l1=lengths.at("L1").printed(LENGTH), span=lengths.at("スパン長").printed(LENGTH, sign="positive"),
-        l2=lengths.at("L2").printed(LENGTH),
-        impact=span.at("衝撃係数_単線終局").printed(RATIO),
-        radius=span.at("曲線半径").printed(RADIUS), speed=span.at("列車速度").printed(SPEED),
-        heights={index: heights.at(f"h{index}").printed(LENGTH) for index in range(1, 5)},
-        hs=span.at("重心高_hs").printed(LENGTH),
-        f=span.at("支承位置_f").printed(LENGTH),
-        bearing=support.at("支承名").choice(choices.BEARING_TYPES),
-        mu=support.at("摩擦係数_μ").printed(FRICTION),
-        recovery_brake_coefficient=None if brake is None else brake.printed(RATIO),
+        l1=read(lengths.at("L1")), span=read(lengths.at("スパン長")), l2=read(lengths.at("L2")),
+        impact=read(span.at("衝撃係数_単線終局")), radius=read(span.at("曲線半径")), speed=read(span.at("列車速度")),
+        heights={index: read(heights.at(f"h{index}")) for index in range(1, 5)},
+        hs=read(span.at("重心高_hs")), f=read(span.at("支承位置_f")),
+        bearing=read(support.at("支承名")), mu=read(support.at("摩擦係数_μ")),
+        recovery_brake_coefficient=None if brake is None else read(brake),
     )
 
 
@@ -101,27 +77,22 @@ def _train(root: Reader) -> Train:
     vehicle = train.at("車両名")
     if not isinstance(vehicle.value, str):
         raise vehicle.error(f"{'・'.join(choices.VEHICLES)}から選んでください（入力: {vehicle.value!r}）")
-    name = vehicle.choice(tuple(choices.VEHICLES))
+    name = read(vehicle)
     spacing = train.at("軸距").only("a1_連結部", "a2")
     axle = train.at("軸重").only("地震以外", "地震")
     heights = train.at("車両高").only("受風高", "遠心重心高", "地震重心高")
     factors = train.at("荷重修正係数").only("使用性", "安全性(破壊)", "安全性(疲労)")
-    length = train.at("1両の長さ").printed(LENGTH, sign="positive")
-    a1 = spacing.at("a1_連結部").printed(LENGTH, sign="positive")
-    a2 = spacing.at("a2").printed(LENGTH)
+    length = read(train.at("1両の長さ"))
+    a1, a2 = read(spacing.at("a1_連結部")), read(spacing.at("a2"))
     if length.value <= a1.value + 2 * a2.value:
         raise train.at("1両の長さ").error("a1_連結部+2×a2より大きい値が必要です")
     return Train(
         vehicle=name, braking_rule=choices.VEHICLES[name], car_length=length, a1=a1, a2=a2,
-        axle_load=axle.at("地震以外").printed(LOAD, sign="positive"),
-        earthquake_load=axle.at("地震").printed(LINE_LOAD),
-        cars=train.at("編成数").integer(1, 200),
-        height_wind=heights.at("受風高").printed(LENGTH),
-        height_centrifugal=heights.at("遠心重心高").printed(LENGTH),
-        height_seismic=heights.at("地震重心高").printed(LENGTH),
-        factor_service=factors.at("使用性").printed(RATIO, sign="positive"),  # decision 37
-        factor_ultimate=factors.at("安全性(破壊)").printed(RATIO, sign="positive"),
-        factor_fatigue=factors.at("安全性(疲労)").printed(RATIO, sign="positive"),
+        axle_load=read(axle.at("地震以外")), earthquake_load=read(axle.at("地震")), cars=read(train.at("編成数")),
+        height_wind=read(heights.at("受風高")), height_centrifugal=read(heights.at("遠心重心高")),
+        height_seismic=read(heights.at("地震重心高")),
+        factor_service=read(factors.at("使用性")), factor_ultimate=read(factors.at("安全性(破壊)")),
+        factor_fatigue=read(factors.at("安全性(疲労)")),
     )
 
 
@@ -129,30 +100,22 @@ BEARING_KEYS = ("支承位置", "固定死荷重_D1", "付加死荷重_D2", *SNO
 
 
 def _bearing(slot: Reader) -> Bearing | None:
-    if slot.is_null:
+    if slot.is_null:  # 空き支承枠
         return None
     slot.only(*BEARING_KEYS)
     shares = slot.at("列車分担").only("L1", "L2", "L3", "L4")
     for track in ("L3", "L4"):  # decision 23: two tracks only; L3/L4 stay blank
-        if not shares.at(track).is_null:
-            raise shares.at(track).error("3線以上は未対応です")
+        read(shares.at(track))
     return Bearing(
-        position=slot.at("支承位置").printed(LENGTH, sign="any"),
-        d1=slot.at("固定死荷重_D1").printed(LOAD, sign="any"),
-        d2=slot.at("付加死荷重_D2").printed(LOAD, sign="any"),
-        snow2=slot.at(SNOW_KEYS[0]).printed(LOAD, sign="any"),
-        snow10=slot.at(SNOW_KEYS[1]).printed(LOAD, sign="any"),
-        snow30=slot.at(SNOW_KEYS[2]).printed(LOAD, sign="any"),
-        shares=Shares(
-            l1=shares.at("L1").printed(RATIO, sign="any"), l2=shares.at("L2").printed(RATIO, sign="any"),
-        ),
+        position=read(slot.at("支承位置")), d1=read(slot.at("固定死荷重_D1")), d2=read(slot.at("付加死荷重_D2")),
+        snow2=read(slot.at(SNOW_KEYS[0])), snow10=read(slot.at(SNOW_KEYS[1])), snow30=read(slot.at(SNOW_KEYS[2])),
+        shares=Shares(l1=read(shares.at("L1")), l2=read(shares.at("L2"))),
     )
 
 
 def _end(node: Reader) -> EndReaction:
     node.only("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)
-    return EndReaction(*(node.at(key).printed(LOAD, sign="any")
-                         for key in ("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)))
+    return EndReaction(*(read(node.at(key)) for key in ("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)))
 
 
 def _reactions(root: Reader) -> Reactions:
@@ -172,25 +135,21 @@ LAYER_KEYS = ("層番", "層厚", "土質区分", "N値", "単位体積重量", 
 
 
 def _layer(node: Reader, index: int) -> SoilLayer:
-    node.only(*(key for key in LAYER_KEYS if index or key != "層厚"))
+    node.only(*(key for key in LAYER_KEYS if index or key != "層厚"))  # 表層 has no entered thickness
     weights = node.at("単位体積重量").only("湿潤", "水中")
     angle_limit = node.optional("内部摩擦角の上限値")
-    layer = SoilLayer(
-        name=node.at("層番").text(),
-        thickness=None if index == 0 else _optional(node, "層厚", LENGTH),
-        soil_type=node.at("土質区分").choice(choices.SOIL_TYPES),
-        n_value=_optional(node, "N値", N_VALUE),
-        unit_weight_wet=_optional(weights, "湿潤", UNIT_WEIGHT),
-        unit_weight_submerged=_optional(weights, "水中", UNIT_WEIGHT),
-        friction_angle=_optional(node, "内部摩擦角_φd", FRICTION_ANGLE),
-        friction_angle_limit=None if angle_limit is None else angle_limit.printed(FRICTION_ANGLE),
-        compressive_strength=_optional(node, "一軸圧縮強度_qu", STRESS),
-        deformation_modulus=_optional(node, "変形係数_Ed", STRESS),
+    return SoilLayer(
+        name=read(node.at("層番")),
+        thickness=None if index == 0 else read(node.at("層厚")),
+        soil_type=read(node.at("土質区分")),
+        n_value=read(node.at("N値")),
+        unit_weight_wet=read(weights.at("湿潤")),
+        unit_weight_submerged=read(weights.at("水中")),
+        friction_angle=read(node.at("内部摩擦角_φd")),
+        friction_angle_limit=None if angle_limit is None else read(angle_limit),
+        compressive_strength=read(node.at("一軸圧縮強度_qu")),
+        deformation_modulus=read(node.at("変形係数_Ed")),
     )
-    for key, angle in (("内部摩擦角_φd", layer.friction_angle), ("内部摩擦角の上限値", layer.friction_angle_limit)):
-        if angle is not None and angle.value >= 90:
-            raise node.at(key).error("90度未満が必要です")
-    return layer
 
 
 def _soil(root: Reader) -> Soil:
@@ -202,71 +161,54 @@ def _soil(root: Reader) -> Soil:
     if len(supports) != 1:
         raise rows.error(f"層番「{choices.LAYER_SUPPORT}」の行をちょうど1行指定してください")
     surface, support = rows.at(0), rows.at(supports[0])
-    surface.at("単位体積重量", "湿潤").printed(UNIT_WEIGHT)
-    surface.at("単位体積重量", "水中").printed(UNIT_WEIGHT)
-    angle = support.at("内部摩擦角_φd").printed(FRICTION_ANGLE)
+    _required(surface.at("単位体積重量", "湿潤"))
+    _required(surface.at("単位体積重量", "水中"))
+    angle = _required(support.at("内部摩擦角_φd"))
     if not 25 <= angle.value < 90:
         raise support.at("内部摩擦角_φd").error("25度以上90度未満が必要です（支持力係数表の適用範囲）")
-    support.at("変形係数_Ed").printed(STRESS, sign="positive")
+    modulus = support.at("変形係数_Ed")
+    if _required(modulus).value <= 0:
+        raise modulus.error("正の数値が必要です")
     return Soil(layers)
 
 
 def _materials(root: Reader) -> Materials:
     rebar = root.at("鉄筋")
-    return Materials(*(rebar.at(part, "concrete_strength_mpa").printed(STRENGTH, sign="positive")
-                       for part in ("梁", "柱", "フーチング")))
-
-
-def _count(node: Reader, key: str) -> int | None:
-    child = node.at(key)
-    return None if child.is_null else child.integer(0, 10_000)
+    return Materials(*(read(rebar.at(part, "concrete_strength_mpa")) for part in ("梁", "柱", "フーチング")))
 
 
 def _reserved(root: Reader) -> Reserved:
     sub = root.at("下部構造")
     skew = sub.at("斜角").only("θ", "タイプ")
     pile_weights = sub.at("単位体積重量", "杭").only("鉛直重量", "慣性力")
-    condition = sub.at("場所打ち杭の施工条件")
     piles = []
     for row in sub.at("杭の配置").items():
         row.only("線路方向", "線路直角方向")
         along = row.at("線路方向").only("X", "本数")
         across = row.at("線路直角方向").only("Y", "本数")
-        piles.append(Pile(x=_optional(along, "X", LENGTH, sign="any"), x_count=_count(along, "本数"),
-                          y=_optional(across, "Y", LENGTH, sign="any"), y_count=_count(across, "本数")))
-    skew_type = skew.at("タイプ").integer(1, 2)
+        piles.append(Pile(x=read(along.at("X")), x_count=read(along.at("本数")),
+                          y=read(across.at("Y")), y_count=read(across.at("本数"))))
+    skew_type = read(skew.at("タイプ"))
     return Reserved(
-        skew_angle=skew.at("θ").printed(ANGLE, sign="positive"), skew_type=skew_type,
-        pile_unit_weight_vertical=_optional(pile_weights, "鉛直重量", UNIT_WEIGHT),
-        pile_unit_weight_inertia=_optional(pile_weights, "慣性力", UNIT_WEIGHT),
-        cast_in_place_condition=None if condition.is_null else condition.choice(choices.CAST_IN_PLACE_CONDITIONS),
+        skew_angle=read(skew.at("θ")), skew_type=skew_type,
+        pile_unit_weight_vertical=read(pile_weights.at("鉛直重量")),
+        pile_unit_weight_inertia=read(pile_weights.at("慣性力")),
+        cast_in_place_condition=read(sub.at("場所打ち杭の施工条件")),
         piles=tuple(piles),
-        centrifugal_direction=tuple(root.at("上部構造", side, "遠心作用方向").choice(choices.CENTRIFUGAL_DIRECTIONS)
-                                    for side in ("起点側", "終点側")),
+        centrifugal_direction=tuple(read(root.at("上部構造", side, "遠心作用方向")) for side in ("起点側", "終点側")),
     )
 
 
+JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm", "analysis_steps",
+               "limited_final_step", "target_displacement_m")
+
+
 def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
-    node = root.at(key).only("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm",
-                             "analysis_steps", "limited_final_step", "target_displacement_m")
-    factors = []
-    for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd"):
-        factor = _optional(node, name, SHEAR_FACTOR, sign="positive")
-        if factor is not None and factor.value > SHEAR_FACTOR_MAX:
-            raise node.at(name).error(f"{SHEAR_FACTOR_MAX}以下が必要です")
-        factors.append(factor)
-    aggregate = node.at("aggregate_max_mm")
-    size = None if aggregate.is_null else aggregate.printed(AGGREGATE)
-    if size is not None and not AGGREGATE_RANGE[0] <= size.value <= AGGREGATE_RANGE[1]:
-        raise aggregate.error(f"{AGGREGATE_RANGE[0]}～{AGGREGATE_RANGE[1]} mmが必要です")
-    steps, limited = (None if node.at(name).is_null else node.at(name).integer(1, MAX_STEPS)
-                      for name in ("analysis_steps", "limited_final_step"))
+    node = root.at(key).only(*JRSNAP_KEYS)
+    vcd, vsd, vdd, size, steps, limited, target = (read(node.at(name)) for name in JRSNAP_KEYS)
     if steps is not None and limited is not None and limited > steps:
         raise node.at("limited_final_step").error(f"analysis_steps（{steps}）以下が必要です")
-    target = _optional(node, "target_displacement_m", LENGTH, sign="any")
-    if target is not None and target.value == 0:
-        raise node.at("target_displacement_m").error("0以外が必要です")
-    return JrsnapConditions(*factors, aggregate_max=size, steps=steps, limited_final_step=limited,
+    return JrsnapConditions(vcd, vsd, vdd, aggregate_max=size, steps=steps, limited_final_step=limited,
                             target_displacement=target)
 
 
@@ -283,7 +225,7 @@ def parse_input(data: Any) -> PierInput:
     root.at("上部構造", "支承データ").only("起点側", "終点側")
     sub = root.at("下部構造").only("寸法", "土かぶり", "水位", "斜角", "単位体積重量", "杭種",
                                    "場所打ち杭の施工条件", "杭の配置")
-    foundation = sub.at("杭種").choice(choices.FOUNDATION_TYPES)
+    foundation = read(sub.at("杭種"))
     if foundation != choices.SUPPORTED_FOUNDATION:
         raise sub.at("杭種").error(f"{foundation}は未対応です（{choices.SUPPORTED_FOUNDATION}のみ計算できます）")
     return PierInput(
