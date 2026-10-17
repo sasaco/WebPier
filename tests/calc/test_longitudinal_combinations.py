@@ -140,3 +140,31 @@ def test_signed_variants_reverse_only_the_horizontal_action():
 def test_unknown_component_lookup():
     with pytest.raises(KeyError):
         longitudinal().combinations[13].component(B.TRAIN_DOUBLE)
+
+
+PEDESTAL = {"下部構造/寸法/側面/B2": 0.5, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
+            "下部構造/寸法/正面/W3": 7.0, "下部構造/寸法/高さ/H1": 0.3}
+
+
+@pytest.mark.parametrize("changes", [{}, PEDESTAL], ids=["no_pedestal", "pedestal"])
+def test_each_component_keeps_the_action_its_factor_applies_to(changes):
+    # The FrameWeb input analyses the factor times this action, so it must be the unscaled action itself:
+    # the basic action, or the serviceability impact at the bearing seat (decision 29).
+    result = longitudinal(pier(**changes))
+    seat = result.frame.bearing_seat.number
+    for combination in result.combinations:
+        for component in combination.components:
+            basic = result.basic(component.case)
+            if component.basis is Basis.BASIC:
+                assert component.source == basic
+            else:
+                impact = (result.impact.service_single if component.case is B.IMPACT_SINGLE
+                          else result.impact.service_double)
+                (point,) = component.source.points
+                # The seat moment: M − N × offset; the pedestal top is −0.350 from the column axis.
+                offset = D(-0.35) if changes else D(0)
+                assert (component.source.case, component.source.spring, component.source.line_loads) == (
+                    basic.case, basic.spring, ())
+                assert (point.node, value(point.n), value(point.h), value(point.m)) == (
+                    seat, value(impact.n), D(0), q(value(impact.m) - value(impact.n) * offset, 2))
+            assert resolved(component) == scaled(component.factor.value, component.source)

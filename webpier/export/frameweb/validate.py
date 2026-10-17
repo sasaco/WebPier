@@ -1,0 +1,257 @@
+"""The native rules of the FrameWeb input that WebPier writes (2D frame, static load cases).
+
+The rules are those of the format of the Example2 FrameWeb file and of FrameWeb's behaviour (README 線路方向の
+FrameWeb入力): a spring value 1 means a fixed support and 0 a free one, so springs are positive and not 1;
+member rows without a load are rejected (unsupported mark); member load intensities are projected to 0.01; a
+load case without rows is skipped, so a Combine with only such cases is dropped and its Pickup fails, and a
+Define that has both empty and loaded candidates changes its envelope; the Combine grid shows 50 Define
+columns. On top of the format, the subset WebPier writes: tables numbered 1, 2, ... in order, one section
+type, uniform loads over whole members in global axes, and every node connected to the support.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Iterable, Mapping
+from typing import Any, NoReturn
+
+from ...core.errors import InputError
+
+TOP_LEVEL = ("node", "fix_node", "member", "element", "load", "define", "combine", "pickup", "dimension")
+SECTION_KEYS = ("E", "G", "Xp", "A", "J", "Iy", "Iz", "n")
+SUPPORT_KEYS = ("row", "n", "tx", "ty", "tz", "rx", "ry", "rz")
+LOAD_KEYS = ("fix_node", "element", "symbol", "LL_pitch", "rate", "name")
+NODE_LOAD_KEYS = ("n", "tx", "ty", "tz", "rx", "ry", "rz", "row")
+MEMBER_LOAD_KEYS = ("m1", "m2", "direction", "mark", "L1", "L2", "P1", "P2", "row")
+MAX_DEFINES = 50  # FrameWebforCS shows C1-C50 in the Combine grid (tests/InputCombineColumnsTests.cs)
+
+
+def _fail(path: str, message: str) -> NoReturn:
+    raise InputError(f"FrameWeb入力: {path or '全体'}: {message}")
+
+
+def _record(value: object, path: str, required: Iterable[str], optional: Iterable[str] = ()) -> dict[str, Any]:
+    required, optional = set(required), set(optional)
+    if not isinstance(value, dict) or not required <= value.keys() <= required | optional:
+        _fail(path, f"項目 {sorted(required)}（任意 {sorted(optional)}）の表が必要です")
+    return value
+
+
+def _numbered(value: object, path: str) -> list[tuple[int, Any]]:
+    if not isinstance(value, dict) or not value or list(value) != [str(n) for n in range(1, len(value) + 1)]:
+        _fail(path, "番号 1, 2, … を順に並べた表が必要です")
+    return [(int(key), item) for key, item in value.items()]
+
+
+def _rows(value: object, path: str) -> list[Any]:
+    if not isinstance(value, list) or not value:
+        _fail(path, "空でない行の配列が必要です")
+    return value
+
+
+def _number(value: object, path: str, *, positive: bool = False) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or (
+            positive and value <= 0):
+        _fail(path, f"{'正の' if positive else ''}有限の数値が必要です（{value!r}）")
+    return float(value)
+
+
+def _reference(value: object, known: Mapping[int, Any] | set[int], path: str) -> int:
+    if type(value) is not int or value not in known:
+        _fail(path, f"存在する番号（整数）が必要です（{value!r}）")
+    return value
+
+
+def _named(value: object, known: Mapping[int, Any] | set[int], path: str) -> int:
+    if not isinstance(value, str) or not value.isdecimal() or int(value) not in known or str(int(value)) != value:
+        _fail(path, f"存在する番号（文字列）が必要です（{value!r}）")
+    return int(value)
+
+
+def _null(row: Mapping[str, Any], keys: Iterable[str], path: str) -> None:
+    for key in keys:
+        if row[key] is not None:
+            _fail(f"{path}.{key}", "2次元のモデルでは null です")
+
+
+def _text(value: object, path: str) -> None:
+    if not isinstance(value, str):
+        _fail(path, "文字列が必要です")
+
+
+def _row_number(row: Mapping[str, Any], number: int, path: str) -> None:
+    if type(row["row"]) is not int or row["row"] != number:
+        _fail(f"{path}.row", f"行番号 {number} が必要です")
+
+
+def _open(value: object, path: str, required: Iterable[str]) -> dict[str, Any]:
+    """A table with at least the *required* keys; the other keys are columns."""
+    if not isinstance(value, dict) or not set(required) <= value.keys():
+        _fail(path, f"項目 {sorted(required)} と列の表が必要です")
+    return value
+
+
+def _columns(value: object, path: str, fixed: tuple[str, ...]) -> list[Any]:
+    """The values of C1, C2, ... in order, next to the *fixed* keys."""
+    row = _open(value, path, fixed)
+    columns = [key for key in row if key not in fixed]
+    if not columns or columns != [f"C{i}" for i in range(1, len(columns) + 1)]:
+        _fail(path, "列 C1, C2, … が順に必要です")
+    return [row[key] for key in columns]
+
+
+def _connected(nodes: Iterable[int], edges: Mapping[int, set[int]], start: set[int], path: str) -> None:
+    reached, pending = set(), list(start)
+    while pending:
+        node = pending.pop()
+        if node not in reached:
+            reached.add(node)
+            pending.extend(edges[node])
+    if reached != set(nodes):
+        _fail(path, f"支点につながらない節点があります: {sorted(set(nodes) - reached)}")
+
+
+def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], set[int], set[int], set[int]]:
+    nodes = {}
+    for number, node in _numbered(root["node"], "node"):
+        path = f"node.{number}"
+        _record(node, path, ("x", "y", "z"))
+        _null(node, ("z",), path)
+        nodes[number] = (_number(node["x"], f"{path}.x"), _number(node["y"], f"{path}.y"))
+
+    types = _numbered(root["element"], "element")
+    if len(types) != 1:
+        _fail("element", "断面のTYPEは1つです")
+    sections = set()
+    for number, section in _numbered(types[0][1], "element.1"):
+        path = f"element.1.{number}"
+        _record(section, path, SECTION_KEYS)
+        _null(section, ("G", "J", "Iy"), path)
+        for key in ("E", "Xp", "A", "Iz"):
+            _number(section[key], f"{path}.{key}", positive=True)
+        _text(section["n"], f"{path}.n")
+        sections.add(number)
+
+    edges: dict[int, set[int]] = {number: set() for number in nodes}
+    members = set()
+    for number, member in _numbered(root["member"], "member"):
+        path = f"member.{number}"
+        _record(member, path, ("ni", "nj", "e", "cg"))
+        _null(member, ("cg",), path)
+        ni, nj = (_reference(member[key], nodes, f"{path}.{key}") for key in ("ni", "nj"))
+        _reference(member["e"], sections, f"{path}.e")
+        if not math.dist(nodes[ni], nodes[nj]) > 0:
+            _fail(path, "長さ0の部材です")
+        edges[ni].add(nj)
+        edges[nj].add(ni)
+        members.add(number)
+
+    supports = set()
+    for number, rows in _numbered(root["fix_node"], "fix_node"):
+        path = f"fix_node.{number}"
+        start = set()
+        for index, row in enumerate(_rows(rows, path), 1):
+            where = f"{path}[{index}]"
+            _record(row, where, SUPPORT_KEYS)
+            _row_number(row, index, where)
+            start.add(_named(row["n"], nodes, f"{where}.n"))
+            _null(row, ("tz", "rx", "ry"), where)
+            for key in ("tx", "ty", "rz"):
+                if _number(row[key], f"{where}.{key}", positive=True) == 1:
+                    _fail(f"{where}.{key}", "ばね値 1 は FrameWeb では固定支点を意味します")
+        _connected(nodes, edges, start, path)
+        supports.add(number)
+    return nodes, members, supports, {types[0][0]}
+
+
+def _node_rows(rows: object, nodes: Mapping[int, Any], path: str) -> None:
+    for index, row in enumerate(_rows(rows, path), 1):
+        where = f"{path}[{index}]"
+        _record(row, where, NODE_LOAD_KEYS)
+        _row_number(row, index, where)
+        _named(row["n"], nodes, f"{where}.n")
+        _null(row, ("tz", "rx", "ry"), where)
+        values = [_number(row[key], f"{where}.{key}") for key in ("tx", "ty", "rz") if row[key] is not None]
+        if not values or 0 in values:
+            _fail(where, "0 の成分は null、成分のない行は書きません")
+
+
+def _member_rows(rows: object, members: set[int], path: str) -> None:
+    for index, row in enumerate(_rows(rows, path), 1):
+        where = f"{path}[{index}]"
+        _record(row, where, MEMBER_LOAD_KEYS)
+        _row_number(row, index, where)
+        for key in ("m1", "m2"):
+            _named(row[key], members, f"{where}.{key}")
+        if type(row["mark"]) is not int or row["mark"] != 2 or row["direction"] not in ("gx", "gy"):
+            _fail(where, "全体座標 gx / gy の分布荷重（mark 2）が必要です")
+        if _number(row["L1"], f"{where}.L1") or _number(row["L2"], f"{where}.L2"):
+            _fail(where, "部材の全長に載荷します（L1 = L2 = 0）")
+        p1 = _number(row["P1"], f"{where}.P1")
+        if not p1 or math.floor(p1 * 100 + 0.5) / 100 != p1:
+            _fail(f"{where}.P1", f"0 でない小数2桁までの強度が必要です（FrameWeb は 0.01 に丸めて解析します: {p1!r}）")
+        if _number(row["P2"], f"{where}.P2") != p1:
+            _fail(f"{where}.P2", "等分布荷重（P1 = P2）が必要です")
+
+
+def validate_frameweb(document: object) -> None:
+    """Raise InputError naming the first rule the document breaks."""
+    root = _record(document, "", TOP_LEVEL)
+    if type(root["dimension"]) is not int or root["dimension"] != 2:
+        _fail("dimension", "2次元（2）が必要です")
+    nodes, members, supports, types = _model(root)
+
+    loaded = {}
+    for number, case in _numbered(root["load"], "load"):
+        path = f"load.{number}"
+        _record(case, path, LOAD_KEYS, ("load_node", "load_member"))
+        _reference(case["fix_node"], supports, f"{path}.fix_node")
+        _reference(case["element"], types, f"{path}.element")
+        for key in ("symbol", "name"):
+            _text(case[key], f"{path}.{key}")
+        for key in ("LL_pitch", "rate"):
+            _number(case[key], f"{path}.{key}", positive=True)
+        if "load_node" in case:
+            _node_rows(case["load_node"], nodes, f"{path}.load_node")
+        if "load_member" in case:
+            _member_rows(case["load_member"], members, f"{path}.load_member")
+        loaded[number] = "load_node" in case or "load_member" in case
+
+    defines = {}
+    for number, row in _numbered(root["define"], "define"):
+        path = f"define.{number}"
+        references = _columns(row, path, ("row",))
+        _row_number(row, number, path)
+        for reference in references:
+            if type(reference) is not int or abs(reference) not in loaded or references.count(reference) > 1:
+                _fail(path, f"荷重ケースの番号（負は逆向き）を重複なく指します（{reference!r}）")
+        candidates = {loaded[abs(reference)] for reference in references}
+        if len(candidates) > 1:
+            _fail(path, "候補の一部だけが荷重のないケースです（FrameWeb はそれを除いて包絡します）")
+        defines[number] = candidates.pop()
+    if len(defines) > MAX_DEFINES:
+        _fail("define", f"Define は {MAX_DEFINES} までです（Combine の表の列数）")
+
+    combines = set()
+    for number, row in _numbered(root["combine"], "combine"):
+        path = f"combine.{number}"
+        _open(row, path, ("row", "name"))
+        _row_number(row, number, path)
+        _text(row["name"], f"{path}.name")
+        terms = [(key, factor) for key, factor in row.items() if key not in ("row", "name")]
+        for key, factor in terms:
+            if not key.startswith("C") or not key[1:].isdecimal() or int(key[1:]) not in defines:
+                _fail(f"{path}.{key}", "Define の番号を指す列 C<n> が必要です")
+            _number(factor, f"{path}.{key}", positive=True)
+        if not any(defines[int(key[1:])] for key, _ in terms):
+            _fail(path, "荷重のある項がありません（FrameWeb は空の Combine を除くので Pickup が成り立ちません）")
+        combines.add(number)
+
+    for number, row in _numbered(root["pickup"], "pickup"):
+        path = f"pickup.{number}"
+        references = _columns(row, path, ("row", "name"))
+        _row_number(row, number, path)
+        _text(row["name"], f"{path}.name")
+        for reference in references:
+            if type(reference) is not int or reference not in combines or references.count(reference) > 1:
+                _fail(path, f"Combine の番号を重複なく指します（{reference!r}）")

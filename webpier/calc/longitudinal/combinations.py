@@ -102,6 +102,7 @@ class ResolvedAction:
     nominal: Printed  # coefficient of the table
     factor: Printed  # applied to the basis
     basis: Basis
+    source: BasicAction  # the action the factor applies to, unscaled and in the positive direction
     points: tuple[PointLoad, ...]
     line_loads: tuple[LineLoad, ...]
     reversible: bool  # horizontal: both signs (Define 13-20)
@@ -202,14 +203,14 @@ def _resolve(basic: BasicAction, nominal: Printed, usage: Usage, service_impacts
     if usage is Usage.SERVICE and basic.case in service_impacts:
         basis, factor = Basis.SERVICE_IMPACT, factors.service
         impact = service_impacts[basic.case]
-        points: tuple[PointLoad, ...] = (bearing_point(frame, impact.n, impact.m),)
-        lines: tuple[LineLoad, ...] = ()
+        source = replace(basic, points=(bearing_point(frame, impact.n, impact.m),), line_loads=())
     else:
-        basis, factor, points, lines = Basis.BASIC, nominal, basic.points, basic.line_loads
+        basis, factor, source = Basis.BASIC, nominal, basic
     f = d(factor)
-    return ResolvedAction(case=basic.case, nominal=nominal, factor=factor, basis=basis,
-                          points=tuple(_scaled_point(p, f) for p in points),
-                          line_loads=tuple(_scaled_line(line, f) for line in lines), reversible=basic.horizontal)
+    return ResolvedAction(case=basic.case, nominal=nominal, factor=factor, basis=basis, source=source,
+                          points=tuple(_scaled_point(p, f) for p in source.points),
+                          line_loads=tuple(_scaled_line(line, f) for line in source.line_loads),
+                          reversible=basic.horizontal)
 
 
 def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], impact: Impacts,
