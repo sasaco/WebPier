@@ -1,6 +1,6 @@
 {
   "basis": "Current frozen input expectations, separate from the independently transcribed PDF display values.",
-  "input_sha256": "82d5a2769dfb36b069263c7849e30fdd4a5a23b8c69700613603c51ba430628b",
+  "input_sha256": "513afac95cff724cb65b479f42093c59765ae6b33f54d8772d4dfe02ca669e75",
   "inertia": {
     "pedestal": {"H": 0.0, "height": 0.0, "M": 0.0},
     "beam_bottom": 297.68,

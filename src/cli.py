@@ -1,4 +1,4 @@
-"""Calculate selected pier-design stages and publish their PDF/JSON together."""
+"""Calculate selected WebPier stages and publish their PDF/JSON together."""
 
 from __future__ import annotations
 

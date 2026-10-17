@@ -242,7 +242,7 @@ def test_all_gui_rejects_inconsistent_direction_generation(fileset, defect):
 
 def test_gui_rejects_incomplete_publication_journal_even_when_all_bytes_match(fileset):
     source, output, digest = fileset
-    journal = output / "post" / ".pier-design-interrupted" / "publication-journal.json"
+    journal = output / "post" / ".webpier-interrupted" / "publication-journal.json"
     journal.parent.mkdir()
     journal.write_text('{"state":"publishing"}', encoding="utf-8")
     controller = calculation.CalculationController(output, completed())
@@ -256,7 +256,7 @@ def test_new_incomplete_publication_invalidates_previously_verified_outputs(file
     controller = calculation.CalculationController(output, completed())
     controller.start(source, digest)
     assert finish(controller).success
-    journal = output / "post" / ".pier-design-incomplete" / "publication-journal.json"
+    journal = output / "post" / ".webpier-incomplete" / "publication-journal.json"
     journal.parent.mkdir()
     journal.write_text('{"state":"publishing"}', encoding="utf-8")
     assert "journal" in controller.check_current_outputs()

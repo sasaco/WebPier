@@ -46,7 +46,7 @@ def check_incomplete_publications(destinations: Sequence[Path], *,
     """Fail closed; recovery is manual so another writer is never overwritten."""
     excluded = {path.resolve() for path in exclude}
     for parent in dict.fromkeys(path.parent.resolve() for path in destinations):
-        for directory in parent.glob(".pier-design-*"):
+        for directory in parent.glob(".webpier-*"):
             if directory.resolve() not in excluded and _incomplete_staging(directory):
                 raise RecoveryError(
                     f"未完了の公開journalがあります。自動復旧は行いません。"
@@ -133,7 +133,7 @@ class ArtifactStaging:
                     current = current.parent
                 parent.mkdir(parents=True, exist_ok=True)
                 self.created_parents.extend(reversed(missing))
-                self.directories[parent] = Path(tempfile.mkdtemp(prefix=".pier-design-", dir=parent)).resolve()
+                self.directories[parent] = Path(tempfile.mkdtemp(prefix=".webpier-", dir=parent)).resolve()
         except OSError:
             self._cleanup()
             raise
@@ -145,7 +145,7 @@ class ArtifactStaging:
     def _cleanup(self) -> None:
         for parent, directory in reversed(tuple(self.directories.items())):
             # Never recursively remove a destination directory or a guessed path.
-            assert directory.parent == parent and directory.name.startswith(".pier-design-")
+            assert directory.parent == parent and directory.name.startswith(".webpier-")
             _remove_staging(directory)
         for parent in reversed(self.created_parents):
             try:
@@ -186,7 +186,7 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
         for destination in destinations:
             parent = destination.parent.resolve()
             if parent not in directories:
-                directory = Path(tempfile.mkdtemp(prefix=".pier-design-", dir=parent)).resolve()
+                directory = Path(tempfile.mkdtemp(prefix=".webpier-", dir=parent)).resolve()
                 directories[parent] = directory
                 extra_directories.append(directory)
             if directories[parent].parent != parent:
@@ -268,5 +268,5 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
     finally:
         if not preserve:
             for directory in extra_directories:
-                assert directory.parent in directories and directory.name.startswith(".pier-design-")
+                assert directory.parent in directories and directory.name.startswith(".webpier-")
                 _remove_staging(directory)

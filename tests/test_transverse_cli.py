@@ -58,7 +58,7 @@ def test_0620_publishes_only_its_four_artifacts_and_is_independent_of_0610_error
             return _actual(*args, **kwargs)
 
         monkeypatch.setattr(cli, attribute, counted)
-    # Use the projection-compatible P7 input for publication wiring. The old
+    # Use the projection-compatible WebPier input for publication wiring. The old
     # baseline's wind q=2.625 is covered by the explicit rejection test below.
     data = json.loads((PROJECT / "pre" / "input.json").read_text(encoding="utf-8"))
     source = tmp_path.parent / (tmp_path.name + "-input.json")
@@ -99,7 +99,7 @@ def test_old_baseline_projection_loss_stops_before_render_and_preserves_all_outp
     assert "native.load.16.load_member" in error and "2.625 -> 2.63" in error
     assert {path: path.read_bytes() for path in paths} == originals
     assert source.read_bytes() == source_bytes
-    assert not list(output.rglob(".pier-design-*"))
+    assert not list(output.rglob(".webpier-*"))
 
 
 def test_all_calculations_complete_once_before_first_report(tmp_path, quick_reports, monkeypatch):
@@ -180,7 +180,7 @@ def test_0620_directory_collision_preserves_children(tmp_path, quick_reports, na
     (collision / "keep").write_bytes(b"keep")
     assert cli.main(["--stage", "0620", "--output-dir", str(tmp_path), "--overwrite"]) == 2
     assert (collision / "keep").read_bytes() == b"keep"
-    assert not list(tmp_path.glob(".pier-design-*"))
+    assert not list(tmp_path.glob(".webpier-*"))
 
 
 def test_0620_symlink_collision_preserves_target(tmp_path, quick_reports):

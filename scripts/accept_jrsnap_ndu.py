@@ -23,7 +23,6 @@ from typing import Any
 from gridlayoutpdf import LayoutError
 
 PROJECT = Path(__file__).resolve().parents[1]
-REPOSITORY = PROJECT.parent
 sys.path.insert(0, str(PROJECT))
 
 from src.jrsnap_readback import ReadbackError, verify_readback
@@ -34,7 +33,7 @@ DEFAULT_ORACLES = {"0710": DEFAULT_ORACLE,
                    "0720": PROJECT / "tests/fixtures/jrsnap_v52_transverse_expected.json"}
 _DIRECTIONS = {"0710": "longitudinal", "0720": "transverse"}
 DEFAULT_APP = Path("C:/RTRI_Program/JRSNAP(Ver5.2-L03)/JRSNAP_Input.exe")
-DEFAULT_HELPER = REPOSITORY / ".agents/skills/jrsnap-input-open-save/scripts/save-ndu.ps1"
+DEFAULT_HELPER = PROJECT / ".claude/skills/jrsnap-input-open-save/scripts/save-ndu.ps1"
 
 
 class AcceptanceError(ValueError):
@@ -105,7 +104,7 @@ def run_v52_roundtrip(candidate: bytes, *, timeout: int = 30,
     identity = app_identity()
     helper = helper.resolve(strict=True)
     sources = {str(path): sha256(path.read_bytes()) for path in (helper, helper.with_name("roundtrip.cs"))}
-    with tempfile.TemporaryDirectory(prefix="p7-ndu-acceptance-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="webpier-ndu-acceptance-") as temporary:
         copied = Path(temporary) / "candidate.ndu"
         copied.write_bytes(candidate)
         started = datetime.now(UTC).timestamp()
@@ -387,8 +386,8 @@ def accept_generation(options: Any, *, oracle_path: Path | None = None,
         _check_files(supporting_sources, "Acceptance source/oracle")
         if _held_calculation_hash(candidate) != held_calculation_hash:
             raise AcceptanceError("Held calculation/profile metadata changed during readback")
-        path = (receipt_path or REPOSITORY / ".agents/docs/research" /
-                f"p7-{_DIRECTIONS.get(options.stage, 'both')}-ndu-acceptance-{candidate.publication_id}.json").resolve()
+        path = (receipt_path or PROJECT / ".claude/docs/research" /
+                f"webpier-{_DIRECTIONS.get(options.stage, 'both')}-ndu-acceptance-{candidate.publication_id}.json").resolve()
         if path in {artifact.resolve() for artifact in candidate.artifact_hashes} or path == options.input_path.resolve():
             raise AcceptanceError("Receipt collides with a product artifact or input")
         path.parent.mkdir(parents=True, exist_ok=True)

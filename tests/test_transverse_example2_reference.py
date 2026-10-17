@@ -34,7 +34,7 @@ def test_reference_source_hash_and_physical_pages_match_original(reference):
     source = reference["source"]
     assert source["path"] == ".claude/docs/Example橋脚2/09_直角.pdf"
     assert source["sha256"] == SOURCE_SHA256
-    original = Path(__file__).resolve().parents[2] / source["path"]
+    original = Path(__file__).resolve().parents[1] / source["path"]
     assert hashlib.sha256(original.read_bytes()).hexdigest() == SOURCE_SHA256
     assert source["pages"] == [13, 14, 15]
     for collection, page in (

@@ -289,17 +289,17 @@ Soil-JRの出力例は、5.2のPDF 27–90と5.3のPDF 29–110、計146ペー�
 | [Soil-JR OCR結果](manual-comparison-data/Soil-JR.ocr.json) | 146ページの補助文字認識結果。誤認識を含む |
 | [検証結果](manual-comparison-data/verification.json) | 上記の成果物検証結果 |
 
-再実行例は、ワークスペースのルート `C:\Users\sasai\Documents\Batch` を起点とする。
+再実行例は、WebPier のルートを起点とする。
 
 ```powershell
 $env:PYTHONUTF8 = '1'
-uv run --with pymupdf --with pillow python .agents/agents/jrsnap-operator/scripts/compare_manuals.py
+uv run --with pymupdf --with pillow python .claude/agents/jrsnap-operator/scripts/compare_manuals.py
 
 # Soil-JRの差分を表示
-uv run --with pymupdf --with pillow python .agents/agents/jrsnap-operator/scripts/inspect_comparison.py Soil-JR
+uv run --with pymupdf --with pillow python .claude/agents/jrsnap-operator/scripts/inspect_comparison.py Soil-JR
 
 # 地盤係数の画面を比較画像として生成
-uv run --with pymupdf --with pillow python .agents/agents/jrsnap-operator/scripts/inspect_comparison.py Soil-JR --pairs 20:22
+uv run --with pymupdf --with pillow python .claude/agents/jrsnap-operator/scripts/inspect_comparison.py Soil-JR --pairs 20:22
 ```
 
 原本PDFおよび既存の解析入力・解析結果は変更していない。

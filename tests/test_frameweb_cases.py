@@ -73,13 +73,13 @@ def assert_all_vectors(source, native):
 def test_all_current_auxiliary_values_320_nominal_coefficients_and_28_states(current_result):
     exported = build_frameweb_input(current_result)
     native = exported.document
-    p7 = json.loads((FIXTURES / "frameweb_p7_reference.json").read_text(encoding="utf-8"))
+    webpier = json.loads((FIXTURES / "frameweb_webpier_reference.json").read_text(encoding="utf-8"))
     example = json.loads((FIXTURES / "frameweb_example2_mapping.json").read_text(encoding="utf-8"))
     matrix = list(map(list, zip(*(row["coefficients"] for row in current_result["combinations"]), strict=True)))
     assert matrix == example["coefficient_matrix"]["values"]
     assert len(native["load"]) == len(native["define"]) == 28
     assert len(native["combine"]) == 16 and len(native["pickup"]) == 8
-    for identifier, basic, usage, force, moment, consumers in p7["auxiliary_actions"]:
+    for identifier, basic, usage, force, moment, consumers in webpier["auxiliary_actions"]:
         row = native["load"][str(identifier)]["load_node"][0]
         assert (row["ty"], row["rz"]) == (-force, -moment)
         assert native["load"][str(identifier)]["fix_node"] == 2
@@ -96,8 +96,8 @@ def test_all_current_auxiliary_values_320_nominal_coefficients_and_28_states(cur
             key: value for key, value in example["pickup"][identifier].items() if key != "name"}
     assert exported.source_mapping["verified_variant_count"] == 28
     assert_all_vectors(current_result, native)
-    assert len(p7["reference_states"]) == 28
-    for state in p7["reference_states"]:
+    assert len(webpier["reference_states"]) == 28
+    for state in webpier["reference_states"]:
         expected = {tuple(row[:-1]): row[-1] for row in state["actions"]}
         assert native_vector(native, state["combination_id"], state["horizontal_sign"]) == expected
 

@@ -93,7 +93,7 @@ def frameweb_template(stage="0610"):
     from src.reaction_calculator import calculate_reactions
     from src.reaction_inputs import parse_reaction_input
 
-    data = json.loads((PROJECT / "tests" / "fixtures" / "frameweb_p7_reference.json").read_text("utf-8"))["input"]
+    data = json.loads((PROJECT / "tests" / "fixtures" / "frameweb_webpier_reference.json").read_text("utf-8"))["input"]
     reaction_inputs = parse_reaction_input(data)
     calculate_direction = calculate_longitudinal if stage == "0610" else calculate_transverse
     result = calculate_direction(
@@ -517,7 +517,7 @@ def test_real_cli_all_reports_and_same_input_rerun_use_isolated_output(tmp_path)
     assert run_ids[0] != run_ids[1]
     assert len(list(output.glob("*.pdf"))) == 6
     assert len(list(output.glob("*.json"))) == 6
-    assert not list(output.glob(".pier-design-*"))
+    assert not list(output.glob(".webpier-*"))
     assert calculation.input_sha256(source) == digest
 
 

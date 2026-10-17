@@ -10,7 +10,7 @@ $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($f
 $taskLog = $null
 try {
     $ErrorActionPreference = 'Stop'
-    $taskProject = Join-Path $ProjectRoot '.'
+    $taskProject = $ProjectRoot
     $taskTests = Join-Path $taskProject 'tests'
     $taskLogDir = Join-Path $ProjectRoot 'tmp\quality-gates'
     New-Item -ItemType Directory -Path $taskLogDir -Force | Out-Null

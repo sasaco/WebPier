@@ -198,7 +198,7 @@ def test_failed_restoration_keeps_backups_and_reports_recovery_path(tmp_path, mo
 
     monkeypatch.setattr(os, "replace", fail_publish_and_restore)
     assert cli.main(["--output-dir", str(tmp_path), "--overwrite"]) == 2
-    recovery, = tmp_path.glob(".pier-design-*")
+    recovery, = tmp_path.glob(".webpier-*")
     for name, contents in originals.items():
         assert (recovery / (name + ".backup")).read_bytes() == contents
     error = capsys.readouterr().err
@@ -215,7 +215,7 @@ def test_0600_directory_collision_is_preserved_before_other_publication(tmp_path
     assert cli.main(["--output-dir", str(tmp_path), "--overwrite"]) == 2
     assert (collision / "keep.txt").read_bytes() == b"keep"
     assert (tmp_path / NAMES[0]).read_bytes() == b"old 0500"
-    assert not list(tmp_path.glob(".pier-design-*"))
+    assert not list(tmp_path.glob(".webpier-*"))
 
 
 def test_0600_symlink_output_is_preserved(tmp_path, quick_reports):

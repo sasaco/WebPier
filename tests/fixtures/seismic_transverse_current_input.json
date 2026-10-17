@@ -1,5 +1,5 @@
 {
-  "input_sha256": "0a17f5301371fead6383eb00d315f6984bfd21c8580fe2e861a12d088e67f408",
+  "input_sha256": "8605f23d82c4827db290e7b03085f5098e6481b1b34c05cd8bffe2466cbc9e14",
   "source": "Frozen actual input, independent arithmetic and binary32 weight transfer; not original PDF values",
   "model": {
     "member_lengths": [

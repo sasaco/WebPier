@@ -44,7 +44,7 @@ def report_profile(
 ) -> PageProfile:
     """A4 envelope enclosing the measured ink; chapter indents are independent."""
     return PageProfile(
-        "p7-reference-appearance", 595, 842,
+        "webpier-reference-appearance", 595, 842,
         GridSpec(left, top, pitch, pitch, grid_units(right - left, pitch),
                  grid_units(bottom - top, pitch)),
     )

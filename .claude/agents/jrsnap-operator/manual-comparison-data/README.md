@@ -21,13 +21,13 @@ PDFページ番号は1始まり。`printed_page` は下端から読み取った�
 
 ## OCRの再現
 
-ワークスペースルートから次を実行する。Windowsに日本語OCR言語が必要。
+WebPier のルートから次を実行する。Windowsに日本語OCR言語が必要。
 
 ```powershell
 $env:PYTHONUTF8 = '1'
-uv run --with pymupdf --with pillow python .agents/agents/jrsnap-operator/scripts/compare_manuals.py --render 52 Soil-JR 27-90 --dpi 160 --output tmp/pdfs/jrsnap-manual-ocr
-uv run --with pymupdf --with pillow python .agents/agents/jrsnap-operator/scripts/compare_manuals.py --render 53 Soil-JR 29-110 --dpi 160 --output tmp/pdfs/jrsnap-manual-ocr
-.agents/agents/jrsnap-operator/scripts/ocr_manual_pages.ps1 -ImageDir tmp/pdfs/jrsnap-manual-ocr -Output .agents/agents/jrsnap-operator/manual-comparison-data/Soil-JR.ocr.json
+uv run --with pymupdf --with pillow python .claude/agents/jrsnap-operator/scripts/compare_manuals.py --render 52 Soil-JR 27-90 --dpi 160 --output tmp/pdfs/jrsnap-manual-ocr
+uv run --with pymupdf --with pillow python .claude/agents/jrsnap-operator/scripts/compare_manuals.py --render 53 Soil-JR 29-110 --dpi 160 --output tmp/pdfs/jrsnap-manual-ocr
+.claude/agents/jrsnap-operator/scripts/ocr_manual_pages.ps1 -ImageDir tmp/pdfs/jrsnap-manual-ocr -Output .claude/agents/jrsnap-operator/manual-comparison-data/Soil-JR.ocr.json
 ```
 
 描画はPyMuPDFを使用した。Pythonは `uv run --with pymupdf --with pillow` で利用でき、Python本体やPopplerがPATHにない環境でも実行できる。

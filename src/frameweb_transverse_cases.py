@@ -10,7 +10,7 @@ from .inputs import InputError
 from .transverse_example2_cases import validate_case_model
 
 
-EXPORTER_VERSION = "p7-transverse-frameweb-v1"
+EXPORTER_VERSION = "webpier-transverse-frameweb-v1"
 # load, Define, track, usage, role, consuming combinations, original L/I Defines.
 AUXILIARY_CASES = (
     (18, 16, "double", "ultimate", "maximum", (1, 10), (10, 12)),
@@ -223,7 +223,7 @@ def build_frameweb_transverse_cases(result):
                                    "source_path": f"combinations[{identifier - 1}].coefficients[{original_id - 1}]"})
         combine[str(identifier)] = row
         combination_mapping.append({"id": identifier, "key": combination["key"],
-                                    "example_pdf_page": 14, "p7_pdf_page": 11, "components": correspondence})
+                                    "example_pdf_page": 14, "webpier_pdf_page": 11, "components": correspondence})
     pickup = {str(source["id"]): {"row": source["id"], "name": source["label"],
               **{f"C{i}": value for i, value in enumerate(source["combination_ids"], 1)}}
               for source in result["extraction_cases"]}
@@ -231,10 +231,10 @@ def build_frameweb_transverse_cases(result):
     mapping = {"basic_cases": [{"basic_case_id": b["id"], "native_load_id": b["id"],
                                 "native_define_id": basic_defines[b["id"]], "key": b["key"],
                                 "spring_case": b["spring_case"], "example_pdf_page": 13,
-                                "p7_pdf_page": 10, "source_path": f"basic_cases[{b['id'] - 1}].loads"} for b in basics],
+                                "webpier_pdf_page": 10, "source_path": f"basic_cases[{b['id'] - 1}].loads"} for b in basics],
                "auxiliary_cases": mappings, "combinations": combination_mapping,
                "pickups": [{"id": p["id"], "combination_ids": list(p["combination_ids"]),
-                            "example_pdf_page": 15, "p7_pdf_page": 12,
+                            "example_pdf_page": 15, "webpier_pdf_page": 12,
                             "source_path": f"extraction_cases[{p['id'] - 1}]"} for p in result["extraction_cases"]]}
     return FrameWebCases(auxiliary, define, combine, pickup, mapping)
 

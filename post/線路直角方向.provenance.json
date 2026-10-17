@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "convention_version": "p7-transverse-frameweb-v1",
+  "convention_version": "webpier-transverse-frameweb-v1",
   "provenance": {
     "input_file": "input.json",
-    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b"
+    "input_sha256": "9427f48139341378776b05c39cc86f70339fe6dc5531c524455e33d23936d217"
   },
   "artifacts": {
     "native": {
@@ -12,22 +12,22 @@
     },
     "result_json": {
       "file": "0620_直角方向荷重.json",
-      "sha256": "22b22fc6f548a526b4a43c4fe0bdd3e73cf1047ba0c93585a7a86123671b3b50"
+      "sha256": "b18bf3f55f06047f99454fb8eec16b126ff2791aec51a79e7c52fea029fb2ce2"
     },
     "result_pdf": {
       "file": "0620_直角方向荷重.pdf",
-      "sha256": "dd5a4eb9247b7f81d3669d97200800bcfa16e7f03653967d92e41512b6fd66d7"
+      "sha256": "5895546d152ce54dc54d7da432dcdb7e9038222227d07700c90be0ac4b6325a6"
     }
   },
   "correspondence": {
     "schema_version": 1,
-    "exporter_version": "p7-transverse-frameweb-v1",
+    "exporter_version": "webpier-transverse-frameweb-v1",
     "canonical_schema_version": 2,
     "case_model_version": "example2-nonseismic-pier-impact-v1",
     "frame_model_version": 2,
     "source_documents": {
       "example": ".claude/docs/Example橋脚2/09_直角.pdf",
-      "p7": "0620_直角方向荷重.pdf"
+      "webpier": "0620_直角方向荷重.pdf"
     },
     "conventions": {
       "units": "kN,m,kN/m2",
@@ -64,7 +64,7 @@
         "key": "dead_fixed",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[0].loads"
       },
       {
@@ -74,7 +74,7 @@
         "key": "dead_additional",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[1].loads"
       },
       {
@@ -84,7 +84,7 @@
         "key": "buoyancy_high",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[2].loads"
       },
       {
@@ -94,7 +94,7 @@
         "key": "buoyancy_normal",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[3].loads"
       },
       {
@@ -104,7 +104,7 @@
         "key": "buoyancy_low",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[4].loads"
       },
       {
@@ -114,7 +114,7 @@
         "key": "snow_2_year",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[5].loads"
       },
       {
@@ -124,7 +124,7 @@
         "key": "snow_10_year",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[6].loads"
       },
       {
@@ -134,7 +134,7 @@
         "key": "snow_30_year",
         "spring_case": 1,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[7].loads"
       },
       {
@@ -144,7 +144,7 @@
         "key": "train_up",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[8].loads"
       },
       {
@@ -154,7 +154,7 @@
         "key": "train_down",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[9].loads"
       },
       {
@@ -164,7 +164,7 @@
         "key": "train_double",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[10].loads"
       },
       {
@@ -174,7 +174,7 @@
         "key": "impact_up",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[11].loads"
       },
       {
@@ -184,7 +184,7 @@
         "key": "impact_down",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[12].loads"
       },
       {
@@ -194,7 +194,7 @@
         "key": "impact_double",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[13].loads"
       },
       {
@@ -204,7 +204,7 @@
         "key": "vehicle_lateral",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[14].loads"
       },
       {
@@ -214,7 +214,7 @@
         "key": "wind_with_train",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[15].loads"
       },
       {
@@ -224,7 +224,7 @@
         "key": "wind_without_train",
         "spring_case": 2,
         "example_pdf_page": 13,
-        "p7_pdf_page": 10,
+        "webpier_pdf_page": 10,
         "source_path": "basic_cases[16].loads"
       }
     ],
@@ -767,7 +767,7 @@
         "id": 1,
         "key": "body_failure_train_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -880,7 +880,7 @@
         "id": 2,
         "key": "body_failure_lateral_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -993,7 +993,7 @@
         "id": 3,
         "key": "body_failure_wind_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1106,7 +1106,7 @@
         "id": 4,
         "key": "body_failure_snow_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1219,7 +1219,7 @@
         "id": 5,
         "key": "body_service_permanent_variable",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1332,7 +1332,7 @@
         "id": 6,
         "key": "body_service_permanent",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1445,7 +1445,7 @@
         "id": 7,
         "key": "body_service_variable",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1558,7 +1558,7 @@
         "id": 8,
         "key": "body_recovery_train_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1671,7 +1671,7 @@
         "id": 9,
         "key": "body_recovery_snow_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1784,7 +1784,7 @@
         "id": 10,
         "key": "foundation_stability_train_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -1897,7 +1897,7 @@
         "id": 11,
         "key": "foundation_stability_lateral_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2010,7 +2010,7 @@
         "id": 12,
         "key": "foundation_stability_wind_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2123,7 +2123,7 @@
         "id": 13,
         "key": "foundation_stability_snow_max",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2236,7 +2236,7 @@
         "id": 14,
         "key": "foundation_support_long_term",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2349,7 +2349,7 @@
         "id": 15,
         "key": "foundation_support_short_term_low",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2462,7 +2462,7 @@
         "id": 16,
         "key": "foundation_support_short_term_high",
         "example_pdf_page": 14,
-        "p7_pdf_page": 11,
+        "webpier_pdf_page": 11,
         "components": [
           {
             "define_case_id": 1,
@@ -2582,7 +2582,7 @@
           4
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[0]"
       },
       {
@@ -2591,7 +2591,7 @@
           5
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[1]"
       },
       {
@@ -2600,7 +2600,7 @@
           6
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[2]"
       },
       {
@@ -2609,7 +2609,7 @@
           7
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[3]"
       },
       {
@@ -2619,7 +2619,7 @@
           9
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[4]"
       },
       {
@@ -2631,7 +2631,7 @@
           13
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[5]"
       },
       {
@@ -2640,7 +2640,7 @@
           14
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[6]"
       },
       {
@@ -2650,7 +2650,7 @@
           16
         ],
         "example_pdf_page": 15,
-        "p7_pdf_page": 12,
+        "webpier_pdf_page": 12,
         "source_path": "extraction_cases[7]"
       }
     ],
@@ -2661,7 +2661,7 @@
   },
   "stage": "0620",
   "direction": "transverse",
-  "publication_id": "46129890fe4b473cbb146a27547b370e",
+  "publication_id": "216120689df2483ba716e06fcfc668cc",
   "selected_stages": [
     "0500",
     "0600",
@@ -2673,83 +2673,83 @@
   "artifact_manifest": [
     {
       "role": "0500.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0500_直接基礎.pdf",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0500_直接基礎.pdf",
       "sha256": "9deec383f93f3f3cc7c4ea9452b1033b424b81e9a61cf8cf5f3bd22cfab48804"
     },
     {
       "role": "0500.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0500_直接基礎.json",
-      "sha256": "16b75446ac1de14f4411e8465b63fc6fe9636a0d9945a7227a86fda0cc75b0c9"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0500_直接基礎.json",
+      "sha256": "d99ca575c7d7524bb1c15efe265f6e4b615aedaee0228a2fd7e423c0906902ee"
     },
     {
       "role": "0600.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0600_上部工反力.pdf",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0600_上部工反力.pdf",
       "sha256": "b5b92024c8a8fa61d3103cd343af0a26b59d68c0eadbc21d7a11cbdcff142433"
     },
     {
       "role": "0600.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0600_上部工反力.json",
-      "sha256": "f63e8c1429bcf4f6d49bccac4c22c6e78e07bbf2870b3a4614856fe3f5de33a0"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0600_上部工反力.json",
+      "sha256": "1f227f9ce84b8aa79e2825d876397da9de988a13badc95da065b14d8662789a1"
     },
     {
       "role": "0610.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0610_線路方向荷重.pdf",
-      "sha256": "904c7a17aee10c099a4d048cd3bbd9fa42f71fe1908cbf4010b871f38e1c68e8"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0610_線路方向荷重.pdf",
+      "sha256": "1b397c1659ba1e250399af5c5289d8b73421c7bba830147af44716b63312f3c8"
     },
     {
       "role": "0610.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0610_線路方向荷重.json",
-      "sha256": "af104ad57b85b14dba62c65c6d63da12d287b122f2690b9867b31fcf4c53dde1"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0610_線路方向荷重.json",
+      "sha256": "916979ff7043d791157252a752de45ba321209a15573e0449b0e3228a2a1a9b0"
     },
     {
       "role": "0620.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0620_直角方向荷重.pdf",
-      "sha256": "dd5a4eb9247b7f81d3669d97200800bcfa16e7f03653967d92e41512b6fd66d7"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0620_直角方向荷重.pdf",
+      "sha256": "5895546d152ce54dc54d7da432dcdb7e9038222227d07700c90be0ac4b6325a6"
     },
     {
       "role": "0620.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0620_直角方向荷重.json",
-      "sha256": "22b22fc6f548a526b4a43c4fe0bdd3e73cf1047ba0c93585a7a86123671b3b50"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0620_直角方向荷重.json",
+      "sha256": "b18bf3f55f06047f99454fb8eec16b126ff2791aec51a79e7c52fea029fb2ce2"
     },
     {
       "role": "0710.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0710_線路方向荷重.pdf",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0710_線路方向荷重.pdf",
       "sha256": "e40e6148467654bd9eaa7aadffd09d17f2728c84db233e9fd832f0661f968555"
     },
     {
       "role": "0710.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0710_線路方向荷重.json",
-      "sha256": "6462b164aba8a8ea9146324aad7b970aae476ac6347e960bee6be29d4cc4e09b"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0710_線路方向荷重.json",
+      "sha256": "3512e1e75036ea8821e9858812d600299fb173f796629d8a8245b6712e6f629e"
     },
     {
       "role": "0720.result_pdf",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0720_線路直角方向荷重.pdf",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0720_線路直角方向荷重.pdf",
       "sha256": "971faf1cdd5b2a88e1d094cc8dcae2ad3b4307a222cfc56887c5d79d3f590855"
     },
     {
       "role": "0720.result_json",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\output\\0720_線路直角方向荷重.json",
-      "sha256": "d11baf43e333e741186d4e5e8af8d2e78a0ccc6fa659f01b6022f5c28a2b2f5b"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\output\\0720_線路直角方向荷重.json",
+      "sha256": "b65cf6d4b177af50cbf9c26d8d3c7947b252cb6decee2b0b1c9d8ebf961ea208"
     },
     {
       "role": "0610.native",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\frameWebForJS.json",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\post\\frameWebForJS.json",
       "sha256": "1abaa2b50e94bbc5eb833db63b40f2cfc84e9ea2248f1e6ed2b9f06213dbb5d2"
     },
     {
       "role": "0620.native",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\線路直角方向.json",
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\post\\線路直角方向.json",
       "sha256": "b692a9ec5157af8daf0000bd31e70085b2fe697140515e3765322dde1f769dba"
     }
   ],
   "expected_sidecars": [
     {
       "role": "0610.sidecar",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\frameWebForJS.provenance.json"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\post\\frameWebForJS.provenance.json"
     },
     {
       "role": "0620.sidecar",
-      "path": "\\\\sasaco-ds218\\E6-14-D8\\data\\ニュージャパンコンサルタンツ\\26_LRT鉄道照査\\.\\post\\線路直角方向.provenance.json"
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\WebPier\\post\\線路直角方向.provenance.json"
     }
   ]
 }

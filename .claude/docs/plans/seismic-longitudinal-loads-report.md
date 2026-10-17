@@ -145,7 +145,7 @@ N/M/H等の作用成分は上流の符号付き値を保持する。Wp=-1701.0�
 
 ### Validation Record
 
-- Step decomposition consult: `.agents/logs/codex/20261016T123655Z-plan-seismic-longitudinal-loads-report-steps-retry.md` を読了。独立fixture→専用結果→帳票→公開/GUI→回帰の順序と検証を採用。共有計算抽出案に対しては、既存0610の変更範囲を抑えるため検証付きの局所アダプターを採用し、非地震検証への依存を明記した。ばね表示はその後のユーザー訂正「バネは表示しない」を優先。レビュー例のcheck.ps1引数はP7子フォルダーではなくリポジトリルートを渡す。
+- Step decomposition consult: `.agents/logs/codex/20261016T123655Z-plan-seismic-longitudinal-loads-report-steps-retry.md` を読了。独立fixture→専用結果→帳票→公開/GUI→回帰の順序と検証を採用。共有計算抽出案に対しては、既存0610の変更範囲を抑えるため検証付きの局所アダプターを採用し、非地震検証への依存を明記した。ばね表示はその後のユーザー訂正「バネは表示しない」を優先。レビュー例のcheck.ps1引数はWebPier子フォルダーではなくリポジトリルートを渡す。
 - 初回CLI呼出しはWindowsラッパーで複数行プロンプトが切れ、内容を審査できなかったため有効なレビューとして扱わない。再試行はnative executableを使用し、全文を渡して読取専用で実施。
 - Gate 1 (plan-doc): PASS、warnings=[]。
 - Gate 2 (artifact exists): PASS。

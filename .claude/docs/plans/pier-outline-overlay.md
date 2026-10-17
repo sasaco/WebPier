@@ -112,7 +112,7 @@ uv run --project "." --locked python "./run_design.py" --stage 0620 --overwrite
 - **線種の漏れと後続帳票の回帰**: Canvasの状態を復元し、背景外形→モデルの順で描く。PDFベクトルと2ページ目以降の比較で検出する。
 - **見本との差**: 見本と現在入力は寸法・モデルが異なる。外形の表示方法を参考にし、見本そのものとの画素一致や数値一致は要求しない。
 - **検証と納品出力の区別**: 基準生成とテストはtmpで行い、承認された実装の検証完了後だけ本番の対象2帳票を更新する。CLI選択段階の既存動作を変更しない（`cli.py:95`、`:124`）。
-- **作業中の他ファイル**: 未追跡の `.agents/docs/plans/p7-pdf-preview-modal-continuous.md` は別作業として保持する。本計画や実装へ取り込まない。
+- **作業中の他ファイル**: 未追跡の `.agents/docs/plans/webpier-pdf-preview-modal-continuous.md` は別作業として保持する。本計画や実装へ取り込まない。
 - **計画時の確認限界**: PDF4点の先頭ページの読取・描画確認とコード調査を行った。実装・本番PDFの再生成・実装後テストはまだ行っていない。
 
 ### Open Questions
@@ -127,7 +127,7 @@ uv run --project "." --locked python "./run_design.py" --stage 0620 --overwrite
 - Gate 1 — shape: PASS。`plan-doc` の必須5節あり、警告なし。
 - Gate 2 — artifact: PASS。下記の解決済みパスに空でない計画書が存在する。
 - Gate 3 — adequacy: Codex **PASS**。記録: `.agents/logs/codex/20261015T032931Z-plan-pier-outline-overlay-validate.md`。必須修正・未解決の技術的阻害事項なし。
-- Review environment: ネットワークドライブを読めない読み取り専用レビュー環境のため、対象ソース・テスト・計画書の一時ローカルコピーを使用した。レビュー用コピーに含めなかった `.agents/check.ps1` は主担当が原本を確認済みで、P7の全pytestを実行するgateである。
+- Review environment: ネットワークドライブを読めない読み取り専用レビュー環境のため、対象ソース・テスト・計画書の一時ローカルコピーを使用した。レビュー用コピーに含めなかった `.agents/check.ps1` は主担当が原本を確認済みで、WebPierの全pytestを実行するgateである。
 - Gate 4 — user approval: Approved。追加要件は形状パターンの網羅とTDD。証跡は `.agents/logs/pier-outline-overlay-tdd.md`。
 - Slug: `pier-outline-overlay`
 - Plan path: `.agents/docs/plans/pier-outline-overlay.md`

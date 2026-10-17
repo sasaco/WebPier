@@ -1,4 +1,0 @@
-interface:
-  display_name: "WebDan WDJ"
-  short_description: "Create and validate WebDan .wdj inputs"
-  default_prompt: "Use $webdan-wdj to create or validate a WebDan .wdj file from explicit engineering inputs."

@@ -14,7 +14,7 @@ PROJECT_DIR = Path(__file__).resolve().parents[1]
 LONGITUDINAL_OUTPUT_STEM = "0610_線路方向荷重"
 NATIVE_FILENAME = "frameWebForJS.json"
 PROVENANCE_FILENAME = "frameWebForJS.provenance.json"
-CONVENTION_VERSION = "p7-longitudinal-frameweb-v1"
+CONVENTION_VERSION = "webpier-longitudinal-frameweb-v1"
 TRANSVERSE_OUTPUT_STEM = "0620_直角方向荷重"
 
 
@@ -32,7 +32,7 @@ class FrameWebSpec:
 
 FRAMEWEB_STAGES = {
     "0610": FrameWebSpec(LONGITUDINAL_OUTPUT_STEM, NATIVE_FILENAME, "longitudinal", CONVENTION_VERSION),
-    "0620": FrameWebSpec(TRANSVERSE_OUTPUT_STEM, "線路直角方向.json", "transverse", "p7-transverse-frameweb-v1"),
+    "0620": FrameWebSpec(TRANSVERSE_OUTPUT_STEM, "線路直角方向.json", "transverse", "webpier-transverse-frameweb-v1"),
 }
 REPORT_STEMS = {"0500": "0500_直接基礎", "0600": "0600_上部工反力",
                 **{stage: spec.output_stem for stage, spec in FRAMEWEB_STAGES.items()},

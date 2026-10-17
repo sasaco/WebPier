@@ -110,7 +110,7 @@ def test_failed_second_publication_restores_both_originals(tmp_path, monkeypatch
     assert main(["--output-dir", str(tmp_path), "--overwrite"]) == 2
     assert pdf.read_bytes() == b"old pdf"
     assert json_path.read_bytes() == b"old json"
-    assert not list(tmp_path.glob(".pier-design-*"))
+    assert not list(tmp_path.glob(".webpier-*"))
 
 
 def test_locked_existing_json_does_not_replace_pdf(tmp_path, monkeypatch):

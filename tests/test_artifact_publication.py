@@ -18,7 +18,7 @@ def test_cross_directory_failure_restores_same_named_files(tmp_path, monkeypatch
     for name in ("output", "post"):
         parent = tmp_path / name
         parent.mkdir()
-        staging = parent / ".pier-design-test"
+        staging = parent / ".webpier-test"
         staging.mkdir()
         destination = parent / "model.json"
         originals[destination] = name.encode()
@@ -38,7 +38,7 @@ def test_cross_directory_failure_restores_same_named_files(tmp_path, monkeypatch
 
 
 def test_duplicate_destinations_are_rejected_before_backup(tmp_path):
-    staging = tmp_path / ".pier-design-test"
+    staging = tmp_path / ".webpier-test"
     staging.mkdir()
     first, second = staging / "one", staging / "two"
     first.write_bytes(b"first")
@@ -74,7 +74,7 @@ def test_second_directory_failure_removes_new_and_restores_old(tmp_path, monkeyp
                 pairs.append((source, destination))
             publish_outputs(pairs, staging.directories, True)
     assert {path: path.read_bytes() for path in destinations if path.exists()} == old
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
 
 
 def test_restore_failure_preserves_backup_and_still_restores_other_files(tmp_path, monkeypatch):
@@ -120,7 +120,7 @@ def test_staging_failure_cleans_first_parent_without_changing_outputs(tmp_path, 
         with ArtifactStaging(destinations):
             pytest.fail("staging should fail before rendering")
     assert destinations[0].read_bytes() == b"old PDF"
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
 
 
 def test_readonly_old_artifact_is_rejected_before_any_replacement(tmp_path):
@@ -134,7 +134,7 @@ def test_readonly_old_artifact_is_rejected_before_any_replacement(tmp_path):
                 source.write_bytes(b"new native")
                 publish_outputs([(source, destination)], staging.directories, True)
         assert destination.read_bytes() == b"old native"
-        assert not list(tmp_path.glob(".pier-design-*"))
+        assert not list(tmp_path.glob(".webpier-*"))
     finally:
         for path in tmp_path.rglob("*"):
             if path.is_file():
@@ -175,7 +175,7 @@ def test_final_validation_runs_before_backups_are_discarded_and_rolls_back(tmp_p
             publish_outputs([(source, destination)], staging.directories, True,
                             final_validator=verify)
     assert destination.read_bytes() == b"old" if existing else not destination.exists()
-    assert not list(tmp_path.glob(".pier-design-*"))
+    assert not list(tmp_path.glob(".webpier-*"))
 
 
 def test_interrupted_publication_retains_journal_and_blocks_next_writer(tmp_path, monkeypatch):
@@ -225,7 +225,7 @@ def test_corrupt_journal_is_a_recovery_error_and_preserves_outputs(tmp_path, pay
     from src.artifact_publication import validate_destinations
     destination = tmp_path / "native.json"
     destination.write_bytes(b"current")
-    journal = tmp_path / ".pier-design-incomplete" / "publication-journal.json"
+    journal = tmp_path / ".webpier-incomplete" / "publication-journal.json"
     journal.parent.mkdir()
     journal.write_text(payload, encoding="utf-8")
     with pytest.raises(RecoveryError, match="journal"):

@@ -9,13 +9,13 @@ description: JRSNAP Ver.5.3-L01体験版2のSOIL-JR.exeで既存の.sdtを計算
 
 ## 自動実行
 
-`C:\Users\sasai\Documents\Batch` から、次を実行する。`powershell.exe -STA` を使う。入力と出力は絶対パスに解決され、既存の SOIL-JR プロセスがある場合は別件への干渉を避けるため停止する。
+WebPier のルートから、次を実行する。`powershell.exe -STA` を使う。入力と出力は絶対パスに解決され、既存の SOIL-JR プロセスがある場合は別件への干渉を避けるため停止する。
 
 ```powershell
-$folder = (Resolve-Path -LiteralPath 'Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC').Path
+$folder = (Resolve-Path -LiteralPath 'C:\Users\sasai\Documents\Batch\Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC').Path
 $inputFile = Join-Path $folder 'RC橋脚（杭基礎）サンプルデータE.sdt'
 $sdrFile = Join-Path $folder 'RC橋脚（杭基礎）サンプルデータS.sdr'
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File '.agents\skills\jrsnap-soil-analysis\scripts\run-analysis.ps1' `
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File '.claude\skills\jrsnap-soil-analysis\scripts\run-analysis.ps1' `
   -InputPath $inputFile -SdrPath $sdrFile
 ```
 
@@ -38,9 +38,9 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File '.agents\skills\jrs
 5. **「計算が終了しました。連携ファイルを作成しますか？」** には **はい** を選ぶ。**「基礎照査連携用データの保存」** ダイアログで、希望する出力ベース名に `.sdr` を付けた絶対パスを指定する。既存ファイルへの上書きが依頼されている場合は上書き確認を進める。SOIL-JR は同じベース名の `.sdr` と `.sdc` を続けて書き出す。
 6. 両方のファイルが存在し、サイズが正で、今回の実行後に更新されたことを確認する。先頭の `Ver.` と SDR のタイトル、SDC の `【バージョン情報】`・`【杭情報】` を読み、表示された入力のタイトルと一致するか確認する。既存ファイルが残っているだけの場合は成功としない。異常時は元ファイルを保持し、エラーと更新状況を報告する。
 
-## このワークスペースのサンプル
+## Batch ワークスペースのサンプル
 
-`C:\Users\sasai\Documents\Batch` を基準として、入力は `Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC\RC橋脚（杭基礎）サンプルデータE.sdt`。保存ダイアログで `Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC\RC橋脚（杭基礎）サンプルデータS.sdr` の**絶対パス**を指定する。対応する `RC橋脚（杭基礎）サンプルデータS.sdc` も同じフォルダーに生成される。入力の `E` と出力の `S` は異なるため、保存ダイアログの既定名をそのまま使わない。
+入力は `C:\Users\sasai\Documents\Batch\Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC\RC橋脚（杭基礎）サンプルデータE.sdt`。保存ダイアログで `C:\Users\sasai\Documents\Batch\Batchテスト\JRSNAP_Ver5.3-L01体験版2\01_サンプル(V53)：RC橋脚L：PHC\RC橋脚（杭基礎）サンプルデータS.sdr` の**絶対パス**を指定する。対応する `RC橋脚（杭基礎）サンプルデータS.sdc` も同じフォルダーに生成される。入力の `E` と出力の `S` は異なるため、保存ダイアログの既定名をそのまま使わない。
 
 ## 根拠
 

@@ -119,7 +119,7 @@ def test_second_direction_failure_restores_both_ndus_and_reports(
     with pytest.raises((InputError, PermissionError)), cli.prepare_generation(options) as candidate:
         candidate.publish()
     assert files(options.output_dir) == before
-    assert not list(options.output_dir.rglob(".pier-design-*"))
+    assert not list(options.output_dir.rglob(".webpier-*"))
 
 
 @pytest.mark.parametrize("change", ["stage", "direction", "convention", "profile", "profile_direction", "snapshot"])
@@ -138,7 +138,7 @@ def test_transverse_sidecar_rejects_longitudinal_substitution(
     elif change == "convention":
         metadata["convention_version"] = jrsnap_artifacts.CONVENTION_VERSION
     elif change == "profile":
-        metadata["profile"]["profile_id"] = "p7-longitudinal-v52-v1"
+        metadata["profile"]["profile_id"] = "webpier-longitudinal-v52-v1"
         metadata["profile_sha256"] = jrsnap_artifacts.canonical_sha256(metadata["profile"])
     elif change == "profile_direction":
         metadata["profile"]["direction"] = "longitudinal"

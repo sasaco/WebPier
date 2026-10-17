@@ -179,7 +179,7 @@ def test_post_publication_failure_rolls_back_every_artifact(tmp_path, quick_repo
     monkeypatch.setattr(os, "replace", fail)
     assert cli.main(command + ["--overwrite"]) == 2
     assert output_files(tmp_path) == before
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
 
 
 def test_export_failure_does_not_render_or_touch_old_artifacts(tmp_path, monkeypatch, quick_reports):
@@ -221,7 +221,7 @@ def test_all_has_one_publication_id_and_complete_manifest_in_both_sidecars(tmp_p
     actual = os.replace
     published = []
     def replace(source, destination):
-        if Path(source).parent.name.startswith(".pier-design-") and not Path(source).name.endswith(".backup"):
+        if Path(source).parent.name.startswith(".webpier-") and not Path(source).name.endswith(".backup"):
             published.append(Path(destination))
         return actual(source, destination)
     monkeypatch.setattr(os, "replace", replace)

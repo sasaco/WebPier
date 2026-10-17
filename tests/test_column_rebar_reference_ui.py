@@ -1,4 +1,4 @@
-"""Actual P7 reference through the real Tk editor and temporary save paths."""
+"""Actual WebPier reference through the real Tk editor and temporary save paths."""
 
 from copy import deepcopy
 import json
@@ -64,13 +64,13 @@ def _assert_reference_in_live_editor(app, expected):
     return view
 
 
-def test_actual_p7_gui_save_save_as_reload_preserves_full_reference(app, tmp_path, monkeypatch, record_property):
+def test_actual_webpier_gui_save_save_as_reload_preserves_full_reference(app, tmp_path, monkeypatch, record_property):
     """Never open/write the real input; exercise normal editor paths on its copy."""
     source = PROJECT / "pre" / "input.json"
     source_bytes = source.read_bytes()
     raw = json.loads(source_bytes.decode("utf-8-sig"))
     expected = json.loads(ORACLE.read_text(encoding="utf-8"))
-    copied = tmp_path / "actual-p7-input.json"
+    copied = tmp_path / "actual-webpier-input.json"
     copied.write_bytes(source_bytes)
     monkeypatch.setattr(gui.filedialog, "askopenfilename", lambda **kw: str(copied))
     monkeypatch.setattr(gui.messagebox, "askyesnocancel", lambda *args, **kw: False)
@@ -79,11 +79,11 @@ def test_actual_p7_gui_save_save_as_reload_preserves_full_reference(app, tmp_pat
 
     normalized = deepcopy(app.document.data)
     changes = _normalization_changes(raw, normalized)
-    normalization_log = tmp_path / "p7-load-normalization.json"
+    normalization_log = tmp_path / "webpier-load-normalization.json"
     normalization_log.write_text(json.dumps(changes, ensure_ascii=False, indent=2), encoding="utf-8")
-    record_property("p7_load_normalization", json.dumps(changes, ensure_ascii=False))
-    record_property("p7_load_normalization_log", str(normalization_log))
-    print(f"P7 existing loader normalization: {normalization_log}\n{json.dumps(changes, ensure_ascii=False)}")
+    record_property("webpier_load_normalization", json.dumps(changes, ensure_ascii=False))
+    record_property("webpier_load_normalization_log", str(normalization_log))
+    print(f"WebPier existing loader normalization: {normalization_log}\n{json.dumps(changes, ensure_ascii=False)}")
     assert normalized["鉄筋"] == raw["鉄筋"], "Loader normalization must not alter reinforcement"
     assert normalized["鉄筋"]["version"] == 2
     _assert_reference_in_live_editor(app, expected)
@@ -92,7 +92,7 @@ def test_actual_p7_gui_save_save_as_reload_preserves_full_reference(app, tmp_pat
     assert app.save()
     assert json.loads(copied.read_text(encoding="utf-8")) == normalized
     assert app.document.data == normalized
-    destination = tmp_path / "actual-p7-save-as.json"
+    destination = tmp_path / "actual-webpier-save-as.json"
     monkeypatch.setattr(gui.filedialog, "asksaveasfilename", lambda **kw: str(destination))
     assert app.save_as()
     assert app.document.path == destination

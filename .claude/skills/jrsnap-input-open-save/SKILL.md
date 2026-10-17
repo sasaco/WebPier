@@ -20,8 +20,8 @@ description: この環境のJRSNAP V5.2-L03／V5.3-L01体験版2で既存の .nd
 `scripts/save-ndu.ps1` はインストール済みの各 `JRSNAP_Input.exe` を読み込み、画面の「開く」「上書き保存」が使う `mdl_Get_NDUDataFile` と `mdl_Wrt_NDUDataFile` を呼ぶ。JRSNAPの入力機能を初期化してから各 `.ndu` を一時領域で読込・保存し、保存済みファイルの再読込・再保存がバイト単位で安定することを検査する。`-Execute` を付けない実行は検査だけで対象を更新しない。画面や起動バッチを実際に操作した記録ではない。
 
 ```powershell
-& '.agents\skills\jrsnap-input-open-save\scripts\save-ndu.ps1' -Path 'Batchテスト\JRSNAP_Ver5.3-L01体験版2' -Version V53
-& '.agents\skills\jrsnap-input-open-save\scripts\save-ndu.ps1' -Path 'Batchテスト\JRSNAP_Ver5.2-L03' -Version V52 -ConvertS6
+& '.claude\skills\jrsnap-input-open-save\scripts\save-ndu.ps1' -Path 'C:\Users\sasai\Documents\Batch\Batchテスト\JRSNAP_Ver5.3-L01体験版2' -Version V53
+& '.claude\skills\jrsnap-input-open-save\scripts\save-ndu.ps1' -Path 'C:\Users\sasai\Documents\Batch\Batchテスト\JRSNAP_Ver5.2-L03' -Version V52 -ConvertS6
 ```
 
 結果の `BeforeHeader`、`AfterHeader`、`ConvertedS6`、`BodyChangedLines`、`Written` を確認する。対象の複製フォルダーを指定し、検査が全件通った後で、同じコマンドに `-Execute` を付けて反映する。保存対象は `.ndu` だけで、解析用データ出力と再計算は別作業になる。

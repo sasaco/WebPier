@@ -22,7 +22,7 @@ Later user decision: add the recommended three-page application report, but **do
 - `./src/longitudinal_calculator.py:422-427` mixes old nonseismic and earthquake groups into the old case model. The new target p12 case definitions need their own small model/independent fixture; do not use the old entire combination table.
 - `./tests/test_longitudinal_canonical_calculator.py:213-225` asserts the public/legacy separation. `./tests/test_longitudinal_example2_report.py:180-213` checks that 0610 has no public earthquake content.
 - `.agents/docs/plans/longitudinal-example2-parity.md:24-36` records the owner's correction removing unsolicited load-diagram pages. `:274-300` records the final eight-page public output. New 0710 must not restore those pages or change 0610.
-- The transverse parity plan is completed with final restoration/simplification records (`.agents/docs/plans/transverse-example2-parity.md:96-144`, `:279`). Both FrameWeb plans exclude seismic new loads (`p7-longitudinal-frameweb-input.md:54`, `p7-transverse-frameweb-input.md:64`), so a new seismic native export is outside the requested three-page report.
+- The transverse parity plan is completed with final restoration/simplification records (`.agents/docs/plans/transverse-example2-parity.md:96-144`, `:279`). Both FrameWeb plans exclude seismic new loads (`webpier-longitudinal-frameweb-input.md:54`, `webpier-transverse-frameweb-input.md:64`), so a new seismic native export is outside the requested three-page report.
 
 ## Frame, springs, and renderer reuse
 

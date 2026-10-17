@@ -243,7 +243,7 @@ class CalculationController:
         self.state = "running"
         try:
             self._thread = threading.Thread(target=self._work, args=(job,),
-                                            name=f"p7-calculation-{job.run_id}", daemon=True)
+                                            name=f"webpier-calculation-{job.run_id}", daemon=True)
             self._thread.start()
         except Exception as exc:
             self._completed.put(_ProcessResult(job, error=_error_text(exc)))

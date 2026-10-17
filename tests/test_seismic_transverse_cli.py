@@ -66,7 +66,7 @@ def current_report_reads_only(monkeypatch: pytest.MonkeyPatch, output: Path) -> 
         resolved = path.resolve()
         reading = "r" in mode or "+" in mode
         staged = (resolved.parent.parent == root
-                  and resolved.parent.name.startswith(".pier-design-")
+                  and resolved.parent.name.startswith(".webpier-")
                   and resolved.name in {p.name for p in declared})
         accepted = validating and resolved in declared
         if reading and not accepted:
@@ -106,7 +106,7 @@ def test_current_report_read_guard_does_not_admit_old_or_reference_files(
         "reference": tmp_path / "reference" / (STEM + ".pdf"),
         "saved-pdf": output / (STEM + ".pdf"),
         "saved-json": output / (STEM + ".json"),
-        "fake-staging": tmp_path / ".pier-design-reference" / (STEM + ".pdf"),
+        "fake-staging": tmp_path / ".webpier-reference" / (STEM + ".pdf"),
     }[forbidden]
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"previous artifact")
@@ -119,7 +119,7 @@ def test_current_report_read_guard_limits_final_validation_to_selected_artifacts
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     output = tmp_path / "output"
-    staging = output / ".pier-design-test"
+    staging = output / ".webpier-test"
     staging.mkdir(parents=True)
     pairs = []
     for suffix in (".pdf", ".json"):
@@ -294,7 +294,7 @@ def test_failure_restores_all_selected_and_unselected_bytes(
         monkeypatch.setattr(os, "replace", fail_publish)
     assert cli.main(["--stage", stage, "--output-dir", str(output), "--post-dir", str(post), "--overwrite"]) == 2
     assert files(tmp_path) == before
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
     if failure == "render_valueerror":
         error = capsys.readouterr().err
         assert "0720帳票を作成できません" in error and "layout exceeds" in error
@@ -347,7 +347,7 @@ def test_failed_0720_backup_restores_whole_generation(
     monkeypatch.setattr(os, "replace", fail_backup)
     assert cli.main(["--stage", stage, "--output-dir", str(output), "--post-dir", str(post), "--overwrite"]) == 2
     assert files(tmp_path) == before
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
 
 
 @pytest.mark.parametrize("part", ["梁", "柱", "フーチング"])

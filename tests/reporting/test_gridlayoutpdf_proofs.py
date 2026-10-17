@@ -260,7 +260,7 @@ def test_role_specific_row_heights_math_cells_and_native_vertical_label(tmp_path
 
 
 def build_current_proofs(directory: Path) -> dict[str, dict[str, Any]]:
-    """Build six QA PDFs from frozen P7 results, without calling a calculator."""
+    """Build six QA PDFs from frozen WebPier results, without calling a calculator."""
     import copy
     import json
     import time
@@ -349,7 +349,7 @@ def build_current_proofs(directory: Path) -> dict[str, dict[str, Any]]:
     return output
 
 
-def test_current_p7_values_and_independent_reference_styles_in_full_proofs(tmp_path: Path) -> None:
+def test_current_webpier_values_and_independent_reference_styles_in_full_proofs(tmp_path: Path) -> None:
     import json
     import pymupdf
     from reportlab.pdfbase.ttfonts import TTFont

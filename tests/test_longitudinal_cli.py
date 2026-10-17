@@ -132,7 +132,7 @@ def test_0610_directory_collision_keeps_existing_contents(tmp_path, name, quick_
     (destination / "keep").write_bytes(b"keep")
     assert cli.main(["--stage", "0610", "--output-dir", str(tmp_path), "--overwrite"]) == 2
     assert (destination / "keep").read_bytes() == b"keep"
-    assert not list(tmp_path.glob(".pier-design-*"))
+    assert not list(tmp_path.glob(".webpier-*"))
 
 
 def test_0610_symlink_collision_preserves_target(tmp_path, quick_reports):

@@ -171,7 +171,7 @@ def test_failed_seismic_generation_restores_selected_and_unselected_files(
         monkeypatch.setattr(os, "replace", fail_publish)
     assert cli.main(["--stage", stage, "--output-dir", str(output), "--post-dir", str(post), "--overwrite"]) == 2
     assert files(tmp_path) == before
-    assert not list(tmp_path.rglob(".pier-design-*"))
+    assert not list(tmp_path.rglob(".webpier-*"))
     if failure == "render_valueerror":
         error = capsys.readouterr().err
         assert "0710帳票を作成できません" in error and "layout exceeds" in error

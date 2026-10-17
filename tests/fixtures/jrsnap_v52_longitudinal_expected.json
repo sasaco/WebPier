@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "acceptance_approved": true,
-  "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b",
-  "basis": "Independent transcription of current approved P7 dimensions and Example2 section/rebar tables; P7 0500 short-term spring oracle, 0710 current precision, and source arithmetic. Not produced by NDU builder or serializer.",
+  "input_sha256": "9427f48139341378776b05c39cc86f70339fe6dc5531c524455e33d23936d217",
+  "basis": "Independent transcription of current approved WebPier dimensions and Example2 section/rebar tables; WebPier 0500 short-term spring oracle, 0710 current precision, and source arithmetic. Not produced by NDU builder or serializer.",
   "target_version": "JRSNAP 5.2-L03",
   "native_nodes": [
     [
@@ -1309,15 +1309,15 @@
     "MLoadInfo8",
     "NonLinInfo1"
   ],
-  "profile_id": "p7-longitudinal-v52-v1",
+  "profile_id": "webpier-longitudinal-v52-v1",
   "numeric_tolerance": {
     "relative": 5e-07,
     "absolute": 1e-06,
     "basis": "JRSNAP stores engineering scalars as Single; it formats seven significant decimal digits on app save. IDs/counts and blank-vs-zero semantics are exact."
   },
-  "fixture_status": "Approved 2026-10-17: immutable new input independently compared against prior 7f22 snapshot; only the four transverse settings were added; all existing engineering inputs and longitudinal expected records unchanged.",
+  "fixture_status": "Approved 2026-10-17: immutable new input independently compared against prior abc0 snapshot; only the four transverse settings were added; all existing engineering inputs and longitudinal expected records unchanged.",
   "input_revision": {
-    "previous_input_sha256": "7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93",
+    "previous_input_sha256": "abc0a52bfcea51f50ff4f6b814ca4c8e1d8ad1c09661d45786b17a6d0177b093",
     "added_only": {
       "jrsnap_transverse": {
         "shear_factor_vcd": 2.0,

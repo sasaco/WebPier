@@ -37689,7 +37689,7 @@
     "impact_policy": "Usage-specific upstream pier coefficient preserved; effective load factor applied once",
     "material_policy": "Existing part inputs and RcDan interpolation; equivalent body sections unchanged",
     "input_file": "input.json",
-    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b"
+    "input_sha256": "9427f48139341378776b05c39cc86f70339fe6dc5531c524455e33d23936d217"
   },
   "legacy_audit": {
     "entrypoint": "calculate_transverse_legacy",

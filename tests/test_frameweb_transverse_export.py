@@ -20,7 +20,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def canonical_input(*, rho=None, service=None, geometry=None, strengths=None, epsilon=None):
-    data = json.loads((FIXTURES / "frameweb_p7_reference.json").read_text(encoding="utf-8"))["input"]
+    data = json.loads((FIXTURES / "frameweb_webpier_reference.json").read_text(encoding="utf-8"))["input"]
     for part, strength in (strengths or {}).items():
         data["鉄筋"][part]["concrete_strength_mpa"] = strength
     inputs = parse_reaction_input(data)
@@ -44,8 +44,8 @@ def current_result():
     return canonical_input()
 
 
-def test_current_p7_native_geometry_actions_and_no_mutation(current_result):
-    reference = json.loads((FIXTURES / "frameweb_transverse_p7_reference.json").read_text(encoding="utf-8"))
+def test_current_webpier_native_geometry_actions_and_no_mutation(current_result):
+    reference = json.loads((FIXTURES / "frameweb_transverse_webpier_reference.json").read_text(encoding="utf-8"))
     before = deepcopy(current_result)
     export = build_frameweb_input(current_result)
     native = export.document

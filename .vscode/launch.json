@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "橋脚 入力データ編集 (Tkinter)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/edit_input.py",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "debugAdapterPython": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "debugLauncherPython": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONUTF8": "1"
+      }
+    }
+  ]
+}

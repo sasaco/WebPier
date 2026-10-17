@@ -143,7 +143,7 @@ def test_v2_basic_input_matches_every_reference_bar_and_both_full_tables_after_r
     assert loaded == before == document
 
 
-def test_actual_p7_column_matches_reference_after_reload():
+def test_actual_webpier_column_matches_reference_after_reload():
     """The shipped example must use the approved recipe and exact PDF layout.
 
     This durable test reads only repository files. The implementation-session

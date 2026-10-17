@@ -1,5 +1,5 @@
 {
-  "description": "Independent transcription of .claude\docs\Example橋脚2 physical PDF page 6 in both directions; all dimensions are millimetres.",
+  "description": "Independent transcription of .claude/docs/Example橋脚2 physical PDF page 6 in both directions; all dimensions are millimetres.",
   "sources": {
     "線路": {"path": ".claude/docs/Example橋脚2/10_線路(耐震).pdf", "physical_page": 6, "printed_page": "10-6", "sha256": "933dec57e79330f44d07ed38adb89f8d2aa1ffd1c3e87b987ba3e20515f4063c"},
     "直角": {"path": ".claude/docs/Example橋脚2/11_直角(耐震).pdf", "physical_page": 6, "printed_page": "11-6", "sha256": "809a09f126daee89128ea991de35d50a4633151fccb7c50378af60d14965b838"}
@@ -8,8 +8,8 @@
     "directional_rows": "Each row is transcribed independently from section 5 鉄筋配置 of its source page, with material SD390 from section 3(1).",
     "physical_bars": "Paired independently by diameter across the two source tables and confirmed against both section diagrams. The 29 transverse D32 depths pair with the two longitudinal D32 depths; the two transverse D19 depths pair with the nine longitudinal D19 depths. No production generator or HTML mock was used.",
     "hoops": "Section 3(3) of each source page gives SD390, D22, pitch150 and directional total10 or6. The printed band and shear entries describe the same reinforcement and are not added together. No set count or internal shape is inferred.",
-    "pure_cover_mm": "70 is the user-approved P7 input retained by the implementation plan, not a value printed on these PDF pages.",
-    "enclosing_diameter_mm": "22 is the adopted enclosing diameter in the approved P7 plan, consistent with the reference D22 hoop specification.",
+    "pure_cover_mm": "70 is the user-approved WebPier input retained by the implementation plan, not a value printed on these PDF pages.",
+    "enclosing_diameter_mm": "22 is the adopted enclosing diameter in the approved WebPier plan, consistent with the reference D22 hoop specification.",
     "height_intervals": "The two reference pages do not specify start/end heights; null means unspecified, not the full column height.",
     "center_override": "The printed D19 depth102 is an explicit coordinate. It is not rounded from70+22+19/2."
   },

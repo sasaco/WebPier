@@ -454,7 +454,7 @@
     "handoff": "実VBA Public代入の最終値だけをSingle化。係数・疲労表は表示用倍精度値。",
     "snow_loads": "ユーザー入力を確率ごとに独立集計し水平荷重へ連携。S2:使用性/地震、S10:安全性/復旧性の列車併用、S30:LR単独。未入力は0、A/D未入力はB/Cの対応確率合計へfallback。元Excelに雪の対応セルはありません。",
     "input_file": "input.json",
-    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b"
+    "input_sha256": "9427f48139341378776b05c39cc86f70339fe6dc5531c524455e33d23936d217"
   },
   "units": {
     "length": "m",

@@ -104,7 +104,7 @@ def test_native_controls_fixed_combination_slots_and_longitudinal_bytes():
     assert list(map(float, records["SNAPConb1"][4:13])) == [1, 1, 1, 1, 1, 0, 1, 1, 1]
     assert records["SNAPConb1"][13:19] == [" "] * 6
     assert parsed["counts"]["joint_loads"] == 11
-    # This fixed byte oracle is the already accepted P7 longitudinal output.
+    # This fixed byte oracle is the already accepted WebPier longitudinal output.
     raw, foundation, seismic, sha = longitudinal_calculation(transverse_input())
     old_direction = serialize_ndu(build_longitudinal_ndu_model(raw, foundation, seismic, sha))
     assert hashlib.sha256(old_direction).hexdigest() == "02e2475aa4c16be3ffbc2ba94f770adb02e3df5e35bfa1e987e71857ea26ed71"

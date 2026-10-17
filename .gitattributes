@@ -1,0 +1,3 @@
+# Hash-pinned inputs and fixtures: store and check out bytes exactly (no EOL conversion).
+tests/fixtures/** -text
+pre/** -text

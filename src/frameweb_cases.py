@@ -143,7 +143,7 @@ def build_frameweb_cases(result: dict) -> FrameWebCases:
             })
         combine[str(identifier)] = row
         combination_mapping.append({"id": identifier, "key": combination["key"],
-                                    "example_pdf_page": combination["source_page"], "p7_pdf_page": 7,
+                                    "example_pdf_page": combination["source_page"], "webpier_pdf_page": 7,
                                     "components": correspondence})
     pickup = {}
     for source, expected in zip(result["extraction_cases"], PICKUP_GROUPS, strict=True):
@@ -156,11 +156,11 @@ def build_frameweb_cases(result: dict) -> FrameWebCases:
         "basic_cases": [{"basic_case_id": source["id"], "native_load_id": source["id"],
                          "native_define_id": source["id"], "symbol": source["symbol"],
                          "spring_case": source["spring_case"], "example_pdf_page": source["source_page"],
-                         "p7_pdf_page": 6, "source_path": f"basic_cases[{source['id'] - 1}]"}
+                         "webpier_pdf_page": 6, "source_path": f"basic_cases[{source['id'] - 1}]"}
                         for source in basics],
         "auxiliary_cases": auxiliary_mapping, "combinations": combination_mapping,
         "pickups": [{"id": source["id"], "combination_ids": list(source["combination_ids"]),
-                     "example_pdf_page": source["source_page"], "p7_pdf_page": 8,
+                     "example_pdf_page": source["source_page"], "webpier_pdf_page": 8,
                      "source_path": f"extraction_cases[{source['id'] - 1}]"}
                     for source in result["extraction_cases"]],
     }

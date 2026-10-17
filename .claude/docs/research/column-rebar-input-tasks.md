@@ -6,12 +6,12 @@ Approved: 2026-10-17. Plan: ../plans/column-rebar-input.md. TDD + parallel-agent
 
 - Core owner: column_rebar.py, rebar_model.py, test_column_rebar.py; owns geometry, hoops, v1/v2 and state transitions. Publish API contract before UI implementation.
 - UI owner: column_rebar_ui.py, rebar_ui.py, editor_gui.py, test_column_rebar_ui.py; preserves current unrelated edits and existing public facade. Preparatory reading may run in parallel; implementation depends on frozen core API.
-- Reference owner: fixtures/column_rebar_example2.json, test_column_rebar_reference.py, later P7/pre/input.json and README. Fixture is independent; actual input update only after core/UI verification.
+- Reference owner: fixtures/column_rebar_example2.json, test_column_rebar_reference.py, later WebPier/pre/input.json and README. Fixture is independent; actual input update only after core/UI verification.
 - Root: all test gates, snapshot protection, integration verification, actual GUI QA, review coordination, plan/task tracking.
 - All agents: no git reset/stash/checkout, no whole-tree formatting, no dependency/lockfile edits, no unowned file changes, no weakening or skipping existing assertions.
 - Reviews: parallel input/data preservation, state/GUI integration, test/plan quality. Resolve all Medium+ before completion.
 
-Graph: (independent reference fixture || core schema/model) -> root gate + API freeze -> UI/state integration -> root gates -> P7/README -> GUI QA and parallel reviews -> fixes -> final gates/coverage.
+Graph: (independent reference fixture || core schema/model) -> root gate + API freeze -> UI/state integration -> root gates -> WebPier/README -> GUI QA and parallel reviews -> fixes -> final gates/coverage.
 
 ## TDD cases (root acceptance list)
 
@@ -25,15 +25,15 @@ Graph: (independent reference fixture || core schema/model) -> root gate + API f
 - [x] S2: regenerate preview/apply/cancel/failure/stale; preserve detail mode; explicit switch to auto/restore. `column-core-final-1`.
 - [x] U1: dedicated basic fields and hoop direct inputs; reference generated via widget edits; direction and diagram selection. `column-ui-green-4`26passed, zero skips.
 - [x] U2: detail edit/regen comparison and cancellation; incomplete notices; active-cell commit. Green4, Green5 and Green6; final comparison capture inspected.
-- [x] I1: column/beam/footing switch and unedited data preservation; save/SaveAs/reload/busy/atomic failure. `column-ui-green-2` plus Green4 actual-P7 roundtrip; equivalent full-suite gate still tracked in Q3.
-- [x] P1: actual P7 exact reference after save/reload and non-column JSON equality; source PDFs unchanged. `column-p7-green-1`, Green4 and final-audit.json. This task did not regenerate calculation outputs; concurrent seismic output changes are preserved and separately attributed.
+- [x] I1: column/beam/footing switch and unedited data preservation; save/SaveAs/reload/busy/atomic failure. `column-ui-green-2` plus Green4 actual-WebPier roundtrip; equivalent full-suite gate still tracked in Q3.
+- [x] P1: actual WebPier exact reference after save/reload and non-column JSON equality; source PDFs unchanged. `column-webpier-green-1`, Green4 and final-audit.json. This task did not regenerate calculation outputs; concurrent seismic output changes are preserved and separately attributed.
 - [x] Q1: real GUI QA1360x900 and980x640, diagrams/tables/input/errors visible. Owned Tk captures and widget tests; native mouse automation unavailable.
 - [x] Q2: parallel reviews converge to zero Medium+. Round4–6 findings are closed; final two independent narrow rereviews both C0/H0/M0/L0.
 - [x] Q3: equivalent full root gate `column-rebar-full-final`:3802passed, failed0, skipped0; core96%/UI90%/combined92%, threshold80%. Standard check.ps1 remains an environmental failure from the preexisting stale lockfile; no lockfile edit.
 
 ## Environment
 
-Rules/STATE/DESIGN/PROGRESS absent as already reported and authorized. .claude/skills/tdd-workflow absent; canonical .agents/skills/tdd applies. Python-only project: Rust/Clippy examples do not apply. Existing P7 venv is the managed uv environment. Root runs every TDD gate via that interpreter and run_tests.py --runner python, avoiding unrelated lockfile changes. Final check.ps1 is run with explicit ProjectRoot; any environmental failure is diagnosed and reported, never labeled passed.
+Rules/STATE/DESIGN/PROGRESS absent as already reported and authorized. .claude/skills/tdd-workflow absent; canonical .agents/skills/tdd applies. Python-only project: Rust/Clippy examples do not apply. Existing WebPier venv is the managed uv environment. Root runs every TDD gate via that interpreter and run_tests.py --runner python, avoiding unrelated lockfile changes. Final check.ps1 is run with explicit ProjectRoot; any environmental failure is diagnosed and reported, never labeled passed.
 
 Baseline: tmp/column-rebar-implementation/baseline-sha256.json, baseline-status.txt, baseline.diff. Do not replace baseline files.
 
@@ -46,7 +46,7 @@ Baseline: tmp/column-rebar-implementation/baseline-sha256.json, baseline-status.
 - Test wrappers require both PYTHONUTF8=1 and PYTHONIOENCODING=utf-8 for child pytest on Windows. Earlier decoding failures are not Red/Green evidence.
 - Coverage tooling installed only under `tmp/column-rebar-implementation/test-tools`; project dependencies and lockfile remain unchanged. Add this directory to PYTHONPATH for coverage gates.
 - M2: `column-core-red-2` 15 failed / 9 passed; `column-core-green-2` 24 passed, including small counts, missing fields, invalid placement and shared corners.
-- P1: `column-p7-red-1` valid assertion failure for shipped root version 1. Actual input is held until core/UI integration passes.
+- P1: `column-webpier-red-1` valid assertion failure for shipped root version 1. Actual input is held until core/UI integration passes.
 - `.agents/check.ps1 -ProjectRoot <workspace>` was attempted: `overall=fail`, uv exits 2 because existing uv.lock is stale. Log `tmp/quality-gates/pytest-20261017-084738-9546482.log`. Final equivalent full pytest gate will use the managed environment without lockfile updates.
 - Native Computer Use initialization succeeded but `sky.list_apps` fails with unavailable native pipe / os error 2, including after kernel reset and reinitialization. No native UI actions occurred. Q1 will use the owned real-Tk harness plus rendered window captures and widget integration tests; final report must distinguish this from mouse-driven verification.
 - Legacy hoop return: explicit operation confirms removal of new `column_hoops`, preserves old `band_rows` and root version 2, leaves detailed positions intact. No added stash field. Cancel must preserve everything. This resolves Step4's bidirectional source-switch wording.
@@ -82,17 +82,17 @@ Final core/data review round1 confirmed A/B/C/D fixed and found two further MEDI
 
 UI2 implementation ready; combined new/old UI and coverage gate `column-ui-green-2` running. Old UX-test changes inspected: preserve coordinate, saved-data and inactive-detail assertions while adopting explicit detail/auto transitions and neutral table wording.
 
-Actual-P7 GUI roundtrip test prepared separately in test_column_rebar_reference_ui.py: copies real input into pytest temporary files, exercises normal open/save/SaveAs/reopen, compares the complete normalized document and all reference bars/rows, and verifies real-source bytes remain untouched. Existing loader normalization is separately recorded.
+Actual-WebPier GUI roundtrip test prepared separately in test_column_rebar_reference_ui.py: copies real input into pytest temporary files, exercises normal open/save/SaveAs/reopen, compares the complete normalized document and all reference bars/rows, and verifies real-source bytes remain untouched. Existing loader normalization is separately recorded.
 
 - `column-ui-green-2`:69passed/1Tk initialization skip, dedicated UI coverage86%>=80. Skipped size test at test_column_rebar_ui.py:107 will be replayed. UI3 review regressions pending.
-- `column-p7-ui-red-1`:1 intended failure on actual rootversion1; existing loader normalization was empty. Actual input/README owner released for the approved narrow update after core/UI2 verification, with pure/GUI Green to follow.
-- Concurrent seismic work is regenerating P7 output files. Our task does not write calculation outputs; final preservation audit distinguishes those concurrent changes from this task instead of claiming all output hashes stayed unchanged.
+- `column-webpier-ui-red-1`:1 intended failure on actual rootversion1; existing loader normalization was empty. Actual input/README owner released for the approved narrow update after core/UI2 verification, with pure/GUI Green to follow.
+- Concurrent seismic work is regenerating WebPier output files. Our task does not write calculation outputs; final preservation audit distinguishes those concurrent changes from this task instead of claiming all output hashes stayed unchanged.
 
-- P7 update: `column-p7-green-1`3passed. Root `input-audit.json` confirms only8 approved changed/added subtrees, non-column exact equality, source PDFs and dependencies unchanged. Concurrent test_editor_gui.py changes only concern0720 report counts/pages and were inspected/preserved.
-- `column-ui-red-3`:5 intended failures/1Tk skip; `column-ui-red-3-replay`:1 intended stale-table failure. `column-ui-green-3`:20passed/2Tk skips, UI86% coverage, including actual P7 normal open/save/SaveAs/reopen with full diagram/table/document equality. Skips: small-size parameter and legacy-hoop return; final repeat required.
+- WebPier update: `column-webpier-green-1`3passed. Root `input-audit.json` confirms only8 approved changed/added subtrees, non-column exact equality, source PDFs and dependencies unchanged. Concurrent test_editor_gui.py changes only concern0720 report counts/pages and were inspected/preserved.
+- `column-ui-red-3`:5 intended failures/1Tk skip; `column-ui-red-3-replay`:1 intended stale-table failure. `column-ui-green-3`:20passed/2Tk skips, UI86% coverage, including actual WebPier normal open/save/SaveAs/reopen with full diagram/table/document equality. Skips: small-size parameter and legacy-hoop return; final repeat required.
 - Review round4 accepted3 deduplicated Medium findings: malformed new containers reaching widgets; present incomplete distribution mode being silently filled; refused direction switch leaving the selector label inconsistent. README's old column labels corrected separately (Low).
 - Core11 malformed container fix: Red8failed/1pass; `column-core-final-5`249passed, core94% coverage. Shape-only loading preserves absent/incomplete/unknown values and numerical repair. Independent UI-owner rereview: C0/H0/M0/L0.
-- UI4 mode/selector fixes: `column-ui-red-4`2 intended failures/1pass/1Tk skip. `column-ui-green-4` all25 dedicated UI cases plus actual P7 GUI running; narrow parallel rereviews underway.
+- UI4 mode/selector fixes: `column-ui-red-4`2 intended failures/1pass/1Tk skip. `column-ui-green-4` all25 dedicated UI cases plus actual WebPier GUI running; narrow parallel rereviews underway.
 
 Round4 final independent rereviews completed: reference owner C0/H0/M0/L0; core owner H0/M0/L0 (no Critical identified); UI owner core11 C0/H0/M0/L0. No deferred findings. Evidence in the three dedicated implementation logs. Product/test files frozen for final root gates and visual acceptance.
 
@@ -104,7 +104,7 @@ Round5 accepted Medium: selecting an existing legacy column band row invokes the
 - Visual acceptance identified one remaining comparison-footer issue: at820x560 the apply/cancel button captions are vertically clipped. UI6 adds a focused real-Tk geometry regression before a bounded layout fix. This is the sole remaining product change; full-suite gate follows it. Native Computer Use remains unavailable; these are owned real-Tk rendered captures, not mouse-driven native automation.
 - UI6: `column-ui-red-6`1 intended failure (button height16px versus requested35px); `column-ui-green-6`3passed/1 environmental Tk initialization skip. New geometry regression, stale-candidate rejection and modal cleanup passed; cancel/apply case awaits full-suite execution or isolated replay. Comparison body now reserves intro/summary/footer height and lets only the table/figure row shrink.
 - Round6 independent rereviews: core and reference owners both C0/H0/M0/L0. Root inspected the replacement `qa-final-comparison.png`: both button captions fully visible, old/new diagrams, counts and scrollable position tables intact. All product files frozen for `column-rebar-full-final` (full suite, both new modules, coverage minimum80%).
-- Final preservation recheck `tmp/column-rebar-implementation/final-audit.json`: all6 protected hashes unchanged, non-column input equality true, actual P7 SHA256 `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`. Concurrent commit2477dfb includes some earlier in-progress work; root made no commit and retains the independent baseline for attribution.
+- Final preservation recheck `tmp/column-rebar-implementation/final-audit.json`: all6 protected hashes unchanged, non-column input equality true, actual WebPier SHA256 `d8da41d8d87a04b33a35cc45226231564ebd1dc1dcdcf3abce397d7487887f78`. Concurrent commit2477dfb includes some earlier in-progress work; root made no commit and retains the independent baseline for attribution.
 
 ## Final acceptance
 

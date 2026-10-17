@@ -1,6 +1,6 @@
 # 0720 implementation tasks
 
-Plan: `.agents/docs/plans/p7-seismic-transverse-report-regeneration.md`.
+Plan: `.agents/docs/plans/webpier-seismic-transverse-report-regeneration.md`.
 Approved: 2026-10-17, user "承認します GO".
 
 | Task | Owner | Depends on | Status |
@@ -13,4 +13,4 @@ Approved: 2026-10-17, user "承認します GO".
 | Security, quality, test reviews | Review team | Verified implementation | Complete; all 3 reports/logs validated, 3 findings fixed and independently verified, no unresolved Medium+ |
 | Final four-page visual QA and 0720-only publication | root | Reviews and checks | Complete; formal pair matches candidate; all4pages viewed;17protectedfiles unchanged |
 
-Product ownership is preflighted in `.agents/logs/ownership-team-execute-p7-seismic-transverse-report-regeneration.json`. Root alone updates this task list and the plan; implementers report progress by message.
+Product ownership is preflighted in `.agents/logs/ownership-team-execute-webpier-seismic-transverse-report-regeneration.json`. Root alone updates this task list and the plan; implementers report progress by message.

@@ -1027,7 +1027,7 @@
     "combination_scope": "8基本ケースと1組合せの作用定義。構造応答・増分解析は実施しない。",
     "reference_section": "10.4作用の組合せを本帳票10.3として構成。",
     "model_scope": "柱下端微小要素の形状・原本種別だけを示し、構成則・解析は未定義。他部材の剛域化は今回再現しない。",
-    "input_sha256": "7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93",
+    "input_sha256": "abc0a52bfcea51f50ff4f6b814ca4c8e1d8ad1c09661d45786b17a6d0177b093",
     "input_file": "input.json"
   },
   "warnings": [

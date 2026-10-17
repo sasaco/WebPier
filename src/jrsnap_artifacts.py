@@ -18,7 +18,7 @@ from .frameweb_artifacts import (
 from .inputs import InputError
 
 TARGET_VERSION = "5.2-L03"
-CONVENTION_VERSION = "p7-longitudinal-jrsnap-v1"
+CONVENTION_VERSION = "webpier-longitudinal-jrsnap-v1"
 NATIVE_ROLE = "0710.jrsnap"
 SIDECAR_ROLE = "0710.jrsnap_sidecar"
 
@@ -32,7 +32,7 @@ class JrsnapSpec:
 
 JRSNAP_STAGES = {
     "0710": JrsnapSpec("longitudinal", "線路方向.ndu", CONVENTION_VERSION),
-    "0720": JrsnapSpec("transverse", "線路直角方向.ndu", "p7-transverse-jrsnap-v1"),
+    "0720": JrsnapSpec("transverse", "線路直角方向.ndu", "webpier-transverse-jrsnap-v1"),
 }
 
 

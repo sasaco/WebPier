@@ -104,7 +104,7 @@
     "surface_thickness": "input.xls 地盤データ!F5 = H6+H5+MIN(df1,df2)",
     "rounding": "Excel ROUND（中間値も同じ桁数で丸める）。B/LはVBA Singleで逐次加算。",
     "input_file": "input.json",
-    "input_sha256": "7f22b9ca22696e04b43145c9a1d668609b6654961e12c8410ebbc677065f0d93"
+    "input_sha256": "abc0a52bfcea51f50ff4f6b814ca4c8e1d8ad1c09661d45786b17a6d0177b093"
   },
   "warnings": []
 }

@@ -19,7 +19,7 @@ def data():
     return json.loads(BASELINE.read_text(encoding="utf-8"))
 
 
-def test_p7_input_is_computed_and_not_changed(data):
+def test_webpier_input_is_computed_and_not_changed(data):
     original = copy.deepcopy(data)
     result = calculate(parse_input(data))
     assert data == original

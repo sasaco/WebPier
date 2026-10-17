@@ -1,7 +1,7 @@
 """Explicit V5.2 profile and direct-foundation conditions for NDU export.
 
 No sample files or saved reports are read here.  The native-field rationale is
-recorded in docs/research/p7-longitudinal-ndu-field-map.md.
+recorded in .claude/docs/research/webpier-longitudinal-ndu-field-map.md.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from .inputs import InputError, parse_input
 from .reaction_inputs import parse_reaction_input
 from .reaction_math import excel_round
 
-PROFILE_ID = "p7-longitudinal-v52-v1"
-TRANSVERSE_PROFILE_ID = "p7-transverse-v52-v1"
+PROFILE_ID = "webpier-longitudinal-v52-v1"
+TRANSVERSE_PROFILE_ID = "webpier-transverse-v52-v1"
 TARGET_VERSION = "5.2-L03"
 SCHEMA_VERSION = 1
 GEOMETRY_TOLERANCE = 1e-9

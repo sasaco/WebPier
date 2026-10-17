@@ -1,7 +1,7 @@
 [project]
-name = "pier-design"
+name = "webpier"
 version = "0.1.0"
-description = "Python reproduction of the 0500 direct foundation calculation and report"
+description = "WebPier: railway pier design calculations (0500-0720) and calculation reports"
 requires-python = ">=3.12"
 dependencies = [
     "gridlayoutpdf",

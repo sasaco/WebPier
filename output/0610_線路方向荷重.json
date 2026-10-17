@@ -50577,7 +50577,7 @@
     "rounding": "LはDoubleで(raw*a)*track。Iは支点別0.1kN丸め後Single。Mは支点別2桁、合計は追加丸めなし。",
     "audit_basis": "旧式＋正規方向ばね（線路方向Double）。旧macro完全再現はcalculate_longitudinal_legacy。",
     "input_file": "input.json",
-    "input_sha256": "10955ada22130e4b0e249c8c146175809e3eb10cee93331bba75d7c73763173b"
+    "input_sha256": "9427f48139341378776b05c39cc86f70339fe6dc5531c524455e33d23936d217"
   },
   "warnings": [
     "B・C支点の合計は支承明細から再計算します。A・D支点の死荷重は入力値を使用し、未入力の項目は A＝B、D＝C とします。",

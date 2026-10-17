@@ -21,7 +21,7 @@ def fake_ndu(monkeypatch, tmp_path):
 
     def build(raw, foundation, seismic, *, input_sha256, direction="longitudinal"):
         calls.append((raw, foundation, seismic, input_sha256))
-        return {"metadata": {"profile_id": f"p7-{direction}-v52-v1", "schema_version": 1,
+        return {"metadata": {"profile_id": f"webpier-{direction}-v52-v1", "schema_version": 1,
                              "direction": direction,
                              "target_version": "5.2-L03", "input_sha256": input_sha256,
                              "canonical_snapshot_sha256": {
@@ -168,7 +168,7 @@ def test_late_competing_writer_is_restored_from_actual_backup(
         candidate.publish()
     assert destination.read_bytes() == b"late competing writer"
     assert files(output) == {Path(destination.name): b"late competing writer"}
-    assert not list(output.rglob(".pier-design-*"))
+    assert not list(output.rglob(".webpier-*"))
 
 
 @pytest.mark.parametrize("stage", ["0710", "all"])
@@ -212,7 +212,7 @@ def test_failure_restores_entire_generation(
     assert cli.main(["--input", str(options.input_path), "--output-dir", str(options.output_dir),
                      "--stage", stage, "--overwrite", "--jrsnap"]) == 2
     assert files(options.output_dir) == before
-    assert not list(options.output_dir.rglob(".pier-design-*"))
+    assert not list(options.output_dir.rglob(".webpier-*"))
 
 
 def test_closed_candidate_cannot_publish(generation_options, fake_ndu, quick_reports):
