@@ -63,7 +63,7 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
 def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers(tmp_path: Path, case: str):
     path = render(case, tmp_path / "0610.pdf")
     formulas = formula_checks(path)
-    assert len(formulas) >= 13
+    assert len(formulas) >= 15  # the buoyancy lines with negative results count too
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
     kinds = Counter(check.kind for check in rows)

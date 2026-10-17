@@ -110,3 +110,30 @@ def test_typography_and_tables_match_the_independent_reference_roles(tmp_path: P
         assert len(equals) >= 7
         assert all(measure.role_errors(s, roles["horizontal.result_equals"], anchor_x=ANCHOR) == [] for s in equals)
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
+
+
+def test_horizontal_forces_print_as_magnitude_and_direction_and_match_their_printed_derivation(tmp_path: Path):
+    """10-11 prints H = 11530.00 with ←: the diagram values are the magnitudes printed in 10.2."""
+    import re
+
+    from pdf_handcheck import read_lines, tokens_text
+
+    with pymupdf.open(render("current", tmp_path / "0710.pdf")) as pdf:
+        lines = [tokens_text(tokens) for page in pdf for _, tokens in read_lines(page)]
+    directed = [re.fullmatch(r"(H|Hw\d)=(\d+\.\d{2})kN(?:/m)?（(←|→)）", line) for line in lines]
+    found = [(m[1], m[2], m[3]) for m in directed if m]
+    assert all(arrow == "←" for *_, arrow in found)
+    assert not any(re.search(r"(H|Hw\d)=-", line) for line in lines)
+    # The load diagrams draw no stroke the reader could take for a fraction bar (0.3 to 0.9 pt, horizontal).
+    assert not any("()/()" in line for line in lines)
+    # (the vertical 地震時 label of the table interleaves its characters with the rows)
+    girder = next(line for line in lines if "1.0E" in line and "（桁荷重）" in line)
+    train = next(line for line in lines if "1.0E" in line and "（列車荷重）" in line)
+    derived = {"Hw1": "はり", "Hw2": "ハンチ下端", "Hw3": "柱"}
+    results = {name: re.search(r"=(\d+\.\d{2})kN/m$", next(line for line in lines if line.startswith(label + "H_(w")))[1]
+               for name, label in derived.items()}
+    footing = next(m[1] for line in lines if line.startswith("H=") and (m := re.search(r"×.*=(\d+\.\d{2})kN$", line)))
+    values = [value for name, value, _ in found]
+    assert girder.endswith(values[0]) and train.endswith(values[1])  # 合計 of 10.2 (2)
+    assert values[2] == footing
+    assert [value for name, value, _ in found[3:]] == [results["Hw1"], results["Hw2"], results["Hw3"]]

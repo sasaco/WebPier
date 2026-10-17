@@ -56,7 +56,7 @@ def u(value: Printed) -> str:
 def figure_texts(frame, pier, reaction) -> str:
     out = [str(node.number) for node in frame.nodes] + [str(member.number) for member in frame.members]
     out += [t(member.height) for member in frame.members if member.height.value > 0]
-    out += [t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y)]
+    out += [t(frame.pier_height), t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y)]
     b = pier.substructure.b
     out += [t(b[i]) for i in (7, 8, 9) if b[i].value > 0] + [t(reaction.self_weight.footing_length)]
     out += ["KvKsKr", {"可動": "M", "固定": "F"}[pier.spans.origin.bearing], {"可動": "M", "固定": "F"}[pier.spans.end.bearing]]
@@ -142,7 +142,12 @@ def horizontal_names(result, reaction):
     return found
 
 
-def point_lines(points, horizontal: bool) -> str:
+def directed(value: Printed) -> str:
+    """A horizontal force as Example2 prints it: the magnitude and its direction."""
+    return t(Printed(abs(value.value), value.digits, value.unit)) + u(value) + ("（←）" if value.value < 0 else "（→）")
+
+
+def point_lines(points, horizontal: bool, magnitudes: bool = False) -> str:
     anchors = {p.anchor for p in points}
     top_h = any(p.h.value for p in points if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP))
     out = ""
@@ -155,7 +160,7 @@ def point_lines(points, horizontal: bool) -> str:
         listed = [c for c in "nmh" if getattr(p, c).value] or (["h"] if horizontal else ["n"])
         for c in listed:
             value = getattr(p, c)
-            out += f"{names[c]}={t(value)}{u(value)}"
+            out += f"{names[c]}=" + (directed(value) if magnitudes and c == "h" else t(value) + u(value))
     return out
 
 
@@ -284,7 +289,12 @@ def expected(case: str) -> dict[str, str]:
             + "".join(names[r.item] + t(r.train) + t(r.coefficient) + t(r.n) + t(r.arm) + t(r.m) for r in table.rows)
             + f"合計{t(train.n)}{t(table.n)}{t(table.m)}")
         if case_ is not None:
-            add(f"impact.{key}.seat", seat(frame, table.n, table.m, result.basic(case_).points[0]))
+            point = result.basic(case_).points[0]
+        else:  # the serviceability impact as the serviceability combinations put it on the frame
+            wanted = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
+            point = next(c.source.points[0] for combo in result.combinations for c in combo.components
+                         if c.case is wanted and c.basis.value == "service_impact")
+        add(f"impact.{key}.seat", seat(frame, table.n, table.m, point))
     add("horizontal.heading", "(7)水平荷重")
     add("horizontal.summary.heading", "1)支承に働く水平荷重のまとめ")
     groups = {"使用性": "使用性", "安全性": "安全性（破壊）", "復旧性": "復旧性"}
@@ -395,6 +405,7 @@ def test_variants_change_what_is_printed():
     current, pedestal, asymmetric, merged = (actual(case) for case in ("current", "pedestal", "asymmetric", "merged"))
     assert "0610/fixed.seat.m" in pedestal and "0610/section.pedestal.inertia" in pedestal
     assert "0610/additional.top.seat" in pedestal and "0610/additional.top.seat" not in current
+    assert pedestal["0610/impact.service_double.seat"].startswith("桁受け天端M=126.10−321.63×(-0.350)=")
     assert "0610/fixed.footing.moment" in asymmetric and "0610/fixed.footing.moment" not in current
     assert "柱上端" in merged["0610/model.nodes"] and merged["0610/model.nodes"].count("はり天端・はり下端・柱上端") == 1
     assert pedestal["0610/diagrams.d1"].startswith("NMN'M'Pq")

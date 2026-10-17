@@ -134,13 +134,14 @@ def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
 
 def _diagrams(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.heading("diagrams.heading", "10.3 荷重図", 1)
-    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，水平力 H は終点側（右向き），モーメント M は時計回りを正とし，"
-                                 "矢印は作用の向きを示す．地震は起点側（←）に作用させる．")
+    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，モーメント M は時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
+                                 "地震は起点側（←）に作用させる．")
     groups = []
     for action in result.basic_cases:
         loads = tuple((load.member, load.start, load.end) for load in action.member_loads)
         case = CaseLoads(action.case.value, case_name(result, action.case), action.points, action.line_loads,
-                         loads, INERTIA_NAMES, horizontal=action.direction is ActionDirection.TOWARD_ORIGIN)
+                         loads, INERTIA_NAMES, horizontal=action.direction is ActionDirection.TOWARD_ORIGIN,
+                         magnitudes=True)
         groups.append((str(action.case.value), case.title, [case]))
     diagram_groups(m, result.frame, groups, lambda name, cases: f"Case {cases[0].number}　{name}")
 

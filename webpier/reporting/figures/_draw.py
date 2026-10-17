@@ -74,7 +74,7 @@ def horizontal_dimension(y: float, left: float, right: float, extension_from: fl
 
 
 def zigzag(start: tuple[float, float], end: tuple[float, float], *, teeth: int = 4, amplitude: float = 2.5,
-           stroke: float = .5) -> Polyline:
+           stroke: float = .25) -> Polyline:
     """A spring between two points (straight leads of a quarter of the length at each end)."""
     (x0, y0), (x1, y1) = start, end
     length = math.hypot(x1 - x0, y1 - y0)
@@ -91,7 +91,7 @@ def zigzag(start: tuple[float, float], end: tuple[float, float], *, teeth: int =
     return Polyline(tuple(points), stroke)
 
 
-def arc(centre: tuple[float, float], radius: float, start: float, end: float, *, stroke: float = .8,
+def arc(centre: tuple[float, float], radius: float, start: float, end: float, *, stroke: float = 1.0,
         steps: int = 24) -> tuple[Polyline, Polyline]:
     """An arc from angle *start* to *end* (degrees, counterclockwise in y-up), with its head at *end*."""
     cx, cy = centre

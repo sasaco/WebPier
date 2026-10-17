@@ -96,7 +96,7 @@ def test_labels_and_dimension_texts_are_the_frame_values_drawn_once_without_over
     assert Counter(boxed) == Counter(str(member.number) for member in frame.members)
     top = max(frame.nodes, key=lambda node: node.y.value)
     expected = [text(m.height) for m in frame.members if m.height.value > 0]
-    expected += [text(frame.node(NodeRole.FOOTING_TOP).y), text(top.y)]
+    expected += [text(frame.pier_height), text(frame.node(NodeRole.FOOTING_TOP).y), text(top.y)]
     assert Counter(c.text for c in texts(drawn, turned=True)) == Counter(expected)
     assert figure.texts() == tuple(c.text for c in drawn if isinstance(c, Text))
     boxes = [command_bounds(c, FONTS) for c in drawn if isinstance(c, Text)]
@@ -194,7 +194,7 @@ def test_load_glyphs_point_in_the_direction_of_their_sign(sign: int):
     drawn = commands(LoadDiagram(frame, glyphs), 240)
     dots = node_circles(drawn)
     node = dots[top.number - 1]
-    shafts = [c for c in drawn if isinstance(c, Line) and c.width == .8 and not c.dash][len(frame.members):]
+    shafts = [c for c in drawn if isinstance(c, Line) and c.width == 1.0 and not c.dash]
     n_shaft, h_shaft, p_shaft = shafts
     # N: downward (+) ends at the node; upward (−) starts at it.
     assert (n_shaft.y2 > n_shaft.y1) == (sign > 0) and n_shaft.x1 == n_shaft.x2 == node.x
@@ -251,3 +251,31 @@ def test_the_figure_is_deterministic_and_independent_of_the_input_object():
     first = commands(figure_for("pedestal", "0610"))
     pier_input.cache_clear() if hasattr(pier_input, "cache_clear") else None
     assert commands(figure_for("pedestal", "0610")) == first
+
+
+def test_the_pier_height_spans_the_beam_top_to_the_footing_top():
+    pier, _, by_stage = frames("pedestal")
+    frame = by_stage["0710"]
+    drawn = commands(FrameFigure(frame, pier_outline(pier, frame)))
+    circles = node_circles(drawn)
+    top, footing = (circles[frame.node(role).number - 1].y for role in (NodeRole.CAP_TOP, NodeRole.FOOTING_TOP))
+    lines = [c for c in drawn if isinstance(c, Line) and c.width == .12 and c.x1 == c.x2]
+    assert any(c.y1 == pytest.approx(top) and c.y2 == pytest.approx(footing) for c in lines)
+    assert text(frame.pier_height) == "7.600"
+
+
+@pytest.mark.parametrize("case", list(CASES))
+def test_no_horizontal_stroke_reads_as_a_fraction_bar(case: str):
+    """The PDF hand check takes 0.3 to 0.9 pt horizontal strokes for fraction bars and radicals."""
+    pier, _, by_stage = frames(case)
+    for frame in by_stage.values():
+        top = frame.node(NodeRole.CAP_TOP).number
+        glyphs = (PointGlyph(top, "H", -1, "H"), AxialGlyph(tuple(m.number for m in frame.column_line), "q"),
+                  DistributedGlyph(tuple((m.number, -1.0, -1.0) for m in frame.column_line), ()))
+        for block in (FrameFigure(frame, pier_outline(pier, frame), bearings=("M", "F")), LoadDiagram(frame, glyphs)):
+            for command in commands(block, 528):
+                segments = ([(command.y1, command.y2)] if isinstance(command, Line) else
+                            list(zip([p.y for p in command.points], [p.y for p in command.points][1:]))
+                            if isinstance(command, Polyline) else [])
+                if any(abs(a - b) < .01 for a, b in segments):
+                    assert not .3 <= command.width <= .9, command

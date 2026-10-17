@@ -16,7 +16,7 @@ import pytest
 
 from frame_report_cases import CASES, chain, text
 from test_longitudinal_report_semantics import (
-    glyph_labels, material, member_rows, node_rows, point_lines, section, springs, squeeze,
+    directed, glyph_labels, material, member_rows, node_rows, point_lines, section, springs, squeeze,
 )
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import Item
@@ -39,7 +39,7 @@ def names(result) -> list[str]:
 def model_figure(frame) -> str:
     out = [str(node.number) for node in frame.nodes] + [str(member.number) for member in frame.members]
     out += [t(member.height) for member in frame.members if member.height.value > 0]
-    out += [t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y), "KvKsKr"]
+    out += [t(frame.pier_height), t(frame.node(NodeRole.FOOTING_TOP).y), t(max(frame.nodes, key=lambda n: n.y.value).y), "KvKsKr"]
     return "".join(out)
 
 
@@ -107,21 +107,21 @@ def expected(case: str) -> dict[str, str]:
     add("inertia.footing", f"H={t(f.volume)}×({t(f.unit_weight)}−{t(f.displaced)})×{t(f.kh)}={t(f.force)}kN")
     add("inertia.footing.note", "Vはフーチングの体積（§6），γ'は排除した土（表層）の湿潤単位体積重量．")
     add("diagrams.heading", "10.3荷重図")
-    add("diagrams.note", "鉛直力N・Pは下向き，水平力Hは終点側（右向き），モーメントMは時計回りを正とし，"
-                         "矢印は作用の向きを示す．地震は起点側（←）に作用させる．")
+    add("diagrams.note", "鉛直力N・Pは下向き，モーメントMは時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
+                         "地震は起点側（←）に作用させる．")
     regions = {m.number: m.region for m in frame.members}
     for action, name in zip(result.basic_cases, names(result), strict=True):
         horizontal = action.case.value >= 6
         add(f"diagrams.{action.case.value}.title", f"Case{action.case.value}{name}")
         labels_ = glyph_labels(action.points, action.line_loads, horizontal)
-        lines = point_lines(action.points, horizontal)
+        lines = point_lines(action.points, horizontal, magnitudes=True)
         lines += "".join(f"q={t(line.n)}kN/m" for line in action.line_loads if line.n.value)
         seen: list[str] = []
         for load in action.member_loads:
             for value, label in zip((load.start, load.end), NAMES[regions[load.member]]):
                 if label not in seen:
                     seen.append(label)
-                    lines += f"{label}={t(value)}kN/m"
+                    lines += f"{label}={directed(value)}"
         add(f"diagrams.{action.case.value}", labels_ + "".join(seen) + lines)
     add("combination.heading", "10.4作用の組合せ")
     add("basic.caption", "基本Case")
@@ -162,7 +162,8 @@ def test_current_input_prints_the_example2_values():
     assert got["0710/inertia.beam_top"] == "はりHw1=2.700×9.000×24.5×1.00=595.35kN/m"
     assert got["0710/inertia.column"].endswith("=297.68kN/m")
     assert got["0710/inertia.footing"] == "H=170.100×(24.5−18.0)×1.00=1105.65kN"
-    assert got["0710/diagrams.6"].endswith("H=-11530.00kN") and got["0710/diagrams.7"].endswith("H=-128.00kN")
+    assert got["0710/diagrams.6"].endswith("H=11530.00kN（←）") and got["0710/diagrams.7"].endswith("H=128.00kN（←）")
+    assert got["0710/diagrams.8"].endswith("H=1105.65kN（←）Hw1=595.35kN/m（←）Hw2=297.68kN/m（←）Hw3=297.68kN/m（←）")
     assert "1+2+3+4+5+6+7+8" in got["0710/combination"]
     assert "4.8900.010" in got["0710/model.figure"]  # the column and the micro member below it
 

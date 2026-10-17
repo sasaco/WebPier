@@ -289,8 +289,8 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
             ("service_double", "4) 複線載荷（使用性）", impact.service_double, result.train.double, None)):
         m.heading(f"impact.{key}.heading", label, 3)
         m.table(f"impact.{key}", _impact_table(table, train.n))
-        if case is not None:
-            seat_moment(m, f"impact.{key}.seat", result.frame, table.n, table.m, result.basic(case).points[0])
+        point = result.basic(case).points[0] if case is not None else _service_point(result, key)
+        seat_moment(m, f"impact.{key}.seat", result.frame, table.n, table.m, point)
     m.heading("horizontal.heading", "(7) 水平荷重", 2)
     m.heading("horizontal.summary.heading", "1) 支承に働く水平荷重のまとめ", 3)
     rows: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")]
@@ -306,6 +306,14 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
         rows.append((*lead, Span(label, align="left"),
                      *(Span(value(force), align="right") for force in (row.origin, row.end, row.total))))
     m.table("horizontal", TableSpec((28.8, 199.2, 66, 66, 66), tuple(rows), (28.56,) + (23.04,) * (len(rows) - 1)))
+
+
+def _service_point(result: LongitudinalResult, key: str) -> Any:
+    """The serviceability impact as the serviceability combinations put it on the frame (at the seat)."""
+    case = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
+    return next(component.source.points[0] for combination in result.combinations
+                for component in combination.components
+                if component.case is case and component.basis is Basis.SERVICE_IMPACT)
 
 
 def case_loads(result: LongitudinalResult, reaction: ReactionResult) -> dict[BasicCase, CaseLoads]:

@@ -217,3 +217,14 @@ def test_section_rounded_to_zero_is_an_input_error():
     # I = 4.500 × 0.010^3 / 12 = 3.75e-7 -> 0.00000
     with pytest.raises(InputError, match=r"B6.*W6"):
         frame(dims(B6=0.01, B8=0.01))
+
+
+def test_pier_height_is_the_beam_top_above_the_footing_top():
+    # Example2 8-1: 7.600 = H2 + H3 + H4 = 2.000 + 0.700 + 4.900, the dimension from node 1 to node 4.
+    result = frame()
+    assert result.pier_height.value == 7.6 and result.pier_height.digits == 3
+    top, footing = result.node(NodeRole.CAP_TOP), result.node(NodeRole.FOOTING_TOP)
+    assert D(result.pier_height.value) == D(top.y.value) - D(footing.y.value)
+    # Without beam and haunch it is the column; with the micro member it still includes it (7.590 + 0.010).
+    assert frame(dims(H2=0.0, H3=0.0)).pier_height.value == 4.9
+    assert frame(column_base_micro_member=True).pier_height.value == 7.6

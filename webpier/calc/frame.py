@@ -133,6 +133,7 @@ class Frame:
     pedestal_section: Section | None  # None without a pedestal (H1 = 0)
     materials: MaterialsResult
     support: Support
+    pier_height: Printed  # H2 + H3 + H4: the beam top above the footing top (Example2 8-1 7.600)
 
     def node(self, role: NodeRole) -> Node:
         for node in self.nodes:
@@ -237,6 +238,7 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
     zc = LENGTH.total((zf, h[4]))
     zb = LENGTH.total((zc, h[3]))
     zt = LENGTH.total((zb, h[2]))
+    pier_height = LENGTH.total((h[2], h[3], h[4]))
     line: list[tuple[NodeRole, Printed, Printed, Region | None]] = [
         (NodeRole.CAP_TOP, axis, zt, None), (NodeRole.BEAM_BOTTOM, axis, zb, Region.BEAM),
         (NodeRole.COLUMN_TOP, axis, zc, Region.HAUNCH)]
@@ -294,4 +296,4 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
                       long_term=_springs(foundation.long_term, direction),
                       short_term=_springs(foundation.short_term, direction))
     return Frame(direction=direction, nodes=tuple(nodes), members=tuple(members), column_section=column_section,
-                 pedestal_section=pedestal_section, materials=materials, support=support)
+                 pedestal_section=pedestal_section, materials=materials, support=support, pier_height=pier_height)

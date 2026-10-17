@@ -464,6 +464,7 @@ class CaseLoads:
     member_loads: tuple[tuple[int, Printed, Printed], ...] = ()  # member, start, end (signed, kN/m)
     member_names: dict[Region, tuple[str, str]] = field(default_factory=dict)  # region → names of start, end
     horizontal: bool = False  # an all-zero load is listed as H, otherwise as N
+    magnitudes: bool = False  # horizontal forces as magnitude and direction (←, →), as Example2 10 / 11
 
 
 _TOP = (NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP)
@@ -531,17 +532,31 @@ def case_glyphs(frame: Frame, case: CaseLoads, signs: Sequence[int] | None = Non
     return glyphs
 
 
+def directed(number: Printed) -> Row:
+    """A horizontal force as Example2 10 prints it: its magnitude and its direction (+x is →).
+
+    The sign stays in the calc result; only the way it is written changes.
+    """
+    magnitude = Printed(abs(number.value), number.digits, number.unit)
+    return Row(with_unit(magnitude), "（←）" if number.value < 0 else "（→）", gap=0)
+
+
 def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
     """The values of one case: ``N = 8299.53 kN`` and so on, in the order of the glyphs."""
     lines: list[Any] = []
+
+    def written(number: Printed, horizontal: bool) -> Row:
+        return directed(number) if horizontal and case.magnitudes else with_unit(number)
+
     for point, names in _point_names(case):
         for component in _listed(point, case.horizontal):
-            lines.append(Row(_symbol(names[component]), " = ", with_unit(getattr(point, component)), gap=0))
+            lines.append(Row(_symbol(names[component]), " = ", written(getattr(point, component), component == "h"),
+                             gap=0))
     for line in case.line_loads:
         if line.n.value:
             lines.append(Row("q = ", with_unit(line.n), gap=0))
         if line.h.value:
-            lines.append(Row(sub("q", "h"), " = ", with_unit(line.h), gap=0))
+            lines.append(Row(sub("q", "h"), " = ", written(line.h, True), gap=0))
     if case.member_loads:
         regions = {member.number: member.region for member in frame.members}
         seen: set[str] = set()
@@ -549,7 +564,7 @@ def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
             for intensity, name in zip((start, end), case.member_names[regions[number]], strict=True):
                 if name not in seen:
                     seen.add(name)
-                    lines.append(Row(name, " = ", with_unit(intensity), gap=0))
+                    lines.append(Row(name, " = ", written(intensity, True), gap=0))
     return lines
 
 
