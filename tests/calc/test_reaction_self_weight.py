@@ -218,7 +218,7 @@ def test_example2_values_by_hand():
 
 
 def test_haunch_centroid_is_measured_from_the_smaller_lower_face():
-    # ADR-0001: the old code (src/reaction_weights.py:205) used z from the top face, i.e. y = -(z + h2) = -2.390.
+    # ADR-0001: the original Excel used z from the top face, i.e. y = -(z + h2) = -2.390.
     result = calculate_self_weight(pier())
     assert result.beam.rows[1].y.value != -2.39
     asymmetric = calculate_self_weight(pier(**ASYMMETRIC))
