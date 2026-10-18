@@ -1,4 +1,4 @@
-"""A stand-in for ``AggreSE.Headless.exe run``: the 耐震性能照査 of 0711 and 0721 (decision 56, ADR-0009).
+"""A stand-in for ``AggreSE.Headless.exe run``: the 耐震性能照査 of 0711 and 0721 (decisions 56, 57, ADR-0009).
 
 It follows the runner's protocol as WebPier uses it (Batch/Aggre-SE/Headless/README.md): the arguments of
 ``webpier.pipeline.aggrese`` (``run --input <xml> --output-dir <dir> --snap-map <json>`` and the fixed switches of
@@ -9,12 +9,13 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
 
 - ``report.pdf``: one page per Case saying ``FAKE AGGRESE Case<n> <SHA256 of its DB1, 16 hex>``, then one
   page ``FAKE AGGRESE SUMMARY <SHA256 of the XML, 16 hex>``;
+- ``pickup.pik``: ``Batch ver1.0.0`` and one line ``FAKE PIK <SHA256 of the XML, 16 hex>``, in Shift-JIS with CRLF;
 - ``result.json``: ``{"command": "run", "cases": [...]}``;
 and ``summary.cases`` lists each Case (caseNumber from 1, the DB1 name without its suffix, selected and aggregated).
 
 When the real runner's protocol changes, change this too. ``FAKE_AGGRESE`` makes it misbehave, for the error tests:
 fail, exit, text, list, protocol, engine, version, artifacts (one artifact listed twice), missing (report.pdf not
-written), sha (report.pdf's SHA256 wrong), extra (an unlisted file), cases (no summary.cases), unaggregated (the
+written), nopik (no pickup.pik returned), sha (report.pdf's SHA256 wrong), extra (an unlisted file), cases (no summary.cases), unaggregated (the
 first Case not aggregated), broken (report.pdf is not a PDF), empty (report.pdf has no page), write (a file written
 beside the DB1).
 """
@@ -30,7 +31,7 @@ import xml.etree.ElementTree as ET
 from pypdf import PdfWriter
 from reportlab.pdfgen import canvas
 
-SWITCHES = ["--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "false",
+SWITCHES = ["--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
             "--pile-anchor-bar-pdf", "false"]
 
 
@@ -102,10 +103,13 @@ def main(argv):
                                                                                             and number == 1)}
              for number, path in enumerate(databases, 1)]
     result = json.dumps({"command": "run", "cases": cases}, ensure_ascii=False).encode("utf-8")
+    pik = f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(data).hexdigest()[:16]}\r\n".encode("cp932")
     output.mkdir(parents=True, exist_ok=True)
     artifacts = []
-    for kind, media, name, content in (("result-json", "application/json", "result.json", result),
-                                       ("report-pdf", "application/pdf", "report.pdf", pdf)):
+    files = [("result-json", "application/json", "result.json", result),
+             ("report-pdf", "application/pdf", "report.pdf", pdf),
+             ("pickup-pik", "text/plain; charset=shift_jis", "pickup.pik", pik)]
+    for kind, media, name, content in files[:2] if mode == "nopik" else files:
         if not (mode == "missing" and name == "report.pdf"):
             (output / name).write_bytes(content)
         artifacts.append({"kind": kind, "mediaType": media, "relativePath": name, "bytes": len(content),
@@ -114,7 +118,7 @@ def main(argv):
     if mode == "extra":
         (output / "summary.xlsx").write_bytes(b"x")
     summary = {"command": "run", "inputVersion": "5.3.0.1", "productStyle": 1, "cases": cases,
-               "spectralDuctility": [], "outputs": ["report.pdf"], "warnings": []}
+               "spectralDuctility": [], "outputs": ["report.pdf", "pickup.pik"], "warnings": []}
     if mode == "cases":
         del summary["cases"]
     changes = {"protocol": {"protocolVersion": 2}, "engine": {"engine": "webdan2"}, "version": {"engineVersion": ""},

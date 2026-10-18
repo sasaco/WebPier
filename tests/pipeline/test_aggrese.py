@@ -2,9 +2,10 @@
 
 The runner is found from STRUCTURAL_MCP_AGGRESE_RUNNER (environment, then .env; the name structural-mcp uses) and
 called as ``run`` with the project XML where it is staged and the DB1 of each Case mapped as the XML names them. Its
-envelope, its two files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report is
-returned as it is. Every case uses the stand-in of tests/fixtures/aggrese/fake_runner.py (tests/conftest.py); the real
-runner is accepted by scripts/accept_aggrese_report.py.
+envelope, its three files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report
+and the pickup are returned as they are (decisions 56, 57). Every case uses the stand-in of
+tests/fixtures/aggrese/fake_runner.py (tests/conftest.py); the real runner is accepted by
+scripts/accept_aggrese_report.py.
 """
 
 from __future__ import annotations
@@ -100,6 +101,8 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
                        for number, name in enumerate(NAMES, 1)),
                      f"FAKE AGGRESE SUMMARY {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}"]
     assert checked.pages == {SEISMIC_CHECK: checked.pdf}
+    assert checked.pik == (f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}\r\n"
+                           .encode("cp932"))
     assert sorted(path.name for path in (tmp_path / FOLDER).iterdir()) == sorted(NAMES)
 
 
@@ -107,7 +110,8 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
     ("fail", "CALCULATION_FAILED: 集計できませんでした。"),
     ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
     ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
-    ("artifacts", "成果物が結果と計算書の2つではありません"),
+    ("artifacts", "成果物が結果・計算書・ピックアップの3つではありません"),
+    ("nopik", "成果物が結果・計算書・ピックアップの3つではありません"),
     ("missing", "成果物 report.pdf がありません"), ("extra", "出力先のファイルが成果物の一覧と一致しません"),
     ("sha", r"report\.pdf が runner の応答の SHA256・バイト数と一致しません"),
     ("cases", r"解析ケース（summary\.cases）がありません"), ("unaggregated", "全 2 ケースが集計されていません"),

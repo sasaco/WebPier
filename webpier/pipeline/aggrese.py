@@ -3,9 +3,10 @@
 The project XML a generation stages (export.aggrese, decision 49) and the JRSNAP folder staged beside it are given,
 where they are, to ``AggreSE.Headless.exe run`` (structural-mcp ``Batch``), with the DB1 of each Case mapped as the
 XML names them (``--snap-map``: the index of each ``SnapDBPath`` → its DB1, resolved from the XML's folder). The
-runner reads them, writes nothing beside the DB1, and returns its result (checked, not kept) and its report
-(``report.pdf``), which is the stage's report as it is; no summary workbook, check tables, PIK or pile anchor report
-is asked for. Every Case must be aggregated. The report's content and bytes are Aggre-SE's, so it is neither checked
+runner reads them, writes nothing beside the DB1, and returns its result (checked, not kept), its report
+(``report.pdf``), which is the stage's report as it is, and its section force pickup (``pickup.pik``), which is
+published under post/ as it is (decision 57); no summary workbook, check tables or pile anchor report is asked for.
+Every Case must be aggregated. The report's content and bytes are Aggre-SE's, so it is neither checked
 further than being a PDF nor bound to the implementation identity; the result JSON and the project's sidecar record
 the runner's ``engineVersion``. Aggre-SE returns no check values or judgement (``engineeringStatus``
 not_evaluated): the judgement is read in the report (ADR-0009).
@@ -39,10 +40,13 @@ RUNNER_KEY = "STRUCTURAL_MCP_AGGRESE_RUNNER"
 PROTOCOL_VERSION = 1
 ENGINE = "aggrese"
 TIMEOUT = 600  # seconds
-# The report only (decision 56): the summary is in it, and nothing else is published.
-ARGUMENTS = ("--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "false",
+# The report (decision 56; the summary is in it) and the pickup (decision 57); nothing else is published.
+ARGUMENTS = ("--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
              "--pile-anchor-bar-pdf", "false")
-_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf")}
+_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), ("pickup-pik", "pickup.pik")}
+# The pickups of the PIK, by number: Batch's default (Option_PickUpFileCase = 0, reports/ExcelReportPickUpFile.vb),
+# each the envelope of every Case up to its response step (decision 57).
+PICKUPS = {1: "L1地震動", 2: "復旧性L2地震動", 3: "安全性L2地震動"}
 _CHECK = "で耐震性能照査ができません"
 
 
@@ -53,6 +57,7 @@ class _Failure(Exception):
 @dataclass(frozen=True)
 class SeismicCheckPages:
     pdf: bytes  # report.pdf as returned
+    pik: bytes  # pickup.pik as returned (Shift-JIS)
     cases: tuple[Mapping[str, Any], ...]  # the runner's summary.cases, in order
     engine_version: str
 
@@ -146,7 +151,7 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         if (not isinstance(artifacts, list) or len(artifacts) != len(_FILES)
                 or not all(isinstance(item, dict) for item in artifacts)
                 or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != _FILES):
-            raise _Failure(f"runner の成果物が結果と計算書の2つではありません（{artifacts!r}）")
+            raise _Failure(f"runner の成果物が結果・計算書・ピックアップの3つではありません（{artifacts!r}）")
         files: dict[str, bytes] = {}
         for item in artifacts:
             path = output / item["relativePath"]
@@ -167,11 +172,11 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         raise _Failure(f"計算書の PDF を読めません（{exc}）") from exc
     if not pages:
         raise _Failure("計算書の PDF にページがありません")
-    return SeismicCheckPages(pdf, cases, version)
+    return SeismicCheckPages(pdf, files["pickup.pik"], cases, version)
 
 
 def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT) -> SeismicCheckPages:
-    """Aggre-SE's report for the project XML at *project* and the DB1 it names (decision 56)."""
+    """Aggre-SE's report and pickup for the project XML at *project* and the DB1 it names (decisions 56, 57)."""
     try:
         return _run(Path(project), runner, timeout)
     except _Failure as exc:

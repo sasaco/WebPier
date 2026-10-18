@@ -243,6 +243,11 @@
    - 既知の差（決定49のまま、owner 2026-10-19）：`_Output_Chokukiso.csv` がないので、直接基礎の照査の抵抗側（Rvd など）は Aggre-SE が DB1 から求めた値で、見本と違う（0711 の Rvd 106418.6／見本 86173.5）。作用側は一致する。この値のまま計算書に印刷する。Df・γ2 の差と JRSNAP の基礎照査との差の切り分け、NDU への `CHOKU_KISO` の追加は別の決定で扱う。
    - テストと受入：通常のテストは4つ目の代役の runner（Aggre-SE）で、引数と snap map、envelope の検証、PDF をバイト列のまま公開すること、結果JSON、失敗・未設定で何も公開しないことを確かめる。受入は `scripts/accept_aggrese_report.py` で、本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、Case ごとの Kheq・δeq・μ・δr（復旧性・安全性）とページ数を `tests/fixtures/acceptance/aggrese_report/record.json` に記録する。線路方向は見本 10-14 と比べ（試行で Kheq 0.368・δeq 30.5・μ 9.32/5.78・δr 284.3/176.3 が一致）、線路直角方向は風荷重の差（決定12・35）があるので記録だけにする。
 
+57. 0711・0721 は、決定56の Aggre-SE の runner の同じ呼び出しに `--pik true` を足し、返った断面力ピックアップ（`pickup.pik`）を `post/線路方向_Aggre-SE.pik`・`post/線路直角方向_Aggre-SE.pik` に、付帯JSON付きで同じ一括公開に入れる（owner 2026-10-19）。名前は `post/線路方向.pik`（0611 の FEMPython の PIK）と分け、`線路方向_JRSNAP/` に倣う。
+   - 中身：Aggre-SE（Batch `reports/ExcelReportPickUpFile.vb`）が書いたバイト列のまま。Shift-JIS・CRLF、先頭行 `Batch ver1.0.0`、行の書式は FEMPython の PIK と同じ。ピックアップは Batch の既定（`Option_PickUpFileCase = 0`）の3つで、1＝L1地震動、2＝復旧性L2地震動、3＝安全性L2地震動。どれも全 Case の各着目点の最大・最小で、Case ごとに分けない（0721 は2 Case を1つに包絡）。同じ入力で毎回同じバイト（2026-10-19 に確認）。
+   - 使い道：公開するだけで、WebPier は中身を読まない（Capacita などでの地震時の照査は別の決定）。付帯JSONは runner の版、計算書、使った XML と JRSNAP のフォルダーの SHA256、ピックアップの番号の意味（プログラムの定数）を記録する。結果JSONの `seismic_check` にも PIK のファイル名と SHA256 を加える。
+   - 失敗：runner が PIK を返さない・成果物の一覧と違うときは、生成全体を止めて何も公開しない。受入（`scripts/accept_aggrese_report.py`）は PIK の SHA256 と行数も記録する。
+
 ## 実装メモ（決定から導いたもの）
 
 ### 入力の印字桁（.claude/docs/Example橋脚/pre/input-*.pdf の入力票に合わせる）

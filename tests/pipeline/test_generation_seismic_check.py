@@ -1,7 +1,7 @@
-"""A stage with a 耐震性能照査 (decision 56, ADR-0009): after JRSNAP's analysis, Aggre-SE checks with the staged project
-and the staged folder beside it; its report is the stage's report byte for byte, the result JSON records the check
-without a judgement, the project's sidecar names the report, and a missing, failing or meddling runner publishes
-nothing.
+"""A stage with a 耐震性能照査 (decisions 56, 57, ADR-0009): after JRSNAP's analysis, Aggre-SE checks with the staged
+project and the staged folder beside it; its report is the stage's report byte for byte, its pickup is published
+under post/ as it is with a sidecar, the result JSON records the check without a judgement, the project's sidecar
+names the report, and a missing, failing or meddling runner publishes nothing.
 
 The analysis and the check are the stand-ins' (tests/fixtures/jrsnap/fake_runner.py, tests/fixtures/aggrese/
 fake_runner.py)."""
@@ -20,12 +20,14 @@ from webpier.core.integrity import content_sha256
 from webpier.export.aggrese import databases
 from webpier.pipeline import aggrese, generate, jrsnap
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry, StageSpec)
+from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry, SeismicCheck,
+                                     StageSpec)
 from webpier.reporting.stages.seismic_check import render_seismic_check
 
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
 CASE = "model(Case1_ρm10_αf1_正向)"
+PIK = "model_Aggre-SE.pik"
 
 
 def project(folder: str, names) -> bytes:
@@ -45,7 +47,7 @@ def registry(recorder: Recorder) -> Registry:
                   nonlinear_analysis=NonlinearAnalysis(
                       "C", "jrsnap", "jrsnap", FOLDER,
                       Project("aggrese", "model.xml", lambda results, pier: project, {"target": "Aggre-SE"})),
-                  seismic_check=True),
+                  seismic_check=SeismicCheck("pik", PIK)),
     ))
 
 
@@ -84,7 +86,10 @@ def test_the_report_is_aggre_ses_report_as_it_is(env, monkeypatch: pytest.Monkey
                      f"FAKE AGGRESE SUMMARY {hashlib.sha256(post['model.xml']).hexdigest()[:16]}"]
     assert recorder.actions("render") == ["A", "C"] and recorder.actions("calculate") == ["A", "C"]
     assert [artifact.role for artifact in generation.artifacts if artifact.role.startswith("E")] == [
-        "E.pdf", "E.json", "E.jrsnap", "E.aggrese", "E.jrsnap.provenance", "E.aggrese.provenance"]
+        "E.pdf", "E.json", "E.jrsnap", "E.aggrese", "E.pik", "E.jrsnap.provenance", "E.aggrese.provenance",
+        "E.pik.provenance"]
+    assert post[PIK] == made[0].pik == (
+        f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(post['model.xml']).hexdigest()[:16]}\r\n".encode("cp932"))
     assert planned(options, registry=stages) == generation.artifacts
 
 
@@ -98,7 +103,16 @@ def test_the_result_records_the_check_and_its_files_without_a_judgement(env):
         "engine": "aggrese", "engine_version": "fake-1", "engineering_status": "not_evaluated",
         "cases": [{"caseNumber": 1, "name": CASE, "aggregated": True}],
         "project": {"file": "model.xml", "sha256": hashlib.sha256(post["model.xml"]).hexdigest()},
-        "jrsnap": {"file": FOLDER, "sha256": content_sha256(Path(options.post_dir) / FOLDER)}}
+        "jrsnap": {"file": FOLDER, "sha256": content_sha256(Path(options.post_dir) / FOLDER)},
+        "pik": {"file": PIK, "sha256": hashlib.sha256(post[PIK]).hexdigest()}}
+    pik = json.loads((Path(options.post_dir) / f"{PIK}.provenance.json").read_text(encoding="utf-8"))
+    assert (pik["stage"], pik["export"], pik["file"], pik["sha256"]) == (
+        "E", "pik", PIK, hashlib.sha256(post[PIK]).hexdigest())
+    assert pik["seismic_check"] == {
+        "report": "E.pdf", "engine": "aggrese", "engine_version": "fake-1", "engineering_status": "not_evaluated",
+        "project": {"file": "model.xml", "sha256": hashlib.sha256(post["model.xml"]).hexdigest()},
+        "jrsnap": {"file": FOLDER, "sha256": content_sha256(Path(options.post_dir) / FOLDER)},
+        "pickups": {"1": "L1地震動", "2": "復旧性L2地震動", "3": "安全性L2地震動"}}
     sidecar = json.loads((Path(options.post_dir) / "model.xml.provenance.json").read_text(encoding="utf-8"))
     assert sidecar["seismic_check"] == {"report": "E.pdf", "engine": "aggrese", "engine_version": "fake-1"}
     folder = json.loads((Path(options.post_dir) / f"{FOLDER}.provenance.json").read_text(encoding="utf-8"))
@@ -125,6 +139,7 @@ def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.
 @pytest.mark.parametrize("mode,message", [
     ("fail", "model.xml で耐震性能照査ができません: CALCULATION_FAILED"),
     ("unaggregated", "model.xml で耐震性能照査ができません: 全 1 ケースが集計されていません"),
+    ("nopik", "model.xml で耐震性能照査ができません: runner の成果物が結果・計算書・ピックアップの3つではありません"),
     ("write", f"Aggre-SE の runner が model.xml か {FOLDER} を変更しました"),
 ])
 def test_a_failing_check_stops_before_any_report_and_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch, mode,

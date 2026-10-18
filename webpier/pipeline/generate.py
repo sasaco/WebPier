@@ -16,7 +16,8 @@
    analysis (0711, 0721, opt-in) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
    file is staged, under JRSNAP's name, in one folder (decision 47), and beside it the Aggre-SE project that reads
    the DB1 of each Case (decision 49; its input is checked before any analysis). The Aggre-SE runner then checks with
-   that staged project and folder, and its report is the stage's report as it is (decision 56). Each export is built
+   that staged project and folder: its report is the stage's report as it is (decision 56) and its section force
+   pickup is staged as it is (decision 57). Each export is built
    once, so the file
    analyzed is the bytes staged, even when the dependency's own files are not published. The runners are looked
    up before anything is read, and a missing or failing runner stops the generation.
@@ -54,7 +55,7 @@ from .publication import ArtifactStaging, backup_path, publish_outputs, validate
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry, SectionCheck)
+                     Project, Registry, SectionCheck, SeismicCheck)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -96,6 +97,7 @@ class _PostFile:
     export: Export | None  # none: a file the stage's frame analysis returns, or the folder of its JRSNAP analysis
     project: Project | None = None  # the Aggre-SE project beside that folder (decision 49)
     check: SectionCheck | None = None  # the completed WDJ of the stage's column section check (decision 48)
+    seismic: SeismicCheck | None = None  # the pickup of the stage's 耐震性能照査 (decision 57)
 
 
 def _identity() -> dict[Path, str]:
@@ -124,21 +126,24 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
             for suffix in ("pdf", "json"):
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
-        files = [(item.kind, item.file_name, item, False, None, None) for item in stage.exports]
+        files = [(item.kind, item.file_name, item, False, None, None, None) for item in stage.exports]
         if stage.frame_analysis is not None and _analysis_key(stage.frame_analysis) not in analyzed:
             analyzed.add(_analysis_key(stage.frame_analysis))
-            files += [(kind, file_name, None, False, None, None) for kind, file_name in stage.frame_analysis.files]
+            files += [(kind, file_name, None, False, None, None, None)
+                      for kind, file_name in stage.frame_analysis.files]
         if (check := stage.section_check) is not None:
-            files.append((check.kind, check.file_name, None, False, None, check))
+            files.append((check.kind, check.file_name, None, False, None, check, None))
         if (nonlinear := stage.nonlinear_analysis) is not None:
-            files.append((nonlinear.kind, nonlinear.folder, None, True, None, None))
+            files.append((nonlinear.kind, nonlinear.folder, None, True, None, None, None))
             if (project := nonlinear.project) is not None:
-                files.append((project.kind, project.file_name, None, False, project, None))
-        for kind, file_name, item, folder, project, check in files:
+                files.append((project.kind, project.file_name, None, False, project, None, None))
+        if (seismic := stage.seismic_check) is not None:
+            files.append((seismic.kind, seismic.file_name, None, False, None, None, seismic))
+        for kind, file_name, item, folder, project, check, seismic in files:
             native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post", folder)
             sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(file_name + PROVENANCE_SUFFIX),
                                "post")
-            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check))
+            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check, seismic))
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
 
 
@@ -381,6 +386,21 @@ def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
     return facts
 
 
+def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
+                   checked: Mapping[str, aggrese.SeismicCheckPages]) -> dict[str, Any]:
+    # The pickup is Aggre-SE's (decision 57): which runner returned it with which report, for which project and
+    # folder, and what each of its pickups is.
+    analysis = registry.get(post.stage).nonlinear_analysis
+    project = post.native.path.with_name(analysis.project.file_name)
+    folder = staging.path_for(project.with_name(analysis.folder))
+    return {"seismic_check": {"report": f"{post.stage}.pdf", "engine": aggrese.ENGINE,
+                              "engine_version": checked[post.stage].engine_version,
+                              "engineering_status": "not_evaluated",
+                              "project": {"file": project.name, "sha256": file_sha256(staging.path_for(project))},
+                              "jrsnap": {"file": analysis.folder, "sha256": content_sha256(folder)},
+                              "pickups": {str(number): name for number, name in aggrese.PICKUPS.items()}}}
+
+
 def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes], folder: str,
                    names: Sequence[str]) -> bytes:
     try:
@@ -409,7 +429,7 @@ def _capacita_runner(registry: Registry, selected: tuple[str, ...]) -> Path | No
 
 
 def _aggrese_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).seismic_check for stage_id in selected):
+    if not any(registry.get(stage_id).seismic_check is not None for stage_id in selected):
         return None
     try:
         return aggrese.runner_path()
@@ -578,6 +598,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     _write_project(post, writers[post.stage], analysis.folder, list(solved[post.stage].files)))
             elif post.check is not None:
                 staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
+            elif post.seismic is not None:
+                continue  # written below, from the check with the staged project and folder
             elif post.export is None:
                 staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         # Aggre-SE checks with the project and the folder staged beside it (decision 56).
@@ -585,7 +607,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                        staging.path_for(post.native.path),
                        staging.path_for(post.native.path.with_name(registry.get(post.stage).nonlinear_analysis.folder)),
                        aggrese_runner)
-                   for post in posts if post.project is not None and registry.get(post.stage).seismic_check}
+                   for post in posts
+                   if post.project is not None and registry.get(post.stage).seismic_check is not None}
+        for post in posts:
+            if post.seismic is not None:
+                staging.path_for(post.native.path).write_bytes(checked[post.stage].pik)
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
                 continue
@@ -618,13 +644,16 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                               for case in checked[stage_id].cases],
                     "project": {"file": project.name, "sha256": file_sha256(staging.path_for(project))},
                     "jrsnap": {"file": analysis.folder,
-                               "sha256": content_sha256(staging.path_for(project.with_name(analysis.folder)))}}
+                               "sha256": content_sha256(staging.path_for(project.with_name(analysis.folder)))},
+                    "pik": {"file": registry.get(stage_id).seismic_check.file_name,
+                            "sha256": sha256(checked[stage_id].pik)}}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn, figures) if post.export is not None
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging, checked) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
+                     else _seismic_facts(registry, post, staging, checked) if post.seismic is not None
                      else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)

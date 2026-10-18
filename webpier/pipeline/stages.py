@@ -20,7 +20,7 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
 results (decision 49). A stage with ``seismic_check`` (0711, 0721) also has Aggre-SE check with that project and
 those results: its report is Aggre-SE's report as it is, which its ``render`` receives, and it needs no calculation
-(decision 56, ADR-0009). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
+(decision 56, ADR-0009); Aggre-SE's section force pickup is published under post/ as it is (decision 57). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
 the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages of each section
 by the section's id (none for a section Capacita skipped), and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
 with the files of its frame analysis (the 基礎の照査 reads the support reactions, decision 54): ``calculate`` gives
@@ -166,6 +166,18 @@ class NonlinearAnalysis:
 
 
 @dataclass(frozen=True)
+class SeismicCheck:
+    """Aggre-SE checks with the project of the stage's nonlinear analysis (decisions 56, 57, ADR-0009).
+
+    Its report is the stage's report as it is; its section force pickup (PIK) is published under post/ as ``kind``,
+    with a provenance sidecar naming the project, the folder and the meaning of each pickup.
+    """
+
+    kind: str  # "pik"
+    file_name: str  # e.g. "線路方向_Aggre-SE.pik"
+
+
+@dataclass(frozen=True)
 class JrsnapFigures:
     """JRSNAP draws the データ確認図 and the 荷重図 of the stage's NDU into its report (decisions 50, 51)."""
 
@@ -191,8 +203,8 @@ class StageSpec:
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
     section_check: SectionCheck | None = None  # Capacita checks the column with the PIK of frame_analysis (decision 48)
-    # Aggre-SE checks with the project of nonlinear_analysis; its report is the stage's report (decision 56)
-    seismic_check: bool = False
+    # Aggre-SE checks with the project of nonlinear_analysis; its report is the stage's report (decisions 56, 57)
+    seismic_check: SeismicCheck | None = None
     # (the result of calculate, the files of frame_analysis by kind) → the stage's result (decision 54), or none
     complete: Callable[[Any, Mapping[str, bytes]], Any] | None = None
 
@@ -222,7 +234,7 @@ class Registry:
                     raise ValueError(f"{stage.id}の依存段階{dependency}が先に登録されていません")
             if not stage.stem.startswith(stage.id + "_") or not _plain_name(stage.stem):
                 raise ValueError(f"{stage.id}のファイル{stage.stem}の名前は「{stage.id}_」で始まる必要があります")
-            if stage.render is not None and stage.calculate is None and not stage.seismic_check:
+            if stage.render is not None and stage.calculate is None and stage.seismic_check is None:
                 raise ValueError(f"{stage.id}の計算書には計算が必要です")
             if stage.opt_in and stage.opt_in not in SWITCHES:
                 raise ValueError(f"{stage.id}の選択式のスイッチ{stage.opt_in}がありません")
@@ -264,11 +276,12 @@ class Registry:
                 outputs.append((nonlinear.kind, nonlinear.folder))
                 if nonlinear.project is not None:
                     outputs.append((nonlinear.project.kind, nonlinear.project.file_name))
-            if stage.seismic_check:
+            if (seismic := stage.seismic_check) is not None:
                 if nonlinear is None or nonlinear.project is None:
                     raise ValueError(f"{stage.id}の耐震性能照査には静的非線形解析と Aggre-SE のプロジェクトが必要です")
                 if not stage.has_report:
                     raise ValueError(f"{stage.id}の耐震性能照査の計算書がありません")
+                outputs.append((seismic.kind, seismic.file_name))
             for dependency in stage.depends_on:
                 if self.get(dependency).opt_in not in ("", stage.opt_in):
                     raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、同じスイッチ"
@@ -449,7 +462,7 @@ STAGES = Registry((
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
                   Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
-              seismic_check=True),
+              seismic_check=SeismicCheck("pik", "線路方向_Aggre-SE.pik")),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
@@ -461,5 +474,5 @@ STAGES = Registry((
               nonlinear_analysis=NonlinearAnalysis(
                   "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
                   Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
-              seismic_check=True),
+              seismic_check=SeismicCheck("pik", "線路直角方向_Aggre-SE.pik")),
 ))

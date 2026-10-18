@@ -4,7 +4,8 @@ For each direction, ``python -m webpier --stage 0711`` (0721) is generated from 
 the real JRSNAP and Aggre-SE runners (``STRUCTURAL_MCP_JRSNAP_RUNNER``, ``STRUCTURAL_MCP_AGGRESE_RUNNER``, as a normal
 generation finds them). From the published report (Aggre-SE's ``report.pdf`` as it is) the response values of each
 Case are read: Kheq, δeq, and μ, δr and Khr for the safety and the restorability checks (the pages
-「(2)非線形応答スペクトル法による設計応答値の算定」, one per Case), with the page count. The longitudinal Case 1 is
+「(2)非線形応答スペクトル法による設計応答値の算定」, one per Case), with the page count; of the published pickup
+(decision 57), its SHA256, its lines and its pickup numbers. The longitudinal Case 1 is
 compared with Example2 10-14; the transverse one is only recorded (its wind load differs: decisions 12, 35).
 
 The record (tests/fixtures/acceptance/aggrese_report/record.json) holds the input, the project WebPier wrote for the
@@ -85,6 +86,16 @@ def responses(pdf: bytes) -> tuple[int, list[dict[str, Any]]]:
     return len(texts), cases
 
 
+def pickup(path: Path) -> dict[str, Any]:
+    """The published PIK (decision 57): its bytes, its first line and the pickup numbers of its lines."""
+    lines = path.read_bytes().decode("cp932").split("\r\n")
+    if lines[-1] == "":
+        lines.pop()
+    numbers = sorted({int(line.split()[0]) for line in lines[1:]})
+    return {"file": path.name, "sha256": file_sha256(path), "bytes": path.stat().st_size, "lines": len(lines),
+            "header": lines[0], "pickups": numbers}
+
+
 def accept(input_path: Path, evidence: Path, overwrite: bool) -> dict[str, Any]:
     if evidence.exists() and not overwrite:
         raise AcceptanceError(f"受入記録が既にあります（--overwrite で作り直します）: {evidence}")
@@ -115,6 +126,7 @@ def accept(input_path: Path, evidence: Path, overwrite: bool) -> dict[str, Any]:
                 "seismic_check": checked,
                 "report": {"file": report.name, "bytes": report.stat().st_size, "pages": pages},
                 "cases": cases,
+                "pik": pickup(post / spec.seismic_check.file_name),
             }
             if stage in EXAMPLE2:
                 direction["example2"] = {"source": "Example橋脚2/10_線路(耐震).pdf 10-14", "values": EXAMPLE2[stage],

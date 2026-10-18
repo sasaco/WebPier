@@ -1,7 +1,8 @@
 """The real registry: every stage alone gives the same bytes as the all generation, the frame analysis stages
 (decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
 analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU, with the Aggre-SE project
-that reads it (decision 49), and the reports of 0711 and 0721, which are the stand-in Aggre-SE runner's (decision 56)."""
+that reads it (decision 49), the reports of 0711 and 0721, which are the stand-in Aggre-SE runner's (decision 56),
+and its pickups (decision 57)."""
 
 from __future__ import annotations
 
@@ -199,7 +200,13 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
             "cases": [{"caseNumber": case, "name": f"{stem}(Case{case}_ρm10_αf1_正向)", "aggregated": True}
                       for case in cases],
             "project": {"file": project, "sha256": sha256(post[project])},
-            "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)}}
+            "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)},
+            "pik": {"file": f"{stem}_Aggre-SE.pik", "sha256": sha256(post[f"{stem}_Aggre-SE.pik"])}}
+        # Decision 57: Aggre-SE's pickup beside the folder, as the stand-in returned it, with its sidecar.
+        assert post[f"{stem}_Aggre-SE.pik"] == f"Batch ver1.0.0\r\nFAKE PIK {sha256(post[project])[:16]}\r\n".encode()
+        sidecar = load_json(post[f"{stem}_Aggre-SE.pik.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"]) == (stage, "pik")
+        assert sidecar["seismic_check"]["pickups"] == {"1": "L1地震動", "2": "復旧性L2地震動", "3": "安全性L2地震動"}
 
 
 @pytest.mark.parametrize("key", ["地域別", "地盤区分"])

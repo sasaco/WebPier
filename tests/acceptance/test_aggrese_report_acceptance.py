@@ -65,6 +65,16 @@ def test_aggre_se_checked_every_case_into_the_report(stage):
     assert direction["report"]["file"] == f"{spec.stem}.pdf" and direction["report"]["pages"] > len(direction["cases"])
 
 
+@pytest.mark.parametrize("stage", STAGES_ACCEPTED)
+def test_aggre_se_returned_the_pickup_of_the_three_earthquakes(stage):
+    """Decision 57: Batch's default pickups 1 L1, 2 restorability L2, 3 safety L2, each the envelope of every Case."""
+    direction = RECORD["directions"][stage]
+    pik = direction["pik"]
+    assert pik["file"] == STAGES.get(stage).seismic_check.file_name
+    assert direction["seismic_check"]["pik"] == {"file": pik["file"], "sha256": pik["sha256"]}
+    assert (pik["header"], pik["pickups"]) == ("Batch ver1.0.0", [1, 2, 3])
+
+
 def test_the_longitudinal_response_is_example2s():
     """Example2 10-14: Kheq 0.368, δeq 30.5, safety μ 9.32 and δr 284.3, restorability μ 5.78 and δr 176.3."""
     direction = RECORD["directions"]["0711"]
