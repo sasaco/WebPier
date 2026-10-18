@@ -61,6 +61,25 @@ def applicable_embedment(pier: PierInput, foundation: FoundationResult) -> Embed
     return None if _outside(pier, foundation) is not None else _embedment(pier, foundation)
 
 
+@dataclass(frozen=True)
+class CoverWeight:
+    """γ2 of the cover with the water at *water* above the footing base (the 基礎の照査, decision 54)."""
+
+    water: Printed  # the water level as entered, above the footing base
+    wet_segment: Printed  # Df − hw within 0 … Df
+    submerged_segment: Printed  # hw within 0 … Df
+    unit_weight: Printed  # γ2
+
+
+def cover_weight(embedment: EmbedmentResult, water: Printed) -> CoverWeight:
+    """γ2 = ((Df − hw) × γwet + hw × γsub) / Df, the cover all submerged when hw ≧ Df and all wet when hw ≦ 0."""
+    depth = d(embedment.depth)
+    submerged = put(LENGTH, min(max(d(water), d(0)), depth))
+    wet = put(LENGTH, depth - d(submerged))
+    return CoverWeight(water, wet, submerged, put(UNIT_WEIGHT, (d(wet) * d(embedment.unit_weight_wet) + d(submerged)
+                                                                * d(embedment.unit_weight_submerged)) / depth))
+
+
 def _embedment(pier: PierInput, foundation: FoundationResult) -> EmbedmentResult:
     depth, water = foundation.surface_thickness, pier.substructure.hw2
     surface = pier.soil.surface

@@ -43,7 +43,7 @@ def project(kind="aggrese", file_name="x.xml"):
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
     ids = STAGES.ids
     assert ids[:2] == ("0500", "0600")
-    assert ids == ("0500", "0600", "0610", "0611", "0620", "0621", "0710", "0711", "0720", "0721")
+    assert ids == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721")
     for position, stage in enumerate(STAGES.stages):
         assert set(stage.depends_on) <= set(ids[:position])
         assert stage.stem.startswith(stage.id + "_")
@@ -53,7 +53,8 @@ def test_report_stems_are_the_japanese_stage_names():
     stems = {stage.id: stage.stem for stage in STAGES.stages}
     expected = {"0500": "0500_直接基礎", "0600": "0600_上部工反力", "0610": "0610_線路方向荷重",
                 "0620": "0620_直角方向荷重", "0710": "0710_線路方向荷重", "0720": "0720_線路直角方向荷重",
-                "0611": "0611_線路方向照査", "0621": "0621_直角方向照査", "0711": "0711_線路方向非線形解析",
+                "0611": "0611_線路方向照査", "0621": "0621_直角方向照査", "0612": "0612_線路方向基礎",
+                "0622": "0622_直角方向基礎", "0711": "0711_線路方向非線形解析",
                 "0721": "0721_線路直角方向非線形解析"}
     assert stems == {stage: expected[stage] for stage in stems}
 
@@ -62,7 +63,8 @@ def test_declared_dependencies_of_the_real_stages():
     depends = {stage.id: stage.depends_on for stage in STAGES.stages}
     expected = {"0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
                 "0710": ("0500", "0600", "0610"), "0720": ("0500", "0600", "0620"), "0611": ("0610",),
-                "0621": ("0620",), "0711": ("0710",), "0721": ("0720",)}
+                "0621": ("0620",), "0612": ("0500", "0610"), "0622": ("0500", "0620"), "0711": ("0710",),
+                "0721": ("0720",)}
     assert depends == {stage: expected[stage] for stage in depends}
 
 
@@ -85,11 +87,16 @@ def test_every_export_is_always_written():
 
 def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
     """Decision 46: 0611 and 0621 publish the pickup files of their load stage's FrameWeb, and each the column
-    section check by Capacita with that PIK (decision 48)."""
-    assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0621")
+    section check by Capacita with that PIK (decision 48); 0612 and 0622 share that analysis for the 基礎の照査, which
+    reads its reactions (decision 54)."""
+    assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0612", "0621", "0622")
     assert STAGES.select("all") == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS})) == (
-        "0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
+        "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0720")
+    for stage_id, column in (("0612", "0611"), ("0622", "0621")):
+        stage = STAGES.get(stage_id)
+        assert stage.has_report and stage.complete is not None and stage.section_check is None
+        assert stage.frame_analysis == STAGES.get(column).frame_analysis
     for stage_id, source, stem in (("0611", "0610", "線路方向"), ("0621", "0620", "線路直角方向")):
         stage = STAGES.get(stage_id)
         assert stage.has_report and (stage.exports, stage.load_diagram) == ((), "")

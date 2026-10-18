@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "kind": "foundation_check_acceptance",
+  "stage": "0622",
+  "verified_at": "2026-10-18T22:42:22+09:00",
+  "method": "WebPier が 0620 で書く FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を Example2 9-27 と比べた。",
+  "input": {
+    "path": "tests/fixtures/inputs/current.json",
+    "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
+  },
+  "implementation_sha256": "4cfe52bca1a748c9b8c5949a6297fe6089b6fd1932446149b6a2ae0e3d4a1a1b",
+  "fempython": {
+    "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
+    "engine_version": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358"
+  },
+  "frameweb_sha256": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df",
+  "reaction": {
+    "file": "線路直角方向_ピックアップ反力.csv",
+    "sha256": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"
+  },
+  "node": 6,
+  "compared": [
+    "vd"
+  ],
+  "tolerance": 0.25,
+  "columns": {
+    "long_term": {
+      "ours": {
+        "combination": 14,
+        "vd": 16348.95,
+        "hd": 0.0,
+        "md": 0.0
+      },
+      "sample": {
+        "combination": 14,
+        "vd": 16348.95,
+        "hd": 0.0,
+        "md": 0.0
+      },
+      "differences": {
+        "vd": 0.0,
+        "hd": 0.0,
+        "md": 0.0
+      }
+    },
+    "short_term": {
+      "ours": {
+        "combination": 15,
+        "vd": 18788.38,
+        "hd": 0.0,
+        "md": 1573.13
+      },
+      "sample": {
+        "combination": 15,
+        "vd": 18788.17,
+        "hd": 0.0,
+        "md": 1572.67
+      },
+      "differences": {
+        "vd": 0.21,
+        "hd": 0.0,
+        "md": 0.46
+      }
+    },
+    "safety_vertical": {
+      "ours": {
+        "combination": 10,
+        "vd": 22585.13,
+        "hd": 465.94,
+        "md": 7389.08
+      },
+      "sample": {
+        "combination": 10,
+        "vd": 22585.12,
+        "hd": 194.91,
+        "md": 3451.7
+      },
+      "differences": {
+        "vd": 0.01,
+        "hd": 271.03,
+        "md": 3937.38
+      }
+    },
+    "safety_moment": {
+      "ours": {
+        "combination": 12,
+        "vd": 20045.0,
+        "hd": 788.53,
+        "md": 13068.19
+      },
+      "sample": {
+        "combination": 12,
+        "vd": 20045.0,
+        "hd": 797.47,
+        "md": 10409.79
+      },
+      "differences": {
+        "vd": 0.0,
+        "hd": -8.94,
+        "md": 2658.4
+      }
+    }
+  },
+  "accepted": true,
+  "failures": []
+}

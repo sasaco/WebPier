@@ -12,7 +12,7 @@ import re
 import pymupdf
 import pytest
 
-from pipeline_support import FIXTURES, copy_input, tree
+from pipeline_support import FIXTURES, copy_input, fake_reactions, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import content_sha256, load_json, sha256
 from webpier.export.jrsnap import LONGITUDINAL, TRANSVERSE, validate_ndu
@@ -126,12 +126,14 @@ def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, 
 
 
 def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_generation, analysis_generation):
-    """Decisions 46, 48: the analysis adds the pickup files, and 0611 and 0621 their column section checks (report,
-    result JSON and the completed WDJ); the reports of all are unchanged."""
+    """Decisions 46, 48, 54: the analysis adds the pickup files, 0611 and 0621 their column section checks (report,
+    result JSON and the completed WDJ) and 0612 and 0622 their foundation checks (report and result JSON), which share
+    the analysis of the same FrameWeb file; the reports of all are unchanged."""
     root, _, _ = analysis_generation
-    assert analysis_generation[2].stages == ("0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
+    assert analysis_generation[2].stages == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710",
+                                             "0720")
     output = tree(root / "output")
-    columns = tuple(STAGES.get(stage).stem for stage in ("0611", "0621"))
+    columns = tuple(STAGES.get(stage).stem for stage in ("0611", "0612", "0621", "0622"))
     assert {name: content for name, content in output.items() if not name.startswith(columns)} == tree(
         all_generation[0] / "output")
     assert sorted(name for name in output if name.startswith(columns)) == sorted(
@@ -143,13 +145,15 @@ def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_gene
     for stage, stem in PICKUPS.items():
         digest = sha256(post[f"{stem}.json"])
         # the PIK's first line stands for its header; its points follow (tests/fixtures/fempython/fake_runner.py)
-        assert [post[name].split(b"\n")[0] + b"\n" for name in pickup_files(stem)] == [
-            f"FAKE {word} {stem}.json {digest}\n".encode() for word in ("PIK", "DISPLACEMENT", "REACTION")]
+        assert [post[name].split(b"\n")[0] + b"\n" for name in pickup_files(stem)[:2]] == [
+            f"FAKE {word} {stem}.json {digest}\n".encode() for word in ("PIK", "DISPLACEMENT")]
+        assert post[f"{stem}_ピックアップ反力.csv"] == fake_reactions(post[f"{stem}.json"])
         sidecar = load_json(post[f"{stem}.pik.provenance.json"])
         assert (sidecar["stage"], sidecar["export"]) == (stage, "pik")
         assert sidecar["frame_analysis"]["frameweb"] == {"stage": {"0611": "0610", "0621": "0620"}[stage],
                                                          "export": "frameweb", "file": f"{stem}.json",
                                                          "sha256": digest}
+        assert sidecar["frame_analysis"]["stages"] == [stage, {"0611": "0612", "0621": "0622"}[stage]]
     assert hashlib.sha256(post["線路方向.json"]).hexdigest() == sha256(tree(all_generation[0] / "post")["線路方向.json"])
 
 
@@ -252,3 +256,25 @@ def test_a_frame_analysis_stage_alone_publishes_only_its_pickup_files(analysis_g
     post = tree(tmp_path / "post")
     assert sorted(post) == sorted([*names, *checked, *(name + ".provenance.json" for name in [*names, *checked])])
     assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}
+
+
+@pytest.mark.parametrize("stage,column", [("0612", "0611"), ("0622", "0621")])
+def test_a_foundation_check_alone_runs_the_shared_analysis_and_publishes_its_files(analysis_generation, tmp_path,
+                                                                                   stage, column):
+    """Decision 54: chosen alone, the 基礎の照査 analyzes the FrameWeb file itself and publishes the pickup files
+    (not the column check's WDJ); its report and result are those of the generation with both."""
+    root, _, _ = analysis_generation
+    source = copy_input(tmp_path / "pre")
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
+    stem = STAGES.get(stage).stem
+    output = tree(tmp_path / "output")
+    assert sorted(output) == [f"{stem}.json", f"{stem}.pdf"]
+    assert output == {name: tree(root / "output")[name] for name in output}
+    names = pickup_files(PICKUPS[column])
+    post = tree(tmp_path / "post")
+    assert sorted(post) == sorted([*names, *(name + ".provenance.json" for name in names)])
+    assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}
+    sidecar = load_json(post[f"{PICKUPS[column]}.pik.provenance.json"])
+    assert (sidecar["stage"], sidecar["frame_analysis"]["stages"]) == (stage, [stage])
+    result = load_json(output[f"{stem}.json"])["result"]
+    assert result["engineering_status"] in ("ok", "not_ok") and len(result["columns"]) == 4

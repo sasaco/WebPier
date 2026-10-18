@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import Recorder, copy_input, fake_reactions, tree
 from webpier.core.errors import InputError
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
@@ -43,6 +43,8 @@ def registry(recorder: Recorder, *, load_diagram: bool = False, pages: list | No
 
 def expected(word: str) -> bytes:
     """The stand-in's file for *word* (PIK, DISPLACEMENT, REACTION) of an analysis of FRAMEWEB as frame.json."""
+    if word == "REACTION":
+        return fake_reactions(FRAMEWEB)
     return f"FAKE {word} frame.json {hashlib.sha256(FRAMEWEB).hexdigest()}\n".encode("utf-8")
 
 
@@ -99,7 +101,7 @@ def test_the_sidecar_of_a_pickup_file_names_the_analyzed_frameweb_file(env):
     assert document["frame_analysis"] == {
         "engine": "fempython", "engine_version": "fake-1",
         "frameweb": {"stage": "B", "export": "frameweb", "file": "frame.json",
-                     "sha256": hashlib.sha256(FRAMEWEB).hexdigest()}}
+                     "sha256": hashlib.sha256(FRAMEWEB).hexdigest()}, "stages": ["D"]}
     assert "metadata" not in document and "load_diagram" not in document
     assert sorted(item["role"] for item in document["artifacts"]) == sorted(
         ["A.pdf", "A.json", "B.pdf", "B.json", "B.frameweb", "D.pik", "D.displacement", "D.reaction"])

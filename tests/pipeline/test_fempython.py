@@ -16,6 +16,9 @@ from pathlib import Path
 import pytest
 from pypdf import PdfReader
 
+from pipeline_support import fake_reactions
+from webpier.calc.foundation_check import ReactionError
+
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
 from webpier.pipeline import fempython
@@ -110,10 +113,12 @@ def test_the_arguments_are_those_of_the_decision():
 
 
 def expected_analysis(name: str, document: bytes) -> dict[str, bytes]:
-    """What the stand-in returns for a frame analysis (its docstring), written out without the implementation."""
+    """What the stand-in returns for a frame analysis (its docstring), written out without the implementation; its
+    reaction CSV is the stand-in's own (decision 54)."""
     digest = hashlib.sha256(document).hexdigest()
-    return {kind: f"FAKE {word} {name} {digest}\n".encode("utf-8")
-            for kind, word in (("pik", "PIK"), ("displacement", "DISPLACEMENT"), ("reaction", "REACTION"))}
+    return {**{kind: f"FAKE {word} {name} {digest}\n".encode("utf-8")
+               for kind, word in (("pik", "PIK"), ("displacement", "DISPLACEMENT"))},
+            "reaction": fake_reactions(document)}
 
 
 def test_the_stand_in_analyzes_the_given_bytes(fake_fempython_runner: Path):
@@ -176,3 +181,50 @@ def test_the_real_runner_analyzes_the_generated_file(real_fempython_runner: Path
     assert sorted(analysed.files) == ["displacement", "pik", "reaction"]
     assert all(analysed.files.values())
     assert analysed.engine_version
+
+
+# --- the reaction pickup CSV of the 基礎の照査 (decision 54) ---------------------------------------------------------
+
+HEADER = ("pickup_id,focus_component,node_id,max_combine_id,min_combine_id,max_fx (kN),max_fy (kN),max_fz (kN),"
+          "max_mx (kN*m),max_my (kN*m),max_mz (kN*m),min_fx (kN),min_fy (kN),min_fz (kN),min_mx (kN*m),min_my (kN*m),"
+          "min_mz (kN*m)")
+
+
+def reaction_csv(*rows: str) -> bytes:
+    return "".join(f"{line}\n" for line in (HEADER, *rows)).encode("utf-8-sig")
+
+
+def test_the_reactions_of_the_support_node_are_read_by_the_column_names():
+    content = reaction_csv("7,fy,5,14,14,0,0,0,0,0,0,0,0,0,0,0,0",
+                           "7,fy,6,14,15,-1.5,-16348.948,0,0,0,584.25,2.5,-18788.388,0,0,0,-408.4",
+                           "7,mz,6,15,14,2.5,-18788.388,0,0,0,-408.4,-1.5,-16348.948,0,0,0,584.25")
+    reactions = fempython.support_reactions(content, 6)
+    assert sorted(reactions) == [(7, "fy"), (7, "mz")]
+    largest, smallest = reactions[(7, "fy")]
+    assert (largest.combination, largest.fx, largest.fy, largest.mz) == (14, -1.5, -16348.948, 584.25)
+    assert (smallest.combination, smallest.fx, smallest.fy, smallest.mz) == (15, 2.5, -18788.388, -408.4)
+    assert fempython.support_reactions(content, 9) == {}
+
+
+def test_the_stand_in_reaction_csv_is_read_as_the_real_one():
+    document = {"node": {"1": {}, "2": {}}, "fix_node": {"1": [{"n": "2"}]}, "pickup": {"3": {"C1": 4, "C2": 5}}}
+    reactions = fempython.support_reactions(fake_reactions(json.dumps(document).encode()), 2)
+    assert sorted(reactions) == [(3, "fx"), (3, "fy"), (3, "mz")]
+    largest, smallest = reactions[(3, "fy")]
+    # combination c: fy = −(15000 + 125.25c), so the largest fy is that of 4 and the smallest that of 5
+    assert (largest.combination, largest.fy, smallest.combination, smallest.fy) == (4, -15501.0, 5, -15626.25)
+
+
+@pytest.mark.parametrize("content,message", [
+    (b"\xff\xfe", "反力の CSV を読めません"),
+    (b"", "反力の CSV を読めません"),
+    (reaction_csv().replace(b"max_mz", b"max_m"), "反力の CSV を読めません"),
+    (reaction_csv("7,fy,6,14"), "反力の CSV を読めません"),
+    (reaction_csv("7,fy,6,x,14,0,0,0,0,0,0,0,0,0,0,0,0"), "反力の CSV を読めません"),
+    (reaction_csv("7,fy,6,14,14,0,nan,0,0,0,0,0,0,0,0,0,0"), "2 行目に有限でない反力があります"),
+    (reaction_csv("7,fy,6,14,14,0,0,0,0,0,0,0,0,0,0,0,0", "7,fy,6,14,14,0,0,0,0,0,0,0,0,0,0,0,0"),
+     "3 行目: ピックアップ 7（fy）の節点 6 が重複しています"),
+])
+def test_a_reaction_csv_that_cannot_be_read_is_a_reaction_error(content, message):
+    with pytest.raises(ReactionError, match=message):
+        fempython.support_reactions(content, 6)

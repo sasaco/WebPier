@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytest
 
 from reaction_support import document, pier, q
-from webpier.calc.embedment import applicable_embedment, calculate_embedment
+from webpier.calc.embedment import applicable_embedment, calculate_embedment, cover_weight
 from webpier.calc.foundation import calculate_foundation
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
@@ -76,3 +76,19 @@ def test_outside_the_procedure_there_is_no_embedment_result():
     assert applicable_embedment(p, calculate_foundation(p)) is None
     p = pier()
     assert applicable_embedment(p, calculate_foundation(p)) == calculate_embedment(p, calculate_foundation(p))
+
+
+@pytest.mark.parametrize("water,wet_segment,submerged,gamma", [
+    (3.78, 0.92, 3.78, 10.0),  # (0.920 × 18.0 + 3.780 × 8.0) / 4.700 = 9.957…
+    (2.7, 2.0, 2.7, 12.3),  # the normal water level: γ2 itself
+    (4.7, 0.0, 4.7, 8.0),  # at the ground: all submerged
+    (6.0, 0.0, 4.7, 8.0),  # above it: all submerged
+    (0.0, 4.7, 0.0, 18.0),  # at the footing base: all wet
+    (-1.0, 4.7, 0.0, 18.0),  # below it: all wet
+])
+def test_the_cover_weight_at_any_water_level(water, wet_segment, submerged, gamma):
+    """Decision 54: γ2 at the water level of a check (長期 the normal, 短期 and 安全性 the high one)."""
+    level = Printed(water, 3, "m")
+    result = cover_weight(embedment(), level)
+    assert (result.water, result.wet_segment.value, result.submerged_segment.value) == (level, wet_segment, submerged)
+    assert result.unit_weight == Printed(gamma, 1, "kN/m3")

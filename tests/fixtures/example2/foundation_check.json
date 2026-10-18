@@ -1,0 +1,519 @@
+{
+  "basis": "Independent hand calculation (Decimal arithmetic, half-away-from-zero rounding to the printed digits, later steps use the rounded values; ADR-0003) from the equations of decision 54 and the sample pages 8-27 to 8-32 and 9-24 to 9-29. Never generated from the application. See foundation_check_notes.md.",
+  "inputs": {
+    "footing": {
+      "0612": {
+        "B": 7.0,
+        "L": 9.0
+      },
+      "0622": {
+        "B": 9.0,
+        "L": 7.0
+      },
+      "unit": "m",
+      "digits": 3
+    },
+    "supporting_layer": {
+      "soil": "砂質土",
+      "phi": 42.2,
+      "gamma_e1": 10.0,
+      "n_gamma": 150,
+      "n_q": 85
+    },
+    "cover": {
+      "Df": 4.7,
+      "gamma_wet": 18.0,
+      "gamma_sub": 9.0,
+      "water_level_normal_hw2": 2.7,
+      "water_level_high_hw1": 3.78,
+      "water_level_reference": "height above the footing base; clamped to 0..Df"
+    },
+    "long_term_limit": "300 + γe2(normal)·Df (洪積砂地盤・沖積砂礫地盤)",
+    "factors": {
+      "long_term": {
+        "gamma_i": 1.0,
+        "gamma_a": 1.0,
+        "fr_gamma": 0.33,
+        "fr_q": 0.33
+      },
+      "short_term": {
+        "gamma_i": 1.0,
+        "gamma_a": 1.0,
+        "fr_gamma": 0.5,
+        "fr_q": 0.5
+      },
+      "safety": {
+        "gamma_i": 1.2,
+        "gamma_a": 1.2,
+        "fr_gamma": 0.67,
+        "fr_q": 0.67
+      },
+      "horizontal": {
+        "fr_s": 0.33,
+        "gamma_i": 1.0,
+        "gamma_a": null
+      }
+    },
+    "rotation_limit": {
+      "long_term": "B/6",
+      "short_term": "B/4",
+      "digits": 3
+    },
+    "gamma_e2_use": {
+      "long_term": "normal",
+      "short_term": "high",
+      "safety_vertical": "high",
+      "safety_moment": "high"
+    },
+    "reactions": {
+      "source": "FEMPython pickup reaction CSV at the support node (y axis downward); Vd = -fy, Hd = |fx|, Md = |mz|, each rounded to 2 decimals",
+      "0612": {
+        "long_term": {
+          "combination": 14,
+          "fx": "-6.991E-66",
+          "fy": "-16348.948",
+          "mz": "584.25"
+        },
+        "short_term": {
+          "combination": 15,
+          "fx": "-4.901E-66",
+          "fy": "-18788.388",
+          "mz": "408.40000000000003"
+        },
+        "safety_vertical": {
+          "combination": 10,
+          "fx": "-473.43",
+          "fy": "-22585.147300000004",
+          "mz": "-4767.968"
+        },
+        "safety_moment": {
+          "combination": 11,
+          "fx": "495.01",
+          "fy": "-21870.782200000001",
+          "mz": "5460.4361"
+        }
+      },
+      "0622": {
+        "long_term": {
+          "combination": 14,
+          "fx": "0",
+          "fy": "-16348.948",
+          "mz": "0"
+        },
+        "short_term": {
+          "combination": 15,
+          "fx": "-5.14E-64",
+          "fy": "-18788.378000000001",
+          "mz": "1573.13"
+        },
+        "safety_vertical": {
+          "combination": 10,
+          "fx": "-465.93869999970627",
+          "fy": "-22585.133800000003",
+          "mz": "-7389.0769100002371"
+        },
+        "safety_moment": {
+          "combination": 12,
+          "fx": "788.53199999947617",
+          "fy": "-20045.002800000002",
+          "mz": "13068.186000000422"
+        }
+      }
+    }
+  },
+  "directions": {
+    "0612": {
+      "gamma_e2": {
+        "normal": {
+          "wet_segment": 2.0,
+          "submerged_segment": 2.7,
+          "value": 12.8
+        },
+        "high": {
+          "wet_segment": 0.92,
+          "submerged_segment": 3.78,
+          "value": 10.8
+        }
+      },
+      "long_term_limit": 360.16,
+      "columns": {
+        "long_term": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 584.25,
+          "ex": 0.036,
+          "b_effective": 6.928,
+          "area_effective": 62.352,
+          "delta": 0.0,
+          "triangular": false,
+          "width_loaded": 7.0,
+          "pd1": 267.51,
+          "pd2": 251.5,
+          "gamma_e2": 12.8,
+          "i_gamma": 1.0,
+          "i_q": 1.0,
+          "beta_b": 0.346,
+          "b_e": 6.928,
+          "term_gamma": 1186.56,
+          "term_q": 1667.64,
+          "qvd": 2854.2,
+          "qd_unlimited": 2914.36,
+          "qd": 360.16,
+          "rvd": null,
+          "bearing": 0.743,
+          "vertical": null,
+          "rotation_limit": 1.167,
+          "rotation_ex": 0.031,
+          "mmd": 15991.48,
+          "rotation_moment": null,
+          "rhb": 4892.03,
+          "horizontal": 0.0,
+          "judgement": {
+            "bearing": "OK",
+            "rotation_ex": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "short_term": {
+          "combination": 15,
+          "vd": 18788.39,
+          "hd": 0.0,
+          "md": 408.4,
+          "ex": 0.022,
+          "b_effective": 6.956,
+          "area_effective": 62.604,
+          "delta": 0.0,
+          "triangular": false,
+          "width_loaded": 7.0,
+          "pd1": 303.85,
+          "pd2": 292.6,
+          "gamma_e2": 10.8,
+          "i_gamma": 1.0,
+          "i_q": 1.0,
+          "beta_b": 0.345,
+          "b_e": 6.956,
+          "term_gamma": 1799.87,
+          "term_q": 2131.92,
+          "qvd": 3931.79,
+          "qd_unlimited": 3982.55,
+          "qd": 3982.55,
+          "rvd": null,
+          "bearing": 0.076,
+          "vertical": null,
+          "rotation_limit": 1.75,
+          "rotation_ex": 0.013,
+          "mmd": 60835.05,
+          "rotation_moment": null,
+          "rhb": 5621.97,
+          "horizontal": 0.0,
+          "judgement": {
+            "bearing": "OK",
+            "rotation_ex": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "safety_vertical": {
+          "combination": 10,
+          "vd": 22585.15,
+          "hd": 473.43,
+          "md": 4767.97,
+          "ex": 0.211,
+          "b_effective": 6.578,
+          "area_effective": 59.202,
+          "delta": 1.201,
+          "triangular": false,
+          "width_loaded": 7.0,
+          "pd1": 423.33,
+          "pd2": 293.66,
+          "gamma_e2": 10.8,
+          "i_gamma": 0.944,
+          "i_q": 0.973,
+          "beta_b": 0.354,
+          "b_e": 6.578,
+          "term_gamma": 2209.2,
+          "term_q": 2779.64,
+          "qvd": 4988.84,
+          "qd_unlimited": 5039.6,
+          "qd": 5039.6,
+          "rvd": 298354.4,
+          "bearing": null,
+          "vertical": 0.109,
+          "rotation_limit": null,
+          "rotation_ex": null,
+          "mmd": 73424.9,
+          "rotation_moment": 0.094,
+          "rhb": 6758.06,
+          "horizontal": 0.07,
+          "judgement": {
+            "vertical": "OK",
+            "rotation_moment": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "safety_moment": {
+          "combination": 11,
+          "vd": 21870.78,
+          "hd": 495.01,
+          "md": 5460.44,
+          "ex": 0.25,
+          "b_effective": 6.5,
+          "area_effective": 58.5,
+          "delta": 1.297,
+          "triangular": false,
+          "width_loaded": 7.0,
+          "pd1": 421.55,
+          "pd2": 272.76,
+          "gamma_e2": 10.8,
+          "i_gamma": 0.939,
+          "i_q": 0.971,
+          "beta_b": 0.356,
+          "b_e": 6.5,
+          "term_gamma": 2183.71,
+          "term_q": 2773.93,
+          "qvd": 4957.64,
+          "qd_unlimited": 5008.4,
+          "qd": 5008.4,
+          "rvd": 292991.4,
+          "bearing": null,
+          "vertical": 0.107,
+          "rotation_limit": null,
+          "rotation_ex": null,
+          "mmd": 71241.85,
+          "rotation_moment": 0.11,
+          "rhb": 6544.3,
+          "horizontal": 0.076,
+          "judgement": {
+            "vertical": "OK",
+            "rotation_moment": "OK",
+            "horizontal": "OK"
+          }
+        }
+      }
+    },
+    "0622": {
+      "gamma_e2": {
+        "normal": {
+          "wet_segment": 2.0,
+          "submerged_segment": 2.7,
+          "value": 12.8
+        },
+        "high": {
+          "wet_segment": 0.92,
+          "submerged_segment": 3.78,
+          "value": 10.8
+        }
+      },
+      "long_term_limit": 360.16,
+      "columns": {
+        "long_term": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 0.0,
+          "ex": 0.0,
+          "b_effective": 9.0,
+          "area_effective": 63.0,
+          "delta": 0.0,
+          "triangular": false,
+          "width_loaded": 9.0,
+          "pd1": 259.51,
+          "pd2": 259.51,
+          "gamma_e2": 12.8,
+          "i_gamma": 1.0,
+          "i_q": 1.0,
+          "beta_b": 0.344,
+          "b_e": 7.0,
+          "term_gamma": 1191.96,
+          "term_q": 1667.64,
+          "qvd": 2859.6,
+          "qd_unlimited": 2919.76,
+          "qd": 360.16,
+          "rvd": null,
+          "bearing": 0.721,
+          "vertical": null,
+          "rotation_limit": 1.5,
+          "rotation_ex": 0.0,
+          "mmd": 20560.47,
+          "rotation_moment": null,
+          "rhb": 4892.03,
+          "horizontal": 0.0,
+          "judgement": {
+            "bearing": "OK",
+            "rotation_ex": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "short_term": {
+          "combination": 15,
+          "vd": 18788.38,
+          "hd": 0.0,
+          "md": 1573.13,
+          "ex": 0.084,
+          "b_effective": 8.832,
+          "area_effective": 61.824,
+          "delta": 0.0,
+          "triangular": false,
+          "width_loaded": 9.0,
+          "pd1": 314.93,
+          "pd2": 281.53,
+          "gamma_e2": 10.8,
+          "i_gamma": 1.0,
+          "i_q": 1.0,
+          "beta_b": 0.341,
+          "b_e": 7.0,
+          "term_gamma": 1790.25,
+          "term_q": 2131.92,
+          "qvd": 3922.17,
+          "qd_unlimited": 3972.93,
+          "qd": 3972.93,
+          "rvd": null,
+          "bearing": 0.079,
+          "vertical": null,
+          "rotation_limit": 2.25,
+          "rotation_ex": 0.037,
+          "mmd": 78201.13,
+          "rotation_moment": null,
+          "rhb": 5621.97,
+          "horizontal": 0.0,
+          "judgement": {
+            "bearing": "OK",
+            "rotation_ex": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "safety_vertical": {
+          "combination": 10,
+          "vd": 22585.13,
+          "hd": 465.94,
+          "md": 7389.08,
+          "ex": 0.327,
+          "b_effective": 8.346,
+          "area_effective": 58.422,
+          "delta": 1.182,
+          "triangular": false,
+          "width_loaded": 9.0,
+          "pd1": 436.65,
+          "pd2": 280.34,
+          "gamma_e2": 10.8,
+          "i_gamma": 0.945,
+          "i_q": 0.974,
+          "beta_b": 0.332,
+          "b_e": 7.0,
+          "term_gamma": 2207.16,
+          "term_q": 2782.5,
+          "qvd": 4989.66,
+          "qd_unlimited": 5040.42,
+          "qd": 5040.42,
+          "rvd": 294471.42,
+          "bearing": null,
+          "vertical": 0.11,
+          "rotation_limit": null,
+          "rotation_ex": null,
+          "mmd": 94404.55,
+          "rotation_moment": 0.113,
+          "rhb": 6758.05,
+          "horizontal": 0.069,
+          "judgement": {
+            "vertical": "OK",
+            "rotation_moment": "OK",
+            "horizontal": "OK"
+          }
+        },
+        "safety_moment": {
+          "combination": 12,
+          "vd": 20045.0,
+          "hd": 788.53,
+          "md": 13068.19,
+          "ex": 0.652,
+          "b_effective": 7.696,
+          "area_effective": 53.872,
+          "delta": 2.253,
+          "triangular": false,
+          "width_loaded": 9.0,
+          "pd1": 456.47,
+          "pd2": 179.87,
+          "gamma_e2": 10.8,
+          "i_gamma": 0.896,
+          "i_q": 0.951,
+          "beta_b": 0.318,
+          "b_e": 7.0,
+          "term_gamma": 2004.47,
+          "term_q": 2716.79,
+          "qvd": 4721.26,
+          "qd_unlimited": 4772.02,
+          "qd": 4772.02,
+          "rvd": 257078.26,
+          "bearing": null,
+          "vertical": 0.112,
+          "rotation_limit": null,
+          "rotation_ex": null,
+          "mmd": 84188.25,
+          "rotation_moment": 0.224,
+          "rhb": 5997.98,
+          "horizontal": 0.131,
+          "judgement": {
+            "vertical": "OK",
+            "rotation_moment": "OK",
+            "horizontal": "OK"
+          }
+        }
+      }
+    }
+  },
+  "sample_actions": {
+    "note": "Printed Vd / Hd / Md of 8-30 (= 8-32) and 9-27 (= 9-29). The combination numbers are not printed; they are the reconciled assignments of longitudinal_notes.md / transverse_notes.md.",
+    "8-30": {
+      "long_term": {
+        "combination": 14,
+        "vd": 16348.95,
+        "hd": 0.0,
+        "md": 584.25
+      },
+      "short_term": {
+        "combination": 15,
+        "vd": 18788.17,
+        "hd": 0.0,
+        "md": 408.49
+      },
+      "safety_vertical": {
+        "combination": 10,
+        "vd": 22585.12,
+        "hd": 473.43,
+        "md": 4767.98
+      },
+      "safety_moment": {
+        "combination": 11,
+        "vd": 21870.77,
+        "hd": 495.01,
+        "md": 5460.42
+      }
+    },
+    "9-27": {
+      "long_term": {
+        "combination": 14,
+        "vd": 16348.95,
+        "hd": 0.0,
+        "md": 0.0
+      },
+      "short_term": {
+        "combination": 15,
+        "vd": 18788.17,
+        "hd": 0.0,
+        "md": 1572.67
+      },
+      "safety_vertical": {
+        "combination": 10,
+        "vd": 22585.12,
+        "hd": 194.91,
+        "md": 3451.7
+      },
+      "safety_moment": {
+        "combination": 12,
+        "vd": 20045.0,
+        "hd": 797.47,
+        "md": 10409.79
+      }
+    }
+  }
+}

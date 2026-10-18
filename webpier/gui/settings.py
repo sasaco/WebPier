@@ -19,7 +19,7 @@ from ..core.integrity import dump_json, load_json
 
 @dataclass(frozen=True)
 class EditorSettings:
-    frame_analysis: bool = False  # 計算・印刷 adds the opt-in frame analysis stages (0611, 0621)
+    frame_analysis: bool = False  # 計算・印刷 adds the opt-in frame analysis stages (0611, 0612, 0621, 0622)
     nonlinear_analysis: bool = False  # 計算・印刷 adds the opt-in static nonlinear analysis stages (0711, 0721)
 
 

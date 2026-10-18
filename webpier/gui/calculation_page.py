@@ -76,6 +76,8 @@ class CalculationPage:
         self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
         checked = [stage.id for stage in registry.stages if stage.section_check is not None]
         column_check = f"。{'・'.join(checked)} は Capacita で柱の断面照査も行う（決定48）" if checked else ""
+        founded = [stage.id for stage in registry.stages if stage.complete is not None]
+        column_check += f"。{'・'.join(founded)} は反力で基礎の照査も行う（決定54）" if founded else ""
         self.frame_analysis_box = ttk.Checkbutton(
             page, variable=self.frame_analysis, command=self._analysis_changed,
             text=f"骨組解析も行う（{'・'.join(registry.opt_in(FRAME_ANALYSIS))}。FEMPython：ピックアップ断面力・変位量・反力を "

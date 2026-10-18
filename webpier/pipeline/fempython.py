@@ -1,12 +1,13 @@
-"""The FEMPython runner: the load diagrams of 0610 and 0620 (decision 44, ADR-0005) and the frame analyses of 0611
-and 0621 (decision 46, ADR-0006).
+"""The FEMPython runner: the load diagrams of 0610 and 0620 (decision 44, ADR-0005) and the frame analyses of 0611,
+0612, 0621 and 0622 (decisions 46, 54, ADR-0006).
 
 The FrameWeb file a generation writes is given, as it is, to ``FrameWebforCS.Headless.exe run``. For a load diagram
 the PDF section ``load_diagram`` alone is asked for: the runner draws every load case of the file and calculates
 nothing, and the report takes the returned pages as they are. For a frame analysis, a separate call asks for no PDF
 but the PIK and both node pickup CSVs: the runner calculates the file, and the three files are published as they are
 returned (``result.json`` is checked and not kept). Their content and bytes are FEMPython's, so they are neither
-checked further nor bound to the implementation identity; the sidecars record the runner's ``engineVersion``.
+checked further nor bound to the implementation identity; the sidecars record the runner's ``engineVersion``. The
+基礎の照査 reads the reactions at the support node from the reaction CSV (``support_reactions``, decision 54).
 
 The runner is the absolute path in ``STRUCTURAL_MCP_FEMPYTHON_RUNNER`` (the name structural-mcp uses): the process
 environment first, then the ``.env`` file at the repository root (not tracked). Without a runner, or when it fails,
@@ -16,10 +17,12 @@ a generation that needs it stops; nothing is published without its load diagram 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import csv
 from dataclasses import dataclass
 import hashlib
-from io import BytesIO
+from io import BytesIO, StringIO
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -29,6 +32,8 @@ from typing import Any
 
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
+
+from ..calc.foundation_check import ReactionError, Reactions, SupportReaction
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_DIR / ".env"
@@ -186,3 +191,34 @@ def analyze_frame(name: str, document: bytes, runner: Path, *, timeout: float = 
         version, files = _run(path, runner, ANALYSIS_ARGUMENTS, (_RESULT, *ANALYSIS_FILES.values()),
                               "解析結果・PIK・変位量と反力の CSV の4つ", _ANALYZE, timeout)
     return AnalysisFiles({kind: files[file] for kind, (_, file) in ANALYSIS_FILES.items()}, version)
+
+
+# The columns of the reaction pickup CSV the 基礎の照査 reads, by the name before the unit ("max_fx (kN)").
+_REACTION_COLUMNS = ("pickup_id", "focus_component", "node_id", "max_combine_id", "min_combine_id", "max_fx", "max_fy",
+                     "max_mz", "min_fx", "min_fy", "min_mz")
+
+
+def support_reactions(content: bytes, node: int) -> Reactions:
+    """The largest and the smallest extreme of every pickup and focus component at *node*, from the reaction pickup
+    CSV as FEMPython returns it (decision 54); ``ReactionError`` when it cannot be read."""
+    try:
+        rows = list(csv.reader(StringIO(content.decode("utf-8-sig"))))
+        header = [name.split(" ", 1)[0] for name in rows[0]]
+        index = {name: header.index(name) for name in _REACTION_COLUMNS}
+        found: dict[tuple[int, str], tuple[SupportReaction, SupportReaction]] = {}
+        for number, row in enumerate(rows[1:], 2):
+            if int(row[index["node_id"]]) != node:
+                continue
+            extremes = []
+            for side in ("max", "min"):
+                forces = tuple(float(row[index[f"{side}_{name}"]]) for name in ("fx", "fy", "mz"))
+                if not all(map(math.isfinite, forces)):
+                    raise ReactionError(f"{number} 行目に有限でない反力があります")
+                extremes.append(SupportReaction(int(row[index[f"{side}_combine_id"]]), *forces))
+            key = (int(row[index["pickup_id"]]), row[index["focus_component"]])
+            if key in found:
+                raise ReactionError(f"{number} 行目: ピックアップ {key[0]}（{key[1]}）の節点 {node} が重複しています")
+            found[key] = (extremes[0], extremes[1])
+    except (UnicodeDecodeError, IndexError, ValueError) as exc:
+        raise ReactionError(f"反力の CSV を読めません（{exc}）") from exc
+    return found

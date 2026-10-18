@@ -7,9 +7,11 @@
    built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
    error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
    FrameWeb file, and its report takes those pages (decision 44); a stage with a データ確認図 (0710, 0720) has the
-   JRSNAP runner draw it from its NDU the same way (decision 50). A stage with a frame analysis (0611, 0621,
-   opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
-   rendered; the returned pickup files are staged as they are (decision 46). A stage with a static nonlinear
+   JRSNAP runner draw it from its NDU the same way (decision 50). A stage with a frame analysis (0611, 0612, 0621,
+   0622, opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
+   rendered; the returned pickup files are staged as they are (decision 46). Stages that analyze the same file share
+   one call and one set of files, staged under the first of them; a stage that reads them (the 基礎の照査, decision
+   54) finishes its result with them before any report is rendered. A stage with a static nonlinear
    analysis (0711, 0721, opt-in) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
    file is staged, under JRSNAP's name, in one folder (decision 47), and beside it the Aggre-SE project that reads
    the DB1 of each Case (decision 49; its input is checked before any analysis). Each export is built once, so the file
@@ -39,6 +41,7 @@ from gridlayoutpdf import LayoutError
 from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..export.aggrese import ProjectError
+from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
 from . import capacita, jrsnap
@@ -103,9 +106,15 @@ def _state(path: Path) -> str | None:
     return content_sha256(path) if path.exists() else None
 
 
+def _analysis_key(analysis: FrameAnalysis) -> tuple[str, str]:
+    """The FrameWeb file an analysis reads: stages with the same key share one analysis (decision 54)."""
+    return analysis.stage, analysis.export
+
+
 def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]
           ) -> tuple[list[Artifact], list[_PostFile]]:
     reports, posts = [], []
+    analyzed: set[tuple[str, str]] = set()
     for stage_id in selected:
         stage = registry.get(stage_id)
         if stage.has_report:
@@ -113,7 +122,8 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
         files = [(item.kind, item.file_name, item, False, None, None) for item in stage.exports]
-        if stage.frame_analysis is not None:
+        if stage.frame_analysis is not None and _analysis_key(stage.frame_analysis) not in analyzed:
+            analyzed.add(_analysis_key(stage.frame_analysis))
             files += [(kind, file_name, None, False, None, None) for kind, file_name in stage.frame_analysis.files]
         if (check := stage.section_check) is not None:
             files.append((check.kind, check.file_name, None, False, None, check))
@@ -284,14 +294,18 @@ def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadD
 
 
 def _analysis_facts(registry: Registry, post: _PostFile, analyzed: Mapping[str, AnalysisFiles],
-                    built: Mapping[tuple[str, str], bytes]) -> dict[str, Any]:
-    # The returned files are FEMPython's (decision 46): which runner returned them, and for which bytes. The
-    # FrameWeb file need not be of this generation (a stage chosen alone), so its SHA256 is what binds them.
+                    built: Mapping[tuple[str, str], bytes], selected: Sequence[str]) -> dict[str, Any]:
+    # The returned files are FEMPython's (decision 46): which runner returned them, for which bytes, and which selected
+    # stages used them (decision 54). The FrameWeb file need not be of this generation (a stage chosen alone), so its
+    # SHA256 is what binds them.
     analysis = registry.get(post.stage).frame_analysis
+    users = [stage_id for stage_id in selected if (other := registry.get(stage_id).frame_analysis) is not None
+             and _analysis_key(other) == _analysis_key(analysis)]
     return {"frame_analysis": {"engine": ENGINE, "engine_version": analyzed[post.stage].engine_version,
                                "frameweb": {"stage": analysis.stage, "export": analysis.export,
                                             "file": _source(registry, analysis).file_name,
-                                            "sha256": sha256(built[(analysis.stage, analysis.export)])}}}
+                                            "sha256": sha256(built[(analysis.stage, analysis.export)])},
+                               "stages": users}}
 
 
 def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
@@ -372,6 +386,14 @@ def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections:
         return capacita.check_column(wdj, pik_name, pik, runner, sections)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
+
+
+def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str, bytes]) -> Any:
+    try:
+        return registry.get(stage_id).complete(result, files)
+    except ReactionError as exc:
+        name = dict(registry.get(stage_id).frame_analysis.files)["reaction"]
+        raise GenerationError(f"{name} で{stage_id}の基礎の照査ができません: {exc}") from exc
 
 
 def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str, pik: bytes) -> bytes:
@@ -468,9 +490,15 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         checked = {post.stage: _draw_data_check(post.native.path.name, built[(post.stage, post.kind)], jrsnap_runner)
                    for post in posts
                    if post.export is not None and post.kind == registry.get(post.stage).data_check}
-        analyzed = {stage_id: _analyze(_source(registry, analysis).file_name,
-                                       built[(analysis.stage, analysis.export)], runner)
-                    for stage_id, analysis in analyses.items()}
+        runs: dict[tuple[str, str], AnalysisFiles] = {}  # one call for each FrameWeb file (decision 54)
+        for analysis in analyses.values():
+            if _analysis_key(analysis) not in runs:
+                runs[_analysis_key(analysis)] = _analyze(_source(registry, analysis).file_name,
+                                                         built[(analysis.stage, analysis.export)], runner)
+        analyzed = {stage_id: runs[_analysis_key(analysis)] for stage_id, analysis in analyses.items()}
+        for stage_id in selected:
+            if registry.get(stage_id).complete is not None:
+                results[stage_id] = _complete(registry, stage_id, results[stage_id], analyzed[stage_id].files)
         solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
                                                built[(analysis.stage, analysis.export)], jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
@@ -524,7 +552,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
-                     else _analysis_facts(registry, post, analyzed, built))
+                     else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)
         candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline)

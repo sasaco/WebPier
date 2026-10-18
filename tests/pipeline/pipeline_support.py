@@ -6,6 +6,8 @@ tests can tell what was calculated and rendered, and in which order.
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -69,6 +71,19 @@ def fake_registry(recorder: Recorder) -> Registry:
                   (Export("jrsnap", "model.ndu", recorder.export("C", b"NDU C\r\n"),
                           metadata={"target_version": "5.2-L03", "analysis_run": False}),)),
     ))
+
+
+def fake_fempython():
+    """The stand-in FEMPython runner as a module: what it writes is its own (tests/fixtures/fempython/fake_runner.py)."""
+    spec = importlib.util.spec_from_file_location("fake_fempython_runner", FIXTURES / "fempython" / "fake_runner.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def fake_reactions(frameweb: bytes) -> bytes:
+    """The reaction pickup CSV the stand-in returns for the FrameWeb file *frameweb* (decision 54)."""
+    return fake_fempython().reactions(json.loads(frameweb))
 
 
 def copy_input(directory: Path) -> Path:

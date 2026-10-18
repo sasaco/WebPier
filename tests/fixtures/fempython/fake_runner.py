@@ -7,8 +7,12 @@ empty, the files in it, and one UTF-8 JSON envelope (protocolVersion 1) on stdou
 ``report.pdf`` with one page per two load cases of the FrameWeb file, each page saying which file and cases it stands
 for, so a test can find the pages in a report. Instead of the analysis it writes ``result.json`` and, for the three
 files WebPier publishes, the line ``FAKE PIK <file name> <SHA256 of the input bytes>`` (``pickup.pik``), ``FAKE
-DISPLACEMENT …`` (``pickup-displacement.csv``) and ``FAKE REACTION …`` (``pickup-reaction.csv``), UTF-8 with LF, so
-a test can tell which bytes were analyzed. In the PIK that line stands for the header and is followed by the points
+DISPLACEMENT …`` (``pickup-displacement.csv``), UTF-8 with LF, so a test can tell which bytes were analyzed, and the
+reaction pickup (``pickup-reaction.csv``) in the real runner's columns: a header (units as the real runner leaves
+them), then for every pickup, focus component (fx, fy, mz) and node of the file one row of the largest and the
+smallest extreme over the pickup's combinations, with the forces of that combination. Only the support nodes
+(``fix_node``) have forces, those of ``reaction(c)`` for combination c, so a test knows what the 基礎の照査 reads
+(decision 54); every other node has zeros and the pickup's first combination. In the PIK that line stands for the header and is followed by the points
 of the first pickup in the real runner's fixed columns (PickUpNo, 着目力 M, 部材No, cases, 着目点, 着目点距離, zero
 forces): every member in order with ITAN, a numbered point where a member load on it starts or ends inside it, and
 JTAN, so the place of a point (export.capacita.point_index) is the real runner's for the same file. When the real
@@ -76,13 +80,46 @@ def pik(source, digest):
     return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows]).encode()
 
 
+def reaction(combination):
+    """(fx, fy, mz) at a support node for *combination*: fy downward, so the vertical reaction is upward (negative)."""
+    sign = -1 if combination % 2 else 1
+    return 10.5 * combination * sign, -(15000.0 + 125.25 * combination), -40.5 * combination * sign
+
+
+REACTION_HEADER = ("pickup_id,focus_component,node_id,max_combine_id,min_combine_id,"
+                   + ",".join(f"{side}_{name} ({unit})" for side in ("max", "min")
+                              for name, unit in (("fx", "unspecified"), ("fy", "unspecified"), ("fz", "unspecified"),
+                                                 ("mx", "unspecified*unspecified"), ("my", "unspecified*unspecified"),
+                                                 ("mz", "unspecified*unspecified"))))
+
+
+def reactions(document):
+    """The reaction pickup CSV of a FrameWeb document (see the module docstring)."""
+    supports = {str(item["n"]) for rows in document.get("fix_node", {}).values() for item in rows}
+    lines = [REACTION_HEADER]
+    for number, pickup in document.get("pickup", {}).items():
+        combinations = [pickup[key] for key in pickup if key.startswith("C")]
+        for focus, index in (("fx", 0), ("fy", 1), ("mz", 2)):
+            for node in document.get("node", {}):
+                if node in supports:
+                    largest = max(combinations, key=lambda c: reaction(c)[index])
+                    smallest = min(combinations, key=lambda c: reaction(c)[index])
+                else:
+                    largest = smallest = combinations[0]
+                forces = [reaction(c) if node in supports else (0.0, 0.0, 0.0) for c in (largest, smallest)]
+                values = [f"{fx!r},{fy!r},0,0,0,{mz!r}" for fx, fy, mz in forces]
+                lines.append(f"{number},{focus},{node},{largest},{smallest},{values[0]},{values[1]}")
+    return "".join(f"{line}\n" for line in lines).encode()
+
+
 def analysis(source):
     """(file, kind, bytes) of a frame analysis of *source*, in the order the real runner lists them."""
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    document = json.loads(source.read_text(encoding="utf-8"))
     return [("result.json", "result", json.dumps({"kind": "frameweb_analysis", "input": digest}).encode()),
             ("pickup.pik", "pik", pik(source, digest)),
             ("pickup-displacement.csv", "pickup-displacement", f"FAKE DISPLACEMENT {source.name} {digest}\n".encode()),
-            ("pickup-reaction.csv", "pickup-reaction", f"FAKE REACTION {source.name} {digest}\n".encode())]
+            ("pickup-reaction.csv", "pickup-reaction", reactions(document))]
 
 
 def failure(code, message, category):

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDU、JRSNAP の結果を読む Aggre-SE のプロジェクトXML（決定49）、柱の断面照査の計算書と WDJ（0611・0621、決定48）を生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
+鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDU、JRSNAP の結果を読む Aggre-SE のプロジェクトXML（決定49）、柱の断面照査の計算書と WDJ（0611・0621、決定48）、基礎の照査の計算書（0612・0622、決定54）を生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
 
 ## コマンド
 
@@ -13,10 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```powershell
 # 計算・PDF生成（既定は --stage all。既存成果物の更新には --overwrite）
 uv run --project "." --locked python -m webpier --overwrite
-uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0611/0620/0621/0710/0711/0720/0721/all
+uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0611/0612/0620/0621/0622/0710/0711/0720/0721/all
 # 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
-# 骨組解析（0611/0621、選択式。all には含まれない。決定46）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
+# 骨組解析（0611/0612/0621/0622、選択式。all には含まれない。決定46・54。同じ FrameWeb 入力の解析は1回）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
 # 0611・0621 はそのピックアップで柱の断面照査も Capacita で行い、計算書（8.5〜8.9・9.5〜9.9）と post/線路方向.wdj・post/線路直角方向.wdj を出力する（決定48）
+# 0612・0622 は同じ解析の支点反力で基礎の照査を WebPier で行い、計算書（8.10・9.10）を出力する（決定54）
 uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
 # 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）
 uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite

@@ -18,7 +18,10 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
 results (decision 49). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
 the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages and section
-ranges, and the completed WDJ is published under post/. Such a stage is ``opt_in``: ``all`` leaves it out unless its
+ranges, and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
+with the files of its frame analysis (the 基礎の照査 reads the support reactions, decision 54): ``calculate`` gives
+what the input alone decides, before any runner. Stages that analyze the same FrameWeb file declare the same files and
+share one analysis: a generation runs it once and publishes its files once (decision 54). Such a stage is ``opt_in``: ``all`` leaves it out unless its
 switch is given (``--frame-analysis``, ``--nonlinear-analysis``), and so is every stage that reads one, with the same
 switch; chosen directly, it is calculated with its dependencies.
 """
@@ -35,6 +38,9 @@ from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.foundation import calculate_foundation
+from ..calc.foundation_check import LONGITUDINAL as FOUNDATION_LONGITUDINAL, TRANSVERSE as FOUNDATION_TRANSVERSE
+from ..calc.foundation_check import Direction as FoundationDirection, check as check_foundation
+from ..calc.foundation_check import prepare as prepare_foundation_check
 from ..calc.longitudinal import calculate_longitudinal
 from ..calc.reaction import calculate_reaction
 from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
@@ -53,12 +59,15 @@ from ..inputs import PierInput
 from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
 from ..reporting.stages.column_check import Chapter, render_column_check
 from ..reporting.stages.foundation import render_foundation
+from ..reporting.stages.foundation_check import LONGITUDINAL as FOUNDATION_CHAPTER_8
+from ..reporting.stages.foundation_check import TRANSVERSE as FOUNDATION_CHAPTER_9
+from ..reporting.stages.foundation_check import Chapter as FoundationChapter, render_foundation_check
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
-from .fempython import ANALYSIS_FILES
+from .fempython import ANALYSIS_FILES, support_reactions
 
 Results = Mapping[str, Any]
 ALL = "all"
@@ -168,6 +177,8 @@ class StageSpec:
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
     section_check: SectionCheck | None = None  # Capacita checks the column with the PIK of frame_analysis (decision 48)
+    # (the result of calculate, the files of frame_analysis by kind) → the stage's result (decision 54), or none
+    complete: Callable[[Any, Mapping[str, bytes]], Any] | None = None
 
     @property
     def has_report(self) -> bool:
@@ -184,6 +195,7 @@ class Registry:
             raise ValueError("段階がありません")
         seen: list[str] = []
         files: set[str] = set()
+        shared: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {}  # the files of each analyzed FrameWeb file
         for stage in self.stages:
             if stage.id == ALL:
                 raise ValueError(f"段階の名前に{ALL}は使えません")
@@ -204,6 +216,7 @@ class Registry:
                     and stage.nonlinear_analysis is None):
                 raise ValueError(f"{stage.id}には成果物がありません")
             outputs = [(item.kind, item.file_name) for item in stage.exports]
+            reused: set[str] = set()  # the files of an analysis an earlier stage shares
             analysis = stage.frame_analysis
             if analysis is not None:
                 self._check_source(stage, analysis.stage, analysis.export, "骨組解析")
@@ -211,7 +224,15 @@ class Registry:
                     raise ValueError(f"{stage.id}の骨組解析の出力は {'・'.join(ANALYSIS_FILES)} です")
                 if stage.opt_in != FRAME_ANALYSIS:
                     raise ValueError(f"{stage.id}は骨組解析するので選択式（{FRAME_ANALYSIS}）の段階です")
+                key = (analysis.stage, analysis.export)
+                if key in shared:
+                    if shared[key] != analysis.files:
+                        raise ValueError(f"{stage.id}は{analysis.stage}の骨組解析を共有するので、同じ出力が必要です")
+                    reused = {file_name for _, file_name in analysis.files}
+                shared[key] = analysis.files
                 outputs += analysis.files
+            if stage.complete is not None and (analysis is None or not stage.has_report):
+                raise ValueError(f"{stage.id}の結果を骨組解析の出力で仕上げるには、骨組解析と計算書が必要です")
             check = stage.section_check
             if check is not None:
                 if analysis is None:
@@ -239,7 +260,7 @@ class Registry:
                     raise ValueError(f"{stage.id}の出力の種類が重複しています: {kind}")
                 if not _plain_name(file_name):
                     raise ValueError(f"出力ファイル名が不正です: {file_name}")
-                if file_name in files:
+                if file_name in files and file_name not in reused:
                     raise ValueError(f"出力ファイル名が重複しています: {file_name}")
                 kinds.add(kind)
                 files.add(file_name)
@@ -345,6 +366,18 @@ def _column_check(stage_id: str, stem: str, source: str, name: str, direction: D
                      section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections))
 
 
+def _foundation_check(stage_id: str, stem: str, source: str, name: str, direction: FoundationDirection,
+                      chapter: FoundationChapter) -> StageSpec:
+    """The 基礎の照査 in *direction* with the support reactions of the frame analysis of the FrameWeb file of *source*,
+    shared with the column check of the same file (decision 54)."""
+    return StageSpec(stage_id, stem, ("0500", source),
+                     lambda pier, results: prepare_foundation_check(pier, results["0500"], results[source], direction),
+                     lambda results, pier, path: render_foundation_check(results[stage_id], path, chapter),
+                     opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
+                     complete=lambda basis, files: check_foundation(basis, support_reactions(files["reaction"],
+                                                                                             basis.node)))
+
+
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
 # A normal generation only writes the project; Aggre-SE reading it and checking with it are separate records.
@@ -365,6 +398,7 @@ STAGES = Registry((
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
     _column_check("0611", "0611_線路方向照査", "0610", "線路方向", COLUMN_LONGITUDINAL, CHAPTER_8),
+    _foundation_check("0612", "0612_線路方向基礎", "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
@@ -372,6 +406,7 @@ STAGES = Registry((
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
               load_diagram="frameweb"),
     _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
+    _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),

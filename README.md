@@ -1,6 +1,6 @@
 # WebPier 鉄道橋脚の荷重計算
 
-`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成し、その NDU を JRSNAP に読ませて描いたデータ確認図のページを 0710・0720 の計算書に差し込みます。選べば（`--frame-analysis`）、0611・0621 でその FrameWeb 入力を FEMPython で骨組解析し、ピックアップ断面力・変位量・反力のファイルも作成します。0611 はさらに、そのピックアップで柱下端の断面照査を Capacita に行わせ、計算書（8.5〜8.9）と Capacita で開ける WDJ も作成します。別に選べば（`--nonlinear-analysis`）、0711・0721 で両方向の NDU を JRSNAP で静的非線形解析し、解析用データ（.NDT）と解析結果のファイルに加えて、その結果を Aggre-SE（structural-mcp の `Batch`、Docu-SE）で耐震照査するためのプロジェクトXMLも作成します。
+`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成し、その NDU を JRSNAP に読ませて描いたデータ確認図のページを 0710・0720 の計算書に差し込みます。選べば（`--frame-analysis`）、0611・0621 でその FrameWeb 入力を FEMPython で骨組解析し、ピックアップ断面力・変位量・反力のファイルも作成します。0611 はさらに、そのピックアップで柱下端の断面照査を Capacita に行わせ、計算書（8.5〜8.9）と Capacita で開ける WDJ も作成します。0612・0622 は同じ骨組解析の支点反力で直接基礎の照査（鉛直支持・水平支持・回転）を行い、計算書（8.10・9.10）を作成します。別に選べば（`--nonlinear-analysis`）、0711・0721 で両方向の NDU を JRSNAP で静的非線形解析し、解析用データ（.NDT）と解析結果のファイルに加えて、その結果を Aggre-SE（structural-mcp の `Batch`、Docu-SE）で耐震照査するためのプロジェクトXMLも作成します。
 
 計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、WebPier はそのピックアップを設計応答値として基礎の安定計算に使います（[ADR-0006](docs/adr/0006-frame-analysis-by-fempython.md)）。**寸法・配筋の最適化は対象外**です。
 
@@ -14,15 +14,15 @@ Windows専用です。リポジトリのルートで実行します。初回は 
 uv run --project "." --locked python -m webpier                     # 全段階（--stage all）
 uv run --project "." --locked python -m webpier --overwrite         # 既存の成果物を更新する
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite
-uv run --project "." --locked python -m webpier --frame-analysis --overwrite  # 全段階＋骨組解析と柱の断面照査（0611・0621）
+uv run --project "." --locked python -m webpier --frame-analysis --overwrite  # 全段階＋骨組解析と柱・基礎の照査（0611・0612・0621・0622）
 uv run --project "." --locked python -m webpier --nonlinear-analysis --overwrite  # 全段階＋静的非線形解析（0711・0721）
 uv run --project "." --locked python "./run_design.py" --overwrite  # python -m webpier と同じ
 ```
 
 | 引数 | 意味 |
 |---|---|
-| `--stage {0500,0600,0610,0611,0620,0621,0710,0711,0720,0721,all}` | 計算する段階。既定は `all`。依存する段階は内部で計算するが、その成果物は書かない。`all` は選択式の 0611・0621・0711・0721 を含まない |
-| `--frame-analysis` | `--stage all` に骨組解析の段階 0611・0621 を加える。1つの段階を選ぶ `--stage` とは組み合わせない（終了コード 2。0611・0621 は `--stage` で直接選べる） |
+| `--stage {0500,0600,0610,0611,0612,0620,0621,0622,0710,0711,0720,0721,all}` | 計算する段階。既定は `all`。依存する段階は内部で計算するが、その成果物は書かない。`all` は選択式の 0611・0612・0621・0622・0711・0721 を含まない |
+| `--frame-analysis` | `--stage all` に骨組解析の段階 0611・0612・0621・0622 を加える。1つの段階を選ぶ `--stage` とは組み合わせない（終了コード 2。これらは `--stage` で直接選べる） |
 | `--nonlinear-analysis` | `--stage all` に静的非線形解析の段階 0711・0721 を加える。`--frame-analysis` とは別のスイッチで、両方を付けてもよい。1つの段階を選ぶ `--stage` とは組み合わせない（0711・0721 は `--stage` で直接選べる） |
 | `--overwrite` | 既存の成果物を置き換える。指定しないと、既存の成果物があれば何も書かずに止まる |
 | `--input` | 入力JSON（既定 `pre/input.json`） |
@@ -37,8 +37,10 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0600 | — | `0600_上部工反力.pdf` / `.json` | — |
 | 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `線路方向.json` と付帯JSON |
 | 0611（選択式） | 0610 | `0611_線路方向照査.pdf` / `.json`（柱の断面照査） | `線路方向.pik`・`線路方向_ピックアップ変位量.csv`・`線路方向_ピックアップ反力.csv`・`線路方向.wdj` と各付帯JSON |
+| 0612（選択式） | 0500, 0610 | `0612_線路方向基礎.pdf` / `.json`（基礎の照査） | 0611 と同じピックアップのファイル3つと各付帯JSON（0611 と一緒なら1組） |
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
 | 0621（選択式） | 0620 | `0621_直角方向照査.pdf` / `.json`（柱の断面照査） | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv`・`線路直角方向.wdj` と各付帯JSON |
+| 0622（選択式） | 0500, 0620 | `0622_直角方向基礎.pdf` / `.json`（基礎の照査） | 0621 と同じピックアップのファイル3つと各付帯JSON（0621 と一緒なら1組） |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
 | 0711（選択式） | 0710 | — | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json`、Aggre-SE のプロジェクト `線路方向.xml` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
@@ -46,7 +48,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 
 `--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
-0611・0621 は骨組解析の段階です（決定46、ADR-0006）。どちらも骨組解析に続けて柱の断面照査を行い、その計算書を持ちます（決定48、下記）。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、0611・0621 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`・`線路直角方向.wdj`、付帯JSON8つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
+0611・0612・0621・0622 は骨組解析の段階です（決定46、ADR-0006）。0611・0621 は骨組解析に続けて柱の断面照査を行い（決定48、下記）、0612・0622 は同じ骨組解析の反力で基礎の照査を行います（決定54、下記）。同じ FrameWeb 入力を解析する段階（0611 と 0612、0621 と 0622）は解析を共有し、1回の生成で FEMPython を1回だけ呼び、ピックアップのファイルも1組だけ公開します（付帯JSONの `stage` は先の段階、`frame_analysis.stages` に使った段階）。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、0611・0612・0621・0622 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`・`線路直角方向.wdj`、付帯JSON8つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。`--stage 0612` も同じで、0611 を選ばずに基礎の照査だけを作れます（骨組解析は自分で行い、ピックアップのファイルも書きます）。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
 0610・0620 の荷重図は、同じ生成で書いた FrameWeb 入力を FEMPython の `FrameWebforCS.Headless.exe` に描かせて計算書に差し込みます（決定44、ADR-0005）。runner の絶対パスをリポジトリのルートの `.env`（git で追跡しません）に書いてください。プロセスの環境変数に同じ名前があればそちらが優先です。
 
@@ -54,7 +56,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPython\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'
 ```
 
-設定がない・runner がない・runner が荷重図を描けない（骨組解析できない）ときは、0610・0620（0611・0621）を含む生成は何も公開せずに止まります（終了コード 2）。荷重図や骨組解析を省いて続けることはしません。
+設定がない・runner がない・runner が荷重図を描けない（骨組解析できない）ときは、0610・0620（0611・0612・0621・0622）を含む生成は何も公開せずに止まります（終了コード 2）。荷重図や骨組解析を省いて続けることはしません。
 
 0611（線路方向）・0621（直角方向）の柱の断面照査（決定48、ADR-0008）は Capacita（structural-mcp の `Capacita`、RcDan）が行います。2つの段階は方向（主鉄筋の面・側方鉄筋の面・帯鉄筋の行・断面の向き）と節の番号（0611 は 8.5〜8.9、0621 は 9.5〜9.9）だけが違います。WebPier は柱下端の1断面について WDJ を作り（断面・配筋・抽出ケースの対応・安全係数・ひび割れの条件・適用基準。断面力は持たない。柱下端の着目点の番号は PIK の着目点の並びから求め、断面力は読まない）、同じ生成の `線路方向.pik`（`線路直角方向.pik`）のバイトとともに `WebDanforCS.Headless.exe run-rc --output-format pdf --pickup <pik>` に渡します。Capacita は GUI の「断面力データ取込」と同じ変換でピックアップを取り込んで計算し、計算書（`report.pdf`）と、節ごとのページ範囲（`summary.reportSections`）と、取り込んだ完成の WDJ を返します。WebPier は 8.5〜8.9（9.5〜9.9）の見出しと解説（照査式・記号・曲げひび割れの検討のフローチャート）だけを描き、それぞれの後に Capacita の計算書のその節のページを差し込みます（8.5 断面力の総括、8.6 安全性（破壊）の曲げ・せん断、8.7 耐久性の曲げひび割れ・せん断ひび割れ、8.8 使用性（外観）、8.9 復旧性の曲げ・せん断）。外観の照査を「行わない」入力では 8.8 を置かず、8.9 の番号はそのままです。Capacita が断面力0で照査を飛ばした節（RC標準の省略の規則。Capacita は節を返さず、info のメッセージ WD-1901〜1908 で理由を返す）は、見出しと解説の後に省略の理由の1文を印刷し、ページは差し込みません（Example2 の 0621 では、永久作用が左右対称なので 9.7(2) せん断ひび割れと 9.8 使用性）。直角方向の側方鉄筋が隅の鉄筋を含んで間隔が両端だけ違うとき（Example2 の線路の D32）は、見本どおり位置を書かずに本数だけを書き、Capacita が上下の主鉄筋の間に等分に配置します。解説には WDJ に書いた γi・γb・kr・k4・ε'csd と入力の環境条件を印刷し、Capacita の中にだけある制限値の表は印刷しません（使った値は差し込むページにあります）。完成の WDJ は `post/線路方向.wdj`（`post/線路直角方向.wdj`）として付帯JSONとともに公開し、Capacita の GUI で開けます。Capacita は照査値も判定も返さないので、結果JSONには照査を実行したことだけを `section_check`（`engine`・`engine_version`・`engineering_status: not_evaluated`・公開した WDJ のファイル名と SHA256）に、飛ばした節を `skipped_sections` に記録します。判定は計算書のページで確かめてください（NG でも生成は止まりません）。runner の絶対パスは `.env` に書きます（structural-mcp と同じ旧名。プロセスの環境変数が優先）。
 
@@ -63,6 +65,8 @@ STRUCTURAL_MCP_WEBDAN_RUNNER='C:\Users\<user>\Documents\structural-mcp\Capacita\
 ```
 
 設定がない・runner がない・PIK に柱下端の着目点がない・Capacita が計算できない（取込みの失敗を含む）・計算書の節が求めたものと違う（省略のメッセージのない欠けを含む）ときは、0611・0621 を含む生成は何も公開せずに止まります（終了コード 2）。差し込む Capacita のページは毎回同じバイトになるとは限りません（荷重図と同じ例外。WebPier が描くページと結合の手順は決定的です）。
+
+0612（線路方向）・0622（直角方向）の基礎の照査（決定54、CONTEXT.md）は WebPier が行い、計算書（0612 は「8.10 基礎の照査」、0622 は「9.10」）をすべて WebPier が描きます。設計応答値は、骨組解析の `*_ピックアップ反力.csv` のうち、フーチング底面の中心のばね支点（骨組の役割から求める）の反力です（Vd＝−fy、Hd＝|fx|、Md＝|mz|。読むときに印字桁の2桁へ丸める。WebPier で荷重から組み立て直さない）。列は見本 8-30 と同じ4つで、抽出ケースから取ります：長期支持（7）と短期支持（8）は鉛直反力が最大の組合せ、安全性は 6 安定の鉛直反力が最大の組合せ（鉛直力最大）とモーメントの絶対値が最大の組合せ（曲げ最大）。鉛直支持は γi・γa・pd1／qd（長期・短期）と γi・γa・Vd／Rvd（安全性）、回転は γi・γa・ex／制限値（長期 B/6・短期 B/4）と γi・γa・Md／Mmd（安全性、Mmd＝Vd・B/2・(1 − Vd／(qd・B・L))）、水平支持は γi・Hd／Rhd（Rhd＝Rhb＝frs・Vd・tanφ、全列 γi＝1.0）で照査します。qd は見本の「砂質土の場合」の式（qvd＝frγ・Iγ・βb・Be・γe1・Nγ＋frq・Iq・γe2・Df・(Nq−1)、qd＝qvd＋γe2・Df）で、支持層は砂質土・砂礫だけに対応します（粘性土・互層は入力エラー）。長期の qd の上限値は支持層の土質区分から決めます（砂質土は洪積砂地盤・沖積砂礫地盤で 300＋γe2・Df、砂礫は洪積砂礫地盤で 500＋γe2・Df）。Df は 0500 の表層厚、γe2 は長期支持が平水位、短期支持と安全性が高水位で求めます（CONTEXT.md「有効根入れ深さと平均有効単位重量」）。地盤抵抗係数・γi・γa・回転の制限値はプログラムの定数です。照査値と判定（ＯＫ／ＮＧ）を表に印刷し、結果JSONの `result` に列ごとの値と `engineering_status`（すべて満足で `ok`、1つでも NG なら `not_ok`）を記録します。NG でも生成は止まりません。反力の CSV を読めない・支点のピックアップが欠ける・合力の作用位置がフーチングの外にある・鉛直力が上向きのときは、何も公開せずに止まります（終了コード 2）。
 
 0710・0720 の計算書には、検討モデル（10.1・11.1）の後に JRSNAP のデータ確認図（`S_DataCheck.exe`）のページを差し込みます（決定50）。同じ生成で一度だけ組み立てた NDU のバイトを、同じ名前で JRSNAP の Headless runner（`JRSNAP.Headless.exe data-check`）に渡し、runner は 0711 と同じ書出しで .NDT を作って、組合せ1の .NDT から次の図を1つずつ PDF にします。
 
@@ -124,7 +128,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - 値は補いません。B9 は「B7と同じ」、A・D支点の合計は「B/Cと同じ」ボタンで、その時点の値を明示的な入力として書き込みます。空き支承枠に入力を始めたときの他の項目や、新しく追加した鉄筋の行・鉄筋は、選択肢を含めてすべて空欄で始まります。
 - 「入力チェック」は全段階の入力条件を確かめ、最初の入力エラーをパス付きで表示します。
 - 保存は、開いた後に他から変更されたファイルを上書きしません。置き換える前のバイトを同じフォルダの `input.json.<日時>.bak` に残します。
-- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。「骨組解析も行う」をオンにすると `--frame-analysis` を付け、0611・0621 のピックアップのファイルと、0611 の柱の断面照査（計算書と `線路方向.wdj`）も作ります。「静的非線形解析も行う」をオンにすると `--nonlinear-analysis` を付け、0711・0721 の `線路方向_JRSNAP`・`線路直角方向_JRSNAP` フォルダーも作ります（数分かかり、JRSNAP の画面が出ます）。これらのチェックは入力JSONに入れず、利用者ごとのエディタの設定（`%APPDATA%\WebPier\editor.json`）に保存して、次回の起動でも保ちます（読めないときは既定のオフ）。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
+- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。「骨組解析も行う」をオンにすると `--frame-analysis` を付け、0611・0621 のピックアップのファイルと、柱の断面照査（0611・0621 の計算書と WDJ）と基礎の照査（0612・0622 の計算書）も作ります。「静的非線形解析も行う」をオンにすると `--nonlinear-analysis` を付け、0711・0721 の `線路方向_JRSNAP`・`線路直角方向_JRSNAP` フォルダーも作ります（数分かかり、JRSNAP の画面が出ます）。これらのチェックは入力JSONに入れず、利用者ごとのエディタの設定（`%APPDATA%\WebPier\editor.json`）に保存して、次回の起動でも保ちます（読めないときは既定のオフ）。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
 - 同じ画面に、JRSNAP の解析設定（方向ごとの7項目、[入力](#入力schema-2)を参照）の欄があります。静的非線形解析の耐震照査の入力に使う `耐震設計条件`（地域別・地盤区分）は「地盤データ」のページにあります。
 
 鉄筋の画面は、梁・柱・フーチングの主鉄筋・側面鉄筋・横方向鉄筋の入力と、柱の配置の確認・詳細修正（自動配置を写した詳細位置の編集、鉄筋の追加・削除、再配置）を扱います。柱の配置と方向別の鉄筋配置表は `webpier/calc/column_rebar.py` が計算し、エディタは表示するだけです。梁・フーチングは外形だけを描きます。梁の詳細位置（`position_mode` = 指定）は、いまはどの段階も使わない予約入力で、形式だけを検査します（決定19）。柱では粗骨材の最大寸法と、グループ「断面照査の条件」（`柱の断面照査`）も入力します。
@@ -195,11 +199,11 @@ webpier/
 
 1. 段階と出力先をすべて検査してから始めます。同名のディレクトリやシンボリックリンク、入力と同じパスの出力は拒否します。
 2. 入力を一度だけバイト列で読み、厳密に解析します（重複キー・NaN・Infinity は入力エラー）。そのSHA256を全ての結果JSONと付帯JSONに記録します。
-3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。データ確認図のある段階（0710・0720）は、同じ生成で組み立てた NDU を JRSNAP の runner に描かせ、同じく差し込みます。骨組解析の段階（0611・0621）は、同じ生成で組み立てた FrameWeb 入力を runner に解析させ（荷重図とは別の呼び出し）、計算書を描く前に結果を確かめます。0611 は続けて、その PIK と WebPier が組み立てた WDJ を Capacita の runner に渡し、返った計算書の節のページを計算書に差し込みます。静的非線形解析の段階（0711・0721）も同じく、同じ生成で組み立てた NDU を JRSNAP の runner に解析させます。runner は入力を読む前に探します。
+3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。データ確認図のある段階（0710・0720）は、同じ生成で組み立てた NDU を JRSNAP の runner に描かせ、同じく差し込みます。骨組解析の段階（0611・0612・0621・0622）は、同じ生成で組み立てた FrameWeb 入力を runner に解析させ（荷重図とは別の呼び出し。同じ入力は1回だけ）、計算書を描く前に結果を確かめます。0612・0622 はその反力で基礎の照査を仕上げてから描きます。0611 は続けて、その PIK と WebPier が組み立てた WDJ を Capacita の runner に渡し、返った計算書の節のページを計算書に差し込みます。静的非線形解析の段階（0711・0721）も同じく、同じ生成で組み立てた NDU を JRSNAP の runner に解析させます。runner は入力を読む前に探します。
 4. 計算書・結果JSON・外部ソフト向け入力・付帯JSON・JRSNAP のフォルダーを各出力先の横でステージングし、`webpier/pipeline/publication.py` がまとめて公開します。旧ファイル（旧フォルダー）を同じファイルシステム内に退避して置き換え、公開した実バイト・入力・実装の同一性を最後に確かめます。フォルダーの実バイトは、中の全ファイルの SHA256 で確かめます。失敗すれば旧ファイルをすべて戻し、その実行で新しく作ったファイルは消します。複数ファイルがOS上で一瞬に切り替わる仕組みではありません。
 5. 強制終了や復元の失敗では、出力先ごとの `.webpier-*` に `publication-pending`・`publication-journal.json` と退避ファイルを残し、次の実行はそれを見つけて止まります。journal の各 `destination`・`backup`・`had_original` を照合して旧成果物を戻すか、一式を別の場所へ保全してから再実行してください。
 
-結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。NDU の付帯JSONには、データ確認図を描いた runner の版と報告（`data_check`）を記録します。骨組解析のファイル（`*.pik`・`*_ピックアップ変位量.csv`・`*_ピックアップ反力.csv`）の付帯JSONには、`frame_analysis` に runner の版（`engine_version`）と、解析した FrameWeb 入力の段階・種類・ファイル名・SHA256（`frameweb`）を記録します。`線路方向.wdj` の付帯JSONには、`section_check` に Capacita の runner の版、`engineering_status: not_evaluated`、取り込んだ PIK（段階・種類・ファイル名・SHA256）と WebPier が渡した WDJ の SHA256（`wdj_given`）を記録します。`--stage 0611` のように単独で選んだ生成では FrameWeb 入力（`線路方向.json`）が同じ世代に入らないので、この `frame_analysis.frameweb.sha256` が、解析結果とその FrameWeb 入力を結び付ける唯一の根拠になります。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython・JRSNAP・Capacita の runner はここに含めません（その出力はそれぞれの責務、決定44・46・47・48）。JRSNAP のフォルダーの付帯JSONは上の「0711・0721」の段落のとおりで、`nonlinear_analysis.ndu.sha256` が解析結果とその NDU を結び付けます。
+結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。NDU の付帯JSONには、データ確認図を描いた runner の版と報告（`data_check`）を記録します。骨組解析のファイル（`*.pik`・`*_ピックアップ変位量.csv`・`*_ピックアップ反力.csv`）の付帯JSONには、`frame_analysis` に runner の版（`engine_version`）と、解析した FrameWeb 入力の段階・種類・ファイル名・SHA256（`frameweb`）と、そのファイルを使った選択段階（`stages`）を記録します。`線路方向.wdj` の付帯JSONには、`section_check` に Capacita の runner の版、`engineering_status: not_evaluated`、取り込んだ PIK（段階・種類・ファイル名・SHA256）と WebPier が渡した WDJ の SHA256（`wdj_given`）を記録します。`--stage 0611` のように単独で選んだ生成では FrameWeb 入力（`線路方向.json`）が同じ世代に入らないので、この `frame_analysis.frameweb.sha256` が、解析結果とその FrameWeb 入力を結び付ける唯一の根拠になります。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython・JRSNAP・Capacita の runner はここに含めません（その出力はそれぞれの責務、決定44・46・47・48）。JRSNAP のフォルダーの付帯JSONは上の「0711・0721」の段落のとおりで、`nonlinear_analysis.ndu.sha256` が解析結果とその NDU を結び付けます。
 
 PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。例外は 0610・0620 に差し込む FEMPython の荷重図のページと、0710・0720 に差し込む JRSNAP のデータ確認図のページ（ヘッダーに印刷日が入ります）で、その中身はそれぞれの責務として毎回同じバイトになることを求めません。計算書にはページ番号を印刷しません（体裁の見本どおり）。
 

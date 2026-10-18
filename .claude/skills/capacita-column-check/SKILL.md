@@ -5,7 +5,7 @@ description: Capacita（structural-mcp の Capacita サブモジュール、RcDa
 
 # Capacita で柱の断面照査を行う（0611・0621）
 
-0611（線路方向）・0621（直角方向）は骨組解析（FEMPython）の `.pik` を設計応答値として、柱下端の1断面を Capacita（RcDan）で照査し、その `report.pdf` のページを計算書（8.5〜8.9・9.5〜9.9）に差し込む（決定48、ADR-0008、CONTEXT.md「柱の断面照査」）。2方向の違いは `calc.column_check.Direction`（LONGITUDINAL・TRANSVERSE）と `reporting.stages.column_check.Chapter`（8・9）だけ。WebPier は WDJ を書いて runner を呼ぶだけで、`.pik` の断面力は読まない（着目点の番号だけ並びから求める）。照査の式・表・印字桁は Capacita の責務なので、足りなければ Capacita 側を直す（その `.claude/rules/` に従い、`WebDanforCS/tests/UiTests` を通す）。
+0611（線路方向）・0621（直角方向）は骨組解析（FEMPython）の `.pik` を設計応答値として、柱下端の1断面を Capacita（RcDan）で照査し、その `report.pdf` のページを計算書（8.5〜8.9・9.5〜9.9）に差し込む（決定48、ADR-0008、CONTEXT.md「柱の断面照査」）。2方向の違いは `calc.column_check.Direction`（LONGITUDINAL・TRANSVERSE）と `reporting.stages.column_check.Chapter`（8・9）だけ。WebPier は WDJ を書いて runner を呼ぶだけで、`.pik` の断面力は読まない（着目点の番号だけ並びから求める）。照査の式・表・印字桁は Capacita の責務なので、足りなければ Capacita 側を直す（その `.claude/rules/` に従い、`WebDanforCS/tests/UiTests` を通す）。骨組解析は同じ FrameWeb 入力の基礎の照査（0612・0622）と共有し、1回の生成で1回だけ行う（決定54。スキル foundation-check）。0612 だけを選んだ生成でも `.pik` は書き換わるが、0611 の `.wdj` は残る。
 
 ## 置き場所
 

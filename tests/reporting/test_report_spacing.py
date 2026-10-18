@@ -27,6 +27,7 @@ import pymupdf
 import pytest
 
 from foundation_report_cases import case as foundation_case
+from foundation_check_cases import chapter as foundation_chapter, result as foundation_result
 from frame_report_cases import chain, transverse_chain
 from reaction_report_cases import case as reaction_case
 from webpier.reporting.fonts import load_fonts
@@ -34,6 +35,7 @@ from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column
 from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
 from webpier.reporting.stages.column_check import build_column_check
 from webpier.reporting.stages.foundation import build_foundation
+from webpier.reporting.stages.foundation_check import build_foundation_check
 from webpier.reporting.stages.longitudinal import build_longitudinal
 from webpier.reporting.stages.reaction import build_reaction
 from webpier.reporting.stages.seismic_longitudinal import build_seismic_longitudinal
@@ -63,6 +65,9 @@ BUILDERS: dict[str, Callable[[str], Any]] = {
     "0621": lambda name: build_column_check(
         calculate_column_check(transverse_chain(name)[0], transverse_chain(name)[2], TRANSVERSE), CHAPTER_9,
         ("shear_durability", "bending_serviceability")),
+    # decision 54: with the reactions of the hand calculation (the input is current.json made sandy)
+    "0612": lambda name: build_foundation_check(foundation_result("0612"), foundation_chapter("0612")),
+    "0622": lambda name: build_foundation_check(foundation_result("0622"), foundation_chapter("0622")),
 }
 # The fixture input of every stage (tests/fixtures/inputs/current.json).
 PARAMETERS = [(stage, "current") for stage in BUILDERS]
