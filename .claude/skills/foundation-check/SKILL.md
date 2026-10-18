@@ -37,6 +37,12 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 - 再現しない見本の誤り：ex の丸めが頁で違う（印字した3桁で統一）、9-27 の Be が B′＞L でも B′（min(B′, L)）、長期の qd が丸める前の γe2、「γi･Pd／qd」が実は pd1、Pd の単位 kN/m3、Rhb を 0.1 に丸める。
 - 合力の作用位置がフーチングの外（ex ≧ B/2）や上向きの Vd は照査できないので入力エラー。Mmd ≦ 0 は照査値なし（「－」）で NG。
 
+## 生成
+
+- `uv run --project "." --locked python -m webpier --stage 0612 --frame-analysis --overwrite`（0622 も同じ）。`--frame-analysis` がないと選べない（`all` にも入らない）。runner は `.env` の `STRUCTURAL_MCP_FEMPYTHON_RUNNER`。0611 も選ぶと解析は1回で済むが、Capacita の runner も要る。
+- 並行して別のセッションが作業しているときは CLI（`output/` と `post/` を書き換える）を避け、`render_foundation_check` で scratchpad に出す。
+- Example2（`pre/input.json`、2026-10-18）は両方向とも全項目 OK、照査値の最大は長期の鉛直支持の 0.743。
+
 ## 骨組解析の共有
 
 - 0611 と 0612（0621 と 0622）は同じ FrameWeb 入力を解析する。`FrameAnalysis` の (stage, export) が同じ段階は、登録表が同じファイルの宣言を求め、生成は FEMPython を1回だけ呼び、ピックアップのファイルを先の段階の役割で1組だけ公開する（付帯JSONの `frame_analysis.stages` に使った段階）。
