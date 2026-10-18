@@ -20,7 +20,10 @@ from frame_report_cases import CASES, chain
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
 from webpier.core.printed import Printed
-from webpier.reporting.stages.longitudinal import FOOTER, build_longitudinal, render_longitudinal, semantic_records
+from load_diagram_support import LOAD_DIAGRAM, PAGES, inserted, layout
+from webpier.reporting.stages.longitudinal import (
+    PREFIX, build_longitudinal, content, render_longitudinal, semantic_records,
+)
 
 ROOT = Path(__file__).parents[2]
 APPEARANCE = ROOT / "tests" / "fixtures" / "reporting" / "appearance" / "reference-style.json"
@@ -30,7 +33,7 @@ measure = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = measure
 _spec.loader.exec_module(measure)
 
-FOOTER_PREFIX = FOOTER.split("{")[0]
+PAGE_NUMBER = re.compile(r"^\d+ - \d+$", re.MULTILINE)  # the reference prints no page numbers
 ANCHOR = 58.92  # the chapter start of 0600 and later (reporting-style.md)
 
 
@@ -40,22 +43,27 @@ def squeeze(value: str) -> str:
 
 def render(case: str, path: Path) -> Path:
     pier, reaction, result, _ = chain(case)
-    return render_longitudinal(result, reaction, pier, path)
+    return render_longitudinal(result, reaction, pier, path, LOAD_DIAGRAM)
 
 
 @pytest.mark.parametrize("case", list(CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
     pier, reaction, result, _ = chain(case)
-    pages = build_longitudinal(result, reaction, pier).layout()
+    before, after = layout(content(result, reaction, pier), PREFIX)
+    pages = before + after
     drawn = [c.text for page in pages for c in page.commands
-             if isinstance(c, Text) and not c.text.startswith(FOOTER_PREFIX)]
+             if isinstance(c, Text)]
     assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
     with pymupdf.open(render(case, tmp_path / "0610.pdf")) as pdf:
-        assert len(pdf) == len(pages)
-        for number, (page, scene) in enumerate(zip(pdf, pages), 1):
+        # Decision 44: the load diagram pages come right after 8.3, and 8.4 starts the next page.
+        assert len(pdf) == len(pages) + PAGES
+        assert [inserted(page) for page in pdf] == [False] * len(before) + [True] * PAGES + [False] * len(after)
+        assert "8.3 荷重図" in pdf[len(before) - 1].get_text()
+        assert pdf[len(before) + PAGES].get_text().lstrip().startswith("8.4 設計作用の組合せ")
+        for page, scene in zip([page for page in pdf if not inserted(page)], pages):
             scene_text = "".join(c.text for c in scene.commands if isinstance(c, Text))
             assert Counter(squeeze(page.get_text())) == Counter(squeeze(scene_text))
-            assert f"8 - {number}" in page.get_text()
+            assert not PAGE_NUMBER.search(page.get_text())
             assert not page.get_images()
 
 
@@ -77,11 +85,12 @@ def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     table = result.snow[0]
     wrong = replace(table, rows=(replace(table.rows[0], m=Printed(table.rows[0].m.value + 0.01, 2, "kN m")),
                                  *table.rows[1:]))
-    path = render_longitudinal(replace(result, snow=(wrong, *result.snow[1:])), reaction, pier, tmp_path / "w.pdf")
+    path = render_longitudinal(replace(result, snow=(wrong, *result.snow[1:])), reaction, pier, tmp_path / "w.pdf",
+                               LOAD_DIAGRAM)
     bad = [check for check in table_checks(path) if not check.ok]
     assert [check.kind for check in bad] == ["row", "total"]
     fixed = replace(result.fixed, n=Printed(result.fixed.n.value + 0.01, 2, "kN"))
-    path = render_longitudinal(replace(result, fixed=fixed), reaction, pier, tmp_path / "f.pdf")
+    path = render_longitudinal(replace(result, fixed=fixed), reaction, pier, tmp_path / "f.pdf", LOAD_DIAGRAM)
     assert [check.printed for check in formula_checks(path) if not check.ok] == [f"{fixed.n.value:.2f}"]
 
 
@@ -91,9 +100,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert b"CreationDate" not in first or b"D:20000101000000" in first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import chain\n"
+              "from load_diagram_support import LOAD_DIAGRAM\n"
               "from webpier.reporting.stages.longitudinal import render_longitudinal\n"
               "pier, reaction, result, _ = chain('current')\n"
-              "render_longitudinal(result, reaction, pier, sys.argv[1])\n")
+              "render_longitudinal(result, reaction, pier, sys.argv[1], LOAD_DIAGRAM)\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)
@@ -109,7 +119,7 @@ def test_render_replaces_the_target_only_after_a_complete_layout(tmp_path: Path)
     path = tmp_path / "previous.pdf"
     path.write_bytes(b"previous-published-bytes")
     with pytest.raises(LayoutError):
-        render_longitudinal(huge, reaction, pier, path)
+        render_longitudinal(huge, reaction, pier, path, LOAD_DIAGRAM)
     assert path.read_bytes() == b"previous-published-bytes"
 
 

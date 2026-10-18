@@ -2,22 +2,22 @@
   "schema_version": 1,
   "kind": "frameweb_headless_read_check",
   "date": "2026-10-18",
-  "verified_at": "2026-10-18T10:09:31+09:00",
+  "verified_at": "2026-10-18T11:36:11+09:00",
   "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
   "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
   "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
   "application": {
     "name": "FrameWebforCS.Headless",
     "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "sha256": "474bc1bc9da6dd5cda466f815753cbb61cdfc53c11473106e5d94e994eff0247",
-    "dll_sha256": "32ff5c0bf93f50249eb4260eeb16d9f05f5028403e79ca48043dcdc7904a4ac6",
+    "sha256": "a87188844ad956322929e90ffeb27ed4d2c59bb7e241919be208ae78027f47be",
+    "dll_sha256": "ccc3582254473c3d79f2326893919b33e58abbfc6de6a7fc3f7ab6278434a776",
     "fempython_repository": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython",
       "head": "7488c8fb4d6c100438a9691747ceb11fd9e66358",
       "clean": false
     }
   },
-  "implementation_sha256": "62b16de5f831d8e01f0427c63d56bd13eeda5b720b3631f47af63360e1a124bf",
+  "implementation_sha256": "53c4f4f93920639634ee604cce3fdbb4e9cd295ceecab2743f5b2886f509e9d9",
   "runs": [
     {
       "input": {
@@ -26,15 +26,16 @@
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
+      "candidate_sha256": "c3c6350cdc61ecb723f0ce968319c6afb0d498c8a88335f77c0f3d2753246d81",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "engineVersion": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
         "summary": {
           "dimension": 2,
+          "calculated": true,
           "nodes": 6,
           "members": 5,
           "cases": 21,
@@ -71,11 +72,11 @@
           "symbol": "D1",
           "applied": [
             0.0,
-            -14729.348
+            14729.348
           ],
           "reactions": [
             -7.300000000000001e-66,
-            14729.348
+            -14729.348
           ]
         },
         {
@@ -83,11 +84,11 @@
           "symbol": "D2",
           "applied": [
             0.0,
-            -2610.6
+            2610.6
           ],
           "reactions": [
             7.899999999999999e-68,
-            2610.6
+            -2610.6
           ]
         },
         {
@@ -95,11 +96,11 @@
           "symbol": "Wp1",
           "applied": [
             0.0,
-            2381.4
+            -2381.4
           ],
           "reactions": [
             0.0,
-            -2381.4
+            2381.4
           ]
         },
         {
@@ -107,11 +108,11 @@
           "symbol": "Wp2",
           "applied": [
             0.0,
-            1701.0
+            -1701.0
           ],
           "reactions": [
             0.0,
-            -1701.0
+            1701.0
           ]
         },
         {
@@ -119,11 +120,11 @@
           "symbol": "Ss2",
           "applied": [
             0.0,
-            -710.0
+            710.0
           ],
           "reactions": [
             2.3e-67,
-            710.0
+            -710.0
           ]
         },
         {
@@ -131,11 +132,11 @@
           "symbol": "Ss10",
           "applied": [
             0.0,
-            -1140.0
+            1140.0
           ],
           "reactions": [
             3.6e-67,
-            1140.0
+            -1140.0
           ]
         },
         {
@@ -143,11 +144,11 @@
           "symbol": "Ss30",
           "applied": [
             0.0,
-            -1270.0
+            1270.0
           ],
           "reactions": [
             4.5e-67,
-            1270.0
+            -1270.0
           ]
         },
         {
@@ -155,11 +156,11 @@
           "symbol": "L1",
           "applied": [
             0.0,
-            -567.39
+            567.39
           ],
           "reactions": [
             1.3000000000000002e-66,
-            567.39
+            -567.39
           ]
         },
         {
@@ -167,11 +168,11 @@
           "symbol": "L2",
           "applied": [
             0.0,
-            -1134.78
+            1134.78
           ],
           "reactions": [
             2.7e-66,
-            1134.78
+            -1134.78
           ]
         },
         {
@@ -179,11 +180,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            -227.79
+            227.79
           ],
           "reactions": [
             1.05e-66,
-            227.79
+            -227.79
           ]
         },
         {
@@ -191,11 +192,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            -428.29
+            428.29
           ],
           "reactions": [
             2e-66,
-            428.29
+            -428.29
           ]
         },
         {
@@ -299,11 +300,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             7.9e-67,
-            171.05
+            -171.05
           ]
         },
         {
@@ -311,11 +312,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            -321.63
+            321.63
           ],
           "reactions": [
             1.5e-66,
-            321.63
+            -321.63
           ]
         }
       ],
@@ -335,15 +336,16 @@
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "e4ea17cf1955c3d895699f581b21f9ed0864dd7135564c3fc977233461f8cc49",
+      "candidate_sha256": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "engineVersion": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
         "summary": {
           "dimension": 2,
+          "calculated": true,
           "nodes": 7,
           "members": 5,
           "cases": 19,
@@ -380,11 +382,11 @@
           "symbol": "D1",
           "applied": [
             0.0,
-            -14729.348
+            14729.348
           ],
           "reactions": [
             0.0,
-            14729.348000000002
+            -14729.348000000002
           ]
         },
         {
@@ -392,11 +394,11 @@
           "symbol": "D2",
           "applied": [
             0.0,
-            -2610.6
+            2610.6
           ],
           "reactions": [
             0.0,
-            2610.6
+            -2610.6
           ]
         },
         {
@@ -404,11 +406,11 @@
           "symbol": "Wp1",
           "applied": [
             0.0,
-            2381.4
+            -2381.4
           ],
           "reactions": [
             0.0,
-            -2381.4
+            2381.4
           ]
         },
         {
@@ -416,11 +418,11 @@
           "symbol": "Wp2",
           "applied": [
             0.0,
-            1701.0
+            -1701.0
           ],
           "reactions": [
             0.0,
-            -1701.0
+            1701.0
           ]
         },
         {
@@ -428,11 +430,11 @@
           "symbol": "Ss2",
           "applied": [
             0.0,
-            -710.0
+            710.0
           ],
           "reactions": [
             0.0,
-            710.0
+            -710.0
           ]
         },
         {
@@ -440,11 +442,11 @@
           "symbol": "Ss10",
           "applied": [
             0.0,
-            -1140.0
+            1140.0
           ],
           "reactions": [
             0.0,
-            1140.0
+            -1140.0
           ]
         },
         {
@@ -452,11 +454,11 @@
           "symbol": "Ss30",
           "applied": [
             0.0,
-            -1270.0
+            1270.0
           ],
           "reactions": [
             0.0,
-            1270.0000000000002
+            -1270.0000000000002
           ]
         },
         {
@@ -464,11 +466,11 @@
           "symbol": "L1",
           "applied": [
             0.0,
-            -567.38
+            567.38
           ],
           "reactions": [
             3.954636613764028e-64,
-            567.38
+            -567.38
           ]
         },
         {
@@ -476,11 +478,11 @@
           "symbol": "L2",
           "applied": [
             0.0,
-            -567.38
+            567.38
           ],
           "reactions": [
             -3.954636613764028e-64,
-            567.38
+            -567.38
           ]
         },
         {
@@ -488,11 +490,11 @@
           "symbol": "L3",
           "applied": [
             0.0,
-            -1134.78
+            1134.78
           ],
           "reactions": [
             0.0,
-            1134.78
+            -1134.78
           ]
         },
         {
@@ -500,11 +502,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            -227.77
+            227.77
           ],
           "reactions": [
             1.5802154084873807e-64,
-            227.77
+            -227.77
           ]
         },
         {
@@ -512,11 +514,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            -227.77
+            227.77
           ],
           "reactions": [
             -1.5802154084873807e-64,
-            227.77
+            -227.77
           ]
         },
         {
@@ -524,11 +526,11 @@
           "symbol": "I3",
           "applied": [
             0.0,
-            -428.28
+            428.28
           ],
           "reactions": [
             0.0,
-            428.28
+            -428.28
           ]
         },
         {
@@ -572,11 +574,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             1.1864286344494153e-64,
-            171.05
+            -171.05
           ]
         },
         {
@@ -584,11 +586,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             -1.1864286344494153e-64,
-            171.05
+            -171.05
           ]
         },
         {
@@ -596,11 +598,11 @@
           "symbol": "I3s",
           "applied": [
             0.0,
-            -321.62
+            321.62
           ],
           "reactions": [
             0.0,
-            321.62
+            -321.62
           ]
         }
       ]
@@ -612,15 +614,16 @@
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
+      "candidate_sha256": "c3c6350cdc61ecb723f0ce968319c6afb0d498c8a88335f77c0f3d2753246d81",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "engineVersion": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
         "summary": {
           "dimension": 2,
+          "calculated": true,
           "nodes": 6,
           "members": 5,
           "cases": 21,
@@ -657,11 +660,11 @@
           "symbol": "D1",
           "applied": [
             0.0,
-            -14729.348
+            14729.348
           ],
           "reactions": [
             -7.300000000000001e-66,
-            14729.348
+            -14729.348
           ]
         },
         {
@@ -669,11 +672,11 @@
           "symbol": "D2",
           "applied": [
             0.0,
-            -2610.6
+            2610.6
           ],
           "reactions": [
             7.899999999999999e-68,
-            2610.6
+            -2610.6
           ]
         },
         {
@@ -681,11 +684,11 @@
           "symbol": "Wp1",
           "applied": [
             0.0,
-            2381.4
+            -2381.4
           ],
           "reactions": [
             0.0,
-            -2381.4
+            2381.4
           ]
         },
         {
@@ -693,11 +696,11 @@
           "symbol": "Wp2",
           "applied": [
             0.0,
-            1701.0
+            -1701.0
           ],
           "reactions": [
             0.0,
-            -1701.0
+            1701.0
           ]
         },
         {
@@ -705,11 +708,11 @@
           "symbol": "Ss2",
           "applied": [
             0.0,
-            -710.0
+            710.0
           ],
           "reactions": [
             2.3e-67,
-            710.0
+            -710.0
           ]
         },
         {
@@ -717,11 +720,11 @@
           "symbol": "Ss10",
           "applied": [
             0.0,
-            -1140.0
+            1140.0
           ],
           "reactions": [
             3.6e-67,
-            1140.0
+            -1140.0
           ]
         },
         {
@@ -729,11 +732,11 @@
           "symbol": "Ss30",
           "applied": [
             0.0,
-            -1270.0
+            1270.0
           ],
           "reactions": [
             4.5e-67,
-            1270.0
+            -1270.0
           ]
         },
         {
@@ -741,11 +744,11 @@
           "symbol": "L1",
           "applied": [
             0.0,
-            -567.39
+            567.39
           ],
           "reactions": [
             1.3000000000000002e-66,
-            567.39
+            -567.39
           ]
         },
         {
@@ -753,11 +756,11 @@
           "symbol": "L2",
           "applied": [
             0.0,
-            -1134.78
+            1134.78
           ],
           "reactions": [
             2.7e-66,
-            1134.78
+            -1134.78
           ]
         },
         {
@@ -765,11 +768,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            -227.79
+            227.79
           ],
           "reactions": [
             1.05e-66,
-            227.79
+            -227.79
           ]
         },
         {
@@ -777,11 +780,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            -428.29
+            428.29
           ],
           "reactions": [
             2e-66,
-            428.29
+            -428.29
           ]
         },
         {
@@ -885,11 +888,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             7.9e-67,
-            171.05
+            -171.05
           ]
         },
         {
@@ -897,11 +900,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            -321.63
+            321.63
           ],
           "reactions": [
             1.5e-66,
-            321.63
+            -321.63
           ]
         }
       ],
@@ -921,15 +924,16 @@
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "e4ea17cf1955c3d895699f581b21f9ed0864dd7135564c3fc977233461f8cc49",
+      "candidate_sha256": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+018d0d0ee9453464b0b541a5344ce5a6c0acdfc6",
+        "engineVersion": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
         "summary": {
           "dimension": 2,
+          "calculated": true,
           "nodes": 7,
           "members": 5,
           "cases": 19,
@@ -966,11 +970,11 @@
           "symbol": "D1",
           "applied": [
             0.0,
-            -14729.348
+            14729.348
           ],
           "reactions": [
             0.0,
-            14729.348000000002
+            -14729.348000000002
           ]
         },
         {
@@ -978,11 +982,11 @@
           "symbol": "D2",
           "applied": [
             0.0,
-            -2610.6
+            2610.6
           ],
           "reactions": [
             0.0,
-            2610.6
+            -2610.6
           ]
         },
         {
@@ -990,11 +994,11 @@
           "symbol": "Wp1",
           "applied": [
             0.0,
-            2381.4
+            -2381.4
           ],
           "reactions": [
             0.0,
-            -2381.4
+            2381.4
           ]
         },
         {
@@ -1002,11 +1006,11 @@
           "symbol": "Wp2",
           "applied": [
             0.0,
-            1701.0
+            -1701.0
           ],
           "reactions": [
             0.0,
-            -1701.0
+            1701.0
           ]
         },
         {
@@ -1014,11 +1018,11 @@
           "symbol": "Ss2",
           "applied": [
             0.0,
-            -710.0
+            710.0
           ],
           "reactions": [
             0.0,
-            710.0
+            -710.0
           ]
         },
         {
@@ -1026,11 +1030,11 @@
           "symbol": "Ss10",
           "applied": [
             0.0,
-            -1140.0
+            1140.0
           ],
           "reactions": [
             0.0,
-            1140.0
+            -1140.0
           ]
         },
         {
@@ -1038,11 +1042,11 @@
           "symbol": "Ss30",
           "applied": [
             0.0,
-            -1270.0
+            1270.0
           ],
           "reactions": [
             0.0,
-            1270.0000000000002
+            -1270.0000000000002
           ]
         },
         {
@@ -1050,11 +1054,11 @@
           "symbol": "L1",
           "applied": [
             0.0,
-            -567.38
+            567.38
           ],
           "reactions": [
             3.954636613764028e-64,
-            567.38
+            -567.38
           ]
         },
         {
@@ -1062,11 +1066,11 @@
           "symbol": "L2",
           "applied": [
             0.0,
-            -567.38
+            567.38
           ],
           "reactions": [
             -3.954636613764028e-64,
-            567.38
+            -567.38
           ]
         },
         {
@@ -1074,11 +1078,11 @@
           "symbol": "L3",
           "applied": [
             0.0,
-            -1134.78
+            1134.78
           ],
           "reactions": [
             0.0,
-            1134.78
+            -1134.78
           ]
         },
         {
@@ -1086,11 +1090,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            -227.77
+            227.77
           ],
           "reactions": [
             1.5802154084873807e-64,
-            227.77
+            -227.77
           ]
         },
         {
@@ -1098,11 +1102,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            -227.77
+            227.77
           ],
           "reactions": [
             -1.5802154084873807e-64,
-            227.77
+            -227.77
           ]
         },
         {
@@ -1110,11 +1114,11 @@
           "symbol": "I3",
           "applied": [
             0.0,
-            -428.28
+            428.28
           ],
           "reactions": [
             0.0,
-            428.28
+            -428.28
           ]
         },
         {
@@ -1158,11 +1162,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             1.1864286344494153e-64,
-            171.05
+            -171.05
           ]
         },
         {
@@ -1170,11 +1174,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            -171.05
+            171.05
           ],
           "reactions": [
             -1.1864286344494153e-64,
-            171.05
+            -171.05
           ]
         },
         {
@@ -1182,11 +1186,11 @@
           "symbol": "I3s",
           "applied": [
             0.0,
-            -321.62
+            321.62
           ],
           "reactions": [
             0.0,
-            321.62
+            -321.62
           ]
         }
       ]

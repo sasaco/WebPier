@@ -12,9 +12,11 @@ from ....calc.reaction.longitudinal import (
     GirderForces, LongitudinalCase, SeismicBearing, SeismicForces,
 )
 from ....inputs import BrakingRule, PierInput
+from ...equations import Definition
 from ...numbers import decimal_constant, printed
 from .manuscript import (
-    DETAIL, INDENTED, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, call, cells, expr, join, sub, symbols,
+    DETAIL, INDENTED, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, call, cells, expr, inline, join, sub,
+    symbols,
 )
 from .tables import header, summary
 
@@ -62,7 +64,7 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
     for key, name, _, _ in SIDES:
         forces: GirderForces = getattr(lon, key)
         m.start(f"long.rail.{key}")
-        m.paragraph(f"long.rail.{key}.label", name)
+        m.paragraph(f"long.rail.{key}.label", name, gap=True)
         for field, per_metre, label in (("long_rail", LONG_RAIL, "LR"), ("long_rail_service", LONG_RAIL_SERVICE,
                                                                          "0.8 LR")):
             m.formula(f"long.rail.{key}.{field}", Row(sub("T", "LR"), f"({label})", gap=0),
@@ -78,13 +80,14 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
     if rule is BrakingRule.EA17:
         braking = Row(f"({decimal_constant(EA17_BRAKING[0])} + {decimal_constant(EA17_BRAKING[1])}/Lv)・ΣR")
         starting = Row(f"({decimal_constant(EA17_STARTING[0])} + {decimal_constant(EA17_STARTING[1])}/Lv)・ΣR")
-        m.paragraph("long.brake.symbols", "ΣR は桁の両端の列車反力（1軌道、荷重修正係数なし）、Lv は1両の長さ。")
+        meanings = (Definition("ΣR", "桁の両端の列車反力（1軌道、荷重修正係数なし）"), Definition("Lv", "1両の長さ"))
     else:
         braking = Row(f"({decimal_constant(AXLE_BRAKING[0])} + {decimal_constant(AXLE_BRAKING[1])}/Lv・L)・P")
         starting = Row(f"({decimal_constant(AXLE_STARTING[0])} + {decimal_constant(AXLE_STARTING[1])}/Lv・L)・P")
-        m.paragraph("long.brake.symbols", "P は軸重、Lv は1両の長さ、L は桁長。")
+        meanings = (Definition("P", "軸重"), Definition("Lv", "1両の長さ"), Definition("L", "桁長"))
     m.math("long.brake.braking.formula", Row("制動荷重：", braking, gap=0), left=INDENTED)
     m.math("long.brake.starting.formula", Row("始動荷重：", starting, gap=0), left=INDENTED)
+    m.definitions("long.brake.symbols", *meanings)
     reactions = {"origin": (loading.ra, loading.rb), "end": (loading.rd, loading.rc)}
     for key, name, _, _ in SIDES:
         forces = getattr(lon, key)
@@ -161,12 +164,15 @@ def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCas
     vertical_symbols: list = [decimal_constant(definition.d1), "D1", "+", decimal_constant(definition.d2), "D2", "+",
                               snow_symbol]
     if force.live_factor is not None:
-        vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total, "×", "(", 1, "+", impact, ")"]
-        vertical_symbols += ["+", sub("γ", "L"), "R", "n", "(1", "+", "i)"]
+        # "× (1 + i)" is one term, so that a wrapped line begins with its operator, never with "(".
+        vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total,
+                     Row("×", " ", inline(expr("(", 1, "+", impact, ")")), gap=0)]
+        vertical_symbols += ["+", Row(sub("γ", "L"), "Rn(1 + i)", gap=0)]
     m.paragraph(key + ".vertical.label",
-                "可動支承に働く鉛直荷重" + ("" if movable else "（他端の可動支承）"), left=WIDE_NOTE)
+                "可動支承に働く鉛直荷重" + ("" if movable else "（他端の可動支承）"), left=WIDE_NOTE, gap=True)
     m.formula(key + ".vertical", "Rm", symbols(*vertical_symbols), vertical, force.vertical, wide=True)
-    m.paragraph(key + ".horizontal.label", ("可動" if movable else "固定") + "支承に働く水平荷重", left=WIDE_NOTE)
+    m.paragraph(key + ".horizontal.label", ("可動" if movable else "固定") + "支承に働く水平荷重", left=WIDE_NOTE,
+                gap=True)
     m.formula(key + ".share", "T / n", None, (force.applied, "/", BEARING_LINES), force.share, wide=True)
     mu = span.mu
     if movable:
@@ -193,8 +199,10 @@ def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
                 f"終点側桁の C支点は{end}支承（μ = {printed(pier.spans.end.mu)}）である。"
                 f"各桁の支承線数は n = {decimal_constant(BEARING_LINES)} とし、"
                 "可動支承の水平荷重は H = min(T/n, max(μ・Rm, μ・T/n))、固定支承の水平荷重は "
-                "H = max(T − 1/2 μ・Rm, T/n) とする。Rm は可動支承の鉛直荷重、μ は支承の摩擦係数である。"
+                "H = max(T − 1/2 μ・Rm, T/n) とする。"
                 "γL・γB は荷重修正係数 ρf と組合せの係数の積（小数2桁）である。")
+    m.definitions("long.bearing.symbols", Definition("T", "桁に働く水平荷重"),
+                  Definition("Rm", "可動支承の鉛直荷重"), Definition("μ", "支承の摩擦係数"))
     for number, case in enumerate(lon.cases, 1):
         definition_label = CASES[case.case]
         m.heading(f"long.case.{case.case.name.lower()}.heading",

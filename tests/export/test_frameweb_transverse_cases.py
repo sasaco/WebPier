@@ -113,7 +113,7 @@ def test_centrifugal_loads_on_a_curve():
         (point,) = action.points
         assert document["load"][number]["fix_node"] == 2
         assert [(row["n"], row["tx"], row["ty"], row["rz"]) for row in document["load"][number]["load_node"]] == [
-            (str(point.node), point.h.value, None, -point.m.value)]
+            (str(point.node), point.h.value, None, point.m.value)]
     assert (document["define"]["16"], document["define"]["17"]) == ({"row": 16, "C1": 18, "C2": 19},
                                                                      {"row": 17, "C1": 20})
     assert (document["define"]["18"], document["define"]["19"]) == ({"row": 18, "C1": 21, "C2": 22},
@@ -164,12 +164,12 @@ def resolved_vector(result, variant):
     for action in variant:
         spring = springs[action.source.spring.value]
         for p in action.points:
-            for axis, amount in (("tx", D(p.h.value)), ("ty", -D(p.n.value)), ("rz", -D(p.m.value))):
+            for axis, amount in (("tx", D(p.h.value)), ("ty", D(p.n.value)), ("rz", D(p.m.value))):
                 put((spring, "node", str(p.node), axis), amount)
         for line in action.line_loads:
             for member in line.members:
                 for end in ("P1", "P2"):
-                    put((spring, "member", str(member), "gy", D(0), D(0), end), -D(line.n.value))
+                    put((spring, "member", str(member), "gy", D(0), D(0), end), D(line.n.value))
         for load in action.member_loads:
             where = (spring, "member", str(load.member), "gx", D(load.start.value),
                      lengths[load.member] - D(load.end.value))

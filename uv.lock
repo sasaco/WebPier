@@ -531,6 +531,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "gridlayoutpdf" },
     { name = "pymupdf" },
+    { name = "pypdf" },
     { name = "reportlab" },
     { name = "tksheet" },
 ]
@@ -539,7 +540,6 @@ dependencies = [
 dev = [
     { name = "coverage" },
     { name = "hypothesis" },
-    { name = "pypdf" },
     { name = "pytest" },
 ]
 
@@ -547,6 +547,7 @@ dev = [
 requires-dist = [
     { name = "gridlayoutpdf", directory = "../../GridLayoutPdf" },
     { name = "pymupdf", specifier = ">=1.24,<2" },
+    { name = "pypdf", specifier = ">=5,<7" },
     { name = "reportlab", specifier = ">=5.0.1,<6" },
     { name = "tksheet", specifier = ">=7.6,<8" },
 ]
@@ -555,6 +556,5 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = ">=7.10,<8" },
     { name = "hypothesis", specifier = ">=6.100,<7" },
-    { name = "pypdf", specifier = ">=5,<7" },
     { name = "pytest", specifier = ">=8,<10" },
 ]

@@ -8,6 +8,7 @@ from ....calc.moving_load import Girder, MovingLoadResult
 from ....calc.reaction import ReactionResult
 from ....calc.reaction.train import DOUBLE_TRACK_SPAN, SEISMIC_SHARE, SERVICE_RATIO, GirderImpact, GroupTrain
 from ....inputs import PierInput
+from ...equations import Definition
 from ...numbers import decimal_constant, printed
 from .manuscript import (
     BODY, DETAIL, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, join, sub, symbols,
@@ -18,10 +19,6 @@ GIRDERS = {Girder.ORIGIN: "起点側桁", Girder.END: "終点側桁"}
 GROUPS = (("ultimate", "(a) 安全性（破壊）および復旧性の照査に用いる列車荷重"),
           ("service", "(b) 使用性の照査に用いる列車荷重"),
           ("fatigue", "(c) 安全性（疲労破壊）の照査に用いる列車荷重"))
-
-
-def group_symbols(*parts: str) -> Row:
-    return Row("(", symbols(*parts), ")")
 
 
 def _axle_table(loading: MovingLoadResult) -> TableSpec:
@@ -83,17 +80,18 @@ def _coefficients(m: Manuscript, result: ReactionResult, pier: PierInput) -> Non
     m.heading("train.impact.heading", "(2) 衝撃係数", SUBSECTION)
     m.paragraph("train.impact.introduction",
                 "衝撃係数は桁の衝撃係数とし、後続の照査でもこの値をそのまま用いる。複線載荷の係数は"
-                "単線の係数に (1 − L/200) を乗じた1つの式で求める（L はスパン長、L < 200 m）。")
+                "単線の係数に (1 − L/200) を乗じた1つの式で求める。")
+    m.definitions("train.impact.symbols", Definition("L", "スパン長（L < 200 m）"))
     sides = (("origin", "起点側桁", pier.spans.origin), ("end", "終点側桁", pier.spans.end))
     m.heading("train.impact.ultimate.heading", "1) 安全性（破壊）および復旧性", ITEM)
     for key, name, span in sides:
         impact: GirderImpact = getattr(train.ultimate, key + "_impact")
         m.start(f"train.impact.ultimate.{key}")
-        m.paragraph(f"train.impact.ultimate.{key}.label", name)
+        m.paragraph(f"train.impact.ultimate.{key}.label", name, gap=True)
         m.value(f"train.impact.ultimate.{key}.single", Row(sub("i", "F"), "(単線)", gap=0), impact.single, medium=True)
         m.formula(f"train.impact.ultimate.{key}.double", Row(sub("i", "F"), "(複線)", gap=0),
                   symbols(Row(sub("i", "F"), "(単線)", gap=0), "×",
-                          group_symbols("1", "−", "L", "/", decimal_constant(DOUBLE_TRACK_SPAN))),
+                          "(", "1", "−", "L", "/", decimal_constant(DOUBLE_TRACK_SPAN), ")"),
                   (impact.single, "×", "(", 1, "−", span.span, "/", DOUBLE_TRACK_SPAN, ")"), impact.double, medium=True)
         m.end()
     m.heading("train.impact.service.heading", "2) 使用性および安全性（疲労破壊）", ITEM)
@@ -103,12 +101,12 @@ def _coefficients(m: Manuscript, result: ReactionResult, pier: PierInput) -> Non
         ultimate: GirderImpact = getattr(train.ultimate, key + "_impact")
         service: GirderImpact = getattr(train.service, key + "_impact")
         m.start(f"train.impact.service.{key}")
-        m.paragraph(f"train.impact.service.{key}.label", name)
+        m.paragraph(f"train.impact.service.{key}.label", name, gap=True)
         for track, label in (("single", "(単線)"), ("double", "(複線)")):
             m.formula(f"train.impact.service.{key}.{track}", Row(sub("i", "F"), label, gap=0), None,
                       (getattr(ultimate, track), "×", SERVICE_RATIO), getattr(service, track), medium=True)
         fatigue: GirderImpact = getattr(train.fatigue, key + "_impact")
-        m.paragraph(f"train.impact.fatigue.{key}.label", "（安全性（疲労破壊））")
+        m.paragraph(f"train.impact.fatigue.{key}.label", "（安全性（疲労破壊））", gap=True)
         for track, label in (("single", "(単線)"), ("double", "(複線)")):
             m.value(f"train.impact.fatigue.{key}.{track}", Row(sub("i", "F"), label, gap=0), getattr(fatigue, track),
                     medium=True)
@@ -145,7 +143,7 @@ def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
             ("origin", "起点側桁", "A", "B", seismic.origin_length, seismic.origin, pier.spans.origin),
             ("end", "終点側桁", "D", "C", seismic.end_length, seismic.end, pier.spans.end)):
         m.start(f"train.seismic.{key}")
-        m.paragraph(f"train.seismic.{key}.label", name)
+        m.paragraph(f"train.seismic.{key}.label", name, gap=True)
         m.formula(f"train.seismic.{key}.length", "L", symbols("L1", "+", "l", "+", "L2"),
                   (span.l1, "+", span.span, "+", span.l2), length)
         m.formula(f"train.seismic.{key}.reaction", Row(sub("R", far), " = ", sub("R", near), gap=0),

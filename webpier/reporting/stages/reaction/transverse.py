@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gridlayoutpdf import Fraction, Row
+from gridlayoutpdf import Row
 
 from ....calc.reaction import ReactionResult
 from ....calc.reaction.transverse import (
@@ -10,9 +10,10 @@ from ....calc.reaction.transverse import (
     WIND_WITHOUT_TRAIN, TransverseForce, TransverseSide,
 )
 from ....inputs import PierInput
+from ...equations import Definition
 from ...numbers import decimal_constant, printed
 from .manuscript import (
-    ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, call, cells, expr, frac, join, sub, sup, symbols,
+    ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, call, cells, expr, join, ratio, sub, sup, symbols,
 )
 from .tables import header, summary
 from .train import loading_lines
@@ -33,7 +34,8 @@ def _centrifugal(m: Manuscript, result: ReactionResult, pier: PierInput) -> None
     m.heading("trans.centrifugal.heading", "(1) 遠心荷重", SUBSECTION)
     m.paragraph("trans.centrifugal.introduction",
                 "単線の列車荷重に遠心荷重係数 αc = V²/(127R) を乗じ、レール面から車両の遠心重心高 hc の位置に"
-                "作用させる（V：列車速度 km/h、R：曲線半径 m）。直線区間（R = 0）では αc = 0 とする。")
+                "作用させる。直線区間（R = 0）では αc = 0 とする。")
+    m.definitions("trans.centrifugal.symbols", Definition("V", "列車速度（km/h）"), Definition("R", "曲線半径（m）"))
     for side, title, support in SIDES:
         span = getattr(pier.spans, side)
         values: TransverseSide = getattr(result.transverse, side)
@@ -45,8 +47,8 @@ def _centrifugal(m: Manuscript, result: ReactionResult, pier: PierInput) -> None
             m.paragraph(key + ".straight", "直線区間のため遠心荷重は 0 となる。")
         else:
             m.formula(key + ".alpha", sub("α", "c"),
-                      Fraction(sup("V", "2"), symbols(decimal_constant(CENTRIFUGAL_DIVISOR), "R")),
-                      (frac(sup(printed(span.speed), "2"), expr(CENTRIFUGAL_DIVISOR, "×", span.radius)),),
+                      ratio(sup("V", "2"), Row(decimal_constant(CENTRIFUGAL_DIVISOR), "R", gap=0)),
+                      (ratio(sup(printed(span.speed), "2"), expr(CENTRIFUGAL_DIVISOR, "×", span.radius)),),
                       values.centrifugal_coefficient)
         heights = span.heights
         m.formula(key + ".rail", "h", symbols("h1", "+", "h2", "+", "h3"),

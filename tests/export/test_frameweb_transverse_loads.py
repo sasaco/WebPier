@@ -1,7 +1,7 @@
 """0620 FrameWeb load cases: Example2 09 pp.9-3 to 9-13 and its FrameWeb file.
 
-Signs as in 0610: tx = H, ty = −N, rz = −M; a zero component is null. Member loads are global: gy = −n of the
-column line load, gx = h of the wind on the pier body. A partial or varying member load is one row per member:
+Signs as in 0610 (current axes, y downward, decision 44): tx = H, ty = N, rz = M; a zero component is null. Member
+loads are global: gy = n of the column line load, gx = h of the wind on the pier body. A partial or varying member load is one row per member:
 L1 from the member start (the upper node on the column line, the base of a pedestal), L2 the unloaded margin
 before the member end, P1 at the load start and P2 at its end (validate.py).
 """
@@ -11,7 +11,7 @@ from dataclasses import replace
 import pytest
 
 from frameweb_support import (
-    CURVE, EXAMPLE2_09, EXAMPLE2_GROUND, T09, T_ASYMMETRIC, T_PEDESTAL, WIDTHS, ground, transverse,
+    CURVE, EXAMPLE2_09, EXAMPLE2_GROUND, T09, T_ASYMMETRIC, T_PEDESTAL, WIDTHS, ground, mirrored_rows, transverse,
 )
 from webpier.calc.frame import NodeRole
 from webpier.calc.load_nature import Nature, SpringTerm, spring_term
@@ -26,13 +26,13 @@ B = BasicCase
 # Example2 prints these from unrounded intermediates; the calc uses the printed operands (tests/calc
 # test_transverse_loads): 9-5 567.39 / ±1210.08 -> 567.38 / ±1210.09, 1134.77 -> 1134.78; 9-6 227.78 / ±483.45
 # -> 227.77 / ±483.47. Case 15: Example2 saves H −111.69 with rz −430.01, a moment of the other direction; the
-# calc's H +111.69 at 3.850 above the seat gives M = +430.01 (rz −430.01), and Define 13 takes both signs anyway.
+# calc's H +111.69 at 3.850 above the seat gives M = +430.01 (rz 430.01), and Define 13 takes both signs anyway.
 # Cases 16 and 17: the M of the girder wind is the calc's (tests/calc test_transverse_horizontal: the shelter is
 # folded into h4, 2124.50 / 4248.93 for Example2's 1001.33 / 2002.64); the pier wind is in load_member.
-DIFFERENT = {"9": [("1", None, -567.38, -1210.09)], "10": [("1", None, -567.38, 1210.09)],
-             "11": [("1", None, -1134.78, None)], "12": [("1", None, -227.77, -483.47)],
-             "13": [("1", None, -227.77, 483.47)], "15": [("1", 111.69, None, -430.01)],
-             "16": [("1", 305.88, None, -2124.5)], "17": [("1", 611.75, None, -4248.93)]}
+DIFFERENT = {"9": [("1", None, 567.38, 1210.09)], "10": [("1", None, 567.38, -1210.09)],
+             "11": [("1", None, 1134.78, None)], "12": [("1", None, 227.77, 483.47)],
+             "13": [("1", None, 227.77, -483.47)], "15": [("1", 111.69, None, 430.01)],
+             "16": [("1", 305.88, None, 2124.5)], "17": [("1", 611.75, None, 4248.93)]}
 # The nature of each basic case (Example2 9-13 names), for the spring rule of decision 36.
 NATURES = {B.D1: Nature.DEAD, B.D2: Nature.DEAD, B.BUOYANCY_HIGH: Nature.WATER, B.BUOYANCY_NORMAL: Nature.WATER,
            B.BUOYANCY_LOW: Nature.WATER, B.SNOW2: Nature.SNOW, B.SNOW10: Nature.SNOW, B.SNOW30: Nature.SNOW,
@@ -65,7 +65,7 @@ def member_rows(case):
 
 def test_basic_load_cases_are_those_of_example2(current):
     for number in map(str, range(1, 18)):
-        assert node_rows(current["load"][number]) == DIFFERENT.get(number, node_rows(EXAMPLE2_09["load"][number]))
+        assert node_rows(current["load"][number]) == DIFFERENT.get(number, mirrored_rows(node_rows(EXAMPLE2_09["load"][number])))
 
 
 def test_load_case_headers(current):
@@ -97,7 +97,7 @@ def test_spring_sets_follow_the_nature_of_the_loads(changes):
 def test_the_column_line_load_is_one_row_per_member(current):
     (example, _empty) = EXAMPLE2_09["load"]["1"]["load_member"]
     assert (example["m1"], example["m2"], example["direction"], example["P1"]) == ("1", "3", "x", 297.68)
-    assert member_rows(current["load"]["1"]) == [(str(m), "gy", 0, 0, -297.68, -297.68) for m in (1, 2, 3)]
+    assert member_rows(current["load"]["1"]) == [(str(m), "gy", 0, 0, 297.68, 297.68) for m in (1, 2, 3)]
 
 
 def test_the_wind_on_the_pier_is_that_of_example2_with_its_ground():
@@ -139,7 +139,7 @@ def test_the_ground_inside_the_haunch_cuts_the_trapezoid():
 def test_no_pier_wind_with_the_ground_above_the_pier():
     document = build_frameweb_transverse(transverse(**ground(8.0)))
     assert [n for n, case in document["load"].items() if "load_member" in case] == ["1"]
-    assert node_rows(document["load"]["16"]) == [("1", 305.88, None, -2124.5)]
+    assert node_rows(document["load"]["16"]) == [("1", 305.88, None, 2124.5)]
 
 
 def test_pedestal_loads_act_at_the_pedestal_top():
@@ -149,10 +149,10 @@ def test_pedestal_loads_act_at_the_pedestal_top():
     result = transverse(**T_PEDESTAL)
     document = build_frameweb_transverse(result)
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
-    assert node_rows(document["load"]["1"]) == [(seat, None, -7600, -3800), ("1", None, -750.98, 25.73),
-                                                ("5", None, -4167.45, None)]
-    assert node_rows(document["load"]["9"]) == [(seat, None, -567.38, -1493.78)]
-    assert node_rows(document["load"]["15"]) == [(seat, 111.69, None, -430.01)]
+    assert node_rows(document["load"]["1"]) == [(seat, None, 7600, 3800), ("1", None, 750.98, -25.73),
+                                                ("5", None, 4167.45, None)]
+    assert node_rows(document["load"]["9"]) == [(seat, None, 567.38, 1493.78)]
+    assert node_rows(document["load"]["15"]) == [(seat, 111.69, None, 430.01)]
     assert member_rows(document["load"]["16"])[0] == ("7", "gx", 0, 0, 1.5, 1.5)
     assert [r[0] for r in member_rows(document["load"]["16"])] == ["7", "1", "2", "3"]
     assert [r[0] for r in member_rows(document["load"]["1"])] == ["1", "2", "3"]  # not on the pedestal
@@ -169,12 +169,12 @@ def test_asymmetric_footing_loads_keep_their_levers():
     document = build_frameweb_transverse(result)
     footing = result.fixed.footing
     assert footing.m.value != 0
-    assert node_rows(document["load"]["1"])[1] == ("5", None, -footing.n.value, -footing.m.value)
+    assert node_rows(document["load"]["1"])[1] == ("5", None, footing.n.value, footing.m.value)
 
 
 def expected_rows(action, frame):
     lengths = {m.number: m.height.value for m in frame.members}
-    lines = [(str(m), "gy", 0, 0, -line.n.value, -line.n.value) for line in action.line_loads for m in line.members]
+    lines = [(str(m), "gy", 0, 0, line.n.value, line.n.value) for line in action.line_loads for m in line.members]
     partial = [(str(load.member), "gx", load.start.value, round(lengths[load.member] - load.end.value, 3),
                 load.h_start.value, load.h_end.value) for load in action.member_loads]
     return lines + partial
@@ -194,7 +194,7 @@ def test_every_load_is_the_printed_action(changes):
     assert list(document["load"]) == [str(n) for n in range(1, len(actions) + 1)] and len(actions) == 20
     for number, action in enumerate(actions, 1):
         case = document["load"][str(number)]
-        expected = [(str(p.node), p.h.value or None, -p.n.value or None, -p.m.value or None)
+        expected = [(str(p.node), p.h.value or None, p.n.value or None, p.m.value or None)
                     for p in action.points if (p.n.value, p.h.value, p.m.value) != (0, 0, 0)]
         assert node_rows(case) == expected
         assert member_rows(case) == expected_rows(action, result.frame)

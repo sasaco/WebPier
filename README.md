@@ -38,6 +38,14 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 
 `--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定が必須で、空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
+0610・0620 の荷重図は、同じ生成で書いた FrameWeb 入力を FEMPython の `FrameWebforCS.Headless.exe` に描かせて計算書に差し込みます（決定44、ADR-0005）。runner の絶対パスをリポジトリのルートの `.env`（git で追跡しません）に書いてください。プロセスの環境変数に同じ名前があればそちらが優先です。
+
+```
+STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPython\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'
+```
+
+設定がない・runner がない・runner が荷重図を描けないときは、0610・0620 を含む生成は何も公開せずに止まります（終了コード 2）。荷重図を省いて続けることはしません。
+
 書体は `%WINDIR%/Fonts` の `msmincho.ttc`・`msgothic.ttc`・`calibri.ttf`・`timesi.ttf` を使います。本文はMS明朝9.9pt、見出しはMSゴシック9.9pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
 
 ## 入力エディタ
@@ -124,13 +132,13 @@ webpier/
 
 1. 段階と出力先をすべて検査してから始めます。同名のディレクトリやシンボリックリンク、入力と同じパスの出力は拒否します。
 2. 入力を一度だけバイト列で読み、厳密に解析します（重複キー・NaN・Infinity は入力エラー）。そのSHA256を全ての結果JSONと付帯JSONに記録します。
-3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。
+3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。runner は入力を読む前に探します。
 4. 計算書・結果JSON・外部ソフト向け入力・付帯JSONを各出力先の横でステージングし、`webpier/pipeline/publication.py` がまとめて公開します。旧ファイルを同じファイルシステム内に退避して置き換え、公開した実バイト・入力・実装の同一性を最後に確かめます。失敗すれば旧ファイルをすべて戻し、その実行で新しく作ったファイルは消します。複数ファイルがOS上で一瞬に切り替わる仕組みではありません。
 5. 強制終了や復元の失敗では、出力先ごとの `.webpier-*` に `publication-pending`・`publication-journal.json` と退避ファイルを残し、次の実行はそれを見つけて止まります。journal の各 `destination`・`backup`・`had_original` を照合して旧成果物を戻すか、一式を別の場所へ保全してから再実行してください。
 
-結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。
+結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython の runner はここに含めません（その出力は FEMPython の責務、決定44）。
 
-PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。
+PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。例外は 0610・0620 に差し込む FEMPython の荷重図のページで、その中身は FEMPython の責務として毎回同じバイトになることを求めません。計算書にはページ番号を印刷しません（体裁の見本どおり）。
 
 ## 計算書
 
@@ -142,7 +150,8 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - 0600 は死荷重・雪荷重（2・10・30年確率）、橋脚自重・上載土・浮力、移動荷重の反力、方向別の荷重を計算します。桁受けは体積 V = 0 のとき、その項と集計表の行を省き、後続の項の番号を詰めます。本橋脚の支承の表は空き支承枠を除き、支承は入力の枠の番号（G1〜G10）で示します（決定41）。
 - 0610 は20基本ケース・20 Define・16組合せ・8抽出、0620 は17基本ケース・15 Define・16組合せ・8抽出です。組合せは「用途別解決」として、各成分を印刷された係数×印刷された基本作用で求め、N・H・M・q ごとに一度だけ印字桁に丸めます。0620 の単線の成分は組合せの中で上り線・下り線のどちらか一方にそろえ、車両横荷重と風の正負は独立に選びます。
 - 0710 は8基本ケース・1組合せ（地震は起点側 ← の片方向）、0720 は9基本ケース・上り線・下り線それぞれの2組合せ（地震は → の片方向）です（決定21・30）。どちらも柱下端の0.010 mの微小部材（CONTEXT.md）を骨組図に示します。
-- Example2 にあっても印刷しないもの（決定41）：0610 の荷重図。0710・0720 のばね（骨組図のばね記号、Kv・Ks・Kr、ばねの表と数値。Example2 10-7・11-7 の節点ばね分布図にあたる）と荷重図、0720 の柱下端の拡大図。節の番号は詰めます（0610 の組合せは 8.3、0710 は 10.3、0720 は 11.3）。ばねを示さないことは、固定基礎や解析可能な支持条件を意味しません。
+- 荷重図（0610 の 8.3、0620 の 9.3、決定44）：見出しだけを WebPier が組み、その後に FEMPython が FrameWeb 入力から描いたページ（A4縦、1ページに2ケース、軸線図なし）をそのまま差し込みます。描くのは FrameWeb 入力の全荷重ケースで、基本ケースのほか使用性の衝撃（`I1s` など）も含みます。次の節（組合せ、8.4・9.4）は新しいページから始めます。Example2 のように複数ケースを1図にまとめて値を右に並べる体裁にはしません。
+- Example2 にあっても印刷しないもの（決定41）：0710・0720 のばね（骨組図のばね記号、Kv・Ks・Kr、ばねの表と数値。Example2 10-7・11-7 の節点ばね分布図にあたる）と荷重図、0720 の柱下端の拡大図。節の番号は詰めます（0710 の組合せは 10.3、0720 は 11.3）。ばねを示さないことは、固定基礎や解析可能な支持条件を意味しません。
 
 ## 外部ソフト向けの入力
 
@@ -150,12 +159,13 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 
 0610 から `post/線路方向.json`、0620 から `post/線路直角方向.json` を作ります。形式は Example2 の FrameWeb 保存ファイル（`.claude/docs/Example橋脚2/08_線路/frameWebForJS.json` など）に合わせています。規則の詳細は `webpier/export/frameweb/` の各モジュールに書いています。
 
+- **座標は現行の FrameWeb 形式（y は下向き）です**（決定44）。Example2 は旧形式（y 上向き）で保存されていますが、FEMPython（FrameWebforCS/Headless・FramePrintPDF）はどの保存ファイルも現行形式として扱うので、旧形式のままでは荷重図が上下逆に描かれます。節点の y、節点荷重の ty・rz、部材荷重の gy の符号を反転して書きます（tx・gx はそのまま）。橋脚を上下に鏡に映しただけなので解析結果は同等です（組合せ1の上向きの鉛直反力は反転の前後とも 22585.1473）。`ver` は書かないので、FrameWebforJS（ブラウザ版）で開くと旧形式とみなされてもう一度反転し、上下逆になります。
 - 荷重ケースごとに地盤ばねの組（1 = 長期、2 = 短期）を選びます。ばねは荷重の性質で決め、ロングレールは長期、制動・始動などの活荷重は短期です（決定36）。
 - FrameWeb のばねの値1は固定支点、0は自由を意味するので、ばねは正で1以外の値が必要です。荷重のない部材行は書きません。部材荷重の強度は FrameWeb が 0.01 に投影します。行のない荷重ケースは FrameWeb が飛ばすので、そのようなケースだけの Combine は落ち、その Pickup は失敗します。Combine の表は Define 50列までです。こうなる入力は公開前にエラーにします。
 - **FrameWeb は係数×荷重を丸めずに組み合わせます**。計算書は作用ごとに係数×作用を印字桁に丸めるので、FrameWeb の組合せは計算書の印刷値と作用ごとに最大0.005程度ずれます。外部の解析ソフトとしてこの差を許容します（決定38）。
 - **0620 の FrameWeb は Example2 の Define の構成のままです**（列車・衝撃・遠心を線ごとに独立に選ぶ）。そのため上り線の列車と下り線の衝撃の組も選びうるので、FrameWeb の包絡は、同じ線どうしだけを組み合わせる計算書より安全側に出ます（決定39）。FrameWeb の形式には Define 同士の選択を連動させる項目がなく（Define・Combine・Pickup の知らないキーは読込みで拒否されます）、各 Define は独立に包絡されるので、同じ線どうしに限定できません。
 - 出力は FrameWebforJS/CS の保存形式のJSONで、FEMPython の解析要求のJSONではありません。`FrameWebforCS.Headless.exe run --input <json> --output-dir <空の絶対パス>` が、保存形式から計算要求への変換・計算・Define/Combine/Pickup までを行います。FEMPython はこの中で使われる計算エンジンで、保存形式を直接は読みません。
-- **読込みの確認**（2026-10-18、`scripts/check_frameweb_headless.py`、記録 `tests/fixtures/acceptance/frameweb_headless/record.json`）：`pre/input.json` と `current.json` の 0610・0620（両入力で同じバイト）を FrameWebforCS.Headless（FEMPython）で計算させ、節点・部材・Define・Combine・Pickup の数、荷重ケースごとの反力と書いた荷重の釣合い、0610 の組合せ1（FEMPython 22585.1473、計算書 22585.160、作用ごとの丸めの差は最大0.005）を照合しました。行のない荷重ケース5（低水位の浮力が0）とその Define 5 は FrameWeb が飛ばします。0620 は風荷重の終わる位置（y = 4.7 m）に FEMPython が節点を1つ加えます。読込みを確かめるための計算で、構造解析・照査の結果ではありません。生成する FrameWeb 入力が変わると `tests/acceptance` が失敗するので、確認をやり直します。
+- **読込みの確認**（2026-10-18、`scripts/check_frameweb_headless.py`、記録 `tests/fixtures/acceptance/frameweb_headless/record.json`）：`pre/input.json` と `current.json` の 0610・0620（両入力で同じバイト）を FrameWebforCS.Headless（FEMPython）で計算させ、節点・部材・Define・Combine・Pickup の数、荷重ケースごとの反力と書いた荷重の釣合い、0610 の組合せ1の上向きの鉛直反力（FEMPython 22585.1473、計算書 22585.160、作用ごとの丸めの差は最大0.005）を照合しました（座標を現行形式にした後に取り直し）。行のない荷重ケース5（低水位の浮力が0）とその Define 5 は FrameWeb が飛ばします。0620 は風荷重の終わる位置（y = 4.7 m）に FEMPython が節点を1つ加えます。読込みを確かめるための計算で、構造解析・照査の結果ではありません。生成する FrameWeb 入力が変わると `tests/acceptance` が失敗するので、確認をやり直します。
 - 基礎の剛域は Example2 と同じく、明示した節点・部材に有限の剛性（E = 26,500,000 kN/m²、A = Iz = 1,000）を与えて表します。保存形式の `rigid` 配列は部材端の区間に別の断面を割り当てるだけで、剛体の拘束ではないためです。A・Iz を10倍・100倍にしても柱頭の変位が約0.004 mm 変わるだけで、反力・断面力はほとんど変わりません。
 - `Xp` は熱膨張係数です。G・J・Iy の null は2次元への投影で1になります。荷重ケースの `rate` は計算要求に写されず、倍率として効きません（Example2 と同じく1を書きます）。
 - FrameWebforCS の画面で保存し直すと、知らないトップレベルのキーは捨てられ、多くの数値が Single 精度に変わります（例：回転ばね 52,218,663 → 52,218,664）。付帯JSONのSHA256による保証は、画面で保存し直したファイルには及びません。別名で保存し、生成したファイルと付帯JSONの組を保管してください。
@@ -199,7 +209,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 
 品質ゲートは `.claude/check.ps1` の1コマンドです（`& ".claude/check.ps1"`）。全件を coverage の下で実行し（`python -m webpier` などの子プロセスも `pyproject.toml` の `[tool.coverage]` の `patch = ["subprocess"]` で測ります）、層ごとの行・分岐カバレッジを下限と照合します（決定15）。下限は `webpier/core`・`inputs`・`calc`・`export`・`pipeline` が 100%、`reporting` が 95%、`gui` が 85% で、テストの失敗か下限割れで exit 2、ゲートを実行できなければ exit 3 です。結果の JSON の `tools.coverage.packages` に層ごとの値と合否が出ます。
 
-テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
+テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。FEMPython の runner は、全テストで代役（`tests/fixtures/fempython/fake_runner.py`。Headless と同じ引数・応答・成果物で、荷重ケース2つにつき1ページを返す）に置き換えます（`tests/conftest.py`）。本物の runner を呼ぶのは `tests/pipeline/test_fempython.py` だけで、`.env` か環境変数で runner が設定されているときだけ実行します。Headless のやり取りが変わったら代役も合わせて更新します。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
 
 - 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。実アプリでの受入記録は期待値ではなく、実アプリが読んだ生成物とその読戻しの記録です。
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。

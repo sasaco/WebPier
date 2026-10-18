@@ -28,13 +28,15 @@ def test_a_pedestal_is_calculated_and_drawn():
     result, pier = case("pedestal")
     actual = records("pedestal")
     sw = result.self_weight
-    assert actual["weight.pedestal.volume"] == f"V=A×H1=7.200×0.250={text(sw.pedestal.rows[0].volume)}m^3"
+    assert actual["weight.pedestal.volume"] == f"V=7.200×0.250={text(sw.pedestal.rows[0].volume)}m^3"
     assert actual["weight.pedestal.x_l"].endswith("=(2×0.300+1.200−3.000−0.400+0.200)/2=-0.700m")
     assert "|0.250|" in actual["weight.shape.figure"]  # H1 is dimensioned
     assert "0.250" not in records("current")["weight.shape.figure"].replace("2.250", "")
     # The footing haunch (H5 = 0.400) is placed by the column's position, the beam haunch by the beam's.
-    assert actual["weight.footing.haunch.x_l"].startswith("xL=xL(柱)×z/H5=")
-    assert actual["weight.beam.haunch.x_l"].startswith("xL=xL(はり)×z/H3=")
+    # h is the haunch height, defined with z.
+    assert actual["weight.footing.haunch.x_l"].startswith("xL=xL(柱)×z/h=")
+    assert actual["weight.beam.haunch.x_l"].startswith("xL=xL(はり)×z/h=")
+    assert "（hはハンチの高さ。" in actual["weight.beam.z.introduction"]
 
 
 @pytest.mark.parametrize("name,wedge_side", [("pedestal", "end"), ("mirrored", "origin")])
@@ -94,7 +96,7 @@ def test_a_curve_prints_the_centrifugal_coefficient_and_a_straight_track_says_wh
     assert current["trans.centrifugal.origin.alpha"] == "αc=0.000"
     result, _ = case("ea17")
     alpha = result.transverse.origin.centrifugal_coefficient
-    assert ea17["trans.centrifugal.origin.alpha"] == f"αc=(V^2)/(127R)=(130^2)/(127×600)={text(alpha)}"
+    assert ea17["trans.centrifugal.origin.alpha"] == f"αc=V^2/(127R)=130^2/(127×600)={text(alpha)}"
     assert "trans.centrifugal.origin.straight" not in ea17
 
 

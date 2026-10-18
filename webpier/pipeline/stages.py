@@ -7,6 +7,9 @@ all come from it, so adding a stage or an export is one entry.
 
 ``calculate`` and ``render`` receive only the results of the declared dependencies (and, for ``render`` and an
 export, the stage's own result), so an undeclared dependency fails instead of silently working.
+
+A stage with ``load_diagram`` names the export whose load cases FEMPython draws (decision 44): its ``render``
+also receives those pages, to put into the report as they are.
 """
 
 from __future__ import annotations
@@ -14,7 +17,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 from ..calc.column_rebar import column_layout
@@ -67,8 +69,10 @@ class StageSpec:
     stem: str  # the report file name without suffix, e.g. "0610_線路方向荷重"
     depends_on: tuple[str, ...]
     calculate: Callable[[PierInput, Results], Any]
-    render: Callable[[Results, PierInput, Path], Any]
+    # (results, pier, path), and the load diagram PDF after the path when ``load_diagram`` is set
+    render: Callable[..., Any]
     exports: tuple[Export, ...] = ()
+    load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
 
 
 @dataclass(frozen=True)
@@ -102,6 +106,8 @@ class Registry:
                     raise ValueError(f"出力ファイル名が重複しています: {item.file_name}")
                 kinds.add(item.kind)
                 files.add(item.file_name)
+            if stage.load_diagram and stage.load_diagram not in kinds:
+                raise ValueError(f"{stage.id}の荷重図の出力{stage.load_diagram}がありません")
             seen.append(stage.id)
 
     @property
@@ -156,12 +162,15 @@ STAGES = Registry((
               lambda results, pier, path: render_reaction(results["0600"], pier, path)),
     StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
-              lambda results, pier, path: render_longitudinal(results["0610"], results["0600"], pier, path),
-              (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),)),
+              lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
+                                                                     pages),
+              (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
-              lambda results, pier, path: render_transverse(results["0620"], results["0600"], pier, path),
-              (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),)),
+              lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
+                                                                   pages),
+              (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
+              load_diagram="frameweb"),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),

@@ -1,8 +1,11 @@
 """Bounded, byte-based identity of the implementation that produced a generation.
 
 The identity binds the webpier sources and data, the installed renderer
-packages (GridLayoutPdf, ReportLab, Pillow) and the report font files, so
-provenance can tell whether an artifact came from the same implementation.
+packages (GridLayoutPdf, ReportLab, Pillow, and pypdf, which joins the load
+diagram pages into a report) and the report font files, so provenance can
+tell whether an artifact came from the same implementation. The FEMPython
+runner that draws the load diagrams is not bound: its output is FEMPython's
+(decision 44); the sidecars record its engineVersion.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ import stat
 
 from ..reporting.fonts import font_files
 
-RENDERERS = ("gridlayoutpdf", "reportlab", "PIL")
+RENDERERS = ("gridlayoutpdf", "reportlab", "PIL", "pypdf")
 
 
 class RuntimeIdentityError(ValueError):

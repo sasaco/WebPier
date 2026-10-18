@@ -16,7 +16,7 @@ from ....calc.reaction import ReactionResult
 from ....inputs import PierInput
 from . import dead, longitudinal, train, transverse, weight_parts, weight_totals
 from .layout import document
-from .manuscript import FOOTER, PREFIX, Manuscript, Unit, plain
+from .manuscript import PREFIX, Manuscript, Unit, plain
 
 
 def content(result: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
@@ -44,4 +44,4 @@ def render_reaction(result: ReactionResult, pier: PierInput, path: str | Path) -
     return build_reaction(result, pier).render(path, invariant=True)
 
 
-__all__ = ["FOOTER", "PREFIX", "build_reaction", "content", "render_reaction", "semantic_records"]
+__all__ = ["PREFIX", "build_reaction", "content", "render_reaction", "semantic_records"]

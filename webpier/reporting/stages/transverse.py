@@ -4,8 +4,9 @@
 bearing a row with its position as the lever), the train and impact of the up,
 down and double tracks, the vehicle lateral load, the wind with and without the
 train on the girders and on the pier body above the ground (decision 12), the
-centrifugal load on a curve (decision 33), 9.3 the load diagrams, 9.4 the basic
-and Define cases, the coefficients of the 16 combinations by Define case and the
+centrifugal load on a curve (decision 33), 9.3 the load diagrams, drawn by
+FEMPython from the FrameWeb file of this generation and put in as its pages
+(decision 44), 9.4 the basic and Define cases, the coefficients of the 16 combinations by Define case and the
 extraction cases. Member and foundation checks (9-16 onward) are not part of
 this stage. Horizontal forces print as magnitude and direction, as in 0710.
 """
@@ -25,19 +26,20 @@ from ...calc.transverse import (
     BasicCase, Check, Define, HorizontalRow, ImpactTable, Item, PierWind, TopTable, Track, TrainTable,
     TransverseResult, Wind,
 )
-from ...calc.transverse.actions import CENTRIFUGAL_CASES, CentrifugalTable
+from ...calc.transverse.actions import CentrifugalTable
 from ...inputs import PierInput
+from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
+from . import load_diagrams
 from .frame_report import (
-    BODY_LEFT, CaseLoads, Manuscript, Span, TableSpec, Unit, coefficient_table, diagram_groups, document,
-    expression, extraction_table, factor_lines, frame_figure, joined, material_lines, member_table, node_table,
-    operand, seat_moment, seat_split, section_lines, semantic_records as records, spring_table, sub, top_table,
-    used_concretes, value, with_unit,
+    BODY_LEFT, Manuscript, Span, TableSpec, Unit, coefficient_table, document,
+    extraction_table, factor_lines, frame_figure, joined, material_lines, member_table, node_table,
+    operand, overlap_lines, seat_moment, seat_split, section_lines, semantic_records as records, spring_table, sub,
+    top_table, used_concretes, value, with_unit,
 )
 
 PREFIX = "0620/"
-FOOTER = "9 - {page}"
 TRACKS = {Track.UP: "上り線載荷", Track.DOWN: "下り線載荷", Track.DOUBLE: "複線載荷"}
 # Names of the wind per metre at the start and end of each loaded member (9-7, 9-12).
 WIND_NAMES = {Region.BEAM: ("Hw1", "Hw1"), Region.HAUNCH: ("Hw1", "Hw2"), Region.COLUMN: ("Hw3", "Hw3"),
@@ -107,7 +109,7 @@ def _bearing_table(m: Manuscript, key: str, result: TransverseResult, table: Top
 
 def _footing_moment(m: Manuscript, key: str, row: Any) -> None:
     if row.arm.value:
-        m.equation(key, "", sub("M", "P"), expression(value(row.n), "×", operand(row.arm)), row.m)
+        m.equation(key, "", sub("M", "P"), terms(value(row.n), "×", operand(row.arm)), row.m)
 
 
 def _product_table(header: tuple[str, str], rows: list[tuple[Any, ...]], total: tuple[Any, Any]) -> TableSpec:
@@ -116,7 +118,7 @@ def _product_table(header: tuple[str, str], rows: list[tuple[Any, ...]], total: 
     body += [(Span(label, align="left"), *(value(number) for number in numbers)) for label, *numbers in rows]
     body.append(("合計", "", "", value(total[0]), "", value(total[1])))
     return TableSpec((96, 66, 60, 72, 60, 78), tuple(body), (28.56,) + (14.28,) * (len(body) - 1),
-                     numeric=frozenset(range(1, 6)), left=BODY_LEFT)
+                     numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True)
 
 
 def _train_table(table: TrainTable) -> TableSpec:
@@ -136,7 +138,7 @@ def horizontal_table(rows: tuple[HorizontalRow, ...], h: Any, moment: Any) -> Ta
              for row in rows]
     body.append(("合計", value(h), "", value(moment)))
     return TableSpec((96, 96, 84, 120), tuple(body), (14.28,) * len(body), numeric=frozenset({1, 2, 3}),
-                     left=BODY_LEFT)
+                     left=BODY_LEFT, open=True)
 
 
 def _model(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pier: PierInput) -> None:
@@ -173,30 +175,29 @@ def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pie
     s, weights, fixed, frame = pier.substructure, reaction.self_weight, result.fixed, result.frame
     m.heading("actions.heading", "9.2 作用の計算", 1)
     m.heading("fixed.heading", "(1) 固定死荷重", 2)
-    m.equation("fixed.column", "柱", "q", expression(value(s.w[6]), "×", value(s.b[6]), "×",
-                                                    value(s.unit_weight_body)), fixed.column_q)
+    m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
+                                               value(s.unit_weight_body)), fixed.column_q)
     m.equation("fixed.footing", "フーチング", "P",
-               expression(value(weights.footing.unit_weight), "×", value(weights.footing.volume)), fixed.footing.n)
+               terms(value(weights.footing.unit_weight), "×", value(weights.footing.volume)), fixed.footing.n)
     _footing_moment(m, "fixed.footing.moment", fixed.footing)
     m.paragraph("fixed.top.heading", "・橋脚天端に作用する荷重", keep=True)
     if s.h[1].value > 0:
-        m.equation("fixed.top.pedestal", "桁受け", "N", expression(value(weights.pedestal.unit_weight), "×",
-                                                                  value(weights.pedestal.volume)),
+        m.equation("fixed.top.pedestal", "桁受け", "N", terms(value(weights.pedestal.unit_weight), "×",
+                                                             value(weights.pedestal.volume)),
                    fixed.table.row(Item.PEDESTAL).n)
     m.equation("fixed.top.beam", "はり・ハンチ", "N",
-               expression(value(weights.beam.unit_weight), "×", value(weights.beam.volume)), fixed.table.row(Item.BEAM).n)
+               terms(value(weights.beam.unit_weight), "×", value(weights.beam.volume)), fixed.table.row(Item.BEAM).n)
     m.table("fixed.top", top_table(_top_rows(fixed.table), (fixed.table.n, fixed.table.m)))
-    m.equation("fixed.overlap", "重複区間", Row(sub("H", "2"), " + ", sub("H", "3"), gap=0),
-               expression(value(s.h[2]), "+", value(s.h[3])), fixed.overlap)
-    m.equation("fixed.n", "鉛直力", "N", expression(value(fixed.table.n), "−", value(fixed.column_q), "×",
-                                                   value(fixed.overlap)), fixed.n)
+    overlap_lines(m, s, fixed)
+    m.equation("fixed.n", "鉛直力", "N", terms(value(fixed.table.n), "−", value(fixed.column_q), "×",
+                                              value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
     if frame.bearing_offset.value:
         seat_split(m, fixed, result.basic(BasicCase.D1).points, frame, lambda row: row.slot is not None)
     m.heading("additional.heading", "(2) 付加死荷重", 2)
     soil = result.additional.soil
     m.equation("additional.soil", "載荷土", "P",
-               expression(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
+               terms(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
     _footing_moment(m, "additional.soil.moment", soil)
     m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
     _bearing_table(m, "additional.top", result, result.additional.table, BasicCase.D2)
@@ -205,7 +206,7 @@ def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pie
                                                                          weights.buoyancy_normal,
                                                                          weights.buoyancy_low), strict=True):
         m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
-                   expression(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
+                   terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
         _footing_moment(m, f"buoyancy.{key}.moment", row)
     m.heading("snow.heading", "(4) 雪荷重", 2)
     for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2), ("10", "2) 10年確率", BasicCase.SNOW10),
@@ -245,12 +246,12 @@ def _service_point(result: TransverseResult, case: BasicCase) -> Any:
 
 
 def _horizontal_lines(m: Manuscript, key: str, rows: tuple[HorizontalRow, ...], h: Any, moment: Any | None) -> None:
-    m.equation(key + ".h", "水平力", "H", expression(*joined([value(row.h) for row in rows])), h)
+    m.equation(key + ".h", "水平力", "H", terms(*joined([value(row.h) for row in rows])), h)
     if moment is not None:
         products = []
         for row in rows:
             products += [value(row.h), "×", value(row.y)] if not products else ["+", value(row.h), "×", value(row.y)]
-        m.equation(key + ".m", "モーメント", "M", expression(*products), moment)
+        m.equation(key + ".m", "モーメント", "M", terms(*products), moment)
 
 
 def _wind(m: Manuscript, key: str, label: str, wind: Wind) -> None:
@@ -279,17 +280,19 @@ def _pier_wind(m: Manuscript, key: str, wind: PierWind) -> None:
             if name not in seen:
                 seen.add(name)
                 m.equation(f"{key}.{name}", _PARTS[segment.region], sub("H", name[1:]),
-                           expression(value(wind.pressure), "×", value(width)), load)
+                           terms(value(wind.pressure), "×", value(width)), load)
 
 
 def _wind_ground(m: Manuscript, result: TransverseResult, pier: PierInput) -> None:
     s, wind, frame = pier.substructure, result.wind_with_train.pier, result.frame
-    m.paragraph("wind.ground.heading", "・く体の受風範囲（地表面 = フーチング天端 + min(df1, df2)）", keep=True)
-    m.equation("wind.ground", "地表面の高さ", "z", Row(value(frame.node(NodeRole.FOOTING_TOP).y), " + min(",
-                                                      value(s.df1), ", ", value(s.df2), ")", gap=0), wind.ground)
+    m.paragraph("wind.ground.heading", "・く体の受風範囲（地表面はフーチング天端から起点側・終点側の土かぶりの小さい方だけ上）",
+                keep=True)
+    m.equation("wind.ground", "地表面の高さ", "z", terms(value(frame.node(NodeRole.FOOTING_TOP).y), "+",
+                                                       Row("min(", value(s.df1), ", ", value(s.df2), ")", gap=0)),
+               wind.ground)
     seat = frame.bearing_seat.y
     if wind.exposure.value:
-        m.equation("wind.exposure", "受風高さ", "h", expression(value(seat), "−", value(wind.ground)), wind.exposure)
+        m.equation("wind.exposure", "受風高さ", "h", terms(value(seat), "−", value(wind.ground)), wind.exposure)
     else:
         m.equation("wind.exposure", "受風高さ", "h", with_unit(wind.exposure))
 
@@ -316,51 +319,7 @@ def _horizontal(m: Manuscript, result: TransverseResult, pier: PierInput) -> Non
             rows.append(("合計", "", "", value(table.h), "", value(table.m)))
             m.table(f"centrifugal.{track.value}", TableSpec((96, 66, 60, 72, 60, 78), tuple(rows),
                                                             (28.56,) + (14.28,) * (len(rows) - 1),
-                                                            numeric=frozenset(range(1, 6)), left=BODY_LEFT))
-
-
-def _wind_loads(result: TransverseResult, wind: Wind) -> tuple[tuple[Any, ...], ...]:
-    """The wind on the pier body as (member, start, end, t0, t1): the loaded part of each member."""
-    members = {member.number: member for member in result.frame.members}
-    found = []
-    for load in wind.pier.member_loads:
-        length = members[load.member].height.value
-        found.append((load.member, load.h_start, load.h_end, load.start.value / length, load.end.value / length))
-    return tuple(found)
-
-
-def case_title(case: BasicCase) -> str:
-    name, qualifier, _ = _BASIC[case]
-    return f"{name}　{qualifier}" if qualifier else name
-
-
-def _diagrams(m: Manuscript, result: TransverseResult) -> None:
-    m.heading("diagrams.heading", "9.3 荷重図", 1)
-    m.paragraph("diagrams.note", "鉛直力 N・P は下向き，モーメント M は時計回りを正とする．水平力は大きさと向き（←，→）"
-                                 "で示し，向き → は W9 側である．組合せでは車両横荷重と風荷重を逆向きにも作用させる．")
-    winds = {BasicCase.WIND_WITH_TRAIN: result.wind_with_train, BasicCase.WIND_WITHOUT_TRAIN: result.wind_without_train}
-    loads = {}
-    for action in result.basic_cases:
-        member_loads = _wind_loads(result, winds[action.case]) if action.case in winds else ()
-        loads[action.case] = CaseLoads(action.case.value, _BASIC[action.case][1] or _BASIC[action.case][0],
-                                       action.points, action.line_loads, member_loads, WIND_NAMES,
-                                       horizontal=action.horizontal)
-    groups = [("d1", "固定死荷重（D1）", (BasicCase.D1,)), ("d2", "付加死荷重（D2）", (BasicCase.D2,)),
-              ("buoyancy", "浮力（Wp）", (BasicCase.BUOYANCY_HIGH, BasicCase.BUOYANCY_NORMAL, BasicCase.BUOYANCY_LOW)),
-              ("snow", "雪荷重（Ss）", (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)),
-              ("train", "列車荷重（L）", (BasicCase.TRAIN_UP, BasicCase.TRAIN_DOWN, BasicCase.TRAIN_DOUBLE)),
-              ("impact", "衝撃荷重（I）", (BasicCase.IMPACT_UP, BasicCase.IMPACT_DOWN, BasicCase.IMPACT_DOUBLE)),
-              ("lateral", "車両横荷重（LF）", (BasicCase.LATERAL,)),
-              ("wind_with_train", "風荷重（W1）　列車荷重がある場合", (BasicCase.WIND_WITH_TRAIN,)),
-              ("wind_without_train", "風荷重（W2）　列車荷重がない場合", (BasicCase.WIND_WITHOUT_TRAIN,)),
-              ("centrifugal", "遠心荷重（CF）", tuple(CENTRIFUGAL_CASES))]
-
-    def title(name: str, cases: Any) -> str:
-        first, last = cases[0].number, cases[-1].number
-        return f"Case {first}　{name}" if first == last else f"Case {first} ～ {last}　{name}"
-
-    diagram_groups(m, result.frame, ((key, name, [loads[case] for case in cases if case in loads])
-                                     for key, name, cases in groups if any(case in loads for case in cases)), title)
+                                                            numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True))
 
 
 def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> None:
@@ -412,7 +371,7 @@ def content(result: TransverseResult, reaction: ReactionResult, pier: PierInput)
     _dead(m, result, reaction, pier)
     _train_impact(m, result)
     _horizontal(m, result, pier)
-    _diagrams(m, result)
+    load_diagrams.heading(m, "9.3 荷重図")
     _combinations(m, result, pier)
     return tuple(m.units)
 
@@ -422,10 +381,14 @@ def semantic_records(result: TransverseResult, reaction: ReactionResult, pier: P
 
 
 def build_transverse(result: TransverseResult, reaction: ReactionResult, pier: PierInput) -> Document:
-    """The 0620 report as a GridLayoutPdf Document (lay out or render it)."""
-    return document(content(result, reaction, pier), FOOTER)
+    """The whole 0620 manuscript as one GridLayoutPdf Document, without the load diagram pages."""
+    return document(content(result, reaction, pier))
 
 
-def render_transverse(result: TransverseResult, reaction: ReactionResult, pier: PierInput, path: str | Path) -> Path:
-    """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
-    return build_transverse(result, reaction, pier).render(path, invariant=True)
+def render_transverse(result: TransverseResult, reaction: ReactionResult, pier: PierInput, path: str | Path,
+                      load_diagram: bytes) -> Path:
+    """The report with the FEMPython *load_diagram* pages after 9.3; atomically replaces *path*.
+
+    The pages WebPier lays out are the same for the same input; the load diagram pages are FEMPython's.
+    """
+    return load_diagrams.render(content(result, reaction, pier), PREFIX, load_diagram, path)

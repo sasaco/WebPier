@@ -76,7 +76,7 @@ INVALID = {
     "member_end": (("member", "1", "nj"), 99),
     "member_end_text": (("member", "1", "nj"), "2"),
     "member_same_ends": (("member", "1", "nj"), 1),
-    "member_zero_length": (("node", "2", "y"), 10.3),
+    "member_zero_length": (("node", "2", "y"), -10.3),
     "member_section": (("member", "1", "e"), 9),
     "member_cg": (("member", "1", "cg"), 0),
     "member_fields": (("member", "1", "ni"), DELETE),

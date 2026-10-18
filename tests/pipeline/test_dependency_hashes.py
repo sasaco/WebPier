@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 import gridlayoutpdf
 from PIL import Image
+import pypdf
 import pytest
 from reportlab.pdfbase import pdfmetrics
 
@@ -43,7 +44,7 @@ def isolated_package(tmp_path: Path) -> Path:
 def fake_installed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
     """Installed renderer packages and a font, replaced by small files we may change."""
     entries = {}
-    for name in ("gridlayoutpdf", "reportlab", "PIL"):
+    for name in ("gridlayoutpdf", "reportlab", "PIL", "pypdf"):
         root = tmp_path / "installed" / name
         root.mkdir(parents=True)
         (root / "__init__.py").write_bytes(b"# installed v1\n")
@@ -51,7 +52,7 @@ def fake_installed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str,
     font = tmp_path / "body.ttc"
     font.write_bytes(b"font one")
     entries["font"] = font
-    modules = {name: SimpleNamespace(__file__=str(entries[name])) for name in ("gridlayoutpdf", "reportlab", "PIL")}
+    modules = {name: SimpleNamespace(__file__=str(entries[name])) for name in ("gridlayoutpdf", "reportlab", "PIL", "pypdf")}
     monkeypatch.setattr(runtime.importlib, "import_module", modules.__getitem__)
     monkeypatch.setattr(runtime, "font_files", lambda: {"body": font})
     return entries
@@ -62,7 +63,7 @@ def test_default_identity_is_the_webpier_package_with_its_renderers_and_fonts():
     assert hashes == runtime.dependency_hashes(PACKAGE)
     for path in (PACKAGE / "reporting" / "numbers.py", PACKAGE / "calc" / "foundation.py",
                  PACKAGE / "pipeline" / "runtime.py", Path(gridlayoutpdf.__file__), Path(pdfmetrics.__file__),
-                 Path(Image.__file__), *font_files().values()):
+                 Path(Image.__file__), Path(pypdf.__file__), *font_files().values()):
         assert hashes[path.resolve()] == sha256(path)
     assert not any("__pycache__" in path.parts or path.suffix == ".pyc" for path in hashes)
     assert not any(path.is_relative_to(PACKAGE.parent / "src") for path in hashes)

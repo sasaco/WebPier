@@ -15,7 +15,7 @@ import pytest
 
 from frame_report_cases import TRANSVERSE_CASES, text, transverse_chain
 from test_longitudinal_report_semantics import (
-    directed, glyph_labels, material, member_rows, node_rows, paren, section, springs, squeeze,
+    material, member_rows, node_rows, paren, section, springs, squeeze,
 )
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal.actions import SpringTerm
@@ -26,7 +26,6 @@ t = text
 WIND = {Region.BEAM: ("Hw1", "Hw1"), Region.HAUNCH: ("Hw1", "Hw2"), Region.COLUMN: ("Hw3", "Hw3"),
         Region.PEDESTAL: ("Hw4", "Hw4")}
 PARTS = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.PEDESTAL: "桁受け"}
-UNITS = {"kN": "kN", "kN m": "kN・m", "kN/m": "kN/m"}
 BASIC = {1: ("固定死荷重", "", "D1"), 2: ("付加死荷重", "", "D2"), 3: ("浮力", "高水位", "WP1"), 4: ("浮力", "平水位", "WP2"),
          5: ("浮力", "低水位", "WP3"), 6: ("雪荷重", "2年確率", "SS2"), 7: ("雪荷重", "10年確率", "SS10"),
          8: ("雪荷重", "30年確率", "SS30"), 9: ("列車荷重", "単線　上り", "L1"), 10: ("列車荷重", "単線　下り", "L1"),
@@ -59,35 +58,6 @@ def products(header: str, rows, total) -> str:
 def seat(frame, n, m, point) -> str | None:
     e = frame.bearing_offset
     return None if not e.value else f"桁受け天端M={t(m)}−{t(n)}×{paren(e)}={t(point.m)}kN・m"
-
-
-def lines(points, horizontal: bool) -> str:
-    """The value lines of a point load, N, H, M, with H as magnitude and direction."""
-    out = ""
-    anchors = {p.anchor for p in points}
-    top_h = any(p.h.value for p in points if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP))
-    for p in points:
-        if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP):
-            prime = "'" if p.anchor is NodeRole.CAP_TOP and NodeRole.PEDESTAL_TOP in anchors else ""
-            names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
-        else:
-            names = {"n": "P", "m": "MP", "h": "HP" if top_h else "H"}
-        for c in [c for c in "nhm" if getattr(p, c).value] or (["h"] if horizontal else ["n"]):
-            value = getattr(p, c)
-            out += f"{names[c]}=" + (directed(value) if c == "h" else t(value) + UNITS[value.unit])
-    return out
-
-
-def wind_lines(result, wind) -> tuple[str, str]:
-    regions = {m.number: m.region for m in result.frame.members}
-    labels, values, seen = "", "", []
-    for load in wind.pier.member_loads:
-        for value, name in zip((load.h_start, load.h_end), WIND[regions[load.member]]):
-            if name not in seen:
-                seen.append(name)
-                labels += name
-                values += f"{name}={directed(value)}"
-    return labels, values
 
 
 def expected(case: str) -> dict[str, str]:
@@ -141,7 +111,8 @@ def expected(case: str) -> dict[str, str]:
                                   f"{t(fixed.table.row(Item.PEDESTAL).n)}kN")
     add("fixed.top.beam", f"はり・ハンチN={t(sw.beam.unit_weight)}×{t(sw.beam.volume)}={t(fixed.table.row(Item.BEAM).n)}kN")
     add("fixed.top", top(fixed.table))
-    add("fixed.overlap", f"重複区間H2+H3={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
+    add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
+    add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
     add("fixed.n", f"鉛直力N={t(fixed.table.n)}−{t(fixed.column_q)}×{t(fixed.overlap)}={t(fixed.n)}kN")
     add("fixed.m", f"モーメントM={t(fixed.m)}kN・m")
     add("additional.heading", "(2)付加死荷重")
@@ -198,7 +169,7 @@ def expected(case: str) -> dict[str, str]:
                      f"={t(lateral.m)}kN・m")
     add("wind.heading", "(8)風荷重")
     ground = result.wind_with_train.pier
-    add("wind.ground.heading", "・く体の受風範囲（地表面=フーチング天端+min(df1,df2)）")
+    add("wind.ground.heading", "・く体の受風範囲（地表面はフーチング天端から起点側・終点側の土かぶりの小さい方だけ上）")
     add("wind.ground", f"地表面の高さz={t(frame.node(NodeRole.FOOTING_TOP).y)}+min({t(s.df1)},{t(s.df2)})={t(ground.ground)}m")
     add("wind.exposure", f"受風高さh={t(frame.bearing_seat.y)}−{t(ground.ground)}={t(ground.exposure)}m")
     for key, label, wind in (("with_train", "1)列車荷重がある場合", result.wind_with_train),
@@ -230,19 +201,8 @@ def expected(case: str) -> dict[str, str]:
             add(f"centrifugal.{track.value}", "列車荷重(kN)α水平力(kN)高さ(m)モーメント(kN・m)" + "".join(
                 ("起点側" if r.item is Item.ORIGIN else "終点側") + t(r.train) + t(r.coefficient) + t(r.h) + t(r.y)
                 + t(r.m) for r in table.rows) + f"合計{t(table.h)}{t(table.m)}")
+    # Decision 44: the load diagrams are FEMPython's pages after the heading; the section has no text of its own.
     add("diagrams.heading", "9.3荷重図")
-    add("diagrams.note", "鉛直力N・Pは下向き，モーメントMは時計回りを正とする．水平力は大きさと向き（←，→）で示し，"
-                         "向き→はW9側である．組合せでは車両横荷重と風荷重を逆向きにも作用させる．")
-    winds = {16: result.wind_with_train, 17: result.wind_without_train}
-    for action in result.basic_cases:
-        number = action.case.value
-        labels = glyph_labels(action.points, action.line_loads, action.horizontal).replace("HP", "H")
-        values = lines(action.points, action.horizontal)
-        values += "".join(f"q={t(line.n)}kN/m" for line in action.line_loads if line.n.value)
-        if number in winds:
-            extra, wind_values = wind_lines(result, winds[number])
-            labels, values = labels + extra, values + wind_values
-        out[f"0620/diagram.{number}"] = labels + "|" + values
     add("combination.heading", "9.4設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
     add("basic", "No荷重名称区分バネ" + "".join(
@@ -290,49 +250,16 @@ def actual(case: str, result=None) -> dict[str, str]:
     pier, reaction, transverse, _ = transverse_chain(case)
     units = content(result or transverse, reaction, pier)
     assert len({unit.key for unit in units}) == len(units)
-    return {unit.key: squeeze(plain(unit.value)) for unit in units
-            if unit.kind != "diagram" and not (unit.key.startswith("0620/diagrams.") and unit.key.endswith(".title"))}
-
-
-def diagrams(case: str) -> dict[int, tuple[str, str]]:
-    """(glyph labels, value lines) of each case, from the diagrams (several cases may share one)."""
-    import re
-
-    from webpier.reporting.stages.frame_report import plain
-    from webpier.reporting.stages.transverse import content
-
-    pier, reaction, transverse, _ = transverse_chain(case)
-    units = content(transverse, reaction, pier)
-    titles = {unit.key: unit.value for unit in units if unit.key.endswith(".title")}
-    found: dict[int, tuple[str, str]] = {}
-    for unit in units:
-        if unit.kind != "diagram":
-            continue
-        labels = squeeze("".join(unit.value.figure.texts()))
-        current = int(re.match(r"Case (\d+)", titles[unit.key + ".title"])[1])
-        values: dict[int, str] = {}
-        for line in unit.value.lines:
-            if isinstance(line, str) and line.startswith("Case "):
-                current = int(re.match(r"Case (\d+)", line)[1])
-                continue
-            values[current] = values.get(current, "") + squeeze(plain(line))
-        found.update({number: (labels, value) for number, value in values.items()})
-    return found
+    return {unit.key: squeeze(plain(unit.value)) for unit in units}
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
 def test_every_record_prints_the_result_values_at_their_digits_in_order(case: str):
     want = {key: squeeze(value) for key, value in expected(case).items()}
     got = actual(case)
-    printed = {key: value for key, value in want.items() if not key.startswith("0620/diagram.")}
-    assert list(got) == list(printed)
-    for key, value in printed.items():
-        assert got[key] == value, key
-    # Each case's labels and values are in its diagram, in the order of the glyphs.
-    found = diagrams(case)
+    assert list(got) == list(want)
     for key, value in want.items():
-        if key.startswith("0620/diagram."):
-            assert found[int(key.rsplit(".", 1)[1])] == tuple(value.split("|")), key
+        assert got[key] == value, key
 
 
 def test_current_input_prints_the_example2_values():
@@ -345,8 +272,6 @@ def test_current_input_prints_the_example2_values():
     assert got["0620/wind.with_train.h"] == "水平力H=197.00+108.88=305.88kN"
     assert got["0620/wind.with_train.Hw1"] == "はりHw1=1.5×2.700=4.05kN/m"
     assert "0620/centrifugal.heading" not in got
-    found = diagrams("current")
-    assert found[15] == ("HM", "H=111.69kN（→）M=430.01kN・m")
 
 
 def test_variants_change_what_is_printed():

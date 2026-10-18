@@ -14,14 +14,13 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from gridlayoutpdf import Equation, Fraction, Literal, MathNode, Operator, Row, Script
+from gridlayoutpdf import BreakHint, Equation, Literal, MathNode, Operator, Row, Script, TermStop
 
 from ....core.printed import Printed
-from ...equations import script
+from ...equations import Definition, over, script, terms
 from ...numbers import constant, decimal_constant, printed, unit
 
 PREFIX = "0600/"
-FOOTER = "6 - {page}"
 
 # Heading levels and their measured x (reporting-style.md, 0600 p1/p16).
 CHAPTER, SECTION, SUBSECTION, ITEM, DETAIL = 58.92, 73.44, 87.96, 102.48, 117.0
@@ -32,8 +31,10 @@ SHORT_LHS, SHORT_EQUAL = 131.52, 160.56
 MEDIUM_EQUAL = 204.12  # a labelled symbol such as RB(D1) or iF(複線)
 WIDE_LHS, WIDE_EQUAL = 175.08, 276.72
 RESULT_EQUAL, RESULT_RIGHT, UNIT_START = 436.44, 516.48, 523.68
+DEFINITION_COLON = MEDIUM_EQUAL  # "ここに、" from the indented body, symbols ending before this colon
 
 _OPERATORS = {"+", "−", "×", "/", "=", "-"}
+_PARENTHESES = {"(", ")"}
 
 
 def sub(base: str | MathNode, suffix: str) -> Script:
@@ -62,14 +63,80 @@ def operand(value: Any, *, first: bool = False) -> MathNode | str:
     return value
 
 
-def expr(*parts: Any) -> Row:
-    """A flat row: operators may wrap, printed values are written at their digits."""
-    items = []
+def _aligned(node: Any) -> bool:
+    """A Row written by terms(): its items are term columns."""
+    return isinstance(node, Row) and any(isinstance(item, TermStop) for item in node.items)
+
+
+def _parts(node: Row) -> tuple[Any, ...]:
+    """The terms and operators of a term-column Row, to be written again inside another expression."""
+    return tuple(item for item in node.items if not isinstance(item, (TermStop, BreakHint)))
+
+
+def _columns(*items: Any) -> Row:
+    """terms(), with a leading minus (first, or after another operator) kept on its term: "−(1.0 + z)"."""
+    row = terms(*items)
+    pairs = list(zip(row.items[::2], row.items[1::2]))
+    out: list[Any] = []
+    index = 0
+    while index < len(pairs):
+        stop, node = pairs[index]
+        unary = (isinstance(node, Operator) and node.text in ("−", "-") and index + 1 < len(pairs)
+                 and not isinstance(pairs[index + 1][1], Operator)
+                 and (not out or isinstance(out[-1], Operator)))
+        if unary:
+            stop, node = TermStop("right"), Row(node.text, pairs[index + 1][1], gap=0)
+            index += 1
+        out.extend((stop, node))
+        index += 1
+    return Row(*out, gap=row.gap)
+
+
+def _opened(items: list[Any]) -> list[Any]:
+    """Top-level parentheses kept on their first and last terms, so that a long group wraps inside."""
+    out: list[Any] = []
+    index = 0
+    while index < len(items):
+        if items[index] != "(":
+            out.append(items[index])
+            index += 1
+            continue
+        depth, end = 0, index
+        for end in range(index, len(items)):  # pragma: no branch - terms() rejects an unmatched "("
+            depth += (items[end] == "(") - (items[end] == ")")
+            if depth == 0:
+                break
+        inner = list(_parts(terms(*items[index + 1:end])))
+        inner[0] = Row("(", inner[0], gap=0)
+        inner[-1] = Row(inner[-1], ")", gap=0)
+        out.extend(inner)
+        index = end + 1
+    return out
+
+
+def expr(*parts: Any, open_groups: bool = False) -> Row:
+    """An equation RHS in term columns (terms); printed values are written at their digits.
+
+    A parenthesized group is one term that never wraps inside; with *open_groups* the top-level groups
+    keep their parentheses on their first and last terms, so that a group too long for a line wraps.
+    """
+    items: list[Any] = []
     for index, part in enumerate(parts):
         previous = parts[index - 1] if index else None
         first = index == 0 or (isinstance(previous, str) and previous in ("(", "="))
-        items.append(operand(part, first=first))
-    return Row(*items)
+        node = operand(part, first=first)
+        items.extend(_parts(node) if _aligned(node) else (node,))
+    return _columns(*(_opened(items) if open_groups else items))
+
+
+def inline(node: Any) -> Any:
+    """A term-column Row written as one run, as an argument of min/max or a side of a ratio."""
+    if not _aligned(node):
+        return node
+    items: list[Any] = []
+    for item in _parts(node):
+        items.extend((" ", item, " ") if isinstance(item, Operator) else (item,))
+    return Row(*items, gap=0)
 
 
 def call(name: str, *arguments: Any) -> Row:
@@ -78,19 +145,42 @@ def call(name: str, *arguments: Any) -> Row:
     for index, argument in enumerate(arguments):
         if index:
             items.append(", ")
-        items.append(argument if isinstance(argument, Row) else operand(argument, first=True))
+        items.append(inline(argument) if isinstance(argument, Row) else operand(argument, first=True))
     items.append(")")
     return Row(*items, gap=0)
 
 
-def frac(numerator: Any, denominator: Any) -> Fraction:
-    return Fraction(numerator if isinstance(numerator, (Row, str)) else operand(numerator, first=True),
-                    denominator if isinstance(denominator, (Row, str)) else operand(denominator, first=True))
+def ratio(numerator: Any, denominator: Any) -> Row:
+    """a/b on the line (over); an expression is parenthesized. No stacked fraction."""
+    def side(value: Any) -> Any:
+        return inline(value) if isinstance(value, Row) else operand(value, first=True)
+    return over(side(numerator), side(denominator))
 
 
 def symbols(*parts: Any) -> Row:
-    """A symbolic expression such as B1 × W1; strings are symbols, operators may wrap."""
-    return Row(*(Operator(part) if isinstance(part, str) and part in _OPERATORS else part for part in parts))
+    """A symbolic expression such as A × d in term columns; juxtaposed symbols (b0 w0) form one term."""
+    items: list[Any] = []
+    run: list[Any] = []
+
+    def close() -> None:
+        if run:
+            items.append(run[0] if len(run) == 1 else Row(*run))
+            run.clear()
+
+    for part in parts:
+        if isinstance(part, Operator) or isinstance(part, str) and (part in _OPERATORS or part in _PARENTHESES):
+            close()
+            items.append(part)
+        else:
+            run.append(part)
+    close()
+    return _columns(*items)
+
+
+def derivation(symbolic: Any, numeric: Row) -> Row:
+    """symbols = numbers as one row of term columns; a long row wraps before the numbers' "="."""
+    head = symbolic if _aligned(symbolic) else _columns(symbolic)
+    return Row(*head.items, BreakHint("preferred"), *numeric.items, gap=numeric.gap)
 
 
 def unit_of(value: Printed) -> str | MathNode | None:
@@ -129,7 +219,7 @@ class FigureSpec:
 @dataclass(frozen=True)
 class Unit:
     key: str
-    kind: str  # heading, paragraph, math, equation, table, figure
+    kind: str  # heading, paragraph, math, equation, definitions, table, figure
     value: Any
     left: float = BODY
     first_equal: float | None = None
@@ -189,10 +279,16 @@ class Manuscript:
                        first_equal=WIDE_EQUAL if wide else MEDIUM_EQUAL if medium else SHORT_EQUAL, group=self._group,
                        checked=checked and result is not None, gap_before=gap))
 
-    def formula(self, key: str, lhs: Any, symbolic: MathNode | None, numeric: Sequence[Any], result: Printed,
-                **options: Any) -> None:
-        """lhs = symbols = numbers = result: the numbers are the printed operands of the result."""
-        rhs = expr(*numeric) if symbolic is None else expr(symbolic, "=", *numeric)
+    def formula(self, key: str, lhs: Any, symbolic: MathNode | str | None, numeric: Sequence[Any],
+                result: Printed, *, open_groups: bool = False, **options: Any) -> None:
+        """lhs = symbols = numbers = result: the numbers are the printed operands of the result.
+
+        The symbols and the numbers are one row of term columns; a long row wraps before the numbers' "=".
+        """
+        if symbolic is None:
+            rhs = expr(*numeric, open_groups=open_groups)
+        else:
+            rhs = derivation(symbolic, expr("=", *numeric, open_groups=open_groups))
         self.equation(key, lhs, rhs, result, **options)
 
     def value(self, key: str, lhs: Any, value: Printed, *, symbolic: MathNode | str | None = None,
@@ -203,6 +299,10 @@ class Manuscript:
             self.equation(key, lhs, rhs, checked=False, **options)
         else:
             self.equation(key, lhs, symbolic, value, checked=False, **options)
+
+    def definitions(self, key: str, *items: Definition) -> None:
+        """"ここに、" symbol：meaning, one line each, the symbols right-aligned against one colon column."""
+        self._add(Unit(key, "definitions", items, INDENTED, first_equal=DEFINITION_COLON, group=self._group))
 
     def table(self, key: str, spec: TableSpec, left: float) -> None:
         self._add(Unit(key, "table", spec, left, gap_before=True))
@@ -215,6 +315,8 @@ def plain(value: Any) -> str:
     """The text of an authored node, in reading order (the semantic record)."""
     if isinstance(value, str):
         return value
+    if isinstance(value, (TermStop, BreakHint)):
+        return ""
     if isinstance(value, Literal):
         return value.text
     if isinstance(value, Row):
@@ -222,13 +324,13 @@ def plain(value: Any) -> str:
     if isinstance(value, Script):
         return (plain(value.base) + (plain(value.subscript) if value.subscript else "")
                 + ("^" + plain(value.superscript) if value.superscript else ""))
-    if isinstance(value, Fraction):
-        return "(" + plain(value.numerator) + ")/(" + plain(value.denominator) + ")"
     if isinstance(value, Equation):
         text = value.label + plain(value.lhs) + value.relation + plain(value.rhs)
         if value.result is not None:
             text += value.result_relation + plain(value.result)
         return text + (plain(value.unit) if value.unit is not None else "")
+    if isinstance(value, tuple) and value and all(isinstance(item, Definition) for item in value):
+        return "ここに、" + "、".join(plain(item.symbol) + "：" + plain(item.text) for item in value)
     if isinstance(value, CellSpec):
         return plain(value.content)
     if isinstance(value, TableSpec):

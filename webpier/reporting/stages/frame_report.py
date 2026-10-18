@@ -15,19 +15,19 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, Cell, CellLines, Columns, Document, Equation, Fraction, KeepWithNext, LayoutContext,
-    LayoutOverflowError, Literal, MathNode, MeasuredBlock, Operator, PreferKeepTogether, Root, Row, Script, Text, as_math,
-    measure_block,
+    Block, BreakHint, Cell, CellLines, Columns, Document, Equation, KeepWithNext, LayoutContext,
+    LayoutOverflowError, Literal, MathNode, MeasuredBlock, PreferKeepTogether, Root, Row, Script, TermStop, Text,
+    as_math, measure_block,
 )
 
 from ...calc.frame import Frame, LineLoad, Member, NodeRole, PointLoad, Region, Section
 from ...calc.materials import EC_EXPONENT, Concrete
 from ...core.printed import Printed
-from ..document import heading, indent_to, paragraph, report, spacer
-from ..equations import equation_group, script
+from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
+from ..equations import Definition, definitions, equation_group, script, terms
 from ..figures import AxialGlyph, DistributedGlyph, FrameFigure, Glyph, LoadDiagram, PointGlyph
 from ..numbers import printed, unit
-from ..styles import BODY, BODY_LEADING, grid_units
+from ..styles import BASELINE, BODY, BODY_LEADING, grid_units
 from ..tables import VerticalLabel, cell, table
 
 # Heading levels (reporting-style.md: chapter 58.92, then 14.52 steps) and the body.
@@ -40,6 +40,8 @@ FIRST_EQUAL = 219.72
 SECOND_EQUAL = 436.44  # the 0600 multi-step result column (reporting-style.md)
 RESULT_RIGHT = 496.2
 UNIT_START = 500.64
+# The "：" of a "ここに、" list: "ここに、" and the widest symbol (Δh) start at the label column.
+DEFINITION_COLON = 178.08
 
 
 def sub(base: str | MathNode, suffix: str) -> Script:
@@ -62,17 +64,6 @@ def operand(number: Printed) -> str:
 
 def with_unit(number: Printed, *, thousands: bool = False) -> Row:
     return Row(printed(number, thousands=thousands), " ", unit(number.unit), gap=0)
-
-
-def expression(*parts: Any) -> Row:
-    """Operands and operators with a space around each operator, as Example2 writes them."""
-    items: list[Any] = []
-    for part in parts:
-        if isinstance(part, str) and part in ("×", "+", "−", "-"):
-            items += [" ", Operator(part), " "]
-        else:
-            items.append(part)
-    return Row(*items, gap=0)
 
 
 @dataclass(frozen=True)
@@ -102,6 +93,9 @@ class TableSpec:
     header_rows: int = 1
     numeric: frozenset[int] = frozenset()  # body columns aligned right
     left: float = TABLE_LEFT
+    # An open table (the 鉛直力・アーム・モーメント tables, 0610 p4): no frame, no vertical rules and no rule
+    # under the header; one 0.96 pt rule across the table above its last row (合計).
+    open: bool = False
 
 
 @dataclass(frozen=True)
@@ -120,10 +114,17 @@ class DiagramSpec:
 
 
 @dataclass(frozen=True)
+class Definitions:
+    """A "ここに、" list under an equation."""
+
+    items: tuple[Definition, ...]
+
+
+@dataclass(frozen=True)
 class Unit:
     key: str
     value: Any
-    kind: str  # heading, paragraph, line, equation, table, figure, diagram
+    kind: str  # heading, paragraph, line, equation, definitions, table, figure, diagram
     left: float = BODY_LEFT
     keep: bool = False  # keep with the next unit (a lead-in line)
     level: int = 0
@@ -131,7 +132,7 @@ class Unit:
 
 def plain(item: Any) -> str:
     """The text a unit prints, in reading order (the semantic record)."""
-    if item is None:
+    if item is None or isinstance(item, (TermStop, BreakHint)):
         return ""
     if isinstance(item, str):
         return item
@@ -141,8 +142,6 @@ def plain(item: Any) -> str:
         return "".join(plain(part) for part in item.items)
     if isinstance(item, Script):
         return plain(item.base) + plain(item.subscript) + plain(item.superscript)
-    if isinstance(item, Fraction):
-        return plain(item.numerator) + "/" + plain(item.denominator)
     if isinstance(item, Root):
         return "√" + plain(item.body)
     if isinstance(item, Equation):
@@ -150,6 +149,8 @@ def plain(item: Any) -> str:
         return plain(item.lhs) + item.relation + plain(item.rhs) + result
     if isinstance(item, Labelled):
         return item.label + plain(item.equation)
+    if isinstance(item, Definitions):
+        return "ここに、" + "".join(plain(d.symbol) + "：" + plain(d.text) for d in item.items)
     if isinstance(item, Span):
         return plain(item.value)
     if isinstance(item, TableSpec):
@@ -197,6 +198,9 @@ class Manuscript:
             item = Equation(lhs, rhs, relation=relation)
         self.add(key, Labelled(label, item), "equation", keep=keep)
 
+    def definitions(self, key: str, *items: Definition) -> None:
+        self.add(key, Definitions(items), "definitions")
+
     def table(self, key: str, spec: TableSpec) -> None:
         self.add(key, spec, "table", left=spec.left)
 
@@ -216,27 +220,36 @@ def semantic_records(units: Sequence[Unit]) -> list[dict[str, str]]:
 
 @dataclass(frozen=True)
 class _LabelledBlock:
-    """Draw *label* at *left* on the first line of an equation block; never over its symbol."""
+    """Draw each equation's label at *left* on the first line of that equation; never over its symbol.
 
-    label: str
+    *labels* has one word per equation of the equation_group *block* ("" for none). The label is not
+    an EquationGroup label column: a column shared by the group would push every symbol right of the
+    widest word (断面二次モーメント), while the reference prints each word only before its own symbol.
+    """
+
+    labels: tuple[str, ...]
     block: Block
     left: float
-    block_id: str = ""
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
         measured = measure_block(self.block, context, available_width)
-        if not self.label:
-            return measured
-        first = measured.parts[0]
-        texts = [command for command in first.commands if isinstance(command, Text)]
         x = self.left - context.profile.grid.origin_x
-        width = context.fonts.measure(self.label, BODY).width
-        if x + width + 2 > min(command.x for command in texts):
-            raise LayoutOverflowError(f"{self.block_id}: 式の見出し「{self.label}」が記号に重なります",
-                                      block_id=self.block_id, needed=width + 2, available=texts[0].x - x)
-        relation = next((c for c in texts if c.text in ("=", "＝")), texts[0])
-        label = Text(x, relation.y, self.label, BODY)
-        return replace(measured, parts=(replace(first, commands=(label, *first.commands)), *measured.parts[1:]))
+        parts = list(measured.parts)
+        labelled: set[int] = set()
+        for position, part in enumerate(parts):
+            index = part.metadata["equation_index"]
+            if index in labelled or not self.labels[index]:
+                continue
+            labelled.add(index)
+            label, block_id = self.labels[index], part.metadata["equation_block_id"]
+            texts = [command for command in part.commands if isinstance(command, Text)]
+            width = context.fonts.measure(label, BODY).width
+            if x + width + 2 > min(command.x for command in texts):
+                raise LayoutOverflowError(f"{block_id}: 式の見出し「{label}」が記号に重なります",
+                                          block_id=block_id, needed=width + 2, available=texts[0].x - x)
+            relation = next((c for c in texts if c.text in ("=", "＝")), texts[0])
+            parts[position] = replace(part, commands=(Text(x, relation.y, label, BODY), *part.commands))
+        return replace(measured, parts=tuple(parts))
 
 
 @dataclass(frozen=True)
@@ -252,12 +265,19 @@ class _RowLine:
     align: str
     height: float
     row: tuple[Any, ...]  # the one-line contents of the row
+    # An open table puts a one-row line on the body baseline (its text reads as body lines) when the row
+    # fits there; a row with a subscript stays centred, a little higher, as in the reference (0610 p4).
+    on_body_row: bool = False
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
         boxes = [as_math(item).measure(context.fonts, BODY) for item in self.row]
         ascent, descent = max(box.ascent for box in boxes), max(box.descent for box in boxes)
+        baseline = (self.height + ascent - descent) / 2
+        if (self.on_body_row and self.height == BODY_LEADING and BASELINE - ascent >= 1.08
+                and BASELINE + descent <= self.height - 1.08):
+            baseline = BASELINE
         lines = CellLines((self.content,), style=BODY, line_advance=12.84, inner_padding=1.08, align=self.align,
-                          min_height=self.height, first_baseline=(self.height + ascent - descent) / 2)
+                          min_height=self.height, first_baseline=baseline)
         return measure_block(lines, context, available_width)
 
 
@@ -265,14 +285,21 @@ def _one_line(span: Span) -> bool:
     return not span.vertical and span.rowspan == 1 and not (isinstance(span.value, str) and "\n" in span.value)
 
 
-def _cell(item: Any, *, header: bool, numeric: bool, height: float, row: tuple[Any, ...]) -> Cell:
+def _cell(item: Any, *, header: bool, numeric: bool, height: float, row: tuple[Any, ...],
+          open_table: bool = False) -> Cell:
     span = item if isinstance(item, Span) else Span(item, align="center" if header else
                                                     "right" if numeric else "left")
     content = span.value
     if span.vertical:
         return cell(VerticalLabel(content, style=BODY), colspan=span.colspan, rowspan=span.rowspan, align="center")
     if _one_line(span):
-        return Cell(_RowLine(content, span.align, height, row), colspan=span.colspan, align=span.align, padding=0)
+        return Cell(_RowLine(content, span.align, height, row, open_table), colspan=span.colspan, align=span.align,
+                    padding=0)
+    if isinstance(content, str) and open_table and span.rowspan == 1:
+        # a two-line header of an open table, on the body rows
+        lines = CellLines(tuple(content.split("\n")), style=BODY, line_advance=BODY_LEADING, inner_padding=1.08,
+                          align=span.align, min_height=height, first_baseline=BASELINE)
+        return Cell(lines, colspan=span.colspan, align=span.align, padding=0)
     if isinstance(content, str):
         return cell(content, colspan=span.colspan, rowspan=span.rowspan, align=span.align)
     lines = CellLines((content,), style=BODY, inner_padding=1.08, align=span.align)
@@ -285,9 +312,15 @@ def table_block(spec: TableSpec, block_id: str) -> Block:
         spans = [item if isinstance(item, Span) else Span(item) for item in row]
         lines = tuple(span.value for span in spans if _one_line(span))
         rows.append([_cell(item, header=index < spec.header_rows, numeric=column in spec.numeric,
-                           height=spec.row_heights[index], row=lines) for column, item in enumerate(row)])
+                           height=spec.row_heights[index], row=lines, open_table=spec.open)
+                     for column, item in enumerate(row)])
+    rules: dict[str, Any] = {}
+    if spec.open:
+        # One part (split=False) draws the rule between two rows once, not once per row.
+        rules = {"horizontal_rules": tuple(.96 if index == len(rows) - 1 else 0 for index in range(len(rows) + 1)),
+                 "vertical_rules": (0,) * (len(spec.widths) + 1), "split": False}
     return indent_to(table(spec.widths, rows, row_heights=spec.row_heights, header_rows=spec.header_rows,
-                           block_id=block_id), spec.left)
+                           block_id=block_id, **rules), spec.left)
 
 
 def _diagram_block(spec: DiagramSpec, block_id: str) -> Block:
@@ -297,45 +330,80 @@ def _diagram_block(spec: DiagramSpec, block_id: str) -> Block:
                              gap_cols=grid_units(14.52), block_id=block_id), BODY_LEFT)
 
 
+_FLOATS = ("table", "figure", "diagram")
+
+
+def _columns(equation: Equation) -> tuple[bool, bool]:
+    """The anchors an equation uses beyond its "=": the result column and the unit column."""
+    return equation.result is not None, equation.unit is not None
+
+
+def _equations(run: Sequence[Unit]) -> Block:
+    """Consecutive equations in one group, their term columns lined up across the lines (0610 p4: the
+    浮力 of the high, normal and low water levels); each keeps its word on its own first line."""
+    result, has_unit = _columns(run[0].value.equation)
+    return _LabelledBlock(tuple(piece.value.label for piece in run), equation_group(
+        *(replace(piece.value.equation, block_id=piece.key) for piece in run),
+        left=LABEL_LEFT, first_equal=FIRST_EQUAL,
+        second_equal=SECOND_EQUAL if result else None, result_right=RESULT_RIGHT if result else None,
+        unit_start=UNIT_START if has_unit else None, block_id=run[0].key,
+        keep=tuple(piece.keep for piece in run)), LABEL_LEFT)
+
+
+def _title_of(piece: Unit | None, following: Unit | None) -> bool:
+    """A kept paragraph directly before a table, figure or diagram is its title (as the 0500 table caption)."""
+    return (piece is not None and following is not None and piece.kind == "paragraph" and piece.keep
+            and following.kind in _FLOATS)
+
+
 def blocks(units: Sequence[Unit]) -> list[Block]:
+    """A heading, table, figure or diagram (with its title) has one blank line before and after it, and a
+    lead-in line (a kept paragraph, "・橋脚天端に作用する荷重") opens its group with one blank line before it
+    (0610 p4); blank lines never stack."""
     found: list[Block] = []
-    for piece in units:
+    index = 0
+    while index < len(units):
+        piece = units[index]
+        previous = units[index - 1] if index else None
+        index += 1
         if piece.kind == "heading":
-            if found:
-                found.append(spacer())
+            blank(found)
             found.append(heading(piece.value, left=piece.left, block_id=piece.key))
             found.append(KeepWithNext(spacer()))
             continue
         if piece.kind == "paragraph":
             block: Block = paragraph(piece.value, left=piece.left, block_id=piece.key)
         elif piece.kind == "line":
-            block = indent_to(CellLines((piece.value,), style=BODY, min_height=BODY_LEADING, block_id=piece.key),
-                              piece.left)
+            block = math_line(piece.value, left=piece.left, block_id=piece.key)
         elif piece.kind == "equation":
-            item: Labelled = piece.value
-            equation = item.equation
-            block = _LabelledBlock(item.label, equation_group(
-                equation, left=LABEL_LEFT, first_equal=FIRST_EQUAL,
-                second_equal=SECOND_EQUAL if equation.result is not None else None,
-                result_right=RESULT_RIGHT if equation.result is not None else None,
-                unit_start=UNIT_START if equation.unit is not None else None, block_id=piece.key),
-                LABEL_LEFT, piece.key)
+            run = [piece]
+            while index < len(units) and units[index].kind == "equation" and (
+                    _columns(units[index].value.equation) == _columns(piece.value.equation)):
+                run.append(units[index])
+                index += 1
+            block = _equations(run)
+            piece = run[-1]
+        elif piece.kind == "definitions":
+            block = definitions(*piece.value.items, left=LABEL_LEFT, colon=DEFINITION_COLON, block_id=piece.key)
         elif piece.kind == "table":
             block = PreferKeepTogether(table_block(piece.value, piece.key))
         elif piece.kind == "figure":
             block = indent_to(piece.value.block, piece.left)
         else:
             block = _diagram_block(piece.value, piece.key)
+        lead_in = piece.kind == "paragraph" and piece.keep
+        if lead_in or piece.kind in _FLOATS and not _title_of(previous, piece):
+            blank(found)
         found.append(KeepWithNext(block) if piece.keep else block)
-        if piece.kind in ("table", "figure", "diagram"):
+        if piece.kind in _FLOATS:
             found.append(spacer())
     return found
 
 
-def document(units: Sequence[Unit], footer: str) -> Document:
+def document(units: Sequence[Unit]) -> Document:
     if len({unit.key for unit in units}) != len(units):
         raise ValueError("帳票の単位に重複したキーがあります")
-    return report(*blocks(units), footer=footer)
+    return report(*blocks(units))
 
 
 # --- the frame model (8.1 / 10.1) ---------------------------------------------------------------------------
@@ -396,18 +464,18 @@ def spring_table(frame: Frame) -> TableSpec:
 def section_lines(m: Manuscript, key: str, section: Section) -> None:
     """b, h, A = b × h and I = 1/12 × b × h³ (8-2)."""
     m.line(key + ".size", Row("b = ", with_unit(section.width), "　　h = ", with_unit(section.depth), gap=0))
-    m.equation(key + ".area", "断面積", "A", expression(value(section.width), "×", value(section.depth)),
+    m.equation(key + ".area", "断面積", "A", terms(value(section.width), "×", value(section.depth)),
                section.area)
     m.equation(key + ".inertia", "断面二次モーメント", "I",
-               expression("1/12", "×", value(section.width), "×", sup(value(section.depth), "3")),
+               terms("1/12", "×", value(section.width), "×", sup(value(section.depth), "3")),
                section.inertia)
 
 
 def material_lines(m: Manuscript, key: str, label: str, concrete: Concrete) -> None:
     """f'ck, the two table points and Ec (decision 25)."""
     m.equation(key + ".strength", label, "f'ck", with_unit(concrete.strength))
-    m.equation(key + ".modulus", "", "Ec", Row(value(concrete.modulus), " ", Operator("×"), " ",
-                                               sup("10", str(EC_EXPONENT)), " ", unit("kN/m2"), gap=0))
+    m.equation(key + ".modulus", "", "Ec", terms(value(concrete.modulus), "×",
+                                                 Row(sup("10", str(EC_EXPONENT)), " ", unit("kN/m2"), gap=0)))
     low, high = concrete.lower, concrete.upper
     m.line(key + ".table", Row("（表の f'ck = ", with_unit(low.strength), " で Ec = ", with_unit(low.modulus),
                                "，f'ck = ", with_unit(high.strength), " で Ec = ", with_unit(high.modulus),
@@ -438,7 +506,7 @@ def top_table(rows: Sequence[tuple[Any, Printed, Printed, Printed]], total: tupl
     body += [(Span(label, align="left"), value(n), value(arm), value(moment)) for label, n, arm, moment in rows]
     body.append(("合計", value(total[0]), "", value(total[1])))
     return TableSpec((120, 96, 96, 120), tuple(body), (BODY_LEADING,) * len(body), numeric=frozenset({1, 2, 3}),
-                     left=BODY_LEFT)
+                     left=BODY_LEFT, open=True)
 
 
 def seat_moment(m: Manuscript, key: str, frame: Frame, n: Printed, moment: Printed, point: PointLoad) -> None:
@@ -446,11 +514,18 @@ def seat_moment(m: Manuscript, key: str, frame: Frame, n: Printed, moment: Print
     offset = frame.bearing_offset
     if not offset.value:
         return
-    m.equation(key, "桁受け天端", "M", expression(value(moment), "−", value(n), "×", operand(offset)), point.m)
+    m.equation(key, "桁受け天端", "M", terms(value(moment), "−", value(n), "×", operand(offset)), point.m)
+
+
+def overlap_lines(m: Manuscript, substructure: Any, fixed: Any) -> None:
+    """The length where the column q runs through the beam and haunch already weighed in the table (8-3, 9-3)."""
+    m.equation("fixed.overlap", "重複区間", "Δh", terms(value(substructure.h[2]), "+", value(substructure.h[3])),
+               fixed.overlap)
+    m.definitions("fixed.overlap.note", Definition("Δh", "はりの高さ ＋ ハンチの高さ（柱の q と重なる長さ）"))
 
 
 def joined(parts: list[Any]) -> list[Any]:
-    """Operands joined by +, for expression()."""
+    """Operands joined by +, for terms()."""
     found: list[Any] = []
     for part in parts:
         if found:
@@ -471,14 +546,14 @@ def seat_split(m: Manuscript, fixed: Any, points: Sequence[PointLoad], frame: Fr
     bearings = [row for row in fixed.table.rows if bearing(row)]
     body = [row for row in fixed.table.rows if not bearing(row)]
     m.paragraph("fixed.seat.heading", "・桁受け天端とはり天端への載荷", keep=True)
-    m.equation("fixed.seat.n", "桁受け天端", "N", expression(*joined([value(r.n) for r in bearings])), seat.n)
+    m.equation("fixed.seat.n", "桁受け天端", "N", terms(*joined([value(r.n) for r in bearings])), seat.n)
     moments = joined([operand(r.m) if i else value(r.m) for i, r in enumerate(bearings)])
-    m.equation("fixed.seat.m", "", "M", expression(*moments, "−", value(seat.n), "×", operand(frame.bearing_offset)),
+    m.equation("fixed.seat.m", "", "M", terms(*moments, "−", value(seat.n), "×", operand(frame.bearing_offset)),
                seat.m)
-    m.equation("fixed.cap.n", "はり天端", "N'", expression(*joined([value(r.n) for r in body]), "−",
-                                                       value(fixed.column_q), "×", value(fixed.overlap)), cap.n)
-    m.equation("fixed.cap.m", "", "M'", expression(*joined([operand(r.m) if i else value(r.m)
-                                                             for i, r in enumerate(body)])), cap.m)
+    m.equation("fixed.cap.n", "はり天端", "N'", terms(*joined([value(r.n) for r in body]), "−",
+                                                  value(fixed.column_q), "×", value(fixed.overlap)), cap.n)
+    m.equation("fixed.cap.m", "", "M'", terms(*joined([operand(r.m) if i else value(r.m)
+                                                        for i, r in enumerate(body)])), cap.m)
 
 
 def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str) -> None:
@@ -491,17 +566,16 @@ def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str)
     for key, label, name, intensity in parts:
         if intensity is not None:
             m.equation(f"inertia.{key}", label, sub("H", name),
-                       expression(value(intensity.along), "×", value(intensity.across), "×",
-                                  value(intensity.unit_weight), "×", value(intensity.kh)), intensity.value)
+                       terms(value(intensity.along), "×", value(intensity.across), "×",
+                             value(intensity.unit_weight), "×", value(intensity.kh)), intensity.value)
     m.paragraph("inertia.footing.heading", "・フーチング重心に作用する水平力", keep=True)
     footing = inertia.footing
-    m.equation("inertia.footing.formula", "", "H", expression("V", "×", Row("(", expression("γ", "−", "γ'"), ")",
-                                                                         gap=0), "×", sub("K", "h")))
+    m.equation("inertia.footing.formula", "", "H", terms("V", "×", "(", "γ", "−", "γ'", ")", "×", sub("K", "h")))
     m.equation("inertia.footing", "", "H",
-               expression(value(footing.volume), "×",
-                          Row("(", expression(value(footing.unit_weight), "−", value(footing.displaced)), ")", gap=0),
-                          "×", value(footing.kh)), footing.force)
-    m.paragraph("inertia.footing.note", f"V はフーチングの体積（{chapter}），γ' は排除した土（表層）の湿潤単位体積重量．")
+               terms(value(footing.volume), "×", "(", value(footing.unit_weight), "−", value(footing.displaced), ")",
+                     "×", value(footing.kh)), footing.force)
+    m.definitions("inertia.footing.note", Definition("V", f"フーチングの体積（{chapter}）"),
+                  Definition("γ'", "排除した土（表層）の湿潤単位体積重量"))
 
 
 # --- combinations (8.4 / 9.4) -----------------------------------------------------------------------------
@@ -539,11 +613,11 @@ def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_
     """ρ as entered and as printed in the table, 1.1ρ and 0.75ρ (8-10, 9-14)."""
     m.equation("factors.ultimate", "安全性・復旧性", "ρ", value(train.factor_ultimate), factors.ultimate,
                result_relation="≒")
-    m.equation("factors.maximum", "列車最大", "1.1ρ", expression(maximum, "×", value(train.factor_ultimate)),
+    m.equation("factors.maximum", "列車最大", "1.1ρ", terms(maximum, "×", value(train.factor_ultimate)),
                factors.maximum)
     m.equation("factors.service", "使用性", "ρ", value(train.factor_service), factors.service, result_relation="≒")
     m.equation("factors.service_impact", "使用性の衝撃", "0.75ρ",
-               expression(service_impact, "×", value(train.factor_service)), factors.service_impact)
+               terms(service_impact, "×", value(train.factor_service)), factors.service_impact)
 
 
 EXTRACTION_NAMES = ("安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）",
@@ -733,8 +807,8 @@ def frame_figure(frame: Frame, outline: Any, **options: Any) -> FigureSpec:
 
 
 __all__ = [
-    "BODY_LEFT", "CaseLoads", "DiagramSpec", "FigureSpec", "LEVELS", "Labelled", "Manuscript", "Span", "TableSpec",
-    "Unit", "bearing_symbol", "case_glyphs", "case_lines", "diagram_groups", "document", "expression",
+    "BODY_LEFT", "CaseLoads", "Definitions", "DiagramSpec", "FigureSpec", "LEVELS", "Labelled", "Manuscript", "Span",
+    "TableSpec", "Unit", "bearing_symbol", "case_glyphs", "case_lines", "diagram_groups", "document",
     "frame_figure", "material_lines", "member_table", "node_table", "operand", "plain", "section_lines",
     "seat_moment", "semantic_records", "spring_table", "sub", "sup", "top_table", "used_concretes", "value",
     "with_unit",

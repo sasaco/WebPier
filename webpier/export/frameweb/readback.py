@@ -9,8 +9,9 @@ document we wrote:
   README FrameWeb); every other case, Define, Combine and Pickup comes back;
 - for every calculated case, the support reactions balance the loads we wrote (horizontal and vertical totals),
   so a load that was dropped or misread shows;
-- a combination's vertical reaction is factor × our loads unrounded, which differs from the printed total of the
-  calculation only by the rounding of each factored action (decision 38).
+- a combination's vertical reaction (upward, −fy: the y axis of the file is downward, decision 44) is factor × our
+  loads unrounded, which differs from the printed total of the calculation only by the rounding of each factored
+  action (decision 38).
 
 This is a check that the file is read correctly, not a structural analysis or a design check. Running the program
 is scripts/check_frameweb_headless.py.
@@ -140,7 +141,7 @@ def combination_vertical(combination: Any, document: Mapping[str, Any], result: 
     """Decision 38 on one 0610 combination: FrameWeb's combined vertical reaction against the printed total.
 
     The calculation prints each factored action rounded; FrameWeb combines factor × action unrounded. So the
-    combined reaction must be the unrounded sum, and it differs from the printed total only by each action's
+    combined upward reaction (−fy, y downward) must be the unrounded sum, and it differs from the printed total only by each action's
     rounding, at most 0.005 per printed intensity (a line load's difference is multiplied by its length). The
     combination must have one vertical result (its alternatives differ only horizontally).
     """
@@ -158,7 +159,7 @@ def combination_vertical(combination: Any, document: Mapping[str, Any], result: 
     if largest > ROUNDING:
         raise ReadbackError(f"Combine {combination.number}: 印字桁への丸めの差 {largest} が 0.005 を超えます")
     combine = next(item for item in result["derived"]["combines"] if str(item["id"]) == str(combination.number))
-    high, low = (sum(_decimal(entry["components"]["fy"]) for entry in combine["reactions"][key])
+    high, low = (-sum(_decimal(entry["components"]["fy"]) for entry in combine["reactions"][key])
                  for key in ("fy_max", "fy_min"))
     if high != low:
         raise ReadbackError(f"Combine {combination.number}: 鉛直反力の最大と最小が異なります（{high}、{low}）")

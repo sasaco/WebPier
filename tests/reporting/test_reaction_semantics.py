@@ -113,6 +113,50 @@ def test_every_number_written_is_a_result_or_input_value_or_a_formula_constant(n
     assert unknown == {}, unknown
 
 
+INPUT_SHEET_SYMBOL = re.compile(r"(?<![A-Za-z])[BHW][1-9](?!\d)|df[12]")
+
+
+def _nodes(value):
+    """Every node of an authored unit value, depth first."""
+    from gridlayoutpdf import Equation, Row, Script
+    from webpier.reporting.equations import Definition
+    from webpier.reporting.stages.reaction.manuscript import CellSpec, TableSpec
+
+    yield value
+    children = ()
+    if isinstance(value, Row):
+        children = value.items
+    elif isinstance(value, Script):
+        children = (value.base, value.subscript, value.superscript)
+    elif isinstance(value, Equation):
+        children = (value.lhs, value.rhs, value.result, value.unit)
+    elif isinstance(value, Definition):
+        children = (value.symbol, value.text, value.value, value.unit)
+    elif isinstance(value, CellSpec):
+        children = (value.content,)
+    elif isinstance(value, TableSpec):
+        children = value.rows
+    elif isinstance(value, tuple):
+        children = value
+    for child in children:
+        yield from _nodes(child)
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_no_input_sheet_symbol_and_no_stacked_fraction_is_printed(name: str):
+    """B1-B9, W1-W9, H1-H6, df1 and df2 name cells of the input sheet and are not defined in the report:
+    a formula writes their values (decision of the 0600 layout). Fractions are written on the line."""
+    from gridlayoutpdf import Fraction
+    from webpier.reporting.stages.reaction import content
+
+    result, pier = case(name)
+    found = {key: INPUT_SHEET_SYMBOL.findall(value) for key, value in records(result, pier).items()}
+    assert {key: symbols for key, symbols in found.items() if symbols} == {}
+    stacked = [unit.key for unit in content(result, pier)
+               if any(isinstance(node, Fraction) for node in _nodes(unit.value))]
+    assert stacked == []
+
+
 def test_the_double_track_impact_is_one_expression_rounded_once():
     """Decision 23: i = i_single × (1 − L/200), the factor is not rounded alone."""
     result, pier = case("current")

@@ -1,15 +1,21 @@
 """The FrameWeb input document (FEMPython / FrameWebforCS, 2D) of a frame and its case tables.
 
 The format is that of the FrameWeb file of Example2 (.claude/docs/Example橋脚2/08_線路/frameWebForJS.json),
-without the GUI view state ``three``:
+without the GUI view state ``three``, but in the axes of the current FrameWeb format (``ver`` 2 and later: y is
+positive downward), which FEMPython (FrameWebforCS / Headless, FramePrintPDF) assumes for every saved document.
+Example2 was saved in the old format (y upward); the current one is that pier mirrored top to bottom, which
+FrameWebforJS applies to a file without ``ver`` (y, ty, rz and the y member loads negated, tx and gx kept). The
+analysis is the same; FEMPython draws the load diagram upright (decision 44). ``ver`` is not written, so
+FrameWebforJS (the browser) mirrors this file once more and shows it upside down.
 
-- ``node``: x, y in m; ``member``: end nodes and the section number; ``element``: one section type "1" with
+- ``node``: x in m, y in m downward (−y of the calc frame); ``member``: end nodes and the section number; ``element``: one section type "1" with
   E (kN/m2), A, Iz per section. Example2 gives the rigid footing a finite stiffness (E = 26,500,000,
   A = Iz = 1000) and Xp = 1e-5 to every section; we keep both conventions.
 - ``fix_node``: 1 long-term, 2 short-term springs at the support: tx = Ks, ty = Kv, rz = Kr.
-- ``load``: tx = H, ty = −N (N downward), rz = −M (M positive as N × +x lever: Example2 D1 M = −610.00 is
-  rz = 610); a zero component is null and a point load without components has no row. Member loads are one row
-  per member in global axes: a line load uniform over the whole member (gy = −n, gx = h), then a load on part of
+- ``load``: tx = H, ty = N (N downward), rz = M (M positive as N × +x lever: Example2 D1 M = −610.00 is
+  rz = −610; the old-format Example2 file saves 610); a zero component is null and a point load without components
+  has no row. Member loads are one row per member in global axes: a line load uniform over the whole member
+  (gy = n, gx = h), then a load on part of
   a member varying linearly (gx = h: the 0620 wind on the pier body) from L1 = its start after the member start
   to L2 = the margin before the member end, P1 at its start and P2 at its end. A load without intensity has no
   row, and a load case without loads has no rows at all (FrameWeb skips it, as Example2 case 5).
@@ -93,13 +99,13 @@ def _load(case: LoadCase, members: dict[int, Member]) -> dict[str, Any]:
                               "LL_pitch": LL_PITCH, "rate": RATE, "name": case.name}
     nodes = []
     for point in case.points:
-        tx, ty, rz = point.h.value, -point.n.value, -point.m.value
+        tx, ty, rz = point.h.value, point.n.value, point.m.value
         if tx or ty or rz:
             nodes.append({"n": str(point.node), "tx": _component(tx), "ty": _component(ty), "tz": None, "rx": None,
                           "ry": None, "rz": _component(rz), "row": len(nodes) + 1})
     rows: list[dict[str, Any]] = []
     for line in case.line_loads:
-        for direction, intensity in (("gx", line.h.value), ("gy", -line.n.value)):
+        for direction, intensity in (("gx", line.h.value), ("gy", line.n.value)):
             if intensity:
                 for member in line.members:
                     rows.append(_member_row(str(member), direction, 0, 0, intensity, intensity, len(rows) + 1))
@@ -120,7 +126,7 @@ def frameweb_document(frame: Frame, cases: Cases) -> dict[str, Any]:
     members = {member.number: member for member in frame.members}
     support = frame.support
     return {
-        "node": {str(node.number): {"x": _number(node.x.value), "y": _number(node.y.value), "z": None}
+        "node": {str(node.number): {"x": _number(node.x.value), "y": _number(-node.y.value or 0.0), "z": None}
                  for node in frame.nodes},
         "fix_node": {str(LONG_TERM): _support(support.node, support.long_term),
                      str(SHORT_TERM): _support(support.node, support.short_term)},

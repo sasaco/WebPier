@@ -103,7 +103,17 @@ def test_a_label_that_would_cover_its_symbol_is_a_layout_error():
 
 
 def test_plain_reads_every_node_kind():
-    assert plain(Row(Fraction("1", "3"), Root("2"), sub("K", "v"))) == "1/3√2Kv" and plain(None) == ""
+    from gridlayoutpdf import BreakHint
+
+    from webpier.reporting.equations import Definition, over, terms
+    from webpier.reporting.stages.frame_report import Definitions
+
+    assert plain(Row(over("1", "3"), Root("2"), sub("K", "v"))) == "1/3√2Kv" and plain(None) == ""
+    # term stops and break hints print nothing; the operands and operators keep their order
+    assert plain(Row(terms("2.000", "×", "(", "1", "+", "0.2", ")"), BreakHint())) == "2.000×(1 + 0.2)"
+    assert plain(Definitions((Definition("V", "体積"), Definition("γ'", "単位体積重量")))) == "ここに、V：体積γ'：単位体積重量"
+    with pytest.raises(TypeError):
+        plain(Fraction("1", "3"))  # a stacked fraction is not written in these reports
     assert plain(Labelled("柱", Equation("q", "1", result="1", unit="m"))) == "柱q=1=1m"
     assert plain([Span("a"), ("b",)]) == "ab"
 

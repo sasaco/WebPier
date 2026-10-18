@@ -33,7 +33,6 @@ from .frame_report import (
 )
 
 PREFIX = "0710/"
-FOOTER = "10 - {page}"
 ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←"}
 INCREMENTS = {Increment.FIXED: "固定", Increment.INCREMENTAL: "増分", Increment.LIMITED: "限定増分"}
 # 10-12: symbol (base, subscript) and name; the inertia names carry their Kh.
@@ -143,7 +142,7 @@ def semantic_records(result: SeismicLongitudinalResult, pier: PierInput) -> list
 
 def build_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput) -> Document:
     """The 0710 report as a GridLayoutPdf Document (lay out or render it)."""
-    return document(content(result, pier), FOOTER)
+    return document(content(result, pier))
 
 
 def render_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput, path: str | Path) -> Path:

@@ -28,18 +28,18 @@ def test_every_printed_formula_reproduces_its_result(tmp_path: Path, name: str):
     assert [check for check in checks if not check.ok] == []
 
 
-def test_the_reader_sees_products_powers_fractions_roots_and_min(tmp_path: Path):
+def test_the_reader_sees_products_powers_inline_fractions_roots_and_min(tmp_path: Path):
     checks = formula_checks(render(tmp_path, *case("current")))
     expressions = [check.expression for check in checks]
     assert "2.700+0.000+min(2.000,2.000)" in expressions
     assert "sqrt(63.000)" in expressions
     assert "7.000*9.000" in expressions
     assert "6.9*0.5*165760*7.937**(-1/2)" in expressions
-    assert "((1)/(3))*202988" in expressions
-    assert "((9.000*7.000**(3))/(12))" in expressions
+    assert "1/3*202988" in expressions  # 0500 prints its fractions inline, as the reference
+    assert "9.000*7.000**(3)/12" in expressions
     assert "405976*425.250000" in expressions
     gamma = next(check for check in checks if check.printed == "12.3")
-    assert (gamma.expression, gamma.ok) == ("(((4.700-2.700)*18.0+2.700*8.0)/(4.700))", True)
+    assert (gamma.expression, gamma.ok) == ("((4.700-2.700)*18.0+2.700*8.0)/4.700", True)
     kr = next(check for check in checks if check.expression == "405976*425.250000")
     assert (kr.printed, kr.page) == ("172,641,294", 3)
 
@@ -64,7 +64,7 @@ def wrong(result, field: str):
     # 202989/3 still prints 67663, so ks stays consistent.
     ("kv", {"6.9*0.5*165760*7.937**(-1/2)", "202989*63.000", "202989*257.250000", "202989*425.250000"}),
     ("width", {"sqrt(63.000)", "6.9*0.5*165760*7.938**(-1/2)", "6.9*1.0*165760*7.938**(-1/2)"}),
-    ("inertia", {"((7.000*9.000**(3))/(12))", "202988*425.251000", "405976*425.251000"}),
+    ("inertia", {"7.000*9.000**(3)/12", "202988*425.251000", "405976*425.251000"}),
     ("surface", {"2.700+0.000+min(2.000,2.000)"}),
     # √63.001 still prints 7.937.
     ("area", {"7.000*9.000", "202988*63.001", "405976*63.001", "67663*63.001", "135325*63.001"}),
@@ -79,19 +79,30 @@ def test_a_value_that_does_not_follow_from_the_printed_factors_is_found(tmp_path
 def test_a_gamma2_that_does_not_follow_from_the_printed_values_is_found(tmp_path: Path):
     result, pier, embedment = case("current")
     checks = formula_checks(render(tmp_path, result, pier, replace(embedment, unit_weight=Printed(12.2, 1, "kN/m3"))))
-    assert {check.expression for check in checks if not check.ok} == {"(((4.700-2.700)*18.0+2.700*8.0)/(4.700))"}
+    assert {check.expression for check in checks if not check.ok} == {"((4.700-2.700)*18.0+2.700*8.0)/4.700"}
 
 
 def test_a_wrapped_formula_is_read_across_its_lines(tmp_path: Path):
+    """The deep footing's surface thickness fits its term columns on one line; a longer
+    term-column formula falls back to wrapping and is still read across its lines."""
     import pymupdf
+    from gridlayoutpdf import Equation
+    from webpier.reporting.document import report
+    from webpier.reporting.equations import equation_group, terms
 
     path = render(tmp_path, *case("deep"))
-    with pymupdf.open(path) as pdf:
-        first = pdf[0].search_for("12.345")[0]
-        result = max(pdf[0].search_for("23.720"), key=lambda hit: hit.y0)  # the first is in the table
-    assert result.y0 - first.y0 > 10      # the result is printed on the next line
     check = next(check for check in formula_checks(path) if check.printed == "23.720")
     assert (check.expression, check.ok) == ("12.345+1.250+min(10.125,10.500)", True)
+    long = equation_group(Equation("X", terms(*["1.111", "+"] * 20, "1.111"), result="23.331", unit="m"),
+                          left=152.04, first_equal=184.44, second_equal=460.32, result_right=525.96,
+                          unit_start=530.4)
+    path = report(long).render(tmp_path / "wrapped.pdf", invariant=True)
+    with pymupdf.open(path) as pdf:
+        first = pdf[0].search_for("1.111")[0]
+        result = pdf[0].search_for("23.331")[0]
+    assert result.y0 - first.y0 > 10      # the result is printed on a later line
+    (check,) = formula_checks(path)
+    assert (check.expression, check.ok) == ("+".join(["1.111"] * 21), True)
 
 
 def test_tokens_text_shows_the_structure_read_back():

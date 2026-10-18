@@ -1,11 +1,11 @@
 """0610 線路方向荷重（地震時以外）: the report of Example2 08 pp.8-1..8-11 on the LongitudinalResult.
 
 8.1 the model (figure, springs, nodes and members, sections, Ec), 8.2 the
-actions with their formula lines, 8.3 the basic and Define cases, the
-combination coefficients as printed, and the extraction cases. Example2's load
-diagrams (8.3, pp.8-6..8-8) are left out by the user's decision (decision 41),
-so the combinations are 8.3 here. Member and foundation checks (8-12 onward)
-are not part of this stage. Every number is a Printed value of the
+actions with their formula lines, 8.3 the load diagrams, drawn by FEMPython
+from the FrameWeb file of this generation and put in as its pages (decision 44),
+8.4 the basic and Define cases, the combination coefficients as printed, and the
+extraction cases. Member and foundation checks (8-12 onward) are not part of
+this stage. Every number is a Printed value of the
 LongitudinalResult, of the 0600 ReactionResult it was calculated from, or of
 the input.
 """
@@ -25,16 +25,17 @@ from ...calc.longitudinal.combinations import MAXIMUM_TRAIN, SERVICE_IMPACT, Bas
 from ...calc.reaction import ReactionResult
 from ...calc.reaction.longitudinal import LongitudinalCase
 from ...inputs import PierInput
+from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
+from . import load_diagrams
 from .frame_report import (
-    BODY_LEFT, Manuscript, Span, TableSpec, Unit, bearing_symbol, document, expression,
-    frame_figure, material_lines, member_table, node_table, operand, section_lines, seat_moment,
+    BODY_LEFT, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
+    frame_figure, material_lines, member_table, node_table, operand, overlap_lines, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
 
 PREFIX = "0610/"
-FOOTER = "8 - {page}"
 BEARING_SYMBOLS = {"可動": "M", "固定": "F"}
 
 # Horizontal cases (8-5, 8-9): requirement and the LR part of the name; the B factor comes from 0600.
@@ -168,30 +169,29 @@ def _table_with_seat(m: Manuscript, key: str, result: LongitudinalResult, table:
 
 def _footing_moment(m: Manuscript, key: str, symbol: Any, n: Any, arm: Any, moment: Any) -> None:
     if arm.value:
-        m.equation(key, "", symbol, expression(value(n), "×", operand(arm)), moment)
+        m.equation(key, "", symbol, terms(value(n), "×", operand(arm)), moment)
 
 
 def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
     s, weights, fixed, frame = pier.substructure, reaction.self_weight, result.fixed, result.frame
     m.heading("actions.heading", "8.2 作用の計算", 1)
     m.heading("fixed.heading", "(1) 固定死荷重", 2)
-    m.equation("fixed.column", "柱", "q", expression(value(s.w[6]), "×", value(s.b[6]), "×",
-                                                    value(s.unit_weight_body)), fixed.column_q)
+    m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
+                                               value(s.unit_weight_body)), fixed.column_q)
     m.equation("fixed.footing", "フーチング", "P",
-               expression(value(weights.footing.unit_weight), "×", value(weights.footing.volume)), fixed.footing.n)
+               terms(value(weights.footing.unit_weight), "×", value(weights.footing.volume)), fixed.footing.n)
     _footing_moment(m, "fixed.footing.moment", sub("M", "P"), fixed.footing.n, fixed.footing.arm, fixed.footing.m)
     m.paragraph("fixed.top.heading", "・橋脚天端に作用する荷重", keep=True)
     if s.h[1].value > 0:
-        m.equation("fixed.top.pedestal", "桁受け", "N", expression(value(weights.pedestal.unit_weight), "×",
-                                                                  value(weights.pedestal.volume)),
+        m.equation("fixed.top.pedestal", "桁受け", "N", terms(value(weights.pedestal.unit_weight), "×",
+                                                             value(weights.pedestal.volume)),
                    fixed.table.row(Item.PEDESTAL).n)
     m.equation("fixed.top.beam", "はり・ハンチ", "N",
-               expression(value(weights.beam.unit_weight), "×", value(weights.beam.volume)), fixed.table.row(Item.BEAM).n)
+               terms(value(weights.beam.unit_weight), "×", value(weights.beam.volume)), fixed.table.row(Item.BEAM).n)
     m.table("fixed.top", top_table(_top_rows(fixed.table), (fixed.table.n, fixed.table.m)))
-    m.equation("fixed.overlap", "重複区間", Row(sub("H", "2"), " + ", sub("H", "3"), gap=0),
-               expression(value(s.h[2]), "+", value(s.h[3])), fixed.overlap)
-    m.equation("fixed.n", "鉛直力", "N", expression(value(fixed.table.n), "−", value(fixed.column_q), "×",
-                                                   value(fixed.overlap)), fixed.n)
+    overlap_lines(m, s, fixed)
+    m.equation("fixed.n", "鉛直力", "N", terms(value(fixed.table.n), "−", value(fixed.column_q), "×",
+                                              value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
     if frame.bearing_offset.value:
         seat_split(m, fixed, result.basic(BasicCase.D1).points, frame,
@@ -199,7 +199,7 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
     m.heading("additional.heading", "(2) 付加死荷重", 2)
     soil = result.additional.soil
     m.equation("additional.soil", "載荷土", "P",
-               expression(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
+               terms(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
     _footing_moment(m, "additional.soil.moment", sub("M", "P"), soil.n, soil.arm, soil.m)
     m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
     _table_with_seat(m, "additional.top", result, result.additional.table, BasicCase.D2)
@@ -208,7 +208,7 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
                                                                          weights.buoyancy_normal,
                                                                          weights.buoyancy_low), strict=True):
         m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
-                   expression(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
+                   terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
         _footing_moment(m, f"buoyancy.{key}.moment", sub("M", "P"), row.n, row.arm, row.m)
 
 
@@ -230,7 +230,7 @@ def _snow_train(m: Manuscript, result: LongitudinalResult, reaction: ReactionRes
                                           result.train.double.row(Item.END), dead.end)):
         m.equation(f"train.double.{side}", "載荷線数を乗じる" if side == "origin" else "",
                    sub("R", "B" if side == "origin" else "C"),
-                   expression(value(single.n), "×", value(girder.track_total)), double.n)
+                   terms(value(single.n), "×", value(girder.track_total)), double.n)
     _table_with_seat(m, "train.double", result, result.train.double, BasicCase.TRAIN_DOUBLE)
 
 
@@ -241,8 +241,7 @@ def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
                      value(row.train), value(row.coefficient), value(row.n), value(row.arm), value(row.m)))
     rows.append(("合計", value(train_total), "", value(table.n), "", value(table.m)))
     return TableSpec((84, 72, 60, 72, 60, 84), tuple(rows), (28.56,) + (14.28,) * (len(rows) - 1),
-                     numeric=frozenset(range(1, 6)),
-                     left=BODY_LEFT)
+                     numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True)
 
 
 def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
@@ -286,7 +285,7 @@ def _service_point(result: LongitudinalResult, key: str) -> Any:
 
 
 def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
-    m.heading("combination.heading", "8.3 設計作用の組合せ", 1)
+    m.heading("combination.heading", "8.4 設計作用の組合せ", 1)
     m.heading("basic.heading", "(1) 基本ケース", 2)
     rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "バネ")]
     for action in result.basic_cases:
@@ -335,6 +334,7 @@ def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInpu
     _dead(m, result, reaction, pier)
     _snow_train(m, result, reaction)
     _impact_horizontal(m, result, reaction)
+    load_diagrams.heading(m, "8.3 荷重図")
     _combinations(m, result, reaction, pier)
     return tuple(m.units)
 
@@ -344,11 +344,14 @@ def semantic_records(result: LongitudinalResult, reaction: ReactionResult, pier:
 
 
 def build_longitudinal(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> Document:
-    """The 0610 report as a GridLayoutPdf Document (lay out or render it)."""
-    return document(content(result, reaction, pier), FOOTER)
+    """The whole 0610 manuscript as one GridLayoutPdf Document, without the load diagram pages."""
+    return document(content(result, reaction, pier))
 
 
 def render_longitudinal(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput,
-                        path: str | Path) -> Path:
-    """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
-    return build_longitudinal(result, reaction, pier).render(path, invariant=True)
+                        path: str | Path, load_diagram: bytes) -> Path:
+    """The report with the FEMPython *load_diagram* pages after 8.3; atomically replaces *path*.
+
+    The pages WebPier lays out are the same for the same input; the load diagram pages are FEMPython's.
+    """
+    return load_diagrams.render(content(result, reaction, pier), PREFIX, load_diagram, path)

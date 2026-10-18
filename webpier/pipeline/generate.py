@@ -5,14 +5,16 @@
    parsed strictly (duplicate keys, NaN and Infinity are input errors).
 3. The selected stages and their dependencies are all calculated, and every export of the selected stages
    built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
-   error before any rendering.
+   error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
+   FrameWeb file, and its report takes those pages (decision 44); the runner is looked up before anything is
+   read, and a missing or failing runner stops the generation.
 4. Reports, result JSON, exports and their provenance sidecars are written to staging beside each
    destination, then published as one set by ``publication.publish_outputs``. A final validator checks the
    published bytes, the files that were displaced, the input and the implementation identity, and any
    mismatch restores every old file.
 
 Errors: ``InputError`` (the input is invalid), ``GenerationError`` (the input, the implementation or an output
-changed during the generation, or a report cannot be laid out) and ``OSError`` (destinations, file system;
+changed during the generation, a report cannot be laid out, or the FEMPython runner is missing or failed) and ``OSError`` (destinations, file system;
 ``RecoveryError`` when the old files could not all be restored) are reported to the user. Anything else is a bug.
 """
 
@@ -29,6 +31,7 @@ from gridlayoutpdf import LayoutError
 from ..core.integrity import canonical_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..inputs import PierInput, parse_input
+from .fempython import LoadDiagramPages, RunnerError, draw_load_diagram, runner_path
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
@@ -187,13 +190,32 @@ class Candidate:
 
 
 def _sidecar(stage_id: str, item: Export, native: Artifact, staging: ArtifactStaging,
-             artifacts: list[Artifact], common: Mapping[str, Any]) -> bytes:
+             artifacts: list[Artifact], common: Mapping[str, Any], drawn: LoadDiagramPages | None) -> bytes:
     listed = [{"role": artifact.role, "directory": artifact.directory, "file": artifact.path.name,
                "sha256": file_sha256(staging.path_for(artifact.path))}
               for artifact in artifacts if not artifact.role.endswith(".provenance")]
+    # The runner's pages are FEMPython's (decision 44): only which runner drew them is recorded.
+    diagram = {} if drawn is None else {"load_diagram": {"report": f"{stage_id}.pdf", "engine": "fempython",
+                                                         "engine_version": drawn.engine_version}}
     return dump_json({"schema_version": SCHEMA_VERSION, "stage": stage_id, "export": item.kind,
                       "file": item.file_name, "sha256": file_sha256(staging.path_for(native.path)),
-                      "metadata": to_json(item.metadata), **common, "artifacts": listed})
+                      "metadata": to_json(item.metadata), **diagram, **common, "artifacts": listed})
+
+
+def _runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
+    if not any(registry.get(stage_id).load_diagram for stage_id in selected):
+        return None
+    try:
+        return runner_path()
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _draw(document: Path, runner: Path) -> LoadDiagramPages:
+    try:
+        return draw_load_diagram(document, runner)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
 
 
 @contextmanager
@@ -205,6 +227,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path))
     baseline = {path: _state(path) for path in destinations}
     identity = _identity()
+    runner = _runner(registry, selected)
     data = Path(options.input_path).read_bytes()
     input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
@@ -215,10 +238,14 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         by_role = {artifact.role: artifact for artifact in artifacts}
         for stage_id, item, native, _ in exports:
             staging.path_for(native.path).write_bytes(item.build(_own(registry, results, stage_id), pier))
+        drawn = {stage_id: _draw(staging.path_for(native.path), runner)
+                 for stage_id, item, native, _ in exports
+                 if runner is not None and item.kind == registry.get(stage_id).load_diagram}
         for stage_id in selected:
+            pages = (drawn[stage_id].pdf,) if stage_id in drawn else ()
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
-                                              staging.path_for(by_role[f"{stage_id}.pdf"].path))
+                                              staging.path_for(by_role[f"{stage_id}.pdf"].path), *pages)
             except LayoutError as exc:
                 raise GenerationError(f"{stage_id}の帳票を作成できません: {exc}") from exc
             document = result_document(stage_id, results[stage_id], input_file=common["input"]["file"],
@@ -227,7 +254,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for stage_id, item, native, sidecar in exports:
             content = _sidecar(stage_id, item, native, staging, artifacts,
-                               {**common, "selected_stages": list(selected)})
+                               {**common, "selected_stages": list(selected)},
+                               drawn.get(stage_id) if item.kind == registry.get(stage_id).load_diagram else None)
             staging.path_for(sidecar.path).write_bytes(content)
         candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline)
         try:

@@ -25,8 +25,15 @@ REFERENCE = Path(__file__).parents[1] / "fixtures" / "reporting" / "semantic" / 
 
 # Old record → why the new text differs. New records are listed with None.
 DIFFERENCES = {
-    "0500/soil.surface": None,   # 表層厚 = H6 + H5 + min(df1, df2) を検算できるように印刷する（派生値）
+    "0500/soil.surface": None,   # 表層厚を検算できるように値だけの代入式で印刷する（派生値。入力票の記号は書かない）
+    # 見本どおり Av を「ここに、」の定義に加え、Bv と Av を値の列がそろう代入式で印刷する
+    "0500/kv.definition.Av": None,
+    "0500/kv.width": "Bv = √Av = √63.000 = 7.937 m（旧: Bv = √Av (=√63.000 = 7.937 m)）",
+    "0500/kv.area": "Av = 7.000 × 9.000 = 63.000 m²（旧: 定義の行の括弧内）",
     "0500/kv.soil_type": None,   # 決定18: 土質区分と係数・指数を印刷する
+    # 見本 p1 どおり全角括弧で囲む（旧: ・長期 ( ρgk=0.5)）
+    "0500/kv.long_term.label": "・長期（ρgk = 0.5）（旧: 半角括弧）",
+    "0500/kv.short_term.label": "・短期（ρgk = 1.0）（旧: 半角括弧）",
     # 決定40: JRSNAP の FootInfo に渡す Df・γ2 を検算できるように印刷する（対象の地盤のときだけ）
     "0500/embedment.heading": None,
     "0500/embedment.formula": None,
@@ -72,19 +79,19 @@ def expected_records(result, pier, embedment) -> dict[str, str]:
             text(layer.unit_weight_submerged), text(layer.friction_angle), text(layer.compressive_strength),
             text(layer.deformation_modulus, thousands=True)))
     sub = pier.substructure
-    out["0500/soil.surface"] = (f"表層の層厚=H6+H5+min(df1,df2)={text(sub.h[6])}+{text(sub.h[5])}"
+    out["0500/soil.surface"] = (f"表層の層厚={text(sub.h[6])}+{text(sub.h[5])}"
                                 f"+min({text(sub.df1)},{text(sub.df2)})={text(result.surface_thickness)}m")
     if embedment is not None:
         e = embedment
         out["0500/embedment.heading"] = "有効根入れ深さと表層の平均有効単位重量"
-        out["0500/embedment.formula"] = "γ2=(Df−hw2)×γwet+hw2×γsub/Df"
-        out["0500/embedment.gamma2"] = (f"γ2=({text(e.depth)}−{text(e.water)})×{text(e.unit_weight_wet)}"
-                                        f"+{text(e.water)}×{text(e.unit_weight_submerged)}/{text(e.depth)}"
+        out["0500/embedment.formula"] = "γ2=((Df−hw2)×γwet+hw2×γsub)/Df"
+        out["0500/embedment.gamma2"] = (f"γ2=(({text(e.depth)}−{text(e.water)})×{text(e.unit_weight_wet)}"
+                                        f"+{text(e.water)}×{text(e.unit_weight_submerged)})/{text(e.depth)}"
                                         f"={text(e.unit_weight)}kN/m3")
-        out["0500/embedment.definition.Df"] = f"ここに、Df：有効根入れ深さ（表層の層厚{text(e.depth)}m）"
-        out["0500/embedment.definition.hw2"] = f"hw2：基礎底面からの平水位（{text(e.water)}m）"
-        out["0500/embedment.definition.wet"] = f"γwet：表層の湿潤単位体積重量（{text(e.unit_weight_wet)}kN/m3）"
-        out["0500/embedment.definition.sub"] = f"γsub：表層の水中単位体積重量（{text(e.unit_weight_submerged)}kN/m3）"
+        out["0500/embedment.definition.Df"] = f"ここに、Df：有効根入れ深さ（表層厚）(={text(e.depth)}m)"
+        out["0500/embedment.definition.hw2"] = f"hw2：基礎底面からの平水位(={text(e.water)}m)"
+        out["0500/embedment.definition.wet"] = f"γwet：表層の湿潤単位体積重量(={text(e.unit_weight_wet)}kN/m3)"
+        out["0500/embedment.definition.sub"] = f"γsub：表層の水中単位体積重量(={text(e.unit_weight_submerged)}kN/m3)"
     fixed("bearing.heading")
     for key, label in (("normal", "地震時を除く"), ("seismic", "地震時")):
         out["0500/bearing." + key] = f"Nγ={text(result.n_gamma)},Nq={text(result.n_q)}{label}"
@@ -94,14 +101,15 @@ def expected_records(result, pier, embedment) -> dict[str, str]:
     ed, width, area = text(result.deformation_modulus), text(result.width), text(result.area)
     out["0500/kv.definition.Ed"] = f"Ed：地盤の変形係数(={ed}kN/m2)"
     fixed("kv.definition.Bv")
-    out["0500/kv.width"] = f"Bv=√Av(=√{area}={width}m)"
-    out["0500/kv.area"] = f"Av：フーチング底面積(={text(result.b)}×{text(result.l)}={area}m2)"
+    out["0500/kv.definition.Av"] = "Av：フーチング底面積(m2)"
+    out["0500/kv.width"] = f"Bv=√Av=√{area}={width}m"
+    out["0500/kv.area"] = f"Av={text(result.b)}×{text(result.l)}={area}m2"
     coefficient = text(result.coefficient)
     out["0500/kv.soil_type"] = (f"支持層の土質区分：{result.soil_type}（kv={coefficient}ρgkEdBv"
                                 f"{result.exponent_text}を用いる）")
     terms = (("long_term", "長期", result.long_term), ("short_term", "短期", result.short_term))
     for term, label, springs in terms:
-        out[f"0500/kv.{term}.label"] = f"・{label}(ρgk={text(springs.rho)})"
+        out[f"0500/kv.{term}.label"] = f"・{label}（ρgk={text(springs.rho)}）"
         out[f"0500/kv.{term}"] = (f"kv={coefficient}×{text(springs.rho)}×{ed}×{width}{result.exponent_text}"
                                   f"={text(springs.kv)}kN/m3")
     for key in ("Kv.heading", "Kv.formula", "Kv.definition.Kv", "Kv.definition.kv", "Kv.definition.Av"):
@@ -177,8 +185,8 @@ def test_variants_really_change_the_printed_values():
 
 
 def test_gamma2_is_printed_where_the_procedure_applies():
-    assert expected_records(*case("current"))["0500/embedment.gamma2"] == "γ2=(4.700−2.700)×18.0+2.700×8.0/4.700=12.3kN/m3"
-    assert expected_records(*case("level"))["0500/embedment.gamma2"] == "γ2=(4.000−1.250)×19.0+1.250×9.5/4.000=16.0kN/m3"
+    assert expected_records(*case("current"))["0500/embedment.gamma2"] == "γ2=((4.700−2.700)×18.0+2.700×8.0)/4.700=12.3kN/m3"
+    assert expected_records(*case("level"))["0500/embedment.gamma2"] == "γ2=((4.000−1.250)×19.0+1.250×9.5)/4.000=16.0kN/m3"
     for name in ("clay", "alternating", "deep"):
         assert not any(key.startswith("0500/embedment.") for key in actual_records(*case(name))), name
 
@@ -193,17 +201,18 @@ def test_the_report_reads_the_result_not_the_input():
                                          Kr_transverse=Printed(7654321.0, 0, "kN m/rad")))
     gamma = replace(embedment, unit_weight=Printed(99.9, 1, "kN/m3"), water=Printed(1.111, 3, "m"))
     actual = actual_records(sentinel, pier, gamma)
-    assert actual["0500/kv.width"].endswith("=1.234m)")
+    assert actual["0500/kv.width"].endswith("=1.234m")
     assert actual["0500/bearing.normal"].startswith("Nγ=12.34,")
     assert actual["0500/soil.row.0"].startswith("表層9.876")
     assert actual["0500/kv.long_term"] == "kv=3.8×0.5×165760×1.234-1=111kN/m3"
     assert actual["0500/Kr.transverse.long_term"] == "Kr=111×425.250000=7,654,321kN・m/rad"
-    assert actual["0500/embedment.gamma2"] == "γ2=(4.700−1.111)×18.0+1.111×8.0/4.700=99.9kN/m3"
+    assert actual["0500/embedment.gamma2"] == "γ2=((4.700−1.111)×18.0+1.111×8.0)/4.700=99.9kN/m3"
     assert actual == expected_records(sentinel, pier, gamma)
 
 
-def test_manuscript_uses_structured_fraction_root_and_script():
-    from gridlayoutpdf import Fraction, Root, Script
+def test_manuscript_uses_structured_root_script_and_term_columns_without_stacked_fractions():
+    """The reference prints fractions inline ("1/3", "7.000³ / 12", "(…) / 4.700"): no stacked Fraction."""
+    from gridlayoutpdf import Fraction, Root, Script, TermStop
     from webpier.reporting.stages.foundation import content
 
     def classes(value: Any) -> set[type]:
@@ -216,7 +225,22 @@ def test_manuscript_uses_structured_fraction_root_and_script():
                 found |= classes(item)
         return found
 
-    assert {Fraction, Root, Script} <= classes(content(*case("current")))
+    for name in CASES:
+        found = classes(content(*case(name)))
+        assert {Root, Script, TermStop} <= found and Fraction not in found, name
+
+
+# A name of the input sheet (B1…, H6, W7, df1, df2) is not defined in the report and never printed.
+INPUT_SHEET_NAME = re.compile(r"(?<![A-Za-z])[BHW][1-9](?!\d)|df[12]")
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_no_record_prints_a_name_of_the_input_sheet(name: str):
+    from webpier.reporting.stages.foundation import semantic_records
+
+    for record in semantic_records(*case(name)):
+        assert not INPUT_SHEET_NAME.search(record["text"]), record
+    assert INPUT_SHEET_NAME.search("H6+H5+min(df1, df2)") and not INPUT_SHEET_NAME.search("Bv=√Av, Kr, Nγ")
 
 
 def test_unit_text_follows_the_result_units():

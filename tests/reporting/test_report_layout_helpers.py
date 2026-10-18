@@ -39,7 +39,7 @@ def test_measured_point_units_are_exact_and_never_snap():
         styles.grid_units(1.2, pitch=0)
     profile = styles.report_profile()
     assert (profile.width, profile.height) == (595, 842)
-    assert (profile.grid.origin_x, profile.grid.origin_y) == (48, 72)
+    assert (profile.grid.origin_x, profile.grid.origin_y) == (48, 86.28)
 
 
 def test_fonts_are_explicit_real_faces_without_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -59,7 +59,7 @@ def test_fonts_are_explicit_real_faces_without_fallback(tmp_path: Path, monkeypa
         fonts.font_files()
 
 
-def test_leading_indentation_columns_spacer_and_footer(tmp_path: Path):
+def test_leading_indentation_columns_spacer_and_no_page_number(tmp_path: Path):
     from gridlayoutpdf import LayoutContext, LayoutOverflowError, measure_block
     from webpier.reporting import document, fonts as font_module, styles
 
@@ -72,34 +72,35 @@ def test_leading_indentation_columns_spacer_and_footer(tmp_path: Path):
                       LayoutContext(fonts, styles.report_profile(), styles.REPORT_STYLE), 528)
     columns = document.columns(document.paragraph("左", left=48), document.paragraph("右", left=48),
                                widths=(48, 48), gap=14.52)
-    path = document.report(block, document.spacer(28.56), columns, fonts=fonts,
-                           footer="{page} / {pages}").render(tmp_path / "leading.pdf")
+    path = document.report(block, document.spacer(28.56), columns, fonts=fonts).render(tmp_path / "leading.pdf")
     with pymupdf.open(path) as pdf:
         page = pdf[0]
         origins = {span["text"]: span["origin"] for block in page.get_text("dict")["blocks"]
                    for line in block.get("lines", []) for span in line["spans"]}
-        assert origins["一行目"] == pytest.approx((117, 83.52), abs=.01)
+        # The reference's first baseline: 86.28 (top) + 11.52 (baseline offset).
+        assert origins["一行目"] == pytest.approx((117, 97.80), abs=.01)
         assert origins["二行目"][1] - origins["一行目"][1] == pytest.approx(14.28, abs=.01)
         assert origins["左"][1] - origins["三行目"][1] == pytest.approx(42.84, abs=.01)
         assert origins["右"][0] - origins["左"][0] == pytest.approx(62.52, abs=.01)
-        assert "1 / 1" in page.get_text()
+        # The reference prints no page number: only the authored text is on the page.
+        assert [line for line in page.get_text().splitlines() if line.strip()] == ["一行目", "二行目", "三行目", "左", "右"]
 
 
-def test_repeated_header_and_chapter_footer_follow_actual_pages(tmp_path: Path):
+def test_repeated_header_follows_actual_pages(tmp_path: Path):
     from webpier.reporting import document
 
     title = "0610 線路方向荷重"
     path = document.report(document.paragraph("\n".join(f"本文{index:03}" for index in range(110))),
-                           header=title, footer="8-{page}").render(tmp_path / "header.pdf")
+                           header=title).render(tmp_path / "header.pdf")
     with pymupdf.open(path) as pdf:
         assert len(pdf) >= 3
-        for index, page in enumerate(pdf, 1):
+        for page in pdf:
             assert page.get_text().count(title) == 1
-            assert page.get_text().count(f"8-{index}") == 1
             header = next(span for block in page.get_text("dict")["blocks"]
                           for line in block.get("lines", []) for span in line["spans"] if span["text"] == title)
-            assert header["origin"] == pytest.approx((48, 54.96), abs=.03)
-    without = document.report(document.heading("見出し"), document.paragraph("本文"), footer=None).layout()
+            # Two body leadings above the body origin: 86.28 - 28.56 + 11.52.
+            assert header["origin"] == pytest.approx((48, 69.24), abs=.03)
+    without = document.report(document.heading("見出し"), document.paragraph("本文")).layout()
     assert [command.text for command in without[0].commands if hasattr(command, "text")] == ["見出し", "本文"]
 
 
@@ -195,3 +196,56 @@ def test_scripts_use_measured_baseline_offsets(reference: dict[str, Any]):
         commands = [command for command in node.measure(fonts, styles.BODY).commands if isinstance(command, Text)]
         assert commands[1].style.size == pytest.approx(6.5)
         assert commands[1].y - commands[0].y == pytest.approx(reference["roles"][role]["baseline_delta_pt"], abs=.06)
+
+
+
+def _body_baselines(*blocks: Any) -> list[float]:
+    from gridlayoutpdf import Text
+    from webpier.reporting import document
+
+    page = document.report(*blocks).layout()[0]
+    # Main 9.9 pt glyphs only; 6.5 pt scripts sit off the row baseline by design.
+    return sorted({round(command.y, 2) for command in page.commands
+                   if isinstance(command, Text) and command.style.size == pytest.approx(9.9)})
+
+
+def test_equations_and_math_lines_advance_on_the_body_leading():
+    from gridlayoutpdf import Equation
+    from webpier.reporting import document, equations
+
+    baselines = _body_baselines(
+        equations.equation_group(
+            Equation("x", "1+2", result="3", unit="m"),
+            Equation("A", equations.script("m", superscript="2")),
+            second_equal=460.32, result_right=525.96, unit_start=530.4),
+        document.math_line("本文の一行"),
+        document.math_line(equations.script("I", superscript="2")),
+        document.paragraph("段落一\n段落二"),
+    )
+    # Body origin 86.28 + baseline offset 11.52, then one 14.28 pt row per printed line.
+    assert baselines == pytest.approx([97.80 + 14.28 * row for row in range(6)], abs=.01)
+
+
+def test_subscripted_lines_advance_on_the_body_leading():
+    # A 6.5 pt subscript reaches 11.52 + 2.83 pt below the row top, 0.07 pt past
+    # 14.28 pt; the 0.12 pt overhang keeps the row instead of growing it to 14.40 pt.
+    from gridlayoutpdf import Equation
+    from webpier.reporting import document, equations
+
+    baselines = _body_baselines(
+        equations.equation_group(Equation(equations.script("A", subscript="s"), "1")),
+        document.math_line(equations.script("σ", subscript="c")),
+        document.paragraph("段落"),
+    )
+    assert baselines == pytest.approx([97.80 + 14.28 * row for row in range(3)], abs=.01)
+
+
+def test_a_line_taller_than_the_body_leading_is_an_overflow():
+    # The leading is strict: a stacked fraction does not widen its row, it is an error.
+    from gridlayoutpdf import Equation, Fraction, LayoutOverflowError
+    from webpier.reporting import document, equations
+
+    for block in (document.math_line(Fraction("a", "b"), block_id="tall"),
+                  equations.equation_group(Equation("x", Fraction("a", "b")), block_id="tall")):
+        with pytest.raises(LayoutOverflowError):
+            document.report(block).layout()

@@ -160,9 +160,10 @@ def test_a_case_without_result_is_an_error():
         check_equilibrium(document(), changed)
 
 
-def combine_result(fy, fy_min=None):
-    entry = {"entityId": "6", "components": {"fx": 0.0, "fy": fy}}
-    low = {"entityId": "6", "components": {"fx": 0.0, "fy": fy if fy_min is None else fy_min}}
+def combine_result(upward, upward_min=None):
+    """A Combine whose support holds *upward* (fy = −upward: the file's y is downward, decision 44)."""
+    entry = {"entityId": "6", "components": {"fx": 0.0, "fy": -upward}}
+    low = {"entityId": "6", "components": {"fx": 0.0, "fy": -(upward if upward_min is None else upward_min)}}
     return {"derived": {"combines": [{"id": "1", "reactions": {"fy_max": [entry], "fy_min": [low]}}]}}
 
 
@@ -198,7 +199,7 @@ def test_a_combined_reaction_that_is_not_the_unrounded_sum_is_an_error(combinati
 def test_a_vertical_reaction_with_alternatives_is_not_a_spot_check(combination_1):
     combination, document = combination_1
     with pytest.raises(ReadbackError, match="Combine 1: 鉛直反力の最大と最小が異なります"):
-        combination_vertical(combination, document, combine_result(22585.1473, fy_min=22000.0))
+        combination_vertical(combination, document, combine_result(22585.1473, upward_min=22000.0))
 
 
 def test_an_action_rounded_by_more_than_decision_38_allows_is_an_error(combination_1):

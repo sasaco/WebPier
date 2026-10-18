@@ -17,13 +17,11 @@ from gridlayoutpdf import Circle, Text
 from frame_report_cases import CASES, chain
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
-from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, ROOT, _samples, measure, squeeze
+from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
 from webpier.core.printed import Printed
 from webpier.reporting.stages.seismic_longitudinal import (
-    FOOTER, build_seismic_longitudinal, render_seismic_longitudinal, semantic_records,
+    build_seismic_longitudinal, render_seismic_longitudinal, semantic_records,
 )
-
-FOOTER_PREFIX = FOOTER.split("{")[0]
 
 
 def render(case: str, path: Path) -> Path:
@@ -36,14 +34,14 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
     pier, _, _, result = chain(case)
     pages = build_seismic_longitudinal(result, pier).layout()
     drawn = [c.text for page in pages for c in page.commands
-             if isinstance(c, Text) and not c.text.startswith(FOOTER_PREFIX)]
+             if isinstance(c, Text)]
     assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, pier)))
     with pymupdf.open(render(case, tmp_path / "0710.pdf")) as pdf:
         assert len(pdf) == len(pages)
-        for number, (page, scene) in enumerate(zip(pdf, pages), 1):
+        for page, scene in zip(pdf, pages):
             scene_text = "".join(c.text for c in scene.commands if isinstance(c, Text))
             assert Counter(squeeze(page.get_text())) == Counter(squeeze(scene_text))
-            assert f"10 - {number}" in page.get_text()
+            assert not PAGE_NUMBER.search(page.get_text())
             assert not page.get_images()
     # The micro member is marked on the model figure (Example2 10-1 ◎).
     rings = [c for c in pages[0].commands if isinstance(c, Circle) and c.fill is None]

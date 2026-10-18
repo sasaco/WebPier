@@ -13,3 +13,6 @@ post/
 # エディタの退避ファイルとカバレッジ
 *.bak
 .coverage
+
+# 端末ごとの外部 runner の場所（ADR-0005）
+.env

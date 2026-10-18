@@ -57,6 +57,19 @@ def D(value):
     return Decimal(repr(float(value)))
 
 
+def mirrored_nodes(nodes):
+    """Example2's nodes (the old FrameWeb format, y upward) in the current axes we write (y downward, decision 44).
+
+    The same pier mirrored top to bottom: y negated, x kept (0 stays 0, not −0).
+    """
+    return {number: {**node, "y": -node["y"] or 0} for number, node in nodes.items()}
+
+
+def mirrored_rows(rows):
+    """Example2's node load rows (n, tx, ty, rz) in the current axes: ty and rz negated, tx kept (decision 44)."""
+    return [(n, tx, None if ty is None else -ty, None if rz is None else -rz) for n, tx, ty, rz in rows]
+
+
 # 0620. EXAMPLE2_09 is the FrameWeb input of Example2 09 (.claude/docs/Example橋脚2/09_直角/frameWebForJS.json, saved
 # by FrameWeb itself; tests/fixtures/frameweb_transverse_example2_file.json is a direct copy with its SHA). T09 is
 # the independent transcription of 09_直角.pdf.

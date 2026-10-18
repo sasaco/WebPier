@@ -19,6 +19,16 @@
 - 段階ごとの組版は `webpier/reporting/stages/` の段階の内容名のモジュール（`foundation.py`・`reaction/`・`longitudinal.py` など）。1ファイルが大きくなる場合は、図・表・本文で分ける。
 - 汎用の組版機能が足りなければ GridLayoutPdf に追加する（CLAUDE.md）。WebPier 側で回避しない。
 
+## 体裁の部品
+
+体裁の規則（行送り・空き行・式の列）は `.claude/docs/reporting-style.md` を正とし、帳票は次の部品で書く。座標や間隔を段階ごとに書き直さない。
+
+- 代入式の右辺は `terms(...)`（`webpier/reporting/equations.py`）。分数は `over(a, b)` の横書き。連続する式は `equation_group(...)` にまとめる。
+- 「ここに、」の定義は `definitions(Definition(...), ..., colon=...)`。
+- 見出しの出典は `heading(text, tag="【…】")`。1行の文や数式は `math_line(...)`。
+- 空き行は `blank(out)`（頁頭では捨てられ、重ならない）。`Spacer` を直接置かない。
+- 入力票の記号（B1〜B9、H1〜H6、W3〜W9、df1、df2）を印刷しない。値の代入式にするか、計算書内で定義した記号を使う。
+
 ## 決定性とテスト
 
 - PDF は同じ入力・書体・ライブラリから同じバイト列になる（作成日時を含めない）。

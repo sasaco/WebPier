@@ -2,7 +2,7 @@
 
 import pytest
 
-from frameweb_support import ASYMMETRIC, CENTRED_PEDESTAL, CONCRETES, EXAMPLE2, L08, PEDESTAL, longitudinal
+from frameweb_support import ASYMMETRIC, CENTRED_PEDESTAL, CONCRETES, EXAMPLE2, L08, PEDESTAL, longitudinal, mirrored_nodes
 from webpier.calc.frame import NodeRole
 from webpier.export.frameweb import build_frameweb
 
@@ -24,8 +24,9 @@ def test_top_level_is_the_example2_file_without_the_view_state(current):
 
 
 def test_nodes_are_those_of_example2(current):
-    # 8-1: nodes 1 to 6 from the beam top to the footing base; the same numbers and coordinates.
-    assert current["node"] == EXAMPLE2["node"]
+    # 8-1: nodes 1 to 6 from the beam top to the footing base; the same numbers and coordinates, y downward.
+    assert current["node"] == mirrored_nodes(EXAMPLE2["node"])
+    assert current["node"]["1"]["y"] == -10.3 and current["node"]["6"]["y"] == 0
 
 
 def test_members_are_those_of_example2(current):
@@ -79,8 +80,8 @@ def test_pedestal_adds_an_arm_and_its_own_section():
     frame = result.frame
     seat = frame.node(NodeRole.PEDESTAL_TOP)
     base = frame.node(NodeRole.PEDESTAL_BASE)
-    assert document["node"][str(base.number)] == {"x": -0.35, "y": 10.3, "z": None}
-    assert document["node"][str(seat.number)] == {"x": -0.35, "y": 10.6, "z": None}
+    assert document["node"][str(base.number)] == {"x": -0.35, "y": -10.3, "z": None}
+    assert document["node"][str(seat.number)] == {"x": -0.35, "y": -10.6, "z": None}
     arm, pedestal = document["member"]["6"], document["member"]["7"]
     assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (1, base.number, base.number, seat.number)
     elements = document["element"]["1"]
@@ -95,7 +96,7 @@ def test_centred_pedestal_rises_from_the_beam_top():
     document = build_frameweb(longitudinal(**CENTRED_PEDESTAL))
     assert len(document["member"]) == 6  # no arm: the pedestal base is the beam-top node
     assert document["member"]["6"]["ni"] == 1
-    assert document["node"]["7"] == {"x": 0, "y": 10.6, "z": None}
+    assert document["node"]["7"] == {"x": 0, "y": -10.6, "z": None}
 
 
 def test_asymmetric_footing_makes_an_inclined_rigid_member():

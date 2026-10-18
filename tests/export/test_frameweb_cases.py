@@ -113,14 +113,14 @@ def resolved_vector(result, combination, sign):
     for component in combination.signed(sign):
         spring = springs[component.source.spring.value]
         for p in component.points:
-            for axis, amount in (("tx", D(p.h.value)), ("ty", -D(p.n.value)), ("rz", -D(p.m.value))):
+            for axis, amount in (("tx", D(p.h.value)), ("ty", D(p.n.value)), ("rz", D(p.m.value))):
                 key = (spring, "node", str(p.node), axis)
                 add(vector, key, amount)
                 count[key] = count.get(key, 0) + 1
         for line in component.line_loads:
             for member in line.members:
                 key = (spring, "member", str(member), "gy")
-                add(vector, key, -D(line.n.value))
+                add(vector, key, D(line.n.value))
                 count[key] = count.get(key, 0) + 1
     return vector, count
 

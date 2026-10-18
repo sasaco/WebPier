@@ -1,7 +1,8 @@
-"""What each report leaves out, as the user decided (decision 41 of refactoring-decisions.md).
+"""What each report leaves out, as the user decided (decisions 41 and 44 of refactoring-decisions.md).
 
-- 0610 has no load-diagram pages; its spring table and the spring column of
-  the basic cases stay (Example2 08 p.8-1, p.8-9).
+- 0610 and 0620 draw no load diagram of their own: 8.3 / 9.3 is a heading with
+  FEMPython's pages after it (decision 44). 0610 keeps its spring table and the
+  spring column of the basic cases (Example2 08 p.8-1, p.8-9).
 - 0710 and 0720 show no springs at all (no spring symbol in the frame figure,
   no Kv/Ks/Kr, no spring table or values), no load diagrams and no enlarged
   figure of the column bottom. Example2 10-7 / 11-7 print the JRSNAP node
@@ -47,15 +48,26 @@ def figure_commands(units, key: str):
 
 
 @pytest.mark.parametrize("case", list(CASES))
-def test_0610_has_no_load_diagrams_and_keeps_its_springs(case: str):
+def test_0610_load_diagrams_are_a_heading_only_and_it_keeps_its_springs(case: str):
     from webpier.reporting.stages import longitudinal
 
     pier, reaction, result, _ = chain(case)
     found = records(longitudinal, result, reaction, pier)
-    assert not any("荷重図" in text for text in found.values())
+    assert [text for text in found.values() if "荷重図" in text] == ["8.3荷重図"]
     assert not any(unit.kind == "diagram" for unit in longitudinal.content(result, reaction, pier))
-    assert sections(found) == ["8.1検討モデル", "8.2作用の計算", "8.3設計作用の組合せ"]
+    assert sections(found) == ["8.1検討モデル", "8.2作用の計算", "8.3荷重図", "8.4設計作用の組合せ"]
     assert "0610/model.springs" in found and found["0610/basic"].startswith("No荷重名称区分バネ")
+
+
+@pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
+def test_0620_load_diagrams_are_a_heading_only(case: str):
+    from webpier.reporting.stages import transverse
+
+    pier, reaction, result, _ = transverse_chain(case)
+    found = records(transverse, result, reaction, pier)
+    assert [text for text in found.values() if "荷重図" in text] == ["9.3荷重図"]
+    assert not any(unit.kind == "diagram" for unit in transverse.content(result, reaction, pier))
+    assert sections(found) == ["9.1検討モデル", "9.2作用の計算", "9.3荷重図", "9.4設計作用の組合せ"]
 
 
 @pytest.mark.parametrize("case", list(CASES))

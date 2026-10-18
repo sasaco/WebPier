@@ -17,31 +17,35 @@ from gridlayoutpdf import Text
 from frame_report_cases import TRANSVERSE_CASES, transverse_chain
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
-from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, ROOT, _samples, measure, squeeze
+from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
 from webpier.core.printed import Printed
-from webpier.reporting.stages.transverse import FOOTER, build_transverse, render_transverse, semantic_records
-
-FOOTER_PREFIX = FOOTER.split("{")[0]
+from load_diagram_support import LOAD_DIAGRAM, PAGES, inserted, layout
+from webpier.reporting.stages.transverse import PREFIX, content, render_transverse, semantic_records
 
 
 def render(case: str, path: Path) -> Path:
     pier, reaction, result, _ = transverse_chain(case)
-    return render_transverse(result, reaction, pier, path)
+    return render_transverse(result, reaction, pier, path, LOAD_DIAGRAM)
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
     pier, reaction, result, _ = transverse_chain(case)
-    pages = build_transverse(result, reaction, pier).layout()
+    before, after = layout(content(result, reaction, pier), PREFIX)
+    pages = before + after
     drawn = [c.text for page in pages for c in page.commands
-             if isinstance(c, Text) and not c.text.startswith(FOOTER_PREFIX)]
+             if isinstance(c, Text)]
     assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
     with pymupdf.open(render(case, tmp_path / "0620.pdf")) as pdf:
-        assert len(pdf) == len(pages)
-        for number, (page, scene) in enumerate(zip(pdf, pages), 1):
+        # Decision 44: the load diagram pages come right after 9.3, and 9.4 starts the next page.
+        assert len(pdf) == len(pages) + PAGES
+        assert [inserted(page) for page in pdf] == [False] * len(before) + [True] * PAGES + [False] * len(after)
+        assert "9.3 荷重図" in pdf[len(before) - 1].get_text()
+        assert pdf[len(before) + PAGES].get_text().lstrip().startswith("9.4 設計作用の組合せ")
+        for page, scene in zip([page for page in pdf if not inserted(page)], pages):
             scene_text = "".join(c.text for c in scene.commands if isinstance(c, Text))
             assert Counter(squeeze(page.get_text())) == Counter(squeeze(scene_text))
-            assert f"9 - {number}" in page.get_text()
+            assert not PAGE_NUMBER.search(page.get_text())
             assert not page.get_images()
 
 
@@ -65,7 +69,8 @@ def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     table = result.train.up
     wrong = replace(table, rows=(replace(table.rows[0], n=Printed(table.rows[0].n.value + .01, 2, "kN")),
                                  *table.rows[1:]))
-    path = render_transverse(replace(result, train=replace(result.train, up=wrong)), reaction, pier, tmp_path / "w.pdf")
+    path = render_transverse(replace(result, train=replace(result.train, up=wrong)), reaction, pier, tmp_path / "w.pdf",
+                             LOAD_DIAGRAM)
     assert [check.kind for check in table_checks(path) if not check.ok] == ["row", "total"]
 
 
@@ -74,9 +79,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("current", tmp_path / "b.pdf").read_bytes() == first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import transverse_chain\n"
+              "from load_diagram_support import LOAD_DIAGRAM\n"
               "from webpier.reporting.stages.transverse import render_transverse\n"
               "pier, reaction, result, _ = transverse_chain('current')\n"
-              "render_transverse(result, reaction, pier, sys.argv[1])\n")
+              "render_transverse(result, reaction, pier, sys.argv[1], LOAD_DIAGRAM)\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)

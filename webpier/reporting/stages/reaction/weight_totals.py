@@ -11,6 +11,7 @@ from gridlayoutpdf import Row
 
 from ....calc.reaction.self_weight import Aggregate, Buoyancy, Part, SelfWeightResult, WeightRow
 from ....inputs import PierInput
+from ...equations import Definition
 from .manuscript import DETAIL, SUBSECTION, Manuscript, call, expr, join, sub, symbols
 from .tables import PART_NAMES, aggregate_table, volume_table
 from .weight_parts import XC, XL, centroid, pedestal_shown
@@ -45,12 +46,12 @@ def _level(m: Manuscript, key: str, title: str, symbol: str, water: Buoyancy, sw
               symbols(sub("A", "2"), "×", call("max", "0", call("min", symbols(sub("df", "min"), "+", "H"), symbol))),
               (sw.footing_bottom_area, "×", call("max", 0, call("min", expr(df_low, "+", height), hw))),
               rows[0].volume)
-    m.paragraph(key + ".column.label", "柱（地表面より上）")
+    m.paragraph(key + ".column.label", "柱（地表面より上）", gap=True)
     m.formula(key + ".column.volume", "V",
               symbols("A", "×", call("max", symbols(symbol, "−", "d", "−", "H"), "0")),
               (sw.column_area, "×", call("max", expr(hw, "−", sw.soil_depth_at_column, "−", height), 0)),
               rows[1].volume)
-    m.paragraph(key + ".wedge.label", "斜面部（水没した三角形部分の土）")
+    m.paragraph(key + ".wedge.label", "斜面部（水没した三角形部分の土）", gap=True)
     m.formula(key + ".wedge.volume", "V", symbols("b'", "×", "W", "×", "h''", "/", "2"),
               (water.wedge, "×", wf, "×", water.submerged, "/", 2), rows[2].volume)
     lower_end = s.df1.value > s.df2.value  # the soil is lower at the end side: the wedge lies there
@@ -60,7 +61,7 @@ def _level(m: Manuscript, key: str, title: str, symbol: str, water: Buoyancy, sw
     else:
         m.formula(key + ".wedge.x_l", XL, symbols("2", "b'", "/", "3", "−", "B", "/", "2"),
                   (2, "×", water.wedge, "/", 3, "−", bf, "/", 2), rows[2].x_l)
-    m.paragraph(key + ".rectangle.label", "矩形部（水没した残りの幅の土）")
+    m.paragraph(key + ".rectangle.label", "矩形部（水没した残りの幅の土）", gap=True)
     m.formula(key + ".rectangle.volume", "V", symbols("b''", "×", "W", "×", "h''"),
               (water.rectangle, "×", wf, "×", water.submerged), rows[3].volume)
     if lower_end:
@@ -81,11 +82,13 @@ def _buoyancy(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int)
                 "水位はフーチング下面からの高さとする。水中の構造物と土の体積に水の単位体積重量を負として乗じる。"
                 "斜面部・矩形部は、低い側の地表面より上で水没した土である。")
     m.start("weight.water.common")
-    m.formula("weight.water.height", "H", symbols("H5", "+", "H6"), (s.h[5], "+", s.h[6]), sw.footing_height)
-    m.formula("weight.water.low", sub("df", "min"), call("min", "df1", "df2"), (call("min", s.df1, s.df2),),
-              sw.soil_low)
-    m.formula("weight.water.step", "Δdf", symbols(call("max", "df1", "df2"), "−", call("min", "df1", "df2")),
-              (call("max", s.df1, s.df2), "−", call("min", s.df1, s.df2)), sw.soil_step)
+    m.formula("weight.water.height", "H", None, (s.h[5], "+", s.h[6]), sw.footing_height)
+    m.formula("weight.water.low", sub("df", "min"), None, (call("min", s.df1, s.df2),), sw.soil_low)
+    m.formula("weight.water.step", "Δdf", None, (call("max", s.df1, s.df2), "−", call("min", s.df1, s.df2)),
+              sw.soil_step)
+    m.definitions("weight.water.symbols", Definition("H", "フーチングの高さ"),
+                  Definition(sub("df", "min"), "フーチング上面から低い側の地表面までの高さ"),
+                  Definition("Δdf", "起点側と終点側の地表面の高さの差"))
     m.end()
     for name, title, symbol in LEVELS:
         _level(m, f"weight.water.{name}", title, symbol, getattr(sw, "buoyancy_" + name), sw, pier)
@@ -95,7 +98,6 @@ def _heights(m: Manuscript, key: str, total: Aggregate, sw: SelfWeightResult, pi
              footing_base: bool) -> None:
     """The x and y of the pedestal and the beam about the reference point, from their own tables."""
     h = pier.substructure.h
-    stack = ("H6", "+", "H5", "+", "H4", "+", "H3", "+", "H2") if footing_base else ("H4", "+", "H3", "+", "H2")
     values = (h[6], "+", h[5], "+", h[4], "+", h[3], "+", h[2]) if footing_base else (h[4], "+", h[3], "+", h[2])
     parts = ((Part.PEDESTAL, sw.pedestal), (Part.BEAM, sw.beam)) if pedestal_shown(sw) else ((Part.BEAM, sw.beam),)
     m.paragraph(key + ".heights.introduction",
@@ -105,21 +107,21 @@ def _heights(m: Manuscript, key: str, total: Aggregate, sw: SelfWeightResult, pi
     for part, body in parts:
         row = next(item for item in total.rows if item.part is part)
         m.start(f"{key}.{part.value}")
-        m.paragraph(f"{key}.{part.value}.label", PART_NAMES[part])
+        m.paragraph(f"{key}.{part.value}.label", PART_NAMES[part], gap=True)
         if footing_base:
             for lhs, field in ((XL, "x_l"), (XC, "x_c")):
                 m.formula(f"{key}.{part.value}.{field}", lhs,
                           symbols(Row(lhs, "'", gap=0), "+", Row(lhs, "(柱)", gap=0)),
                           (getattr(body, field), "+", getattr(sw.column, field)), getattr(row, field))
         assert body.y is not None and row.y is not None
-        m.formula(f"{key}.{part.value}.y", "y", symbols(*stack, "+", "y'"), (*values, "+", body.y), row.y)
+        m.formula(f"{key}.{part.value}.y", "y", None, (*values, "+", body.y), row.y)
         m.end()
     if not footing_base:
         column = total.rows[2]
         assert column.y is not None
         m.start(f"{key}.column")
-        m.paragraph(f"{key}.column.label", "柱")
-        m.formula(f"{key}.column.y", "y", symbols("H4", "/", "2"), (h[4], "/", 2), column.y)
+        m.paragraph(f"{key}.column.label", "柱", gap=True)
+        m.formula(f"{key}.column.y", "y", None, (h[4], "/", 2), column.y)
         m.end()
 
 

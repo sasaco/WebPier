@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from frameweb_support import EXAMPLE2_09, T09, T_ASYMMETRIC, T_PEDESTAL, transverse
+from frameweb_support import EXAMPLE2_09, T09, T_ASYMMETRIC, T_PEDESTAL, mirrored_nodes, transverse
 from webpier.calc.frame import NodeRole
 from webpier.core.integrity import sha256
 from webpier.export.frameweb import build_frameweb_transverse
@@ -34,8 +34,8 @@ def test_top_level_is_that_of_the_example2_file(current):
 
 
 def test_nodes_and_members_are_those_of_example2(current):
-    # 9-1: nodes 1 to 6 from the beam top to the footing base; members 1-3 the column section, 4-5 rigid.
-    assert current["node"] == EXAMPLE2_09["node"]
+    # 9-1: nodes 1 to 6 from the beam top to the footing base (y downward); members 1-3 the column section, 4-5 rigid.
+    assert current["node"] == mirrored_nodes(EXAMPLE2_09["node"])
     assert current["member"] == EXAMPLE2_09["member"]
 
 
@@ -69,7 +69,7 @@ def test_pedestal_adds_an_arm_and_its_own_section():
     document = build_frameweb_transverse(result)
     base, seat = result.frame.node(NodeRole.PEDESTAL_BASE), result.frame.node(NodeRole.PEDESTAL_TOP)
     assert (document["node"][str(base.number)], document["node"][str(seat.number)]) == (
-        {"x": -0.5, "y": 10.3, "z": None}, {"x": -0.5, "y": 10.6, "z": None})
+        {"x": -0.5, "y": -10.3, "z": None}, {"x": -0.5, "y": -10.6, "z": None})
     arm, pedestal = document["member"]["6"], document["member"]["7"]
     assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (1, 7, 7, 8)
     elements = document["element"]["1"]

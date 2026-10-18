@@ -22,7 +22,8 @@ from webpier.core.printed import Printed
 ADDITIONS = {
     "0610/model.nodes": "節点座標（Example橋脚 7-2 の節点座標表）",
     "0610/model.members": "部材の端点・剛域・材料",
-    "0610/fixed.overlap": "q の載荷区間とはりの重複 H2 + H3 を式で示す（Example2 は 2.00 のみ）",
+    "0610/fixed.overlap": "q の載荷区間とはり・ハンチの重複 Δh を式で示す（Example2 は 2.00 のみ）",
+    "0610/fixed.overlap.note": "Δh の定義（入力票の記号 H2・H3 は印刷しない）",
     "0610/train.double.origin": "複線の鉛直力 = 単線 × 載荷線数（0600）",
     "0610/impact.service_single": "使用性の衝撃（組合せ 5, 7, 15, 16 で用いる）",
     "0610/factors.maximum": "1.1ρ の計算",
@@ -145,25 +146,6 @@ def horizontal_names(result, reaction):
     return found
 
 
-def directed(value: Printed) -> str:
-    """A horizontal force as Example2 prints it: the magnitude and its direction."""
-    return t(Printed(abs(value.value), value.digits, value.unit)) + u(value) + ("（←）" if value.value < 0 else "（→）")
-
-
-def glyph_labels(points, line_loads, horizontal: bool) -> str:
-    anchors = {p.anchor for p in points}
-    top_h = any(p.h.value for p in points if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP))
-    out = ""
-    for p in points:
-        if p.anchor in (NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP):
-            prime = "'" if p.anchor is NodeRole.CAP_TOP and NodeRole.PEDESTAL_TOP in anchors else ""
-            names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
-        else:
-            names = {"n": "P", "m": "MP", "h": "HP" if top_h else "H"}
-        out += "".join(names[c] for c in ([c for c in "nhm" if getattr(p, c).value] or (["h"] if horizontal else ["n"])))
-    return out + "".join("q" for line in line_loads if line.n.value)
-
-
 def expected(case: str) -> dict[str, str]:
     pier, reaction, result, _ = chain(case)
     frame, s, sw = result.frame, pier.substructure, reaction.self_weight
@@ -211,7 +193,8 @@ def expected(case: str) -> dict[str, str]:
                                   f"{t(fixed.table.row(Item.PEDESTAL).n)}kN")
     add("fixed.top.beam", f"はり・ハンチN={t(sw.beam.unit_weight)}×{t(sw.beam.volume)}={t(fixed.table.row(Item.BEAM).n)}kN")
     add("fixed.top", top(fixed.table.rows, fixed.table.n, fixed.table.m))
-    add("fixed.overlap", f"重複区間H2+H3={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
+    add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
+    add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
     add("fixed.n", f"鉛直力N={t(fixed.table.n)}−{t(fixed.column_q)}×{t(fixed.overlap)}={t(fixed.n)}kN")
     add("fixed.m", f"モーメントM={t(fixed.m)}kN・m")
     if frame.bearing_offset.value:
@@ -289,7 +272,9 @@ def expected(case: str) -> dict[str, str]:
         rows += (groups[requirement] if requirement != previous else "") + full + t(row.origin) + t(row.end) + t(row.total)
         previous = requirement
     add("horizontal", rows)
-    add("combination.heading", "8.3設計作用の組合せ")
+    # Decision 44: the load diagrams are FEMPython's pages after the heading; the section has no text of its own.
+    add("diagrams.heading", "8.3荷重図")
+    add("combination.heading", "8.4設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
     names = [(n, q) for n, q, _ in BASIC] + [(n, f"{r}　{full}") for n, r, full, _, _ in horizontal_names(result, reaction)]
     add("basic", "No荷重名称区分バネ" + "".join(
@@ -400,4 +385,4 @@ def test_unsupported_nodes_and_duplicate_keys_are_rejected():
     m.paragraph("a", "一")
     m.paragraph("a", "二")
     with pytest.raises(ValueError, match="重複"):
-        document(m.units, "{page}")
+        document(m.units)

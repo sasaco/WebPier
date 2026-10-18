@@ -39,10 +39,13 @@ def grid_units(points: float, pitch: float = PITCH) -> int:
 
 
 def report_profile(
-    *, left: float = 48, right: float = 576, top: float = 72, bottom: float = 792,
+    *, left: float = 48, right: float = 576, top: float = 86.28, bottom: float = 792,
     pitch: float = PITCH,
 ) -> PageProfile:
-    """A4 envelope enclosing the measured ink; chapter indents are independent."""
+    """A4 envelope enclosing the measured ink; chapter indents are independent.
+
+    The reference first baseline is 97.80 pt = 86.28 (top) + 11.52 (baseline offset).
+    """
     return PageProfile(
         "webpier-reference-appearance", 595, 842,
         GridSpec(left, top, pitch, pitch, grid_units(right - left, pitch),

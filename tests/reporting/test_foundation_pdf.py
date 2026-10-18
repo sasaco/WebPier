@@ -14,11 +14,12 @@ from typing import Any
 
 import pymupdf
 import pytest
-from gridlayoutpdf import Equation, Fraction, Literal, Root, Row, Script, Text
+from gridlayoutpdf import Equation, Literal, Root, Row, Script, TermStop, Text
 
 from foundation_report_cases import CASES, case
 from webpier.inputs.model import Soil
-from webpier.reporting.stages.foundation import FOOTER, build_foundation, content, render_foundation
+from webpier.reporting.equations import Definition
+from webpier.reporting.stages.foundation import build_foundation, content, render_foundation
 
 ROOT = Path(__file__).parents[2]
 APPEARANCE = ROOT / "tests" / "fixtures" / "reporting" / "appearance" / "reference-style.json"
@@ -28,26 +29,29 @@ measure = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = measure
 _spec.loader.exec_module(measure)
 
-FOOTER_PREFIX = FOOTER.split("{")[0]
+PAGE_NUMBER = re.compile(r"^\d+ - \d+$", re.MULTILINE)  # the reference prints no page numbers
 
 
 def drawn(value: Any) -> str:
-    """What a node draws as text: fraction bars and radicals are strokes, not characters."""
+    """What a node draws as text: radicals are strokes and term columns spaces, not characters."""
     if isinstance(value, str):
         return value
+    if isinstance(value, TermStop):
+        return ""
     if isinstance(value, Literal):
         return value.text
     if isinstance(value, Row):
         return "".join(drawn(item) for item in value.items)
     if isinstance(value, Script):
         return drawn(value.base) + drawn(value.subscript or "") + drawn(value.superscript or "")
-    if isinstance(value, Fraction):
-        return drawn(value.numerator) + drawn(value.denominator)
     if isinstance(value, Root):
         return drawn(value.body)
     if isinstance(value, Equation):
         result = "" if value.result is None else value.result_relation + drawn(value.result)
         return drawn(value.lhs) + value.relation + drawn(value.rhs) + result + drawn(value.unit or "")
+    if isinstance(value, Definition):
+        result = "" if value.value is None else "(=" + drawn(value.value) + drawn(value.unit or "") + ")"
+        return drawn(value.symbol) + "：" + drawn(value.text) + result
     if isinstance(value, tuple):
         return "".join(drawn(item) for item in value)
     raise TypeError(type(value).__name__)
@@ -65,13 +69,13 @@ def expected_drawing(result, pier, embedment) -> str:
             first = tuple(value if index != 4 else value[0] for index, value in enumerate(unit.value))
             parts.append(drawn(first) + drawn(unit.value[4][1:]))
         else:
-            parts.append(drawn(unit.value))
+            parts.append(unit.lead + drawn(unit.value))
     return squeeze("".join(parts))
 
 
 def scene_texts(pages) -> list[str]:
     return [command.text for page in pages for command in page.commands
-            if isinstance(command, Text) and not command.text.startswith(FOOTER_PREFIX)]
+            if isinstance(command, Text)]
 
 
 @pytest.mark.parametrize("name", list(CASES))
@@ -83,11 +87,11 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
     path = render_foundation(result, pier, embedment, tmp_path / "0500.pdf")
     with pymupdf.open(path) as pdf:
         assert len(pdf) == len(pages)
-        for number, (page, scene) in enumerate(zip(pdf, pages), 1):
+        for page, scene in zip(pdf, pages):
             pdf_chars = Counter(squeeze(page.get_text()))
             scene_chars = Counter(squeeze("".join(command.text for command in scene.commands if isinstance(command, Text))))
             assert pdf_chars == scene_chars
-            assert f"5 - {number}" in page.get_text()
+            assert not PAGE_NUMBER.search(page.get_text())
             assert not page.get_images()
 
 
@@ -144,7 +148,7 @@ def test_long_names_wrap_without_shrinking_and_labels_stay_with_their_equations(
         assert text.count(name) == 1 and text.count(soil_type) == 1
         for page in pdf:
             body = [line.strip() for line in page.get_text().splitlines()
-                    if line.strip() and not line.startswith(FOOTER_PREFIX)]
+                    if line.strip()]
             assert body[-1] not in ("・長期", "・短期")
             for direction, label in (("Kr_longitudinal", "線路方向"), ("Kr_transverse", "線路直角方向")):
                 if label in page.get_text():
@@ -226,3 +230,86 @@ def test_scripts_sit_at_the_measured_offsets_in_the_kv_equations(tmp_path: Path)
     superscript = next(origin for c, origin, size in chars[index:] if c == "-" and size < 8)
     assert subscript[1] - main[1] == pytest.approx(reference["common.subscript"]["baseline_delta_pt"], abs=.06)
     assert superscript[1] - main[1] == pytest.approx(reference["common.superscript"]["baseline_delta_pt"], abs=.06)
+
+
+def _rows(page) -> list[list[dict]]:
+    """The 9.9 pt spans of *page* by baseline, left to right (scripts left out)."""
+    rows: dict[float, list[dict]] = {}
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            for span in line["spans"]:
+                if span["size"] > 8 and span["text"].strip():
+                    rows.setdefault(round(span["origin"][1], 2), []).append(span)
+    return [sorted(spans, key=lambda span: span["origin"][0]) for _, spans in sorted(rows.items())]
+
+
+def _substitution_terms(path: Path) -> list[list[dict]]:
+    """The right-hand terms of each substitution: between the "=" at 184.44 and the result's "=" at 460.32."""
+    found = []
+    with pymupdf.open(path) as pdf:
+        for page in pdf:
+            for spans in _rows(page):
+                equals = [span for span in spans if span["text"].strip() == "="]
+                if (len(equals) >= 2 and abs(equals[0]["origin"][0] - 184.44) < .1
+                        and abs(equals[-1]["origin"][0] - 460.32) < .1):
+                    found.append([span for span in spans
+                                  if equals[0]["bbox"][2] < span["origin"][0] < equals[-1]["origin"][0]])
+    return found
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_the_terms_of_one_family_stand_in_the_same_columns(tmp_path: Path, name: str):
+    """kv, Kv, ks, Ks, Iv and Kr: each number ends, and each operator is centred, in one column for
+    the long- and short-term (and both directions') equations, though labels and blank lines part them."""
+    from foundation_report_cases import text
+
+    result, pier, embedment = case(name)
+    lines = _substitution_terms(render_foundation(result, pier, embedment, tmp_path / "terms.pdf"))
+    springs = (result.long_term, result.short_term)
+    kv = {text(values.kv) for values in springs}
+    inertia = {text(result.inertia_longitudinal), text(result.inertia_transverse)}
+
+    def first(line: list[dict]) -> str:
+        return line[0]["text"].strip()
+
+    families = {
+        "kv": [line for line in lines if len(line) == 7 and first(line) == text(result.coefficient)],
+        "Kv": [line for line in lines if len(line) == 3 and first(line) in kv and line[2]["text"] == text(result.area)],
+        "ks": [line for line in lines if first(line) == result.shear_ratio_text],
+        "Ks": [line for line in lines if len(line) == 3 and first(line) in {text(values.ks) for values in springs}
+               and line[2]["text"] == text(result.area)],
+        "Iv": [line for line in lines if len(line) == 5 and line[-1]["text"] == "12"],
+        "Kr": [line for line in lines if len(line) == 3 and first(line) in kv and line[2]["text"] in inertia],
+    }
+    assert {family: len(found) for family, found in families.items()} == {
+        "kv": 2, "Kv": 2, "ks": 2, "Ks": 2, "Iv": 2, "Kr": 4}
+    for family, found in families.items():
+        for column in range(len(found[0])):
+            spans = [line[column] for line in found]
+            if column % 2:   # an operator: centred
+                centres = [(span["bbox"][0] + span["bbox"][2]) / 2 for span in spans]
+                assert centres == pytest.approx([centres[0]] * len(spans), abs=.01), (family, column)
+            else:            # a number: right-aligned
+                rights = [span["bbox"][2] for span in spans]
+                assert rights == pytest.approx([rights[0]] * len(spans), abs=.01), (family, column)
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_every_definition_puts_its_colon_in_one_column(tmp_path: Path, name: str):
+    """Reference p1/p2: the "：" of every "ここに、" list at 210.96; "ここに、" opens each list once."""
+    result, pier, embedment = case(name)
+    units = content(result, pier, embedment)
+    path = render_foundation(result, pier, embedment, tmp_path / "definitions.pdf")
+    colons, labels = [], 0
+    with pymupdf.open(path) as pdf:
+        for page in pdf:
+            labels += page.get_text().count("ここに、")
+            for block in page.get_text("rawdict")["blocks"]:
+                for line in block.get("lines", []):
+                    for span in line["spans"]:
+                        chars = span["chars"]
+                        colons.extend(char["origin"][0] for previous, char in zip(chars, chars[1:])
+                                      if char["c"] == "：" and previous["c"].isspace())
+    assert len(colons) == sum(unit.kind == "definition" for unit in units)
+    assert colons == pytest.approx([210.96] * len(colons), abs=.06)
+    assert labels == sum(unit.lead == "ここに、" for unit in units)

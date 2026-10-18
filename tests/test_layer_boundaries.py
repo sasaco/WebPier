@@ -18,10 +18,10 @@ ALLOWED = {
 }
 # Third-party packages a layer must not touch, so calculation never depends on drawing or Tk.
 FORBIDDEN_EXTERNAL = {
-    "core": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL"},
-    "inputs": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL"},
-    "calc": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL"},
-    "export": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet"},
+    "core": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
+    "inputs": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
+    "calc": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
+    "export": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pypdf"},
     "reporting": {"tkinter", "tksheet"},
     "pipeline": {"tkinter", "tksheet"},
     "gui": set(),

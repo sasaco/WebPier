@@ -14,7 +14,7 @@ from typing import Any
 
 import pymupdf
 import pytest
-from gridlayoutpdf import Equation, Fraction, Literal, Row, Script, Text
+from gridlayoutpdf import BreakHint, Equation, Literal, Row, Script, TermStop, Text
 
 from reaction_report_cases import CASES, case
 
@@ -27,23 +27,26 @@ measure = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = measure
 _spec.loader.exec_module(measure)
 
-FOOTER_PREFIX = "6 - "
+PAGE_NUMBER = re.compile(r"^\d+ - \d+$", re.MULTILINE)  # the reference prints no page numbers
 
 
 def drawn(value: Any) -> str:
-    """What a node draws as text: fraction bars are strokes, not characters."""
+    """What a node draws as text: term columns and break hints draw nothing."""
+    from webpier.reporting.equations import Definition
     from webpier.reporting.stages.reaction.manuscript import CellSpec, FigureSpec, TableSpec
 
     if isinstance(value, str):
         return value
+    if isinstance(value, (TermStop, BreakHint)):
+        return ""
     if isinstance(value, Literal):
         return value.text
     if isinstance(value, Row):
         return "".join(drawn(item) for item in value.items)
     if isinstance(value, Script):
         return drawn(value.base) + drawn(value.subscript or "") + drawn(value.superscript or "")
-    if isinstance(value, Fraction):
-        return drawn(value.numerator) + drawn(value.denominator)
+    if isinstance(value, tuple) and all(isinstance(item, Definition) for item in value):
+        return "ここに、" + "".join(drawn(item.symbol) + "：" + drawn(item.text) for item in value)
     if isinstance(value, Equation):
         result = "" if value.result is None else value.result_relation + drawn(value.result)
         return value.label + drawn(value.lhs) + value.relation + drawn(value.rhs) + result + drawn(value.unit or "")
@@ -62,7 +65,7 @@ def squeeze(text: str) -> str:
 
 def scene_text(pages) -> str:
     return squeeze("".join(command.text for page in pages for command in page.commands
-                           if isinstance(command, Text) and not command.text.startswith(FOOTER_PREFIX)))
+                           if isinstance(command, Text)))
 
 
 @pytest.mark.parametrize("name", list(CASES))
@@ -76,12 +79,12 @@ def test_the_scene_draws_every_record_and_the_pdf_has_the_same_text(tmp_path: Pa
     path = render_reaction(result, pier, tmp_path / "0600.pdf")
     with pymupdf.open(path) as pdf:
         assert len(pdf) == len(pages)
-        for number, (page, scene) in enumerate(zip(pdf, pages), 1):
+        for page, scene in zip(pdf, pages):
             pdf_chars = Counter(squeeze(page.get_text()))
             scene_chars = Counter(squeeze("".join(command.text for command in scene.commands
                                                   if isinstance(command, Text))))
             assert pdf_chars == scene_chars
-            assert f"6 - {number}" in page.get_text()
+            assert not PAGE_NUMBER.search(page.get_text())
             assert not page.get_images()
 
 
@@ -101,8 +104,14 @@ def test_text_is_drawn_in_manuscript_order():
 
 
 def _placements(pages) -> list[tuple[int, str]]:
-    return [(number, placement["block_id"]) for number, page in enumerate(pages, 1)
-            for placement in page.metadata["placements"] if placement["block_id"].startswith("0600/")]
+    """Each placed block, and each equation of a group of consecutive equations, by its page."""
+    found = []
+    for number, page in enumerate(pages, 1):
+        for placement in page.metadata["placements"]:
+            ids = [placement["block_id"]] + [part["metadata"]["equation_block_id"] for part in placement["parts"]
+                                             if "equation_block_id" in part["metadata"]]
+            found.extend((number, block) for block in ids if block.startswith("0600/"))
+    return found
 
 
 @pytest.mark.parametrize("name", ["current", "pedestal", "ea17"])
@@ -127,8 +136,8 @@ def test_pages_break_between_groups_and_never_after_a_heading(name: str):
     for index, unit in enumerate(units[:-1]):
         if unit.kind == "heading":
             assert where[unit.identifier] == where[units[index + 1].identifier], unit.key
-    # Content decides the page count: no blank page, no page without a numbered footer.
-    assert all(any(isinstance(command, Text) and not command.text.startswith(FOOTER_PREFIX)
+    # Content decides the page count: no blank page, i.e. no page without body text.
+    assert all(any(isinstance(command, Text) and command.text.strip()
                    for command in page.commands) for page in pages)
 
 

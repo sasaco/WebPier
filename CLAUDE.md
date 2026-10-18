@@ -33,7 +33,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/t
 uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0620 を含む生成は停止する。テストは `tests/conftest.py` が代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 
@@ -58,7 +58,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 3. 成果物を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。
 
 ### 決定性と実装の同一性
-- PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。
+- PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。例外は 0610・0620 に差し込む FEMPython の荷重図のページで、その中身は FEMPython の責務として決定性を求めない（ADR-0005）。WebPier が描く部分は決定的にし、テストは代役の runner で確かめる。FEMPython の runner は `dependency_hashes` に入れず、付帯JSONに `engineVersion` を記録する。
 - `webpier/pipeline/runtime.py` の `dependency_hashes` は、`webpier` のソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
 - ハッシュするソースと受入記録の補助スクリプトは `.gitattributes` で LF に固定している（`*.py`、`scripts/*.cs`、jrsnap-input-open-save の `scripts/*.ps1`・`*.cs`）。`core.autocrlf` で CRLF になると実装の同一性や受入記録の SHA が変わる。
 
@@ -89,3 +89,11 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 - GridLayoutPdf を修正するときは、そのrepoの `AGENTS.md` から辿れる規則（`.claude/rules/` など）に従い、そのrepoのテストも通す。
 - 修正後は上記の `uv sync ... --reinstall-package gridlayoutpdf` で WebPier に取り込み直す（同じversion番号のままでは置き換わらないことがある）。
 - 橋脚固有の内容（計算、帳票の項目や文言、WebPier 用の帳票構成）は WebPier 側に置き、GridLayoutPdf へ持ち込まない。
+
+## FEMPython の責務は FEMPython 側で直す
+
+荷重図の作図（`FrameWebforCS.Headless` の `load_diagram`、FramePrintPDF）など、`C:\Users\sasai\Documents\structural-mcp\FEMPython` の責務の追加や修正が必要になったら、FEMPython 自体を修正する（ADR-0005）。
+
+- WebPier 側で回避しない。FEMPython が出力した PDF の中身を書き換えたり、作図を WebPier 内で代替したりしない。WebPier が行うのは、runner の呼び出し、返ったページの差し込みだけ。計算書にはページ番号を印刷しない。
+- FEMPython を修正するときは、そのrepoの `AGENTS.md` に従い、そのrepoのテストも通す。修正後は Headless を Release でビルドし直す。
+- Headless のやり取り（`run` の引数、envelope、`protocolVersion`）を変えたら、WebPier のテストの代役 runner も合わせて更新する。

@@ -24,17 +24,17 @@ from ...calc.seismic_longitudinal import ActionDirection
 from ...calc.seismic_transverse import HorizontalInertia, SeismicCase, SeismicTransverseResult
 from ...calc.transverse import Track
 from ...inputs import PierInput
+from ..equations import terms
 from ..figures import pier_outline
 from .frame_report import (
     Manuscript, Span, TableSpec, Unit, document, frame_figure, joined, material_lines,
     member_table, node_table, seat_moment, section_lines, self_weight_inertia, semantic_records as records,
-    sub, used_concretes, value, with_unit, expression,
+    sub, used_concretes, value, with_unit,
 )
 from .seismic_longitudinal import INCREMENTS
 from .transverse import _train_table, horizontal_table
 
 PREFIX = "0720/"
-FOOTER = "11 - {page}"
 ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←",
           ActionDirection.TOWARD_W9: "→"}
 TRACK_NAMES = {Track.UP: "上り", Track.DOWN: "下り"}
@@ -87,7 +87,7 @@ def _model(m: Manuscript, result: SeismicTransverseResult, pier: PierInput) -> N
 
 def _inertia(m: Manuscript, key: str, heading: str, inertia: HorizontalInertia) -> None:
     m.heading(f"{key}.heading", heading, 2)
-    m.equation(f"{key}.h", "水平力", "H", expression(*joined([value(row.h) for row in inertia.rows])), inertia.h)
+    m.equation(f"{key}.h", "水平力", "H", terms(*joined([value(row.h) for row in inertia.rows])), inertia.h)
     m.table(f"{key}.table", horizontal_table(inertia.rows, inertia.h, inertia.m))
 
 
@@ -145,7 +145,7 @@ def semantic_records(result: SeismicTransverseResult, pier: PierInput) -> list[d
 
 def build_seismic_transverse(result: SeismicTransverseResult, pier: PierInput) -> Document:
     """The 0720 report as a GridLayoutPdf Document (lay out or render it)."""
-    return document(content(result, pier), FOOTER)
+    return document(content(result, pier))
 
 
 def render_seismic_transverse(result: SeismicTransverseResult, pier: PierInput, path: str | Path) -> Path:
