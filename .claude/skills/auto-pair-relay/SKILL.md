@@ -48,6 +48,8 @@ Driver（使い捨て subAgent / 手）   ……… 1 手 = 1 spawn のタイピ
 - Navigator: `.claude/agents/pair-relay-navigator.md`（teammate として spawn。Bash/Skill/Agent を持つ）
 - Driver: `.claude/agents/pair-relay-driver.md`（Navigator が `Agent` ツールで spawn する subAgent）
 
+⚠️ WebPier にはこの2つの agent 定義がない（`.claude/agents/` は `jrsnap-operator` だけ）。その場合は `general-purpose` で Navigator を spawn し、Navigator の役割・ゲート・禁則を spawn prompt に書き、以後は同じ Navigator に SendMessage で差分だけ送る（2026-10-18 の決定48の実装はこれで完走した）。`tdd` スキルもないので、TDD は spawn prompt に規律として書く。WebPier は別のセッションが並行して編集していることが多い。重なる気配を Navigator が報告したら、待つか並行か（重なるファイルは編集直前に Read して差分だけ足す）を Human に決めてもらう。相手のコミットにこちらの途中のファイルが入ることがある。
+
 ## セットアップ
 
 1. **Navigator を 1 体 spawn する。** `pair-relay-navigator` agent type で Navigator を spawn する。lead = あなた、Navigator = 永続の頭脳、の最小構成。

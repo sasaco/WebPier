@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDU、JRSNAP の結果を読む Aggre-SE のプロジェクトXML（決定49）を生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
+鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDU、JRSNAP の結果を読む Aggre-SE のプロジェクトXML（決定49）、柱の断面照査の計算書と WDJ（0611、決定48）を生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
 
 ## コマンド
 
@@ -16,6 +16,7 @@ uv run --project "." --locked python -m webpier --overwrite
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0611/0620/0621/0710/0711/0720/0721/all
 # 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
 # 骨組解析（0611/0621、選択式。all には含まれない。決定46）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
+# 0611 はそのピックアップで柱の断面照査も Capacita で行い、計算書（8.5〜8.9）と post/線路方向.wdj を出力する（決定48）
 uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
 # 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）
 uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite
@@ -37,7 +38,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/t
 uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図（決定50、`data-check`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721 を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。テストは `tests/conftest.py` が両方の代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図（決定50、`data-check`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721 を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。0611 の柱の断面照査は Capacita の Headless runner（`run-rc --pickup`、ADR-0008、`webpier/pipeline/capacita.py`）で行い、`.env` に `STRUCTURAL_MCP_WEBDAN_RUNNER='<Capacita>\WebDanforCS\Headless\bin\Release\net8.0\WebDanforCS.Headless.exe'` を書く（未設定なら 0611 を含む生成は停止する。Capacita を直したら `dotnet build .\Capacita\WebDanforCS\Headless\WebDanforCS.Headless.csproj -c Release` を structural-mcp のルートで）。テストは `tests/conftest.py` が3つの代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 

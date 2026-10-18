@@ -96,6 +96,7 @@ def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
     ("sha", r"model\.wdj が runner の応答の SHA256・バイト数と一致しません"),
     ("sections", "計算書の節（reportSections）がありません"), ("order", "計算書の節が違います"),
     ("gap", "計算書の節のページが PDF の"),
+    ("hole", "計算書の節のページが PDF の"), ("broken", "計算書の PDF を読めません"),
 ])
 def test_a_runner_that_does_not_check_the_column_is_an_error(fake_capacita_runner: Path,
                                                              monkeypatch: pytest.MonkeyPatch, mode, message):

@@ -17,7 +17,8 @@ engine webdan2, engineeringStatus not_evaluated) on stdout. Instead of calculati
 When the real runner's protocol changes, change this too (the real-runner test is the signal). ``FAKE_CAPACITA`` makes
 it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
 listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), extra (an unlisted file), sections
-(no reportSections), order (the sections reversed), gap (the last section ends past the PDF).
+(no reportSections), order (the sections reversed), gap (the last section ends past the PDF), hole (the second
+section starts a page late), broken (report.pdf is not a PDF).
 """
 
 import hashlib
@@ -88,6 +89,8 @@ def main(argv):
     shown = [(name, pages) for name, pages in SECTIONS
              if name != "bending_serviceability" or document["crack"][0]["vis_u"]]
     pdf, ranges = report(shown, digest)
+    if mode == "broken":
+        pdf = b"not a pdf"
     document["pickup_filename"] = pickup.name
     document["pickup_data"] = {"fake": hashlib.sha256(pickup.read_bytes()).hexdigest()}
     completed = json.dumps(document, ensure_ascii=False, indent=2).encode("utf-8")
@@ -109,6 +112,8 @@ def main(argv):
         ranges.reverse()
     if mode == "gap":
         ranges[-1]["lastPage"] += 1
+    if mode == "hole":
+        ranges[1]["firstPage"] += 1
     summary = {"returnCode": "OK", "outputFormat": "pdf", "messageCounts": {}, "reportSections": ranges}
     if mode == "sections":
         del summary["reportSections"]

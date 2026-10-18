@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "aggrese_project_acceptance",
-  "date": "2026-10-18T18:15:44+09:00",
+  "date": "2026-10-18T20:03:00+09:00",
   "method": "本物の JRSNAP の runner で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner （AggreSE.Headless.exe inspect / run、総括表と計算書）で読込み・計算した。さらに Aggre-SE の Input.SetXmData → applyVersion → Input.GetXmlData → Shift-JIS の保存し直し（scripts/aggrese_project_roundtrip.cs）でバイト列が変わらないことを確かめた。Aggre-SE の照査の判定は扱わない。",
   "seismic_check_judged": false,
   "gui_operated": false,
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "30f23f71378be26f9e9e59a44b29bf44a17e4abafc2cb989f9874f16c3aa180c"
+    "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
   },
-  "implementation_sha256": "6d4e6c0c975a5d1c582f28c06b3e64dfd4f545521b2cbaea38bdb3396bef739c",
+  "implementation_sha256": "6f232ce57226584ff05e9c63f3453f77b88583ca354efbb96c1e31074189d15b",
   "application": {
     "batch": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\Batch.exe",
@@ -36,8 +36,8 @@
       ],
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "598cae3672f2f3621439b76ca4f74b97f682eef5ed05057751a0b8270369bb4d",
-        "runner_engine_version": "1.0.0",
+        "sha256": "f22a07f21bd852c857f093f0004a4d8544b25d9fb1232cfd90aea98f0a50a877",
+        "runner_engine_version": "1.0.0+7d12eeff263ddc3dcb96b147193d883c5ec27af8",
         "product": "5.2-L03"
       },
       "inspect": {
@@ -82,8 +82,8 @@
       ],
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "4126cc908c09eaffc0c9ffca52c966b7671350a0dcf3b9089b6253c47bae4dea",
-        "runner_engine_version": "1.0.0",
+        "sha256": "fade7bac90b893a765a97c29496995f1eb6eb783686eeca137c87bd29af3cd4a",
+        "runner_engine_version": "1.0.0+7d12eeff263ddc3dcb96b147193d883c5ec27af8",
         "product": "5.2-L03"
       },
       "inspect": {

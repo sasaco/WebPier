@@ -84,14 +84,20 @@ def test_every_export_is_always_written():
 
 
 def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
-    """Decision 46: 0611 and 0621 have no report; they publish the pickup files of their load stage's FrameWeb."""
+    """Decision 46: 0611 and 0621 publish the pickup files of their load stage's FrameWeb; 0621 has no report, 0611
+    the column section check by Capacita with that PIK (decision 48)."""
     assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0621")
     assert STAGES.select("all") == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS})) == (
         "0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
     for stage_id, source, stem in (("0611", "0610", "線路方向"), ("0621", "0620", "線路直角方向")):
         stage = STAGES.get(stage_id)
-        assert (stage.has_report, stage.calculate, stage.exports, stage.load_diagram) == (False, None, (), "")
+        if stage_id == "0621":
+            assert (stage.has_report, stage.calculate, stage.exports, stage.load_diagram) == (False, None, (), "")
+            assert stage.section_check is None
+        else:
+            assert stage.has_report and (stage.exports, stage.load_diagram) == ((), "")
+            assert (stage.section_check.kind, stage.section_check.file_name) == ("wdj", "線路方向.wdj")
         assert stage.frame_analysis == FrameAnalysis(source, "frameweb", (
             ("pik", f"{stem}.pik"), ("displacement", f"{stem}_ピックアップ変位量.csv"),
             ("reaction", f"{stem}_ピックアップ反力.csv")))

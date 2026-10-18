@@ -121,6 +121,11 @@ SHEAR_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
 )
 TORSION_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = ((0, None), (1, None), (5, None), (6, None),
                                                                  (7, None))
+# Capacita's report sections (Capacita README「Headless runner の run-rc」), in report order: the section force list
+# and the checks this column asks for. 使用性（外観） is checked only with the appearance check (owner: without it
+# 0611 has no 8.8).
+REPORT_SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
+                   "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
 
 
 def tensile_strength(grade: str) -> Printed:
@@ -195,6 +200,12 @@ class ColumnCheckResult:
     safety: tuple[SafetyFactors, ...]
     kr: Printed
     k4: Printed
+
+    @property
+    def sections(self) -> tuple[str, ...]:
+        """The sections of Capacita's report this check asks for, in report order."""
+        return tuple(section for section in REPORT_SECTIONS
+                     if section != "bending_serviceability" or self.appearance)
 
 
 def _need(value, path: str):

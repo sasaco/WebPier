@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 
+import pymupdf
 import pytest
 
 from pipeline_support import FIXTURES, copy_input, tree
@@ -46,7 +47,7 @@ def pickup_files(stem):
 def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_generation):
     root, source, generation = all_generation
     output, post = tree(root / "output"), tree(root / "post")
-    reports = [stage for stage in STAGES.stages if stage.has_report]  # 0611, 0621 have none (decision 46)
+    reports = [stage for stage in STAGES.stages if stage.has_report and not stage.opt_in]  # all: no opt-in stage
     assert sorted(output) == sorted(f"{stage.stem}.{suffix}" for stage in reports for suffix in ("pdf", "json"))
     exports = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu"]
     assert sorted(post) == sorted([*exports, *(name + ".provenance.json" for name in exports)])
@@ -125,11 +126,17 @@ def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, 
 
 
 def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_generation, analysis_generation):
+    """Decisions 46, 48: the analysis adds the pickup files, and 0611 its column section check (report, result JSON
+    and the completed WDJ); the reports of all are unchanged."""
     root, _, _ = analysis_generation
     assert analysis_generation[2].stages == ("0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
-    assert tree(root / "output") == tree(all_generation[0] / "output")
+    output = tree(root / "output")
+    column = STAGES.get("0611").stem
+    assert {name: content for name, content in output.items() if not name.startswith(column)} == tree(
+        all_generation[0] / "output")
+    assert sorted(name for name in output if name.startswith(column)) == [f"{column}.json", f"{column}.pdf"]
     post = tree(root / "post")
-    natives = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu",
+    natives = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu", "線路方向.wdj",
                *(name for stem in PICKUPS.values() for name in pickup_files(stem))]
     assert sorted(post) == sorted([*natives, *(name + ".provenance.json" for name in natives)])
     for stage, stem in PICKUPS.items():
@@ -189,13 +196,38 @@ def test_a_blank_seismic_design_condition_stops_a_nonlinear_analysis_before_it_r
     generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))  # all: no analysis, no condition
 
 
+def test_the_column_section_check_of_0611(analysis_generation):
+    """Decision 48: Capacita (the stand-in) checks the WDJ with the published PIK; the report inserts its pages
+    after WebPier's headings, the WDJ it returns is published, and the result JSON records that the check ran."""
+    root, _, _ = analysis_generation
+    post, output = tree(root / "post"), tree(root / "output")
+    completed = load_json(post["線路方向.wdj"])
+    assert completed["pickup_filename"] == "線路方向.pik"
+    assert completed["pickup_data"] == {"fake": sha256(post["線路方向.pik"])}
+    assert completed["members"][0]["shape"] == 1 and completed["calc"]["print_section_force_checked"] is True
+    sidecar = load_json(post["線路方向.wdj.provenance.json"])
+    assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == ("0611", "wdj", sha256(post["線路方向.wdj"]))
+    assert sidecar["section_check"]["pik"]["sha256"] == sha256(post["線路方向.pik"])
+    stem = STAGES.get("0611").stem
+    document = load_json(output[f"{stem}.json"])
+    assert document["section_check"] == {"engine": "webdan2", "engine_version": "fake-1",
+                                         "engineering_status": "not_evaluated",
+                                         "wdj": {"file": "線路方向.wdj", "sha256": sha256(post["線路方向.wdj"])}}
+    with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
+        texts = [page.get_text() for page in pdf]
+    assert texts[0].strip().startswith("8.5 断面力の総括") and "FAKE CAPACITA section_forces 1/2" in texts[1]
+    assert sum("FAKE CAPACITA" in text for text in texts) == 9 and "8.9 復旧性の照査" in "".join(texts)
+
+
 @pytest.mark.parametrize("stage", ["0611", "0621"])
 def test_a_frame_analysis_stage_alone_publishes_only_its_pickup_files(analysis_generation, tmp_path, stage):
     root, _, _ = analysis_generation
     source = copy_input(tmp_path / "pre")
     generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
-    assert not (tmp_path / "output").exists()
+    checked = ["線路方向.wdj"] if stage == "0611" else []  # and the report of the column section check (decision 48)
+    output = tree(tmp_path / "output") if (tmp_path / "output").exists() else {}
+    assert sorted(output) == ([f"{STAGES.get(stage).stem}.json", f"{STAGES.get(stage).stem}.pdf"] if checked else [])
     names = pickup_files(PICKUPS[stage])
     post = tree(tmp_path / "post")
-    assert sorted(post) == sorted([*names, *(name + ".provenance.json" for name in names)])
+    assert sorted(post) == sorted([*names, *checked, *(name + ".provenance.json" for name in [*names, *checked])])
     assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}

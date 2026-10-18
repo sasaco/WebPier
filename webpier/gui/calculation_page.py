@@ -74,10 +74,12 @@ class CalculationPage:
         ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
                   style="Muted.TLabel").pack(anchor="w")
         self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
+        checked = [stage.id for stage in registry.stages if stage.section_check is not None]
+        column_check = f"。{'・'.join(checked)} は Capacita で柱の断面照査も行う（決定48）" if checked else ""
         self.frame_analysis_box = ttk.Checkbutton(
             page, variable=self.frame_analysis, command=self._analysis_changed,
             text=f"骨組解析も行う（{'・'.join(registry.opt_in(FRAME_ANALYSIS))}。FEMPython：ピックアップ断面力・変位量・反力を "
-                 "post に出力）")
+                 f"post に出力{column_check}）")
         self.frame_analysis_box.pack(anchor="w", pady=(6, 0))
         self.nonlinear_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.nonlinear_analysis)
         self.nonlinear_analysis_box = ttk.Checkbutton(

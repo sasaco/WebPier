@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "frameweb_headless_read_check",
   "date": "2026-10-18",
-  "verified_at": "2026-10-18T18:16:07+09:00",
+  "verified_at": "2026-10-18T20:01:44+09:00",
   "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
   "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
   "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
@@ -17,12 +17,12 @@
       "clean": false
     }
   },
-  "implementation_sha256": "6d4e6c0c975a5d1c582f28c06b3e64dfd4f545521b2cbaea38bdb3396bef739c",
+  "implementation_sha256": "6f232ce57226584ff05e9c63f3453f77b88583ca354efbb96c1e31074189d15b",
   "runs": [
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "40a7021cd6420aca58d18fa54cacb2a42eb67d99b66bbce888a5333795056053"
+        "sha256": "a47fb32fb6b237ea644146473438939c41b88defd7180885fa0e6ef409170025"
       },
       "stage": "0610",
       "file": "線路方向.json",
@@ -332,7 +332,7 @@
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "40a7021cd6420aca58d18fa54cacb2a42eb67d99b66bbce888a5333795056053"
+        "sha256": "a47fb32fb6b237ea644146473438939c41b88defd7180885fa0e6ef409170025"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
@@ -610,7 +610,7 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "30f23f71378be26f9e9e59a44b29bf44a17e4abafc2cb989f9874f16c3aa180c"
+        "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
       },
       "stage": "0610",
       "file": "線路方向.json",
@@ -920,7 +920,7 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "30f23f71378be26f9e9e59a44b29bf44a17e4abafc2cb989f9874f16c3aa180c"
+        "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
       },
       "stage": "0620",
       "file": "線路直角方向.json",

@@ -44,6 +44,22 @@ def join(parts: Sequence[bytes], path: str | Path) -> Path:
     return destination
 
 
+def page_range(pdf: bytes, first: int, last: int) -> bytes:
+    """Pages *first*..*last* (1-based, inclusive) of *pdf*, as they are, as a PDF of their own.
+
+    0611 cuts Capacita's report by the page range of each section (decision 48).
+    """
+    reader = PdfReader(BytesIO(pdf), strict=True)
+    if not 1 <= first <= last <= len(reader.pages):
+        raise ValueError(f"pages {first}..{last} are not in a PDF of {len(reader.pages)} pages")
+    writer = PdfWriter()
+    for page in reader.pages[first - 1:last]:
+        writer.add_page(page)
+    stream = BytesIO()
+    writer.write(stream)
+    return stream.getvalue()
+
+
 def render_with_pages(before: Document, pages: bytes, after: Document, path: str | Path) -> Path:
     """*before*, then the pages of *pages* as they are, then *after* on a new page."""
     return join((document_bytes(before), pages, document_bytes(after)), path)

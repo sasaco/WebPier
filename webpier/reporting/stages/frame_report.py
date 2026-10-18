@@ -110,6 +110,7 @@ class Definitions:
     """A "ここに、" list under an equation."""
 
     items: tuple[Definition, ...]
+    colon: float = 0.0  # the "：" column; 0 is DEFINITION_COLON (a wider symbol list takes its own)
 
 
 @dataclass(frozen=True)
@@ -165,8 +166,9 @@ class Manuscript:
             level: int = 0) -> None:
         self.units.append(Unit(self.prefix + key, item, kind, left, keep, level))
 
-    def heading(self, key: str, text: str, level: int) -> None:
-        self.add(key, text, "heading", left=LEVELS[level], level=level)
+    def heading(self, key: str, text: str, level: int, *, tag: str | None = None) -> None:
+        """A heading; *tag* (e.g. "【ＲＣ標準 7.2.2】") is its source on the same line."""
+        self.add(key, text if tag is None else (text, tag), "heading", left=LEVELS[level], level=level)
 
     def paragraph(self, key: str, text: str, *, left: float = BODY_LEFT, keep: bool = False) -> None:
         self.add(key, text, "paragraph", left=left, keep=keep)
@@ -188,8 +190,8 @@ class Manuscript:
             item = Equation(lhs, rhs, relation=relation)
         self.add(key, Labelled(label, item), "equation", keep=keep)
 
-    def definitions(self, key: str, *items: Definition) -> None:
-        self.add(key, Definitions(items), "definitions")
+    def definitions(self, key: str, *items: Definition, colon: float = 0.0) -> None:
+        self.add(key, Definitions(items, colon), "definitions")
 
     def table(self, key: str, spec: TableSpec) -> None:
         self.add(key, spec, "table", left=spec.left)
@@ -347,8 +349,9 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
         previous = units[index - 1] if index else None
         index += 1
         if piece.kind == "heading":
+            text, tag = piece.value if isinstance(piece.value, tuple) else (piece.value, None)
             blank(found)
-            found.append(heading(piece.value, left=piece.left, block_id=piece.key))
+            found.append(heading(text, left=piece.left, tag=tag, block_id=piece.key))
             found.append(KeepWithNext(spacer()))
             continue
         if piece.kind == "paragraph":
@@ -364,7 +367,8 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
             block = _equations(run)
             piece = run[-1]
         elif piece.kind == "definitions":
-            block = definitions(*piece.value.items, left=LABEL_LEFT, colon=DEFINITION_COLON, block_id=piece.key)
+            block = definitions(*piece.value.items, left=LABEL_LEFT, colon=piece.value.colon or DEFINITION_COLON,
+                                block_id=piece.key)
         elif piece.kind == "table":
             block = PreferKeepTogether(table_block(piece.value, piece.key))
         else:  # a figure

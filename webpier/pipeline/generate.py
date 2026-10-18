@@ -40,14 +40,14 @@ from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_s
 from ..core.errors import InputError
 from ..export.aggrese import ProjectError
 from ..inputs import PierInput, parse_input
-from . import jrsnap
+from . import capacita, jrsnap
 from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
                         runner_path)
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry)
+                     Project, Registry, SectionCheck)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -88,6 +88,7 @@ class _PostFile:
     sidecar: Artifact
     export: Export | None  # none: a file the stage's frame analysis returns, or the folder of its JRSNAP analysis
     project: Project | None = None  # the Aggre-SE project beside that folder (decision 49)
+    check: SectionCheck | None = None  # the completed WDJ of the stage's column section check (decision 48)
 
 
 def _identity() -> dict[Path, str]:
@@ -110,18 +111,20 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
             for suffix in ("pdf", "json"):
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
-        files = [(item.kind, item.file_name, item, False, None) for item in stage.exports]
+        files = [(item.kind, item.file_name, item, False, None, None) for item in stage.exports]
         if stage.frame_analysis is not None:
-            files += [(kind, file_name, None, False, None) for kind, file_name in stage.frame_analysis.files]
+            files += [(kind, file_name, None, False, None, None) for kind, file_name in stage.frame_analysis.files]
+        if (check := stage.section_check) is not None:
+            files.append((check.kind, check.file_name, None, False, None, check))
         if (nonlinear := stage.nonlinear_analysis) is not None:
-            files.append((nonlinear.kind, nonlinear.folder, None, True, None))
+            files.append((nonlinear.kind, nonlinear.folder, None, True, None, None))
             if (project := nonlinear.project) is not None:
-                files.append((project.kind, project.file_name, None, False, project))
-        for kind, file_name, item, folder, project in files:
+                files.append((project.kind, project.file_name, None, False, project, None))
+        for kind, file_name, item, folder, project, check in files:
             native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post", folder)
             sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(file_name + PROVENANCE_SUFFIX),
                                "post")
-            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project))
+            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check))
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
 
 
@@ -310,6 +313,22 @@ def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStagi
                       for name in sorted(result.files)]}
 
 
+def _pik_name(registry: Registry, stage_id: str) -> str:
+    """The file name of the PIK the stage's frame analysis returns (the registry checked that it exists)."""
+    return dict(registry.get(stage_id).frame_analysis.files)["pik"]
+
+
+def _check_facts(registry: Registry, post: _PostFile, inspected: Mapping[str, capacita.ColumnCheckPages],
+                 given: Mapping[str, bytes], analyzed: Mapping[str, AnalysisFiles]) -> dict[str, Any]:
+    # The completed WDJ is Capacita's (decision 48): which runner returned it, for which WDJ and which PIK. Capacita
+    # returns no judgement, so the check is recorded as run, not as passed (ADR-0008).
+    return {"section_check": {"engine": capacita.ENGINE, "engine_version": inspected[post.stage].engine_version,
+                              "engineering_status": "not_evaluated",
+                              "pik": {"stage": post.stage, "kind": "pik", "file": _pik_name(registry, post.stage),
+                                      "sha256": sha256(analyzed[post.stage].files["pik"])},
+                              "wdj_given": {"sha256": sha256(given[post.stage])}}}
+
+
 def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging) -> dict[str, Any]:
     # The project names the DB1 of the JRSNAP folder published beside it (decision 49): which folder, and its bytes.
     analysis = registry.get(post.stage).nonlinear_analysis
@@ -333,6 +352,23 @@ def _runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
         return None
     try:
         return runner_path()
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _capacita_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
+    if not any(registry.get(stage_id).section_check is not None for stage_id in selected):
+        return None
+    try:
+        return capacita.runner_path()
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections: tuple[str, ...]
+                  ) -> capacita.ColumnCheckPages:
+    try:
+        return capacita.check_column(wdj, pik_name, pik, runner, sections)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
 
@@ -399,6 +435,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     identity = _identity()
     runner = _runner(registry, selected)
     jrsnap_runner = _jrsnap_runner(registry, selected)
+    capacita_runner = _capacita_runner(registry, selected)
     data = Path(options.input_path).read_bytes()
     input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
@@ -429,6 +466,16 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
                                                built[(analysis.stage, analysis.export)], jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
+        # Capacita checks the column with the PIK the stage's own frame analysis returned (decision 48).
+        given: dict[str, bytes] = {}
+        inspected: dict[str, capacita.ColumnCheckPages] = {}
+        for stage_id in selected:
+            if (check := registry.get(stage_id).section_check) is not None:
+                own = _own(registry, results, stage_id)
+                given[stage_id] = check.build(own, pier)
+                inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id],
+                                                    analyzed[stage_id].files["pik"], capacita_runner,
+                                                    tuple(check.sections(own)))
         for post in posts:
             if post.native.folder:
                 folder = staging.path_for(post.native.path)
@@ -439,13 +486,15 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 analysis = registry.get(post.stage).nonlinear_analysis
                 staging.path_for(post.native.path).write_bytes(
                     _write_project(post, writers[post.stage], analysis.folder, list(solved[post.stage].files)))
+            elif post.check is not None:
+                staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
             elif post.export is None:
                 staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
                 continue
             pages = ((drawn[stage_id].pdf,) if stage_id in drawn else (checked[stage_id].pdf,) if stage_id in checked
-                     else ())
+                     else (inspected[stage_id],) if stage_id in inspected else ())
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
                                               staging.path_for(by_role[f"{stage_id}.pdf"].path), *pages)
@@ -454,11 +503,18 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             document = result_document(stage_id, results[stage_id], input_file=common["input"]["file"],
                                        input_sha256=input_sha256,
                                        implementation_sha256=common["implementation_sha256"])
+            if stage_id in inspected:  # that the check ran, not its judgement (ADR-0008)
+                document["section_check"] = {
+                    "engine": capacita.ENGINE, "engine_version": inspected[stage_id].engine_version,
+                    "engineering_status": "not_evaluated",
+                    "wdj": {"file": registry.get(stage_id).section_check.file_name,
+                            "sha256": sha256(inspected[stage_id].wdj)}}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn, checked) if post.export is not None
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging) if post.project is not None
+                     else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
                      else _analysis_facts(registry, post, analyzed, built))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)

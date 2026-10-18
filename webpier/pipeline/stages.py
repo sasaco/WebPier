@@ -16,7 +16,9 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
 (decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
-results (decision 49). Such a stage is ``opt_in``: ``all`` leaves it out unless its
+results (decision 49). A stage with ``section_check`` (0611) also has Capacita check the column bottom with the
+PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages and section ranges,
+and the completed WDJ is published under post/. Such a stage is ``opt_in``: ``all`` leaves it out unless its
 switch is given (``--frame-analysis``, ``--nonlinear-analysis``), and so is every stage that reads one, with the same
 switch; chosen directly, it is calculated with its dependencies.
 """
@@ -28,6 +30,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..calc.column_check import calculate_column_check
 from ..calc.column_rebar import column_layout
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.foundation import calculate_foundation
@@ -39,12 +42,14 @@ from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json
 from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
+from ..export.capacita import build_wdj, write_wdj
 from ..export.frameweb import build_frameweb, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION
 from ..inputs import PierInput
+from ..reporting.stages.column_check import render_column_check
 from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
@@ -98,6 +103,22 @@ class FrameAnalysis:
 
 
 @dataclass(frozen=True)
+class SectionCheck:
+    """Capacita checks the column bottom with the PIK of the stage's own frame analysis (decision 48, ADR-0008).
+
+    ``build`` writes the WDJ (without pickup data) from the stage's results; ``sections`` names the sections of
+    Capacita's report the stage asks for (Capacita's ids, in order). The runner returns the report, which the stage's
+    ``render`` receives with its section ranges, and the completed WDJ, published under post/ as ``kind`` with a
+    provenance sidecar naming the PIK.
+    """
+
+    kind: str  # "wdj"
+    file_name: str  # e.g. "線路方向.wdj"
+    build: Callable[[Results, PierInput], bytes]
+    sections: Callable[[Results], Sequence[str]]
+
+
+@dataclass(frozen=True)
 class Project:
     """The Aggre-SE project XML that reads the JRSNAP results of the analysis (decision 49).
 
@@ -134,7 +155,8 @@ class StageSpec:
     depends_on: tuple[str, ...]
     calculate: Callable[[PierInput, Results], Any] | None = None  # none: the stage has no result
     # (results, pier, path), and after the path the PDF of the load diagram when ``load_diagram`` is set, or of the
-    # データ確認図 when ``data_check`` is; none: no report
+    # データ確認図 when ``data_check`` is, or Capacita's pages (pipeline.capacita.ColumnCheckPages) when
+    # ``section_check`` is; none: no report
     render: Callable[..., Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
@@ -142,6 +164,7 @@ class StageSpec:
     opt_in: str = ""  # the switch without which all leaves the stage out (decisions 46, 47), or none
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
+    section_check: SectionCheck | None = None  # Capacita checks the column with the PIK of frame_analysis (decision 48)
 
     @property
     def has_report(self) -> bool:
@@ -186,6 +209,13 @@ class Registry:
                 if stage.opt_in != FRAME_ANALYSIS:
                     raise ValueError(f"{stage.id}は骨組解析するので選択式（{FRAME_ANALYSIS}）の段階です")
                 outputs += analysis.files
+            check = stage.section_check
+            if check is not None:
+                if analysis is None:
+                    raise ValueError(f"{stage.id}の柱の断面照査には同じ段階の骨組解析（PIK）が必要です")
+                if not stage.has_report:
+                    raise ValueError(f"{stage.id}の柱の断面照査を差し込む計算書がありません")
+                outputs.append((check.kind, check.file_name))
             nonlinear = stage.nonlinear_analysis
             if nonlinear is not None:
                 self._check_source(stage, nonlinear.stage, nonlinear.export, "静的非線形解析")
@@ -315,8 +345,13 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
-    StageSpec("0611", "0611_線路方向照査", ("0610",), opt_in=FRAME_ANALYSIS,
-              frame_analysis=FrameAnalysis("0610", "frameweb", _pickups("線路方向"))),
+    # The frame analysis, then Capacita's column section check with its PIK (decisions 46, 48).
+    StageSpec("0611", "0611_線路方向照査", ("0610",),
+              lambda pier, results: calculate_column_check(pier, results["0610"]),
+              lambda results, pier, path, pages: render_column_check(results["0611"], pier, path, pages),
+              opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("0610", "frameweb", _pickups("線路方向")),
+              section_check=SectionCheck("wdj", "線路方向.wdj", lambda results, pier: write_wdj(build_wdj(results["0611"])),
+                                         lambda results: results["0611"].sections)),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,

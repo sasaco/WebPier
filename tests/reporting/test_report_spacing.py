@@ -30,6 +30,8 @@ from foundation_report_cases import case as foundation_case
 from frame_report_cases import chain, transverse_chain
 from reaction_report_cases import case as reaction_case
 from webpier.reporting.fonts import load_fonts
+from webpier.calc.column_check import calculate_column_check
+from webpier.reporting.stages.column_check import build_column_check
 from webpier.reporting.stages.foundation import build_foundation
 from webpier.reporting.stages.longitudinal import build_longitudinal
 from webpier.reporting.stages.reaction import build_reaction
@@ -53,6 +55,8 @@ BUILDERS: dict[str, Callable[[str], Any]] = {
                                           transverse_chain(name)[0]),
     "0710": lambda name: build_seismic_longitudinal(chain(name)[3], chain(name)[0]),
     "0720": lambda name: build_seismic_transverse(transverse_chain(name)[3], transverse_chain(name)[0]),
+    # one Document before each of Capacita's sections (decision 48)
+    "0611": lambda name: build_column_check(calculate_column_check(chain(name)[0], chain(name)[2])),
 }
 # The fixture input of every stage (tests/fixtures/inputs/current.json).
 PARAMETERS = [(stage, "current") for stage in BUILDERS]
@@ -107,9 +111,13 @@ def _pages(path: Path, laid_out: Any) -> list[dict]:
 @pytest.fixture(scope="module", params=PARAMETERS, ids=[f"{stage}-{name}" for stage, name in PARAMETERS])
 def pages(request, tmp_path_factory) -> tuple[str, list[dict]]:
     stage, name = request.param
-    document = BUILDERS[stage](name)
-    path = document.render(tmp_path_factory.mktemp(f"spacing-{stage}-{name}") / f"{stage}.pdf", invariant=True)
-    return stage, _pages(path, document.layout())
+    built = BUILDERS[stage](name)
+    directory = tmp_path_factory.mktemp(f"spacing-{stage}-{name}")
+    found = []
+    for index, document in enumerate(built if isinstance(built, tuple) else (built,)):
+        path = document.render(directory / f"{stage}-{index}.pdf", invariant=True)
+        found += _pages(path, document.layout())
+    return stage, found
 
 
 def test_every_page_starts_on_its_first_row(pages):

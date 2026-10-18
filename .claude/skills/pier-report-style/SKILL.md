@@ -41,6 +41,8 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 - `math_line("・長期")`：14.28pt の行に1行の文や数式。
 - `blank(out)`：空き行。頁頭で捨てられ、重ならない（`spacer()` を直接重ねない）。
 - `tables.table(widths, rows, horizontal_rules=[...], vertical_rules=[])`：必要な罫線だけを引く開いた表。
+- フローチャート：GridLayoutPdf の `TextBox`（`rounded=True` で角丸の端子）・`TextDiamond`（判定）・`Connector`（折れ線＋矢じり）を `Figure` に置き、Yes/No は `Label`。文字は自動縮小せず、はみ出せば `LayoutOverflowError`。例は `reporting/stages/column_check.py` の `flowchart`。見本の箱の中で切れた文字（「σb ≦」だけ等）は再現せず、判定条件を書き切る。
+- 他のエンジンのページの差し込み（荷重図＝FEMPython、0611 の結果表＝Capacita）：原稿を差し込み位置で文書に分けて描き、`assembly.join` で「WebPier の部品 → エンジンのページ」の順につなぐ。エンジンが返す頁範囲で切るのは `assembly.page_range`。エンジンのページは書き換えず、決定性も求めない。エンジンの中にだけある値（RC標準の制限値の表など）は解説に印刷しない（ADR-0008）。
 
 ## 4. 手順
 
@@ -60,7 +62,9 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 2. そのリポジトリのテストを通す。
 3. WebPier に取り込み直す：`uv sync --project "." --locked --reinstall-package gridlayoutpdf`（取り込み直さないと実装ハッシュが食い違いテストが失敗する）。
 
-これまでに足した汎用機能：`TermStop`／`EquationGroup(term_gap=)`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`。
+これまでに足した汎用機能：`TermStop`／`EquationGroup(term_gap=)`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）。
+
+GridLayoutPdf の描画のソースを変えると、片持ち梁37頁の画素比較テストが固定しているソースの SHA が食い違う。画素が一致することを確かめたうえで、変えたファイルの固定値だけを更新し、`manifest.json` の notes に理由を書く。並行して別のセッションが WebPier を編集しているときは、取り込み直し（`--reinstall-package`）が相手の実装ハッシュの照合も変えるので、区切りを待つか相手に知らせる。
 
 ## 6. 落とし穴
 
