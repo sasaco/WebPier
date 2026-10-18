@@ -166,7 +166,7 @@ STAGES = Registry((
     StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
               lambda results, pier, path: render_longitudinal(results["0610"], results["0600"], pier, path),
-              (Export("frameweb", "frameWebForJS.json", _frameweb("0610", build_frameweb)),)),
+              (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),)),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path: render_transverse(results["0620"], results["0600"], pier, path),

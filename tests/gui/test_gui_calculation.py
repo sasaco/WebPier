@@ -118,7 +118,7 @@ def test_files_of_another_generation_are_rejected(tmp_path, input_path, stages):
 
 def test_a_replaced_export_breaks_the_generation(tmp_path, input_path, stages):
     control, _, _ = run(tmp_path, input_path, stages)
-    (tmp_path / "post" / "frameWebForJS.json").write_bytes(b'{"frame": 2}\n')
+    (tmp_path / "post" / "線路方向.json").write_bytes(b'{"frame": 2}\n')
     with pytest.raises(calculation.ArtifactValidationError, match="付帯JSONと出力が一致しません"):
         validate_outputs(control.job, registry=stages)
 
@@ -134,7 +134,7 @@ def test_a_report_of_another_generation_breaks_the_set(tmp_path, input_path, sta
 
 def test_a_sidecar_listing_other_files_is_rejected(tmp_path, input_path, stages):
     control, _, _ = run(tmp_path, input_path, stages)
-    sidecar = tmp_path / "post" / "frameWebForJS.json.provenance.json"
+    sidecar = tmp_path / "post" / "線路方向.json.provenance.json"
     document = json.loads(sidecar.read_text(encoding="utf-8"))
     document["artifacts"] = document["artifacts"][1:]
     sidecar.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")

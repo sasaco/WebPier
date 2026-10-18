@@ -33,7 +33,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 |---|---|---|---|
 | 0500 | — | `0500_直接基礎.pdf` / `.json` | — |
 | 0600 | — | `0600_上部工反力.pdf` / `.json` | — |
-| 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `frameWebForJS.json` と付帯JSON |
+| 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `線路方向.json` と付帯JSON |
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `--jrsnap` のとき `線路方向.ndu` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `--jrsnap` のとき `線路直角方向.ndu` と付帯JSON |
@@ -150,7 +150,7 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 
 ### FrameWeb（FEMPython / FrameWebforCS）
 
-0610 から `post/frameWebForJS.json`、0620 から `post/線路直角方向.json` を作ります。形式は Example2 の FrameWeb 保存ファイル（`.claude/docs/Example橋脚2/08_線路/frameWebForJS.json` など）に合わせています。規則の詳細は `webpier/export/frameweb/` の各モジュールに書いています。
+0610 から `post/線路方向.json`、0620 から `post/線路直角方向.json` を作ります。形式は Example2 の FrameWeb 保存ファイル（`.claude/docs/Example橋脚2/08_線路/frameWebForJS.json` など）に合わせています。規則の詳細は `webpier/export/frameweb/` の各モジュールに書いています。
 
 - 荷重ケースごとに地盤ばねの組（1 = 長期、2 = 短期）を選びます。ばねは荷重の性質で決め、ロングレールは長期、制動・始動などの活荷重は短期です（決定36）。
 - FrameWeb のばねの値1は固定支点、0は自由を意味するので、ばねは正で1以外の値が必要です。荷重のない部材行は書きません。部材荷重の強度は FrameWeb が 0.01 に投影します。行のない荷重ケースは FrameWeb が飛ばすので、そのようなケースだけの Combine は落ち、その Pickup は失敗します。Combine の表は Define 50列までです。こうなる入力は公開前にエラーにします。

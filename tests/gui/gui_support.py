@@ -40,7 +40,7 @@ def registry() -> Registry:
     return Registry((
         StageSpec("0500", "0500_直接基礎", (), lambda pier, results: {"stage": "0500"}, _render("0500", 1)),
         StageSpec("0610", "0610_線路方向荷重", ("0500",), lambda pier, results: {"stage": "0610"}, _render("0610", 2),
-                  (Export("frameweb", "frameWebForJS.json", lambda results, pier: b'{"frame": 1}\n'),)),
+                  (Export("frameweb", "線路方向.json", lambda results, pier: b'{"frame": 1}\n'),)),
         StageSpec("0710", "0710_線路方向荷重", ("0610",), lambda pier, results: {"stage": "0710"}, _render("0710", 3),
                   (Export("jrsnap", "線路方向.ndu", lambda results, pier: b"NDU\r\n", opt_in=True,
                           metadata={"analysis_run": False}),)),

@@ -30,11 +30,11 @@ def test_all_publishes_a_report_and_result_for_every_stage_and_the_frameweb_file
         document = load_json(output[f"{stage.stem}.json"])
         assert (document["schema_version"], document["stage"]) == (1, stage.id)
         assert document["input"] == {"file": "input.json", "sha256": sha256(source.read_bytes())}
-    sidecar = load_json(post["frameWebForJS.json.provenance.json"])
-    assert sidecar["sha256"] == sha256(post["frameWebForJS.json"])
+    sidecar = load_json(post["線路方向.json.provenance.json"])
+    assert sidecar["sha256"] == sha256(post["線路方向.json"])
     assert {item["file"]: item["sha256"] for item in sidecar["artifacts"]} == {
         name: sha256(content) for name, content in {**output, **post}.items() if not name.endswith(".provenance.json")}
-    assert load_json(post["frameWebForJS.json"])  # strict JSON for FrameWeb
+    assert load_json(post["線路方向.json"])  # strict JSON for FrameWeb
     assert generation.published
 
 
