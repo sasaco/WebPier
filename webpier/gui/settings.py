@@ -1,8 +1,9 @@
-"""The editor's own settings, one file per user (decision 46): kept apart from the input JSON.
+"""The editor's own settings, one file per user (decisions 46, 47): kept apart from the input JSON.
 
-It holds whether 計算・印刷 adds the frame analysis (``--frame-analysis``), so the choice survives a restart of the
-editor. The file is ``%APPDATA%\\WebPier\\editor.json``. It is a convenience: a missing or unreadable file gives the
-defaults instead of an error, and the next change rewrites it.
+It holds whether 計算・印刷 adds the frame analysis (``--frame-analysis``) and the static nonlinear analysis
+(``--nonlinear-analysis``), so the choices survive a restart of the editor. The file is
+``%APPDATA%\\WebPier\\editor.json``. It is a convenience: a missing or unreadable file gives the defaults instead of
+an error, and the next change rewrites it.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from ..core.integrity import dump_json, load_json
 @dataclass(frozen=True)
 class EditorSettings:
     frame_analysis: bool = False  # 計算・印刷 adds the opt-in frame analysis stages (0611, 0621)
+    nonlinear_analysis: bool = False  # 計算・印刷 adds the opt-in static nonlinear analysis stages (0711, 0721)
 
 
 def default_path(environ: Mapping[str, str]) -> Path:

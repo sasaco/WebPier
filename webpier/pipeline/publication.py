@@ -3,6 +3,9 @@
 Individual replacements are atomic; the set is not an OS transaction. On an
 ordinary failure every old file is restored, and failed restorations retain
 their backups for manual recovery.
+
+A destination may also be a folder (*folders*): it is replaced whole, like a
+file, so nothing of the old folder is left in the new one (decision 47).
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ import stat
 import tempfile
 import warnings
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from pathlib import Path
 
 
@@ -98,8 +101,23 @@ def backup_path(staging: Mapping[Path, Path], destination: Path) -> Path:
     return staging[destination.parent.resolve()] / (destination.name + ".backup")
 
 
+def _writable(path: Path) -> bool:
+    return bool(path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
+
+
+def _check_folder(destination: Path) -> None:
+    """An old folder destination: a real folder of folders and writable regular files only."""
+    for folder, subfolders, files in os.walk(destination):
+        for name in (*subfolders, *files):
+            entry = Path(folder) / name
+            if entry.is_symlink() or entry.is_junction() or not (entry.is_dir() or entry.is_file()):
+                raise OSError(f"出力フォルダーに通常のファイル・フォルダー以外があります: {entry}")
+            if entry.is_file() and not _writable(entry):
+                raise PermissionError(f"出力フォルダーに読取専用のファイルがあります: {entry}")
+
+
 def validate_destinations(destinations: Sequence[Path], *, overwrite: bool,
-                          input_path: Path | None = None) -> None:
+                          input_path: Path | None = None, folders: Collection[Path] = ()) -> None:
     check_incomplete_publications(destinations)
     seen: set[Path] = set()
     resolved_input = input_path.resolve() if input_path is not None else None
@@ -108,13 +126,20 @@ def validate_destinations(destinations: Sequence[Path], *, overwrite: bool,
         if resolved in seen:
             raise OSError(f"出力先が重複しています: {destination}")
         seen.add(resolved)
-        if resolved == resolved_input:
+        if resolved == resolved_input or (destination in folders and resolved_input is not None
+                                          and resolved_input.is_relative_to(resolved)):
             raise OSError("入力ファイルと出力ファイルを同じパスにはできません")
-        if destination.is_symlink() or (destination.exists() and not destination.is_file()):
+        if destination in folders:
+            if destination.is_symlink() or destination.is_junction() or (destination.exists()
+                                                                         and not destination.is_dir()):
+                raise OSError(f"フォルダー以外は出力フォルダーとして置き換えられません: {destination}")
+        elif destination.is_symlink() or (destination.exists() and not destination.is_file()):
             raise OSError(f"通常ファイル以外は上書きできません: {destination}")
         if destination.exists() and not overwrite:
             raise FileExistsError(f"出力が既にあります: {destination}（更新する場合は --overwrite）")
-        if destination.exists() and not destination.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH):
+        if destination in folders and destination.exists():
+            _check_folder(destination)
+        elif destination.exists() and not _writable(destination):
             # Windows permits renaming a read-only file to its backup, then
             # refuses to delete that backup. Reject before replacing anything.
             raise PermissionError(f"読取専用の出力は上書きできません: {destination}")
@@ -166,18 +191,22 @@ class ArtifactStaging:
 
 def publish_outputs(pairs: list[tuple[Path, Path]],
                     staging: Mapping[Path, Path], overwrite: bool, *,
-                    final_validator: Callable[[], None] | None = None) -> None:
+                    final_validator: Callable[[], None] | None = None, folders: Collection[Path] = ()) -> None:
     """Back up every old file, publish every new file, and restore all on failure.
 
-    *staging* maps each destination parent to its ArtifactStaging directory.
+    *staging* maps each destination parent to its ArtifactStaging directory. A destination in *folders* is a
+    folder published from a staged folder.
     """
     destinations = [destination for _, destination in pairs]
-    validate_destinations(destinations, overwrite=overwrite)
+    validate_destinations(destinations, overwrite=overwrite, folders=folders)
     sources = [source.resolve() for source, _ in pairs]
     if len(set(sources)) != len(sources) or set(sources) & {path.resolve() for path in destinations}:
         raise OSError("一時ファイルと出力先が重複しています")
-    for source, _ in pairs:
-        if source.is_symlink() or not source.is_file():
+    for source, destination in pairs:
+        if destination in folders:
+            if source.is_symlink() or not source.is_dir():
+                raise OSError(f"一時フォルダーがフォルダーではありません: {source}")
+        elif source.is_symlink() or not source.is_file():
             raise OSError(f"一時ファイルが通常ファイルではありません: {source}")
 
     directories = {parent.resolve(): directory.resolve() for parent, directory in staging.items()}
@@ -226,9 +255,13 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
                     journal_errors.append(f"{directory}: {error}")
         restore_errors = []
         for destination in reversed(published):
-            if destination not in backups:
+            # A file's backup replaces the new file; a folder cannot be replaced, so the new one goes first.
+            if destination not in backups or destination in folders:
                 try:
-                    destination.unlink()
+                    if destination in folders:
+                        shutil.rmtree(destination)
+                    else:
+                        destination.unlink()
                 except OSError as error:
                     restore_errors.append(f"{destination}: {error}")
         # Continue restoring other files after a locked file, so one failure

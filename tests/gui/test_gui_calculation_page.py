@@ -118,6 +118,23 @@ def test_the_page_names_the_reports_and_the_opt_in_frame_analysis(editor):
     shown = list(texts(page(editor).frame))
     assert "0500・0610・0710 の計算書PDFと計算結果JSONを作り直します。" in shown
     assert "骨組解析も行う（0611。FEMPython：ピックアップ断面力・変位量・反力を post に出力）" in shown
+    assert ("静的非線形解析も行う（0711。JRSNAP：解析用データと解析結果を post のフォルダーに出力。数分かかり、"
+            "JRSNAP の画面が出ます）") in shown
+
+
+def test_the_nonlinear_analysis_checkbox_is_separate_and_remembered(editor, runner, tmp_path, editor_settings):
+    """Decision 47: JRSNAP takes minutes and shows windows, so it has its own switch, kept like the frame analysis."""
+    view = page(editor)
+    assert not view.nonlinear_analysis.get()
+    view.nonlinear_analysis_box.invoke()
+    assert view.nonlinear_analysis.get() and not view.frame_analysis.get()
+    assert settings.load_settings(editor_settings) == settings.EditorSettings(nonlinear_analysis=True)
+    assert "nonlinear_analysis" not in editor.document.data and not editor.dirty
+    calculate(editor).dialog.close()
+    assert runner.commands[0][-1] == "--nonlinear-analysis" and "--frame-analysis" not in runner.commands[0]
+    assert (tmp_path / "post" / "線路方向_JRSNAP").is_dir()
+    view.nonlinear_analysis_box.invoke()
+    assert settings.load_settings(editor_settings) == settings.EditorSettings()
 
 
 def test_the_frame_analysis_checkbox_adds_the_flag_and_is_remembered(editor, runner, tmp_path, editor_settings):
@@ -137,11 +154,11 @@ def test_the_frame_analysis_checkbox_adds_the_flag_and_is_remembered(editor, run
 
 def test_the_checkbox_starts_from_the_saved_setting(tk_root, input_path, quiet, runner, tmp_path):
     path = tmp_path / "mine" / "editor.json"
-    settings.save_settings(settings.EditorSettings(frame_analysis=True), path)
+    settings.save_settings(settings.EditorSettings(frame_analysis=True, nonlinear_analysis=True), path)
     controller = CalculationController(tmp_path / "output", runner, registry=runner.registry)
     editor = gui.InputEditor(tk_root, input_path, calculation=controller, settings_path=path)
     assert editor.settings_path == path and editor.select("計算・印刷")
-    assert page(editor).frame_analysis.get()
+    assert page(editor).frame_analysis.get() and page(editor).nonlinear_analysis.get()
 
 
 def test_a_setting_that_cannot_be_saved_is_reported_and_kept_for_now(editor, monkeypatch):
@@ -194,6 +211,7 @@ def test_the_editor_is_locked_while_calculating(editor, runner, quiet):
     assert not page(editor).start() and not page(editor).open_preview()
     assert page(editor).calculate_button.instate(["disabled"]) and editor.tree.instate(["disabled"])
     assert page(editor).frame_analysis_box.instate(["disabled"])
+    assert page(editor).nonlinear_analysis_box.instate(["disabled"])
     finish(editor)
     assert started and not editor.busy
     assert editor.select("上部構造")

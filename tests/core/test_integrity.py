@@ -6,7 +6,8 @@ import math
 import pytest
 
 from webpier.core.errors import InputError
-from webpier.core.integrity import canonical_sha256, dump_json, file_sha256, load_json, sha256
+from webpier.core.integrity import (canonical_sha256, content_sha256, dump_json, file_sha256, folder_files, load_json,
+                                    sha256)
 
 
 def test_load_json_reads_utf8_with_or_without_bom():
@@ -74,6 +75,35 @@ def test_canonical_sha256_ignores_key_order_but_not_values():
     assert canonical_sha256({"a": 1}) != canonical_sha256({"a": 2})
     with pytest.raises(ValueError):
         canonical_sha256({"a": math.inf})
+
+
+def test_a_folder_is_hashed_by_the_files_in_it(tmp_path):
+    folder = tmp_path / "線路方向_JRSNAP"
+    (folder / "sub").mkdir(parents=True)
+    (folder / "a.ndt").write_bytes(b"ndt")
+    (folder / "sub" / "b.LOG").write_bytes(b"log")
+    files = {"a.ndt": hashlib.sha256(b"ndt").hexdigest(), "sub/b.LOG": hashlib.sha256(b"log").hexdigest()}
+    assert folder_files(folder) == files
+    assert content_sha256(folder) == canonical_sha256(files)
+    assert content_sha256(folder / "a.ndt") == file_sha256(folder / "a.ndt")
+    (folder / "sub" / "b.LOG").write_bytes(b"other")
+    assert content_sha256(folder) != canonical_sha256(files)
+    (tmp_path / "empty").mkdir()
+    assert folder_files(tmp_path / "empty") == {}
+
+
+def test_a_folder_with_a_link_or_that_is_not_a_folder_is_refused(tmp_path):
+    import _winapi
+    target, folder = tmp_path / "target", tmp_path / "folder"
+    target.mkdir(), folder.mkdir()
+    _winapi.CreateJunction(str(target), str(folder / "link"))
+    with pytest.raises(OSError, match="通常ファイルではありません"):
+        folder_files(folder)
+    with pytest.raises(OSError, match="フォルダーではありません"):
+        folder_files(folder / "link")
+    (target / "a.txt").write_bytes(b"a")
+    with pytest.raises(OSError, match="フォルダーではありません"):
+        folder_files(target / "a.txt")
 
 
 def test_load_json_keeps_finite_floats():

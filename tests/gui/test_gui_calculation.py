@@ -30,10 +30,11 @@ def controller(tmp_path, runner, stages):
     return CalculationController(tmp_path / "output", runner, registry=stages)
 
 
-def run(tmp_path, input_path, stages, *, before=None, after=None, frame_analysis=False):
+def run(tmp_path, input_path, stages, *, before=None, after=None, frame_analysis=False, nonlinear_analysis=False):
     runner = InProcessRunner(stages, before=before, after=after)
     control = controller(tmp_path, runner, stages)
-    control.start(input_path, file_sha256(input_path), frame_analysis=frame_analysis)
+    control.start(input_path, file_sha256(input_path), frame_analysis=frame_analysis,
+                  nonlinear_analysis=nonlinear_analysis)
     return control, runner, wait(control)
 
 
@@ -54,6 +55,19 @@ def test_the_frame_analysis_is_added_to_the_command_when_chosen(tmp_path):
     assert {"線路方向.pik", "線路直角方向_ピックアップ反力.csv", "線路方向_ピックアップ変位量.csv.provenance.json"} <= names
     assert not CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64
                               ).options.frame_analysis
+
+
+def test_the_nonlinear_analysis_is_added_to_the_command_when_chosen(tmp_path):
+    """Decision 47: a checkbox of its own adds --nonlinear-analysis, after --frame-analysis when both are chosen."""
+    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
+                         nonlinear_analysis=True)
+    assert job.command[-2:] == ["--overwrite", "--nonlinear-analysis"]
+    assert job.options.nonlinear_analysis and not job.options.frame_analysis
+    folders = [artifact for artifact in planned(job.options) if artifact.folder]
+    assert [artifact.path.name for artifact in folders] == ["線路方向_JRSNAP", "線路直角方向_JRSNAP"]
+    both = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
+                          frame_analysis=True, nonlinear_analysis=True)
+    assert both.command[-2:] == ["--frame-analysis", "--nonlinear-analysis"]
 
 
 def test_there_is_no_jrsnap_choice():
@@ -99,6 +113,31 @@ def test_a_generation_without_the_frame_analysis_does_not_check_old_pickup_files
     control, _, result = run(tmp_path, input_path, stages)
     assert result.success and "--frame-analysis" not in control.job.command
     assert (tmp_path / "post" / "線路方向.pik").exists()  # kept, as a file of the earlier generation
+
+
+def test_a_generation_with_the_nonlinear_analysis_checks_the_folder_as_a_whole(tmp_path, input_path, stages):
+    control, runner, result = run(tmp_path, input_path, stages, nonlinear_analysis=True)
+    assert result.success, result.message
+    assert runner.commands[0][-1] == "--nonlinear-analysis"
+    folder = tmp_path / "post" / "線路方向_JRSNAP"
+    assert sorted(path.suffix for path in folder.iterdir()) == [".LOG", ".OUT", ".ndt"]
+    assert control.check_current_outputs() is None
+    (folder / "線路方向(Case1_ρm10_αf1_正向).OUT").write_bytes(b"replaced")
+    assert "計算後に出力ファイルが変更されました: 線路方向_JRSNAP" in control.check_current_outputs()
+    assert control.state == "stale"
+    with pytest.raises(calculation.ArtifactValidationError, match="別の生成の成果物があります: 線路方向_JRSNAP"):
+        validate_outputs(control.job, registry=stages)
+
+
+def test_a_folder_that_is_not_one_any_more_breaks_the_generation(tmp_path, input_path, stages):
+    control, _, _ = run(tmp_path, input_path, stages, nonlinear_analysis=True)
+    folder = tmp_path / "post" / "線路方向_JRSNAP"
+    for path in folder.iterdir():
+        path.unlink()
+    folder.rmdir()
+    folder.write_bytes(b"a file")
+    with pytest.raises(calculation.ArtifactValidationError, match="出力がフォルダーではありません: 線路方向_JRSNAP"):
+        validate_outputs(control.job, registry=stages)
 
 
 def test_a_replaced_ndu_breaks_the_generation(tmp_path, input_path, stages):

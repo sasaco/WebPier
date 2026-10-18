@@ -81,3 +81,30 @@ def canonical_sha256(value: Any) -> str:
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":"),
                          ensure_ascii=False, allow_nan=False).encode("utf-8")
     return sha256(encoded)
+
+
+def folder_files(path: Path) -> dict[str, str]:
+    """The SHA256 of every file under the folder *path*, by its path relative to it ('/'-separated).
+
+    Only folders and regular files may be in it; a link (or junction) anywhere is an ``OSError``.
+    """
+    files: dict[str, str] = {}
+    pending = [Path(path)]
+    while pending:
+        folder = pending.pop()
+        if folder.is_symlink() or folder.is_junction() or not folder.is_dir():
+            raise OSError(f"フォルダーではありません: {folder}")
+        for entry in folder.iterdir():
+            if entry.is_dir() and not entry.is_symlink() and not entry.is_junction():
+                pending.append(entry)
+            elif entry.is_symlink() or not entry.is_file():
+                raise OSError(f"通常ファイルではありません: {entry}")
+            else:
+                files[entry.relative_to(path).as_posix()] = file_sha256(entry)
+    return files
+
+
+def content_sha256(path: Path) -> str:
+    """The SHA256 of a file, or of a folder: its files by relative path (``folder_files``), as ``canonical_sha256``."""
+    path = Path(path)
+    return canonical_sha256(folder_files(path)) if path.is_dir() and not path.is_symlink() else file_sha256(path)

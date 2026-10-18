@@ -17,7 +17,7 @@ from pipeline_support import Recorder, copy_input, tree
 from webpier.core.errors import InputError
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import Export, FrameAnalysis, Registry, StageSpec
+from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, StageSpec
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}, "2": {}, "3": {}}}).encode()
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
@@ -37,7 +37,7 @@ def registry(recorder: Recorder, *, load_diagram: bool = False, pages: list | No
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), render,
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),),
                   load_diagram="frameweb" if load_diagram else ""),
-        StageSpec("D", "D_照査", ("B",), opt_in=True, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
+        StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
     ))
 
 

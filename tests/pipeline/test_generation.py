@@ -305,10 +305,10 @@ def test_an_output_written_just_before_publication_is_restored(env, monkeypatch)
     env.write_old("output/A_基礎.pdf")
     original = generate.publish_outputs
 
-    def racing(pairs, staging, overwrite, *, final_validator):
+    def racing(pairs, staging, overwrite, *, final_validator, folders):
         (env.output / "A_基礎.pdf").write_bytes(b"theirs")
         (env.output / "C_地震.pdf").write_bytes(b"new file of theirs")
-        return original(pairs, staging, overwrite, final_validator=final_validator)
+        return original(pairs, staging, overwrite, final_validator=final_validator, folders=folders)
     monkeypatch.setattr(generate, "publish_outputs", racing)
     with pytest.raises(GenerationError, match="公開の直前に出力先が変更されました"):
         env.generate(overwrite=True)
@@ -318,11 +318,11 @@ def test_an_output_written_just_before_publication_is_restored(env, monkeypatch)
 def test_a_published_file_changed_before_commit_is_rolled_back(env, monkeypatch):
     original = generate.publish_outputs
 
-    def tampering(pairs, staging, overwrite, *, final_validator):
+    def tampering(pairs, staging, overwrite, *, final_validator, folders):
         def validator():
             (env.post / "frame.json").write_bytes(b"changed")
             final_validator()
-        return original(pairs, staging, overwrite, final_validator=validator)
+        return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
     monkeypatch.setattr(generate, "publish_outputs", tampering)
     with pytest.raises(GenerationError, match="公開した成果物が一致しません: B.frameweb"):
         env.generate()

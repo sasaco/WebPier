@@ -1,4 +1,4 @@
-"""The editor's settings of one user (decision 46): kept in %APPDATA%\\WebPier, apart from the input JSON."""
+"""The editor's settings of one user (decisions 46, 47): kept in %APPDATA%\\WebPier, apart from the input JSON."""
 
 import json
 import os
@@ -23,21 +23,25 @@ def test_the_tests_never_use_the_real_file(editor_settings):
 
 
 def test_without_a_file_the_defaults(tmp_path):
-    assert load_settings(tmp_path / "none.json") == EditorSettings(frame_analysis=False)
+    assert load_settings(tmp_path / "none.json") == EditorSettings(frame_analysis=False, nonlinear_analysis=False)
 
 
 def test_saved_settings_are_read_back(tmp_path):
     path = tmp_path / "WebPier" / "editor.json"
     save_settings(EditorSettings(frame_analysis=True), path)
-    assert json.loads(path.read_text(encoding="utf-8")) == {"frame_analysis": True}
+    assert json.loads(path.read_text(encoding="utf-8")) == {"frame_analysis": True, "nonlinear_analysis": False}
     assert load_settings(path) == EditorSettings(frame_analysis=True)
     assert sorted(item.name for item in path.parent.iterdir()) == ["editor.json"]
+    save_settings(EditorSettings(nonlinear_analysis=True), path)
+    assert load_settings(path) == EditorSettings(frame_analysis=False, nonlinear_analysis=True)
     save_settings(EditorSettings(), path)
-    assert load_settings(path) == EditorSettings(frame_analysis=False)
+    assert load_settings(path) == EditorSettings(frame_analysis=False, nonlinear_analysis=False)
 
 
-@pytest.mark.parametrize("content", [b"not json", b"[]", b'{"frame_analysis": 1}', b'{"frame_analysis": true, "x": 1}',
-                                     b"{}", b'{"frame_analysis": true, "frame_analysis": false}'])
+@pytest.mark.parametrize("content", [b"not json", b"[]", b'{"frame_analysis": 1, "nonlinear_analysis": true}',
+                                     b'{"frame_analysis": true, "nonlinear_analysis": true, "x": 1}', b"{}",
+                                     b'{"frame_analysis": true}',  # a file of an earlier editor
+                                     b'{"frame_analysis": true, "frame_analysis": false, "nonlinear_analysis": true}'])
 def test_an_unreadable_file_gives_the_defaults(tmp_path, content):
     """A convenience of the editor: a broken file is not an input error, and the next change rewrites it."""
     path = tmp_path / "editor.json"

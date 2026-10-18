@@ -1,5 +1,6 @@
-"""The real registry: every stage alone gives the same bytes as the all generation, and the frame analysis stages
-(decision 46) add the pickup files of the stand-in runner without changing any report."""
+"""The real registry: every stage alone gives the same bytes as the all generation, the frame analysis stages
+(decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
+analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU."""
 
 from __future__ import annotations
 
@@ -139,6 +140,26 @@ def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_gene
                                                          "export": "frameweb", "file": f"{stem}.json",
                                                          "sha256": digest}
     assert hashlib.sha256(post["線路方向.json"]).hexdigest() == sha256(tree(all_generation[0] / "post")["線路方向.json"])
+
+
+def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all_generation, tmp_path):
+    """The stand-in writes one case per combination of the NDU: the transverse one has two (decision 47)."""
+    source = copy_input(tmp_path / "pre")
+    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", nonlinear_analysis=True))
+    assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
+    assert tree(tmp_path / "output") == tree(all_generation[0] / "output")
+    post = tree(tmp_path / "post")
+    for stage, source_stage, stem, cases in (("0711", "0710", "線路方向", (1,)), ("0721", "0720", "線路直角方向", (1, 2))):
+        folder, ndu = f"{stem}_JRSNAP", f"{stem}.ndu"
+        digest = sha256(post[ndu])
+        assert {name: content for name, content in post.items() if name.startswith(folder + "/")} == {
+            f"{folder}/{stem}(Case{case}_ρm10_αf1_正向).{suffix}": f"FAKE {word} {ndu} {digest}\n".encode()
+            for case in cases for suffix, word in (("ndt", "NDT"), ("LOG", "LOG"), ("OUT", "OUT"))}
+        sidecar = load_json(post[f"{folder}.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"], sidecar["file"]) == (stage, "jrsnap", folder)
+        assert sidecar["nonlinear_analysis"]["ndu"] == {"stage": source_stage, "export": "jrsnap", "file": ndu,
+                                                        "sha256": digest}
+        assert post[ndu] == tree(all_generation[0] / "post")[ndu]
 
 
 @pytest.mark.parametrize("stage", ["0611", "0621"])

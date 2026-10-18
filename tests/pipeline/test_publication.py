@@ -365,6 +365,20 @@ def test_staged_sources_must_be_distinct_regular_files(tmp_path):
             publish_outputs([(source, destination), (source, other)], staging.directories, True)
 
 
+def test_a_staged_folder_must_be_a_folder(tmp_path):
+    destination = tmp_path / "線路方向_JRSNAP"
+    with ArtifactStaging([destination]) as staging:
+        source = staging.path_for(destination)
+        source.write_bytes(b"a file")
+        with pytest.raises(OSError, match="一時フォルダーがフォルダーではありません"):
+            publish_outputs([(source, destination)], staging.directories, True, folders=(destination,))
+        source.unlink()
+        source.mkdir()
+        (source / "a.ndt").write_bytes(b"ndt")
+        publish_outputs([(source, destination)], staging.directories, True, folders=(destination,))
+    assert (destination / "a.ndt").read_bytes() == b"ndt"
+
+
 def test_staging_cleanup_tolerates_a_created_parent_that_is_not_empty(tmp_path, monkeypatch):
     destination = tmp_path / "new" / "deep" / "out.json"
     with ArtifactStaging([destination]) as staging:

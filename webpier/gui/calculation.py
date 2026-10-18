@@ -1,11 +1,13 @@
-"""Run one generation (``python -m webpier --stage all --overwrite``, and ``--frame-analysis`` when the frame
-analysis is chosen, decision 46) without blocking Tk, then check it.
+"""Run one generation (``python -m webpier --stage all --overwrite``, with ``--frame-analysis`` when the frame
+analysis is chosen, decision 46, and ``--nonlinear-analysis`` for the static nonlinear analysis, decision 47) without
+blocking Tk, then check it.
 
 Only the child process and its bounded logs run on the worker thread. The result is consumed on the main thread,
 where it is checked against the files the pipeline plans for the same options: every result JSON and every
 provenance sidecar must name the SHA256 of the input that was saved before the run, every sidecar must list the
 files of that one generation with their SHA256, the PDFs must open, nothing may change during the check, and the
-input must still be the saved one.
+input must still be the saved one. The folder of a JRSNAP analysis is checked as a whole: its SHA256 is that of every
+file in it (``content_sha256``), and a change to any of them is a change to the folder.
 """
 
 from __future__ import annotations
@@ -26,11 +28,11 @@ from typing import Any, BinaryIO
 import pymupdf
 
 from ..core.errors import InputError
-from ..core.integrity import file_sha256, load_json
+from ..core.integrity import content_sha256, file_sha256, load_json
 from ..pipeline.cli import post_dir as default_post_dir
 from ..pipeline.generate import Artifact, GenerationOptions, planned
 from ..pipeline.publication import check_incomplete_publications
-from ..pipeline.stages import ALL, STAGES, Registry
+from ..pipeline.stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Registry, flag
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 MAX_LOG_BYTES = 48 * 1024
@@ -58,17 +60,18 @@ class CalculationJob:
     post_dir: Path
     input_sha256: str
     frame_analysis: bool = False  # add the opt-in frame analysis stages (decision 46)
+    nonlinear_analysis: bool = False  # add the opt-in static nonlinear analysis stages (decision 47)
 
     @property
     def options(self) -> GenerationOptions:
         return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True,
-                                 frame_analysis=self.frame_analysis)
+                                 frame_analysis=self.frame_analysis, nonlinear_analysis=self.nonlinear_analysis)
 
     @property
     def command(self) -> list[str]:
         return [sys.executable, "-m", "webpier", "--input", str(self.input_path), "--output-dir",
                 str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite",
-                *(["--frame-analysis"] if self.frame_analysis else [])]
+                *(flag(switch) for switch in (FRAME_ANALYSIS, NONLINEAR_ANALYSIS) if switch in self.options.switches)]
 
 
 @dataclass(frozen=True)
@@ -91,11 +94,22 @@ class _ProcessResult:
     error: str = ""
 
 
-def _snapshot(path: Path) -> tuple[int, ...]:
+def _file_snapshot(path: Path) -> tuple[int, ...]:
     info = path.lstat()
     if not stat.S_ISREG(info.st_mode):
         raise ArtifactValidationError(f"出力が通常ファイルではありません: {path.name}")
     return info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _snapshot(path: Path, folder: bool = False) -> tuple[Any, ...]:
+    """The state of an output file, or of an output folder: the folder itself and every file in it."""
+    if not folder:
+        return _file_snapshot(path)
+    info = path.lstat()
+    if not stat.S_ISDIR(info.st_mode) or path.is_junction():
+        raise ArtifactValidationError(f"出力がフォルダーではありません: {path.name}")
+    return ((info.st_dev, info.st_ino, info.st_mtime_ns),
+            *sorted((entry.name, _file_snapshot(entry)) for entry in path.iterdir()))
 
 
 def _json(path: Path) -> Any:
@@ -122,7 +136,7 @@ def _check_pdf(path: Path) -> None:
 def _check_sidecar(sidecar: Artifact, native: Artifact, generation: list[Artifact], job: CalculationJob) -> None:
     document = _json(sidecar.path)
     _input_sha(document, sidecar.path, job.input_sha256)
-    if document.get("sha256") != file_sha256(native.path):
+    if document.get("sha256") != content_sha256(native.path):
         raise ArtifactValidationError(f"付帯JSONと出力が一致しません: {native.path.name}")
     listed = document.get("artifacts")
     roles = None
@@ -132,19 +146,24 @@ def _check_sidecar(sidecar: Artifact, native: Artifact, generation: list[Artifac
         raise ArtifactValidationError(f"付帯JSONの成果物一覧が今回の生成と一致しません: {sidecar.path.name}")
     by_role = {artifact.role: artifact for artifact in generation}
     for item in listed:
-        if file_sha256(by_role[item["role"]].path) != item.get("sha256"):
+        if content_sha256(by_role[item["role"]].path) != item.get("sha256"):
             raise ArtifactValidationError(f"別の生成の成果物があります: {by_role[item['role']].path.name}")
 
 
 def validate_outputs(job: CalculationJob, *, registry: Registry = STAGES,
-                     snapshots: dict[Path, tuple[int, ...]] | None = None) -> tuple[Path, ...]:
-    """Check the published generation on the main thread; return its PDFs in stage order."""
+                     snapshots: dict[Path, tuple[Any, ...]] | None = None,
+                     folders: set[Path] | None = None) -> tuple[Path, ...]:
+    """Check the published generation on the main thread; return its PDFs in stage order.
+
+    *snapshots* receives the state of every checked file and folder, and *folders* which of them are folders.
+    """
     _main_thread_only()
     try:
         artifacts = list(planned(job.options, registry=registry))
         paths = [artifact.path for artifact in artifacts]
+        kinds = {artifact.path: artifact.folder for artifact in artifacts}
         check_incomplete_publications(paths)
-        before = {path: _snapshot(path) for path in paths}
+        before = {path: _snapshot(path, kinds[path]) for path in paths}
         generation = [artifact for artifact in artifacts if not artifact.role.endswith(".provenance")]
         for artifact in artifacts:
             if artifact.role.endswith(".pdf"):
@@ -154,7 +173,7 @@ def validate_outputs(job: CalculationJob, *, registry: Registry = STAGES,
             elif artifact.role.endswith(".provenance"):
                 native = next(item for item in artifacts if item.role == artifact.role.removesuffix(".provenance"))
                 _check_sidecar(artifact, native, generation, job)
-        after = {path: _snapshot(path) for path in paths}
+        after = {path: _snapshot(path, kinds[path]) for path in paths}
         if before != after:
             raise ArtifactValidationError("成果物の検証中に出力ファイルが変更されました。再計算してください。")
         if file_sha256(job.input_path) != job.input_sha256:
@@ -165,6 +184,8 @@ def validate_outputs(job: CalculationJob, *, registry: Registry = STAGES,
         raise ArtifactValidationError(f"成果物を確認できません: {exc}") from exc
     if snapshots is not None:
         snapshots.update(after)
+    if folders is not None:
+        folders.update(path for path, folder in kinds.items() if folder)
     return tuple(artifact.path for artifact in artifacts if artifact.role.endswith(".pdf"))
 
 
@@ -211,18 +232,21 @@ class CalculationController:
         self._completed: queue.Queue[_ProcessResult] = queue.Queue()
         self.job: CalculationJob | None = None
         self.result: CalculationResult | None = None
-        self._verified: dict[Path, tuple[int, ...]] = {}
+        self._verified: dict[Path, tuple[Any, ...]] = {}
+        self._folders: set[Path] = set()
         self.running = False
         self.state = "idle"  # idle, running, success, failed, stale
 
-    def start(self, input_path: Path, input_sha256: str, *, frame_analysis: bool = False) -> CalculationJob:
+    def start(self, input_path: Path, input_sha256: str, *, frame_analysis: bool = False,
+              nonlinear_analysis: bool = False) -> CalculationJob:
         _main_thread_only()
         if self.running:
             raise RuntimeError("計算中です。完了までお待ちください。")
         job = CalculationJob(uuid.uuid4().hex, Path(input_path).resolve(), self.output_dir, self.post_dir,
-                             input_sha256, frame_analysis)
+                             input_sha256, frame_analysis, nonlinear_analysis)
         self.job, self.result = job, None
         self._verified.clear()
+        self._folders.clear()
         self.running, self.state = True, "running"
         threading.Thread(target=self._work, args=(job,), name=f"webpier-calculation-{job.run_id}", daemon=True).start()
         return job
@@ -243,7 +267,8 @@ class CalculationController:
             elif outcome.returncode != 0:
                 message = f"計算に失敗しました（終了コード {outcome.returncode}）。実行ログを確認してください。"
             else:
-                pdf_paths = validate_outputs(outcome.job, registry=self.registry, snapshots=self._verified)
+                pdf_paths = validate_outputs(outcome.job, registry=self.registry, snapshots=self._verified,
+                                             folders=self._folders)
                 success, state = True, "success"
                 message = f"計算・PDF出力が完了しました（{len(pdf_paths)}帳票）。"
         except InputChangedError as exc:
@@ -269,10 +294,11 @@ class CalculationController:
         try:
             check_incomplete_publications(tuple(self._verified))
             for path, expected in self._verified.items():
-                if _snapshot(path) != expected:
+                if _snapshot(path, path in self._folders) != expected:
                     raise ArtifactValidationError(f"計算後に出力ファイルが変更されました: {path.name}")
-                with path.open("rb") as stream:
-                    stream.read(1)
+                for file in sorted(path.iterdir()) if path in self._folders else (path,):
+                    with file.open("rb") as stream:
+                        stream.read(1)
         except (OSError, ArtifactValidationError) as exc:
             self.mark_stale()
             return f"出力ファイルが変更・削除されたか、読み込めなくなりました。再計算してください。\n{exc}"

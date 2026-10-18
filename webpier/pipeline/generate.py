@@ -8,18 +8,20 @@
    error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
    FrameWeb file, and its report takes those pages (decision 44). A stage with a frame analysis (0611, 0621,
    opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
-   rendered; the returned pickup files are staged as they are (decision 46). Each export is built once, so the
-   file analyzed is the bytes staged, even when the dependency's own files are not published. The runner is looked
+   rendered; the returned pickup files are staged as they are (decision 46). A stage with a static nonlinear
+   analysis (0711, 0721, opt-in) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
+   file is staged, under JRSNAP's name, in one folder (decision 47). Each export is built once, so the file
+   analyzed is the bytes staged, even when the dependency's own files are not published. The runners are looked
    up before anything is read, and a missing or failing runner stops the generation.
-4. Reports, result JSON, exports, pickup files and their provenance sidecars are written to staging beside each
-   destination, then published as one set by ``publication.publish_outputs``. A final validator checks the
-   published bytes, the files that were displaced, the input and the implementation identity, and any
-   mismatch restores every old file.
+4. Reports, result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are written to
+   staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
+   replaced whole). A final validator checks the published bytes, the files that were displaced, the input and
+   the implementation identity, and any mismatch restores every old file.
 
 Errors: ``InputError`` (the input is invalid), ``GenerationError`` (the input, the implementation or an output
-changed during the generation, a report cannot be laid out, or the FEMPython runner is missing or failed) and
-``OSError`` (destinations, file system; ``RecoveryError`` when the old files could not all be restored) are reported
-to the user. Anything else is a bug.
+changed during the generation, a report cannot be laid out, or a runner is missing or failed) and ``OSError``
+(destinations, file system; ``RecoveryError`` when the old files could not all be restored) are reported to the
+user. Anything else is a bug.
 """
 
 from __future__ import annotations
@@ -32,15 +34,17 @@ from typing import Any
 
 from gridlayoutpdf import LayoutError
 
-from ..core.integrity import canonical_sha256, dump_json, file_sha256, load_json, sha256
+from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..inputs import PierInput, parse_input
+from . import jrsnap
 from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
                         runner_path)
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
-from .stages import ALL, STAGES, Export, FrameAnalysis, Registry
+from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
+                     Registry)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -57,13 +61,20 @@ class GenerationOptions:
     stage: str = ALL
     overwrite: bool = False
     frame_analysis: bool = False  # add the opt-in stages to all: FEMPython analyzes the frames (decision 46)
+    nonlinear_analysis: bool = False  # add the opt-in stages to all: JRSNAP analyzes the NDU (decision 47)
+
+    @property
+    def switches(self) -> frozenset[str]:
+        return frozenset(name for name, given in ((FRAME_ANALYSIS, self.frame_analysis),
+                                                  (NONLINEAR_ANALYSIS, self.nonlinear_analysis)) if given)
 
 
 @dataclass(frozen=True)
 class Artifact:
-    role: str  # "0610.pdf", "0610.json", "0610.frameweb", "0610.frameweb.provenance", "0611.pik"
+    role: str  # "0610.pdf", "0610.json", "0610.frameweb", "0610.frameweb.provenance", "0611.pik", "0711.jrsnap"
     path: Path  # the destination
     directory: str  # "output" or "post", as recorded in the sidecars
+    folder: bool = False  # a folder replaced whole (the JRSNAP analysis, decision 47); its SHA256 is content_sha256
 
 
 @dataclass(frozen=True)
@@ -72,7 +83,7 @@ class _PostFile:
     kind: str
     native: Artifact
     sidecar: Artifact
-    export: Export | None  # none: a file the stage's frame analysis returns
+    export: Export | None  # none: a file the stage's frame analysis returns, or the folder of its JRSNAP analysis
 
 
 def _identity() -> dict[Path, str]:
@@ -83,7 +94,7 @@ def _identity() -> dict[Path, str]:
 
 
 def _state(path: Path) -> str | None:
-    return file_sha256(path) if path.exists() else None
+    return content_sha256(path) if path.exists() else None
 
 
 def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]
@@ -95,11 +106,13 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
             for suffix in ("pdf", "json"):
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
-        files = [(item.kind, item.file_name, item) for item in stage.exports]
+        files = [(item.kind, item.file_name, item, False) for item in stage.exports]
         if stage.frame_analysis is not None:
-            files += [(kind, file_name, None) for kind, file_name in stage.frame_analysis.files]
-        for kind, file_name, item in files:
-            native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post")
+            files += [(kind, file_name, None, False) for kind, file_name in stage.frame_analysis.files]
+        if stage.nonlinear_analysis is not None:
+            files.append((stage.nonlinear_analysis.kind, stage.nonlinear_analysis.folder, None, True))
+        for kind, file_name, item, folder in files:
+            native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post", folder)
             sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(file_name + PROVENANCE_SUFFIX),
                                "post")
             posts.append(_PostFile(stage_id, kind, native, sidecar, item))
@@ -107,7 +120,11 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
 
 
 def _select(options: GenerationOptions, registry: Registry) -> tuple[str, ...]:
-    return registry.select(options.stage, opt_in=options.frame_analysis)
+    return registry.select(options.stage, switches=options.switches)
+
+
+def _folders(artifacts: list[Artifact]) -> tuple[Path, ...]:
+    return tuple(artifact.path for artifact in artifacts if artifact.folder)
 
 
 def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[Artifact, ...]:
@@ -133,8 +150,8 @@ def _own(registry: Registry, results: Mapping[str, Any], stage_id: str) -> dict[
     return {name: results[name] for name in (*registry.get(stage_id).depends_on, stage_id) if name in results}
 
 
-def _source(registry: Registry, analysis: FrameAnalysis) -> Export:
-    """The FrameWeb export a frame analysis reads (the registry checked that it exists)."""
+def _source(registry: Registry, analysis: FrameAnalysis | NonlinearAnalysis) -> Export:
+    """The export an analysis reads, FrameWeb or NDU (the registry checked that it exists)."""
     return next(item for item in registry.get(analysis.stage).exports if item.kind == analysis.export)
 
 
@@ -166,7 +183,7 @@ class Candidate:
         self._staging = staging
         self._identity = dict(identity)
         self._baseline = dict(baseline)
-        self._sha256 = {artifact.role: file_sha256(self.staged(artifact.role)) for artifact in artifacts}
+        self._sha256 = {artifact.role: content_sha256(self.staged(artifact.role)) for artifact in artifacts}
         self._active = True
         self._attempted = False
 
@@ -187,7 +204,7 @@ class Candidate:
         if present != staged:
             raise GenerationError("一時領域のファイル集合が変更されています")
         for artifact in self.artifacts:
-            if file_sha256(self.staged(artifact.role)) != self._sha256[artifact.role]:
+            if content_sha256(self.staged(artifact.role)) != self._sha256[artifact.role]:
                 raise GenerationError(f"一時領域の成果物が変更されています: {artifact.role}")
         for path, before in self._baseline.items():
             if _state(path) != before:
@@ -212,17 +229,17 @@ class Candidate:
         self.verify()
         pairs = [(self.staged(artifact.role), artifact.path) for artifact in self.artifacts]
         publish_outputs(pairs, self._staging.directories, self.options.overwrite,
-                        final_validator=self._verify_published)
+                        final_validator=self._verify_published, folders=_folders(list(self.artifacts)))
         self.published = True
 
 
 def _sidecar(post: _PostFile, staging: ArtifactStaging, artifacts: list[Artifact], common: Mapping[str, Any],
              facts: Mapping[str, Any]) -> bytes:
     listed = [{"role": artifact.role, "directory": artifact.directory, "file": artifact.path.name,
-               "sha256": file_sha256(staging.path_for(artifact.path))}
+               "sha256": content_sha256(staging.path_for(artifact.path))}
               for artifact in artifacts if not artifact.role.endswith(".provenance")]
     return dump_json({"schema_version": SCHEMA_VERSION, "stage": post.stage, "export": post.kind,
-                      "file": post.native.path.name, "sha256": file_sha256(staging.path_for(post.native.path)),
+                      "file": post.native.path.name, "sha256": content_sha256(staging.path_for(post.native.path)),
                       **facts, **common, "artifacts": listed})
 
 
@@ -246,12 +263,41 @@ def _analysis_facts(registry: Registry, post: _PostFile, analyzed: Mapping[str, 
                                             "sha256": sha256(built[(analysis.stage, analysis.export)])}}}
 
 
+def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
+                     analyzed: Mapping[str, jrsnap.NonlinearFiles], built: Mapping[tuple[str, str], bytes]
+                     ) -> dict[str, Any]:
+    # The returned files are JRSNAP's (decision 47): which runner returned them for which bytes, what it reports of
+    # JRSNAP and of the confirmations it answered, and each file. The NDU need not be of this generation (a stage
+    # chosen alone), so its SHA256 is what binds them.
+    analysis = registry.get(post.stage).nonlinear_analysis
+    result = analyzed[post.stage]
+    folder = staging.path_for(post.native.path)
+    return {"nonlinear_analysis": {"engine": jrsnap.ENGINE, "engine_version": result.engine_version,
+                                   "engineering_status": "not_checked",
+                                   "ndu": {"stage": analysis.stage, "export": analysis.export,
+                                           "file": _source(registry, analysis).file_name,
+                                           "sha256": sha256(built[(analysis.stage, analysis.export)])},
+                                   "runner_summary": dict(result.summary),
+                                   "messages": [dict(message) for message in result.messages]},
+            "files": [{"file": name, "bytes": (folder / name).stat().st_size, "sha256": file_sha256(folder / name)}
+                      for name in sorted(result.files)]}
+
+
 def _runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
     if not any(registry.get(stage_id).load_diagram or registry.get(stage_id).frame_analysis is not None
                for stage_id in selected):
         return None
     try:
         return runner_path()
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _jrsnap_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
+    if not any(registry.get(stage_id).nonlinear_analysis is not None for stage_id in selected):
+        return None
+    try:
+        return jrsnap.runner_path()
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
 
@@ -270,9 +316,16 @@ def _analyze(name: str, document: bytes, runner: Path) -> AnalysisFiles:
         raise GenerationError(str(exc)) from exc
 
 
+def _analyze_nonlinear(name: str, document: bytes, runner: Path) -> jrsnap.NonlinearFiles:
+    try:
+        return jrsnap.analyze_nonlinear(name, document, runner)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
 def _build(registry: Registry, pier: PierInput, results: Mapping[str, Any], posts: list[_PostFile],
-           analyses: Mapping[str, FrameAnalysis]) -> dict[tuple[str, str], bytes]:
-    """Each export to stage or to analyze, built once: the file FEMPython analyzes is the file staged."""
+           analyses: Mapping[str, FrameAnalysis | NonlinearAnalysis]) -> dict[tuple[str, str], bytes]:
+    """Each export to stage or to analyze, built once: the file a runner analyzes is the file staged."""
     wanted = [*((post.stage, post.export) for post in posts if post.export is not None),
               *((analysis.stage, _source(registry, analysis)) for analysis in analyses.values())]
     built: dict[tuple[str, str], bytes] = {}
@@ -288,17 +341,21 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     selected = _select(options, registry)
     artifacts, posts = _plan(options, registry, selected)
     destinations = [artifact.path for artifact in artifacts]
-    validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path))
+    validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
+                          folders=_folders(artifacts))
     baseline = {path: _state(path) for path in destinations}
     identity = _identity()
     runner = _runner(registry, selected)
+    jrsnap_runner = _jrsnap_runner(registry, selected)
     data = Path(options.input_path).read_bytes()
     input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
-    built = _build(registry, pier, results, posts, analyses)
+    nonlinear = {stage_id: analysis for stage_id in selected
+                 if (analysis := registry.get(stage_id).nonlinear_analysis) is not None}
+    built = _build(registry, pier, results, posts, {**analyses, **nonlinear})
     common = {"input": {"file": Path(options.input_path).name, "sha256": input_sha256},
               "implementation_sha256": canonical_sha256({str(path): digest for path, digest in identity.items()})}
     with ArtifactStaging(destinations) as staging:
@@ -311,8 +368,16 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         analyzed = {stage_id: _analyze(_source(registry, analysis).file_name,
                                        built[(analysis.stage, analysis.export)], runner)
                     for stage_id, analysis in analyses.items()}
+        solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
+                                               built[(analysis.stage, analysis.export)], jrsnap_runner)
+                  for stage_id, analysis in nonlinear.items()}
         for post in posts:
-            if post.export is None:
+            if post.native.folder:
+                folder = staging.path_for(post.native.path)
+                folder.mkdir()
+                for name, content in solved[post.stage].files.items():
+                    (folder / name).write_bytes(content)
+            elif post.export is None:
                 staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
@@ -329,6 +394,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn) if post.export is not None
+                     else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _analysis_facts(registry, post, analyzed, built))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)

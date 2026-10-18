@@ -5,8 +5,10 @@ pipeline as a child process, checks what it published against the saved input (c
 the PDFs. While it runs, the editor refuses navigation, saving, opening and closing. A later edit or a changed
 output file marks the shown PDFs as not the current result.
 
-The checkbox of the frame analysis adds ``--frame-analysis`` (the opt-in stages, decision 46) to the generation.
-Its state is an editor setting of the user (settings.py), not an input, and is kept for the next start.
+The checkbox of the frame analysis adds ``--frame-analysis`` (the opt-in stages, decision 46) to the generation, and
+the one of the static nonlinear analysis ``--nonlinear-analysis`` (decision 47; JRSNAP takes minutes and shows its
+own windows). Their states are editor settings of the user (settings.py), not inputs, and are kept for the next
+start.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from ..core.errors import InputError
 from ..core.integrity import file_sha256
 from ..export.jrsnap import LONGITUDINAL, TRANSVERSE
 from ..inputs import parse_input
+from ..pipeline.stages import FRAME_ANALYSIS, NONLINEAR_ANALYSIS
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
 from .form import Form
@@ -73,9 +76,16 @@ class CalculationPage:
                   style="Muted.TLabel").pack(anchor="w")
         self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
         self.frame_analysis_box = ttk.Checkbutton(
-            page, variable=self.frame_analysis, command=self._frame_analysis_changed,
-            text=f"骨組解析も行う（{'・'.join(registry.opt_in)}。FEMPython：ピックアップ断面力・変位量・反力を post に出力）")
+            page, variable=self.frame_analysis, command=self._analysis_changed,
+            text=f"骨組解析も行う（{'・'.join(registry.opt_in(FRAME_ANALYSIS))}。FEMPython：ピックアップ断面力・変位量・反力を "
+                 "post に出力）")
         self.frame_analysis_box.pack(anchor="w", pady=(6, 0))
+        self.nonlinear_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.nonlinear_analysis)
+        self.nonlinear_analysis_box = ttk.Checkbutton(
+            page, variable=self.nonlinear_analysis, command=self._analysis_changed,
+            text=f"静的非線形解析も行う（{'・'.join(registry.opt_in(NONLINEAR_ANALYSIS))}。JRSNAP：解析用データと解析結果を "
+                 "post のフォルダーに出力。数分かかり、JRSNAP の画面が出ます）")
+        self.nonlinear_analysis_box.pack(anchor="w", pady=(2, 0))
         actions = ttk.Frame(page)
         actions.pack(fill="x", pady=(6, 0))
         self.calculate_button = ttk.Button(actions, text="保存して計算・PDF出力", command=self.start)
@@ -106,8 +116,8 @@ class CalculationPage:
 
     def _controls(self) -> None:
         state = ["disabled"] if self.busy else ["!disabled"]
-        for widget in (self.calculate_button, self.preview_button, self.frame_analysis_box, self.editor.tree,
-                       *self.editor.toolbar_buttons.values()):
+        for widget in (self.calculate_button, self.preview_button, self.frame_analysis_box,
+                       self.nonlinear_analysis_box, self.editor.tree, *self.editor.toolbar_buttons.values()):
             widget.state(state)
         if self.busy:
             self.progress.pack(side="left", fill="x", expand=True, padx=(16, 0))
@@ -122,9 +132,10 @@ class CalculationPage:
         if self.dialog is not None:
             self.dialog.update_labels(self.catalog().entries)
 
-    def _frame_analysis_changed(self) -> None:
-        """Keep the choice for the next start of the editor; it is not part of the input (decision 46)."""
-        self.editor.settings = replace(self.editor.settings, frame_analysis=self.frame_analysis.get())
+    def _analysis_changed(self) -> None:
+        """Keep the choices for the next start of the editor; they are not part of the input (decisions 46, 47)."""
+        self.editor.settings = replace(self.editor.settings, frame_analysis=self.frame_analysis.get(),
+                                       nonlinear_analysis=self.nonlinear_analysis.get())
         try:
             save_settings(self.editor.settings, self.editor.settings_path)
         except OSError as exc:
@@ -154,7 +165,8 @@ class CalculationPage:
         # Collect garbage here: a Tk image finalized by a collection on the worker thread waits for Tk's main loop.
         gc.collect()
         try:
-            self.controller.start(path, sha, frame_analysis=self.frame_analysis.get())
+            self.controller.start(path, sha, frame_analysis=self.frame_analysis.get(),
+                                  nonlinear_analysis=self.nonlinear_analysis.get())
         except RuntimeError as exc:
             self._set_status("計算を開始できませんでした。", str(exc))
             return False

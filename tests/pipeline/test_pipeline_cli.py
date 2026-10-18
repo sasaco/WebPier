@@ -13,7 +13,8 @@ from webpier.core.errors import InputError
 from webpier.pipeline import cli, generate
 from webpier.pipeline.generate import GenerationError
 from webpier.pipeline.publication import RecoveryError
-from webpier.pipeline.stages import STAGES, FrameAnalysis, Registry, StageSpec
+from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, FrameAnalysis, NonlinearAnalysis,
+                                     Registry, StageSpec)
 
 ROOT = Path(__file__).parents[2]
 
@@ -64,7 +65,7 @@ def test_there_is_no_jrsnap_flag(capsys):
 def analyzing(recorder: Recorder) -> Registry:
     """The fake registry with D, an opt-in stage that analyzes B's FrameWeb file (decision 46)."""
     stages = fake_registry(recorder).stages
-    return Registry((*stages, StageSpec("D", "D_照査", ("B",), opt_in=True, frame_analysis=FrameAnalysis(
+    return Registry((*stages, StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(
         "B", "frameweb", (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))))))
 
 
@@ -89,11 +90,32 @@ def test_frame_analysis_with_one_stage_is_exit_code_2(tmp_path, registry, capsys
     assert not (tmp_path / "output").exists()
 
 
-def test_the_frame_analysis_option_names_the_opt_in_stages(capsys):
+def test_the_analysis_options_name_their_opt_in_stages(capsys):
     with pytest.raises(SystemExit):
         cli.parser(STAGES).parse_args(["--help"])
-    assert "0611・0621" in capsys.readouterr().out
-    assert cli.parser(STAGES).parse_args([]).frame_analysis is False
+    help_text = capsys.readouterr().out
+    assert "0611・0621" in help_text and "（0711・0721）" in help_text
+    arguments = cli.parser(STAGES).parse_args([])
+    assert (arguments.frame_analysis, arguments.nonlinear_analysis) == (False, False)
+
+
+def solving(recorder: Recorder) -> Registry:
+    """The fake registry with E, an opt-in stage that has JRSNAP analyze C's NDU (decision 47)."""
+    stages = fake_registry(recorder).stages
+    return Registry((*stages, StageSpec("E", "E_解析", ("C",), opt_in=NONLINEAR_ANALYSIS,
+                                        nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", "model_JRSNAP"))))
+
+
+def test_nonlinear_analysis_adds_its_opt_in_stages_to_all(tmp_path, registry, capsys, monkeypatch):
+    stages = solving(Recorder())
+    assert run(tmp_path, stages) == 0
+    assert "E " not in capsys.readouterr().out
+    assert run(tmp_path / "again", stages, "--nonlinear-analysis") == 0
+    post = (tmp_path / "again" / "post").resolve()
+    assert [line for line in capsys.readouterr().out.splitlines() if line.startswith("E ")] == [
+        f"E jrsnap解析結果: {post / 'model_JRSNAP'}", f"E jrsnap付帯JSON: {post / 'model_JRSNAP.provenance.json'}"]
+    assert run(tmp_path / "one", stages, "--stage", "C", "--nonlinear-analysis") == 2
+    assert "--nonlinear-analysis は --stage all と使います（選択式の段階 E は" in capsys.readouterr().err
 
 
 def test_the_stage_choices_come_from_the_registry(capsys):

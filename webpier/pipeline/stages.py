@@ -13,8 +13,10 @@ also receives those pages, to put into the report as they are.
 
 A stage may have no report (no ``render``, and then no result JSON) and publish only files under post/. A stage with
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
-(decision 46). Such a stage is ``opt_in``: ``all`` leaves it out unless it is asked for (``--frame-analysis``), and
-so is every stage that reads one; chosen directly, it is calculated with its dependencies.
+(decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
+returned file as one folder under post/ (decision 47). Such a stage is ``opt_in``: ``all`` leaves it out unless its
+switch is given (``--frame-analysis``, ``--nonlinear-analysis``), and so is every stage that reads one, with the same
+switch; chosen directly, it is calculated with its dependencies.
 """
 
 from __future__ import annotations
@@ -49,7 +51,16 @@ from .fempython import ANALYSIS_FILES
 
 Results = Mapping[str, Any]
 ALL = "all"
+# The switches that add opt-in stages to all, by the name GenerationOptions and the editor settings use.
+FRAME_ANALYSIS = "frame_analysis"  # --frame-analysis: FEMPython (decision 46)
+NONLINEAR_ANALYSIS = "nonlinear_analysis"  # --nonlinear-analysis: JRSNAP (decision 47)
+SWITCHES = (FRAME_ANALYSIS, NONLINEAR_ANALYSIS)
 _KIND = re.compile(r"[a-z][a-z0-9]*")
+
+
+def flag(switch: str) -> str:
+    """The command-line flag of a switch, e.g. ``--frame-analysis``."""
+    return "--" + switch.replace("_", "-")
 
 
 def _plain_name(name: str) -> bool:
@@ -83,6 +94,20 @@ class FrameAnalysis:
 
 
 @dataclass(frozen=True)
+class NonlinearAnalysis:
+    """JRSNAP analyzes the NDU of a dependency (decision 47, ADR-0007).
+
+    The runner returns the analysis data (.ndt) and every file of S_ANALYSIS.exe; they are published under post/ as
+    one folder, with JRSNAP's names, replaced whole, with one provenance sidecar beside it.
+    """
+
+    stage: str  # the dependency whose export is analyzed, e.g. "0710"
+    export: str  # the kind of that export, "jrsnap"
+    kind: str  # the kind the folder is published as
+    folder: str  # the folder under post/, e.g. "線路方向_JRSNAP"
+
+
+@dataclass(frozen=True)
 class StageSpec:
     id: str
     stem: str  # the report file name without suffix, e.g. "0610_線路方向荷重"
@@ -92,8 +117,9 @@ class StageSpec:
     render: Callable[..., Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
-    opt_in: bool = False  # left out of all unless asked for (decision 46)
+    opt_in: str = ""  # the switch without which all leaves the stage out (decisions 46, 47), or none
     frame_analysis: FrameAnalysis | None = None
+    nonlinear_analysis: NonlinearAnalysis | None = None
 
     @property
     def has_report(self) -> bool:
@@ -122,23 +148,32 @@ class Registry:
                 raise ValueError(f"{stage.id}のファイル{stage.stem}の名前は「{stage.id}_」で始まる必要があります")
             if stage.render is not None and stage.calculate is None:
                 raise ValueError(f"{stage.id}の計算書には計算が必要です")
-            if not stage.has_report and not stage.exports and stage.frame_analysis is None:
+            if stage.opt_in and stage.opt_in not in SWITCHES:
+                raise ValueError(f"{stage.id}の選択式のスイッチ{stage.opt_in}がありません")
+            if stage.frame_analysis is not None and stage.nonlinear_analysis is not None:
+                raise ValueError(f"{stage.id}は骨組解析と静的非線形解析の両方はできません")
+            if (not stage.has_report and not stage.exports and stage.frame_analysis is None
+                    and stage.nonlinear_analysis is None):
                 raise ValueError(f"{stage.id}には成果物がありません")
             outputs = [(item.kind, item.file_name) for item in stage.exports]
             analysis = stage.frame_analysis
             if analysis is not None:
-                if analysis.stage not in stage.depends_on:
-                    raise ValueError(f"{stage.id}が骨組解析する{analysis.stage}が依存段階にありません")
-                if analysis.export not in {item.kind for item in self.get(analysis.stage).exports}:
-                    raise ValueError(f"{stage.id}が骨組解析する{analysis.stage}の出力{analysis.export} がありません")
+                self._check_source(stage, analysis.stage, analysis.export, "骨組解析")
                 if sorted(kind for kind, _ in analysis.files) != sorted(ANALYSIS_FILES):
                     raise ValueError(f"{stage.id}の骨組解析の出力は {'・'.join(ANALYSIS_FILES)} です")
-                if not stage.opt_in:
-                    raise ValueError(f"{stage.id}は骨組解析するので選択式（opt_in）の段階です")
+                if stage.opt_in != FRAME_ANALYSIS:
+                    raise ValueError(f"{stage.id}は骨組解析するので選択式（{FRAME_ANALYSIS}）の段階です")
                 outputs += analysis.files
+            nonlinear = stage.nonlinear_analysis
+            if nonlinear is not None:
+                self._check_source(stage, nonlinear.stage, nonlinear.export, "静的非線形解析")
+                if stage.opt_in != NONLINEAR_ANALYSIS:
+                    raise ValueError(f"{stage.id}は静的非線形解析するので選択式（{NONLINEAR_ANALYSIS}）の段階です")
+                outputs.append((nonlinear.kind, nonlinear.folder))
             for dependency in stage.depends_on:
-                if self.get(dependency).opt_in and not stage.opt_in:
-                    raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので選択式（opt_in）の段階です")
+                if self.get(dependency).opt_in not in ("", stage.opt_in):
+                    raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、同じスイッチ"
+                                     f"（{self.get(dependency).opt_in}）の選択式の段階です")
             kinds: set[str] = set()
             for kind, file_name in outputs:
                 if not _KIND.fullmatch(kind):
@@ -157,6 +192,12 @@ class Registry:
                 raise ValueError(f"{stage.id}の荷重図を差し込む計算書がありません")
             seen.append(stage.id)
 
+    def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
+        if source not in stage.depends_on:
+            raise ValueError(f"{stage.id}が{what}する{source}が依存段階にありません")
+        if export not in {item.kind for item in self.get(source).exports}:
+            raise ValueError(f"{stage.id}が{what}する{source}の出力{export} がありません")
+
     @property
     def ids(self) -> tuple[str, ...]:
         return tuple(stage.id for stage in self.stages)
@@ -168,19 +209,22 @@ class Registry:
     def get(self, stage_id: str) -> StageSpec:
         return self.stages[self.ids.index(stage_id)]
 
-    @property
-    def opt_in(self) -> tuple[str, ...]:
-        """The stages ``all`` leaves out unless they are asked for (decision 46)."""
-        return tuple(stage.id for stage in self.stages if stage.opt_in)
+    def opt_in(self, switch: str) -> tuple[str, ...]:
+        """The stages ``all`` leaves out unless *switch* is given (decisions 46, 47)."""
+        return tuple(stage.id for stage in self.stages if stage.opt_in == switch)
 
-    def select(self, choice: str, *, opt_in: bool = False) -> tuple[str, ...]:
-        """*choice* alone, or for ``all`` every stage, the opt-in ones only with *opt_in* (``--frame-analysis``)."""
+    def select(self, choice: str, *, switches: frozenset[str] = frozenset()) -> tuple[str, ...]:
+        """*choice* alone, or for ``all`` every stage, an opt-in one only when its switch is in *switches*."""
+        if unknown := switches - set(SWITCHES):
+            raise InputError(f"選択式のスイッチが不正です: {'・'.join(sorted(unknown))}")
         if choice == ALL:
-            return tuple(stage.id for stage in self.stages if opt_in or not stage.opt_in)
+            return tuple(stage.id for stage in self.stages if not stage.opt_in or stage.opt_in in switches)
         if choice not in self.ids:
             raise InputError(f"計算段階が不正です: {choice}")
-        if opt_in:
-            raise InputError(f"--frame-analysis は --stage {ALL} と使います（選択式の段階 {'・'.join(self.opt_in)} は "
+        if switches:
+            given = [switch for switch in SWITCHES if switch in switches]
+            stages = "・".join(stage for switch in given for stage in self.opt_in(switch))
+            raise InputError(f"{' '.join(map(flag, given))} は --stage {ALL} と使います（選択式の段階 {stages} は "
                              f"--stage で直接選べます）")
         return (choice,)
 
@@ -227,7 +271,7 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
-    StageSpec("0611", "0611_線路方向照査", ("0610",), opt_in=True,
+    StageSpec("0611", "0611_線路方向照査", ("0610",), opt_in=FRAME_ANALYSIS,
               frame_analysis=FrameAnalysis("0610", "frameweb", _pickups("線路方向"))),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
@@ -235,16 +279,21 @@ STAGES = Registry((
                                                                    pages),
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
               load_diagram="frameweb"),
-    StageSpec("0621", "0621_直角方向照査", ("0620",), opt_in=True,
+    StageSpec("0621", "0621_直角方向照査", ("0620",), opt_in=FRAME_ANALYSIS,
               frame_analysis=FrameAnalysis("0620", "frameweb", _pickups("線路直角方向"))),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),
               lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path),
               (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),)),
+    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), opt_in=NONLINEAR_ANALYSIS,
+              nonlinear_analysis=NonlinearAnalysis("0710", "jrsnap", "jrsnap", "線路方向_JRSNAP")),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
               lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path),
               (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),)),
+    # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
+    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), opt_in=NONLINEAR_ANALYSIS,
+              nonlinear_analysis=NonlinearAnalysis("0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP")),
 ))
