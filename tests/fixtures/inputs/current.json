@@ -546,7 +546,7 @@
     "aggregate_max_mm": 25,
     "analysis_steps": 300,
     "limited_final_step": 200,
-    "target_displacement_m": -0.3
+    "target_displacement_m": 0.3
   },
   "jrsnap_transverse": {
     "shear_factor_vcd": 2.0,

@@ -66,6 +66,14 @@ def test_the_jrsnap_conditions_are_inputs_with_program_units(editor):
     assert steps.sheet.get_cell_data(row, 0) == "解析のステップ数"
     target = cell(editor, "jrsnap_longitudinal", "target_displacement_m")
     assert target.sheet.get_cell_data(target.row, 2) == "m"
+    assert target.sheet.get_cell_data(target.row, 0) == "目標変位（大きさ）"
+
+
+def test_the_direction_of_the_target_displacement_is_shown_not_entered(editor):
+    """Decision 43: the program applies the earthquake direction of each NDU; nobody enters a sign."""
+    shown = list(texts(page(editor).frame))
+    assert "目標変位の向き：−x（←）（地震の向き。自動で決めます）" in shown
+    assert "目標変位の向き：+x（→）（地震の向き。自動で決めます）" in shown
     factor = cell(editor, "jrsnap_longitudinal", "shear_factor_vcd")
     factor.type("1.234")
     assert factor.get() == "1.23" and editor.document.data["jrsnap_longitudinal"]["shear_factor_vcd"] == 1.23

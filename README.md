@@ -83,7 +83,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 
 - 杭（杭種以外の杭の項目・杭の配置・杭の単位体積重量）、斜角、遠心の作用方向、梁の詳細位置は、近い将来の機能のための予約項目です。計算には使わず、形式と桁だけを検査します（決定19）。`出典` は検査しない自由記述です。
 - `復旧性制動係数` は側ごとの任意入力です。入力すると復旧性の制動係数としてそのまま使い、空欄なら安全性の ρu×γB を使います。Example2 07 p.7-11 の終点側は 1.0 を入力します。
-- `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`aggregate_max_mm`（粗骨材最大寸法、0.1〜999999 mm）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位、0.001 m 単位で0以外。符号は地震の向きと同じ）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。
+- `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`aggregate_max_mm`（粗骨材最大寸法、0.1〜999999 mm）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位の大きさ、0.001 m 単位の正の値。向きは入力せず、NDU にはその段階の地震の向き（0710 は −x、0720 は +x）の符号を付けて書きます。決定43）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。
 - 鉄筋（`鉄筋`）は全キーが必須です。空欄は未入力として保存でき、柱の配置と JRSNAP 出力が値を要するときにパス付きの入力エラーになります。
 
 ## 計算の原則

@@ -159,14 +159,22 @@ def test_the_analysis_settings_are_the_input(direction, steps, limited, target):
     assert (analysis.steps, analysis.limited_final_step, analysis.target) == (steps, limited, Printed(target, 3, "m"))
     changed = model(direction, **{f"jrsnap_{direction}/analysis_steps": 500,
                                   f"jrsnap_{direction}/limited_final_step": 120,
-                                  f"jrsnap_{direction}/target_displacement_m": target * 2}).analysis
+                                  f"jrsnap_{direction}/target_displacement_m": abs(target) * 2}).analysis
     assert (changed.steps, changed.limited_final_step, changed.target.value) == (500, 120, target * 2)
 
 
-@pytest.mark.parametrize("direction,target,arrow", [("longitudinal", 0.3, "−x（←）"), ("transverse", -0.35, "+x（→）")])
-def test_the_target_displacement_follows_the_earthquake(direction, target, arrow):
-    with pytest.raises(InputError, match=re.escape(
-            f"jrsnap_{direction}.target_displacement_m: 地震の向き {arrow} と同じ符号が必要です")):
+@pytest.mark.parametrize("direction,signed", [("longitudinal", -0.3), ("transverse", 0.3)])
+def test_the_target_displacement_takes_the_sign_of_the_earthquake(direction, signed):
+    """Decision 43: the input is a magnitude; 0710 shakes toward −x, 0720 toward +x, and DataInfo 19 follows."""
+    analysis = model(direction, **{f"jrsnap_{direction}/target_displacement_m": 0.3}).analysis
+    assert analysis.target == Printed(signed, 3, "m")
+    assert analysis.target.value * float(PROFILES[direction].earthquake) > 0
+
+
+@pytest.mark.parametrize("direction", ["longitudinal", "transverse"])
+@pytest.mark.parametrize("target", [-0.3, 0])
+def test_a_signed_or_zero_target_displacement_is_an_input_error(direction, target):
+    with pytest.raises(InputError, match=re.escape(f"jrsnap_{direction}.target_displacement_m: 正の数値が必要です")):
         model(direction, **{f"jrsnap_{direction}/target_displacement_m": target})
 
 

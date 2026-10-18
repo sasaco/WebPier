@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "frameweb_headless_read_check",
   "date": "2026-10-18",
-  "verified_at": "2026-10-18T08:05:43+09:00",
+  "verified_at": "2026-10-18T10:09:31+09:00",
   "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
   "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
   "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
@@ -14,18 +14,18 @@
     "fempython_repository": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython",
       "head": "7488c8fb4d6c100438a9691747ceb11fd9e66358",
-      "clean": true
+      "clean": false
     }
   },
-  "implementation_sha256": "8c9b3848b3503470181d1e9d4dec860fc35a6cca7119023323960f1ff0c763e5",
+  "implementation_sha256": "62b16de5f831d8e01f0427c63d56bd13eeda5b720b3631f47af63360e1a124bf",
   "runs": [
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "db6b349ff334f36a05a56e10b7d3bc90e07fd764b1bf40149dd881147655e5ea"
+        "sha256": "63ffdfb551b70f16dd3168b028c21fef0e143ef5d3ae042b5d31dd1eee3ec23e"
       },
       "stage": "0610",
-      "file": "frameWebForJS.json",
+      "file": "線路方向.json",
       "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
       "envelope": {
         "engine": "fempython",
@@ -331,7 +331,7 @@
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "db6b349ff334f36a05a56e10b7d3bc90e07fd764b1bf40149dd881147655e5ea"
+        "sha256": "63ffdfb551b70f16dd3168b028c21fef0e143ef5d3ae042b5d31dd1eee3ec23e"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
@@ -608,10 +608,10 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "418adcce137176968d4736f0333eaa77a29e6cd41676a92d1d37f87e9215a625"
+        "sha256": "63fc30de5caef1e806400195228b62652224409e56ef47a8733fc38bcc710b82"
       },
       "stage": "0610",
-      "file": "frameWebForJS.json",
+      "file": "線路方向.json",
       "candidate_sha256": "1ab4b5811baab547425c214b99624173c00e5529b40bb3e8c089d965d922463a",
       "envelope": {
         "engine": "fempython",
@@ -917,7 +917,7 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "418adcce137176968d4736f0333eaa77a29e6cd41676a92d1d37f87e9215a625"
+        "sha256": "63fc30de5caef1e806400195228b62652224409e56ef47a8733fc38bcc710b82"
       },
       "stage": "0620",
       "file": "線路直角方向.json",

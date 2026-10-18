@@ -1,6 +1,6 @@
 """Real-app acceptance of the 0710 / 0720 NDUs in JRSNAP 5.2-L03 (CONTEXT.md NDUの受入記録, decisions 4 and 40).
 
-For each direction the NDU is rebuilt from the input exactly as ``python -m webpier --jrsnap`` writes it
+For each direction the NDU is rebuilt from the input exactly as ``python -m webpier`` writes it
 (``export_bytes``). A copy is read and saved twice by the installed JRSNAP_Input.exe (the skill
 jrsnap-input-open-save, ``save-ndu.ps1``: JRSNAP's own mdl_Get_NDUDataFile / mdl_Wrt_NDUDataFile, without the
 screen), and read once more by ``jrsnap_state_probe.cs``, which reports what JRSNAP holds (counts, combinations).

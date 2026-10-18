@@ -83,10 +83,9 @@ class _Elements:
 
 def _analysis(pier: PierInput, profile: Profile) -> Analysis:
     conditions, key = getattr(pier.jrsnap, profile.jrsnap), f"jrsnap_{profile.jrsnap}"
-    target = need(conditions.target_displacement, f"{key}.target_displacement_m")
-    if target.value * float(profile.earthquake) < 0:
-        raise InputError(f"{key}.target_displacement_m: 地震の向き {profile.earthquake_text} と同じ符号が必要です"
-                         f"（入力 {target.value} m）")
+    magnitude = need(conditions.target_displacement, f"{key}.target_displacement_m")
+    # The input is a magnitude; the displacement is toward the earthquake of the calculation (decision 43).
+    target = put(LENGTH, d(magnitude) * profile.earthquake)
     return Analysis(steps=need(conditions.steps, f"{key}.analysis_steps"),
                     limited_final_step=need(conditions.limited_final_step, f"{key}.limited_final_step"), target=target)
 

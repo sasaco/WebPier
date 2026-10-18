@@ -189,7 +189,6 @@ def test_read_a_required_number_reports_the_blank():
 @pytest.mark.parametrize("limit,good,bad,message", [
     (fields.at_most(99.99), 99.99, 100, "99.99以下が必要です"),
     (fields.within(0.1, 999_999, "mm"), 0.1, 0, "0.1～999999 mmが必要です"),
-    (fields.NONZERO, -0.3, 0, "0以外が必要です"),
 ])
 def test_limits(limit, good, bad, message):
     spec = fields.number(Precision(2, ""), "any", limit=limit)

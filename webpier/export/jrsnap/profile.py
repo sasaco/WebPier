@@ -57,7 +57,7 @@ class Profile:
     face: str  # the bending direction: its 方向別の鉄筋配置表 and its hoop row are the section
     control: frozenset[NodeRole]  # the roles of the control node; La runs from it to the footing top
     earthquake: Decimal  # ±1: the direction of the earthquake in x (calc), and of the target displacement
-    earthquake_text: str
+    earthquake_text: str  # shown beside the target displacement in the editor
     jrsnap: str  # attribute of PierInput.jrsnap (input key jrsnap_<jrsnap>)
     plan: tuple[str, str]  # FoundationResult attributes of FootInfo B (in the plane) and L
     case_titles: Mapping[Enum, str]

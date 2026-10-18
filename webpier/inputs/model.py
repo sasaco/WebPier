@@ -191,7 +191,7 @@ class JrsnapConditions:
     aggregate_max: Printed | None  # Dmax, mm
     steps: int | None  # displacement increments to the target (DataInfo 3)
     limited_final_step: int | None  # last step of the limited incremental load (DataInfo 6)
-    target_displacement: Printed | None  # of the control node, m, signed as the earthquake (DataInfo 19)
+    target_displacement: Printed | None  # magnitude (> 0) at the control node, m; the export signs it (DataInfo 19)
 
 
 @dataclass(frozen=True)

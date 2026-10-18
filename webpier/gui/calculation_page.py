@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from ..core.errors import InputError
 from ..core.integrity import file_sha256
+from ..export.jrsnap import LONGITUDINAL, TRANSVERSE
 from ..inputs import parse_input
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
@@ -29,7 +30,7 @@ NOT_RUN = "未実行 — 表示できるPDFは今回の計算結果ではあり�
 JRSNAP_ROWS = (("shear_factor_vcd", "部材係数 γb（Vcd）"), ("shear_factor_vsd", "部材係数 γb（Vsd）"),
                ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("aggregate_max_mm", "粗骨材の最大寸法 Dmax"),
                ("analysis_steps", "解析のステップ数"), ("limited_final_step", "限定増分の最終ステップ"),
-               ("target_displacement_m", "目標変位"))
+               ("target_displacement_m", "目標変位（大きさ）"))
 
 
 class CalculationPage:
@@ -55,10 +56,13 @@ class CalculationPage:
         settings = ttk.Frame(page)
         settings.pack(anchor="w", pady=(0, 8))
         form = Form(editor, settings)
-        for namespace, direction in (("jrsnap_longitudinal", "線路方向（0710）"), ("jrsnap_transverse", "線路直角方向（0720）")):
+        for profile, direction in ((LONGITUDINAL, "線路方向（0710）"), (TRANSVERSE, "線路直角方向（0720）")):
+            namespace = f"jrsnap_{profile.jrsnap}"
             box = ttk.LabelFrame(settings, text=f"JRSNAP 5.2-L03 {direction}")
             box.pack(side="left", anchor="n", padx=(0, 8))
             form.properties(box, [((namespace, key), label) for key, label in JRSNAP_ROWS], widths=[220, 110, 60])
+            ttk.Label(box, text=f"目標変位の向き：{profile.earthquake_text}（地震の向き。自動で決めます）",
+                      style="Muted.TLabel").pack(anchor="w")
         ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
                   style="Muted.TLabel").pack(anchor="w")
         actions = ttk.Frame(page)

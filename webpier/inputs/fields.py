@@ -70,9 +70,6 @@ def within(low: float, high: float, unit: str) -> Limit:
     return Limit(lambda value: low <= value <= high, f"{low}～{high} {unit}が必要です")
 
 
-NONZERO = Limit(lambda value: value != 0, "0以外が必要です")
-
-
 @dataclass(frozen=True)
 class Field:
     kind: Kind
@@ -225,7 +222,8 @@ def _jrsnap() -> dict[str, Field]:
         table[f"{direction}.aggregate_max_mm"] = number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))
         table[f"{direction}.analysis_steps"] = integer(1, MAX_STEPS, nullable=True)
         table[f"{direction}.limited_final_step"] = integer(1, MAX_STEPS, nullable=True)
-        table[f"{direction}.target_displacement_m"] = number(LENGTH, "any", nullable=True, limit=NONZERO)
+        # A magnitude: the export gives it the sign of the earthquake (decision 43).
+        table[f"{direction}.target_displacement_m"] = number(LENGTH, "positive", nullable=True)
     return table
 
 

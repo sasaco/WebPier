@@ -73,7 +73,7 @@ def test_the_jrsnap_conditions_of_each_direction():
 
 
 @pytest.mark.parametrize("key,steps,limited,target", [
-    ("longitudinal", 300, 200, -0.3), ("transverse", 350, 300, 0.35)])  # Example2 10 / 11 NDU DataInfo
+    ("longitudinal", 300, 200, 0.3), ("transverse", 350, 300, 0.35)])  # Example2 10 / 11 NDU DataInfo (magnitudes)
 def test_the_analysis_settings_of_each_direction(key, steps, limited, target):
     conditions = getattr(parse_input(data()).jrsnap, key)
     assert (conditions.steps, conditions.limited_final_step) == (steps, limited)
@@ -85,8 +85,9 @@ def test_the_analysis_settings_of_each_direction(key, steps, limited, target):
     ("analysis_steps", 300.0, "1～100000の整数が必要です"),
     ("limited_final_step", 301, "analysis_steps（300）以下が必要です"),
     ("limited_final_step", 0, "1～100000の整数が必要です"),
-    ("target_displacement_m", 0, "0以外が必要です"),
-    ("target_displacement_m", -0.3005, "小数3桁までで入力してください"),
+    ("target_displacement_m", 0, "正の数値が必要です"),  # a magnitude (decision 43)
+    ("target_displacement_m", -0.3, "正の数値が必要です"),
+    ("target_displacement_m", 0.3005, "小数3桁までで入力してください"),
 ])
 def test_analysis_setting_values(key, value, message):
     document = data()
