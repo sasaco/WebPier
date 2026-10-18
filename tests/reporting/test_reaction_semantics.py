@@ -164,15 +164,20 @@ def test_the_double_track_impact_is_one_expression_rounded_once():
 
 
 def test_the_movable_bearing_prints_every_candidate_with_the_friction_floor():
-    """Decision 11: H = min(T/n, max(μ·Rm, μ·T/n)), μ from the input (not 0.1 of the old sheet)."""
+    """Decision 11: H = min(T/n, max(μ·Rm, μ·T/n)), μ from the input (not 0.1 of the old sheet).
+
+    As in Example2 07 7-5 the candidates are printed and H is concluded ("※ ∴ H").
+    """
     result, pier = case("ea17")
-    actual = "\n".join(records(result, pier).values()).replace(" ", "")
-    bearing = result.longitudinal.cases[2].end  # the end girder's movable bearing in this variant
+    found = {key: value.replace(" ", "") for key, value in records(result, pier).items()}
+    combination = result.longitudinal.cases[2]
+    bearing = combination.end  # the end girder's movable bearing in this variant
+    key = f"0600/long.case.{combination.case.name.lower()}.end"
     mu = text(pier.spans.end.mu)
-    assert f"={mu}×{text(bearing.share)}={text(bearing.friction_floor)}" in actual
-    assert f"={mu}×{text(bearing.vertical)}={text(bearing.friction)}" in actual
-    assert (f"=min({text(bearing.share)},max({text(bearing.friction)},{text(bearing.friction_floor)}))"
-            f"={text(bearing.force)}") in actual.replace(",", ",")
+    assert found[key + ".share"] == f"T/n={text(bearing.applied)}/2={text(bearing.share)}kN"
+    assert found[key + ".friction"] == f"μ・Rm={mu}×{text(bearing.vertical)}={text(bearing.friction)}kN"
+    assert found[key + ".floor"] == f"μ・T/n={mu}×{text(bearing.share)}={text(bearing.friction_floor)}kN"
+    assert found[key + ".force"] == f"※∴H={text(bearing.force)}kN"
 
 
 def test_the_footing_centre_height_leaves_out_the_soil():

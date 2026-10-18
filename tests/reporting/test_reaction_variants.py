@@ -107,16 +107,26 @@ def test_bearing_types_choose_the_printed_candidates():
         key = "long.case.safety_lr10_b10"
         assert f"{key}.{movable}.floor" in actual and f"{key}.{movable}.candidate" not in actual
         assert f"{key}.{fixed}.candidate" in actual and f"{key}.{fixed}.floor" not in actual
-    assert current["long.seismic_girder.origin.force"].startswith("H=T/n=")
-    assert current["long.seismic_girder.end.force"].startswith("H=T=")
+    assert current["long.seismic_girder.origin.share"] == "T/n=13580.00/2=6790.00kN"
+    assert current["long.seismic_girder.end.share"] == "T=4740.00kN"
+    assert current["long.seismic_girder.end.force"] == "※∴H=4740.00kN"
+    # The fixed bearing's Rm is the far (movable) bearing's (07 7-5 calls it the fixed bearing's).
+    assert current["long.case.safety_lr10_b10.end.vertical.label"] == "他端の可動支承に働く鉛直荷重"
+    assert ea17["long.case.safety_lr10_b10.origin.vertical.label"] == "他端の可動支承に働く鉛直荷重"
 
 
 def test_the_restorability_braking_factor_is_the_entered_one_or_rho_times_gamma():
-    current = records("current")
+    current, ea17 = records("current"), records("ea17")
     key = "long.case.restorability_lr10_b10"
-    assert current[f"{key}.end.brake"] == "γB=1.000"  # entered (Example2 7-11)
-    assert "end.brake.note" in "".join(k for k in current if k.startswith(key))
-    assert current[f"{key}.origin.brake"] == "γB=ρf×1.0=1.231×1.0=1.23"
+    # current: the end girder's factor is entered (Example2 7-11), the origin girder's is ρf × 1.0.
+    assert current[f"{key}.brake"] == "γB=ρf×1.0=1.231×1.0=1.23"
+    assert current[f"{key}.end.brake"] == "終点側桁のγBは入力した復旧性制動係数1.000とする。"
+    assert f"{key}.origin.brake" not in current
+    assert current[f"{key}.origin.applied"] == "※T1=1.0×400.00+1.23×160.00=596.80kN"
+    assert current[f"{key}.end.applied"] == "※T2=1.0×200.00+1.000×96.00=296.00kN"
+    # ea17 enters no restorability factor: both girders take ρf × 1.0, printed once.
+    assert ea17[f"{key}.brake"] == "γB=ρf×1.0=1.231×1.0=1.23"
+    assert f"{key}.end.brake" not in ea17 and f"{key}.origin.brake" not in ea17
 
 
 def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():

@@ -198,10 +198,10 @@ def _wrong(result, field: str):
     # The double-track impact is a factor of the movable bearing's Rm in the safety and restorability cases;
     # 0.223 × 0.75 still prints 0.167.
     ("double_impact", {"0.245*(1-18.850/200)",
-                       "1.1*5740.00+1.2*520.00+740.00+1.35*272.47*2.000*(1+0.223)",
-                       "1.1*5740.00+1.2*520.00+740.00+1.23*272.47*2.000*(1+0.223)",
-                       "1.0*5740.00+1.0*520.00+740.00+1.23*272.47*2.000*(1+0.223)"}),
-    # H = min(T/n, max(μ·Rm, μ·T/n)) still holds: the floor does not govern here.
+                       "1.1*5740.00+1.2*520.00+1.35*272.47*2.000*(1+0.223)+740.00",
+                       "1.1*5740.00+1.2*520.00+1.23*272.47*2.000*(1+0.223)+740.00",
+                       "1.0*5740.00+1.0*520.00+1.23*272.47*2.000*(1+0.223)+740.00"}),
+    # The friction floor μ·T/n is printed as a candidate of H; it does not govern here.
     ("floor", {"0.10*298.40"}),
     ("hG", {"26707.918/7129.33"}),
 ])

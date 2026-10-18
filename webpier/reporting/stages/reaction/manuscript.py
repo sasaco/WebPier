@@ -10,7 +10,7 @@ Nothing is calculated here.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import Any
 
@@ -32,6 +32,16 @@ MEDIUM_EQUAL = 204.12  # a labelled symbol such as RB(D1) or iF(複線)
 WIDE_LHS, WIDE_EQUAL = 175.08, 276.72
 RESULT_EQUAL, RESULT_RIGHT, UNIT_START = 436.44, 516.48, 523.68
 DEFINITION_COLON = MEDIUM_EQUAL  # "ここに、" from the indented body, symbols ending before this colon
+# A bearing derivation of 6.4.1 (2), measured on 0600 p16: "・case" with its combination from 218.64,
+# "※ T1 =" and "※ ∴ H =", and "Rm =" right after its symbol. The movable bearing's candidates use the
+# derivation column (WIDE_EQUAL); the fixed bearing's take "=" five indents after their symbols, so that
+# "T − 1/2μ・Rm = a − 1/2 × μ × Rm = H" keeps its result on its line (07 7-5; p16 wraps it).
+PAIR_SECOND = 218.64
+MARK_EQUAL, CONCLUSION_EQUAL, VERTICAL_EQUAL, FIXED_EQUAL = 160.56, 175.08, 189.6, WIDE_LHS + 5 * 14.52
+# The rule bracketing "※ T1 … ※ ∴ H" (0600 p16): x, width, and how far it starts below the
+# bottom of the "※ T1" row and ends above the top of the "※ ∴ H" row.
+RULE_X, RULE_WIDTH, RULE_TOP, RULE_BOTTOM = 136.2, 0.72, 5.76, 1.8
+FRAME_RIGHT = 576.0
 
 _OPERATORS = {"+", "−", "×", "/", "=", "-"}
 _PARENTHESES = {"(", ")"}
@@ -217,16 +227,25 @@ class FigureSpec:
 
 
 @dataclass(frozen=True)
+class Pair:
+    """Two texts on one line, the second from a column of its own ("・0.8 LR    [D1 + D2 + … の組合せ]")."""
+
+    first: str
+    second: str
+
+
+@dataclass(frozen=True)
 class Unit:
     key: str
-    kind: str  # heading, paragraph, math, equation, definitions, table, figure
+    kind: str  # heading, paragraph, math, pair, equation, definitions, table, figure
     value: Any
     left: float = BODY
-    first_equal: float | None = None
+    first_equal: float | None = None  # a pair: the x of its second text
     group: str = ""  # consecutive units of one group are kept on one page
     checked: bool = False  # an equation whose numeric chain recomputes from the printed numbers
     gap_before: bool = False
     keep: bool = False  # kept on the page of the following unit (an introduction to what follows)
+    ruled: bool = False  # bracketed by the rule at RULE_X, with the blank lines around it
 
     @property
     def identifier(self) -> str:
@@ -237,6 +256,7 @@ class Unit:
 class Manuscript:
     units: list[Unit] = field(default_factory=list)
     _group: str = ""
+    _ruled: bool = False
     _keys: set[str] = field(default_factory=set)
 
     def start(self, name: str) -> None:
@@ -246,11 +266,18 @@ class Manuscript:
     def end(self) -> None:
         self._group = ""
 
+    def rule_start(self) -> None:
+        """Following units, up to rule_end, are bracketed by the rule (0600 p16)."""
+        self._ruled = True
+
+    def rule_end(self) -> None:
+        self._ruled = False
+
     def _add(self, unit: Unit) -> None:
         if unit.key in self._keys:
             raise ValueError(f"0600: 重複した帳票キーです: {unit.key}")
         self._keys.add(unit.key)
-        self.units.append(unit)
+        self.units.append(replace(unit, ruled=self._ruled))
 
     def heading(self, key: str, text: str, left: float) -> None:
         self._add(Unit(key, "heading", text, left))
@@ -262,21 +289,29 @@ class Manuscript:
     def math(self, key: str, node: MathNode | str, left: float = BODY, *, gap: bool = False) -> None:
         self._add(Unit(key, "math", node, left, group=self._group, gap_before=gap))
 
+    def pair(self, key: str, first: str, second: str, left: float, second_left: float, *,
+             gap: bool = False) -> None:
+        """Two texts on one line; it introduces what follows, so it is kept on that unit's page."""
+        self._add(Unit(key, "pair", Pair(first, second), left, first_equal=second_left, group=self._group,
+                       gap_before=gap, keep=True))
+
     def equation(self, key: str, lhs: Any, rhs: Any, result: Printed | None = None, *,
-                 wide: bool = False, medium: bool = False, left: float | None = None, checked: bool = True,
-                 gap: bool = False) -> None:
+                 wide: bool = False, medium: bool = False, left: float | None = None, equal: float | None = None,
+                 checked: bool = True, gap: bool = False) -> None:
         """lhs = rhs [= result unit]; a checked equation is a numeric chain the reader recomputes.
 
         A wide (derivation) equation writes its lhs text left-aligned at the derivation column, as the
-        measured 0600 p26 does, so it is the equation's label before an empty lhs.
+        measured 0600 p26 does, so it is the equation's label before an empty lhs. *equal* places the
+        "=" at a column of its own instead of the wide, medium or short one.
         """
         if wide and not isinstance(lhs, str):
             raise TypeError("0600: 導出式の左辺は文字列で書きます")
         node = Equation("" if wide else lhs, rhs, label=lhs if wide else "",
                         result=None if result is None else printed(result),
                         unit=None if result is None else unit_of(result), block_id=PREFIX + key)
+        first_equal = equal if equal is not None else WIDE_EQUAL if wide else MEDIUM_EQUAL if medium else SHORT_EQUAL
         self._add(Unit(key, "equation", node, left if left is not None else WIDE_LHS if wide else SHORT_LHS,
-                       first_equal=WIDE_EQUAL if wide else MEDIUM_EQUAL if medium else SHORT_EQUAL, group=self._group,
+                       first_equal=first_equal, group=self._group,
                        checked=checked and result is not None, gap_before=gap))
 
     def formula(self, key: str, lhs: Any, symbolic: MathNode | str | None, numeric: Sequence[Any],
@@ -331,6 +366,8 @@ def plain(value: Any) -> str:
         return text + (plain(value.unit) if value.unit is not None else "")
     if isinstance(value, tuple) and value and all(isinstance(item, Definition) for item in value):
         return "ここに、" + "、".join(plain(item.symbol) + "：" + plain(item.text) for item in value)
+    if isinstance(value, Pair):
+        return value.first + value.second
     if isinstance(value, CellSpec):
         return plain(value.content)
     if isinstance(value, TableSpec):

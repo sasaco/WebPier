@@ -167,8 +167,9 @@ def _assert_columns_line_up(lines: list[list[tuple[float, float, str]]]) -> None
 
 
 def test_consecutive_0600_derivations_share_term_columns_across_lines(tmp_path: Any):
-    """0600 p16: "T / n = 594.40 / 2 = 297.20 kN", "μ・Rm = 0.25 × 1 560.00 = 390.00 kN" and
-    "μ・T / n = …" are one group of equations: their numbers and operators stand in the same columns."""
+    """07 7-5: "μ・Rm = 0.10 × 6 720.00 = 672.00 kN" and "μ・T / n = 0.10 × 160.00 = 16.00 kN" are one
+    group of equations: their numbers and operators stand in the same columns. "T / n = 320.00/2" above
+    them is one term written right after its "=", not spread over their columns."""
     from reaction_report_cases import case
     from webpier.reporting.stages.reaction import render_reaction
 
@@ -178,7 +179,10 @@ def test_consecutive_0600_derivations_share_term_columns_across_lines(tmp_path: 
         for index in range(len(lines) - 2):
             heads = [" ".join(word[2] for word in line[:3]) for line in lines[index:index + 3]]
             if heads[0] == "T / n" and heads[1].startswith("μ・Rm") and heads[2].startswith("μ・T /"):
-                _assert_columns_line_up(lines[index:index + 3])
+                _assert_columns_line_up(lines[index + 1:index + 3])
+                share = lines[index]
+                equal = next(position for position, word in enumerate(share) if word[2] in ("=", "＝"))
+                assert "/" in share[equal + 1][2] and share[equal + 2][2] in ("=", "＝"), share
                 found += 1
     assert found >= 2
 

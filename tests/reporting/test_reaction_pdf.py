@@ -33,7 +33,7 @@ PAGE_NUMBER = re.compile(r"^\d+ - \d+$", re.MULTILINE)  # the reference prints n
 def drawn(value: Any) -> str:
     """What a node draws as text: term columns and break hints draw nothing."""
     from webpier.reporting.equations import Definition
-    from webpier.reporting.stages.reaction.manuscript import CellSpec, FigureSpec, TableSpec
+    from webpier.reporting.stages.reaction.manuscript import CellSpec, FigureSpec, Pair, TableSpec
 
     if isinstance(value, str):
         return value
@@ -50,6 +50,8 @@ def drawn(value: Any) -> str:
     if isinstance(value, Equation):
         result = "" if value.result is None else value.result_relation + drawn(value.result)
         return value.label + drawn(value.lhs) + value.relation + drawn(value.rhs) + result + drawn(value.unit or "")
+    if isinstance(value, Pair):
+        return value.first + value.second
     if isinstance(value, CellSpec):
         return drawn(value.content)
     if isinstance(value, TableSpec):
@@ -269,3 +271,48 @@ def test_the_horizontal_summary_has_the_measured_row_and_header_heights(tmp_path
         bands = _table_bands(page, anchor.x1 + 200, anchor.y1)
         heights = [28.56] + [contract["nominal_row_height_pt"]] * 10
         assert measure.table_errors(bands, heights) == []
+
+
+def _baselines(page: Any, test) -> list[float]:
+    return sorted(span["origin"][1] for block in page.get_text("dict")["blocks"] for line in block.get("lines", ())
+                  for span in line["spans"] if test(span["text"]))
+
+
+@pytest.mark.parametrize("name", ["current", "ea17"])
+def test_each_bearing_derivation_is_bracketed_by_the_measured_rule(tmp_path: Path, name: str):
+    """0600 p16: a 0.72 pt rule at x = 136.2 from 8.52 pt below the "※ T1" baseline (5.76 pt below its row)
+    to 13.32 pt above the "※ ∴ H" baseline (1.8 pt above its row); one per girder and combination."""
+    from webpier.reporting.stages.reaction import render_reaction
+
+    rules = 0
+    with pymupdf.open(render_reaction(*case(name), tmp_path / "rule.pdf")) as pdf:
+        for page in pdf:
+            bars = sorted((drawing["rect"] for drawing in page.get_drawings()
+                           if abs(drawing["rect"].width - .72) < .01), key=lambda rect: rect.y0)
+            runs: list[list[float]] = []
+            for bar in bars:
+                assert (bar.x0 + bar.x1) / 2 == pytest.approx(136.2, abs=.01)
+                if runs and abs(runs[-1][1] - bar.y0) < .01:
+                    runs[-1][1] = bar.y1
+                else:
+                    runs.append([bar.y0, bar.y1])
+            marks = _baselines(page, lambda text: text.startswith("※"))
+            for top, bottom in runs:
+                assert top == pytest.approx(max(mark for mark in marks if mark < top) + 8.52, abs=.01)
+                assert bottom == pytest.approx(min(mark for mark in marks if mark > bottom) - 13.32, abs=.01)
+                rules += 1
+    assert rules == 2 * 8 + 2 * 2  # both girders of the eight combinations and of the two seismic actions
+
+
+def test_the_fixed_bearing_candidate_keeps_its_result_on_its_line(tmp_path: Path):
+    """07 7-5: "T − 1/2μ・Rm = 160.00 − 1/2 × 0.10 × 2370.00 = 41.50 kN" is one line."""
+    from webpier.reporting.stages.reaction import render_reaction
+
+    found = 0
+    with pymupdf.open(render_reaction(*case("current"), tmp_path / "fixed.pdf")) as pdf:
+        for page in pdf:
+            units = _baselines(page, lambda text: text.strip() == "kN")
+            for baseline in _baselines(page, lambda text: text.startswith("T - 1/2") or text.startswith("T − 1/2")):
+                assert any(abs(unit - baseline) < .01 for unit in units), baseline
+                found += 1
+    assert found == 8

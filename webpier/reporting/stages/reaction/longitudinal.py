@@ -9,14 +9,14 @@ from ....calc.reaction.dead import GirderDead
 from ....calc.reaction.longitudinal import (
     ADHESION, AXLE_BRAKING, AXLE_STARTING, BEARING_LINES, DEFINITIONS, EA17_BRAKING, EA17_STARTING,
     FRICTION_SHARE, LONG_RAIL, LONG_RAIL_CAP, LONG_RAIL_SERVICE, SEISMIC_KH, BearingForce, BearingType,
-    GirderForces, LongitudinalCase, SeismicBearing, SeismicForces,
+    CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing, SeismicForces,
 )
 from ....inputs import BrakingRule, PierInput
 from ...equations import Definition
 from ...numbers import decimal_constant, printed
 from .manuscript import (
-    DETAIL, INDENTED, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, call, cells, expr, inline, join, sub,
-    symbols,
+    CONCLUSION_EQUAL, DETAIL, FIXED_EQUAL, INDENTED, ITEM, MARK_EQUAL, PAIR_SECOND, SECTION, SUBSECTION,
+    VERTICAL_EQUAL, WIDE_LHS, CellSpec, Manuscript, call, cells, expr, inline, join, ratio, sub, symbols,
 )
 from .tables import header, summary
 
@@ -36,6 +36,20 @@ CASES = {
 }
 SNOW = {"snow2": "S2", "snow10": "S10", "snow30": "S30"}
 SIDES = (("origin", "起点側桁", "B", "A"), ("end", "終点側桁", "C", "D"))
+MARKS = {"origin": "T1", "end": "T2"}  # the horizontal force on each girder in 6.4.1 (2) (07 7-5)
+# 1) and 2) of 6.4.1 (2) (07 7-5 to 7-12): each heading and its (a), (b) with their combinations.
+GROUPS = (
+    ("ロングレール縦荷重", (
+        ("使用性の照査におけるひび割れの検討", (LongitudinalCase.SERVICE_LR08,)),
+        ("使用性の照査におけるひび割れの検討の必要性", (LongitudinalCase.SERVICE_LR10,)),
+    )),
+    ("ロングレール縦荷重＋制動荷重", (
+        ("安全性（破壊）の照査", (LongitudinalCase.SAFETY_LR10_B10, LongitudinalCase.SAFETY_LR11_B10,
+                              LongitudinalCase.SAFETY_LR10_B11, LongitudinalCase.SAFETY_LR10)),
+        ("復旧性の照査", (LongitudinalCase.RESTORABILITY_LR10_B10, LongitudinalCase.RESTORABILITY_LR10)),
+    )),
+)
+assert [case for _, details in GROUPS for _, cases in details for case in cases] == list(LongitudinalCase)
 
 
 def combination(case: LongitudinalCase) -> str:
@@ -124,117 +138,135 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
                   ("(", reaction, "+", reaction, ")", "×", ADHESION), getattr(lon, key).seismic_train, medium=True)
 
 
-def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCase, side: str,
+def _factors(m: Manuscript, key: str, case: CaseForces, pier: PierInput) -> None:
+    """γB and γL of a combination: ρf × the nominal factor, or the entered restorability braking factor."""
+    definition = DEFINITIONS[case.case]
+    t = pier.train
+    entered = [(side, name) for side, name, _, _ in SIDES if definition.brake is not None
+               and definition.restorability and getattr(pier.spans, side).recovery_brake_coefficient is not None]
+    computed = [getattr(case, side).brake_factor for side, _, _, _ in SIDES
+                if definition.brake is not None and side not in dict(entered)]
+    if computed:
+        assert definition.brake is not None
+        m.formula(key + ".brake", sub("γ", "B"), symbols("ρf", "×", decimal_constant(definition.brake)),
+                  (t.factor_ultimate, "×", definition.brake), computed[0], left=INDENTED, equal=MARK_EQUAL)
+    if definition.live is not None:
+        rho = t.factor_service if definition.service_train else t.factor_ultimate
+        m.formula(key + ".live", sub("γ", "L"), symbols("ρf", "×", decimal_constant(definition.live)),
+                  (rho, "×", definition.live), case.origin.live_factor, left=INDENTED, equal=MARK_EQUAL)
+    for side, name in entered:
+        m.math(f"{key}.{side}.brake", Row(f"{name}の ", sub("γ", "B"), " は入力した復旧性制動係数 "
+                                          f"{printed(getattr(case, side).brake_factor)} とする。", gap=0),
+               left=INDENTED)
+
+
+def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCase, side: str, mark: str,
              result: ReactionResult, pier: PierInput) -> None:
+    """※ T, the vertical load and the horizontal force candidates bracketed by the rule, ※ ∴ H (07 7-5)."""
     definition = DEFINITIONS[case]
     span = getattr(pier.spans, side)
     forces: GirderForces = getattr(result.longitudinal, side)
     girder: GirderDead = getattr(result.dead, side)
     loading, train = result.train.loading, result.train
-    t = pier.train
-    if force.brake_factor is not None:
-        assert definition.brake is not None
-        if definition.restorability and span.recovery_brake_coefficient is not None:
-            m.value(key + ".brake", sub("γ", "B"), force.brake_factor, left=WIDE_NOTE, medium=True)
-            m.paragraph(key + ".brake.note", "（入力した復旧性制動係数）", left=WIDE_NOTE)
-        else:
-            m.formula(key + ".brake", sub("γ", "B"), symbols("ρf", "×", decimal_constant(definition.brake)),
-                      (t.factor_ultimate, "×", definition.brake), force.brake_factor, left=WIDE_NOTE, medium=True)
-    if force.live_factor is not None:
-        assert definition.live is not None
-        rho = t.factor_service if definition.service_train else t.factor_ultimate
-        m.formula(key + ".live", sub("γ", "L"), symbols("ρf", "×", decimal_constant(definition.live)),
-                  (rho, "×", definition.live), force.live_factor, left=WIDE_NOTE, medium=True)
     rail = forces.long_rail_service if definition.service_rail else forces.long_rail
     numeric: list = [definition.lr_factor, "×", rail]
-    symbolic: list = [decimal_constant(definition.lr_factor), "×", "LR"]
     if force.brake_factor is not None:
         numeric += ["+", force.brake_factor, "×", forces.braking_adopted]
-        symbolic += ["+", sub("γ", "B"), "×", "B"]
-    m.formula(key + ".applied", "T", symbols(*symbolic), numeric, force.applied, wide=True)
+    m.formula(key + ".applied", f"※ {mark}", None, numeric, force.applied, left=INDENTED,
+              equal=MARK_EQUAL, gap=True)
     movable = force.bearing is BearingType.MOVABLE
     loads = girder.pier if movable else girder.far
     reaction = (loading.rb if side == "origin" else loading.rc) if movable else (
         loading.ra if side == "origin" else loading.rd)
     impact_group = train.service if definition.service_train else train.ultimate
     impact = getattr(impact_group, side + "_impact").double
-    snow_symbol = SNOW[definition.snow.value]
-    vertical: list = [definition.d1, "×", loads.d1, "+", definition.d2, "×", loads.d2, "+",
-                      getattr(loads, definition.snow.value)]
-    vertical_symbols: list = [decimal_constant(definition.d1), "D1", "+", decimal_constant(definition.d2), "D2", "+",
-                              snow_symbol]
+    vertical: list = [definition.d1, "×", loads.d1, "+", definition.d2, "×", loads.d2]
+    vertical_symbols: list = [f"{decimal_constant(definition.d1)}D1", "+", f"{decimal_constant(definition.d2)}D2"]
     if force.live_factor is not None:
         # "× (1 + i)" is one term, so that a wrapped line begins with its operator, never with "(".
         vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total,
                      Row("×", " ", inline(expr("(", 1, "+", impact, ")")), gap=0)]
-        vertical_symbols += ["+", Row(sub("γ", "L"), "Rn(1 + i)", gap=0)]
+        vertical_symbols += ["+", Row(sub("γ", "L"), "・R・軌道数・(1 + i)", gap=0)]
+    vertical += ["+", getattr(loads, definition.snow.value)]
+    vertical_symbols += ["+", SNOW[definition.snow.value]]
+    m.rule_start()
     m.paragraph(key + ".vertical.label",
-                "可動支承に働く鉛直荷重" + ("" if movable else "（他端の可動支承）"), left=WIDE_NOTE, gap=True)
-    m.formula(key + ".vertical", "Rm", symbols(*vertical_symbols), vertical, force.vertical, wide=True)
+                "可動支承に働く鉛直荷重" if movable else "他端の可動支承に働く鉛直荷重", left=WIDE_NOTE, gap=True)
+    m.equation(key + ".vertical.symbols", "Rm", inline(symbols(*vertical_symbols)), left=WIDE_LHS,
+               equal=VERTICAL_EQUAL, checked=False)
+    m.formula(key + ".vertical", "", None, vertical, force.vertical, left=WIDE_LHS, equal=VERTICAL_EQUAL)
     m.paragraph(key + ".horizontal.label", ("可動" if movable else "固定") + "支承に働く水平荷重", left=WIDE_NOTE,
                 gap=True)
-    m.formula(key + ".share", "T / n", None, (force.applied, "/", BEARING_LINES), force.share, wide=True)
-    mu = span.mu
+    mu, equal = span.mu, None if movable else FIXED_EQUAL
+    if not movable:
+        assert force.fixed_candidate is not None
+        m.formula(key + ".candidate", "T − 1/2μ・Rm", None,
+                  (force.applied, "−", ratio(1, int(1 / FRICTION_SHARE)), "×", mu, "×", force.vertical),
+                  force.fixed_candidate, wide=True, equal=equal)
+    m.formula(key + ".share", "T / n", None, (ratio(force.applied, BEARING_LINES),), force.share, wide=True,
+              equal=equal)
     if movable:
         assert force.friction is not None and force.friction_floor is not None
         m.formula(key + ".friction", "μ・Rm", None, (mu, "×", force.vertical), force.friction, wide=True)
         m.formula(key + ".floor", "μ・T / n", None, (mu, "×", force.share), force.friction_floor, wide=True)
-        m.formula(key + ".force", "H", symbols(call("min", "T/n", call("max", "μ・Rm", "μ・T/n"))),
-                  (call("min", force.share, call("max", force.friction, force.friction_floor)),), force.force,
-                  wide=True)
-    else:
-        assert force.fixed_candidate is not None
-        m.formula(key + ".candidate", "T − 1/2 μ・Rm", None,
-                  (force.applied, "−", FRICTION_SHARE, "×", mu, "×", force.vertical), force.fixed_candidate, wide=True)
-        m.formula(key + ".force", "H", symbols(call("max", "T − 1/2 μ・Rm", "T/n")),
-                  (call("max", force.fixed_candidate, force.share),), force.force, wide=True)
+    m.rule_end()
+    m.value(key + ".force", "※ ∴ H", force.force, wide=True, left=INDENTED, equal=CONCLUSION_EQUAL, gap=True)
+
+
+def _seismic(m: Manuscript, field: str, title: str, lon: LongitudinalResult) -> None:
+    """07 7-13 3) 4): the girder's T, at a movable bearing T / n without the friction limit, at a fixed one T."""
+    m.heading(f"long.{field}.heading", title, ITEM)
+    forces: SeismicForces = getattr(lon, field)
+    for side, _, _, _ in SIDES:
+        bearing: SeismicBearing = getattr(forces, side)
+        key = f"long.{field}.{side}"
+        movable = bearing.bearing is BearingType.MOVABLE
+        m.start(key)
+        m.value(key + ".applied", f"※ {MARKS[side]}", bearing.applied, left=INDENTED, equal=MARK_EQUAL,
+                gap=True)
+        m.rule_start()
+        m.paragraph(key + ".label", BEARINGS[bearing.bearing] + "支承に働く水平荷重", left=WIDE_NOTE, gap=True)
+        if movable:
+            m.formula(key + ".share", "T / n", None, (ratio(bearing.applied, BEARING_LINES),), bearing.force,
+                      wide=True)
+        else:
+            m.value(key + ".share", "T", bearing.force, wide=True, equal=FIXED_EQUAL)
+        m.rule_end()
+        m.value(key + ".force", "※ ∴ H", bearing.force, wide=True, left=INDENTED, equal=CONCLUSION_EQUAL,
+                gap=True)
+        m.end()
 
 
 def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     lon = result.longitudinal
     m.heading("long.bearing.heading", "(2) 支承に働く水平荷重", SUBSECTION)
-    origin, end = (BEARINGS[lon.cases[0].origin.bearing], BEARINGS[lon.cases[0].end.bearing])
-    m.paragraph("long.bearing.introduction",
-                f"起点側桁の B支点は{origin}支承（μ = {printed(pier.spans.origin.mu)}）、"
-                f"終点側桁の C支点は{end}支承（μ = {printed(pier.spans.end.mu)}）である。"
-                f"各桁の支承線数は n = {decimal_constant(BEARING_LINES)} とし、"
-                "可動支承の水平荷重は H = min(T/n, max(μ・Rm, μ・T/n))、固定支承の水平荷重は "
-                "H = max(T − 1/2 μ・Rm, T/n) とする。"
-                "γL・γB は荷重修正係数 ρf と組合せの係数の積（小数2桁）である。")
-    m.definitions("long.bearing.symbols", Definition("T", "桁に働く水平荷重"),
-                  Definition("Rm", "可動支承の鉛直荷重"), Definition("μ", "支承の摩擦係数"))
-    for number, case in enumerate(lon.cases, 1):
-        definition_label = CASES[case.case]
-        m.heading(f"long.case.{case.case.name.lower()}.heading",
-                  f"({chr(ord('a') + number - 1)}) {definition_label[0]} {definition_label[1]}", DETAIL)
-        m.paragraph(f"long.case.{case.case.name.lower()}.combination", f"[{combination(case.case)} の組合せ]",
-                    keep=True)
-        for side, name, support, _ in SIDES:
-            key = f"long.case.{case.case.name.lower()}.{side}"
-            m.start(key)
-            m.paragraph(key + ".label", f"・{name}（{support}支点）", gap=True)
-            _bearing(m, key, getattr(case, side), case.case, side, result, pier)
-            m.end()
-    for field, title in (("seismic_girder", "地震時慣性力（桁）"), ("seismic_train", "地震時列車荷重慣性力")):
-        forces: SeismicForces = getattr(lon, field)
-        m.heading(f"long.{field}.heading", f"({chr(ord('a') + len(lon.cases) + (field == 'seismic_train'))}) {title}",
-                  DETAIL)
-        for side, name, support, _ in SIDES:
-            bearing: SeismicBearing = getattr(forces, side)
-            key = f"long.{field}.{side}"
-            m.start(key)
-            m.paragraph(key + ".label", f"・{name}（{support}支点、{BEARINGS[bearing.bearing]}支承）", gap=True)
-            m.value(key + ".applied", "T", bearing.applied, wide=True)
-            if bearing.bearing is BearingType.MOVABLE:
-                m.formula(key + ".force", "H", "T / n", (bearing.applied, "/", BEARING_LINES), bearing.force, wide=True)
-            else:
-                m.value(key + ".force", "H", bearing.force, symbolic="T", wide=True)
-            m.end()
+    m.definitions("long.bearing.symbols", Definition("T1", "起点側桁に働く水平荷重"),
+                  Definition("T2", "終点側桁に働く水平荷重"), Definition("Rm", "可動支承の鉛直荷重"),
+                  Definition("R", "支点の列車反力（6.3）"), Definition("i", "衝撃係数（複線）"),
+                  Definition("μ", "支承の摩擦係数"))
+    for item, (title, details) in enumerate(GROUPS, 1):
+        m.heading(f"long.item.{item}.heading", f"{item}) {title}", ITEM)
+        for detail, (subtitle, cases) in enumerate(details):
+            m.heading(f"long.item.{item}.{detail}.heading", f"({chr(ord('a') + detail)}) {subtitle}", DETAIL)
+            for which in cases:
+                case = lon.case(which)
+                name = which.name.lower()
+                for side, _, _, _ in SIDES:
+                    key = f"long.case.{name}.{side}"
+                    m.start(key)  # the combination and its factors stay with the first girder
+                    if side == SIDES[0][0]:
+                        m.pair(f"long.case.{name}.label", f"・{CASES[which][1]}",
+                               f"[{combination(which)} の組合せ]", INDENTED, PAIR_SECOND, gap=True)
+                        _factors(m, f"long.case.{name}", case, pier)
+                    _bearing(m, key, getattr(case, side), which, side, MARKS[side], result, pier)
+                    m.end()
+    _seismic(m, "seismic_girder", f"{len(GROUPS) + 1}) 地震時慣性力", lon)
+    _seismic(m, "seismic_train", f"{len(GROUPS) + 2}) 地震時列車荷重慣性力", lon)
 
 
 def _summary(m: Manuscript, result: ReactionResult) -> None:
     lon = result.longitudinal
-    m.heading("long.summary.heading", "(3) 支承に働く水平荷重のまとめ", SUBSECTION)
+    m.heading("long.summary.heading", f"{len(GROUPS) + 3}) 支承に働く水平荷重のまとめ", ITEM)
     head = ((CellSpec("荷重種別", colspan=2, align="center"),
              *header(Row("起点桁 ", sub("H", "B"), gap=0), Row("終点桁 ", sub("H", "C"), gap=0), "合計")),)
     body = []
