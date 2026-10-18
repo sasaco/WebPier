@@ -47,7 +47,7 @@ def join(parts: Sequence[bytes], path: str | Path) -> Path:
 def page_range(pdf: bytes, first: int, last: int) -> bytes:
     """Pages *first*..*last* (1-based, inclusive) of *pdf*, as they are, as a PDF of their own.
 
-    0611 cuts Capacita's report by the page range of each section (decision 48).
+    0611 and 0621 cut Capacita's report by the page range of each section (decision 48).
     """
     reader = PdfReader(BytesIO(pdf), strict=True)
     if not 1 <= first <= last <= len(reader.pages):

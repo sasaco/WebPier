@@ -126,22 +126,24 @@ def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, 
 
 
 def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_generation, analysis_generation):
-    """Decisions 46, 48: the analysis adds the pickup files, and 0611 its column section check (report, result JSON
-    and the completed WDJ); the reports of all are unchanged."""
+    """Decisions 46, 48: the analysis adds the pickup files, and 0611 and 0621 their column section checks (report,
+    result JSON and the completed WDJ); the reports of all are unchanged."""
     root, _, _ = analysis_generation
     assert analysis_generation[2].stages == ("0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
     output = tree(root / "output")
-    column = STAGES.get("0611").stem
-    assert {name: content for name, content in output.items() if not name.startswith(column)} == tree(
+    columns = tuple(STAGES.get(stage).stem for stage in ("0611", "0621"))
+    assert {name: content for name, content in output.items() if not name.startswith(columns)} == tree(
         all_generation[0] / "output")
-    assert sorted(name for name in output if name.startswith(column)) == [f"{column}.json", f"{column}.pdf"]
+    assert sorted(name for name in output if name.startswith(columns)) == sorted(
+        f"{column}.{suffix}" for column in columns for suffix in ("json", "pdf"))
     post = tree(root / "post")
-    natives = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu", "線路方向.wdj",
+    natives = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu", "線路方向.wdj", "線路直角方向.wdj",
                *(name for stem in PICKUPS.values() for name in pickup_files(stem))]
     assert sorted(post) == sorted([*natives, *(name + ".provenance.json" for name in natives)])
     for stage, stem in PICKUPS.items():
         digest = sha256(post[f"{stem}.json"])
-        assert [post[name] for name in pickup_files(stem)] == [
+        # the PIK's first line stands for its header; its points follow (tests/fixtures/fempython/fake_runner.py)
+        assert [post[name].split(b"\n")[0] + b"\n" for name in pickup_files(stem)] == [
             f"FAKE {word} {stem}.json {digest}\n".encode() for word in ("PIK", "DISPLACEMENT", "REACTION")]
         sidecar = load_json(post[f"{stem}.pik.provenance.json"])
         assert (sidecar["stage"], sidecar["export"]) == (stage, "pik")
@@ -212,11 +214,30 @@ def test_the_column_section_check_of_0611(analysis_generation):
     document = load_json(output[f"{stem}.json"])
     assert document["section_check"] == {"engine": "webdan2", "engine_version": "fake-1",
                                          "engineering_status": "not_evaluated",
-                                         "wdj": {"file": "線路方向.wdj", "sha256": sha256(post["線路方向.wdj"])}}
+                                         "wdj": {"file": "線路方向.wdj", "sha256": sha256(post["線路方向.wdj"])},
+                                         "skipped_sections": []}
     with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
         texts = [page.get_text() for page in pdf]
     assert texts[0].strip().startswith("8.5 断面力の総括") and "FAKE CAPACITA section_forces 1/2" in texts[1]
     assert sum("FAKE CAPACITA" in text for text in texts) == 9 and "8.9 復旧性の照査" in "".join(texts)
+
+
+def test_the_column_section_check_of_0621(analysis_generation):
+    """Decision 48: across the track the same, numbered 9.5 to 9.9, with the column bottom at its place in the PIK
+    of 0620 (after the point the wind load on the column adds: 7, the stand-in writing FEMPython's points)."""
+    root, _, _ = analysis_generation
+    post, output = tree(root / "post"), tree(root / "output")
+    completed = load_json(post["線路直角方向.wdj"])
+    assert completed["pickup_filename"] == "線路直角方向.pik"
+    assert [point["index"] for point in completed["points"]] == [7] and completed["bar"][0]["b"] == 2700
+    sidecar = load_json(post["線路直角方向.wdj.provenance.json"])
+    assert (sidecar["stage"], sidecar["export"]) == ("0621", "wdj")
+    assert sidecar["section_check"]["pik"]["sha256"] == sha256(post["線路直角方向.pik"])
+    stem = STAGES.get("0621").stem
+    assert load_json(output[f"{stem}.json"])["section_check"]["wdj"]["file"] == "線路直角方向.wdj"
+    with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
+        texts = [page.get_text() for page in pdf]
+    assert texts[0].strip().startswith("9.5 断面力の総括") and "9.9 復旧性の照査" in "".join(texts)
 
 
 @pytest.mark.parametrize("stage", ["0611", "0621"])
@@ -224,9 +245,9 @@ def test_a_frame_analysis_stage_alone_publishes_only_its_pickup_files(analysis_g
     root, _, _ = analysis_generation
     source = copy_input(tmp_path / "pre")
     generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
-    checked = ["線路方向.wdj"] if stage == "0611" else []  # and the report of the column section check (decision 48)
-    output = tree(tmp_path / "output") if (tmp_path / "output").exists() else {}
-    assert sorted(output) == ([f"{STAGES.get(stage).stem}.json", f"{STAGES.get(stage).stem}.pdf"] if checked else [])
+    checked = [{"0611": "線路方向.wdj", "0621": "線路直角方向.wdj"}[stage]]  # and the report of the check (decision 48)
+    output = tree(tmp_path / "output")
+    assert sorted(output) == [f"{STAGES.get(stage).stem}.json", f"{STAGES.get(stage).stem}.pdf"]
     names = pickup_files(PICKUPS[stage])
     post = tree(tmp_path / "post")
     assert sorted(post) == sorted([*names, *checked, *(name + ".provenance.json" for name in [*names, *checked])])

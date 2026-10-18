@@ -1,19 +1,22 @@
-"""The WDJ WebPier gives Capacita for the 0611 柱の断面照査 (decision 48, ADR-0008), without its pickup data.
+"""The WDJ WebPier gives Capacita for the 0611 / 0621 柱の断面照査 (decision 48, ADR-0008), without its pickup data.
 
 The document follows the RC document Capacita writes itself (WebDanforCS ProjectDocument.Create and
 DocumentEditor.InitializeInputFields): ``$schema`` / ``format`` wdj, the basic lists, one member, one point, one bar
 row, one crack row, the safety tables of group 1 and the calculation switches. It holds no pickup data: Capacita's
 Headless imports the PIK of the same generation with ``run-rc --pickup`` (the GUI's 断面力データ取込), which keeps
-the member and the point written here and adds the others of the PIK (WebPier never reads the PIK).
+the member and the point written here and adds the others of the PIK (WebPier never reads its section forces).
 
-The point is identified as that import compares it: the FEMPython PIK lists every member of the frame in member
-order with its ITAN (0) and JTAN (the member length) points, so the J end of member m is point 2m with ``p_id``
-JTAN at the column length. A WDJ the import cannot match fails the runner and stops the generation. The bar row has
-no ``position`` (the import would compare it with the point's), and the document no ``steel`` rows (an RC WDJ with
-them is refused).
+The point is identified as that import compares it, by its place among the points of the PIK: the FEMPython PIK
+lists every member of the frame in member order with its ITAN (0) point, the points FEMPython adds inside the member
+(where a member load starts or ends: the wind on the column across the track) and its JTAN (the member length) point.
+``point_index`` finds the column's JTAN in that list (decision 48, owner 2026-10-18); a WDJ the import cannot match
+fails the runner and stops the generation. The bar row has no ``position`` (the import would compare it with the
+point's), and the document no ``steel`` rows (an RC WDJ with them is refused).
 
 Only the column bottom is checked (bending about z, shear in y; no torsion). ``shape`` is the number 1 (rectangle;
-RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5.
+RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5, 0621 as 9.5. Side bars
+without positions (calc.column_check.SideBars) are written without ``side_cover`` and ``side_ss``: Capacita spaces
+them evenly between the main bars.
 """
 
 from __future__ import annotations
@@ -51,9 +54,28 @@ def _number(value: Printed | None) -> int | float | None:
     return int(value.value) if float(value.value).is_integer() else value.value
 
 
-def point_index(member: int) -> int:
-    """The index of the J end of *member* in the FEMPython PIK (ITAN and JTAN of each member, in member order)."""
-    return 2 * member
+class PickupError(ValueError):
+    """The PIK does not list the point of the check (not the input's fault)."""
+
+
+def point_index(pik: bytes, member: int) -> int:
+    """The index of the J end of *member* in the FEMPython PIK: its place, from 1, among the rows of the first pickup
+    and force of the file, as Capacita's import numbers the points (PickupImporter: the header line skipped, the
+    fixed columns of PickUpNo, 着目力, 部材No and 着目点). The section forces are not read."""
+    try:
+        lines = pik.decode("utf-8-sig").replace("\r\n", "\n").split("\n")[1:]
+    except UnicodeDecodeError as exc:
+        raise PickupError(f"PIK を UTF-8 として読めません（{exc}）") from exc
+    rows = [(line[0:5].strip(), line[5:10].strip(), line[10:15].strip(), line[25:30].strip())
+            for line in lines if line.strip()]
+    if not rows:
+        raise PickupError("PIK に着目点の行がありません")
+    first = rows[0][:2]
+    points = [(number, point) for case, force, number, point in rows if (case, force) == first]
+    found = [index for index, point in enumerate(points, 1) if point == (str(member), J_END)]
+    if len(found) != 1:
+        raise PickupError(f"PIK に部材{member}の{J_END}がちょうど1つありません（{len(found)}個）")
+    return found[0]
 
 
 def _cases(cases, titles) -> list[dict[str, Any]]:
@@ -122,9 +144,9 @@ def _safety(check: ColumnCheckResult) -> dict[str, Any]:
     }
 
 
-def build_wdj(check: ColumnCheckResult) -> dict[str, Any]:
-    """The WDJ of the column bottom check, as a JSON document."""
-    index = point_index(check.member)
+def build_wdj(check: ColumnCheckResult, index: int) -> dict[str, Any]:
+    """The WDJ of the column bottom check, as a JSON document; *index* is the point of the column bottom in the PIK
+    (``point_index``)."""
     environment = check.environment_number
     return {
         "$schema": SCHEMA, "format": "wdj", "schema_version": VERSION, "ver": VERSION, "lang": "ja",

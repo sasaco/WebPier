@@ -30,7 +30,8 @@ from foundation_report_cases import case as foundation_case
 from frame_report_cases import chain, transverse_chain
 from reaction_report_cases import case as reaction_case
 from webpier.reporting.fonts import load_fonts
-from webpier.calc.column_check import calculate_column_check
+from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
+from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
 from webpier.reporting.stages.column_check import build_column_check
 from webpier.reporting.stages.foundation import build_foundation
 from webpier.reporting.stages.longitudinal import build_longitudinal
@@ -55,8 +56,13 @@ BUILDERS: dict[str, Callable[[str], Any]] = {
                                           transverse_chain(name)[0]),
     "0710": lambda name: build_seismic_longitudinal(chain(name)[3], chain(name)[0]),
     "0720": lambda name: build_seismic_transverse(transverse_chain(name)[3], transverse_chain(name)[0]),
-    # one Document before each of Capacita's sections (decision 48)
-    "0611": lambda name: build_column_check(calculate_column_check(chain(name)[0], chain(name)[2])),
+    # one Document before each of Capacita's sections (decision 48); across the track with the two checks Capacita
+    # skips for Example2, each ending with the reason
+    "0611": lambda name: build_column_check(calculate_column_check(chain(name)[0], chain(name)[2], LONGITUDINAL),
+                                            CHAPTER_8),
+    "0621": lambda name: build_column_check(
+        calculate_column_check(transverse_chain(name)[0], transverse_chain(name)[2], TRANSVERSE), CHAPTER_9,
+        ("shear_durability", "bending_serviceability")),
 }
 # The fixture input of every stage (tests/fixtures/inputs/current.json).
 PARAMETERS = [(stage, "current") for stage in BUILDERS]

@@ -8,8 +8,11 @@ empty, the files in it, and one UTF-8 JSON envelope (protocolVersion 1) on stdou
 for, so a test can find the pages in a report. Instead of the analysis it writes ``result.json`` and, for the three
 files WebPier publishes, the line ``FAKE PIK <file name> <SHA256 of the input bytes>`` (``pickup.pik``), ``FAKE
 DISPLACEMENT …`` (``pickup-displacement.csv``) and ``FAKE REACTION …`` (``pickup-reaction.csv``), UTF-8 with LF, so
-a test can tell which bytes were analyzed. When the real runner's protocol changes, change this too (the real-runner
-tests are the signal).
+a test can tell which bytes were analyzed. In the PIK that line stands for the header and is followed by the points
+of the first pickup in the real runner's fixed columns (PickUpNo, 着目力 M, 部材No, cases, 着目点, 着目点距離, zero
+forces): every member in order with ITAN, a numbered point where a member load on it starts or ends inside it, and
+JTAN, so the place of a point (export.capacita.point_index) is the real runner's for the same file. When the real
+runner's protocol changes, change this too (the real-runner tests are the signal).
 
 ``FAKE_FEMPYTHON`` makes it misbehave, for the error tests: fail, text, list, protocol, version, artifacts (one
 artifact listed twice), missing (the last file not written), sha (the last file's SHA256 wrong), exit, and for the
@@ -53,11 +56,31 @@ def drawing(name, cases):
     return stream.getvalue()
 
 
+def points(document):
+    """(member, point, position) of every member of a FrameWeb document, in member order."""
+    nodes = document.get("node", {})
+    for number, member in document.get("member", {}).items():
+        start, end = nodes[str(member["ni"])], nodes[str(member["nj"])]
+        length = round(((end["x"] - start["x"]) ** 2 + (end["y"] - start["y"]) ** 2) ** 0.5, 3)
+        inside = sorted({round(position, 3) for case in document["load"].values()
+                         for load in case.get("load_member", []) if str(load.get("m1")) == number
+                         for position in (load["L1"], length - load["L2"]) if 0 < round(position, 3) < length})
+        yield number, "ITAN", 0.0
+        yield from ((number, str(index), position) for index, position in enumerate(inside, 1))
+        yield number, "JTAN", length
+
+
+def pik(source, digest):
+    rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}" + f"{0:>10.2f}" * 6
+            for number, point, position in points(json.loads(source.read_text(encoding="utf-8")))]
+    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows]).encode()
+
+
 def analysis(source):
     """(file, kind, bytes) of a frame analysis of *source*, in the order the real runner lists them."""
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     return [("result.json", "result", json.dumps({"kind": "frameweb_analysis", "input": digest}).encode()),
-            ("pickup.pik", "pik", f"FAKE PIK {source.name} {digest}\n".encode()),
+            ("pickup.pik", "pik", pik(source, digest)),
             ("pickup-displacement.csv", "pickup-displacement", f"FAKE DISPLACEMENT {source.name} {digest}\n".encode()),
             ("pickup-reaction.csv", "pickup-reaction", f"FAKE REACTION {source.name} {digest}\n".encode())]
 

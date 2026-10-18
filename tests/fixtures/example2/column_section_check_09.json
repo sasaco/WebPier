@@ -1,0 +1,46 @@
+{
+  "basis": "Independently transcribed from the user-provided sample WDJ and PDF; never generated from the application. See the 09 part of column_section_check_notes.md for every deliberate difference from the sample.",
+  "source": {
+    "wdj": ".claude/docs/Example橋脚2/09_直角/WebDan.wdj",
+    "pdf": ".claude/docs/Example橋脚2/09_直角.pdf",
+    "pages": "9-16 .. 9-23"
+  },
+  "same_as_08": ["pickup", "safety_factor", "material_bar", "material_concrete", "pile_factor_selected", "crack", "standard", "calc"],
+  "check_point": {
+    "member": 3,
+    "member_length_m": 4.9,
+    "sample_index": 6,
+    "index": 7,
+    "p_id": "JTAN",
+    "position_m": 4.9,
+    "isMzCalc": true,
+    "isVyCalc": true,
+    "isMyCalc": false,
+    "isVzCalc": false,
+    "isMtCalc": false
+  },
+  "member": {
+    "m_no": 3,
+    "g_name": "柱",
+    "shape": 1,
+    "B": 2700,
+    "H": 4500,
+    "n": 1
+  },
+  "bar": {
+    "rebar1": {"rebar_dia": 19, "rebar_n": 9, "rebar_cover": 102, "rebar_ss": 250},
+    "rebar2": {"rebar_dia": 19, "rebar_n": 9, "rebar_cover": 102, "rebar_ss": 250},
+    "sidebar1": {"side_dia": 32, "side_n": 29, "side_cover": null, "side_ss": null},
+    "stirrup": {"stirrup_dia": 22, "stirrup_n": 6, "stirrup_ss": 150}
+  },
+  "explanation": {
+    "safety_moment": {"page": "9-18", "gamma_i": "1.2", "gamma_b": "1.1"},
+    "safety_shear": {"page": "9-20", "gamma_i": "1.2"},
+    "restorability_moment": {"page": "9-22", "gamma_i_printed": "1.0", "gamma_b": "1.0", "gamma_i_result_page": "1.20"}
+  },
+  "acceptance": {
+    "bending_safety_destruction": {"page": "9-19", "ratio": "0.338", "Mud_kNm": "29334.2", "Md_kNm": "8256.6", "Nd_kN": "13264.1", "gamma_i": "1.20", "gamma_b": "1.10"},
+    "bending_restorability": {"page": "9-23", "ratio": "0.098", "Myd_kNm": "48663.2", "Md_kNm": "3955.8", "Nd_kN": "14404.5", "gamma_i": "1.20", "gamma_b": "1.00"},
+    "skipped_by_capacita": ["shear_durability", "bending_serviceability"]
+  }
+}

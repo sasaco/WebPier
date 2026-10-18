@@ -1,15 +1,16 @@
 {
   "schema_version": 1,
   "kind": "capacita_column_check_acceptance",
+  "stage": "0611",
   "date": "2026-10-18",
-  "verified_at": "2026-10-18T20:03:19+09:00",
-  "method": "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値をExample2 08_線路.pdf の 8-15・8-26 と比べた。",
+  "verified_at": "2026-10-18T21:13:44+09:00",
+  "method": "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の 8-15・8-26 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
     "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
   },
-  "implementation_sha256": "6f232ce57226584ff05e9c63f3453f77b88583ca354efbb96c1e31074189d15b",
+  "implementation_sha256": "dd010a012f96cbfc05ceaef1d0f6f924cb4060dc6ccb6a6d34ffb86aee99a23f",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",
@@ -19,6 +20,7 @@
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358"
   },
+  "point_index": 6,
   "wdj_given_sha256": "2b669c5179be1069ae618e5c30435c3267cad17e8de2cb0d8c465453295294ba",
   "pik_sha256": "f42d0e7c462d0a8558c50d23505665767b743e7befdadd8c6c8be8296c02dbbe",
   "completed_wdj_sha256": "799dc1246160d00558d79b7a24fd7655f52e5c6aedb11202f69623a794ed615a",
@@ -65,7 +67,8 @@
         "first": 12,
         "last": 13
       }
-    ]
+    ],
+    "skipped": []
   },
   "values": {
     "bending_safety_destruction": {

@@ -39,6 +39,7 @@ from gridlayoutpdf import LayoutError
 from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..export.aggrese import ProjectError
+from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
 from . import capacita, jrsnap
 from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
@@ -373,6 +374,13 @@ def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections:
         raise GenerationError(str(exc)) from exc
 
 
+def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str, pik: bytes) -> bytes:
+    try:
+        return check.build(own, pier, pik)
+    except PickupError as exc:
+        raise GenerationError(f"{pik_name} で柱の断面照査の WDJ を作れません: {exc}") from exc
+
+
 def _jrsnap_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
     if not any(registry.get(stage_id).data_check or registry.get(stage_id).nonlinear_analysis is not None
                for stage_id in selected):
@@ -472,10 +480,10 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         for stage_id in selected:
             if (check := registry.get(stage_id).section_check) is not None:
                 own = _own(registry, results, stage_id)
-                given[stage_id] = check.build(own, pier)
-                inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id],
-                                                    analyzed[stage_id].files["pik"], capacita_runner,
-                                                    tuple(check.sections(own)))
+                pik = analyzed[stage_id].files["pik"]
+                given[stage_id] = _build_wdj(check, own, pier, _pik_name(registry, stage_id), pik)
+                inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id], pik,
+                                                    capacita_runner, tuple(check.sections(own)))
         for post in posts:
             if post.native.folder:
                 folder = staging.path_for(post.native.path)
@@ -508,7 +516,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     "engine": capacita.ENGINE, "engine_version": inspected[stage_id].engine_version,
                     "engineering_status": "not_evaluated",
                     "wdj": {"file": registry.get(stage_id).section_check.file_name,
-                            "sha256": sha256(inspected[stage_id].wdj)}}
+                            "sha256": sha256(inspected[stage_id].wdj)},
+                    "skipped_sections": list(inspected[stage_id].skipped)}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn, checked) if post.export is not None

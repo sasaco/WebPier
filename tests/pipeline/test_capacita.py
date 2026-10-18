@@ -1,10 +1,11 @@
-"""The Capacita runner of the 0611 柱の断面照査 (decision 48, ADR-0008).
+"""The Capacita runner of the 0611 / 0621 柱の断面照査 (decision 48, ADR-0008).
 
 The runner is found from STRUCTURAL_MCP_WEBDAN_RUNNER (environment, then .env; the name structural-mcp uses) and called
 as ``run-rc --pickup`` with the WDJ and the PIK of the same generation. Its envelope, its three files and the page
-ranges of the report sections are checked as the Capacita README states. Every case but the last uses the stand-in of
-tests/fixtures/capacita/fake_runner.py (tests/conftest.py); the last runs the real runner on the Example2 input, only
-when one is set up.
+ranges of the report sections are checked as the Capacita README states; a section asked for may be missing only with
+Capacita's code for a check skipped for zero section forces. Every case but the last two uses the stand-in of
+tests/fixtures/capacita/fake_runner.py (tests/conftest.py); the last two run the real runner on the Example2 input in
+both directions, only when one is set up.
 """
 
 from __future__ import annotations
@@ -78,6 +79,28 @@ def test_the_stand_in_checks_the_given_wdj_with_the_given_pik(fake_capacita_runn
     assert checked.section("shear_restorability") == (9, 9)
 
 
+def test_a_section_capacita_skipped_for_zero_forces_is_missing_with_its_code(fake_capacita_runner: Path,
+                                                                           monkeypatch: pytest.MonkeyPatch):
+    """WD-1906 (耐久性せん断) and WD-1901 (使用性曲げ): RcDan CheckValidation, as Example2 across the track."""
+    monkeypatch.setenv("FAKE_CAPACITA", "skip")
+    checked = check_column(WDJ, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS)
+    assert checked.skipped == ("shear_durability", "bending_serviceability")
+    assert [section.id for section in checked.sections] == [name for name in SECTIONS if name not in checked.skipped]
+    assert checked.section("shear_durability") is None and checked.section("bending_restorability") == (6, 6)
+    with pytest.raises(KeyError):
+        checked.section("torsion_durability")
+    monkeypatch.setenv("FAKE_CAPACITA", "skipnocode")
+    with pytest.raises(RunnerError, match="計算書の節が違います"):
+        check_column(WDJ, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS)
+
+
+def test_the_codes_of_the_skipped_checks_are_capacitas():
+    """RcDan ErrorMessage_1000_1999 (ZeroForce_RailH16_*): the H16 messages of every body."""
+    assert capacita.SKIPPED == {"bending_serviceability": "WD-1901", "bending_safety_destruction": "WD-1902",
+                                "bending_restorability": "WD-1904", "shear_durability": "WD-1906",
+                                "shear_safety_destruction": "WD-1907", "shear_restorability": "WD-1908"}
+
+
 def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
     without = json.dumps({"crack": [{"vis_u": False}]}).encode("utf-8")
     expected = tuple(name for name in SECTIONS if name != "bending_serviceability")
@@ -125,20 +148,37 @@ def _timeout(*args, **kwargs):
 def test_the_real_runner_checks_the_example2_column(real_capacita_runner: Path):
     """The real Capacita on the WDJ of the Example2 input and the sample PIK of 08_線路 (FEMPython's layout: member 3
     is the column, its JTAN the column bottom); skipped without a runner set up in .env."""
-    from webpier.calc.column_check import calculate_column_check
+    checked = _real(real_capacita_runner, "08_線路", "線路方向.pik", transverse=False)
+    assert [section.id for section in checked.sections] == list(SECTIONS) and checked.skipped == ()
+    assert len(texts(checked.pdf)) == checked.sections[-1].last
+    completed_document = json.loads(checked.wdj.decode("utf-8"))
+    assert completed_document["pickup_filename"] == "線路方向.pik" and completed_document["pickup_data"]
+
+
+def test_the_real_runner_skips_the_zero_force_checks_across_the_track(real_capacita_runner: Path):
+    """Across the track the permanent actions are symmetric: the real Capacita skips the serviceability and the
+    shear durability checks with WD-1901 and WD-1906 (column_section_check_09.json, skipped_by_capacita)."""
+    checked = _real(real_capacita_runner, "09_直角", "線路直角方向.pik", transverse=True)
+    sample = json.loads((Path(__file__).parents[1] / "fixtures" / "example2" / "column_section_check_09.json")
+                        .read_text(encoding="utf-8"))
+    assert sorted(checked.skipped) == sorted(sample["acceptance"]["skipped_by_capacita"])
+    assert [section.id for section in checked.sections] == [name for name in SECTIONS if name not in checked.skipped]
+
+
+def _real(runner: Path, sample: str, pik_name: str, *, transverse: bool) -> capacita.ColumnCheckPages:
+    from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
     from webpier.calc.foundation import calculate_foundation
     from webpier.calc.longitudinal import calculate_longitudinal
     from webpier.calc.reaction import calculate_reaction
-    from webpier.export.capacita import build_wdj, write_wdj
+    from webpier.calc.transverse import calculate_transverse
+    from webpier.export.capacita import build_wdj, point_index, write_wdj
     from webpier.inputs import parse_input
 
     root = Path(__file__).parents[2]
     pier = parse_input(json.loads((root / "tests" / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8")))
-    reaction = calculate_reaction(pier)
-    check = calculate_column_check(pier, calculate_longitudinal(pier, calculate_foundation(pier), reaction))
-    pik = (root / ".claude" / "docs" / "Example橋脚2" / "08_線路" / "frameWebForJS.pik").read_bytes()
-    checked = check_column(write_wdj(build_wdj(check)), "線路方向.pik", pik, real_capacita_runner, check.sections)
-    assert [section.id for section in checked.sections] == list(SECTIONS)
-    assert len(texts(checked.pdf)) == checked.sections[-1].last
-    completed_document = json.loads(checked.wdj.decode("utf-8"))
-    assert completed_document["pickup_filename"] == "線路方向.pik" and completed_document["pickup_data"]
+    reaction, foundation = calculate_reaction(pier), calculate_foundation(pier)
+    check = (calculate_column_check(pier, calculate_transverse(pier, foundation, reaction), TRANSVERSE) if transverse
+             else calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL))
+    pik = (root / ".claude" / "docs" / "Example橋脚2" / sample / "frameWebForJS.pik").read_bytes()
+    return check_column(write_wdj(build_wdj(check, point_index(pik, check.member))), pik_name, pik, runner,
+                        check.sections)

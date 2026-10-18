@@ -1,11 +1,12 @@
-"""0611 柱の断面照査 (decision 48, ADR-0008): the conditions Capacita is given, from the input, the column layout and
-0610.
+"""0611 / 0621 柱の断面照査 (decision 48, ADR-0008): the conditions Capacita is given, from the input, the column
+layout and 0610 / 0620.
 
-The expected values are the independent transcription tests/fixtures/example2/column_section_check.json of the sample
-08_線路/WebDan.wdj (its notes list the deliberate differences); nothing here is computed by the code under test. The
-check point is the column bottom found from the roles of the frame, the bars come from the 方向別の鉄筋配置表 of the
-bending direction (線路), the extraction cases from the 0610 extraction groups, and the safety factors, fsu, kr and k4
-are named program constants. A layout the WDJ cannot express is an input error naming its path.
+The expected values are the independent transcriptions tests/fixtures/example2/column_section_check.json of the
+sample 08_線路/WebDan.wdj and column_section_check_09.json of 09_直角/WebDan.wdj (their notes list the deliberate
+differences); nothing here is computed by the code under test. The check point is the column bottom found from the
+roles of the frame, the bars come from the 方向別の鉄筋配置表 of the bending direction (線路 for 0611, 直角 for
+0621), the extraction cases from the extraction groups of 0610 / 0620, and the safety factors, fsu, kr and k4 are
+named program constants. A layout the WDJ cannot express is an input error naming its path.
 """
 
 import json
@@ -15,11 +16,13 @@ from pathlib import Path
 
 import pytest
 
-from webpier.calc.column_check import K4, KR, SAFETY_FACTORS, calculate_column_check, tensile_strength
+from webpier.calc.column_check import (K4, KR, LONGITUDINAL, SAFETY_FACTORS, TRANSVERSE, calculate_column_check,
+                                       tensile_strength)
 from webpier.calc.column_rebar import column_layout
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
+from webpier.calc.transverse import calculate_transverse
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import parse_input
@@ -27,6 +30,7 @@ from webpier.inputs import parse_input
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = json.loads((FIXTURES / "inputs" / "current.json").read_text(encoding="utf-8"))
 SAMPLE = json.loads((FIXTURES / "example2" / "column_section_check.json").read_text(encoding="utf-8"))
+SAMPLE_09 = json.loads((FIXTURES / "example2" / "column_section_check_09.json").read_text(encoding="utf-8"))
 MAIN = "鉄筋/柱/main_rows"
 HOOPS = "鉄筋/柱/column_hoops/direction_rows"
 CHECK = "柱の断面照査"
@@ -45,10 +49,12 @@ def document(**changes):
     return data
 
 
-def check(data=None, **changes):
+def check(data=None, *, transverse=False, **changes):
     pier = parse_input(data if data is not None else document(**changes))
-    reaction = calculate_reaction(pier)
-    return calculate_column_check(pier, calculate_longitudinal(pier, calculate_foundation(pier), reaction))
+    reaction, foundation = calculate_reaction(pier), calculate_foundation(pier)
+    if transverse:
+        return calculate_column_check(pier, calculate_transverse(pier, foundation, reaction), TRANSVERSE)
+    return calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL)
 
 
 def fails(message, data=None, **changes):
@@ -59,6 +65,11 @@ def fails(message, data=None, **changes):
 @pytest.fixture(scope="module")
 def example():
     return check()
+
+
+@pytest.fixture(scope="module")
+def across():
+    return check(transverse=True)
 
 
 def test_the_check_point_is_the_bottom_of_the_column(example):
@@ -278,3 +289,77 @@ def test_the_report_sections_follow_the_checks_asked_for(example):
                                 "bending_restorability", "shear_restorability")
     without = check(**{f"{CHECK}/外観の照査": "行わない"}).sections
     assert without == tuple(section for section in example.sections if section != "bending_serviceability")
+
+
+# --- 0621: across the track (the sample 09_直角/WebDan.wdj) -----------------------------------------------------------
+
+
+def test_across_the_track_the_check_point_is_the_bottom_of_the_column_of_0620(across):
+    point = SAMPLE_09["check_point"]
+    assert (across.direction, across.member, across.length) == (TRANSVERSE, point["member"],
+                                                                 Printed(point["position_m"], 3, "m"))
+
+
+def test_across_the_track_the_section_is_turned(across):
+    member = SAMPLE_09["member"]
+    assert (across.width, across.depth) == (Printed(member["B"], 1, "mm"), Printed(member["H"], 1, "mm"))
+
+
+@pytest.mark.parametrize("face,key", [("upper", "rebar1"), ("lower", "rebar2")])
+def test_across_the_track_the_main_bars_are_the_rows_of_the_cross_faces(across, face, key):
+    bars, sample = getattr(across, face), SAMPLE_09["bar"][key]
+    assert (bars.diameter.value, bars.count, bars.layers) == (sample["rebar_dia"], sample["rebar_n"], 1)
+    assert (bars.cover.value, bars.spacing.value) == (sample["rebar_cover"], sample["rebar_ss"])
+
+
+def test_across_the_track_the_side_bars_with_the_corner_bars_are_spaced_by_capacita(across):
+    """The track rows' D32 at 108, 300 … 4200, 4392 (192, 150 … 150, 192 apart): the number only, as the sample (owner,
+    2026-10-18)."""
+    side, sample = across.side, SAMPLE_09["bar"]["sidebar1"]
+    assert (side.diameter.value, side.count, side.first, side.spacing) == (
+        sample["side_dia"], sample["side_n"], sample["side_cover"], sample["side_ss"])
+
+
+def test_across_the_track_the_hoops_are_the_cross_row(across):
+    hoops, sample = across.hoops, SAMPLE_09["bar"]["stirrup"]
+    assert (hoops.diameter.value, hoops.legs, hoops.pitch.value) == (
+        sample["stirrup_dia"], sample["stirrup_n"], sample["stirrup_ss"])
+
+
+def test_across_the_track_the_cases_and_conditions_are_those_of_08(across, example):
+    """The sample's two WDJ files share them (same_as_08); 0620 has the extraction groups of 0610 (9-15)."""
+    assert "pickup" in SAMPLE_09["same_as_08"] and "crack" in SAMPLE_09["same_as_08"]
+    for name in ("moment_cases", "shear_cases", "torsion_cases", "safety", "environment", "appearance", "ecsd", "body",
+                 "kr", "k4", "fck", "aggregate_max", "main_steel", "hoop_steel", "sections"):
+        assert getattr(across, name) == getattr(example, name), name
+
+
+CORNER = frozenset({(Printed(108, 1, "mm"), Printed(942, 1, "mm"))})
+
+
+@pytest.mark.parametrize("centres,message", [
+    ((108, 300, 450, 600, 750, 942), None),  # the corner bars at the ends, equally spaced between them
+    ((108, 258, 408, 558, 708, 858), None),  # equally spaced: written at their centres (not the corner case)
+    ((108, 300, 450, 650, 800, 942), "隅の鉄筋の間の側方鉄筋の間隔が一定ではない"),  # uneven between the corners
+    ((120, 300, 450, 600, 750, 942), "側方鉄筋の間隔が一定ではない"),  # the first is not a corner bar
+    ((108, 300, 942), "側方鉄筋の間隔が一定ではない"),  # nothing between the corner bars to space
+])
+def test_side_bars_are_spaced_by_capacita_only_between_corner_bars(centres, message):
+    from webpier.calc.column_check import _side
+    from webpier.calc.column_rebar import TableRow
+    rows = tuple(TableRow(Printed(centre, 1, "mm"), Printed(32, 0, "mm"), 2, "SD390") for centre in centres)
+    if message is not None:
+        with pytest.raises(InputError, match=re.escape(f"鉄筋.柱.main_rows: {message}ため表せません")):
+            _side(rows, "線路", CORNER)
+        return
+    side, _ = _side(rows, "線路", CORNER)
+    corner = centres[1] - centres[0] != centres[2] - centres[1]
+    assert (side.count, side.first, side.spacing) == (
+        (len(centres), None, None) if corner else (len(centres), Printed(108, 1, "mm"), Printed(150, 1, "mm")))
+
+
+def test_the_corner_bars_are_the_end_bars_of_a_row_at_its_own_cover():
+    from webpier.calc.column_check import corners
+    layout = column_layout(parse_input(document()))
+    assert corners(layout, "線路") == {(Printed(108, 1, "mm"), Printed(4392, 1, "mm"))}  # D32 at 108 from both faces
+    assert corners(layout, "直角") == frozenset()  # D19 from 350: not at the corners

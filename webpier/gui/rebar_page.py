@@ -163,7 +163,7 @@ class RebarPage:
                       style="Muted.TLabel").pack(anchor="w")
         elif self.group == "check":
             self.form.properties(self.inputs, [((CHECK, key), label) for key, label in CHECK_LABELS])
-            ttk.Label(self.inputs, text="柱の断面照査（0611）の条件です。線路方向・線路直角方向で共通です。",
+            ttk.Label(self.inputs, text="柱の断面照査（0611・0621）の条件です。線路方向・線路直角方向で共通です。",
                       style="Muted.TLabel").pack(anchor="w")
         elif self.group == "bands":
             self._rows_table("band_rows", "スターラップ・帯鉄筋")

@@ -14,7 +14,7 @@ Windows専用です。リポジトリのルートで実行します。初回は 
 uv run --project "." --locked python -m webpier                     # 全段階（--stage all）
 uv run --project "." --locked python -m webpier --overwrite         # 既存の成果物を更新する
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite
-uv run --project "." --locked python -m webpier --frame-analysis --overwrite  # 全段階＋骨組解析（0611・0621）と柱の断面照査（0611）
+uv run --project "." --locked python -m webpier --frame-analysis --overwrite  # 全段階＋骨組解析と柱の断面照査（0611・0621）
 uv run --project "." --locked python -m webpier --nonlinear-analysis --overwrite  # 全段階＋静的非線形解析（0711・0721）
 uv run --project "." --locked python "./run_design.py" --overwrite  # python -m webpier と同じ
 ```
@@ -38,7 +38,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `線路方向.json` と付帯JSON |
 | 0611（選択式） | 0610 | `0611_線路方向照査.pdf` / `.json`（柱の断面照査） | `線路方向.pik`・`線路方向_ピックアップ変位量.csv`・`線路方向_ピックアップ反力.csv`・`線路方向.wdj` と各付帯JSON |
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
-| 0621（選択式） | 0620 | — | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv` と各付帯JSON |
+| 0621（選択式） | 0620 | `0621_直角方向照査.pdf` / `.json`（柱の断面照査） | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv`・`線路直角方向.wdj` と各付帯JSON |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
 | 0711（選択式） | 0710 | — | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json`、Aggre-SE のプロジェクト `線路方向.xml` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
@@ -46,7 +46,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 
 `--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
-0611・0621 は骨組解析の段階です（決定46、ADR-0006）。0621 は計算書（PDF・結果JSON）を持たず、`post/` のファイルだけを公開します。0611 は骨組解析に続けて柱の断面照査を行い、その計算書を持ちます（決定48、下記）。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、0611 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`、付帯JSON7つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
+0611・0621 は骨組解析の段階です（決定46、ADR-0006）。どちらも骨組解析に続けて柱の断面照査を行い、その計算書を持ちます（決定48、下記）。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、0611・0621 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`・`線路直角方向.wdj`、付帯JSON8つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
 0610・0620 の荷重図は、同じ生成で書いた FrameWeb 入力を FEMPython の `FrameWebforCS.Headless.exe` に描かせて計算書に差し込みます（決定44、ADR-0005）。runner の絶対パスをリポジトリのルートの `.env`（git で追跡しません）に書いてください。プロセスの環境変数に同じ名前があればそちらが優先です。
 
@@ -56,13 +56,13 @@ STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPyt
 
 設定がない・runner がない・runner が荷重図を描けない（骨組解析できない）ときは、0610・0620（0611・0621）を含む生成は何も公開せずに止まります（終了コード 2）。荷重図や骨組解析を省いて続けることはしません。
 
-0611 の柱の断面照査（決定48、ADR-0008）は Capacita（structural-mcp の `Capacita`、RcDan）が行います。WebPier は柱下端の1断面について WDJ を作り（断面・配筋・抽出ケースの対応・安全係数・ひび割れの条件・適用基準。断面力は持たない）、同じ生成の `線路方向.pik` のバイトとともに `WebDanforCS.Headless.exe run-rc --output-format pdf --pickup <pik>` に渡します。Capacita は GUI の「断面力データ取込」と同じ変換でピックアップを取り込んで計算し、計算書（`report.pdf`）と、節ごとのページ範囲（`summary.reportSections`）と、取り込んだ完成の WDJ を返します。WebPier は 8.5〜8.9 の見出しと解説（照査式・記号・曲げひび割れの検討のフローチャート）だけを描き、それぞれの後に Capacita の計算書のその節のページを差し込みます（8.5 断面力の総括、8.6 安全性（破壊）の曲げ・せん断、8.7 耐久性の曲げひび割れ・せん断ひび割れ、8.8 使用性（外観）、8.9 復旧性の曲げ・せん断）。外観の照査を「行わない」入力では 8.8 を置かず、8.9 の番号はそのままです。解説には WDJ に書いた γi・γb・kr・k4・ε'csd と入力の環境条件を印刷し、Capacita の中にだけある制限値の表は印刷しません（使った値は差し込むページにあります）。完成の WDJ は `post/線路方向.wdj` として付帯JSONとともに公開し、Capacita の GUI で開けます。Capacita は照査値も判定も返さないので、結果JSONには照査を実行したことだけを `section_check`（`engine`・`engine_version`・`engineering_status: not_evaluated`・公開した WDJ のファイル名と SHA256）に記録します。判定は計算書のページで確かめてください（NG でも生成は止まりません）。runner の絶対パスは `.env` に書きます（structural-mcp と同じ旧名。プロセスの環境変数が優先）。
+0611（線路方向）・0621（直角方向）の柱の断面照査（決定48、ADR-0008）は Capacita（structural-mcp の `Capacita`、RcDan）が行います。2つの段階は方向（主鉄筋の面・側方鉄筋の面・帯鉄筋の行・断面の向き）と節の番号（0611 は 8.5〜8.9、0621 は 9.5〜9.9）だけが違います。WebPier は柱下端の1断面について WDJ を作り（断面・配筋・抽出ケースの対応・安全係数・ひび割れの条件・適用基準。断面力は持たない。柱下端の着目点の番号は PIK の着目点の並びから求め、断面力は読まない）、同じ生成の `線路方向.pik`（`線路直角方向.pik`）のバイトとともに `WebDanforCS.Headless.exe run-rc --output-format pdf --pickup <pik>` に渡します。Capacita は GUI の「断面力データ取込」と同じ変換でピックアップを取り込んで計算し、計算書（`report.pdf`）と、節ごとのページ範囲（`summary.reportSections`）と、取り込んだ完成の WDJ を返します。WebPier は 8.5〜8.9（9.5〜9.9）の見出しと解説（照査式・記号・曲げひび割れの検討のフローチャート）だけを描き、それぞれの後に Capacita の計算書のその節のページを差し込みます（8.5 断面力の総括、8.6 安全性（破壊）の曲げ・せん断、8.7 耐久性の曲げひび割れ・せん断ひび割れ、8.8 使用性（外観）、8.9 復旧性の曲げ・せん断）。外観の照査を「行わない」入力では 8.8 を置かず、8.9 の番号はそのままです。Capacita が断面力0で照査を飛ばした節（RC標準の省略の規則。Capacita は節を返さず、info のメッセージ WD-1901〜1908 で理由を返す）は、見出しと解説の後に省略の理由の1文を印刷し、ページは差し込みません（Example2 の 0621 では、永久作用が左右対称なので 9.7(2) せん断ひび割れと 9.8 使用性）。直角方向の側方鉄筋が隅の鉄筋を含んで間隔が両端だけ違うとき（Example2 の線路の D32）は、見本どおり位置を書かずに本数だけを書き、Capacita が上下の主鉄筋の間に等分に配置します。解説には WDJ に書いた γi・γb・kr・k4・ε'csd と入力の環境条件を印刷し、Capacita の中にだけある制限値の表は印刷しません（使った値は差し込むページにあります）。完成の WDJ は `post/線路方向.wdj`（`post/線路直角方向.wdj`）として付帯JSONとともに公開し、Capacita の GUI で開けます。Capacita は照査値も判定も返さないので、結果JSONには照査を実行したことだけを `section_check`（`engine`・`engine_version`・`engineering_status: not_evaluated`・公開した WDJ のファイル名と SHA256）に、飛ばした節を `skipped_sections` に記録します。判定は計算書のページで確かめてください（NG でも生成は止まりません）。runner の絶対パスは `.env` に書きます（structural-mcp と同じ旧名。プロセスの環境変数が優先）。
 
 ```
 STRUCTURAL_MCP_WEBDAN_RUNNER='C:\Users\<user>\Documents\structural-mcp\Capacita\WebDanforCS\Headless\bin\Release\net8.0\WebDanforCS.Headless.exe'
 ```
 
-設定がない・runner がない・Capacita が計算できない（取込みの失敗を含む）・計算書の節が求めたものと違うときは、0611 を含む生成は何も公開せずに止まります（終了コード 2）。差し込む Capacita のページは毎回同じバイトになるとは限りません（荷重図と同じ例外。WebPier が描くページと結合の手順は決定的です）。
+設定がない・runner がない・PIK に柱下端の着目点がない・Capacita が計算できない（取込みの失敗を含む）・計算書の節が求めたものと違う（省略のメッセージのない欠けを含む）ときは、0611・0621 を含む生成は何も公開せずに止まります（終了コード 2）。差し込む Capacita のページは毎回同じバイトになるとは限りません（荷重図と同じ例外。WebPier が描くページと結合の手順は決定的です）。
 
 0710・0720 の計算書には、検討モデル（10.1・11.1）の後に JRSNAP のデータ確認図（`S_DataCheck.exe`）のページを差し込みます（決定50）。同じ生成で一度だけ組み立てた NDU のバイトを、同じ名前で JRSNAP の Headless runner（`JRSNAP.Headless.exe data-check`）に渡し、runner は 0711 と同じ書出しで .NDT を作って、組合せ1の .NDT から次の図を1つずつ PDF にします。
 

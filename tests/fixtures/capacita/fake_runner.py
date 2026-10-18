@@ -1,4 +1,4 @@
-"""A stand-in for ``WebDanforCS.Headless.exe run-rc --pickup``: the 柱の断面照査 of 0611 (decision 48, ADR-0008).
+"""A stand-in for ``WebDanforCS.Headless.exe run-rc --pickup``: the 柱の断面照査 of 0611 and 0621 (decision 48, ADR-0008).
 
 It follows the runner's protocol as WebPier uses it (Capacita README「Headless runner の run-rc」): the arguments of
 ``webpier.pipeline.capacita`` (``run-rc --input <wdj> --output-dir <dir> --output-format pdf --pickup <pik>``), an
@@ -18,7 +18,10 @@ When the real runner's protocol changes, change this too (the real-runner test i
 it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
 listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), extra (an unlisted file), sections
 (no reportSections), order (the sections reversed), gap (the last section ends past the PDF), hole (the second
-section starts a page late), broken (report.pdf is not a PDF).
+section starts a page late), broken (report.pdf is not a PDF). Two modes stand for Capacita skipping checks for zero
+section forces (RcDan CheckValidation, as across the track in Example2): skip (shear_durability and
+bending_serviceability left out, with the info messages WD-1906 and WD-1901), skipnocode (shear_durability left
+out without its message).
 """
 
 import hashlib
@@ -86,8 +89,12 @@ def main(argv):
     wdj = source.read_bytes()
     document = json.loads(wdj.decode("utf-8"))
     digest = hashlib.sha256(wdj).hexdigest()
+    skipped = {"skip": {"shear_durability": "WD-1906", "bending_serviceability": "WD-1901"},
+               "skipnocode": {"shear_durability": None}}.get(mode, {})
     shown = [(name, pages) for name, pages in SECTIONS
-             if name != "bending_serviceability" or document["crack"][0]["vis_u"]]
+             if (name != "bending_serviceability" or document["crack"][0]["vis_u"]) and name not in skipped]
+    messages = [{"level": "info", "code": code, "text": f"{name} をスキップしました"} for name, code in skipped.items()
+                if code is not None]
     pdf, ranges = report(shown, digest)
     if mode == "broken":
         pdf = b"not a pdf"
@@ -119,7 +126,7 @@ def main(argv):
         del summary["reportSections"]
     changes = {"protocol": {"protocolVersion": 2}, "engine": {"engine": "steeldan"}, "version": {"engineVersion": ""},
                "artifacts": {"artifacts": [*artifacts, artifacts[0]]}}.get(mode, {})
-    print(json.dumps({**envelope(True, artifacts, summary=summary), **changes}, ensure_ascii=False))
+    print(json.dumps({**envelope(True, artifacts, summary=summary, messages=messages), **changes}, ensure_ascii=False))
     return 0
 
 

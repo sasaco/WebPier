@@ -16,9 +16,9 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
 (decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
-results (decision 49). A stage with ``section_check`` (0611) also has Capacita check the column bottom with the
-PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages and section ranges,
-and the completed WDJ is published under post/. Such a stage is ``opt_in``: ``all`` leaves it out unless its
+results (decision 49). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
+the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages and section
+ranges, and the completed WDJ is published under post/. Such a stage is ``opt_in``: ``all`` leaves it out unless its
 switch is given (``--frame-analysis``, ``--nonlinear-analysis``), and so is every stage that reads one, with the same
 switch; chosen directly, it is calculated with its dependencies.
 """
@@ -30,7 +30,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..calc.column_check import calculate_column_check
+from ..calc.column_check import LONGITUDINAL as COLUMN_LONGITUDINAL, TRANSVERSE as COLUMN_TRANSVERSE
+from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.foundation import calculate_foundation
@@ -42,14 +43,15 @@ from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json
 from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
-from ..export.capacita import build_wdj, write_wdj
+from ..export.capacita import build_wdj, point_index, write_wdj
 from ..export.frameweb import build_frameweb, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION
 from ..inputs import PierInput
-from ..reporting.stages.column_check import render_column_check
+from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
+from ..reporting.stages.column_check import Chapter, render_column_check
 from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
@@ -106,15 +108,16 @@ class FrameAnalysis:
 class SectionCheck:
     """Capacita checks the column bottom with the PIK of the stage's own frame analysis (decision 48, ADR-0008).
 
-    ``build`` writes the WDJ (without pickup data) from the stage's results; ``sections`` names the sections of
-    Capacita's report the stage asks for (Capacita's ids, in order). The runner returns the report, which the stage's
-    ``render`` receives with its section ranges, and the completed WDJ, published under post/ as ``kind`` with a
-    provenance sidecar naming the PIK.
+    ``build`` writes the WDJ (without pickup data) from the stage's results and the PIK (only the place of the check
+    point among its points is read: export.capacita.point_index); ``sections`` names the sections of Capacita's report
+    the stage asks for (Capacita's ids, in order). The runner returns the report, which the stage's ``render``
+    receives with its section ranges and the sections Capacita skipped for zero forces, and the completed WDJ,
+    published under post/ as ``kind`` with a provenance sidecar naming the PIK.
     """
 
     kind: str  # "wdj"
     file_name: str  # e.g. "線路方向.wdj"
-    build: Callable[[Results, PierInput], bytes]
+    build: Callable[[Results, PierInput, bytes], bytes]  # (results, pier, PIK)
     sections: Callable[[Results], Sequence[str]]
 
 
@@ -326,6 +329,22 @@ def _pickups(stem: str) -> tuple[tuple[str, str], ...]:
             ("reaction", f"{stem}_ピックアップ反力.csv"))
 
 
+def _column_check(stage_id: str, stem: str, source: str, name: str, direction: Direction,
+                  chapter: Chapter) -> StageSpec:
+    """The frame analysis of the FrameWeb file of *source*, then Capacita's check of the column bottom in *direction*
+    with its PIK, as chapter *chapter* of the report (decisions 46, 48)."""
+    def wdj(results: Results, pier: PierInput, pik: bytes) -> bytes:
+        check = results[stage_id]
+        return write_wdj(build_wdj(check, point_index(pik, check.member)))
+
+    return StageSpec(stage_id, stem, (source,),
+                     lambda pier, results: calculate_column_check(pier, results[source], direction),
+                     lambda results, pier, path, pages: render_column_check(results[stage_id], pier, path, pages,
+                                                                            chapter),
+                     opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
+                     section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections))
+
+
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
 # A normal generation only writes the project; Aggre-SE reading it and checking with it are separate records.
@@ -345,21 +364,14 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
-    # The frame analysis, then Capacita's column section check with its PIK (decisions 46, 48).
-    StageSpec("0611", "0611_線路方向照査", ("0610",),
-              lambda pier, results: calculate_column_check(pier, results["0610"]),
-              lambda results, pier, path, pages: render_column_check(results["0611"], pier, path, pages),
-              opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("0610", "frameweb", _pickups("線路方向")),
-              section_check=SectionCheck("wdj", "線路方向.wdj", lambda results, pier: write_wdj(build_wdj(results["0611"])),
-                                         lambda results: results["0611"].sections)),
+    _column_check("0611", "0611_線路方向照査", "0610", "線路方向", COLUMN_LONGITUDINAL, CHAPTER_8),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
                                                                    pages),
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
               load_diagram="frameweb"),
-    StageSpec("0621", "0621_直角方向照査", ("0620",), opt_in=FRAME_ANALYSIS,
-              frame_analysis=FrameAnalysis("0620", "frameweb", _pickups("線路直角方向"))),
+    _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),

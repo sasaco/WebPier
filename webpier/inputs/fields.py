@@ -221,7 +221,7 @@ def _seismic_design() -> dict[str, Field]:
 
 
 def _column_check() -> dict[str, Field]:
-    # 柱の断面照査: shared by both directions; needed only by 0611 (decision 48).
+    # 柱の断面照査: shared by both directions; needed only by 0611 and 0621 (decision 48).
     section = "柱の断面照査"
     return {f"{section}.鋼材の腐食に対する環境条件": choice(choices.CORROSION_ENVIRONMENTS, nullable=True),
             f"{section}.外観の照査": choice(choices.APPEARANCE_CHECKS, nullable=True),

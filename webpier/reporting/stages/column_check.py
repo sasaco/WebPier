@@ -1,23 +1,29 @@
-"""0611 線路方向の照査: 8.5〜8.9 柱の断面照査 (decision 48, ADR-0008) on the ColumnCheckResult.
+"""0611 線路方向の照査 (8.5〜8.9) and 0621 直角方向の照査 (9.5〜9.9): 柱の断面照査 (decision 48, ADR-0008).
 
 WebPier lays out only the headings and the explanations (the check formulas, the symbols and the flowchart of the
 flexural crack check). Each part is followed by Capacita's pages of its section, cut from Capacita's report by the
-page ranges Capacita returns (its section ids): 8.5 the section force list, 8.6 safety (bending, shear), 8.7
-durability (flexural, shear cracks), 8.8 serviceability (appearance; only with the appearance check: without it
-there is no 8.8 and 8.9 keeps its number), 8.9 restorability (bending, shear). The chapter heading (§8) is not
-printed; the foundation check will be 8.10.
+page ranges Capacita returns (its section ids): n.5 the section force list, n.6 safety (bending, shear), n.7
+durability (flexural, shear cracks), n.8 serviceability (appearance; only with the appearance check: without it
+there is no n.8 and n.9 keeps its number), n.9 restorability (bending, shear), with n the ``Chapter`` of the stage (8
+for 0611, 9 for 0621; the two directions differ by nothing else). The chapter heading (§8, §9) is not printed; the
+foundation check will be n.10. A check Capacita skipped for zero section forces (pipeline.capacita.SKIPPED) keeps its
+heading and explanation, followed by the reason it is omitted instead of Capacita's pages (decision 48, owner
+2026-10-18; Example2 across the track: the serviceability and the shear durability checks).
 
-The explanations follow Example2 08 pp.8-14, 8-16, 8-18, 8-19, 8-21, 8-23 and 8-25. The values WebPier writes to the
-WDJ (γi, γb, kr, k4, ε'csd) and the corrosion environment of the input are printed from the same result; the values
-of RC標準 that only Capacita holds (σsl1, σsl2 and Wlim by environment, σbl, the coefficients of k1 to k3 and of z,
-γb of Vcd here) are not: the inserted result pages show the values used. Not reproduced from the reference: its
-truncated flowchart texts (the decision is written σb ≦ σbl), its 1.0 for γi of 8.9 (1) (the WDJ and the result
-page have 1.2; ADR-0001), and its omission of the restorability shear check (it is checked; decision 48).
+The explanations follow Example2 08 pp.8-14, 8-16, 8-18, 8-19, 8-21, 8-23 and 8-25 (09 pp.9-18, 9-20 and 9-22 are the
+same text). The values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd) and the corrosion environment of the input
+are printed from the same result; the values of RC標準 that only Capacita holds (σsl1, σsl2 and Wlim by environment,
+σbl, the coefficients of k1 to k3 and of z, γb of Vcd here) are not: the inserted result pages show the values used.
+Not reproduced from the reference: its truncated flowchart texts (the decision is written σb ≦ σbl), its 1.0 for γi
+of 8.9 (1) and 9.9 (1) (the WDJ and the result page have 1.2; ADR-0001), its omission of the restorability shear
+check (it is checked; decision 48), and the omission of 9.7 and 9.8 across the track (they are checked, or their
+omission is stated).
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -31,16 +37,41 @@ from ..equations import Definition  # values in the text: (= …), as Example2 8
 from ..styles import BODY, HEADING, grid_units
 from .frame_report import FigureSpec, Manuscript, Unit, blocks, value
 
-PREFIX = "0611/"
 COLON = 211.0  # the "：" of the 0500 "ここに、" lists (reporting-style.md): room for σwpd and ε'csd
 
 
+@dataclass(frozen=True)
+class Chapter:
+    """Where a stage's column check stands in the report: its section numbers and the prefix of its block ids."""
+
+    number: int  # n of n.5 … n.9, continuing the stage's load chapter
+    prefix: str
+
+
+LONGITUDINAL = Chapter(8, "0611/")  # after 0610 (8.1 〜 8.4)
+TRANSVERSE = Chapter(9, "0621/")  # after 0620 (9.1 〜 9.4)
+
+# Why a check Capacita skipped for zero section forces is omitted (pipeline.capacita.SKIPPED: RcDan CheckValidation),
+# by its section.
+OMITTED = {
+    "bending_safety_destruction": "曲げモーメントおよび圧縮の軸方向力が生じないため，曲げ耐力の照査を省略する．",
+    "shear_safety_destruction": "せん断力が生じないため，せん断に対する照査を省略する．",
+    "shear_durability": "永久作用と変動作用によるせん断力が生じないため，せん断ひび割れの検討を省略する．",
+    "bending_serviceability": "永久作用による曲げモーメントおよび引張の軸方向力が生じないため，外観に対する曲げひび割れの"
+                              "検討を省略する．",
+    "bending_restorability": "曲げモーメントが生じないため，曲げ耐力の照査を省略する．",
+    "shear_restorability": "せん断力が生じないため，せん断に対する照査を省略する．",
+}
+
+
 class ColumnCheckPages(Protocol):
-    """Capacita's report and the page range of each of its sections (pipeline.capacita.ColumnCheckPages)."""
+    """Capacita's report, the page range of each of its sections and the sections it skipped
+    (pipeline.capacita.ColumnCheckPages)."""
 
     pdf: bytes
+    skipped: tuple[str, ...]
 
-    def section(self, section_id: str) -> tuple[int, int]: ...
+    def section(self, section_id: str) -> tuple[int, int] | None: ...
 
 
 def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
@@ -76,13 +107,13 @@ def flowchart(key: str) -> FigureSpec:
 # --- the parts ----------------------------------------------------------------------------------------------------
 
 
-def _forces(m: Manuscript, result: ColumnCheckResult) -> None:
-    m.heading("forces.heading", "8.5 断面力の総括", 1)
+def _forces(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
+    m.heading("forces.heading", f"{n}.5 断面力の総括", 1)
 
 
-def _safety_moment(m: Manuscript, result: ColumnCheckResult) -> None:
+def _safety_moment(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     factors = _factors(result, 5)
-    m.heading("safety.heading", "8.6 安全性（破壊）の照査", 1, tag="【ＲＣ標準 7.2.2】")
+    m.heading("safety.heading", f"{n}.6 安全性（破壊）の照査", 1, tag="【ＲＣ標準 7.2.2】")
     m.heading("safety.moment.heading", "(1) 曲げ耐力の算定", 2)
     m.paragraph("safety.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                       "設計曲げ耐力Mudを設計限界値として，次式により行う．")
@@ -92,7 +123,7 @@ def _safety_moment(m: Manuscript, result: ColumnCheckResult) -> None:
                   Definition("γb", f"部材係数(= {value(factors.m_rbs)})"))
 
 
-def _safety_shear(m: Manuscript, result: ColumnCheckResult) -> None:
+def _safety_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     gamma_i = value(_factors(result, 5).ri)
     m.heading("safety.shear.heading", "(2) せん断に対する照査", 2, tag="【ＲＣ標準 7.2.3】")
     m.paragraph("safety.shear.text", "せん断力を受ける部材の照査は，設計せん断力Vdを設計応答値とし，部材ごとにa/dの値に"
@@ -122,7 +153,7 @@ def _crack_method(m: Manuscript, key: str) -> None:
     m.paragraph(f"{key}.method.text", "曲げひび割れに対する部材の検討は，全断面を有効としたコンクリートの縁引張応力度σbが"
                                       "断面高さに応じた縁引張応力度の制限値σbl以下の場合は，永久作用による引張鉄筋の"
                                       "応力度σsによる検討を行い，σbがσblを超える場合は，曲げひび割れ幅Wdによる検討を行う．")
-    m.figure(f"{key}.flowchart", flowchart(PREFIX + f"{key}.flowchart.figure"))
+    m.figure(f"{key}.flowchart", flowchart(m.prefix + f"{key}.flowchart.figure"))
     m.heading(f"{key}.stress.heading", "2) 永久作用による引張鉄筋の応力度による検討", 3)
     m.paragraph(f"{key}.stress.text", "永久作用による引張鉄筋の応力度σsが，永久作用による引張鉄筋応力度の制限値σsl1に"
                                       "対し，次式を満たすことを検討する．")
@@ -149,15 +180,15 @@ def _crack_width(m: Manuscript, key: str, result: ColumnCheckResult, gamma_i: st
                   Definition("Es", "鋼材のヤング係数"), Definition("Wlim", limit))
 
 
-def _durability_flexure(m: Manuscript, result: ColumnCheckResult) -> None:
-    m.heading("durability.heading", "8.7 耐久性の照査", 1)
+def _durability_flexure(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
+    m.heading("durability.heading", f"{n}.7 耐久性の照査", 1)
     m.paragraph("durability.environment", f"鋼材の腐食に対する環境条件は「{result.environment}」とする．")
     m.heading("durability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "durability.flexure")
     _crack_width(m, "durability.flexure", result, value(_factors(result, 0).ri), "ひび割れ幅の制限値")
 
 
-def _durability_shear(m: Manuscript, result: ColumnCheckResult) -> None:
+def _durability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     m.heading("durability.shear.heading", "(2) せん断ひび割れの検討", 2)
     m.heading("durability.shear.omit.heading", "1) せん断ひび割れの検討を省略できる部材", 3)
     m.paragraph("durability.shear.omit.text", "永久作用と変動作用が組み合わされたときの設計せん断力Vdが，せん断補強鋼材を"
@@ -183,16 +214,16 @@ def _durability_shear(m: Manuscript, result: ColumnCheckResult) -> None:
                   Definition("σsl2", "永久作用による鉄筋応力度の制限値"))
 
 
-def _serviceability(m: Manuscript, result: ColumnCheckResult) -> None:
-    m.heading("serviceability.heading", "8.8 使用性の照査", 1)
+def _serviceability(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
+    m.heading("serviceability.heading", f"{n}.8 使用性の照査", 1)
     m.heading("serviceability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "serviceability.flexure")
     _crack_width(m, "serviceability.flexure", result, value(_factors(result, 0).ri), "外観に対するひび割れ幅の制限値")
 
 
-def _restorability_moment(m: Manuscript, result: ColumnCheckResult) -> None:
+def _restorability_moment(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     factors = _factors(result, 6)
-    m.heading("restorability.heading", "8.9 復旧性の照査", 1, tag="【ＲＣ標準 9.2】")
+    m.heading("restorability.heading", f"{n}.9 復旧性の照査", 1, tag="【ＲＣ標準 9.2】")
     m.heading("restorability.moment.heading", "(1) 曲げ耐力の算定", 2)
     m.paragraph("restorability.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                              "設計曲げ降伏耐力Mydを設計限界値として，次式により行う．")
@@ -202,7 +233,7 @@ def _restorability_moment(m: Manuscript, result: ColumnCheckResult) -> None:
                   Definition("γb", f"部材係数(= {value(factors.m_rbs)})"))
 
 
-def _restorability_shear(m: Manuscript, result: ColumnCheckResult) -> None:
+def _restorability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     factors = _factors(result, 6)
     m.heading("restorability.shear.heading", "(2) せん断に対する照査", 2, tag="【ＲＣ標準 9.2】")
     m.paragraph("restorability.shear.text", "せん断力を受ける部材の照査は，設計せん断力Vdを設計応答値，設計せん断耐力Vydを"
@@ -218,12 +249,16 @@ _PARTS = {"section_forces": _forces, "bending_safety_destruction": _safety_momen
           "bending_restorability": _restorability_moment, "shear_restorability": _restorability_shear}
 
 
-def parts(result: ColumnCheckResult) -> tuple[tuple[tuple[Unit, ...], str], ...]:
-    """WebPier's manuscript before each of Capacita's sections, with that section's id, in report order."""
+def parts(result: ColumnCheckResult, chapter: Chapter,
+          skipped: Sequence[str] = ()) -> tuple[tuple[tuple[Unit, ...], str], ...]:
+    """WebPier's manuscript before each of Capacita's sections, with that section's id, in report order. A section in
+    *skipped* (Capacita skipped the check for zero forces) ends with the reason it is omitted, its own group."""
     found = []
     for section in result.sections:
-        m = Manuscript(PREFIX)
-        _PARTS[section](m, result)
+        m = Manuscript(chapter.prefix)
+        _PARTS[section](m, result, chapter.number)
+        if section in skipped:
+            m.paragraph(f"{section}.omitted", OMITTED[section])
         found.append((tuple(m.units), section))
     return tuple(found)
 
@@ -236,7 +271,8 @@ def _blocks(units: Sequence[Unit]) -> list:
     run: list[Unit] = []
     for unit in units:
         previous = run[-1].kind if run else None
-        if run and not run[-1].keep and (unit.kind == "definitions" or unit.kind == "line" and previous != "line"):
+        if run and not run[-1].keep and (unit.kind == "definitions" or unit.kind == "line" and previous != "line"
+                                         or unit.key.endswith(".omitted")):
             found += blocks(run)
             blank(found)
             run = []
@@ -259,19 +295,23 @@ def _document(units: Sequence[Unit]) -> Document:
     return report(*found)
 
 
-def build_column_check(result: ColumnCheckResult) -> tuple[Document, ...]:
-    """WebPier's documents of 0611, one before each of Capacita's sections, without Capacita's pages."""
-    return tuple(_document(units) for units, _ in parts(result))
+def build_column_check(result: ColumnCheckResult, chapter: Chapter,
+                       skipped: Sequence[str] = ()) -> tuple[Document, ...]:
+    """WebPier's documents of 0611 or 0621, one before each of Capacita's sections, without Capacita's pages."""
+    return tuple(_document(units) for units, _ in parts(result, chapter, skipped))
 
 
-def render_column_check(result: ColumnCheckResult, pier: PierInput, path: str | Path,
-                        pages: ColumnCheckPages) -> Path:
-    """The report: each of WebPier's parts, then Capacita's pages of its section; atomically replaces *path*.
+def render_column_check(result: ColumnCheckResult, pier: PierInput, path: str | Path, pages: ColumnCheckPages,
+                        chapter: Chapter) -> Path:
+    """The report: each of WebPier's parts, then Capacita's pages of its section (none for a skipped one);
+    atomically replaces *path*.
 
     WebPier's pages are the same bytes for the same input; Capacita's are its own (decision 48).
     """
     pieces: list[bytes] = []
-    for built, (_, section) in zip(build_column_check(result), parts(result)):
-        first, last = pages.section(section)
-        pieces += [document_bytes(built), page_range(pages.pdf, first, last)]
+    for built, (_, section) in zip(build_column_check(result, chapter, pages.skipped),
+                                   parts(result, chapter, pages.skipped)):
+        pieces.append(document_bytes(built))
+        if (found := pages.section(section)) is not None:
+            pieces.append(page_range(pages.pdf, *found))
     return join(pieces, path)

@@ -1,18 +1,24 @@
-"""0611 柱の断面照査 (decision 48, ADR-0008): what Capacita is given to check the column bottom along the track.
+"""0611 / 0621 柱の断面照査 (decision 48, ADR-0008): what Capacita is given to check the column bottom.
 
-Capacita (RcDan) calculates and prints the checks; WebPier decides only the conditions (CONTEXT.md 柱の断面照査):
+Capacita (RcDan) calculates and prints the checks; WebPier decides only the conditions (CONTEXT.md 柱の断面照査). The
+two directions differ only by their ``Direction`` (LONGITUDINAL for 0611 along the track, TRANSVERSE for 0621 across
+it), not by branches:
 
-- the check point: the column bottom, the J end of the column member of the 0610 frame (the member of region COLUMN
-  that ends at the footing top), found from the roles of the frame, not from a member number;
-- the section: b = W6 across the plane of bending and h = B6 in it, mm;
-- the bars from the 方向別の鉄筋配置表 of the bending direction 線路 (calc.column_rebar): the rows of the 線路 main
-  bars are the main bars of the upper and lower faces (one or more equal layers), the rows between them the side
-  bars (one size, one bar on each face at each centre), and the 線路 hoop row that contains the column base the
-  shear reinforcement. Anything else cannot be written to the WDJ and is an input error naming its path; detail
-  positions are accepted only as the generated bars of the current basic input (the same rule as the JRSNAP export);
+- the check point: the column bottom, the J end of the column member of the 0610 / 0620 frame (the member of region
+  COLUMN that ends at the footing top), found from the roles of the frame, not from a member number;
+- the section: b across the plane of bending and h in it, mm (W6 and B6 along the track, B6 and W6 across it);
+- the bars from the 方向別の鉄筋配置表 of the bending direction (calc.column_rebar): the rows of that direction's
+  main bars are the main bars of the upper and lower faces (one or more equal layers), the rows between them the side
+  bars (one size, one bar on each face at each centre), and that direction's hoop row that contains the column base
+  the shear reinforcement. Side bars are written at their centres when these are equally spaced. When the end ones
+  are the corner bars of the other direction's main row (at its own cover from the faces, inside the main bars:
+  Example2 across the track) and only the two end gaps break the spacing, they are written by number only and
+  Capacita spaces them evenly between the main bars, as the sample 09_直角/WebDan.wdj does (owner, 2026-10-18).
+  Anything else cannot be written to the WDJ and is an input error naming its path; detail positions are accepted
+  only as the generated bars of the current basic input (the same rule as the JRSNAP export);
 - f'ck of the column concrete and its Dmax (鉄筋.柱.aggregate_max_mm);
 - the 柱の断面照査 conditions of the input, shared by both directions;
-- the extraction case of each check from the 0610 extraction groups (decision 48): Capacita's rows by id;
+- the extraction case of each check from the extraction groups of 0610 / 0620 (decision 48): Capacita's rows by id;
 - the safety factors of each limit state, fsu of each grade, kr and k4: named program constants with their sources.
 
 The result is what the report prints of the conditions and what the WDJ is written from (export.capacita); the
@@ -21,9 +27,10 @@ checks themselves, their values and their judgement are Capacita's (ADR-0008).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Protocol
 
 from ..core.errors import InputError
 from ..core.printed import Precision, Printed
@@ -32,14 +39,38 @@ from ._exact import d, put
 from .column_rebar import (YIELD_STRENGTH, ColumnLayout, TableRow, check_detail_positions, column_layout, table,
                            yield_strength)
 from .frame import Frame, Member, NodeRole, Region
-from .longitudinal import LongitudinalResult
-from .longitudinal.combinations import ExtractionGroup
+from .longitudinal.combinations import Extraction, ExtractionGroup
 
 _COLUMN = "鉄筋.柱"
 _CHECK = "柱の断面照査"
-_FACE = "線路"  # 0611: bending in the plane of the track, so the faces normal to Y carry the main bars
-_SIDE = "直角"
 LENGTH_MM = Precision(1, "mm")
+
+
+@dataclass(frozen=True)
+class Direction:
+    """A bending direction of the column: whose rows are its main bars and how its section is turned."""
+
+    face: str  # the direction of the main rows and the hoop row of the check (its 方向別の鉄筋配置表)
+    side: str  # the other direction: its main rows are the side bars
+    turned: bool  # b = B6 (Y) and h = W6 (X), instead of b = W6 and h = B6
+
+    def section(self, layout: ColumnLayout) -> tuple[Printed, Printed]:
+        """(b, h) of the section, mm."""
+        return (layout.height, layout.width) if self.turned else (layout.width, layout.height)
+
+
+LONGITUDINAL = Direction("線路", "直角", False)  # 0611: bending in the plane of the track (faces normal to Y)
+TRANSVERSE = Direction("直角", "線路", True)  # 0621: bending across the track (faces normal to X)
+
+
+class FrameResult(Protocol):
+    """What the check reads of the result of 0610 or 0620: its frame and its extraction cases."""
+
+    @property
+    def frame(self) -> Frame: ...
+
+    @property
+    def extractions(self) -> Sequence[Extraction]: ...
 
 
 def _factor(text: str) -> Printed:
@@ -123,7 +154,7 @@ TORSION_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = ((0, None), (1, 
                                                                  (7, None))
 # Capacita's report sections (Capacita README「Headless runner の run-rc」), in report order: the section force list
 # and the checks this column asks for. 使用性（外観） is checked only with the appearance check (owner: without it
-# 0611 has no 8.8).
+# 0611 has no 8.8, 0621 no 9.8).
 REPORT_SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
                    "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
 
@@ -155,12 +186,15 @@ class MainBars:
 
 @dataclass(frozen=True)
 class SideBars:
-    """The side bars of both side faces (WDJ sidebar1): one bar on each face at each centre."""
+    """The side bars of both side faces (WDJ sidebar1): one bar on each face at each centre.
+
+    Without ``first`` their positions are not written and Capacita spaces them evenly between the main bars.
+    """
 
     diameter: Printed  # mm
     count: int  # on one face
-    first: Printed  # centre of the first from the upper face, mm
-    spacing: Printed | None  # centre to centre, mm; None for one
+    first: Printed | None  # centre of the first from the upper face, mm; None: spaced by Capacita
+    spacing: Printed | None  # centre to centre, mm; None for one, or spaced by Capacita
 
 
 @dataclass(frozen=True)
@@ -174,7 +208,8 @@ class Hoops:
 
 @dataclass(frozen=True)
 class ColumnCheckResult:
-    member: int  # the column member of the 0610 frame
+    direction: Direction
+    member: int  # the column member of the 0610 / 0620 frame
     length: Printed  # its length, m: the check point is its J end (the column bottom)
     width: Printed  # b, mm
     depth: Printed  # h, mm
@@ -239,57 +274,73 @@ def _spacing(centres: list[Printed], path: str, what: str) -> Printed | None:
     return next(iter(gaps), None)
 
 
-def _face(layers: list[TableRow], depth: Printed | None, pitch: Printed) -> MainBars:
+def _face(layers: list[TableRow], depth: Printed | None, pitch: Printed, face: str) -> MainBars:
     """One face's layers, outermost first; *depth* measures the centres from the lower face."""
     path = f"{_COLUMN}.main_rows"
     kind = _one({(row.diameter, row.count, row.material) for row in layers}, path,
-                f"{_FACE}の主鉄筋の段の径・本数・材質")
+                f"{face}の主鉄筋の段の径・本数・材質")
     centres = [row.center if depth is None else put(LENGTH_MM, d(depth) - d(row.center)) for row in layers]
     diameter, count, _ = kind
     return MainBars(diameter=diameter, per_layer=count, layers=len(layers), count=count * len(layers),
-                    cover=centres[0], layer_spacing=_spacing(centres, path, f"{_FACE}の主鉄筋の段"), spacing=pitch)
+                    cover=centres[0], layer_spacing=_spacing(centres, path, f"{face}の主鉄筋の段"), spacing=pitch)
 
 
-def _main(layout: ColumnLayout, rows: tuple[TableRow, ...]) -> tuple[MainBars, MainBars, str]:
+def _main(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str,
+          depth: Printed) -> tuple[MainBars, MainBars, str]:
     path = f"{_COLUMN}.main_rows"
-    face_rows = [row for row in layout.rows if row.direction == _FACE]
+    face_rows = [row for row in layout.rows if row.direction == face]
     if not face_rows:
-        raise InputError(f"{path}: {_FACE}の主鉄筋の行が必要です")
+        raise InputError(f"{path}: {face}の主鉄筋の行が必要です")
     indices = {row.index for row in face_rows}
-    main = table((bar for bar in layout.automatic if indices.intersection(bar.rows)), _FACE)
+    main = table((bar for bar in layout.automatic if indices.intersection(bar.rows)), face)
     layers = len(face_rows)
     if len(main) != 2 * layers or rows[:layers] != main[:layers] or rows[-layers:] != main[-layers:]:
-        raise InputError(f"{path}: {_FACE}方向の表の先頭・末尾{layers}行が{_FACE}の主鉄筋と一致しません"
+        raise InputError(f"{path}: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
                          "（主鉄筋より外側や段の間にある鉄筋、同じ段への混在は表せません）")
     pitches = {row.pitch for row in face_rows}
     if None in pitches or len(pitches) != 1:
-        raise InputError(f"{path}: {_FACE}の主鉄筋の間隔が一つに定まりません"
+        raise InputError(f"{path}: {face}の主鉄筋の間隔が一つに定まりません"
                          "（1本や両端2本だけの行、行ごとに異なる間隔は表せません）")
     (pitch,) = pitches
     grade = _one({row.material for row in main}, path, "主鉄筋の材質")
-    return (_face(list(main[:layers]), None, pitch), _face(list(reversed(main[-layers:])), layout.height, pitch),
-            grade)
+    return (_face(list(main[:layers]), None, pitch, face),
+            _face(list(reversed(main[-layers:])), depth, pitch, face), grade)
 
 
-def _side(rows: tuple[TableRow, ...]) -> tuple[SideBars, str] | None:
+def corners(layout: ColumnLayout, side: str) -> frozenset[tuple[Printed, Printed]]:
+    """(first, last) centres of the corner bars of the main rows of *side*: the end bars of a row that are at the row's
+    own cover from the faces (Example2: the track rows' D32 at 108 from both faces)."""
+    return frozenset((row.positions[0], row.positions[-1]) for row in layout.rows
+                     if row.direction == side and len(row.positions) > 1 and row.positions[0] == row.center)
+
+
+def _side(rows: tuple[TableRow, ...], side: str,
+          corner: frozenset[tuple[Printed, Printed]] = frozenset()) -> tuple[SideBars, str] | None:
+    """The side bars of the table rows between the main bars. At their centres when equally spaced; by number only
+    when they are the corner bars of *corner* and equally spaced between them, which only the two end gaps break:
+    Capacita spaces them evenly, as the sample 09_直角/WebDan.wdj (owner, 2026-10-18)."""
     if not rows:
         return None
     path = f"{_COLUMN}.main_rows"
     diameter, grade = _one({(row.diameter, row.material) for row in rows}, path, "側方鉄筋の径・材質")
     if any(row.count != 2 for row in rows):
-        raise InputError(f"{path}: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます（{_SIDE}の多段は表せません）")
+        raise InputError(f"{path}: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます（{side}の多段は表せません）")
     centres = [row.center for row in rows]
+    gaps = {put(LENGTH_MM, d(second) - d(first)) for first, second in zip(centres, centres[1:])}
+    if len(gaps) > 1 and (centres[0], centres[-1]) in corner and len(centres) > 3:
+        _spacing(centres[1:-1], path, "隅の鉄筋の間の側方鉄筋")
+        return SideBars(diameter=diameter, count=len(rows), first=None, spacing=None), grade
     return SideBars(diameter=diameter, count=len(rows), first=centres[0],
                     spacing=_spacing(centres, path, "側方鉄筋")), grade
 
 
-def _hoops(pier: PierInput) -> tuple[Hoops, str]:
+def _hoops(pier: PierInput, face: str) -> tuple[Hoops, str]:
     column = pier.rebar.column
     path = f"{_COLUMN}.column_hoops.direction_rows"
     rows = [(index, row) for index, row in enumerate(column.hoops.rows)
-            if row.direction == _FACE and (row.start is None or row.start.value == 0)]
+            if row.direction == face and (row.start is None or row.start.value == 0)]
     if len(rows) != 1:
-        raise InputError(f"{path}: {_FACE}の帯鉄筋で柱下端を含む行がちょうど1行必要です（{len(rows)}行）")
+        raise InputError(f"{path}: {face}の帯鉄筋で柱下端を含む行がちょうど1行必要です（{len(rows)}行）")
     ((index, row),) = rows
     here = f"{path}[{index}]"
     grade = row.material or column.materials.transverse
@@ -303,14 +354,16 @@ def _cases(cases, numbers: Mapping[ExtractionGroup, int]) -> tuple[tuple[int, in
     return tuple((id_, None if group is None else numbers[group]) for id_, group in cases)
 
 
-def calculate_column_check(pier: PierInput, longitudinal: LongitudinalResult) -> ColumnCheckResult:
-    member = _column_member(longitudinal.frame)
+def calculate_column_check(pier: PierInput, frame_result: FrameResult, direction: Direction) -> ColumnCheckResult:
+    """The check of the column bottom in *direction*: LONGITUDINAL from 0610, TRANSVERSE from 0620."""
+    member = _column_member(frame_result.frame)
     layout = column_layout(pier)
     check_detail_positions(layout)
-    rows = table(layout.bars, _FACE)
-    upper, lower, main_grade = _main(layout, rows)
-    side = _side(rows[upper.layers:len(rows) - lower.layers])
-    hoops, hoop_grade = _hoops(pier)
+    width, depth = direction.section(layout)
+    rows = table(layout.bars, direction.face)
+    upper, lower, main_grade = _main(layout, rows, direction.face, depth)
+    side = _side(rows[upper.layers:len(rows) - lower.layers], direction.side, corners(layout, direction.side))
+    hoops, hoop_grade = _hoops(pier, direction.face)
     conditions = pier.column_check
     environment = _need(conditions.environment, f"{_CHECK}.鋼材の腐食に対する環境条件")
     appearance = _need(conditions.appearance, f"{_CHECK}.外観の照査")
@@ -318,12 +371,12 @@ def calculate_column_check(pier: PierInput, longitudinal: LongitudinalResult) ->
     body = _need(conditions.body, f"{_CHECK}.適用基準の機関")
     jr001 = _need(conditions.jr001, f"{_CHECK}.JR-001")
     jr004 = _need(conditions.jr004, f"{_CHECK}.JR-004")
-    numbers = {extraction.group: extraction.number for extraction in longitudinal.extractions}
+    numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
     return ColumnCheckResult(
-        member=member.number, length=member.height, width=layout.width, depth=layout.height,
+        direction=direction, member=member.number, length=member.height, width=width, depth=depth,
         upper=upper, lower=lower, side=None if side is None else side[0], hoops=hoops,
         main_steel=_steel(main_grade), side_steel=None if side is None else _steel(side[1]),
-        hoop_steel=_steel(hoop_grade), fck=longitudinal.frame.materials.column.strength,
+        hoop_steel=_steel(hoop_grade), fck=frame_result.frame.materials.column.strength,
         aggregate_max=_need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),
         environment=environment, environment_number=choices.CORROSION_ENVIRONMENTS.index(environment) + 1,
         appearance=appearance == choices.APPEARANCE_CHECKED, ecsd=ecsd, body=body,

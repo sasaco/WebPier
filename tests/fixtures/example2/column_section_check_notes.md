@@ -62,3 +62,49 @@ explanation pages and the result pages print.
   γi·Md/Myd = 0.114 < 1.00.
 - These are what a real run on the Example2 input must print; the table layout and the 復旧性のせん断 pages are
   expected to differ from the sample.
+
+# 09_直角 9.5〜9.9 — transcription notes (0621 柱の断面照査, decision 48)
+
+`column_section_check_09.json` is transcribed the same way from `09_直角/WebDan.wdj` and `09_直角.pdf` pages 9-16 ..
+9-23. The extraction cases, safety factors, steel, concrete, pile factor, crack conditions, standard and
+calculation switches of the sample are the same as 08's (the two WDJ files have equal `basic`, `safety` and crack
+rows), so they are not transcribed twice (`same_as_08`).
+
+## What is transcribed from the WDJ
+
+- Check point: member 3, `JTAN`, position 4.9 (the column bottom), only `isMzCalc` and `isVyCalc`. The sample has it
+  as point 6 (`sample_index`): its PIK has no point inside member 3.
+- Member 3: B = 2700, H = 4500 mm (08's section turned: bending across the track).
+- Bars: `rebar1` = `rebar2` = D19 × 9, cover 102, spacing 250 (the 直角 main row); `sidebar1` = D32 × 29 with
+  `side_cover` and `side_ss` blank (the 線路 main row, corner bars included: Capacita spaces them evenly between the
+  main bars); `stirrup` = D22, 6 legs, pitch 150 (the 直角 hoop row). The result page 9-23 agrees (`D19-9本`,
+  `dast 102`, `D32-29本`).
+
+## Deliberate differences from the sample (decision 48, owner 2026-10-18)
+
+- The point is 7, not 6: WebPier's 0620 wind load on member 3 (decision 12) ends 2.0 m above its J end, so
+  FEMPython's PIK has a point at 2.900 m inside member 3, and Capacita numbers the points in PIK order. WebPier finds the point in the PIK (export.capacita.point_index).
+- The corner D32 sit at 108 mm from both faces, inside the D19 at 102 mm, so the side bars of the table are 108,
+  300 … 4200, 4392 (192, then 150, then 192 apart). As in the sample they are written by number only; the owner chose
+  the sample's even spacing over an input error.
+- 9.7 and 9.8 are printed. The sample has neither; Capacita (as the sample's WebDan) skips the serviceability check
+  (WD-1901: no permanent bending moment, no tension) and the shear durability check (WD-1906: no permanent and
+  variable shear force) across the track, because the permanent actions are symmetric. WebPier prints their headings
+  and explanations with the reason they are omitted; 9.7 (1) (the flexural durability check Capacita does make) is
+  printed with its pages. `skipped_by_capacita` lists the two sections.
+- `shape` 1, only the column bottom, 復旧性のせん断, the section force list, no `bar.position` and no `steel` rows:
+  as 08.
+
+## Explanation pages versus result pages
+
+- 9-18 (9.6 (1)): γi = 1.2, γb = 1.1; 9-20 (9.6 (2)): γi = 1.2. The text is 08's.
+- 9-22 (9.9 (1)) prints γi = 1.0 against 1.20 on 9-23: the same error as 8-25, not reproduced.
+
+## Acceptance values
+
+- 9-19 安全性（破壊）曲げ: Md 8256.6, N'd 13264.1, Mu 32267.7, γb 1.10, Mud 29334.2, γi 1.20, γi·Md/Mud = 0.338. The
+  side bars are not counted (Ase "-"), as in the current Capacita.
+- 9-23 復旧性（地震時以外）曲げ: Md 3955.8, N'd 14404.5, My 48663.2, γb 1.00, Myd 48663.2, γi 1.20, γi·Md/Myd = 0.098.
+- WebPier's 0620 wind differs from the sample's (decisions 12 and 35), so its Md and the ratios differ; N'd is the
+  same, so the capacities are compared. The sample's own WDJ in the current Capacita gives Mud 29326.7 and Myd
+  48634.5 (the same kind of small difference as 08).
