@@ -1,7 +1,8 @@
 """The parts of a report with the pages of another program in it (decisions 44, 48, 50, 51; ADR-0005).
 
 ``document_bytes`` lays out one of WebPier's documents, ``join`` writes the documents and the other program's pages
-in order as one PDF, and ``page_range`` cuts pages out of another program's report. Where the pages go is
+in order as one PDF, ``page_range`` cuts pages out of another program's report, and ``write_as_is`` writes another
+program's report as the whole report, byte for byte (0711, 0721: decision 56, ADR-0009). Where the pages go is
 ``stages.insertion``. pypdf writes the pages in order. It adds no date and its file identifier is a checksum of the
 content, so the same parts give the same bytes. No page is numbered (the reference prints none).
 """
@@ -30,13 +31,18 @@ def join(parts: Sequence[bytes], path: str | Path) -> Path:
     for part in parts:
         for page in PdfReader(BytesIO(part), strict=True).pages:
             writer.add_page(page)
-    destination = Path(path)
     stream = BytesIO()
     writer.write(stream)
+    return write_as_is(stream.getvalue(), path)
+
+
+def write_as_is(pdf: bytes, path: str | Path) -> Path:
+    """Write *pdf* at *path* as it is (replaced atomically)."""
+    destination = Path(path)
     descriptor, temporary = tempfile.mkstemp(prefix=destination.name + ".", suffix=".tmp", dir=destination.parent)
     try:
         with os.fdopen(descriptor, "wb") as file:
-            file.write(stream.getvalue())
+            file.write(pdf)
         os.replace(temporary, destination)
     except BaseException:
         Path(temporary).unlink(missing_ok=True)

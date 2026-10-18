@@ -1,11 +1,11 @@
 ---
 name: aggrese-project
-description: Aggre-SE（structural-mcp の Batch サブモジュール、Docu-SE）のプロジェクトXML（P1_線路.xml や WebPier の post/線路方向.xml）を読む・項目を画面と対応付ける・Aggre-SE の runner で複製を inspect/run する・Aggre-SE 自身の保存し直しで書式を確かめる。XML の項目の意味、DB1 と横に置くファイル、WebPier の書出し（決定49）を直すとき、Batch の版が変わって書式を追うとき、耐震照査の入力が Aggre-SE で読めるか調べるときに使う。JRSNAP の解析そのものには使わない。
+description: Aggre-SE（structural-mcp の Batch サブモジュール、Docu-SE）のプロジェクトXML（P1_線路.xml や WebPier の post/線路方向.xml）を読む・項目を画面と対応付ける・Aggre-SE の runner で複製を inspect/run する・Aggre-SE 自身の保存し直しで書式を確かめる。XML の項目の意味、DB1 と横に置くファイル、WebPier の書出し（決定49）を直すとき、0711・0721 の計算書（Aggre-SE の report.pdf そのもの、決定56、webpier/pipeline/aggrese.py）や見本 10.5・10.6 との対応を扱うとき、Batch の版が変わって書式を追うとき、耐震照査の入力が Aggre-SE で読めるか調べるときに使う。JRSNAP の解析そのものには使わない。
 ---
 
 # Aggre-SE のプロジェクトXMLを扱う
 
-Aggre-SE（Batch.exe、Docu-SE）は JRSNAP の解析結果（各 Case の `.DB1` と同じ名前のファイル）を、プロジェクトXMLの照査条件で集計・照査する。WebPier は 0711・0721 でこの XML を `post/線路方向.xml`・`post/線路直角方向.xml` に書く（決定49、`webpier/export/aggrese/`、CONTEXT.md「耐震照査の入力」）。Batch のソースは `C:\Users\sasai\Documents\structural-mcp\Batch`。**Batch のファイルは変更しない**。試すときは XML と DB1 のフォルダーの複製を使う。
+Aggre-SE（Batch.exe、Docu-SE）は JRSNAP の解析結果（各 Case の `.DB1` と同じ名前のファイル）を、プロジェクトXMLの照査条件で集計・照査する。WebPier は 0711・0721 でこの XML を `post/線路方向.xml`・`post/線路直角方向.xml` に書き（決定49、`webpier/export/aggrese/`、CONTEXT.md「耐震照査の入力」）、同じ生成で Aggre-SE の runner に照査させた `report.pdf` をバイト列のまま 0711・0721 の計算書にする（決定56、ADR-0009、`webpier/pipeline/aggrese.py`、CONTEXT.md「耐震性能照査」）。Batch のソースは `C:\Users\sasai\Documents\structural-mcp\Batch`。**Batch のファイルは変更しない**。試すときは XML と DB1 のフォルダーの複製を使う。
 
 ## 読む
 
@@ -68,6 +68,16 @@ runner は `Batch\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe`（使い�
 - 入力は `耐震設計条件`（地域別・地盤区分）だけ。ほかの条件は見本 `P1_線路.xml` の通りの WebPier の定め（`webpier/export/aggrese/writer.py` の定数、決定49）。利用者に聞かずに入力を増やさない。
 - Batch の版が変わったら：見本を保存し直して書式の差を見る → `writer.py` の `BATCH_VERSION` と並びを合わせる → 期待値を作り直す（`notes.md` の手順）→ `scripts/accept_aggrese_project.py --overwrite` で受入を取り直す（本物の JRSNAP で 0711・0721 を生成するので数分かかり、画面が出る）。
 - 受入記録は `tests/fixtures/acceptance/aggrese/record.json`。入力（`current.json`）や生成する XML が変わると `tests/acceptance` が失敗する。
+
+## 0711・0721 の計算書（決定56）
+
+- WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx false --report-pdf true --check-tables false --pik false --pile-anchor-bar-pdf false` を呼ぶ（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。runner は DB1 のフォルダーに何も書かない（実アプリで確認）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。
+- `report.pdf` の構成（実アプリで確認、Batch 5.3.0.1）：Case ごとに7ページ（荷重～変位曲線と水平震度の表、非線形応答スペクトル法の算定、変位図、M・S・N 図、損傷状況図）、続けて応答値一覧表、設計総括表（A3 横）、安全率一覧表、直接基礎の照査（A3 横）。線路方向は11ページ、線路直角方向（2 Case）は18ページ。1ページ目の見出しは DB1 の `KihonInfo.Title`（NDU の題名）と `Comment`（空なら DB1 の名前）で、`reports/PDFReport.vb` の `Create荷重変位曲線`（コードで確認）。見本 10.5・10.6 の見出しは作成者が書き込んだもので、WebPier は再現しない。
+- 帳票は毎回同じバイトにならない（同じ入力で SHA が変わった。実アプリ）。
+- 見本との対応（2026-10-19、見本を画像にして確認）：`10_線路(耐震).pdf` の 13〜21 ページ（10.5）は Case ごとの上の7ページと設計総括表・直接基礎の照査（A3 を A4 に回転して縮小）、22・23 ページは JRSNAP の基礎照査の出力（地盤反力分布図と「直接基礎底面回転ばねの算定値」のリスト。Aggre-SE の出力ではない）、24〜26 ページ（10.6）は応答値一覧表・設計総括表・直接基礎の照査。`11_直角(耐震).pdf` は 14〜27 ページで、見本は Case1 だけ。見本の Aggre-SE の版は古く、直接基礎の照査の見出しが「1.復旧性（性能レベル1）…3.安全性」（いまの Batch は「1.安定レベル1…3.安定レベル3」）。見本にない安全率一覧表は、いまの Batch が出す。
+- 見本の PDF は 13 ページ以降がほぼ画像で、`pdftotext` では読めない。`uv run --project . --locked --group dev python -X utf8` で `pymupdf` を使い、ページを PNG にして見る（文字の取り出しは見出しだけ）。
+- `scripts/accept_aggrese_project.py`（決定49の受入）も 0711・0721 を生成するので、いまは Aggre-SE の runner が `.env` に要る。スクリプトを書き換えると記録の helpers の SHA が変わり、受入のやり直しが要る。
+- 受入は `scripts/accept_aggrese_report.py --overwrite`（本物の JRSNAP で生成するので数分かかり、画面が出る）。記録は `tests/fixtures/acceptance/aggrese_report/record.json`。応答値は2ページ目の文字（`Ｋheq = …`・`δeq  = … mm`・`μ = …`・`δr = μ・δeq = … = … mm`・`Khr = …`）から読む。線路方向は見本 10-14 と一致する。
 
 ## 知見を更新する
 

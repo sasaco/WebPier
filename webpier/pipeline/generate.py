@@ -15,7 +15,9 @@
    54) finishes its result with them before any report is rendered. A stage with a static nonlinear
    analysis (0711, 0721, opt-in) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
    file is staged, under JRSNAP's name, in one folder (decision 47), and beside it the Aggre-SE project that reads
-   the DB1 of each Case (decision 49; its input is checked before any analysis). Each export is built once, so the file
+   the DB1 of each Case (decision 49; its input is checked before any analysis). The Aggre-SE runner then checks with
+   that staged project and folder, and its report is the stage's report as it is (decision 56). Each export is built
+   once, so the file
    analyzed is the bytes staged, even when the dependency's own files are not published. The runners are looked
    up before anything is read, and a missing or failing runner stops the generation.
 4. Reports, result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are written to
@@ -45,7 +47,7 @@ from ..export.aggrese import ProjectError
 from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
-from . import capacita, jrsnap
+from . import aggrese, capacita, jrsnap
 from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
                         runner_path)
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
@@ -363,13 +365,20 @@ def _check_facts(registry: Registry, post: _PostFile, inspected: Mapping[str, ca
                               "wdj_given": {"sha256": sha256(given[post.stage])}}}
 
 
-def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging) -> dict[str, Any]:
-    # The project names the DB1 of the JRSNAP folder published beside it (decision 49): which folder, and its bytes.
+def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
+                   checked: Mapping[str, aggrese.SeismicCheckPages]) -> dict[str, Any]:
+    # The project names the DB1 of the JRSNAP folder published beside it (decision 49): which folder, and its bytes;
+    # and which runner checked with it for which report (decision 56).
     analysis = registry.get(post.stage).nonlinear_analysis
     folder = staging.path_for(post.native.path.with_name(analysis.folder))
-    return {"metadata": to_json(post.project.metadata),
-            "aggrese_project": {"jrsnap": {"stage": post.stage, "export": analysis.kind, "file": analysis.folder,
-                                           "sha256": content_sha256(folder)}}}
+    facts: dict[str, Any] = {
+        "metadata": to_json(post.project.metadata),
+        "aggrese_project": {"jrsnap": {"stage": post.stage, "export": analysis.kind, "file": analysis.folder,
+                                       "sha256": content_sha256(folder)}}}
+    if post.stage in checked:
+        facts["seismic_check"] = {"report": f"{post.stage}.pdf", "engine": aggrese.ENGINE,
+                                  "engine_version": checked[post.stage].engine_version}
+    return facts
 
 
 def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes], folder: str,
@@ -397,6 +406,28 @@ def _capacita_runner(registry: Registry, selected: tuple[str, ...]) -> Path | No
         return capacita.runner_path()
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
+
+
+def _aggrese_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
+    if not any(registry.get(stage_id).seismic_check for stage_id in selected):
+        return None
+    try:
+        return aggrese.runner_path()
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _check_seismic(project: Path, folder: Path, runner: Path) -> aggrese.SeismicCheckPages:
+    """Aggre-SE's report for the staged *project* and the JRSNAP *folder* it names, which it must leave as they are:
+    they are published as staged (decision 56)."""
+    before = (content_sha256(project), content_sha256(folder))
+    try:
+        checked = aggrese.check_seismic(project, runner)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+    if (content_sha256(project), content_sha256(folder)) != before:
+        raise GenerationError(f"Aggre-SE の runner が {project.name} か {folder.name} を変更しました")
+    return checked
 
 
 def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections: tuple[str, ...]
@@ -486,6 +517,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     runner = _runner(registry, selected)
     jrsnap_runner = _jrsnap_runner(registry, selected)
     capacita_runner = _capacita_runner(registry, selected)
+    aggrese_runner = _aggrese_runner(registry, selected)
     data = Path(options.input_path).read_bytes()
     input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
@@ -548,18 +580,25 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
             elif post.export is None:
                 staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
+        # Aggre-SE checks with the project and the folder staged beside it (decision 56).
+        checked = {post.stage: _check_seismic(
+                       staging.path_for(post.native.path),
+                       staging.path_for(post.native.path.with_name(registry.get(post.stage).nonlinear_analysis.folder)),
+                       aggrese_runner)
+                   for post in posts if post.project is not None and registry.get(post.stage).seismic_check}
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
                 continue
             # The pages of other programs, by the name the report takes them: none, or those of one runner.
-            pages = {name: content for drawn_by in (drawn, figures, inspected) if stage_id in drawn_by
+            pages = {name: content for drawn_by in (drawn, figures, inspected, checked) if stage_id in drawn_by
                      for name, content in drawn_by[stage_id].pages.items()}
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
                                               staging.path_for(by_role[f"{stage_id}.pdf"].path), pages)
             except LayoutError as exc:
                 raise GenerationError(f"{stage_id}の帳票を作成できません: {exc}") from exc
-            document = result_document(stage_id, results[stage_id], input_file=common["input"]["file"],
+            # A stage whose report is Aggre-SE's has no result of its own (decision 56).
+            document = result_document(stage_id, results.get(stage_id), input_file=common["input"]["file"],
                                        input_sha256=input_sha256,
                                        implementation_sha256=common["implementation_sha256"])
             if stage_id in inspected:  # that the check ran, not its judgement (ADR-0008)
@@ -569,11 +608,22 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     "wdj": {"file": registry.get(stage_id).section_check.file_name,
                             "sha256": sha256(inspected[stage_id].wdj)},
                     "skipped_sections": list(inspected[stage_id].skipped)}
+            if stage_id in checked:  # that the check ran with which files, not its judgement (ADR-0009)
+                analysis = registry.get(stage_id).nonlinear_analysis
+                project = Path(options.post_dir) / analysis.project.file_name
+                document["seismic_check"] = {
+                    "engine": aggrese.ENGINE, "engine_version": checked[stage_id].engine_version,
+                    "engineering_status": "not_evaluated",
+                    "cases": [{key: case.get(key) for key in ("caseNumber", "name", "aggregated")}
+                              for case in checked[stage_id].cases],
+                    "project": {"file": project.name, "sha256": file_sha256(staging.path_for(project))},
+                    "jrsnap": {"file": analysis.folder,
+                               "sha256": content_sha256(staging.path_for(project.with_name(analysis.folder)))}}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn, figures) if post.export is not None
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
-                     else _project_facts(registry, post, staging) if post.project is not None
+                     else _project_facts(registry, post, staging, checked) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
                      else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)

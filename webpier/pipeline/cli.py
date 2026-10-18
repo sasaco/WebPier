@@ -1,7 +1,8 @@
 """The command line of one generation (``python -m webpier``).
 
 ``--frame-analysis`` adds the opt-in stages of the FEMPython frame analysis (0611, 0621, decision 46) and
-``--nonlinear-analysis`` those of the JRSNAP static nonlinear analysis (0711, 0721, decision 47) to ``--stage all``;
+``--nonlinear-analysis`` those of the JRSNAP static nonlinear analysis (0711, 0721, decision 47; with Aggre-SE's
+耐震性能照査 as their report, decision 56) to ``--stage all``;
 such a stage chosen directly with ``--stage`` needs no flag.
 
 Exit codes: 0 published; 2 the input, a destination or the environment prevents the generation
@@ -39,7 +40,8 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
                              "FEMPython で骨組解析し、ピックアップ断面力・変位量・反力を解析入力の出力先に書く")
     result.add_argument(flag(NONLINEAR_ANALYSIS), action="store_true",
                         help=f"--stage {ALL} に選択式の段階（{'・'.join(registry.opt_in(NONLINEAR_ANALYSIS))}）を加える。"
-                             "JRSNAP で静的非線形解析し、解析用データと解析結果を解析入力の出力先のフォルダーに書く")
+                             "JRSNAP で静的非線形解析し、解析用データと解析結果を解析入力の出力先のフォルダーに書き、"
+                             "Aggre-SE で耐震性能照査した帳票を計算書にする")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
     return result
 

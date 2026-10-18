@@ -30,10 +30,11 @@ def analyzing(stage_id, *depends_on, source="A", files=PICKUPS, opt_in=FRAME_ANA
 
 
 def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINEAR_ANALYSIS, kind="jrsnap",
-            project=None):
-    """A stage without a report that has JRSNAP analyze the NDU of *source* (decision 47)."""
-    return StageSpec(stage_id, f"{stage_id}_解析", depends_on, opt_in=opt_in,
-                     nonlinear_analysis=NonlinearAnalysis(source, "jrsnap", kind, folder, project))
+            project=None, render=None, seismic_check=False):
+    """A stage, without a report unless given one, that has JRSNAP analyze the NDU of *source* (decision 47)."""
+    return StageSpec(stage_id, f"{stage_id}_解析", depends_on, render=render, opt_in=opt_in,
+                     nonlinear_analysis=NonlinearAnalysis(source, "jrsnap", kind, folder, project),
+                     seismic_check=seismic_check)
 
 
 def project(kind="aggrese", file_name="x.xml"):
@@ -107,21 +108,22 @@ def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
 
 
 def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
-    """Decision 47: 0711 and 0721 have no report; they publish the folder of the JRSNAP analysis of their seismic
-    stage's NDU, and beside it the Aggre-SE project that reads it (decision 49)."""
+    """Decision 47: 0711 and 0721 publish the folder of the JRSNAP analysis of their seismic stage's NDU, and beside it
+    the Aggre-SE project that reads it (decision 49); their report is Aggre-SE's, without a calculation of their own
+    (decision 56)."""
     assert STAGES.opt_in(NONLINEAR_ANALYSIS) == ("0711", "0721")
     assert STAGES.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == (
         "0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
     assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == STAGES.ids
     for stage_id, source, folder in (("0711", "0710", "線路方向_JRSNAP"), ("0721", "0720", "線路直角方向_JRSNAP")):
         stage = STAGES.get(stage_id)
-        assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (False, None, (), None)
+        assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (True, None, (), None)
+        assert stage.seismic_check and stage.section_check is None and stage.jrsnap_figures is None
         analysis = stage.nonlinear_analysis
         assert (analysis.stage, analysis.export, analysis.kind, analysis.folder) == (source, "jrsnap", "jrsnap", folder)
         project_file = folder.removesuffix("_JRSNAP") + ".xml"
         assert (analysis.project.kind, analysis.project.file_name) == ("aggrese", project_file)
-        assert analysis.project.metadata == {"target": "Aggre-SE", "target_version": "5.3.0.1",
-                                             "app_read_verified": False, "seismic_check_run": False}
+        assert analysis.project.metadata == {"target": "Aggre-SE", "target_version": "5.3.0.1"}
 
 
 def test_closure_adds_transitive_dependencies_in_registry_order():
@@ -186,6 +188,12 @@ def test_get_returns_the_spec():
     ((StageSpec("A", "A_a\\b", (), lambda p, r: 0, lambda r, p, path, pages: path),), r"AのファイルA_a\\bの名前"),
     ((StageSpec("A", "A_名前", (), None, lambda r, p, path, pages: path),), "Aの計算書には計算が必要です"),
     ((StageSpec("A", "A_名前", ()),), "Aには成果物がありません"),
+    ((spec("A", exports=NDU), solving("B", "A", render=lambda r, p, path, pages: path, seismic_check=True)),
+     "Bの耐震性能照査には静的非線形解析と Aggre-SE のプロジェクトが必要です"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(), seismic_check=True)),
+     "Bの耐震性能照査の計算書がありません"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path)),
+     "Bの計算書には計算が必要です"),  # only Aggre-SE's report needs no calculation (decision 56)
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),
      "Aの荷重図を差し込む計算書がありません"),
     ((spec("A", exports=FRAMEWEB), StageSpec("B", "B_名前", ("A",), lambda p, r: 0, lambda r, p, path, pages: path,

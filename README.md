@@ -42,9 +42,9 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0621（選択式） | 0620 | `0621_直角方向照査.pdf` / `.json`（柱の断面照査） | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv`・`線路直角方向.wdj` と各付帯JSON |
 | 0622（選択式） | 0500, 0620 | `0622_直角方向基礎.pdf` / `.json`（基礎の照査） | 0621 と同じピックアップのファイル3つと各付帯JSON（0621 と一緒なら1組） |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
-| 0711（選択式） | 0710 | — | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json`、Aggre-SE のプロジェクト `線路方向.xml` と付帯JSON |
+| 0711（選択式） | 0710 | `0711_線路方向非線形解析.pdf` / `.json`（Aggre-SE の耐震性能照査の帳票そのもの） | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json`、Aggre-SE のプロジェクト `線路方向.xml` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
-| 0721（選択式） | 0720 | — | フォルダー `線路直角方向_JRSNAP/`（同上）と `線路直角方向_JRSNAP.provenance.json`、`線路直角方向.xml` と付帯JSON |
+| 0721（選択式） | 0720 | `0721_線路直角方向非線形解析.pdf` / `.json`（同上） | フォルダー `線路直角方向_JRSNAP/`（同上）と `線路直角方向_JRSNAP.provenance.json`、`線路直角方向.xml` と付帯JSON |
 
 `--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図と荷重図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
@@ -78,7 +78,7 @@ STRUCTURAL_MCP_WEBDAN_RUNNER='C:\Users\<user>\Documents\structural-mcp\Capacita\
 
 データ確認図を組合せ1だけで描くのは、番号・断面・節点ばねが組合せで変わらないためです（0720 の組合せは2つ）。ページは見出しも本文も付けずにそのまま挟み、作用の計算（10.2・11.2）は新しいページから始めます。荷重図は、「10.3 荷重図」（0720 は「11.3」）の見出しの後に、基本ケースを CASE の順に1ケース1ページで挟みます。各ケースは、そのケースを使う最初の組合せの .NDT から描きます（JRSNAP は組合せに使わないケースの荷重を0で書くため。0710 は全ケースを組合せ1から、0720 は CASE-6 だけを組合せ2から）。荷重が0のケースも省きません。作用の組合せ（10.4・11.4）は新しいページから始めます。荷重図は A4縦・縮尺自動・1ケース1ページ・すべて黒・ページ番号なしで、ほかは JRSNAP の既定値で描きます（インストール先の INI は読みません）。各ページのヘッダー（JRSNAP の版と印刷日、.NDT の名前。データ確認図と荷重図で共通に固定）と枠は JRSNAP のもので、ページの中身・決定性は JRSNAP の責務です。0711・0721 を選ばない生成でも毎回描くので、0710・0720 を含む生成には JRSNAP の runner が必須です。PDF と .NDT は公開せず、NDU の付帯JSONの `jrsnap_figures` に、差し込んだ計算書（`report`）、エンジンと runner の版（`engine`・`engine_version`）、データ確認図の組合せ番号と図（`data_check`：`{combination: 1, figures: [...]}`）、荷重図のケースと組合せ（`load_diagram`：`[{case, combination}, …]`）、runner の報告（`runner_summary`。JRSNAP の版、.NDT の名前と SHA256）を記録します。
 
-0711（線路方向）・0721（線路直角方向）は静的非線形解析の段階です（決定47、ADR-0007）。計算書を持たず、選択式なので `--stage all --nonlinear-analysis` で加わり、`--stage 0711`・`--stage 0721` で直接選べます。両方を含む生成では、runner を1方向ずつ順に呼びます（JRSNAP の共用の作業ファイルを使うため、同時には解析しません）。
+0711（線路方向）・0721（線路直角方向）は静的非線形解析と耐震性能照査の段階です（決定47・56、ADR-0007・0009）。計算書は Aggre-SE の帳票そのもので（下記）、選択式なので `--stage all --nonlinear-analysis` で加わり、`--stage 0711`・`--stage 0721` で直接選べます。両方を含む生成では、runner を1方向ずつ順に呼びます（JRSNAP の共用の作業ファイルを使うため、同時には解析しません）。
 
 - **解析**：同じ生成で一度だけ組み立てた NDU（0711 は `線路方向.ndu`、0721 は `線路直角方向.ndu`）のバイトを、同じ名前で JRSNAP の Headless runner（structural-mcp の `JRSNAPHeadless`、`JRSNAP.Headless.exe run --analyze true`）に渡します。runner は JRSNAP_Input.exe の「解析用データ出力」と同じ処理を画面なしで呼んで、組合せごとの .NDT を作り、S_ANALYSIS.exe で解析します。線路直角方向の NDU は組合せが2つなので、2つの .NDT（`Case1`・`Case2`）を1回の S_ANALYSIS.exe で続けて解析します（複数解析）。
   - 確認には次のように答えます。答えたときのチェックの状態は runner が記録します。
@@ -102,11 +102,13 @@ STRUCTURAL_MCP_WEBDAN_RUNNER='C:\Users\<user>\Documents\structural-mcp\Capacita\
   - 同じインストール先の JRSNAP の起動中
 
   LOG の警告だけなら成功です。解析しない生成は、前回のフォルダーを残します。
+- **耐震性能照査**（決定56、ADR-0009）：ステージングした XML とフォルダーを、Aggre-SE の Headless runner（structural-mcp `Batch` の `AggreSE.Headless.exe run --snap-map …`、帳票だけ）で計算させ、返った `report.pdf` をバイト列のまま `output/0711_線路方向非線形解析.pdf`（0721 は `0721_線路直角方向非線形解析.pdf`）にします。WebPier は見出しも節の番号（見本の 10.5・10.6）も足さず、ページも選びません。見本にない安全率一覧表も入り、見本の JRSNAP の地盤反力分布図・直接基礎底面回転ばねの算定値（10-22・23）は入りません。結果JSONは `result: null` で、`seismic_check` に runner の版、`engineering_status: not_evaluated`（OK/NG は帳票で見る）、Case ごとの集計の有無、使った XML とフォルダーの SHA256 を記録します。runner がない・失敗する・Case が集計されない・XML かフォルダーを変えたときは、何も公開せずに止まります（終了コード 2）。直接基礎の照査の抵抗側は、`_Output_Chokukiso.csv` がない間は Aggre-SE が DB1 から求めた値で、見本と違います（決定49の既知の差）。
 
-JRSNAP の runner の絶対パスも `.env` に書きます。JRSNAP のインストール先（5.2-L03 か 5.3-L01体験版2）は、runner の横の `jrsnap-headless.json` に書きます。WebPier は JRSNAP を直接起動しません。
+JRSNAP の runner と Aggre-SE の runner の絶対パスも `.env` に書きます。JRSNAP のインストール先（5.2-L03 か 5.3-L01体験版2）は、runner の横の `jrsnap-headless.json` に書きます。WebPier は JRSNAP を直接起動しません。Aggre-SE の runner は 0711・0721 を含む生成だけが使い、Batch を Visual Studio の MSBuild でビルドしたもの（`Batch/Aggre-SE/Headless/README.md`）です。
 
 ```
 STRUCTURAL_MCP_JRSNAP_RUNNER='C:\Users\<user>\Documents\structural-mcp\JRSNAPHeadless\bin\Release\JRSNAP.Headless.exe'
+STRUCTURAL_MCP_AGGRESE_RUNNER='C:\Users\<user>\Documents\structural-mcp\Batch\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe'
 ```
 
 JRSNAP の runner がない・データ確認図・荷重図を描けない・解析できないときは、0710・0720（0711・0721）を含む生成は何も公開せずに止まります（終了コード 2）。JRSNAP の結果の中身・決定性は JRSNAP の責務で、実装の同一性（`dependency_hashes`）には含めません。
@@ -256,7 +258,7 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 
 ### Aggre-SE（プロジェクトXML）
 
-0711・0721 の静的非線形解析の結果を Aggre-SE（structural-mcp の `Batch` サブモジュール、Docu-SE）で耐震照査するためのプロジェクトを、`post/線路方向.xml`・`post/線路直角方向.xml` に書きます（決定49、CONTEXT.md「耐震照査の入力」）。見本は Example2 の `10_線路(耐震)/P1_線路.xml`・`11_直角(耐震)/P1_直角.xml` です。WebPier は XML を書くだけで、Aggre-SE での照査（見本の 10.5・10.6）はしません。
+0711・0721 の静的非線形解析の結果を Aggre-SE（structural-mcp の `Batch` サブモジュール、Docu-SE）で耐震照査するためのプロジェクトを、`post/線路方向.xml`・`post/線路直角方向.xml` に書きます（決定49、CONTEXT.md「耐震照査の入力」）。見本は Example2 の `10_線路(耐震)/P1_線路.xml`・`11_直角(耐震)/P1_直角.xml` です。同じ生成で Aggre-SE の runner がこの XML で照査し、その帳票が 0711・0721 の計算書になります（決定56）。
 
 - 入力にするのは `耐震設計条件`（地域別・地盤区分）だけです。そのほかの条件は Example2 のプロジェクトと同じ WebPier の定めです。
   - スペクトルⅠ,Ⅱ両方、液状化指数 5<PL<20、M6.5以上の震源エリアなし、低減係数 α = 1.000、不整形性 η(x) は考慮しない
@@ -265,9 +267,10 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
   - 直接基礎の制限値は空欄（Aggre-SE が自動計算）、帳票はカスタム仕様
 - NDU から決まる値：直接基礎の照査位置は FootInfo の節点（線路方向 7、線路直角方向 8）、せん断スパン La は柱の断面の L（7600・10350 mm）、着目節点は 0（各 DB1 の着目点）です。
 - 書式は Aggre-SE が保存するとおりです（Batch.exe 5.3.0.1 の `Input.GetXmlData` を Shift-JIS で書いたもの）。宣言は `encoding="utf-16"` ですが中身は Shift-JIS・CRLF で、ケースの配列は50件です。Aggre-SE の版が変われば書式を合わせます。
-- 付帯JSONは XML の SHA256 と、参照する JRSNAP のフォルダーの SHA256（`aggrese_project.jrsnap`）を記録します。`metadata` の `app_read_verified`・`seismic_check_run` は常に false です。
+- 付帯JSONは XML の SHA256 と、参照する JRSNAP のフォルダーの SHA256（`aggrese_project.jrsnap`）を記録します。この XML で照査した計算書と runner の版（`seismic_check`）も記録します。
 - **既知の差**：WebPier の NDU は直接基礎の照査のデータ（`ChokuKisoNum`・`CHOKU_KISO`）を持たず、runner は基礎照査に「いいえ」と答えるので、JRSNAP の基礎照査が書く `<DB1名>_Output_Chokukiso.csv` はできません。Aggre-SE はそのとき DB1 から直接基礎の照査値を求めます。作用（Vd・Hd・Md）は見本 10-26 と一致しますが、抵抗側（Rvd など）は違います（決定49）。
 - **実アプリでの受入**（2026-10-18、`scripts/accept_aggrese_project.py`、記録 `tests/fixtures/acceptance/aggrese/`）：`current.json` から本物の JRSNAP の runner（5.2-L03）で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner（structural-mcp `Batch` の `AggreSE.Headless.exe`）で `inspect`・`run`（総括表・計算書）しました。両方向とも全 Case（線路方向1、線路直角方向2）を読んで集計しました。Aggre-SE 自身の保存し直し（`Input.SetXmData` → `applyVersion` → `Input.GetXmlData` → Shift-JIS、`scripts/aggrese_project_roundtrip.cs`）でバイト列は変わりません。照査の判定（OK/NG）は受入の対象外です。生成する XML が変わると `tests/acceptance` が失敗するので、受入をやり直します。
+- **計算書の受入**（決定56、2026-10-19、`scripts/accept_aggrese_report.py`、記録 `tests/fixtures/acceptance/aggrese_report/record.json`、テスト `tests/acceptance/test_aggrese_report_acceptance.py`）：本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、計算書の応答値の算定のページから Case ごとの Kheq・δeq と安全性・復旧性の μ・δr・Khr を読みました。線路方向は見本 10-14 と一致します（Kheq 0.368、δeq 30.5 mm、安全性 μ 9.32・δr 284.3 mm、復旧性 μ 5.78・δr 176.3 mm）。線路直角方向は風荷重の差（決定12・35）があるので記録だけです。生成する XML が変わると `tests/acceptance` が失敗するので、`uv run --project "." --locked python -X utf8 scripts/accept_aggrese_report.py --overwrite` で受入をやり直します。
 
 ## Example2 との既知の差
 

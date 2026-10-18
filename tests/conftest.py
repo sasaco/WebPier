@@ -10,7 +10,9 @@ processes inherit, and which comes before the .env file); ``real_fempython_runne
 for the one test that calls it. A generation with 0711 has the JRSNAP runner analyze the NDU (decision 47); every
 test uses tests/fixtures/jrsnap/fake_runner.py the same way, through STRUCTURAL_MCP_JRSNAP_RUNNER. A generation with
 0611 has Capacita check the column (decision 48); every test uses tests/fixtures/capacita/fake_runner.py the same way,
-through STRUCTURAL_MCP_WEBDAN_RUNNER, and ``real_capacita_runner`` is the runner the user set up.
+through STRUCTURAL_MCP_WEBDAN_RUNNER, and ``real_capacita_runner`` is the runner the user set up. A generation with
+0711 also has Aggre-SE check with its project (decision 56); every test uses tests/fixtures/aggrese/fake_runner.py the
+same way, through STRUCTURAL_MCP_AGGRESE_RUNNER.
 """
 
 import os
@@ -20,7 +22,7 @@ import sys
 from hypothesis import HealthCheck, settings
 import pytest
 
-from webpier.pipeline import capacita, fempython, jrsnap
+from webpier.pipeline import aggrese, capacita, fempython, jrsnap
 
 settings.register_profile(
     "webpier", derandomize=True, database=None, max_examples=100, deadline=None, print_blob=True,
@@ -30,9 +32,11 @@ settings.load_profile("webpier")
 FAKE_RUNNER = Path(__file__).parent / "fixtures" / "fempython" / "fake_runner.py"
 FAKE_JRSNAP_RUNNER = Path(__file__).parent / "fixtures" / "jrsnap" / "fake_runner.py"
 FAKE_CAPACITA_RUNNER = Path(__file__).parent / "fixtures" / "capacita" / "fake_runner.py"
+FAKE_AGGRESE_RUNNER = Path(__file__).parent / "fixtures" / "aggrese" / "fake_runner.py"
 _USER_RUNNER = os.environ.get(fempython.RUNNER_KEY, "")
 _USER_JRSNAP_RUNNER = os.environ.get(jrsnap.RUNNER_KEY, "")
 _USER_CAPACITA_RUNNER = os.environ.get(capacita.RUNNER_KEY, "")
+_USER_AGGRESE_RUNNER = os.environ.get(aggrese.RUNNER_KEY, "")
 
 
 def _shim(directory: Path, script: Path, key: str, user: str):
@@ -63,6 +67,12 @@ def fake_jrsnap_runner(tmp_path_factory: pytest.TempPathFactory):
 def fake_capacita_runner(tmp_path_factory: pytest.TempPathFactory):
     yield from _shim(tmp_path_factory.mktemp("capacita"), FAKE_CAPACITA_RUNNER, capacita.RUNNER_KEY,
                      _USER_CAPACITA_RUNNER)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fake_aggrese_runner(tmp_path_factory: pytest.TempPathFactory):
+    yield from _shim(tmp_path_factory.mktemp("aggrese"), FAKE_AGGRESE_RUNNER, aggrese.RUNNER_KEY,
+                     _USER_AGGRESE_RUNNER)
 
 
 @pytest.fixture

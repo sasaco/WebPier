@@ -18,7 +18,9 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
 (decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
-results (decision 49). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
+results (decision 49). A stage with ``seismic_check`` (0711, 0721) also has Aggre-SE check with that project and
+those results: its report is Aggre-SE's report as it is, which its ``render`` receives, and it needs no calculation
+(decision 56, ADR-0009). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
 the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages of each section
 by the section's id (none for a section Capacita skipped), and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
 with the files of its frame analysis (the 基礎の照査 reads the support reactions, decision 54): ``calculate`` gives
@@ -66,6 +68,7 @@ from ..reporting.stages.foundation_check import TRANSVERSE as FOUNDATION_CHAPTER
 from ..reporting.stages.foundation_check import Chapter as FoundationChapter, render_foundation_check
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
+from ..reporting.stages.seismic_check import render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
@@ -178,7 +181,8 @@ class StageSpec:
     calculate: Callable[[PierInput, Results], Any] | None = None  # none: the stage has no result
     # (results, pier, path, pages): pages maps the name of each insertion (reporting.stages.insertion) to its PDF,
     # FEMPython's load diagram when ``load_diagram`` is set, JRSNAP's データ確認図 and 荷重図 when ``jrsnap_figures``
-    # is, or Capacita's pages of each section when ``section_check`` is; empty for a stage with none. None: no report
+    # is, Capacita's pages of each section when ``section_check`` is, or Aggre-SE's report when ``seismic_check`` is;
+    # empty for a stage with none. None: no report
     render: Callable[[Results, PierInput, Any, Mapping[str, bytes]], Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
@@ -187,6 +191,8 @@ class StageSpec:
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
     section_check: SectionCheck | None = None  # Capacita checks the column with the PIK of frame_analysis (decision 48)
+    # Aggre-SE checks with the project of nonlinear_analysis; its report is the stage's report (decision 56)
+    seismic_check: bool = False
     # (the result of calculate, the files of frame_analysis by kind) → the stage's result (decision 54), or none
     complete: Callable[[Any, Mapping[str, bytes]], Any] | None = None
 
@@ -216,7 +222,7 @@ class Registry:
                     raise ValueError(f"{stage.id}の依存段階{dependency}が先に登録されていません")
             if not stage.stem.startswith(stage.id + "_") or not _plain_name(stage.stem):
                 raise ValueError(f"{stage.id}のファイル{stage.stem}の名前は「{stage.id}_」で始まる必要があります")
-            if stage.render is not None and stage.calculate is None:
+            if stage.render is not None and stage.calculate is None and not stage.seismic_check:
                 raise ValueError(f"{stage.id}の計算書には計算が必要です")
             if stage.opt_in and stage.opt_in not in SWITCHES:
                 raise ValueError(f"{stage.id}の選択式のスイッチ{stage.opt_in}がありません")
@@ -258,6 +264,11 @@ class Registry:
                 outputs.append((nonlinear.kind, nonlinear.folder))
                 if nonlinear.project is not None:
                     outputs.append((nonlinear.project.kind, nonlinear.project.file_name))
+            if stage.seismic_check:
+                if nonlinear is None or nonlinear.project is None:
+                    raise ValueError(f"{stage.id}の耐震性能照査には静的非線形解析と Aggre-SE のプロジェクトが必要です")
+                if not stage.has_report:
+                    raise ValueError(f"{stage.id}の耐震性能照査の計算書がありません")
             for dependency in stage.depends_on:
                 if self.get(dependency).opt_in not in ("", stage.opt_in):
                     raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、同じスイッチ"
@@ -361,6 +372,11 @@ def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput
     return build
 
 
+def _seismic_check(results: Results, pier: PierInput, path: Any, pages: Mapping[str, bytes]) -> Any:
+    """Aggre-SE's report as the stage's report (decision 56, ADR-0009)."""
+    return render_seismic_check(path, pages)
+
+
 def _pickups(stem: str) -> tuple[tuple[str, str], ...]:
     """The files of a frame analysis of ``<stem>.json`` (decision 46)."""
     return (("pik", f"{stem}.pik"), ("displacement", f"{stem}_ピックアップ変位量.csv"),
@@ -397,9 +413,8 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
 
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
-# A normal generation only writes the project; Aggre-SE reading it and checking with it are separate records.
-_PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION, "app_read_verified": False,
-            "seismic_check_run": False}
+# The same generation has Aggre-SE read the project and check with it (decision 56): the sidecar names that report.
+_PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION}
 
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
@@ -430,10 +445,11 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], pier, path, pages),
               (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
               jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL))),
-    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), opt_in=NONLINEAR_ANALYSIS,
+    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
-                  Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT))),
+                  Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
+              seismic_check=True),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
@@ -441,8 +457,9 @@ STAGES = Registry((
               (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
               jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE))),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
-    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), opt_in=NONLINEAR_ANALYSIS,
+    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(
                   "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
-                  Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT))),
+                  Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
+              seismic_check=True),
 ))

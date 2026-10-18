@@ -1,7 +1,7 @@
 """The real registry: every stage alone gives the same bytes as the all generation, the frame analysis stages
 (decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
 analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU, with the Aggre-SE project
-that reads it (decision 49)."""
+that reads it (decision 49), and the reports of 0711 and 0721, which are the stand-in Aggre-SE runner's (decision 56)."""
 
 from __future__ import annotations
 
@@ -162,7 +162,10 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
     source = copy_input(tmp_path / "pre")
     generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", nonlinear_analysis=True))
     assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
-    assert tree(tmp_path / "output") == tree(all_generation[0] / "output")
+    output = tree(tmp_path / "output")
+    reports = {"0711": "0711_線路方向非線形解析", "0721": "0721_線路直角方向非線形解析"}
+    assert {name: content for name, content in output.items()
+            if not name.startswith(tuple(reports.values()))} == tree(all_generation[0] / "output")
     post = tree(tmp_path / "post")
     for stage, source_stage, stem, cases in (("0711", "0710", "線路方向", (1,)), ("0721", "0720", "線路直角方向", (1, 2))):
         folder, ndu = f"{stem}_JRSNAP", f"{stem}.ndu"
@@ -180,10 +183,23 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
         assert post[project] == (FIXTURES / "example2" / "aggrese" / project).read_bytes()
         sidecar = load_json(post[f"{project}.provenance.json"])
         assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (stage, "aggrese", sha256(post[project]))
-        assert sidecar["metadata"] == {"target": "Aggre-SE", "target_version": "5.3.0.1", "app_read_verified": False,
-                                       "seismic_check_run": False}
+        assert sidecar["metadata"] == {"target": "Aggre-SE", "target_version": "5.3.0.1"}
         assert sidecar["aggrese_project"] == {"jrsnap": {"stage": stage, "export": "jrsnap", "file": folder,
                                                          "sha256": content_sha256(tmp_path / "post" / folder)}}
+        assert sidecar["seismic_check"] == {"report": f"{stage}.pdf", "engine": "aggrese", "engine_version": "fake-1"}
+        # Decision 56: the report is the stand-in Aggre-SE runner's, one page per Case and a summary page.
+        with pymupdf.open(stream=output[f"{reports[stage]}.pdf"], filetype="pdf") as document:
+            pages = [page.get_text().strip() for page in document]
+        assert pages == [*(f"FAKE AGGRESE Case{case} {sha256(post[f'{folder}/{stem}(Case{case}_ρm10_αf1_正向).DB1'])[:16]}"
+                           for case in cases), f"FAKE AGGRESE SUMMARY {sha256(post[project])[:16]}"]
+        result = load_json(output[f"{reports[stage]}.json"])
+        assert result["result"] is None
+        assert result["seismic_check"] == {
+            "engine": "aggrese", "engine_version": "fake-1", "engineering_status": "not_evaluated",
+            "cases": [{"caseNumber": case, "name": f"{stem}(Case{case}_ρm10_αf1_正向)", "aggregated": True}
+                      for case in cases],
+            "project": {"file": project, "sha256": sha256(post[project])},
+            "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)}}
 
 
 @pytest.mark.parametrize("key", ["地域別", "地盤区分"])

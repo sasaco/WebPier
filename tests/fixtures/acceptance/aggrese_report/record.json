@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "kind": "aggrese_report_acceptance",
+  "date": "2026-10-19T08:10:05+09:00",
+  "method": "本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、計算書（Aggre-SE の report.pdf そのもの）の応答値の算定のページから Case ごとの Kheq・δeq と、安全性・復旧性の μ・δr・Khr を読んだ。線路方向は見本 10-14 と比べ、線路直角方向は風荷重の差（決定12・35）があるので記録だけにした。Aggre-SE の照査の判定は扱わない。",
+  "seismic_check_judged": false,
+  "input": {
+    "path": "tests/fixtures/inputs/current.json",
+    "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
+  },
+  "implementation_sha256": "1385bb1769110b7bd97e1fb744f065cb7d9d0caeb94292db5901edf61f1cef26",
+  "runner": {
+    "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+    "sha256": "8b5ef37f3f3b8fc706d54d9bf4b235bac31d285297c8a30c37eb13e6c0a0637b"
+  },
+  "helpers": {
+    "scripts/accept_aggrese_report.py": "1cbf0fb95b4dc79fca4b842a7e6d611665ded38d148f69b05200b4fd70d8ec75"
+  },
+  "directions": {
+    "0711": {
+      "project": {
+        "file": "線路方向.xml",
+        "sha256": "51c1521da1440a38e049de2e7a5946b5d434656373de6cff93abb4a890bec527",
+        "databases": [
+          "線路方向(Case1_ρm10_αf1_正向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路方向_JRSNAP",
+        "sha256": "edf48dfb6dcd42bc5167796bebbb51235211653a98b0bb2f8e0ab651dc6daec0",
+        "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
+        "product": "5.2-L03"
+      },
+      "seismic_check": {
+        "engine": "aggrese",
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "engineering_status": "not_evaluated",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路方向(Case1_ρm10_αf1_正向)",
+            "aggregated": true
+          }
+        ],
+        "project": {
+          "file": "線路方向.xml",
+          "sha256": "51c1521da1440a38e049de2e7a5946b5d434656373de6cff93abb4a890bec527"
+        },
+        "jrsnap": {
+          "file": "線路方向_JRSNAP",
+          "sha256": "edf48dfb6dcd42bc5167796bebbb51235211653a98b0bb2f8e0ab651dc6daec0"
+        }
+      },
+      "report": {
+        "file": "0711_線路方向非線形解析.pdf",
+        "bytes": 213895,
+        "pages": 11
+      },
+      "cases": [
+        {
+          "kheq": 0.368,
+          "delta_eq": 30.5,
+          "safety": {
+            "mu": 9.32,
+            "delta_r": 284.3,
+            "khr": 0.386
+          },
+          "restorability": {
+            "mu": 5.78,
+            "delta_r": 176.3,
+            "khr": 0.385
+          }
+        }
+      ],
+      "example2": {
+        "source": "Example橋脚2/10_線路(耐震).pdf 10-14",
+        "values": [
+          {
+            "kheq": 0.368,
+            "delta_eq": 30.5,
+            "safety": {
+              "mu": 9.32,
+              "delta_r": 284.3,
+              "khr": 0.386
+            },
+            "restorability": {
+              "mu": 5.78,
+              "delta_r": 176.3,
+              "khr": 0.385
+            }
+          }
+        ],
+        "matches": true
+      }
+    },
+    "0721": {
+      "project": {
+        "file": "線路直角方向.xml",
+        "sha256": "e45108127737859b7d2ab5123fc30d02956b98ab27084e508c1718a07406b1a4",
+        "databases": [
+          "線路直角方向(Case1_ρm10_αf1_正向).DB1",
+          "線路直角方向(Case2_ρm10_αf1_正向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路直角方向_JRSNAP",
+        "sha256": "8ef5ed0a10e5e6b0e0128a3bd60690194b7ab063b102f7098500f063d7e64ee3",
+        "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
+        "product": "5.2-L03"
+      },
+      "seismic_check": {
+        "engine": "aggrese",
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "engineering_status": "not_evaluated",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+            "aggregated": true
+          },
+          {
+            "caseNumber": 2,
+            "name": "線路直角方向(Case2_ρm10_αf1_正向)",
+            "aggregated": true
+          }
+        ],
+        "project": {
+          "file": "線路直角方向.xml",
+          "sha256": "e45108127737859b7d2ab5123fc30d02956b98ab27084e508c1718a07406b1a4"
+        },
+        "jrsnap": {
+          "file": "線路直角方向_JRSNAP",
+          "sha256": "8ef5ed0a10e5e6b0e0128a3bd60690194b7ab063b102f7098500f063d7e64ee3"
+        }
+      },
+      "report": {
+        "file": "0721_線路直角方向非線形解析.pdf",
+        "bytes": 363278,
+        "pages": 18
+      },
+      "cases": [
+        {
+          "kheq": 0.478,
+          "delta_eq": 31.0,
+          "safety": {
+            "mu": 7.16,
+            "delta_r": 222.0,
+            "khr": 0.552
+          },
+          "restorability": {
+            "mu": 4.2,
+            "delta_r": 130.2,
+            "khr": 0.547
+          }
+        },
+        {
+          "kheq": 0.5,
+          "delta_eq": 31.7,
+          "safety": {
+            "mu": 6.76,
+            "delta_r": 214.3,
+            "khr": 0.571
+          },
+          "restorability": {
+            "mu": 3.97,
+            "delta_r": 125.8,
+            "khr": 0.565
+          }
+        }
+      ]
+    }
+  }
+}
