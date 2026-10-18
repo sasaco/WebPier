@@ -1,6 +1,6 @@
 """A small stage registry with fast fake calculations and reports, for the generation tests.
 
-A → B → C, where B writes a FrameWeb-like file and C an opt-in JRSNAP-like file. Every call is logged so the
+A → B → C, where B writes a FrameWeb-like file and C a JRSNAP-like file. Every call is logged so the
 tests can tell what was calculated and rendered, and in which order.
 """
 
@@ -66,7 +66,7 @@ def fake_registry(recorder: Recorder) -> Registry:
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), recorder.render("B"),
                   (Export("frameweb", "frame.json", recorder.export("B", b'{"B": 1}\n')),)),
         StageSpec("C", "C_地震", ("B",), recorder.calculate("C"), recorder.render("C"),
-                  (Export("jrsnap", "model.ndu", recorder.export("C", b"NDU C\r\n"), opt_in=True,
+                  (Export("jrsnap", "model.ndu", recorder.export("C", b"NDU C\r\n"),
                           metadata={"target_version": "5.2-L03", "analysis_run": False}),)),
     ))
 

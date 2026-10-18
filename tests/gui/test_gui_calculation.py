@@ -1,5 +1,6 @@
 """The calculation: the new pipeline as a child process, then a check of what it published."""
 
+import inspect
 import json
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from webpier.core.integrity import file_sha256
 from webpier.gui import calculation
 from webpier.gui.calculation import CalculationController, CalculationJob, validate_outputs
 from webpier.pipeline import generate
+from webpier.pipeline.generate import planned
 
 
 @pytest.fixture(autouse=True)
@@ -28,10 +30,10 @@ def controller(tmp_path, runner, stages):
     return CalculationController(tmp_path / "output", runner, registry=stages)
 
 
-def run(tmp_path, input_path, stages, *, jrsnap=False, before=None, after=None):
+def run(tmp_path, input_path, stages, *, before=None, after=None):
     runner = InProcessRunner(stages, before=before, after=after)
     control = controller(tmp_path, runner, stages)
-    control.start(input_path, file_sha256(input_path), jrsnap=jrsnap)
+    control.start(input_path, file_sha256(input_path))
     return control, runner, wait(control)
 
 
@@ -40,7 +42,20 @@ def test_the_command_runs_the_new_pipeline(tmp_path):
     assert job.command == [sys.executable, "-m", "webpier", "--input", str(tmp_path / "in.json"), "--output-dir",
                            str(tmp_path / "output"), "--post-dir", str(tmp_path / "post"), "--stage", "all",
                            "--overwrite"]
-    assert CalculationJob("id", Path("i"), Path("o"), Path("p"), "0", jrsnap=True).command[-1] == "--jrsnap"
+
+
+def test_there_is_no_jrsnap_choice():
+    """Decision 42: the NDUs are always written, so neither the job nor the controller takes a JRSNAP flag."""
+    with pytest.raises(TypeError):
+        CalculationJob("id", Path("i"), Path("o"), Path("p"), "0", jrsnap=True)
+    assert "jrsnap" not in inspect.signature(CalculationController.start).parameters
+
+
+def test_the_check_covers_the_ndus_of_the_real_registry(tmp_path):
+    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64)
+    names = {artifact.path.name for artifact in planned(job.options)}
+    assert {"線路方向.ndu", "線路直角方向.ndu", "線路方向.ndu.provenance.json",
+            "線路直角方向.ndu.provenance.json"} <= names
 
 
 def test_a_successful_generation_is_verified(tmp_path, input_path, stages):
@@ -51,15 +66,16 @@ def test_a_successful_generation_is_verified(tmp_path, input_path, stages):
     assert "0500 計算書" in result.stdout
     assert runner.commands[0][-1] == "--overwrite"
     assert control.post_dir == (tmp_path / "post").resolve()
-    assert not (tmp_path / "post" / "線路方向.ndu").exists()
+    assert (tmp_path / "post" / "線路方向.ndu").read_bytes() == b"NDU\r\n"
+    assert (tmp_path / "post" / "線路方向.ndu.provenance.json").exists()
     assert control.check_current_outputs() is None
 
 
-def test_jrsnap_outputs_are_requested_and_verified(tmp_path, input_path, stages):
-    control, runner, result = run(tmp_path, input_path, stages, jrsnap=True)
-    assert result.success and runner.commands[0][-1] == "--jrsnap"
-    assert result.message.endswith("JRSNAP入力と付帯JSONも出力しました。")
-    assert (tmp_path / "post" / "線路方向.ndu.provenance.json").exists()
+def test_a_replaced_ndu_breaks_the_generation(tmp_path, input_path, stages):
+    control, _, _ = run(tmp_path, input_path, stages)
+    (tmp_path / "post" / "線路方向.ndu").write_bytes(b"NDU 2\r\n")
+    with pytest.raises(calculation.ArtifactValidationError, match="線路方向.ndu"):
+        validate_outputs(control.job, registry=stages)
 
 
 def test_a_failing_cli_is_reported_with_its_log(tmp_path, input_path, stages):

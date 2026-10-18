@@ -1,4 +1,4 @@
-"""Run one generation (``python -m webpier --stage all --overwrite [--jrsnap]``) without blocking Tk, then check it.
+"""Run one generation (``python -m webpier --stage all --overwrite``) without blocking Tk, then check it.
 
 Only the child process and its bounded logs run on the worker thread. The result is consumed on the main thread,
 where it is checked against the files the pipeline plans for the same options: every result JSON and every
@@ -34,7 +34,6 @@ from ..pipeline.stages import ALL, STAGES, Registry
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 MAX_LOG_BYTES = 48 * 1024
 LOG_TRUNCATED = "［ログの前半を省略しました］\n"
-JRSNAP = "jrsnap"
 
 
 class ArtifactValidationError(ValueError):
@@ -57,18 +56,15 @@ class CalculationJob:
     output_dir: Path
     post_dir: Path
     input_sha256: str
-    jrsnap: bool = False
 
     @property
     def options(self) -> GenerationOptions:
-        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True,
-                                 opt_in=frozenset({JRSNAP}) if self.jrsnap else frozenset())
+        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True)
 
     @property
     def command(self) -> list[str]:
-        command = [sys.executable, "-m", "webpier", "--input", str(self.input_path), "--output-dir",
-                   str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite"]
-        return [*command, f"--{JRSNAP}"] if self.jrsnap else command
+        return [sys.executable, "-m", "webpier", "--input", str(self.input_path), "--output-dir",
+                str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite"]
 
 
 @dataclass(frozen=True)
@@ -215,12 +211,12 @@ class CalculationController:
         self.running = False
         self.state = "idle"  # idle, running, success, failed, stale
 
-    def start(self, input_path: Path, input_sha256: str, *, jrsnap: bool = False) -> CalculationJob:
+    def start(self, input_path: Path, input_sha256: str) -> CalculationJob:
         _main_thread_only()
         if self.running:
             raise RuntimeError("計算中です。完了までお待ちください。")
         job = CalculationJob(uuid.uuid4().hex, Path(input_path).resolve(), self.output_dir, self.post_dir,
-                             input_sha256, jrsnap)
+                             input_sha256)
         self.job, self.result = job, None
         self._verified.clear()
         self.running, self.state = True, "running"
@@ -246,8 +242,6 @@ class CalculationController:
                 pdf_paths = validate_outputs(outcome.job, registry=self.registry, snapshots=self._verified)
                 success, state = True, "success"
                 message = f"計算・PDF出力が完了しました（{len(pdf_paths)}帳票）。"
-                if outcome.job.jrsnap:
-                    message += "JRSNAP入力と付帯JSONも出力しました。"
         except InputChangedError as exc:
             state, message = "stale", str(exc)
         except ArtifactValidationError as exc:

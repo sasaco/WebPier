@@ -13,8 +13,8 @@ def spec(stage_id, *depends_on, exports=()):
                      lambda results, pier, path: path, exports)
 
 
-def export(kind, file_name, *, opt_in=False):
-    return Export(kind, file_name, lambda results, pier: b"", opt_in=opt_in)
+def export(kind, file_name):
+    return Export(kind, file_name, lambda results, pier: b"")
 
 
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
@@ -40,16 +40,21 @@ def test_declared_dependencies_of_the_real_stages():
     assert depends == {stage: expected[stage] for stage in depends}
 
 
-def test_frameweb_is_written_for_the_non_seismic_frames_and_jrsnap_only_on_request():
+def test_frameweb_is_written_for_the_non_seismic_frames_and_jrsnap_for_the_seismic_ones():
     for stage in STAGES.stages:
         for item in stage.exports:
-            assert (item.kind, item.opt_in) in {("frameweb", False), ("jrsnap", True)}
+            assert item.kind in {"frameweb", "jrsnap"}
             assert stage.id in ({"0610", "0620"} if item.kind == "frameweb" else {"0710", "0720"})
     files = {stage.id: [item.file_name for item in stage.exports if item.kind == "frameweb"] for stage in STAGES.stages}
     assert (files["0610"], files["0620"]) == (["線路方向.json"], ["線路直角方向.json"])
     ndu = {stage.id: [item.file_name for item in stage.exports if item.kind == "jrsnap"] for stage in STAGES.stages}
     assert (ndu["0710"], ndu["0720"]) == (["線路方向.ndu"], ["線路直角方向.ndu"])
-    assert STAGES.opt_in_kinds == ("jrsnap",)
+
+
+def test_every_export_is_always_written():
+    """Decision 42: an export is part of its stage; nothing is written only on request."""
+    assert "opt_in" not in Export.__dataclass_fields__
+    assert not hasattr(STAGES, "opt_in_kinds") and not hasattr(StageSpec, "enabled_exports")
 
 
 def test_closure_adds_transitive_dependencies_in_registry_order():
@@ -73,20 +78,6 @@ def test_get_returns_the_spec():
     assert Registry((first,)).get("A") is first
 
 
-def test_opt_in_kinds_are_collected_once():
-    registry = Registry((spec("A", exports=(export("frameweb", "a.json"),)),
-                         spec("B", exports=(export("jrsnap", "b.ndu", opt_in=True),)),
-                         spec("C", exports=(export("jrsnap", "c.ndu", opt_in=True),))))
-    assert registry.opt_in_kinds == ("jrsnap",)
-
-
-def test_enabled_exports_skip_unrequested_opt_in_exports():
-    always, optional = export("frameweb", "a.json"), export("jrsnap", "a.ndu", opt_in=True)
-    stage = spec("A", exports=(always, optional))
-    assert stage.enabled_exports(frozenset()) == (always,)
-    assert stage.enabled_exports(frozenset({"jrsnap"})) == (always, optional)
-
-
 @pytest.mark.parametrize("stages,message", [
     ((), "段階がありません"),
     ((spec("A"), spec("A")), "段階が重複しています: A"),
@@ -98,8 +89,6 @@ def test_enabled_exports_skip_unrequested_opt_in_exports():
      "出力ファイル名が重複しています: x.json"),
     ((spec("A", exports=(export("frameweb", "x.json"), export("frameweb", "y.json"))),),
      "Aの出力の種類が重複しています: frameweb"),
-    ((spec("A", exports=(export("jrsnap", "x.ndu", opt_in=True),)),
-      spec("B", exports=(export("jrsnap", "y.ndu"),))), "jrsnapは要求したときだけの出力と常の出力を兼ねられません"),
     ((spec("A", exports=(export("Frame Web", "x.ndu"),)),), "出力の種類の名前が不正です: Frame Web"),
     ((spec("A", exports=(export("frameweb", "sub/x.json"),)),), "出力ファイル名が不正です: sub/x.json"),
     ((spec("A", exports=(export("frameweb", ".."),)),), r"出力ファイル名が不正です: \.\."),

@@ -29,7 +29,7 @@ def test_calculates_the_closure_and_renders_nothing(pier):
     assert recorder.log[-1] == ("export", "C", ("B", "C"))  # its dependencies and itself, as in a generation
 
 
-def test_an_opt_in_export_needs_no_flag(pier):
+def test_an_export_of_an_earlier_stage_calculates_only_its_closure(pier):
     recorder = Recorder()
     assert export_bytes(pier, "B", "frameweb", registry=fake_registry(recorder)) == b'{"B": 1}\n'
     assert recorder.actions("calculate") == ["A", "B"]
@@ -39,8 +39,7 @@ def test_equals_the_staged_file_of_a_generation(tmp_path, monkeypatch, pier):
     monkeypatch.setattr(generate, "dependency_hashes", lambda: {})
     recorder = Recorder()
     registry = fake_registry(recorder)
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post", stage="C",
-                                opt_in=frozenset({"jrsnap"}))
+    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post", stage="C")
     with prepare(options, registry=registry) as candidate:
         staged = candidate.staged("C.jrsnap").read_bytes()
     generation_log = [entry for entry in recorder.log if entry[0] == "export"]

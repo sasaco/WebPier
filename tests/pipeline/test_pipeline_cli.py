@@ -13,7 +13,7 @@ from webpier.core.errors import InputError
 from webpier.pipeline import cli, generate
 from webpier.pipeline.generate import GenerationError
 from webpier.pipeline.publication import RecoveryError
-from webpier.pipeline.stages import Registry, StageSpec
+from webpier.pipeline.stages import STAGES, Registry, StageSpec
 
 ROOT = Path(__file__).parents[2]
 
@@ -38,7 +38,9 @@ def test_all_is_the_default_and_every_published_file_is_listed(tmp_path, registr
         f"A 計算書: {output / 'A_基礎.pdf'}", f"A 計算結果: {output / 'A_基礎.json'}",
         f"B 計算書: {output / 'B_荷重.pdf'}", f"B 計算結果: {output / 'B_荷重.json'}",
         f"C 計算書: {output / 'C_地震.pdf'}", f"C 計算結果: {output / 'C_地震.json'}",
-        f"B frameweb入力: {post / 'frame.json'}", f"B frameweb付帯JSON: {post / 'frame.json.provenance.json'}"]
+        f"B frameweb入力: {post / 'frame.json'}", f"C jrsnap入力: {post / 'model.ndu'}",
+        f"B frameweb付帯JSON: {post / 'frame.json.provenance.json'}",
+        f"C jrsnap付帯JSON: {post / 'model.ndu.provenance.json'}"]
 
 
 def test_post_is_a_sibling_of_the_output_directory_unless_given(tmp_path, registry):
@@ -46,20 +48,24 @@ def test_post_is_a_sibling_of_the_output_directory_unless_given(tmp_path, regist
     assert (tmp_path / "elsewhere" / "frame.json").is_file() and not (tmp_path / "post").exists()
 
 
-def test_jrsnap_is_written_only_with_its_flag(tmp_path, registry):
+def test_jrsnap_is_written_without_a_flag(tmp_path, registry):
     assert run(tmp_path, registry, "--stage", "C") == 0
-    assert not (tmp_path / "post").exists()
-    assert run(tmp_path, registry, "--stage", "C", "--jrsnap", "--overwrite") == 0
     assert (tmp_path / "post" / "model.ndu").read_bytes() == b"NDU C\r\n"
 
 
-def test_the_flags_and_stage_choices_come_from_the_registry(tmp_path, capsys):
+def test_there_is_no_jrsnap_flag(capsys):
+    """Decision 42: the NDU is an ordinary export, so --jrsnap is an unknown argument."""
+    with pytest.raises(SystemExit) as exit_info:
+        cli.parser(STAGES).parse_args(["--jrsnap"])
+    assert exit_info.value.code == 2
+    assert "unrecognized arguments: --jrsnap" in capsys.readouterr().err
+
+
+def test_the_stage_choices_come_from_the_registry(capsys):
     plain = Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path: path),))
     with pytest.raises(SystemExit) as exit_info:
-        cli.main(["--jrsnap"], registry=plain)
-    assert exit_info.value.code == 2
-    with pytest.raises(SystemExit):
         cli.main(["--stage", "B"], registry=plain)
+    assert exit_info.value.code == 2
     assert "invalid choice" in capsys.readouterr().err
 
 

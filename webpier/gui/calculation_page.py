@@ -43,7 +43,6 @@ class CalculationPage:
         self._after: str | None = None
         self._selected: Any = None
         self.status = tk.StringVar(master=editor.root, value=editor.calculation_status or NOT_RUN)
-        self.jrsnap = tk.BooleanVar(master=editor.root, value=editor.calculation_jrsnap)
         page = ttk.Frame(parent)
         page.pack(fill="both", expand=True)
         self.frame = page
@@ -60,15 +59,12 @@ class CalculationPage:
             box = ttk.LabelFrame(settings, text=f"JRSNAP 5.2-L03 {direction}")
             box.pack(side="left", anchor="n", padx=(0, 8))
             form.properties(box, [((namespace, key), label) for key, label in JRSNAP_ROWS], widths=[220, 110, 60])
-        ttk.Label(page, text="JRSNAP入力を出力するときは、両方向の全項目が必要です。空欄は補いません。",
+        ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
                   style="Muted.TLabel").pack(anchor="w")
         actions = ttk.Frame(page)
         actions.pack(fill="x", pady=(6, 0))
         self.calculate_button = ttk.Button(actions, text="保存して計算・PDF出力", command=self.start)
         self.calculate_button.pack(side="left")
-        self.jrsnap_box = ttk.Checkbutton(actions, text="両方向のJRSNAP入力ファイルも出力", variable=self.jrsnap,
-                                          command=self._jrsnap_changed)
-        self.jrsnap_box.pack(side="left", padx=(12, 0))
         self.progress = ttk.Progressbar(actions, mode="indeterminate", length=150)
         ttk.Label(page, textvariable=self.status, style="Symbol.TLabel", wraplength=900).pack(anchor="w", pady=(8, 6))
         self.log = tk.Text(page, height=4, wrap="word", font=("Yu Gothic UI", 9), background="#fff7f4",
@@ -79,9 +75,6 @@ class CalculationPage:
         self._show_log(editor.calculation_log)
 
     # state --------------------------------------------------------------------------------------------------
-
-    def _jrsnap_changed(self) -> None:
-        self.editor.calculation_jrsnap = self.jrsnap.get()
 
     def _set_status(self, text: str, log: str | None = None) -> None:
         self.status.set(text)
@@ -98,7 +91,7 @@ class CalculationPage:
 
     def _controls(self) -> None:
         state = ["disabled"] if self.busy else ["!disabled"]
-        for widget in (self.calculate_button, self.jrsnap_box, self.preview_button, self.editor.tree,
+        for widget in (self.calculate_button, self.preview_button, self.editor.tree,
                        *self.editor.toolbar_buttons.values()):
             widget.state(state)
         if self.busy:
@@ -138,7 +131,7 @@ class CalculationPage:
         # Collect garbage here: a Tk image finalized by a collection on the worker thread waits for Tk's main loop.
         gc.collect()
         try:
-            self.controller.start(path, sha, jrsnap=self.jrsnap.get())
+            self.controller.start(path, sha)
         except RuntimeError as exc:
             self._set_status("計算を開始できませんでした。", str(exc))
             return False

@@ -50,12 +50,14 @@ def _plain_name(name: str) -> bool:
 
 @dataclass(frozen=True)
 class Export:
-    """A file for an external program, written under post/ with a provenance sidecar beside it."""
+    """A file for an external program, written under post/ with a provenance sidecar beside it.
 
-    kind: str  # the program, e.g. "frameweb"; an opt-in kind is also its CLI flag (--jrsnap)
+    Every export of a selected stage is written; none is written only on request (decision 42).
+    """
+
+    kind: str  # the program, e.g. "frameweb"
     file_name: str
     build: Callable[[Results, PierInput], bytes]
-    opt_in: bool = False  # written only when the kind is requested
     metadata: Mapping[str, Any] = field(default_factory=dict)  # fixed facts recorded in the sidecar
 
 
@@ -68,9 +70,6 @@ class StageSpec:
     render: Callable[[Results, PierInput, Path], Any]
     exports: tuple[Export, ...] = ()
 
-    def enabled_exports(self, opt_in: frozenset[str]) -> tuple[Export, ...]:
-        return tuple(item for item in self.exports if not item.opt_in or item.kind in opt_in)
-
 
 @dataclass(frozen=True)
 class Registry:
@@ -81,7 +80,6 @@ class Registry:
             raise ValueError("段階がありません")
         seen: list[str] = []
         files: set[str] = set()
-        opt_in: dict[str, bool] = {}
         for stage in self.stages:
             if stage.id == ALL:
                 raise ValueError(f"段階の名前に{ALL}は使えません")
@@ -98,8 +96,6 @@ class Registry:
                     raise ValueError(f"出力の種類の名前が不正です: {item.kind}")
                 if item.kind in kinds:
                     raise ValueError(f"{stage.id}の出力の種類が重複しています: {item.kind}")
-                if opt_in.setdefault(item.kind, item.opt_in) != item.opt_in:
-                    raise ValueError(f"{item.kind}は要求したときだけの出力と常の出力を兼ねられません")
                 if not _plain_name(item.file_name):
                     raise ValueError(f"出力ファイル名が不正です: {item.file_name}")
                 if item.file_name in files:
@@ -115,11 +111,6 @@ class Registry:
     @property
     def choices(self) -> tuple[str, ...]:
         return (*self.ids, ALL)
-
-    @property
-    def opt_in_kinds(self) -> tuple[str, ...]:
-        kinds = (item.kind for stage in self.stages for item in stage.exports if item.opt_in)
-        return tuple(dict.fromkeys(kinds))
 
     def get(self, stage_id: str) -> StageSpec:
         return self.stages[self.ids.index(stage_id)]
@@ -175,10 +166,10 @@ STAGES = Registry((
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),
               lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path),
-              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), opt_in=True, metadata=_NDU),)),
+              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),)),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
               lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path),
-              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), opt_in=True, metadata=_NDU),)),
+              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),)),
 ))

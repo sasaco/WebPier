@@ -3,7 +3,9 @@
 1. The selection and every destination are checked before anything is read or calculated.
 2. The input is read once as bytes; its SHA256 is recorded in every result JSON and sidecar. It is always
    parsed strictly (duplicate keys, NaN and Infinity are input errors).
-3. The selected stages and their dependencies are all calculated before any report is rendered.
+3. The selected stages and their dependencies are all calculated, and every export of the selected stages
+   built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
+   error before any rendering.
 4. Reports, result JSON, exports and their provenance sidecars are written to staging beside each
    destination, then published as one set by ``publication.publish_outputs``. A final validator checks the
    published bytes, the files that were displaced, the input and the implementation identity, and any
@@ -46,7 +48,6 @@ class GenerationOptions:
     post_dir: Path  # external-program inputs and their sidecars
     stage: str = ALL
     overwrite: bool = False
-    opt_in: frozenset[str] = frozenset()  # opt-in export kinds, e.g. {"jrsnap"}
 
 
 @dataclass(frozen=True)
@@ -67,15 +68,6 @@ def _state(path: Path) -> str | None:
     return file_sha256(path) if path.exists() else None
 
 
-def _check_opt_in(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]) -> None:
-    for kind in sorted(options.opt_in):
-        if kind not in registry.opt_in_kinds:
-            raise InputError(f"{kind}の出力はありません")
-        offering = [stage.id for stage in registry.stages if any(item.kind == kind for item in stage.exports)]
-        if not set(offering) & set(selected):
-            raise InputError(f"--{kind} は {'、'.join(offering)} または {ALL} で指定してください")
-
-
 def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]
           ) -> tuple[list[Artifact], list[tuple[str, Export, Artifact, Artifact]]]:
     reports, exports, sidecars = [], [], []
@@ -85,7 +77,7 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
         for suffix in ("pdf", "json"):
             reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                     "output"))
-        for item in stage.enabled_exports(options.opt_in):
+        for item in stage.exports:
             native = Artifact(f"{stage_id}.{item.kind}", Path(options.post_dir) / item.file_name, "post")
             sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(item.file_name + PROVENANCE_SUFFIX),
                                "post")
@@ -100,9 +92,7 @@ def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple
 
     The editor uses it to check a finished generation against exactly the files the CLI wrote.
     """
-    selected = registry.select(options.stage)
-    _check_opt_in(options, registry, selected)
-    return tuple(_plan(options, registry, selected)[0])
+    return tuple(_plan(options, registry, registry.select(options.stage))[0])
 
 
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
@@ -121,7 +111,7 @@ def _own(registry: Registry, results: Mapping[str, Any], stage_id: str) -> dict[
 def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registry = STAGES) -> bytes:
     """The bytes of one export of *stage_id*, as a generation writes them; no report is rendered.
 
-    The real-app acceptance rebuilds its candidate files with this, so an opt-in export needs no flag here.
+    The real-app acceptance rebuilds its candidate files with this.
     """
     (selected,) = registry.select(stage_id)
     item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
@@ -210,7 +200,6 @@ def _sidecar(stage_id: str, item: Export, native: Artifact, staging: ArtifactSta
 def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
     selected = registry.select(options.stage)
-    _check_opt_in(options, registry, selected)
     artifacts, exports = _plan(options, registry, selected)
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path))
@@ -224,6 +213,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
               "implementation_sha256": canonical_sha256({str(path): digest for path, digest in identity.items()})}
     with ArtifactStaging(destinations) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
+        for stage_id, item, native, _ in exports:
+            staging.path_for(native.path).write_bytes(item.build(_own(registry, results, stage_id), pier))
         for stage_id in selected:
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
@@ -234,8 +225,6 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                                        input_sha256=input_sha256,
                                        implementation_sha256=common["implementation_sha256"])
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
-        for stage_id, item, native, _ in exports:
-            staging.path_for(native.path).write_bytes(item.build(_own(registry, results, stage_id), pier))
         for stage_id, item, native, sidecar in exports:
             content = _sidecar(stage_id, item, native, staging, artifacts,
                                {**common, "selected_stages": list(selected)})

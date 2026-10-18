@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 計算・PDF生成（既定は --stage all。既存成果物の更新には --overwrite）
 uv run --project "." --locked python -m webpier --overwrite
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0620/0710/0720/all
-uv run --project "." --locked python -m webpier --stage all --jrsnap --overwrite  # NDUも出力
+# 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
 # run_design.py は python -m webpier と同じ
 
 # 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）

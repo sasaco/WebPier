@@ -31,9 +31,6 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
     result.add_argument("--post-dir", type=Path, help="解析入力と付帯JSONの出力先（既定: 出力先と並ぶ post）")
     result.add_argument("--stage", choices=registry.choices, default=ALL, help=f"計算段階（既定: {ALL}）")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
-    for kind in registry.opt_in_kinds:
-        stages = "/".join(stage.id for stage in registry.stages if any(item.kind == kind for item in stage.exports))
-        result.add_argument(f"--{kind}", action="store_true", help=f"{kind}の入力も出力する（{stages}/{ALL}）")
     return result
 
 
@@ -53,8 +50,7 @@ def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
     arguments = parser(registry).parse_args(argv)
     options = GenerationOptions(
         arguments.input, arguments.output_dir, post_dir(arguments.output_dir, arguments.post_dir),
-        stage=arguments.stage, overwrite=arguments.overwrite,
-        opt_in=frozenset(kind for kind in registry.opt_in_kinds if getattr(arguments, kind)))
+        stage=arguments.stage, overwrite=arguments.overwrite)
     try:
         generation = generate(options, registry=registry)
     except RecoveryError as exc:

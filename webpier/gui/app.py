@@ -60,7 +60,6 @@ class InputEditor:
         self.calculation = calculation  # the CalculationController, created by the calculation page when needed
         self.calculation_status = ""
         self.calculation_log = ""
-        self.calculation_jrsnap = False
         self.closed = False
         root.title("橋脚 入力データ編集")
         root.geometry("1360x900")

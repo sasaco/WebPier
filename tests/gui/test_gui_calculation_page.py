@@ -2,6 +2,7 @@
 
 import subprocess
 import time
+import tkinter as tk
 from pathlib import Path
 
 import pytest
@@ -70,11 +71,12 @@ def test_the_jrsnap_conditions_are_inputs_with_program_units(editor):
     assert factor.get() == "1.23" and editor.document.data["jrsnap_longitudinal"]["shear_factor_vcd"] == 1.23
 
 
-def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner):
+def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner, tmp_path):
     cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.1")
     view = calculate(editor)
     assert not editor.dirty
     assert runner.commands[0][1:3] == ["-m", "webpier"] and "--jrsnap" not in runner.commands[0]
+    assert (tmp_path / "post" / "線路方向.ndu").exists()
     assert view.status.get() == "計算・PDF出力が完了しました（3帳票）。"
     assert view.dialog is not None and view.dialog.selected_path.name == "0500_直接基礎.pdf"
     assert all(label.endswith("今回の計算結果") for label in labels(view))
@@ -83,12 +85,24 @@ def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner)
     assert view.open_preview() and view.dialog is not None
 
 
-def test_jrsnap_outputs_are_requested_with_the_checkbox(editor, runner, tmp_path):
-    page(editor).jrsnap_box.invoke()
-    assert editor.calculation_jrsnap
-    view = calculate(editor)
-    assert runner.commands[0][-1] == "--jrsnap" and (tmp_path / "post" / "線路方向.ndu").exists()
-    assert "JRSNAP" in view.status.get()
+def texts(widget):
+    for child in widget.winfo_children():
+        try:
+            yield str(child.cget("text"))
+        except tk.TclError:
+            pass
+        yield from texts(child)
+
+
+def test_there_is_no_jrsnap_checkbox_and_the_settings_are_required(editor):
+    """Decision 42: the NDUs are always written, so the settings are always needed."""
+    view = page(editor)
+    shown = list(texts(view.frame))
+    assert not any("両方向のJRSNAP入力ファイルも出力" in text for text in shown)
+    assert not any("出力するときは" in text for text in shown)
+    assert any("両方向の全項目が必要です" in text for text in shown)
+    assert not hasattr(view, "jrsnap_box") and not hasattr(view, "jrsnap")
+    assert not hasattr(editor, "calculation_jrsnap")
 
 
 def test_an_input_error_stops_before_anything_runs(editor, runner):

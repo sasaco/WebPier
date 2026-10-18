@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import re
+
 import pytest
 
 from pipeline_support import copy_input, tree
+from webpier.core.errors import InputError
 from webpier.core.integrity import load_json, sha256
 from webpier.export.jrsnap import LONGITUDINAL, TRANSVERSE, validate_ndu
 from webpier.pipeline.generate import GenerationOptions, generate
@@ -19,11 +23,11 @@ def all_generation(tmp_path_factory):
     return root, source, generation
 
 
-def test_all_publishes_a_report_and_result_for_every_stage_and_the_frameweb_files(all_generation):
+def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_generation):
     root, source, generation = all_generation
     output, post = tree(root / "output"), tree(root / "post")
     assert sorted(output) == sorted(f"{stage.stem}.{suffix}" for stage in STAGES.stages for suffix in ("pdf", "json"))
-    exports = [item.file_name for stage in STAGES.stages for item in stage.exports if not item.opt_in]
+    exports = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu"]
     assert sorted(post) == sorted([*exports, *(name + ".provenance.json" for name in exports)])
     for stage in STAGES.stages:
         assert output[f"{stage.stem}.pdf"].startswith(b"%PDF-")
@@ -49,15 +53,14 @@ def test_each_stage_alone_publishes_the_same_bytes_as_all(all_generation, tmp_pa
     assert alone == {name: content for name, content in tree(root / "output").items() if name in alone}
     exported = tree(tmp_path / "post") if (tmp_path / "post").exists() else {}
     assert {name: content for name, content in exported.items() if not name.endswith(".provenance.json")} == {
-        item.file_name: tree(root / "post")[item.file_name] for item in spec.exports if not item.opt_in}
+        item.file_name: tree(root / "post")[item.file_name] for item in spec.exports}
 
 
 @pytest.mark.parametrize("stage,profile", [("0710", LONGITUDINAL), ("0720", TRANSVERSE)])
-def test_jrsnap_writes_a_valid_ndu_only_when_requested(all_generation, tmp_path, stage, profile):
+def test_a_seismic_stage_writes_a_valid_ndu(all_generation, tmp_path, stage, profile):
     root, _, _ = all_generation
     source = copy_input(tmp_path / "pre")
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage,
-                               opt_in=frozenset({"jrsnap"})))
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
     (item,) = STAGES.get(stage).exports
     post = tree(tmp_path / "post")
     assert sorted(post) == [item.file_name, item.file_name + ".provenance.json"]
@@ -68,3 +71,33 @@ def test_jrsnap_writes_a_valid_ndu_only_when_requested(all_generation, tmp_path,
     assert sidecar["metadata"] == {"target_version": "5.2-L03", "app_read_verified": False, "analysis_run": False}
     assert tree(tmp_path / "output") == {name: content for name, content in tree(root / "output").items()
                                          if name.startswith(stage)}
+
+
+def blank_jrsnap_input(directory):
+    """The current input with every JRSNAP setting blank (null), as a new input has them."""
+    source = copy_input(directory)
+    document = load_json(source.read_bytes())
+    for key in ("jrsnap_longitudinal", "jrsnap_transverse"):
+        document[key] = dict.fromkeys(document[key])
+    source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    return source
+
+
+@pytest.mark.parametrize("stage", ["0500", "0600", "0610", "0620"])
+def test_the_stages_without_an_ndu_need_no_jrsnap_settings(all_generation, tmp_path, stage):
+    root, _, _ = all_generation
+    generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
+                               stage=stage))
+    report = f"{STAGES.get(stage).stem}.pdf"
+    assert sorted(tree(tmp_path / "output")) == sorted([report, report.replace(".pdf", ".json")])
+    assert tree(tmp_path / "output")[report] == tree(root / "output")[report]  # the settings change no report
+
+
+@pytest.mark.parametrize("stage,key", [("0710", "jrsnap_longitudinal"), ("0720", "jrsnap_transverse"),
+                                       ("all", "jrsnap_longitudinal")])
+def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, key):
+    """Decision 42: the settings are required (decision 40); nothing is filled in and nothing is published."""
+    with pytest.raises(InputError, match=re.escape(f"{key}.") + ".*値が必要です"):
+        generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
+                                   stage=stage))
+    assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()

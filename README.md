@@ -14,7 +14,6 @@ Windows専用です。リポジトリのルートで実行します。初回は 
 uv run --project "." --locked python -m webpier                     # 全段階（--stage all）
 uv run --project "." --locked python -m webpier --overwrite         # 既存の成果物を更新する
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite
-uv run --project "." --locked python -m webpier --stage all --jrsnap --overwrite
 uv run --project "." --locked python "./run_design.py" --overwrite  # python -m webpier と同じ
 ```
 
@@ -22,7 +21,6 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 |---|---|
 | `--stage {0500,0600,0610,0620,0710,0720,all}` | 計算する段階。既定は `all`。依存する段階は内部で計算するが、その成果物は書かない |
 | `--overwrite` | 既存の成果物を置き換える。指定しないと、既存の成果物があれば何も書かずに止まる |
-| `--jrsnap` | 0710・0720 の NDU も出力する。`--stage 0710`・`0720`・`all` と組み合わせる |
 | `--input` | 入力JSON（既定 `pre/input.json`） |
 | `--output-dir` | 計算書・結果JSONの出力先（既定 `output`） |
 | `--post-dir` | 外部ソフト向け入力と付帯JSONの出力先（既定は出力先と並ぶ `post`） |
@@ -35,10 +33,10 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0600 | — | `0600_上部工反力.pdf` / `.json` | — |
 | 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `線路方向.json` と付帯JSON |
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
-| 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `--jrsnap` のとき `線路方向.ndu` と付帯JSON |
-| 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `--jrsnap` のとき `線路直角方向.ndu` と付帯JSON |
+| 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
+| 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
 
-`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・付帯JSON2つの計16ファイル、`--jrsnap` を付けると20ファイルをまとめて更新します。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
+`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定が必須で、空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
 書体は `%WINDIR%/Fonts` の `msmincho.ttc`・`msgothic.ttc`・`calibri.ttf`・`timesi.ttf` を使います。本文はMS明朝9.9pt、見出しはMSゴシック9.9pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
 
@@ -57,7 +55,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - 値は補いません。B9 は「B7と同じ」、A・D支点の合計は「B/Cと同じ」ボタンで、その時点の値を明示的な入力として書き込みます。空き支承枠に入力を始めたときの他の項目や、新しく追加した鉄筋の行・鉄筋は、選択肢を含めてすべて空欄で始まります。
 - 「入力チェック」は全段階の入力条件を確かめ、最初の入力エラーをパス付きで表示します。
 - 保存は、開いた後に他から変更されたファイルを上書きしません。置き換える前のバイトを同じフォルダの `input.json.<日時>.bak` に残します。
-- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite`（「両方向のJRSNAP入力ファイルも出力」を選ぶと `--jrsnap` も）を子プロセスで実行します。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
+- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
 - 同じ画面に、JRSNAP の解析設定（方向ごとの7項目、[入力](#入力schema-2)を参照）の欄があります。
 
 鉄筋の画面は、梁・柱・フーチングの主鉄筋・側面鉄筋・横方向鉄筋の入力と、柱の配置の確認・詳細修正（自動配置を写した詳細位置の編集、鉄筋の追加・削除、再配置）を扱います。柱の配置と方向別の鉄筋配置表は `webpier/calc/column_rebar.py` が計算し、エディタは表示するだけです。梁・フーチングは外形だけを描きます。梁の詳細位置（`position_mode` = 指定）は、いまはどの段階も使わない予約入力で、形式だけを検査します（決定19）。
@@ -85,7 +83,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 
 - 杭（杭種以外の杭の項目・杭の配置・杭の単位体積重量）、斜角、遠心の作用方向、梁の詳細位置は、近い将来の機能のための予約項目です。計算には使わず、形式と桁だけを検査します（決定19）。`出典` は検査しない自由記述です。
 - `復旧性制動係数` は側ごとの任意入力です。入力すると復旧性の制動係数としてそのまま使い、空欄なら安全性の ρu×γB を使います。Example2 07 p.7-11 の終点側は 1.0 を入力します。
-- `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`aggregate_max_mm`（粗骨材最大寸法、0.1〜999999 mm）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位、0.001 m 単位で0以外。符号は地震の向きと同じ）です。`--jrsnap` のときだけ必須で、見本値で補いません。
+- `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`aggregate_max_mm`（粗骨材最大寸法、0.1〜999999 mm）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位、0.001 m 単位で0以外。符号は地震の向きと同じ）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。
 - 鉄筋（`鉄筋`）は全キーが必須です。空欄は未入力として保存でき、柱の配置と JRSNAP 出力が値を要するときにパス付きの入力エラーになります。
 
 ## 計算の原則
@@ -164,7 +162,7 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 
 ### JRSNAP（5.2-L03 NDU）
 
-`--jrsnap` のとき、0710 から `post/線路方向.ndu`、0720 から `post/線路直角方向.ndu` を CP932・CRLF で作ります。柱下端の0.010 mの微小部材を M-θ 部材とし、その断面は柱の配筋（方向別の鉄筋配置表）と入力条件から JRSNAP が自動算定します。他の部材は剛域、基礎は 0500 の短期 Ks・Kv と FootInfo（Df・γ2 など）による非線形回転ばねです（CONTEXT.md「JRSNAP入力モデル」）。
+0710 から `post/線路方向.ndu`、0720 から `post/線路直角方向.ndu` を CP932・CRLF で作ります。柱下端の0.010 mの微小部材を M-θ 部材とし、その断面は柱の配筋（方向別の鉄筋配置表）と入力条件から JRSNAP が自動算定します。他の部材は剛域、基礎は 0500 の短期 Ks・Kv と FootInfo（Df・γ2 など）による非線形回転ばねです（CONTEXT.md「JRSNAP入力モデル」）。
 
 - 解析設定（分割数・制限ステップ・目標変位）は入力です（決定40）。ソルバーの数値制御（荷重分割1000、試行回数999、収束判定0.001）は設計条件ではないので、出典つきのプログラムの定数です。
 - 上載土はフーチング重心に載荷します。非対称な基礎の斜めの剛部材は、鉛直と水平の2本の剛部材に分けて出力します（決定40）。
@@ -174,7 +172,7 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - JRSNAP は NDU を先頭から順に読むので、レコードの順序は変えられません。`Tisou=` は TishouNum = 0 でも空のまま必要です（消すと読込みで例外になります）。`TanbuShiji=0,0` は断面のせん断耐力の算定に使う支持条件で、骨組のばねとは関係ありません。
 - 固定の設定値の根拠は Example2 の NDU と JRSNAP 5.2-L03 の操作説明書（`.claude/agents/jrsnap-operator/JRSNAP_Ver5.2-L03/JRSNAP_操作説明書.pdf`）です：座標 p.38、M-θ の集約 p.32–33、剛域の初期値 1000 m²・1000 m⁴・25 kN/mm² p.144–145、直接基礎の回転ばね KR2 = 2・最終勾配 1/20 p.155・515、La/d ≥ 2 と M-θ の名前20バイト p.143、件数の上限 p.29、SectConc の第5欄（粗骨材最大寸法）p.90・529。
 - 通常の生成は NDU を書くだけで、JRSNAP での読込み・解析はしません。付帯JSONの `app_read_verified` と `analysis_run` は常に false です。
-- **実アプリでの受入**（決定4、2026-10-18、`scripts/accept_jrsnap_ndu.py`、記録 `tests/fixtures/acceptance/jrsnap_v52/`）：`current.json`（Example2 の解析設定）の両方向の NDU の複製を、JRSNAP_Input.exe 5.2-L03 の読込み・保存の処理（スキル `jrsnap-input-open-save`、画面は操作しない）で読込み・保存・再保存しました。保存した NDU は全レコードが同じ順序・同じ値で、違いは JRSNAP の数値の書式（`GanmaA=1.2,1,1,1` → `1.20,1.00,1.00,1.00`）だけです。2回目の保存は1回目とバイト単位で同じです。読込み直後に JRSNAP が保持する件数と組合せ（`scripts/jrsnap_state_probe.cs`）も書いたものと一致し、**0720 の2つの組合せ（上り線・下り線）は両方とも読まれます**（`G_intConbNum = 2`）。このため 0720 は1つの NDU のままです（決定40）。解析（解析用データ出力・SNAP の実行）はしていません。生成する NDU が変わると `tests/acceptance` が失敗するので、受入をやり直します。`pre/input.json` は JRSNAP の解析設定が空欄なので `--jrsnap` は入力エラーになり、受入は `current.json` で行います。
+- **実アプリでの受入**（決定4、2026-10-18、`scripts/accept_jrsnap_ndu.py`、記録 `tests/fixtures/acceptance/jrsnap_v52/`）：`current.json`（Example2 の解析設定）の両方向の NDU の複製を、JRSNAP_Input.exe 5.2-L03 の読込み・保存の処理（スキル `jrsnap-input-open-save`、画面は操作しない）で読込み・保存・再保存しました。保存した NDU は全レコードが同じ順序・同じ値で、違いは JRSNAP の数値の書式（`GanmaA=1.2,1,1,1` → `1.20,1.00,1.00,1.00`）だけです。2回目の保存は1回目とバイト単位で同じです。読込み直後に JRSNAP が保持する件数と組合せ（`scripts/jrsnap_state_probe.cs`）も書いたものと一致し、**0720 の2つの組合せ（上り線・下り線）は両方とも読まれます**（`G_intConbNum = 2`）。このため 0720 は1つの NDU のままです（決定40）。解析（解析用データ出力・SNAP の実行）はしていません。生成する NDU が変わると `tests/acceptance` が失敗するので、受入をやり直します。受入は `current.json` で行います。
 
 ## Example2 との既知の差
 

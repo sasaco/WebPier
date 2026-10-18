@@ -64,16 +64,24 @@ def env(tmp_path, monkeypatch):
     return Env(tmp_path, monkeypatch)
 
 
-def test_all_publishes_every_report_and_the_frameweb_export_with_its_sidecar(env):
+def test_all_publishes_every_report_and_every_export_with_its_sidecar(env):
     generation = env.generate()
     assert generation.stages == ("A", "B", "C")
     assert sorted(env.files()) == sorted(
         [f"output/{name}" for names in OUTPUTS.values() for name in names]
-        + ["post/frame.json", "post/frame.json.provenance.json"])
+        + ["post/frame.json", "post/frame.json.provenance.json", "post/model.ndu", "post/model.ndu.provenance.json"])
     assert env.files()["output/B_荷重.pdf"] == b"%PDF B ('A',)"
     assert env.files()["post/frame.json"] == b'{"B": 1}\n'
+    assert env.files()["post/model.ndu"] == b"NDU C\r\n"
     assert [artifact.role for artifact in generation.artifacts] == [
-        "A.pdf", "A.json", "B.pdf", "B.json", "C.pdf", "C.json", "B.frameweb", "B.frameweb.provenance"]
+        "A.pdf", "A.json", "B.pdf", "B.json", "C.pdf", "C.json", "B.frameweb", "C.jrsnap",
+        "B.frameweb.provenance", "C.jrsnap.provenance"]
+
+
+def test_no_export_is_written_only_on_request(env):
+    """Decision 42: the options name no export kinds; every export of a selected stage is written."""
+    with pytest.raises(TypeError):
+        env.options(opt_in=frozenset({"jrsnap"}))
 
 
 def test_the_default_stage_is_all(env):
@@ -84,23 +92,24 @@ def test_one_stage_calculates_its_dependencies_but_publishes_only_itself(env):
     generation = env.generate(stage="C")
     assert env.recorder.actions("calculate") == ["A", "B", "C"]
     assert env.recorder.actions("render") == ["C"]
-    assert env.recorder.actions("export") == []
-    assert sorted(env.files()) == ["output/C_地震.json", "output/C_地震.pdf"]
+    assert env.recorder.actions("export") == ["C"]
+    assert sorted(env.files()) == ["output/C_地震.json", "output/C_地震.pdf",
+                                   "post/model.ndu", "post/model.ndu.provenance.json"]
     assert set(generation.results) == {"A", "B", "C"}
 
 
-def test_every_calculation_succeeds_before_any_report_is_rendered(env):
+def test_every_calculation_and_export_succeeds_before_any_report_is_rendered(env):
     env.generate()
     actions = [name for name, _, _ in env.recorder.log]
-    assert actions == ["calculate"] * 3 + ["render"] * 3 + ["export"]
+    assert actions == ["calculate"] * 3 + ["export"] * 2 + ["render"] * 3
 
 
 def test_each_step_receives_only_the_declared_results(env):
-    env.generate(opt_in=frozenset({"jrsnap"}))
+    env.generate()
     assert env.recorder.log == [
         ("calculate", "A", ()), ("calculate", "B", ("A",)), ("calculate", "C", ("B",)),
-        ("render", "A", ("A",)), ("render", "B", ("A", "B")), ("render", "C", ("B", "C")),
-        ("export", "B", ("A", "B")), ("export", "C", ("B", "C"))]
+        ("export", "B", ("A", "B")), ("export", "C", ("B", "C")),
+        ("render", "A", ("A",)), ("render", "B", ("A", "B")), ("render", "C", ("B", "C"))]
 
 
 def test_a_calculation_error_stops_before_rendering_and_writes_nothing(env):
@@ -108,6 +117,17 @@ def test_a_calculation_error_stops_before_rendering_and_writes_nothing(env):
         raise InputError("下部構造.寸法.B1: 正の数値が必要です")
     env.recorder.hooks["calculate", "B"] = fail
     with pytest.raises(InputError, match="B1"):
+        env.generate()
+    assert env.recorder.actions("render") == []
+    assert not env.output.exists() and not env.post.exists()
+
+
+def test_an_export_input_error_stops_before_rendering_and_writes_nothing(env):
+    """A blank JRSNAP setting is an input error of the export; no report is rendered for nothing."""
+    def fail():
+        raise InputError("jrsnap_longitudinal.analysis_steps: 値が必要です")
+    env.recorder.hooks["export", "C"] = fail
+    with pytest.raises(InputError, match="analysis_steps"):
         env.generate()
     assert env.recorder.actions("render") == []
     assert not env.output.exists() and not env.post.exists()
@@ -124,7 +144,7 @@ def test_the_result_json_binds_the_input_bytes_and_the_implementation(env):
 
 
 def test_the_sidecar_lists_the_whole_generation_with_relative_names(env):
-    env.generate(opt_in=frozenset({"jrsnap"}))
+    env.generate()
     files = env.files()
     sidecar = load_json(files["post/model.ndu.provenance.json"])
     artifacts = [("A.pdf", "output", "A_基礎.pdf"), ("A.json", "output", "A_基礎.json"),
@@ -143,22 +163,10 @@ def test_the_sidecar_lists_the_whole_generation_with_relative_names(env):
     assert other["artifacts"] == sidecar["artifacts"] and other["export"] == "frameweb"
 
 
-def test_opt_in_export_only_when_requested(env):
-    env.generate(stage="C", opt_in=frozenset({"jrsnap"}))
-    assert sorted(env.files()) == ["output/C_地震.json", "output/C_地震.pdf",
-                                   "post/model.ndu", "post/model.ndu.provenance.json"]
-    assert env.files()["post/model.ndu"] == b"NDU C\r\n"
-
-
-@pytest.mark.parametrize("stage,opt_in,message", [
-    ("D", frozenset(), "計算段階が不正です: D"),
-    ("all", frozenset({"femdata"}), "femdataの出力はありません"),
-    ("A", frozenset({"jrsnap"}), "--jrsnap は C または all で指定してください"),
-])
-def test_invalid_selection_is_rejected_before_reading_the_input(env, monkeypatch, stage, opt_in, message):
+def test_invalid_selection_is_rejected_before_reading_the_input(env, monkeypatch):
     monkeypatch.setattr(Path, "read_bytes", lambda self: pytest.fail("input read"))
-    with pytest.raises(InputError, match=message):
-        env.generate(stage=stage, opt_in=opt_in)
+    with pytest.raises(InputError, match="計算段階が不正です: D"):
+        env.generate(stage="D")
     assert env.recorder.log == []
 
 
@@ -170,8 +178,6 @@ def test_invalid_selection_is_rejected_before_reading_the_input(env, monkeypatch
 ])
 def test_the_input_is_always_strict_json(env, text, message):
     env.input.write_text(text, encoding="utf-8")
-    with pytest.raises(InputError, match=message):
-        env.generate(opt_in=frozenset({"jrsnap"}))
     with pytest.raises(InputError, match=message):
         env.generate()
     assert env.recorder.log == [] and env.files() == {}
@@ -185,7 +191,7 @@ def test_the_input_is_read_once_for_every_stage(env, monkeypatch):
         reads.append(self)
         return original(self)
     monkeypatch.setattr(Path, "read_bytes", counting)
-    env.generate(opt_in=frozenset({"jrsnap"}))
+    env.generate()
     assert reads.count(env.input) == 1
 
 
@@ -356,9 +362,9 @@ def test_no_extra_file_may_appear_in_staging(env):
 
 
 def test_the_same_input_gives_the_same_bytes_twice(env, tmp_path):
-    env.generate(opt_in=frozenset({"jrsnap"}))
+    env.generate()
     first = env.files()
     for path in [*env.output.iterdir(), *env.post.iterdir()]:
         path.unlink()
-    env.generate(opt_in=frozenset({"jrsnap"}))
+    env.generate()
     assert env.files() == first
