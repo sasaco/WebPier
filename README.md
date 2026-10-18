@@ -1,8 +1,8 @@
 # WebPier 鉄道橋脚の荷重計算
 
-`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成します。
+`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成します。選べば（`--frame-analysis`）、0611・0621 でその FrameWeb 入力を FEMPython で骨組解析し、ピックアップ断面力・変位量・反力のファイルも作成します。
 
-計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。骨組解析は FEMPython に任せ、WebPier はその結果（ピックアップ断面力・変位量）を解釈せずに出力します（[ADR-0006](docs/adr/0006-frame-analysis-by-fempython.md)）。**部材の断面照査、寸法・配筋の最適化は対象外**です。
+計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、WebPier はそのピックアップを設計応答値として基礎の安定計算に使います（[ADR-0006](docs/adr/0006-frame-analysis-by-fempython.md)）。**寸法・配筋の最適化は対象外**です。
 
 用語は [CONTEXT.md](CONTEXT.md)、原則は [docs/adr/](docs/adr/)、決定事項は [.claude/docs/plans/refactoring-decisions.md](.claude/docs/plans/refactoring-decisions.md) を正とします。
 
@@ -14,12 +14,14 @@ Windows専用です。リポジトリのルートで実行します。初回は 
 uv run --project "." --locked python -m webpier                     # 全段階（--stage all）
 uv run --project "." --locked python -m webpier --overwrite         # 既存の成果物を更新する
 uv run --project "." --locked python -m webpier --stage 0610 --overwrite
+uv run --project "." --locked python -m webpier --frame-analysis --overwrite  # 全段階＋骨組解析（0611・0621）
 uv run --project "." --locked python "./run_design.py" --overwrite  # python -m webpier と同じ
 ```
 
 | 引数 | 意味 |
 |---|---|
-| `--stage {0500,0600,0610,0620,0710,0720,all}` | 計算する段階。既定は `all`。依存する段階は内部で計算するが、その成果物は書かない |
+| `--stage {0500,0600,0610,0611,0620,0621,0710,0720,all}` | 計算する段階。既定は `all`。依存する段階は内部で計算するが、その成果物は書かない。`all` は選択式の 0611・0621 を含まない |
+| `--frame-analysis` | `--stage all` に骨組解析の段階 0611・0621 を加える。1つの段階を選ぶ `--stage` とは組み合わせない（終了コード 2。0611・0621 は `--stage` で直接選べる） |
 | `--overwrite` | 既存の成果物を置き換える。指定しないと、既存の成果物があれば何も書かずに止まる |
 | `--input` | 入力JSON（既定 `pre/input.json`） |
 | `--output-dir` | 計算書・結果JSONの出力先（既定 `output`） |
@@ -32,11 +34,15 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0500 | — | `0500_直接基礎.pdf` / `.json` | — |
 | 0600 | — | `0600_上部工反力.pdf` / `.json` | — |
 | 0610 | 0500, 0600 | `0610_線路方向荷重.pdf` / `.json` | `線路方向.json` と付帯JSON |
+| 0611（選択式） | 0610 | — | `線路方向.pik`・`線路方向_ピックアップ変位量.csv`・`線路方向_ピックアップ反力.csv` と各付帯JSON |
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
+| 0621（選択式） | 0620 | — | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv` と各付帯JSON |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
 
 `--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定が必須で、空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
+
+0611・0621 は骨組解析の段階です（決定46、ADR-0006）。計算書（PDF・結果JSON）を持たず、`post/` のファイルだけを公開します。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、ピックアップのファイル6つと付帯JSON6つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
 0610・0620 の荷重図は、同じ生成で書いた FrameWeb 入力を FEMPython の `FrameWebforCS.Headless.exe` に描かせて計算書に差し込みます（決定44、ADR-0005）。runner の絶対パスをリポジトリのルートの `.env`（git で追跡しません）に書いてください。プロセスの環境変数に同じ名前があればそちらが優先です。
 
@@ -44,7 +50,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPython\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'
 ```
 
-設定がない・runner がない・runner が荷重図を描けないときは、0610・0620 を含む生成は何も公開せずに止まります（終了コード 2）。荷重図を省いて続けることはしません。
+設定がない・runner がない・runner が荷重図を描けない（骨組解析できない）ときは、0610・0620（0611・0621）を含む生成は何も公開せずに止まります（終了コード 2）。荷重図や骨組解析を省いて続けることはしません。
 
 書体は `%WINDIR%/Fonts` の `msmincho.ttc`・`msgothic.ttc`・`calibri.ttf`・`timesi.ttf` を使います。本文はMS明朝9.9pt、見出しはMSゴシック9.9pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
 
@@ -63,7 +69,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - 値は補いません。B9 は「B7と同じ」、A・D支点の合計は「B/Cと同じ」ボタンで、その時点の値を明示的な入力として書き込みます。空き支承枠に入力を始めたときの他の項目や、新しく追加した鉄筋の行・鉄筋は、選択肢を含めてすべて空欄で始まります。
 - 「入力チェック」は全段階の入力条件を確かめ、最初の入力エラーをパス付きで表示します。
 - 保存は、開いた後に他から変更されたファイルを上書きしません。置き換える前のバイトを同じフォルダの `input.json.<日時>.bak` に残します。
-- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
+- 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。「骨組解析も行う」をオンにすると `--frame-analysis` を付け、0611・0621 のピックアップのファイルも作ります。このチェックは入力JSONに入れず、利用者ごとのエディタの設定（`%APPDATA%\WebPier\editor.json`）に保存して、次回の起動でも保ちます（読めないときは既定のオフ）。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
 - 同じ画面に、JRSNAP の解析設定（方向ごとの7項目、[入力](#入力schema-2)を参照）の欄があります。
 
 鉄筋の画面は、梁・柱・フーチングの主鉄筋・側面鉄筋・横方向鉄筋の入力と、柱の配置の確認・詳細修正（自動配置を写した詳細位置の編集、鉄筋の追加・削除、再配置）を扱います。柱の配置と方向別の鉄筋配置表は `webpier/calc/column_rebar.py` が計算し、エディタは表示するだけです。梁・フーチングは外形だけを描きます。梁の詳細位置（`position_mode` = 指定）は、いまはどの段階も使わない予約入力で、形式だけを検査します（決定19）。
@@ -126,17 +132,17 @@ webpier/
 
 ### 段階の登録表
 
-段階の依存・計算・帳票・成果物・外部出力は `webpier/pipeline/stages.py` の `StageSpec` の表1か所に定義します。生成・CLIの選択肢・成果物の一覧はすべてこの表から作るので、段階や外部出力の追加は表の1項目です。`calculate` と `render` には宣言した依存段階の結果だけを渡すので、宣言していない依存は動かずに失敗します。
+段階の依存・計算・帳票・成果物・外部出力は `webpier/pipeline/stages.py` の `StageSpec` の表1か所に定義します。生成・CLIの選択肢・成果物の一覧はすべてこの表から作るので、段階や外部出力の追加は表の1項目です。`calculate` と `render` には宣言した依存段階の結果だけを渡すので、宣言していない依存は動かずに失敗します。計算書のない段階（`render` なし）、選択式の段階（`opt_in`）、依存段階の FrameWeb 入力の骨組解析（`frame_analysis`）も表の項目で表します。選択式の段階に依存する段階は、それ自身も選択式です。
 
 ### 生成と一括公開
 
 1. 段階と出力先をすべて検査してから始めます。同名のディレクトリやシンボリックリンク、入力と同じパスの出力は拒否します。
 2. 入力を一度だけバイト列で読み、厳密に解析します（重複キー・NaN・Infinity は入力エラー）。そのSHA256を全ての結果JSONと付帯JSONに記録します。
-3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。runner は入力を読む前に探します。
+3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。骨組解析の段階（0611・0621）は、同じ生成で組み立てた FrameWeb 入力を runner に解析させ（荷重図とは別の呼び出し）、計算書を描く前に結果を確かめます。runner は入力を読む前に探します。
 4. 計算書・結果JSON・外部ソフト向け入力・付帯JSONを各出力先の横でステージングし、`webpier/pipeline/publication.py` がまとめて公開します。旧ファイルを同じファイルシステム内に退避して置き換え、公開した実バイト・入力・実装の同一性を最後に確かめます。失敗すれば旧ファイルをすべて戻し、その実行で新しく作ったファイルは消します。複数ファイルがOS上で一瞬に切り替わる仕組みではありません。
 5. 強制終了や復元の失敗では、出力先ごとの `.webpier-*` に `publication-pending`・`publication-journal.json` と退避ファイルを残し、次の実行はそれを見つけて止まります。journal の各 `destination`・`backup`・`had_original` を照合して旧成果物を戻すか、一式を別の場所へ保全してから再実行してください。
 
-結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython の runner はここに含めません（その出力は FEMPython の責務、決定44）。
+結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。骨組解析のファイル（`*.pik`・`*_ピックアップ変位量.csv`・`*_ピックアップ反力.csv`）の付帯JSONには、`frame_analysis` に runner の版（`engine_version`）と、解析した FrameWeb 入力の段階・種類・ファイル名・SHA256（`frameweb`）を記録します。`--stage 0611` のように単独で選んだ生成では FrameWeb 入力（`線路方向.json`）が同じ世代に入らないので、この `frame_analysis.frameweb.sha256` が、解析結果とその FrameWeb 入力を結び付ける唯一の根拠になります。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython の runner はここに含めません（その出力は FEMPython の責務、決定44・46）。
 
 PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。例外は 0610・0620 に差し込む FEMPython の荷重図のページで、その中身は FEMPython の責務として毎回同じバイトになることを求めません。計算書にはページ番号を印刷しません（体裁の見本どおり）。
 
@@ -209,7 +215,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 
 品質ゲートは `.claude/check.ps1` の1コマンドです（`& ".claude/check.ps1"`）。全件を coverage の下で実行し（`python -m webpier` などの子プロセスも `pyproject.toml` の `[tool.coverage]` の `patch = ["subprocess"]` で測ります）、層ごとの行・分岐カバレッジを下限と照合します（決定15）。下限は `webpier/core`・`inputs`・`calc`・`export`・`pipeline` が 100%、`reporting` が 95%、`gui` が 85% で、テストの失敗か下限割れで exit 2、ゲートを実行できなければ exit 3 です。結果の JSON の `tools.coverage.packages` に層ごとの値と合否が出ます。
 
-テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。FEMPython の runner は、全テストで代役（`tests/fixtures/fempython/fake_runner.py`。Headless と同じ引数・応答・成果物で、荷重ケース2つにつき1ページを返す）に置き換えます（`tests/conftest.py`）。本物の runner を呼ぶのは `tests/pipeline/test_fempython.py` だけで、`.env` か環境変数で runner が設定されているときだけ実行します。Headless のやり取りが変わったら代役も合わせて更新します。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
+テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。FEMPython の runner は、全テストで代役（`tests/fixtures/fempython/fake_runner.py`。Headless と同じ引数・応答・成果物で、荷重図は荷重ケース2つにつき1ページ、骨組解析は解析したバイトの SHA256 を書いた PIK と2つの CSV を返す）に置き換えます（`tests/conftest.py`）。エディタの設定ファイルも、テストごとの一時ファイルに置き換えます（`tests/gui/conftest.py`）。本物の runner を呼ぶのは `tests/pipeline/test_fempython.py` だけで（荷重図と骨組解析）、`.env` か環境変数で runner が設定されているときだけ実行します。Headless のやり取りが変わったら代役も合わせて更新します。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
 
 - 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。実アプリでの受入記録は期待値ではなく、実アプリが読んだ生成物とその読戻しの記録です。
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。

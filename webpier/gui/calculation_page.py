@@ -4,12 +4,16 @@
 pipeline as a child process, checks what it published against the saved input (calculation.py) and then shows
 the PDFs. While it runs, the editor refuses navigation, saving, opening and closing. A later edit or a changed
 output file marks the shown PDFs as not the current result.
+
+The checkbox of the frame analysis adds ``--frame-analysis`` (the opt-in stages, decision 46) to the generation.
+Its state is an editor setting of the user (settings.py), not an input, and is kept for the next start.
 """
 
 from __future__ import annotations
 
 import gc
 import tkinter as tk
+from dataclasses import replace
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any
 
@@ -21,6 +25,7 @@ from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
 from .form import Form
 from .pdf_dialog import PdfPreviewDialog
+from .settings import save_settings
 
 if TYPE_CHECKING:
     from .app import InputEditor
@@ -50,8 +55,9 @@ class CalculationPage:
         ttk.Label(page, text=f"入力：{editor.document.path}", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(page, text=f"出力先：{self.controller.output_dir}　解析入力：{self.controller.post_dir}",
                   style="Muted.TLabel").pack(anchor="w", pady=(2, 0))
-        stages = "・".join(stage.id for stage in self.controller.registry.stages)
-        ttk.Label(page, text=f"{stages} の計算書PDFと計算結果JSONを作り直します。", style="Muted.TLabel").pack(
+        registry = self.controller.registry
+        reports = "・".join(stage.id for stage in registry.stages if stage.has_report and not stage.opt_in)
+        ttk.Label(page, text=f"{reports} の計算書PDFと計算結果JSONを作り直します。", style="Muted.TLabel").pack(
             anchor="w", pady=(4, 8))
         settings = ttk.Frame(page)
         settings.pack(anchor="w", pady=(0, 8))
@@ -65,6 +71,11 @@ class CalculationPage:
                       style="Muted.TLabel").pack(anchor="w")
         ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
                   style="Muted.TLabel").pack(anchor="w")
+        self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
+        self.frame_analysis_box = ttk.Checkbutton(
+            page, variable=self.frame_analysis, command=self._frame_analysis_changed,
+            text=f"骨組解析も行う（{'・'.join(registry.opt_in)}。FEMPython：ピックアップ断面力・変位量・反力を post に出力）")
+        self.frame_analysis_box.pack(anchor="w", pady=(6, 0))
         actions = ttk.Frame(page)
         actions.pack(fill="x", pady=(6, 0))
         self.calculate_button = ttk.Button(actions, text="保存して計算・PDF出力", command=self.start)
@@ -95,7 +106,7 @@ class CalculationPage:
 
     def _controls(self) -> None:
         state = ["disabled"] if self.busy else ["!disabled"]
-        for widget in (self.calculate_button, self.preview_button, self.editor.tree,
+        for widget in (self.calculate_button, self.preview_button, self.frame_analysis_box, self.editor.tree,
                        *self.editor.toolbar_buttons.values()):
             widget.state(state)
         if self.busy:
@@ -110,6 +121,14 @@ class CalculationPage:
         self._set_status(message, "")
         if self.dialog is not None:
             self.dialog.update_labels(self.catalog().entries)
+
+    def _frame_analysis_changed(self) -> None:
+        """Keep the choice for the next start of the editor; it is not part of the input (decision 46)."""
+        self.editor.settings = replace(self.editor.settings, frame_analysis=self.frame_analysis.get())
+        try:
+            save_settings(self.editor.settings, self.editor.settings_path)
+        except OSError as exc:
+            self._show_log(f"設定を保存できません（次回の起動では元に戻ります）: {exc}")
 
     # calculation --------------------------------------------------------------------------------------------
 
@@ -135,7 +154,7 @@ class CalculationPage:
         # Collect garbage here: a Tk image finalized by a collection on the worker thread waits for Tk's main loop.
         gc.collect()
         try:
-            self.controller.start(path, sha)
+            self.controller.start(path, sha, frame_analysis=self.frame_analysis.get())
         except RuntimeError as exc:
             self._set_status("計算を開始できませんでした。", str(exc))
             return False
@@ -167,7 +186,7 @@ class CalculationPage:
     # preview ------------------------------------------------------------------------------------------------
 
     def catalog(self) -> pdf_catalog.PdfCatalog:
-        stems = tuple(stage.stem for stage in self.controller.registry.stages)
+        stems = tuple(stage.stem for stage in self.controller.registry.stages if stage.has_report)
         try:
             paths = pdf_catalog.find_pdfs(self.controller.output_dir, stems)
         except OSError as exc:

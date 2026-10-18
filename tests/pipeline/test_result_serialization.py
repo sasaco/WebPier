@@ -100,7 +100,7 @@ def test_result_document_records_stage_input_and_implementation():
 def test_every_stage_result_serializes_to_strict_json_and_back():
     pier = parse_input(load_json(CURRENT.read_bytes()))
     results = {}
-    for stage in STAGES.stages:
+    for stage in [stage for stage in STAGES.stages if stage.calculate is not None]:  # 0611, 0621 calculate nothing
         results[stage.id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on})
         encoded = json.dumps(to_json(results[stage.id]), ensure_ascii=False, allow_nan=False).encode()
         decoded = load_json(encoded)

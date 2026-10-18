@@ -6,16 +6,20 @@
 3. The selected stages and their dependencies are all calculated, and every export of the selected stages
    built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
    error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
-   FrameWeb file, and its report takes those pages (decision 44); the runner is looked up before anything is
-   read, and a missing or failing runner stops the generation.
-4. Reports, result JSON, exports and their provenance sidecars are written to staging beside each
+   FrameWeb file, and its report takes those pages (decision 44). A stage with a frame analysis (0611, 0621,
+   opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
+   rendered; the returned pickup files are staged as they are (decision 46). Each export is built once, so the
+   file analyzed is the bytes staged, even when the dependency's own files are not published. The runner is looked
+   up before anything is read, and a missing or failing runner stops the generation.
+4. Reports, result JSON, exports, pickup files and their provenance sidecars are written to staging beside each
    destination, then published as one set by ``publication.publish_outputs``. A final validator checks the
    published bytes, the files that were displaced, the input and the implementation identity, and any
    mismatch restores every old file.
 
 Errors: ``InputError`` (the input is invalid), ``GenerationError`` (the input, the implementation or an output
-changed during the generation, a report cannot be laid out, or the FEMPython runner is missing or failed) and ``OSError`` (destinations, file system;
-``RecoveryError`` when the old files could not all be restored) are reported to the user. Anything else is a bug.
+changed during the generation, a report cannot be laid out, or the FEMPython runner is missing or failed) and
+``OSError`` (destinations, file system; ``RecoveryError`` when the old files could not all be restored) are reported
+to the user. Anything else is a bug.
 """
 
 from __future__ import annotations
@@ -31,11 +35,12 @@ from gridlayoutpdf import LayoutError
 from ..core.integrity import canonical_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..inputs import PierInput, parse_input
-from .fempython import LoadDiagramPages, RunnerError, draw_load_diagram, runner_path
+from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
+                        runner_path)
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
-from .stages import ALL, STAGES, Export, Registry
+from .stages import ALL, STAGES, Export, FrameAnalysis, Registry
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -51,13 +56,23 @@ class GenerationOptions:
     post_dir: Path  # external-program inputs and their sidecars
     stage: str = ALL
     overwrite: bool = False
+    frame_analysis: bool = False  # add the opt-in stages to all: FEMPython analyzes the frames (decision 46)
 
 
 @dataclass(frozen=True)
 class Artifact:
-    role: str  # "0610.pdf", "0610.json", "0610.frameweb", "0610.frameweb.provenance"
+    role: str  # "0610.pdf", "0610.json", "0610.frameweb", "0610.frameweb.provenance", "0611.pik"
     path: Path  # the destination
     directory: str  # "output" or "post", as recorded in the sidecars
+
+
+@dataclass(frozen=True)
+class _PostFile:
+    stage: str
+    kind: str
+    native: Artifact
+    sidecar: Artifact
+    export: Export | None  # none: a file the stage's frame analysis returns
 
 
 def _identity() -> dict[Path, str]:
@@ -72,22 +87,27 @@ def _state(path: Path) -> str | None:
 
 
 def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]
-          ) -> tuple[list[Artifact], list[tuple[str, Export, Artifact, Artifact]]]:
-    reports, exports, sidecars = [], [], []
-    planned = []
+          ) -> tuple[list[Artifact], list[_PostFile]]:
+    reports, posts = [], []
     for stage_id in selected:
         stage = registry.get(stage_id)
-        for suffix in ("pdf", "json"):
-            reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
-                                    "output"))
-        for item in stage.exports:
-            native = Artifact(f"{stage_id}.{item.kind}", Path(options.post_dir) / item.file_name, "post")
-            sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(item.file_name + PROVENANCE_SUFFIX),
+        if stage.has_report:
+            for suffix in ("pdf", "json"):
+                reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
+                                        "output"))
+        files = [(item.kind, item.file_name, item) for item in stage.exports]
+        if stage.frame_analysis is not None:
+            files += [(kind, file_name, None) for kind, file_name in stage.frame_analysis.files]
+        for kind, file_name, item in files:
+            native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post")
+            sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(file_name + PROVENANCE_SUFFIX),
                                "post")
-            exports.append(native)
-            sidecars.append(sidecar)
-            planned.append((stage_id, item, native, sidecar))
-    return [*reports, *exports, *sidecars], planned
+            posts.append(_PostFile(stage_id, kind, native, sidecar, item))
+    return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
+
+
+def _select(options: GenerationOptions, registry: Registry) -> tuple[str, ...]:
+    return registry.select(options.stage, opt_in=options.frame_analysis)
 
 
 def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[Artifact, ...]:
@@ -95,20 +115,27 @@ def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple
 
     The editor uses it to check a finished generation against exactly the files the CLI wrote.
     """
-    return tuple(_plan(options, registry, registry.select(options.stage))[0])
+    return tuple(_plan(options, registry, _select(options, registry))[0])
 
 
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
     results: dict[str, Any] = {}
     for stage_id in registry.closure(selected):
         stage = registry.get(stage_id)
-        results[stage_id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on})
+        if stage.calculate is not None:
+            results[stage_id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on
+                                                       if name in results})
     return results
 
 
 def _own(registry: Registry, results: Mapping[str, Any], stage_id: str) -> dict[str, Any]:
-    """The results a stage's report and exports may read: its dependencies and itself."""
-    return {name: results[name] for name in (*registry.get(stage_id).depends_on, stage_id)}
+    """The results a stage's report and exports may read: its dependencies and itself (those that calculate)."""
+    return {name: results[name] for name in (*registry.get(stage_id).depends_on, stage_id) if name in results}
+
+
+def _source(registry: Registry, analysis: FrameAnalysis) -> Export:
+    """The FrameWeb export a frame analysis reads (the registry checked that it exists)."""
+    return next(item for item in registry.get(analysis.stage).exports if item.kind == analysis.export)
 
 
 def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registry = STAGES) -> bytes:
@@ -189,21 +216,39 @@ class Candidate:
         self.published = True
 
 
-def _sidecar(stage_id: str, item: Export, native: Artifact, staging: ArtifactStaging,
-             artifacts: list[Artifact], common: Mapping[str, Any], drawn: LoadDiagramPages | None) -> bytes:
+def _sidecar(post: _PostFile, staging: ArtifactStaging, artifacts: list[Artifact], common: Mapping[str, Any],
+             facts: Mapping[str, Any]) -> bytes:
     listed = [{"role": artifact.role, "directory": artifact.directory, "file": artifact.path.name,
                "sha256": file_sha256(staging.path_for(artifact.path))}
               for artifact in artifacts if not artifact.role.endswith(".provenance")]
-    # The runner's pages are FEMPython's (decision 44): only which runner drew them is recorded.
-    diagram = {} if drawn is None else {"load_diagram": {"report": f"{stage_id}.pdf", "engine": "fempython",
-                                                         "engine_version": drawn.engine_version}}
-    return dump_json({"schema_version": SCHEMA_VERSION, "stage": stage_id, "export": item.kind,
-                      "file": item.file_name, "sha256": file_sha256(staging.path_for(native.path)),
-                      "metadata": to_json(item.metadata), **diagram, **common, "artifacts": listed})
+    return dump_json({"schema_version": SCHEMA_VERSION, "stage": post.stage, "export": post.kind,
+                      "file": post.native.path.name, "sha256": file_sha256(staging.path_for(post.native.path)),
+                      **facts, **common, "artifacts": listed})
+
+
+def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadDiagramPages]) -> dict[str, Any]:
+    facts: dict[str, Any] = {"metadata": to_json(post.export.metadata)}
+    if post.kind == registry.get(post.stage).load_diagram:
+        # The runner's pages are FEMPython's (decision 44): only which runner drew them is recorded.
+        facts["load_diagram"] = {"report": f"{post.stage}.pdf", "engine": ENGINE,
+                                 "engine_version": drawn[post.stage].engine_version}
+    return facts
+
+
+def _analysis_facts(registry: Registry, post: _PostFile, analyzed: Mapping[str, AnalysisFiles],
+                    built: Mapping[tuple[str, str], bytes]) -> dict[str, Any]:
+    # The returned files are FEMPython's (decision 46): which runner returned them, and for which bytes. The
+    # FrameWeb file need not be of this generation (a stage chosen alone), so its SHA256 is what binds them.
+    analysis = registry.get(post.stage).frame_analysis
+    return {"frame_analysis": {"engine": ENGINE, "engine_version": analyzed[post.stage].engine_version,
+                               "frameweb": {"stage": analysis.stage, "export": analysis.export,
+                                            "file": _source(registry, analysis).file_name,
+                                            "sha256": sha256(built[(analysis.stage, analysis.export)])}}}
 
 
 def _runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).load_diagram for stage_id in selected):
+    if not any(registry.get(stage_id).load_diagram or registry.get(stage_id).frame_analysis is not None
+               for stage_id in selected):
         return None
     try:
         return runner_path()
@@ -218,11 +263,30 @@ def _draw(document: Path, runner: Path) -> LoadDiagramPages:
         raise GenerationError(str(exc)) from exc
 
 
+def _analyze(name: str, document: bytes, runner: Path) -> AnalysisFiles:
+    try:
+        return analyze_frame(name, document, runner)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _build(registry: Registry, pier: PierInput, results: Mapping[str, Any], posts: list[_PostFile],
+           analyses: Mapping[str, FrameAnalysis]) -> dict[tuple[str, str], bytes]:
+    """Each export to stage or to analyze, built once: the file FEMPython analyzes is the file staged."""
+    wanted = [*((post.stage, post.export) for post in posts if post.export is not None),
+              *((analysis.stage, _source(registry, analysis)) for analysis in analyses.values())]
+    built: dict[tuple[str, str], bytes] = {}
+    for stage_id, item in wanted:
+        if (stage_id, item.kind) not in built:
+            built[(stage_id, item.kind)] = item.build(_own(registry, results, stage_id), pier)
+    return built
+
+
 @contextmanager
 def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
-    selected = registry.select(options.stage)
-    artifacts, exports = _plan(options, registry, selected)
+    selected = _select(options, registry)
+    artifacts, posts = _plan(options, registry, selected)
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path))
     baseline = {path: _state(path) for path in destinations}
@@ -232,16 +296,27 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
     results = _calculate(registry, pier, selected)
+    analyses = {stage_id: analysis for stage_id in selected
+                if (analysis := registry.get(stage_id).frame_analysis) is not None}
+    built = _build(registry, pier, results, posts, analyses)
     common = {"input": {"file": Path(options.input_path).name, "sha256": input_sha256},
               "implementation_sha256": canonical_sha256({str(path): digest for path, digest in identity.items()})}
     with ArtifactStaging(destinations) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
-        for stage_id, item, native, _ in exports:
-            staging.path_for(native.path).write_bytes(item.build(_own(registry, results, stage_id), pier))
-        drawn = {stage_id: _draw(staging.path_for(native.path), runner)
-                 for stage_id, item, native, _ in exports
-                 if runner is not None and item.kind == registry.get(stage_id).load_diagram}
+        for post in posts:
+            if post.export is not None:
+                staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
+        drawn = {post.stage: _draw(staging.path_for(post.native.path), runner) for post in posts
+                 if runner is not None and post.kind == registry.get(post.stage).load_diagram}
+        analyzed = {stage_id: _analyze(_source(registry, analysis).file_name,
+                                       built[(analysis.stage, analysis.export)], runner)
+                    for stage_id, analysis in analyses.items()}
+        for post in posts:
+            if post.export is None:
+                staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         for stage_id in selected:
+            if not registry.get(stage_id).has_report:
+                continue
             pages = (drawn[stage_id].pdf,) if stage_id in drawn else ()
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
@@ -252,11 +327,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                                        input_sha256=input_sha256,
                                        implementation_sha256=common["implementation_sha256"])
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
-        for stage_id, item, native, sidecar in exports:
-            content = _sidecar(stage_id, item, native, staging, artifacts,
-                               {**common, "selected_stages": list(selected)},
-                               drawn.get(stage_id) if item.kind == registry.get(stage_id).load_diagram else None)
-            staging.path_for(sidecar.path).write_bytes(content)
+        for post in posts:
+            facts = (_export_facts(registry, post, drawn) if post.export is not None
+                     else _analysis_facts(registry, post, analyzed, built))
+            content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
+            staging.path_for(post.sidecar.path).write_bytes(content)
         candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline)
         try:
             yield candidate

@@ -23,7 +23,7 @@ from .binding import Bindings
 from .document import EditorDocument, EditorError, fingerprint
 from .form import Form
 from .lifecycle import destroy_children
-from . import pages, reaction_page
+from . import pages, reaction_page, settings
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 INPUT_PAGES: dict[str, Callable[[Form], None]] = {
@@ -44,9 +44,13 @@ HINTS = {
 
 
 class InputEditor:
-    def __init__(self, root: tk.Tk, path: str | Path, *, calculation: Any = None) -> None:
+    def __init__(self, root: tk.Tk, path: str | Path, *, calculation: Any = None,
+                 settings_path: str | Path | None = None) -> None:
         self.root = root
         self.document = EditorDocument.open(path)
+        # The editor's own settings (decision 46): per user, not in the input JSON.
+        self.settings_path = Path(settings_path) if settings_path is not None else settings.SETTINGS_FILE
+        self.settings = settings.load_settings(self.settings_path)
         self.bindings = Bindings(lambda: self.document.data, self.changed)
         self.images: dict[str, tk.PhotoImage] = {}
         self.page = PAGES[0]

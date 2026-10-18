@@ -28,7 +28,7 @@ def test_the_planned_files_of_a_fake_registry():
 
 def test_the_real_registry_plans_every_report_and_every_export():
     names = [artifact.path.name for artifact in planned(options())]
-    assert names[:12:2] == [f"{stage.stem}.pdf" for stage in STAGES.stages]
+    assert names[:12:2] == [f"{stage.stem}.pdf" for stage in STAGES.stages if stage.has_report]
     assert names[12:] == ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu",
                           "線路方向.json.provenance.json", "線路直角方向.json.provenance.json",
                           "線路方向.ndu.provenance.json", "線路直角方向.ndu.provenance.json"]

@@ -13,7 +13,7 @@ from webpier.core.errors import InputError
 from webpier.pipeline import cli, generate
 from webpier.pipeline.generate import GenerationError
 from webpier.pipeline.publication import RecoveryError
-from webpier.pipeline.stages import STAGES, Registry, StageSpec
+from webpier.pipeline.stages import STAGES, FrameAnalysis, Registry, StageSpec
 
 ROOT = Path(__file__).parents[2]
 
@@ -59,6 +59,41 @@ def test_there_is_no_jrsnap_flag(capsys):
         cli.parser(STAGES).parse_args(["--jrsnap"])
     assert exit_info.value.code == 2
     assert "unrecognized arguments: --jrsnap" in capsys.readouterr().err
+
+
+def analyzing(recorder: Recorder) -> Registry:
+    """The fake registry with D, an opt-in stage that analyzes B's FrameWeb file (decision 46)."""
+    stages = fake_registry(recorder).stages
+    return Registry((*stages, StageSpec("D", "D_照査", ("B",), opt_in=True, frame_analysis=FrameAnalysis(
+        "B", "frameweb", (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))))))
+
+
+def test_frame_analysis_adds_the_opt_in_stages_to_all(tmp_path, registry, capsys):
+    stages = analyzing(Recorder())
+    assert run(tmp_path, stages) == 0
+    assert "D " not in capsys.readouterr().out
+    assert run(tmp_path / "again", stages, "--frame-analysis") == 0
+    printed = capsys.readouterr().out.splitlines()
+    post = (tmp_path / "again" / "post").resolve()
+    assert [line for line in printed if line.startswith("D ")] == [
+        f"D pik解析結果: {post / 'frame.pik'}", f"D displacement解析結果: {post / 'frame_変位量.csv'}",
+        f"D reaction解析結果: {post / 'frame_反力.csv'}", f"D pik付帯JSON: {post / 'frame.pik.provenance.json'}",
+        f"D displacement付帯JSON: {post / 'frame_変位量.csv.provenance.json'}",
+        f"D reaction付帯JSON: {post / 'frame_反力.csv.provenance.json'}"]
+    assert f"B frameweb入力: {post / 'frame.json'}" in printed
+
+
+def test_frame_analysis_with_one_stage_is_exit_code_2(tmp_path, registry, capsys):
+    assert run(tmp_path, analyzing(Recorder()), "--stage", "B", "--frame-analysis") == 2
+    assert "--frame-analysis は --stage all と使います（選択式の段階 D は --stage で直接選べます）" in capsys.readouterr().err
+    assert not (tmp_path / "output").exists()
+
+
+def test_the_frame_analysis_option_names_the_opt_in_stages(capsys):
+    with pytest.raises(SystemExit):
+        cli.parser(STAGES).parse_args(["--help"])
+    assert "0611・0621" in capsys.readouterr().out
+    assert cli.parser(STAGES).parse_args([]).frame_analysis is False
 
 
 def test_the_stage_choices_come_from_the_registry(capsys):

@@ -1,18 +1,21 @@
-"""The FEMPython runner that draws the load diagrams of 0610 and 0620 (decision 44, ADR-0005).
+"""The FEMPython runner: the load diagrams of 0610 and 0620 (decision 44, ADR-0005) and the frame analyses of 0611
+and 0621 (decision 46, ADR-0006).
 
-The FrameWeb file a generation writes is given, as it is, to ``FrameWebforCS.Headless.exe run`` with the PDF
-section ``load_diagram`` alone: the runner draws every load case of the file and calculates nothing. The report
-takes the returned pages as they are; their content, page count and bytes are FEMPython's, so they are neither
-checked nor bound to the implementation identity, and the sidecars record the runner's ``engineVersion``.
+The FrameWeb file a generation writes is given, as it is, to ``FrameWebforCS.Headless.exe run``. For a load diagram
+the PDF section ``load_diagram`` alone is asked for: the runner draws every load case of the file and calculates
+nothing, and the report takes the returned pages as they are. For a frame analysis, a separate call asks for no PDF
+but the PIK and both node pickup CSVs: the runner calculates the file, and the three files are published as they are
+returned (``result.json`` is checked and not kept). Their content and bytes are FEMPython's, so they are neither
+checked further nor bound to the implementation identity; the sidecars record the runner's ``engineVersion``.
 
 The runner is the absolute path in ``STRUCTURAL_MCP_FEMPYTHON_RUNNER`` (the name structural-mcp uses): the process
 environment first, then the ``.env`` file at the repository root (not tracked). Without a runner, or when it fails,
-a generation with 0610 or 0620 stops; nothing is published without its load diagram.
+a generation that needs it stops; nothing is published without its load diagram or its analysis.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import hashlib
 from io import BytesIO
@@ -36,17 +39,34 @@ ENGINE = "fempython"
 ARGUMENTS = ("--generate-pik", "false", "--pdf-sections", "load_diagram", "--pdf-paper", "A4",
              "--pdf-orientation", "vertical", "--load-diagram-layout", "split_horizontal",
              "--load-diagram-axis", "false")
+# Decision 46: the frame analysis without a PDF, with the PIK and both node pickup CSVs.
+ANALYSIS_ARGUMENTS = ("--generate-pdf", "false", "--generate-pik", "true", "--generate-pickup-displacement-csv",
+                      "true", "--generate-pickup-reaction-csv", "true")
+# The files of an analysis by the kind WebPier publishes them as: (the runner's artifact kind, its file).
+ANALYSIS_FILES = {"pik": ("pik", "pickup.pik"),
+                  "displacement": ("pickup-displacement", "pickup-displacement.csv"),
+                  "reaction": ("pickup-reaction", "pickup-reaction.csv")}
 TIMEOUT = 600  # seconds; the runner itself gives up after ten minutes
+_DIAGRAM = ("pdf", "report.pdf")
+_RESULT = ("result", "result.json")  # always returned with a calculation; checked, not published
+_DRAW = "の荷重図を FEMPython で描けません"
+_ANALYZE = "を FEMPython で骨組解析できません"
 _KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 class RunnerError(Exception):
-    """The FEMPython runner is not set up, or it did not draw the load diagram."""
+    """The FEMPython runner is not set up, or it did not draw the load diagram or analyze the frame."""
 
 
 @dataclass(frozen=True)
 class LoadDiagramPages:
     pdf: bytes
+    engine_version: str
+
+
+@dataclass(frozen=True)
+class AnalysisFiles:
+    files: Mapping[str, bytes]  # by the kinds of ANALYSIS_FILES, the bytes as the runner returned them
     engine_version: str
 
 
@@ -78,7 +98,7 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
         value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
         where = f"{env_file} の {RUNNER_KEY}"
     if not value:
-        raise RunnerError(f"荷重図を描く FEMPython の runner が設定されていません。リポジトリのルートの .env に "
+        raise RunnerError(f"荷重図・骨組解析に使う FEMPython の runner が設定されていません。リポジトリのルートの .env に "
                           f"{RUNNER_KEY}='<FrameWebforCS.Headless.exe の絶対パス>' を書いてください")
     path = Path(value)
     if not path.is_absolute():
@@ -88,57 +108,81 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
     return path
 
 
-def _fail(document: Path, message: str) -> RunnerError:
-    return RunnerError(f"{document.name} の荷重図を FEMPython で描けません: {message}")
+def _fail(document: Path, what: str, message: str) -> RunnerError:
+    return RunnerError(f"{document.name} {what}: {message}")
 
 
-def _envelope(document: Path, stdout: bytes) -> dict[str, Any]:
+def _envelope(document: Path, what: str, stdout: bytes) -> dict[str, Any]:
     try:
         envelope = json.loads(stdout.decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise _fail(document, f"runner の応答が JSON ではありません（{exc}）") from exc
+        raise _fail(document, what, f"runner の応答が JSON ではありません（{exc}）") from exc
     if not isinstance(envelope, dict):
-        raise _fail(document, "runner の応答が JSON のオブジェクトではありません")
+        raise _fail(document, what, "runner の応答が JSON のオブジェクトではありません")
     if envelope.get("protocolVersion") != PROTOCOL_VERSION or envelope.get("engine") != ENGINE:
-        raise _fail(document, f"runner のやり取りの版が違います（protocolVersion {envelope.get('protocolVersion')!r}、"
-                              f"engine {envelope.get('engine')!r}）")
+        raise _fail(document, what, f"runner のやり取りの版が違います（protocolVersion "
+                                    f"{envelope.get('protocolVersion')!r}、engine {envelope.get('engine')!r}）")
     return envelope
 
 
-def draw_load_diagram(document: Path, runner: Path, *, timeout: int = TIMEOUT) -> LoadDiagramPages:
-    """The load diagram pages of the FrameWeb file *document*, drawn by *runner*."""
-    document = Path(document).resolve()
+def _run(document: Path, runner: Path, arguments: Sequence[str], expected: Sequence[tuple[str, str]], label: str,
+         what: str, timeout: float) -> tuple[str, dict[str, bytes]]:
+    """Run *runner* on *document*: its engineVersion and exactly the *expected* (kind, file) artifacts by file,
+    each checked against the SHA256 and size of the envelope."""
     with tempfile.TemporaryDirectory(prefix="webpier-fempython-") as work:
         output = Path(work) / "output"
         try:
             done = subprocess.run([str(runner), "run", "--input", str(document), "--output-dir", str(output),
-                                   *ARGUMENTS], capture_output=True, timeout=timeout, check=False)
+                                   *arguments], capture_output=True, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
-            raise _fail(document, f"{timeout} 秒で終わりませんでした") from exc
+            raise _fail(document, what, f"{timeout} 秒で終わりませんでした") from exc
         except OSError as exc:
-            raise _fail(document, f"runner を起動できません（{exc}）") from exc
-        envelope = _envelope(document, done.stdout)
+            raise _fail(document, what, f"runner を起動できません（{exc}）") from exc
+        envelope = _envelope(document, what, done.stdout)
         if done.returncode or envelope.get("ok") is not True or envelope.get("executionStatus") != "success":
             errors = "; ".join(f"{error.get('code')}: {error.get('message')}" for error in envelope.get("errors") or ()
                                if isinstance(error, dict)) or f"終了コード {done.returncode}"
-            raise _fail(document, errors)
+            raise _fail(document, what, errors)
         version = envelope.get("engineVersion")
         artifacts = envelope.get("artifacts")
         if not isinstance(version, str) or not version:
-            raise _fail(document, "runner の版（engineVersion）がありません")
-        if (not isinstance(artifacts, list) or len(artifacts) != 1 or not isinstance(artifacts[0], dict)
-                or artifacts[0].get("kind") != "pdf" or artifacts[0].get("relativePath") != "report.pdf"):
-            raise _fail(document, f"runner の成果物が荷重図の PDF 1つではありません（{artifacts!r}）")
-        path = output / "report.pdf"
-        if not path.is_file():
-            raise _fail(document, "runner の荷重図の PDF がありません")
-        pdf = path.read_bytes()
-    if hashlib.sha256(pdf).hexdigest() != artifacts[0].get("sha256") or len(pdf) != artifacts[0].get("bytes"):
-        raise _fail(document, "荷重図の PDF が runner の応答の SHA256・バイト数と一致しません")
+            raise _fail(document, what, "runner の版（engineVersion）がありません")
+        if (not isinstance(artifacts, list) or len(artifacts) != len(expected)
+                or not all(isinstance(item, dict) for item in artifacts)
+                or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != set(expected)):
+            raise _fail(document, what, f"runner の成果物が{label}ではありません（{artifacts!r}）")
+        files: dict[str, bytes] = {}
+        for item in artifacts:
+            path = output / item["relativePath"]
+            if not path.is_file():
+                raise _fail(document, what, f"runner の成果物 {item['relativePath']} がありません")
+            files[item["relativePath"]] = path.read_bytes()
+    for item in artifacts:
+        content = files[item["relativePath"]]
+        if hashlib.sha256(content).hexdigest() != item.get("sha256") or len(content) != item.get("bytes"):
+            raise _fail(document, what, f"{item['relativePath']} が runner の応答の SHA256・バイト数と一致しません")
+    return version, files
+
+
+def draw_load_diagram(document: Path, runner: Path, *, timeout: float = TIMEOUT) -> LoadDiagramPages:
+    """The load diagram pages of the FrameWeb file *document*, drawn by *runner*."""
+    document = Path(document).resolve()
+    version, files = _run(document, runner, ARGUMENTS, (_DIAGRAM,), "荷重図の PDF 1つ", _DRAW, timeout)
+    pdf = files[_DIAGRAM[1]]
     try:
         pages = len(PdfReader(BytesIO(pdf), strict=True).pages)
     except (PyPdfError, ValueError, OSError) as exc:
-        raise _fail(document, f"荷重図の PDF を読めません（{exc}）") from exc
+        raise _fail(document, _DRAW, f"荷重図の PDF を読めません（{exc}）") from exc
     if not pages:
-        raise _fail(document, "荷重図の PDF にページがありません")
+        raise _fail(document, _DRAW, "荷重図の PDF にページがありません")
     return LoadDiagramPages(pdf, version)
+
+
+def analyze_frame(name: str, document: bytes, runner: Path, *, timeout: float = TIMEOUT) -> AnalysisFiles:
+    """The pickup files *runner* returns for the FrameWeb file *document* (decision 46), given to it as *name*."""
+    with tempfile.TemporaryDirectory(prefix="webpier-fempython-") as work:
+        path = Path(work) / name
+        path.write_bytes(document)
+        version, files = _run(path, runner, ANALYSIS_ARGUMENTS, (_RESULT, *ANALYSIS_FILES.values()),
+                              "解析結果・PIK・変位量と反力の CSV の4つ", _ANALYZE, timeout)
+    return AnalysisFiles({kind: files[file] for kind, (_, file) in ANALYSIS_FILES.items()}, version)

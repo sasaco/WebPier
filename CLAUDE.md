@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDUを生成する。骨組解析は FEMPython に任せ、結果を解釈せずに出力する（ADR-0006）。部材照査・最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
+鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDUを生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
 
 ## コマンド
 
@@ -13,8 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```powershell
 # 計算・PDF生成（既定は --stage all。既存成果物の更新には --overwrite）
 uv run --project "." --locked python -m webpier --overwrite
-uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0620/0710/0720/all
+uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0611/0620/0621/0710/0720/all
 # 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
+# 骨組解析（0611/0621、選択式。all には含まれない。決定46）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
+uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
 # run_design.py は python -m webpier と同じ
 
 # 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）
@@ -33,7 +35,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/t
 uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0620 を含む生成は停止する。テストは `tests/conftest.py` が代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。テストは `tests/conftest.py` が代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 

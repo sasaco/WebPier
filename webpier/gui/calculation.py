@@ -1,4 +1,5 @@
-"""Run one generation (``python -m webpier --stage all --overwrite``) without blocking Tk, then check it.
+"""Run one generation (``python -m webpier --stage all --overwrite``, and ``--frame-analysis`` when the frame
+analysis is chosen, decision 46) without blocking Tk, then check it.
 
 Only the child process and its bounded logs run on the worker thread. The result is consumed on the main thread,
 where it is checked against the files the pipeline plans for the same options: every result JSON and every
@@ -56,15 +57,18 @@ class CalculationJob:
     output_dir: Path
     post_dir: Path
     input_sha256: str
+    frame_analysis: bool = False  # add the opt-in frame analysis stages (decision 46)
 
     @property
     def options(self) -> GenerationOptions:
-        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True)
+        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True,
+                                 frame_analysis=self.frame_analysis)
 
     @property
     def command(self) -> list[str]:
         return [sys.executable, "-m", "webpier", "--input", str(self.input_path), "--output-dir",
-                str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite"]
+                str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite",
+                *(["--frame-analysis"] if self.frame_analysis else [])]
 
 
 @dataclass(frozen=True)
@@ -211,12 +215,12 @@ class CalculationController:
         self.running = False
         self.state = "idle"  # idle, running, success, failed, stale
 
-    def start(self, input_path: Path, input_sha256: str) -> CalculationJob:
+    def start(self, input_path: Path, input_sha256: str, *, frame_analysis: bool = False) -> CalculationJob:
         _main_thread_only()
         if self.running:
             raise RuntimeError("計算中です。完了までお待ちください。")
         job = CalculationJob(uuid.uuid4().hex, Path(input_path).resolve(), self.output_dir, self.post_dir,
-                             input_sha256)
+                             input_sha256, frame_analysis)
         self.job, self.result = job, None
         self._verified.clear()
         self.running, self.state = True, "running"

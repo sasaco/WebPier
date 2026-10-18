@@ -10,6 +10,7 @@ import pytest
 from gui_support import InProcessRunner, registry
 from webpier.gui import app as gui
 from webpier.gui import calculation_page
+from webpier.gui import settings
 from webpier.gui.calculation import CalculationController
 from webpier.pipeline import generate
 
@@ -113,6 +114,55 @@ def test_there_is_no_jrsnap_checkbox_and_the_settings_are_required(editor):
     assert not hasattr(editor, "calculation_jrsnap")
 
 
+def test_the_page_names_the_reports_and_the_opt_in_frame_analysis(editor):
+    shown = list(texts(page(editor).frame))
+    assert "0500・0610・0710 の計算書PDFと計算結果JSONを作り直します。" in shown
+    assert "骨組解析も行う（0611。FEMPython：ピックアップ断面力・変位量・反力を post に出力）" in shown
+
+
+def test_the_frame_analysis_checkbox_adds_the_flag_and_is_remembered(editor, runner, tmp_path, editor_settings):
+    view = page(editor)
+    assert not view.frame_analysis.get() and not editor_settings.exists()
+    view.frame_analysis_box.invoke()
+    assert view.frame_analysis.get() and editor.settings.frame_analysis
+    assert settings.load_settings(editor_settings).frame_analysis
+    assert "frame_analysis" not in editor.document.data and not editor.dirty  # not part of the input
+    calculate(editor).dialog.close()
+    assert runner.commands[0][-1] == "--frame-analysis"
+    assert (tmp_path / "post" / "線路方向.pik").exists()
+    assert page(editor).status.get() == "計算・PDF出力が完了しました（3帳票）。"
+    view.frame_analysis_box.invoke()
+    assert not settings.load_settings(editor_settings).frame_analysis
+
+
+def test_the_checkbox_starts_from_the_saved_setting(tk_root, input_path, quiet, runner, tmp_path):
+    path = tmp_path / "mine" / "editor.json"
+    settings.save_settings(settings.EditorSettings(frame_analysis=True), path)
+    controller = CalculationController(tmp_path / "output", runner, registry=runner.registry)
+    editor = gui.InputEditor(tk_root, input_path, calculation=controller, settings_path=path)
+    assert editor.settings_path == path and editor.select("計算・印刷")
+    assert page(editor).frame_analysis.get()
+
+
+def test_a_setting_that_cannot_be_saved_is_reported_and_kept_for_now(editor, monkeypatch):
+    def locked(value, path):
+        raise PermissionError("locked")
+
+    monkeypatch.setattr(calculation_page, "save_settings", locked)
+    view = page(editor)
+    view.frame_analysis_box.invoke()
+    assert view.frame_analysis.get() and editor.settings.frame_analysis
+    assert "設定を保存できません（次回の起動では元に戻ります）: locked" in view.log.get("1.0", "end")
+
+
+def test_a_stray_pdf_of_a_stage_without_a_report_is_listed_as_another_file(editor, tmp_path):
+    view = calculate(editor)
+    view.dialog.close()
+    (tmp_path / "output" / "0611_線路方向照査.pdf").write_bytes(b"%PDF")
+    assert [entry.path.name for entry in view.catalog().entries] == [
+        "0500_直接基礎.pdf", "0610_線路方向荷重.pdf", "0710_線路方向荷重.pdf", "0611_線路方向照査.pdf"]
+
+
 def test_an_input_error_stops_before_anything_runs(editor, runner):
     editor.select("下部構造")
     editor.bindings.items[("下部構造", "寸法", "側面", "B1")].cell.type("")
@@ -143,6 +193,7 @@ def test_the_editor_is_locked_while_calculating(editor, runner, quiet):
     assert calls[-1][0] == "showinfo"
     assert not page(editor).start() and not page(editor).open_preview()
     assert page(editor).calculate_button.instate(["disabled"]) and editor.tree.instate(["disabled"])
+    assert page(editor).frame_analysis_box.instate(["disabled"])
     finish(editor)
     assert started and not editor.busy
     assert editor.select("上部構造")

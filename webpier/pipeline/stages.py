@@ -10,6 +10,11 @@ export, the stage's own result), so an undeclared dependency fails instead of si
 
 A stage with ``load_diagram`` names the export whose load cases FEMPython draws (decision 44): its ``render``
 also receives those pages, to put into the report as they are.
+
+A stage may have no report (no ``render``, and then no result JSON) and publish only files under post/. A stage with
+``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
+(decision 46). Such a stage is ``opt_in``: ``all`` leaves it out unless it is asked for (``--frame-analysis``), and
+so is every stage that reads one; chosen directly, it is calculated with its dependencies.
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from ..reporting.stages.reaction import render_reaction
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
+from .fempython import ANALYSIS_FILES
 
 Results = Mapping[str, Any]
 ALL = "all"
@@ -64,15 +70,35 @@ class Export:
 
 
 @dataclass(frozen=True)
+class FrameAnalysis:
+    """FEMPython analyzes the FrameWeb file of a dependency (decision 46, ADR-0006).
+
+    The runner returns the pickup section forces (PIK), displacements and reactions (CSV); each is published under
+    post/ as it is returned, with a provenance sidecar, by its kind ("pik", "displacement", "reaction").
+    """
+
+    stage: str  # the dependency whose export is analyzed, e.g. "0610"
+    export: str  # the kind of that export, "frameweb"
+    files: tuple[tuple[str, str], ...]  # (kind, file name) of each file the analysis returns
+
+
+@dataclass(frozen=True)
 class StageSpec:
     id: str
     stem: str  # the report file name without suffix, e.g. "0610_線路方向荷重"
     depends_on: tuple[str, ...]
-    calculate: Callable[[PierInput, Results], Any]
-    # (results, pier, path), and the load diagram PDF after the path when ``load_diagram`` is set
-    render: Callable[..., Any]
+    calculate: Callable[[PierInput, Results], Any] | None = None  # none: the stage has no result
+    # (results, pier, path), and the load diagram PDF after the path when ``load_diagram`` is set; none: no report
+    render: Callable[..., Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
+    opt_in: bool = False  # left out of all unless asked for (decision 46)
+    frame_analysis: FrameAnalysis | None = None
+
+    @property
+    def has_report(self) -> bool:
+        """A report (PDF) with its result JSON; a stage without one publishes only its files under post/."""
+        return self.render is not None
 
 
 @dataclass(frozen=True)
@@ -94,20 +120,41 @@ class Registry:
                     raise ValueError(f"{stage.id}の依存段階{dependency}が先に登録されていません")
             if not stage.stem.startswith(stage.id + "_") or not _plain_name(stage.stem):
                 raise ValueError(f"{stage.id}のファイル{stage.stem}の名前は「{stage.id}_」で始まる必要があります")
+            if stage.render is not None and stage.calculate is None:
+                raise ValueError(f"{stage.id}の計算書には計算が必要です")
+            if not stage.has_report and not stage.exports and stage.frame_analysis is None:
+                raise ValueError(f"{stage.id}には成果物がありません")
+            outputs = [(item.kind, item.file_name) for item in stage.exports]
+            analysis = stage.frame_analysis
+            if analysis is not None:
+                if analysis.stage not in stage.depends_on:
+                    raise ValueError(f"{stage.id}が骨組解析する{analysis.stage}が依存段階にありません")
+                if analysis.export not in {item.kind for item in self.get(analysis.stage).exports}:
+                    raise ValueError(f"{stage.id}が骨組解析する{analysis.stage}の出力{analysis.export} がありません")
+                if sorted(kind for kind, _ in analysis.files) != sorted(ANALYSIS_FILES):
+                    raise ValueError(f"{stage.id}の骨組解析の出力は {'・'.join(ANALYSIS_FILES)} です")
+                if not stage.opt_in:
+                    raise ValueError(f"{stage.id}は骨組解析するので選択式（opt_in）の段階です")
+                outputs += analysis.files
+            for dependency in stage.depends_on:
+                if self.get(dependency).opt_in and not stage.opt_in:
+                    raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので選択式（opt_in）の段階です")
             kinds: set[str] = set()
-            for item in stage.exports:
-                if not _KIND.fullmatch(item.kind):
-                    raise ValueError(f"出力の種類の名前が不正です: {item.kind}")
-                if item.kind in kinds:
-                    raise ValueError(f"{stage.id}の出力の種類が重複しています: {item.kind}")
-                if not _plain_name(item.file_name):
-                    raise ValueError(f"出力ファイル名が不正です: {item.file_name}")
-                if item.file_name in files:
-                    raise ValueError(f"出力ファイル名が重複しています: {item.file_name}")
-                kinds.add(item.kind)
-                files.add(item.file_name)
-            if stage.load_diagram and stage.load_diagram not in kinds:
+            for kind, file_name in outputs:
+                if not _KIND.fullmatch(kind):
+                    raise ValueError(f"出力の種類の名前が不正です: {kind}")
+                if kind in kinds:
+                    raise ValueError(f"{stage.id}の出力の種類が重複しています: {kind}")
+                if not _plain_name(file_name):
+                    raise ValueError(f"出力ファイル名が不正です: {file_name}")
+                if file_name in files:
+                    raise ValueError(f"出力ファイル名が重複しています: {file_name}")
+                kinds.add(kind)
+                files.add(file_name)
+            if stage.load_diagram and stage.load_diagram not in {item.kind for item in stage.exports}:
                 raise ValueError(f"{stage.id}の荷重図の出力{stage.load_diagram}がありません")
+            if stage.load_diagram and not stage.has_report:
+                raise ValueError(f"{stage.id}の荷重図を差し込む計算書がありません")
             seen.append(stage.id)
 
     @property
@@ -121,11 +168,20 @@ class Registry:
     def get(self, stage_id: str) -> StageSpec:
         return self.stages[self.ids.index(stage_id)]
 
-    def select(self, choice: str) -> tuple[str, ...]:
+    @property
+    def opt_in(self) -> tuple[str, ...]:
+        """The stages ``all`` leaves out unless they are asked for (decision 46)."""
+        return tuple(stage.id for stage in self.stages if stage.opt_in)
+
+    def select(self, choice: str, *, opt_in: bool = False) -> tuple[str, ...]:
+        """*choice* alone, or for ``all`` every stage, the opt-in ones only with *opt_in* (``--frame-analysis``)."""
         if choice == ALL:
-            return self.ids
+            return tuple(stage.id for stage in self.stages if opt_in or not stage.opt_in)
         if choice not in self.ids:
             raise InputError(f"計算段階が不正です: {choice}")
+        if opt_in:
+            raise InputError(f"--frame-analysis は --stage {ALL} と使います（選択式の段階 {'・'.join(self.opt_in)} は "
+                             f"--stage で直接選べます）")
         return (choice,)
 
     def closure(self, selected: Sequence[str]) -> tuple[str, ...]:
@@ -149,6 +205,12 @@ def _jrsnap(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput]
     return build
 
 
+def _pickups(stem: str) -> tuple[tuple[str, str], ...]:
+    """The files of a frame analysis of ``<stem>.json`` (decision 46)."""
+    return (("pik", f"{stem}.pik"), ("displacement", f"{stem}_ピックアップ変位量.csv"),
+            ("reaction", f"{stem}_ピックアップ反力.csv"))
+
+
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
 
@@ -165,12 +227,16 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
+    StageSpec("0611", "0611_線路方向照査", ("0610",), opt_in=True,
+              frame_analysis=FrameAnalysis("0610", "frameweb", _pickups("線路方向"))),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
                                                                    pages),
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
               load_diagram="frameweb"),
+    StageSpec("0621", "0621_直角方向照査", ("0620",), opt_in=True,
+              frame_analysis=FrameAnalysis("0620", "frameweb", _pickups("線路直角方向"))),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),

@@ -1,7 +1,9 @@
-"""The real registry: every stage alone gives the same bytes as the all generation."""
+"""The real registry: every stage alone gives the same bytes as the all generation, and the frame analysis stages
+(decision 46) add the pickup files of the stand-in runner without changing any report."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 
@@ -23,13 +25,29 @@ def all_generation(tmp_path_factory):
     return root, source, generation
 
 
+@pytest.fixture(scope="module")
+def analysis_generation(tmp_path_factory):
+    root = tmp_path_factory.mktemp("analysis")
+    source = copy_input(root / "pre")
+    generation = generate(GenerationOptions(source, root / "output", root / "post", frame_analysis=True))
+    return root, source, generation
+
+
+PICKUPS = {"0611": "線路方向", "0621": "線路直角方向"}
+
+
+def pickup_files(stem):
+    return [f"{stem}.pik", f"{stem}_ピックアップ変位量.csv", f"{stem}_ピックアップ反力.csv"]
+
+
 def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_generation):
     root, source, generation = all_generation
     output, post = tree(root / "output"), tree(root / "post")
-    assert sorted(output) == sorted(f"{stage.stem}.{suffix}" for stage in STAGES.stages for suffix in ("pdf", "json"))
+    reports = [stage for stage in STAGES.stages if stage.has_report]  # 0611, 0621 have none (decision 46)
+    assert sorted(output) == sorted(f"{stage.stem}.{suffix}" for stage in reports for suffix in ("pdf", "json"))
     exports = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu"]
     assert sorted(post) == sorted([*exports, *(name + ".provenance.json" for name in exports)])
-    for stage in STAGES.stages:
+    for stage in reports:
         assert output[f"{stage.stem}.pdf"].startswith(b"%PDF-")
         document = load_json(output[f"{stage.stem}.json"])
         assert (document["schema_version"], document["stage"]) == (1, stage.id)
@@ -42,7 +60,7 @@ def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_
     assert generation.published
 
 
-@pytest.mark.parametrize("stage", STAGES.ids)
+@pytest.mark.parametrize("stage", STAGES.select("all"))
 def test_each_stage_alone_publishes_the_same_bytes_as_all(all_generation, tmp_path, stage):
     root, _, _ = all_generation
     source = copy_input(tmp_path / "pre")
@@ -101,3 +119,35 @@ def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, 
         generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
                                    stage=stage))
     assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
+
+
+def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_generation, analysis_generation):
+    root, _, _ = analysis_generation
+    assert analysis_generation[2].stages == ("0500", "0600", "0610", "0611", "0620", "0621", "0710", "0720")
+    assert tree(root / "output") == tree(all_generation[0] / "output")
+    post = tree(root / "post")
+    natives = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu",
+               *(name for stem in PICKUPS.values() for name in pickup_files(stem))]
+    assert sorted(post) == sorted([*natives, *(name + ".provenance.json" for name in natives)])
+    for stage, stem in PICKUPS.items():
+        digest = sha256(post[f"{stem}.json"])
+        assert [post[name] for name in pickup_files(stem)] == [
+            f"FAKE {word} {stem}.json {digest}\n".encode() for word in ("PIK", "DISPLACEMENT", "REACTION")]
+        sidecar = load_json(post[f"{stem}.pik.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"]) == (stage, "pik")
+        assert sidecar["frame_analysis"]["frameweb"] == {"stage": {"0611": "0610", "0621": "0620"}[stage],
+                                                         "export": "frameweb", "file": f"{stem}.json",
+                                                         "sha256": digest}
+    assert hashlib.sha256(post["線路方向.json"]).hexdigest() == sha256(tree(all_generation[0] / "post")["線路方向.json"])
+
+
+@pytest.mark.parametrize("stage", ["0611", "0621"])
+def test_a_frame_analysis_stage_alone_publishes_only_its_pickup_files(analysis_generation, tmp_path, stage):
+    root, _, _ = analysis_generation
+    source = copy_input(tmp_path / "pre")
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
+    assert not (tmp_path / "output").exists()
+    names = pickup_files(PICKUPS[stage])
+    post = tree(tmp_path / "post")
+    assert sorted(post) == sorted([*names, *(name + ".provenance.json" for name in names)])
+    assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}

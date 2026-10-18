@@ -30,10 +30,10 @@ def controller(tmp_path, runner, stages):
     return CalculationController(tmp_path / "output", runner, registry=stages)
 
 
-def run(tmp_path, input_path, stages, *, before=None, after=None):
+def run(tmp_path, input_path, stages, *, before=None, after=None, frame_analysis=False):
     runner = InProcessRunner(stages, before=before, after=after)
     control = controller(tmp_path, runner, stages)
-    control.start(input_path, file_sha256(input_path))
+    control.start(input_path, file_sha256(input_path), frame_analysis=frame_analysis)
     return control, runner, wait(control)
 
 
@@ -42,6 +42,18 @@ def test_the_command_runs_the_new_pipeline(tmp_path):
     assert job.command == [sys.executable, "-m", "webpier", "--input", str(tmp_path / "in.json"), "--output-dir",
                            str(tmp_path / "output"), "--post-dir", str(tmp_path / "post"), "--stage", "all",
                            "--overwrite"]
+
+
+def test_the_frame_analysis_is_added_to_the_command_when_chosen(tmp_path):
+    """Decision 46: the editor's checkbox only adds --frame-analysis to the same generation."""
+    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
+                         frame_analysis=True)
+    assert job.command[-3:] == ["all", "--overwrite", "--frame-analysis"]
+    assert job.options.frame_analysis and job.options.stage == "all"
+    names = {artifact.path.name for artifact in planned(job.options)}
+    assert {"線路方向.pik", "線路直角方向_ピックアップ反力.csv", "線路方向_ピックアップ変位量.csv.provenance.json"} <= names
+    assert not CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64
+                              ).options.frame_analysis
 
 
 def test_there_is_no_jrsnap_choice():
@@ -69,6 +81,24 @@ def test_a_successful_generation_is_verified(tmp_path, input_path, stages):
     assert (tmp_path / "post" / "線路方向.ndu").read_bytes() == b"NDU\r\n"
     assert (tmp_path / "post" / "線路方向.ndu.provenance.json").exists()
     assert control.check_current_outputs() is None
+
+
+def test_a_generation_with_the_frame_analysis_is_verified(tmp_path, input_path, stages):
+    control, runner, result = run(tmp_path, input_path, stages, frame_analysis=True)
+    assert result.success, result.message
+    assert runner.commands[0][-1] == "--frame-analysis"
+    assert [path.name for path in result.pdf_paths] == ["0500_直接基礎.pdf", "0610_線路方向荷重.pdf", "0710_線路方向荷重.pdf"]
+    assert (tmp_path / "post" / "線路方向.pik").read_bytes().startswith("FAKE PIK 線路方向.json ".encode())
+    (tmp_path / "post" / "線路方向.pik").write_bytes(b"replaced")
+    with pytest.raises(calculation.ArtifactValidationError, match="別の生成の成果物があります: 線路方向.pik"):
+        validate_outputs(control.job, registry=stages)
+
+
+def test_a_generation_without_the_frame_analysis_does_not_check_old_pickup_files(tmp_path, input_path, stages):
+    run(tmp_path, input_path, stages, frame_analysis=True)
+    control, _, result = run(tmp_path, input_path, stages)
+    assert result.success and "--frame-analysis" not in control.job.command
+    assert (tmp_path / "post" / "線路方向.pik").exists()  # kept, as a file of the earlier generation
 
 
 def test_a_replaced_ndu_breaks_the_generation(tmp_path, input_path, stages):

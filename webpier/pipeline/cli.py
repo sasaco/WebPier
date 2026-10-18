@@ -1,5 +1,8 @@
 """The command line of one generation (``python -m webpier``).
 
+``--frame-analysis`` adds the opt-in stages (0611, 0621: the FEMPython frame analysis, decision 46) to
+``--stage all``; such a stage chosen directly with ``--stage`` needs no flag.
+
 Exit codes: 0 published; 2 the input, a destination or the environment prevents the generation
 (``InputError``, ``GenerationError``, ``OSError``) and nothing was published; 3 publication failed and not
 every old file could be restored (``RecoveryError``; the message names the retained backups). Any other
@@ -30,6 +33,9 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
     result.add_argument("--output-dir", type=Path, default=PROJECT_DIR / "output", help="計算書・計算結果の出力先")
     result.add_argument("--post-dir", type=Path, help="解析入力と付帯JSONの出力先（既定: 出力先と並ぶ post）")
     result.add_argument("--stage", choices=registry.choices, default=ALL, help=f"計算段階（既定: {ALL}）")
+    result.add_argument("--frame-analysis", action="store_true",
+                        help=f"--stage {ALL} に選択式の段階（{'・'.join(registry.opt_in)}）を加える。FEMPython で骨組解析し、"
+                             "ピックアップ断面力・変位量・反力を解析入力の出力先に書く")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
     return result
 
@@ -38,19 +44,21 @@ def post_dir(output_dir: Path, given: Path | None) -> Path:
     return given if given is not None else Path(output_dir).resolve().parent / "post"
 
 
-def _label(role: str) -> str:
+def _label(role: str, registry: Registry) -> str:
     stage, _, rest = role.partition(".")
     if rest in _REPORT_LABELS:
         return f"{stage} {_REPORT_LABELS[rest]}"
     kind, _, sidecar = rest.partition(".")
-    return f"{stage} {kind}{'付帯JSON' if sidecar else '入力'}"
+    analysis = registry.get(stage).frame_analysis
+    native = "解析結果" if analysis is not None and kind in dict(analysis.files) else "入力"
+    return f"{stage} {kind}{'付帯JSON' if sidecar else native}"
 
 
 def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
     arguments = parser(registry).parse_args(argv)
     options = GenerationOptions(
         arguments.input, arguments.output_dir, post_dir(arguments.output_dir, arguments.post_dir),
-        stage=arguments.stage, overwrite=arguments.overwrite)
+        stage=arguments.stage, overwrite=arguments.overwrite, frame_analysis=arguments.frame_analysis)
     try:
         generation = generate(options, registry=registry)
     except RecoveryError as exc:
@@ -60,5 +68,5 @@ def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
         print(f"エラー: {exc}", file=sys.stderr)
         return EXIT_ERROR
     for artifact in generation.artifacts:
-        print(f"{_label(artifact.role)}: {artifact.path.resolve()}")
+        print(f"{_label(artifact.role, registry)}: {artifact.path.resolve()}")
     return 0

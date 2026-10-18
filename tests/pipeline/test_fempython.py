@@ -9,6 +9,7 @@ up and is skipped without one.
 from __future__ import annotations
 
 from io import BytesIO
+import hashlib
 import json
 from pathlib import Path
 
@@ -76,7 +77,7 @@ def test_the_stand_in_draws_two_cases_a_page(tmp_path: Path, fake_fempython_runn
 @pytest.mark.parametrize("mode,message", [
     ("fail", "LOAD_DIAGRAM_REQUIRES_2D: 2D only"), ("exit", "JSON ではありません"), ("text", "JSON ではありません"),
     ("list", "オブジェクトではありません"), ("protocol", "やり取りの版が違います"), ("version", "engineVersion"),
-    ("artifacts", "PDF 1つではありません"), ("missing", "PDF がありません"), ("sha", "SHA256・バイト数"),
+    ("artifacts", "PDF 1つではありません"), ("missing", "report.pdf がありません"), ("sha", "SHA256・バイト数"),
     ("badpdf", "PDF を読めません"), ("empty", "ページがありません"),
 ])
 def test_a_runner_that_does_not_draw_the_load_diagram_is_an_error(tmp_path: Path, fake_fempython_runner: Path,
@@ -108,6 +109,55 @@ def test_the_arguments_are_those_of_the_decision():
                                    "--load-diagram-axis", "false")
 
 
+def expected_analysis(name: str, document: bytes) -> dict[str, bytes]:
+    """What the stand-in returns for a frame analysis (its docstring), written out without the implementation."""
+    digest = hashlib.sha256(document).hexdigest()
+    return {kind: f"FAKE {word} {name} {digest}\n".encode("utf-8")
+            for kind, word in (("pik", "PIK"), ("displacement", "DISPLACEMENT"), ("reaction", "REACTION"))}
+
+
+def test_the_stand_in_analyzes_the_given_bytes(fake_fempython_runner: Path):
+    document = b'{"dimension": 2, "load": {"1": {}}}\n'
+    analysed = fempython.analyze_frame("線路方向.json", document, fake_fempython_runner)
+    assert analysed.engine_version == "fake-1"
+    assert dict(analysed.files) == expected_analysis("線路方向.json", document)  # result.json is not kept
+
+
+@pytest.mark.parametrize("mode,message", [
+    ("fail", "EMPTY_PIK: PIK output contains no data rows"), ("exit", "JSON ではありません"),
+    ("text", "JSON ではありません"), ("list", "オブジェクトではありません"), ("protocol", "やり取りの版が違います"),
+    ("version", "engineVersion"), ("artifacts", "解析結果・PIK・変位量と反力の CSV の4つではありません"),
+    ("missing", "pickup-reaction.csv がありません"), ("sha", "pickup-reaction.csv が runner の応答の SHA256・バイト数"),
+])
+def test_a_runner_that_does_not_analyze_the_frame_is_an_error(fake_fempython_runner: Path,
+                                                               monkeypatch: pytest.MonkeyPatch, mode, message):
+    monkeypatch.setenv("FAKE_FEMPYTHON", mode)
+    with pytest.raises(RunnerError, match=f"線路方向.json を FEMPython で骨組解析できません: .*{message}"):
+        fempython.analyze_frame("線路方向.json", b"{}", fake_fempython_runner)
+
+
+def test_an_analysis_mode_of_the_stand_in_leaves_the_load_diagram_alone(tmp_path: Path, fake_fempython_runner: Path,
+                                                                        monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("FAKE_FEMPYTHON", "analysis-fail")
+    assert draw_load_diagram(frameweb(tmp_path), fake_fempython_runner).engine_version == "fake-1"
+    with pytest.raises(RunnerError, match="EMPTY_PIK"):
+        fempython.analyze_frame("線路方向.json", b"{}", fake_fempython_runner)
+
+
+def test_an_analysis_that_cannot_start_or_does_not_finish_is_an_error(tmp_path: Path, fake_fempython_runner: Path):
+    with pytest.raises(RunnerError, match="線路方向.json を FEMPython で骨組解析できません: runner を起動できません"):
+        fempython.analyze_frame("線路方向.json", b"{}", tmp_path / "missing.exe")
+    with pytest.raises(RunnerError, match="秒で終わりませんでした"):
+        fempython.analyze_frame("線路方向.json", b"{}", fake_fempython_runner, timeout=0.001)
+
+
+def test_the_analysis_arguments_are_those_of_the_decision():
+    # Decision 46: no PDF, the PIK and both node pickup CSVs.
+    assert fempython.ANALYSIS_ARGUMENTS == ("--generate-pdf", "false", "--generate-pik", "true",
+                                            "--generate-pickup-displacement-csv", "true",
+                                            "--generate-pickup-reaction-csv", "true")
+
+
 @pytest.mark.parametrize("stage", ["0610", "0620"])
 def test_the_real_runner_draws_the_generated_file(tmp_path: Path, real_fempython_runner: Path, stage: str):
     """Only that it runs and returns pages: the drawing is FEMPython's (decision 44)."""
@@ -116,3 +166,13 @@ def test_the_real_runner_draws_the_generated_file(tmp_path: Path, real_fempython
     drawn = draw_load_diagram(document, real_fempython_runner)
     assert len(PdfReader(BytesIO(drawn.pdf)).pages) >= 1
     assert drawn.engine_version
+
+
+@pytest.mark.parametrize("stage", ["0610", "0620"])
+def test_the_real_runner_analyzes_the_generated_file(real_fempython_runner: Path, stage: str):
+    """Only that it runs and returns the three files: their content is FEMPython's (decision 46)."""
+    document = export_bytes(parse_input(load_json(CURRENT.read_bytes())), stage, "frameweb")
+    analysed = fempython.analyze_frame(f"{stage}.json", document, real_fempython_runner)
+    assert sorted(analysed.files) == ["displacement", "pik", "reaction"]
+    assert all(analysed.files.values())
+    assert analysed.engine_version
