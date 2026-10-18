@@ -26,6 +26,15 @@ def levers(result, girder):
     return sorted(axle.lever.value for axle in result.axles if axle.girder is girder)
 
 
+def positions(result, p_spans):
+    """Axle positions from the origin end, by hand from the levers: A + a on the origin girder, D − a on the end."""
+    o, e = p_spans.origin, p_spans.end
+    a = o.l1.value
+    d = o.l1.value + o.span.value + o.l2.value + e.l1.value + e.span.value
+    return sorted(round(a + axle.lever.value if axle.girder is Girder.ORIGIN else d - axle.lever.value, 3)
+                  for axle in result.axles)
+
+
 def reactions(result):
     return tuple(r.value for r in (result.ra, result.rb, result.rc, result.rd))
 
@@ -39,7 +48,7 @@ def test_example2_train_7_1():
     assert levers(result, Girder.ORIGIN) == [-0.575, 1.625, 14.425, 16.625]
     assert levers(result, Girder.END) == [7.425, 9.625]
     assert reactions(result) == tuple(TRAIN[f"serviceability_train.{s}"] for s in ("RA", "RB", "RC", "RD"))
-    assert [axle.position.value for axle in result.axles] == [22.2, 20.0, 17.2, 15.0, 2.2, 0.0]
+    assert positions(result, p.spans) == [0.0, 2.2, 15.0, 17.2, 20.0, 22.2]
 
 
 def test_example2_vehicle_lateral_axles_7_14():
@@ -61,7 +70,7 @@ def test_single_axle_at_the_joint_goes_to_the_larger_side():
     # One axle on the bridge (the second axle is 99 m behind). At the joint x = 11.000:
     # origin RB = P × 10.500/10 = 1.05P, end RC = P × 5.300/5 = 1.06P -> the end girder.
     result = run(spans((0.5, 10.0, 0.5), (0.3, 5.0, 0.3)), 100.0, 1, 100.0, 1.0, 0.0)
-    assert [(a.position.value, a.girder, a.lever.value) for a in result.axles] == [(11.0, Girder.END, 5.3)]
+    assert [(a.girder, a.lever.value) for a in result.axles] == [(Girder.END, 5.3)]
     assert reactions(result) == (0.0, 0.0, 106.0, -6.0)
 
 
@@ -86,15 +95,17 @@ def test_equal_totals_keep_the_first_candidate_found():
 
 def test_two_axle_cars_when_a2_is_zero():
     # Cars of 2 axles 3.000 m apart within the car and 1.000 m across the coupling.
-    result = run(spans((0.0, 10.0, 0.0), (0.0, 10.0, 0.0)), 100.0, 2, 4.0, 1.0, 0.0)
-    positions = sorted(axle.position.value for axle in result.axles)
-    gaps = {round(b - a, 3) for a, b in zip(positions, positions[1:])}
+    p_spans = spans((0.0, 10.0, 0.0), (0.0, 10.0, 0.0))
+    result = run(p_spans, 100.0, 2, 4.0, 1.0, 0.0)
+    loaded = positions(result, p_spans)
+    gaps = {round(b - a, 3) for a, b in zip(loaded, loaded[1:])}
     assert gaps <= {1.0, 3.0}
 
 
 def test_axles_beyond_the_bridge_are_not_loaded():
-    result = run(pier().spans, 160.0, 10, 20.0, 2.8, 2.2)
-    assert all(0 <= axle.position.value <= 30.0 for axle in result.axles)
+    p_spans = pier().spans
+    result = run(p_spans, 160.0, 10, 20.0, 2.8, 2.2)
+    assert all(0 <= x <= 30.0 for x in positions(result, p_spans))
 
 
 def test_a_zero_axle_load_has_no_maximum():
@@ -110,3 +121,22 @@ def test_the_axle_counts_of_each_girder_are_part_of_the_result():
     lateral = run(pier().spans, 32.0, 1, 10.0, 2.8, 2.2)
     assert (lateral.origin_axles.value, lateral.end_axles.value) == (2, 2)
     assert result.origin_axles.value == sum(axle.girder is Girder.ORIGIN for axle in result.axles)
+
+
+def test_example2_figure_dimensions_7_1_and_7_14():
+    """The spacings of the bearings A, D and the axles and the girder lengths, read from the figures of 7-1/7-14."""
+    train = run(pier().spans, 160.0, 10, 20.0, 2.8, 2.2)
+    assert [s.value for s in train.spacings] == [0.575, 1.625, 12.8, 2.2, 2.8, 2.2, 7.425]
+    assert [g.value for g in train.girder_lengths] == [20.0, 10.0]
+    lateral = run(pier().spans, 32.0, 1, 10.0, 2.8, 2.2)
+    assert [s.value for s in lateral.spacings] == [14.425, 2.2, 2.8, 2.2, 7.425]
+    assert {s.digits for s in (*train.spacings, *train.girder_lengths)} == {3}
+
+
+def test_an_axle_on_a_far_bearing_makes_no_zero_spacing():
+    # Cars of 2 axles 9 m + 1 m apart on two 10 m girders without overhangs: axles at 0, 1, 10, 11, 20,
+    # and the bearings A = 0 and D = 20 are on the end axles.
+    p_spans = spans((0.0, 10.0, 0.0), (0.0, 10.0, 0.0))
+    result = run(p_spans, 100.0, 3, 10.0, 1.0, 0.0)
+    assert positions(result, p_spans) == [0.0, 1.0, 10.0, 11.0, 20.0]
+    assert [s.value for s in result.spacings] == [1.0, 9.0, 1.0, 9.0]

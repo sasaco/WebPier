@@ -16,7 +16,8 @@ an axle that lands exactly on the girder end stays at 0 instead of -1e-15 (in
 binary floating point Example2 7-1 would lose its axle at x = 0 and give
 RB = 277.35 instead of 272.47). Only the adopted loading is printed: each
 axle's lever to the far bearing to 3 decimals, and RA..RD recomputed from those
-printed levers.
+printed levers. The loading figure prints the spacings of the far bearings and
+the axles, and the girder lengths (Example2 07 7-1/7-14).
 """
 
 from __future__ import annotations
@@ -43,7 +44,6 @@ class Girder(Enum):
 class LoadedAxle:
     """One axle of the adopted loading."""
 
-    position: Printed  # distance from the far end of the origin girder
     girder: Girder
     lever: Printed  # distance from the girder's far bearing (A or D); negative on the far overhang
 
@@ -58,6 +58,13 @@ class MovingLoadResult:
     rd: Printed  # P × (axles on the end girder) − RC
     origin_axles: Printed  # number of axles on the origin girder (RA = P × origin_axles − RB)
     end_axles: Printed  # number of axles on the end girder (RD = P × end_axles − RC)
+    spacings: tuple[Printed, ...]  # between the bearings A and D and the axles, from the origin end (figure)
+    girder_lengths: tuple[Printed, Printed]  # origin and end girder L1 + span + L2 (figure)
+
+
+def girder_length(span: Span) -> Printed:
+    """Girder length L1 + span + L2."""
+    return LENGTH.total((span.l1, span.span, span.l2))
 
 
 def _axle_offsets(cars: int, car_length: Decimal, a1: Decimal, a2: Decimal) -> list[Decimal]:
@@ -116,17 +123,21 @@ def search_reactions(origin: Span, end: Span, *, axle_load: Printed, cars: int, 
         raise InputError("移動荷重: 正の反力となる載荷位置がなく、RB+RCの最大を求められません（軸重・寸法を確認）")
 
     axles = tuple(
-        LoadedAxle(put(LENGTH, x), Girder.ORIGIN, put(LENGTH, origin_lever(x))) if on_origin(x)
-        else LoadedAxle(put(LENGTH, x), Girder.END, put(LENGTH, end_lever(x)))
+        LoadedAxle(Girder.ORIGIN, put(LENGTH, origin_lever(x))) if on_origin(x)
+        else LoadedAxle(Girder.END, put(LENGTH, end_lever(x)))
         for x in best)
     origin_axles = [axle for axle in axles if axle.girder is Girder.ORIGIN]
     end_axles = [axle for axle in axles if axle.girder is Girder.END]
     counts = AXLES(len(origin_axles)), AXLES(len(end_axles))
     rb = put(FORCE, d(axle_load) * total(axle.lever for axle in origin_axles) / d(origin.span))
     rc = put(FORCE, d(axle_load) * total(axle.lever for axle in end_axles) / d(end.span))
+    # An axle on a far bearing is one point of the figure: no zero spacing.
+    marks = sorted({*best, o_far, bridge_end - e_far})
     return MovingLoadResult(
         axle_load=axle_load, axles=axles,
         ra=put(FORCE, d(axle_load) * d(counts[0]) - d(rb)), rb=rb,
         rc=rc, rd=put(FORCE, d(axle_load) * d(counts[1]) - d(rc)),
         origin_axles=counts[0], end_axles=counts[1],
+        spacings=tuple(put(LENGTH, after - before) for before, after in zip(marks, marks[1:])),
+        girder_lengths=(girder_length(origin), girder_length(end)),
     )

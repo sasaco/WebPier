@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from ...core.errors import InputError
-from ...core.printed import COEFFICIENT, FORCE, LENGTH, Printed
+from ...core.printed import COEFFICIENT, FORCE, Printed
 from ...inputs import PierInput
 from ...inputs.model import Span
 from .._exact import d, put
-from ..moving_load import MovingLoadResult, search_reactions
+from ..moving_load import MovingLoadResult, girder_length, search_reactions
 from .dead import DeadResult, GirderDead
 
 IMPACT = COEFFICIENT  # impact coefficient i (07 7-2)
@@ -78,11 +78,6 @@ class TrainResult:
     service: GroupTrain  # serviceability
     fatigue: GroupTrain  # safety (fatigue)
     seismic: SeismicTrain
-
-
-def girder_length(span: Span) -> Printed:
-    """Girder length L1 + span + L2."""
-    return LENGTH.total((span.l1, span.span, span.l2))
 
 
 def _double_impact(span: Span, side: str) -> Printed:

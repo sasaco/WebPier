@@ -12,7 +12,7 @@ from dataclasses import replace
 import pytest
 
 from reaction_report_cases import case, text
-from webpier.core.printed import Printed
+from webpier.core.printed import LENGTH, Printed
 
 
 def records(name: str, result=None, pier=None) -> dict[str, str]:
@@ -132,8 +132,9 @@ def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():
 def test_a_girder_without_axles_says_so():
     result, pier = case("current")
     loading = result.train.loading
+    # Without the two end axles (x = 20.0, 22.2), the last spacing runs from x = 17.2 to D (29.625).
     origin_only = replace(loading, axles=tuple(axle for axle in loading.axles if axle.girder.value == "origin"),
-                          end_axles=Printed(0.0, 0, ""))
+                          end_axles=Printed(0.0, 0, ""), spacings=(*loading.spacings[:4], LENGTH(12.425)))
     actual = records("", replace(result, train=replace(result.train, loading=origin_only)), pier)
     assert actual["train.loading.c"] == f"RC={text(loading.rc)}kN"
     assert "train.loading.c.none" in actual

@@ -100,9 +100,6 @@ def test_every_number_written_is_a_result_or_input_value_or_a_formula_constant(n
     allowed = CONSTANTS | NAMES
     for source in (result, pier):
         allowed |= {text(value).lstrip("-") for _, value in leaves(source)}
-    # Axle numbers of the axle tables (row labels).
-    for loading in (result.train.loading, result.transverse.lateral_loading):
-        allowed |= {str(number) for number in range(1, len(loading.axles) + 1)}
     unknown = {}
     for key, value in records(result, pier).items():
         if "heading" in key:

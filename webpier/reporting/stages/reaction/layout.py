@@ -9,8 +9,10 @@ from gridlayoutpdf import Block, Cell, Document, KeepWithNext, PreferKeepTogethe
 from ...document import blank, heading, indent_to, math_line, paragraph, report, spacer
 from ...equations import definitions, equation_group
 from ...tables import REACTION_CELL_PADDING, cell, math_cell, table
-from .figures import OutlineFigure
+from .figures import LoadingFigure, OutlineFigure
 from .manuscript import RESULT_EQUAL, RESULT_RIGHT, UNIT_START, CellSpec, TableSpec, Unit
+
+FIGURES = {"outline": OutlineFigure, "loading": LoadingFigure}
 
 
 def _cell(spec: CellSpec) -> Cell:
@@ -62,7 +64,7 @@ def _block(unit: Unit) -> Block:
     if unit.kind == "table":
         return indent_to(_table(unit.value, unit.identifier), unit.left)
     if unit.kind == "figure":
-        return indent_to(OutlineFigure(unit.value.data, unit.identifier), unit.left)
+        return indent_to(FIGURES[unit.value.kind](unit.value.data, unit.identifier), unit.left)
     return math_line(unit.value, left=unit.left, block_id=unit.identifier)
 
 

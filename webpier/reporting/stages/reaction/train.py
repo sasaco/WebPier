@@ -13,6 +13,7 @@ from ...numbers import decimal_constant, printed
 from .manuscript import (
     BODY, DETAIL, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, join, sub, symbols,
 )
+from .figures import loading_figure
 from .tables import GIRDER_ROW, header
 
 GIRDERS = {Girder.ORIGIN: "起点側桁", Girder.END: "終点側桁"}
@@ -21,19 +22,10 @@ GROUPS = (("ultimate", "(a) 安全性（破壊）および復旧性の照査に�
           ("fatigue", "(c) 安全性（疲労破壊）の照査に用いる列車荷重"))
 
 
-def _axle_table(loading: MovingLoadResult) -> TableSpec:
-    rows = [header("軸", "位置 x (m)", "載荷する桁", "距離 a (m)")]
-    for index, axle in enumerate(loading.axles, 1):
-        rows.append(cells(CellSpec(str(index), align="center"), axle.position,
-                          CellSpec(GIRDERS[axle.girder], align="center"), axle.lever))
-    return TableSpec((43.56, 87.12, 87.12, 87.12), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     numeric_columns=(1, 3))
-
-
 def loading_lines(m: Manuscript, key: str, loading: MovingLoadResult, pier: PierInput, load: str) -> None:
-    """RB = P Σa / l and RA = P × (axles) − RB for each girder, from the printed levers and axle counts."""
+    """The loading figure, then RB = P Σa / l and RA = P × (axles) − RB from the printed levers and axle counts."""
     spans = pier.spans
-    m.table(key + ".axles", _axle_table(loading), SUBSECTION)
+    m.figure(key + ".figure", loading_figure(loading, pier), SUBSECTION)
     m.start(key + ".reactions")
     sides = ((Girder.ORIGIN, "B", "A", loading.rb, loading.ra, spans.origin.span, loading.origin_axles),
              (Girder.END, "C", "D", loading.rc, loading.rd, spans.end.span, loading.end_axles))
@@ -114,16 +106,9 @@ def _coefficients(m: Manuscript, result: ReactionResult, pier: PierInput) -> Non
 
 
 def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
-    t, train = pier.train, result.train
+    train = result.train
     m.heading("train.heading", "6.3 列車荷重", SECTION)
     m.heading("train.loading.heading", "(1) 移動荷重による支点反力", SUBSECTION)
-    m.paragraph("train.loading.vehicle",
-                f"車両 {t.vehicle}：軸重 P = {printed(train.loading.axle_load)} kN、1両の長さ Lv = "
-                f"{printed(t.car_length)} m、軸距 a1 = {printed(t.a1)} m（連結部）、a2 = {printed(t.a2)} m、"
-                f"{t.cars} 両編成。")
-    m.paragraph("train.loading.introduction",
-                "1軌道の列車を RB + RC が最大となる位置に載荷する（荷重修正係数を乗じない）。位置 x は起点側桁の"
-                "他端からの距離、a は各桁の他端の支点（A または D）からの距離、l はスパン長である。")
     loading_lines(m, "train.loading", train.loading, pier, "P")
     _coefficients(m, result, pier)
     m.heading("train.groups.heading", "(3) 列車荷重と衝撃荷重", SUBSECTION)

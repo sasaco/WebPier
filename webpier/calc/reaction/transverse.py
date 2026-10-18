@@ -14,9 +14,9 @@ from ...core.printed import COEFFICIENT, FORCE, LENGTH, MOMENT, PRESSURE, Printe
 from ...inputs import PierInput
 from ...inputs.model import Span
 from .._exact import d, put
-from ..moving_load import MovingLoadResult, search_reactions
+from ..moving_load import MovingLoadResult, girder_length, search_reactions
 from .dead import SupportLoads
-from .train import TrainResult, TrackTrain, girder_length
+from .train import TrainResult, TrackTrain
 
 WIND_WITH_TRAIN = PRESSURE.exact(1.5)  # ω1 with the train (07 7-15)
 WIND_WITHOUT_TRAIN = PRESSURE.exact(3.0)  # ω1 without the train (07 7-17)

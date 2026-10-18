@@ -22,8 +22,9 @@ from ...core.printed import FORCE, Precision, Printed
 from ...inputs import BrakingRule, PierInput
 from ...inputs.model import Span
 from .._exact import d, put, total
+from ..moving_load import girder_length
 from .dead import DeadResult, GirderDead, SupportLoads
-from .train import TrainResult, girder_length
+from .train import TrainResult
 
 FACTOR = Precision(2, "")  # effective combination factor ρf × γ (07 7-7 to 7-11)
 
