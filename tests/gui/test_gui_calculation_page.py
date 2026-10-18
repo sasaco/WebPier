@@ -68,6 +68,7 @@ def test_the_jrsnap_conditions_are_inputs_with_program_units(editor):
     target = cell(editor, "jrsnap_longitudinal", "target_displacement_m")
     assert target.sheet.get_cell_data(target.row, 2) == "m"
     assert target.sheet.get_cell_data(target.row, 0) == "目標変位（大きさ）"
+    assert ("jrsnap_longitudinal", "aggregate_max_mm") not in editor.bindings.items  # the column's (decision 48)
 
 
 def test_the_direction_of_the_target_displacement_is_shown_not_entered(editor):
@@ -237,7 +238,7 @@ def test_a_failed_generation_is_shown_with_its_log_and_old_pdfs_are_not_current(
 def test_an_edit_after_success_marks_the_pdfs_old(editor):
     view = calculate(editor)
     view.dialog.close()
-    cell(editor, "jrsnap_longitudinal", "aggregate_max_mm").type("20")
+    cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.2")
     assert editor.calculation.state == "stale"
     assert page(editor).status.get().startswith("入力が変更されました")
     assert all(label.endswith("既存出力／今回未計算") for label in labels(page(editor)))

@@ -1,4 +1,5 @@
-"""The 鉄筋 page: the basic reinforcement of each member, and for the column its layout and detail positions.
+"""The 鉄筋 page: the basic reinforcement of each member, and for the column its layout, detail positions, Dmax and the
+柱の断面照査 conditions (decision 48).
 
 Cells are bound through the field table like every input page. The column drawing, the 方向別の鉄筋配置表 and
 every layout error come from calc.column_rebar via rebar_edit; nothing here checks the reinforcement itself.
@@ -32,11 +33,17 @@ LABELS = {
     "end_mm": "終了\nmm", "legs_mode": "有効脚数の\n決め方", "effective_legs": "有効本数", "distribution_mode": "幅方向の\n指定",
     "width_pitch_mm": "幅方向の\n間隔 mm", "density_per_m": "幅方向の\n密度 本/m", "x_mm": "X mm", "y_mm": "Y mm",
 }
-GROUPS = {"柱": (("main", "基本配筋"), ("hoops", "帯鉄筋"), ("placement", "詳細修正")),
+GROUPS = {"柱": (("main", "基本配筋"), ("hoops", "帯鉄筋"), ("placement", "詳細修正"), ("check", "断面照査の条件")),
           "梁": (("main", "基本配筋"), ("bands", "横補強筋"), ("placement", "指定位置")),
           "フーチング": (("main", "基本配筋"), ("bands", "横補強筋"))}
 COMMON = ((("materials", "main"), "主鉄筋の材質"), (("materials", "transverse"), "横補強筋の材質"),
           (("concrete_strength_mpa",), "コンクリート強度"), (("pure_cover_mm",), "純かぶり"))
+COLUMN_CONCRETE = ((("aggregate_max_mm",), "粗骨材の最大寸法 Dmax"),)  # the column concrete's (decision 48)
+CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
+CHECK_LABELS = (("鋼材の腐食に対する環境条件", "鋼材の腐食に対する環境条件"), ("外観の照査", "外観の照査"),
+                ("ε'csd", "ε'csd（収縮・クリープによるひび割れ幅の増加）"), ("適用基準の機関", "適用基準の機関"),
+                ("JR-001", "JR-001 ひび割れ幅制限値に用いるかぶりは100mmを上限"),
+                ("JR-004", "JR-004 βn算定時のMudは軸力を考慮しない"))
 OUTLINE_ONLY = "配筋位置を計算する段階がまだないため、断面の外形だけを表示します。"
 
 
@@ -138,7 +145,8 @@ class RebarPage:
             ttk.Button(line, text="選択行を削除", command=lambda: self.delete_row(family)).pack(side="left", padx=2)
 
     def _build_inputs(self) -> None:
-        self.form.properties(self.inputs, [(self._path(*tail), label) for tail, label in COMMON])
+        common = COMMON + COLUMN_CONCRETE if self.member == "柱" else COMMON
+        self.form.properties(self.inputs, [(self._path(*tail), label) for tail, label in common])
         ttk.Label(self.inputs, text="純かぶり：コンクリート面から外側の帯鉄筋の外面まで。空欄は未入力です。",
                   style="Muted.TLabel").pack(anchor="w", pady=(2, 8))
         if self.group == "main":
@@ -152,6 +160,10 @@ class RebarPage:
             self.form.properties(self.inputs, [(self._path("column_hoops", "enclosing_diameter_mm"), "外側の帯鉄筋の径")])
             self._rows_table("direction_rows", "帯鉄筋の方向別有効本数")
             ttk.Label(self.inputs, text="方向別の合計有効本数を入力します。本数から帯鉄筋の形状は決めません。",
+                      style="Muted.TLabel").pack(anchor="w")
+        elif self.group == "check":
+            self.form.properties(self.inputs, [((CHECK, key), label) for key, label in CHECK_LABELS])
+            ttk.Label(self.inputs, text="柱の断面照査（0611）の条件です。線路方向・線路直角方向で共通です。",
                       style="Muted.TLabel").pack(anchor="w")
         elif self.group == "bands":
             self._rows_table("band_rows", "スターラップ・帯鉄筋")

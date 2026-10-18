@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "kind": "aggrese_project_acceptance",
+  "date": "2026-10-18T18:15:44+09:00",
+  "method": "本物の JRSNAP の runner で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner （AggreSE.Headless.exe inspect / run、総括表と計算書）で読込み・計算した。さらに Aggre-SE の Input.SetXmData → applyVersion → Input.GetXmlData → Shift-JIS の保存し直し（scripts/aggrese_project_roundtrip.cs）でバイト列が変わらないことを確かめた。Aggre-SE の照査の判定は扱わない。",
+  "seismic_check_judged": false,
+  "gui_operated": false,
+  "input": {
+    "path": "tests/fixtures/inputs/current.json",
+    "sha256": "30f23f71378be26f9e9e59a44b29bf44a17e4abafc2cb989f9874f16c3aa180c"
+  },
+  "implementation_sha256": "6d4e6c0c975a5d1c582f28c06b3e64dfd4f545521b2cbaea38bdb3396bef739c",
+  "application": {
+    "batch": {
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\Batch.exe",
+      "file_version": "5.3.0.1",
+      "sha256": "ea3502ce1e2b880eea54fbad16e7e5bf5a4de6ce38dced6d2039fd92ee4cc0e7"
+    },
+    "runner": {
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+      "sha256": "8b5ef37f3f3b8fc706d54d9bf4b235bac31d285297c8a30c37eb13e6c0a0637b"
+    }
+  },
+  "helpers": {
+    "scripts/aggrese_project_roundtrip.cs": "2dfb99c73fd3fca92dac518a5e24ec4e338445e277e8dcd04ff635fb38222e20",
+    "scripts/accept_aggrese_project.py": "ab311dc48f7bdd2d5ad8519ad7f102c8b8aa74c7626c44533b3b2c18e8cc9727"
+  },
+  "directions": {
+    "0711": {
+      "candidate": {
+        "path": "線路方向.xml",
+        "sha256": "51c1521da1440a38e049de2e7a5946b5d434656373de6cff93abb4a890bec527"
+      },
+      "databases": [
+        "線路方向(Case1_ρm10_αf1_正向).DB1"
+      ],
+      "jrsnap": {
+        "folder": "線路方向_JRSNAP",
+        "sha256": "598cae3672f2f3621439b76ca4f74b97f682eef5ed05057751a0b8270369bb4d",
+        "runner_engine_version": "1.0.0",
+        "product": "5.2-L03"
+      },
+      "inspect": {
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路方向(Case1_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          }
+        ]
+      },
+      "run": {
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路方向(Case1_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          }
+        ],
+        "outputs": [
+          "summary.xlsx",
+          "report.pdf"
+        ],
+        "warnings": [],
+        "messages": [],
+        "engineering_status": "not_evaluated"
+      },
+      "roundtrip_identical": true
+    },
+    "0721": {
+      "candidate": {
+        "path": "線路直角方向.xml",
+        "sha256": "e45108127737859b7d2ab5123fc30d02956b98ab27084e508c1718a07406b1a4"
+      },
+      "databases": [
+        "線路直角方向(Case1_ρm10_αf1_正向).DB1",
+        "線路直角方向(Case2_ρm10_αf1_正向).DB1"
+      ],
+      "jrsnap": {
+        "folder": "線路直角方向_JRSNAP",
+        "sha256": "4126cc908c09eaffc0c9ffca52c966b7671350a0dcf3b9089b6253c47bae4dea",
+        "runner_engine_version": "1.0.0",
+        "product": "5.2-L03"
+      },
+      "inspect": {
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 2,
+            "name": "線路直角方向(Case2_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          }
+        ]
+      },
+      "run": {
+        "engine_version": "1.0.0+5701a200963f63423e6a4aaac2e6602fffc993af",
+        "cases": [
+          {
+            "caseNumber": 1,
+            "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 2,
+            "name": "線路直角方向(Case2_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          }
+        ],
+        "outputs": [
+          "summary.xlsx",
+          "report.pdf"
+        ],
+        "warnings": [],
+        "messages": [],
+        "engineering_status": "not_evaluated"
+      },
+      "roundtrip_identical": true
+    }
+  }
+}

@@ -2,7 +2,8 @@
 
 Derived values are not inputs and have no cells: the surface layer thickness (H6+H5+min(df1,df2)) and the unit
 weight of the displaced soil are calculated and printed by 0500, and each bearing position f is entered on both
-sides. B9 is entered; "B7と同じ" writes B7 into it explicitly.
+sides. B9 is entered; "B7と同じ" writes B7 into it explicitly. The 耐震設計条件 (地域別・地盤区分) are on the
+地盤データ page: one for the pier, used only by the static nonlinear analysis (decision 49).
 """
 
 from __future__ import annotations
@@ -159,6 +160,10 @@ def ground(form: Form) -> None:
     if layers:
         sheet.select_cell(editor.soil_selected, 0)
     editor.soil_sheet = sheet
+
+    body = form.section("耐震設計条件", note="線路方向・線路直角方向で共通です。静的非線形解析（0711・0721）の結果を"
+                        "Aggre-SE で照査する入力（post の線路方向.xml・線路直角方向.xml）に書きます。それ以外の計算には使いません。")
+    form.properties(body, [(("耐震設計条件", "地域別"), "地域別"), (("耐震設計条件", "地盤区分"), "地盤区分（耐震設計上）")])
 
 
 def soil_change(form: Form, action: str) -> bool:

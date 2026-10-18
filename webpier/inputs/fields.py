@@ -34,6 +34,7 @@ STRESS = Precision(0, "kN/m2")
 STRENGTH = Precision(1, "N/mm2")
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
+SHRINKAGE = Precision(0, "×10⁻⁶")  # ε'csd of the flexural crack width (decision 48; Example2 300)
 # 鉄筋 (lengths in mm)
 LENGTH_MM = Precision(1, "mm")  # covers, centres, gaps, pitches, positions
 DIAMETER = Precision(0, "mm")  # nominal bar size (D32 → 32), as Example2 10-6 / 11-6 print it
@@ -213,13 +214,29 @@ def _soil() -> dict[str, Field]:
     }
 
 
+def _seismic_design() -> dict[str, Field]:
+    # Shared by both directions; needed only by 0711 / 0721 (decision 49).
+    return {"耐震設計条件.地域別": choice(choices.REGIONS, nullable=True),
+            "耐震設計条件.地盤区分": choice(choices.GROUND_CLASSES, nullable=True)}
+
+
+def _column_check() -> dict[str, Field]:
+    # 柱の断面照査: shared by both directions; needed only by 0611 (decision 48).
+    section = "柱の断面照査"
+    return {f"{section}.鋼材の腐食に対する環境条件": choice(choices.CORROSION_ENVIRONMENTS, nullable=True),
+            f"{section}.外観の照査": choice(choices.APPEARANCE_CHECKS, nullable=True),
+            f"{section}.ε'csd": number(SHRINKAGE, nullable=True),
+            f"{section}.適用基準の機関": choice(choices.STANDARD_BODIES, nullable=True),
+            f"{section}.JR-001": choice(choices.ADOPTIONS, nullable=True),
+            f"{section}.JR-004": choice(choices.ADOPTIONS, nullable=True)}
+
+
 def _jrsnap() -> dict[str, Field]:
     table = {}
     for direction in ("jrsnap_longitudinal", "jrsnap_transverse"):
         for key in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd"):
             table[f"{direction}.{key}"] = number(SHEAR_FACTOR, "positive", nullable=True,
                                                  limit=at_most(SHEAR_FACTOR_MAX))
-        table[f"{direction}.aggregate_max_mm"] = number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))
         table[f"{direction}.analysis_steps"] = integer(1, MAX_STEPS, nullable=True)
         table[f"{direction}.limited_final_step"] = integer(1, MAX_STEPS, nullable=True)
         # A magnitude: the export gives it the sign of the earthquake (decision 43).
@@ -296,6 +313,8 @@ def _rebar() -> dict[str, Field]:
         if member == "柱":
             basis = f"{base}.manual_basis"
             table |= _column_inputs(base) | _column_inputs(f"{basis}.inputs") | {
+                # Dmax: a property of the column concrete, read by 0611 and the JRSNAP export (decision 48)
+                f"{base}.aggregate_max_mm": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm")),
                 f"{basis}.generator_version": integer(BASIS_VERSION, BASIS_VERSION),
                 f"{basis}.geometry.width_mm": number(LENGTH_MM, "positive"),
                 f"{basis}.geometry.height_mm": number(LENGTH_MM, "positive")}
@@ -308,7 +327,7 @@ def _rebar() -> dict[str, Field]:
 
 
 FIELDS: dict[str, Field] = {**_reactions(), **_superstructure(), **_substructure(), **_soil(), **_rebar(),
-                            **_jrsnap()}
+                            **_seismic_design(), **_column_check(), **_jrsnap()}
 _INDEX = re.compile(r"\[\d+\]")
 
 

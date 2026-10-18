@@ -20,6 +20,10 @@ CENTRIFUGAL_DIRECTIONS = ("←", "→")
 
 SKEW_TYPES = (1, 2)
 
+# 耐震設計条件 (decision 49): Aggre-SE's 地域別 and 地盤区分; its 応答塑性率の直接入力 needs a μ the XML cannot hold.
+REGIONS = ("A地域", "B地域", "C地域")
+GROUND_CLASSES = ("G0地盤", "G1地盤", "G2地盤", "G3地盤", "G4地盤", "G5地盤")
+
 LAYER_SURFACE = "表層"
 LAYER_SUPPORT = "支持層"
 
@@ -41,3 +45,11 @@ BAND_TYPES = ("外巻き", "内側")
 LEGS_MODES = ("自動", "指定")
 LEGS_AUTOMATIC = LEGS_MODES[0]
 WIDTH_MODES = ("間隔", "密度")
+
+# 柱の断面照査 (decision 48): one set for the column, shared by both directions.
+CORROSION_ENVIRONMENTS = ("一般の環境", "腐食性環境", "特に厳しい腐食性環境")  # 鋼材の腐食に対する環境条件
+APPEARANCE_CHECKS = ("行う", "行わない")  # 外観の照査
+APPEARANCE_CHECKED = APPEARANCE_CHECKS[0]
+STANDARD_BODIES = ("運輸機構", "JR各社", "JR東日本")  # 適用基準の機関
+ADOPTIONS = ("適用する", "適用しない")  # JR-001, JR-004
+ADOPTED = ADOPTIONS[0]

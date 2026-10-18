@@ -1,4 +1,5 @@
-"""The JRSNAP runner that does the static nonlinear analysis of 0711 (decision 47, ADR-0007).
+"""The JRSNAP runner that draws the データ確認図 of 0710 (decision 50) and does the static nonlinear analysis of 0711
+(decision 47, ADR-0007).
 
 The runner is found from STRUCTURAL_MCP_JRSNAP_RUNNER (environment, then .env) and called with the NDU under its own
 name; its envelope and the files of its output folder are checked as the Headless protocol states. Every case uses
@@ -11,11 +12,12 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import pymupdf
 import pytest
 
 from webpier.pipeline import jrsnap
 from webpier.pipeline.fempython import RunnerError
-from webpier.pipeline.jrsnap import RUNNER_KEY, analyze_nonlinear, runner_path
+from webpier.pipeline.jrsnap import RUNNER_KEY, analyze_nonlinear, draw_data_check, runner_path
 
 CASE = "線路方向(Case1_ρm10_αf1_正向)"
 
@@ -24,7 +26,7 @@ def expected(name: str, document: bytes) -> dict[str, bytes]:
     """What the stand-in returns for *document* as *name* (its docstring), written out without the implementation."""
     digest = hashlib.sha256(document).hexdigest()
     return {f"{CASE}.{suffix}": f"FAKE {word} {name} {digest}\n".encode("utf-8")
-            for suffix, word in (("ndt", "NDT"), ("LOG", "LOG"), ("OUT", "OUT"))}
+            for suffix, word in (("ndt", "NDT"), ("DB1", "DB1"), ("LOG", "LOG"), ("OUT", "OUT"))}
 
 
 def test_the_environment_comes_before_the_env_file(tmp_path: Path):
@@ -99,3 +101,39 @@ def test_an_analysis_that_cannot_start_or_does_not_finish_is_an_error(tmp_path: 
 
 def test_webpier_waits_longer_than_the_runner_gives_the_analysis():
     assert (jrsnap.ANALYSIS_TIMEOUT, jrsnap.TIMEOUT) == (1800, 1860)
+
+
+def test_the_stand_in_draws_each_figure_of_the_data_check_in_order(fake_jrsnap_runner: Path):
+    """Decision 50: the pages of the five figures, for the given bytes, in the order of the report."""
+    document = b"Virsion=5.2.3.S.4\r\nSNAPConbNum=2\r\n"
+    drawn = draw_data_check("線路直角方向.ndu", document, fake_jrsnap_runner)
+    digest = hashlib.sha256(document).hexdigest()
+    with pymupdf.open(stream=drawn.pdf, filetype="pdf") as pdf:
+        assert [page.get_text().strip() for page in pdf] == [
+            f"FAKE DATA CHECK {figure} {digest[:16]}" for figure in jrsnap.DATA_CHECK_FIGURES]
+    assert jrsnap.DATA_CHECK_FIGURES == ("nonlinear-numbers", "section-numbers", "element-table", "section-detail",
+                                         "node-springs")
+    assert drawn.engine_version == "fake-1"
+    assert drawn.summary["case"] == {"case": 1, "ndt": "線路直角方向(Case1_ρm10_αf1_正向).ndt", "sha256": digest}
+
+
+@pytest.mark.parametrize("mode,message", [
+    ("fail", "UNKNOWN_DIALOG: S_DataCheck showed"), ("exit", "JSON ではありません"), ("text", "JSON ではありません"),
+    ("protocol", "やり取りの版が違います"), ("summary", "summary・messages がありません"),
+    ("order", "データ確認図の図ごとの PDFではありません"), ("kind", "データ確認図の図ごとの PDFではありません"),
+    ("missing", "出力先のファイルが成果物の一覧と一致しません"),
+    ("sha", r"node-springs\.pdf が runner の応答の SHA256・バイト数と一致しません"),
+    ("empty", r"node-springs\.pdf にページがありません"), ("broken", r"node-springs\.pdf を読めません"),
+])
+def test_a_runner_that_does_not_draw_the_data_check_is_an_error(fake_jrsnap_runner: Path,
+                                                                monkeypatch: pytest.MonkeyPatch, mode, message):
+    monkeypatch.setenv("FAKE_JRSNAP_DATA_CHECK", mode)
+    with pytest.raises(RunnerError, match=f"線路方向.ndu のデータ確認図を JRSNAP で描けません: .*{message}"):
+        draw_data_check("線路方向.ndu", b"NDU", fake_jrsnap_runner)
+
+
+def test_a_data_check_that_does_not_finish_is_an_error(fake_jrsnap_runner: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("FAKE_JRSNAP_DATA_CHECK", "slow")
+    with pytest.raises(RunnerError, match="データ確認図を JRSNAP で描けません: 0.5 秒で終わりませんでした"):
+        draw_data_check("線路方向.ndu", b"NDU", fake_jrsnap_runner, timeout=0.5)
+    assert (jrsnap.DATA_CHECK_TIMEOUT, jrsnap.DATA_CHECK_WAIT) == (300, 360)

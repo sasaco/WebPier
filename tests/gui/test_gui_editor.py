@@ -321,3 +321,17 @@ def test_an_open_cell_editor_is_entered_before_saving(editor):
     assert editor.save()
     assert saved(editor)["下部構造"]["寸法"]["側面"]["B1"] == 3.142
     assert target.get() == "3.142"
+
+
+def test_the_seismic_design_conditions_are_choices_on_the_soil_page(editor):
+    """Decision 49: one 地域別 and one 地盤区分 for the pier; G0〜G5 only (no 応答塑性率の直接入力)."""
+    editor.select("地盤データ")
+    region, ground = (cell(editor, "耐震設計条件", key) for key in ("地域別", "地盤区分"))
+    assert (region.get(), ground.get()) == ("C地域", "G2地盤")
+    assert region.sheet.get_dropdown_values(region.row, region.column) == ["", "A地域", "B地域", "C地域"]
+    assert ground.sheet.get_dropdown_values(ground.row, ground.column) == [
+        "", "G0地盤", "G1地盤", "G2地盤", "G3地盤", "G4地盤", "G5地盤"]
+    type_in(editor, ("耐震設計条件", "地盤区分"), "G3地盤")
+    type_in(editor, ("耐震設計条件", "地域別"), "")
+    assert editor.save()
+    assert saved(editor)["耐震設計条件"] == {"地域別": None, "地盤区分": "G3地盤"}

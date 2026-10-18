@@ -120,7 +120,7 @@ def test_a_generation_with_the_nonlinear_analysis_checks_the_folder_as_a_whole(t
     assert result.success, result.message
     assert runner.commands[0][-1] == "--nonlinear-analysis"
     folder = tmp_path / "post" / "線路方向_JRSNAP"
-    assert sorted(path.suffix for path in folder.iterdir()) == [".LOG", ".OUT", ".ndt"]
+    assert sorted(path.suffix for path in folder.iterdir()) == [".DB1", ".LOG", ".OUT", ".ndt"]
     assert control.check_current_outputs() is None
     (folder / "線路方向(Case1_ρm10_αf1_正向).OUT").write_bytes(b"replaced")
     assert "計算後に出力ファイルが変更されました: 線路方向_JRSNAP" in control.check_current_outputs()

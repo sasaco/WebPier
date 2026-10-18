@@ -1,0 +1,90 @@
+{
+  "basis": "Independently transcribed from the user-provided sample WDJ and PDF; never generated from the application. See column_section_check_notes.md for every deliberate difference from the sample.",
+  "source": {
+    "wdj": ".claude/docs/Example橋脚2/08_線路/WebDan.wdj",
+    "pdf": ".claude/docs/Example橋脚2/08_線路.pdf",
+    "pages": "8-12 .. 8-26"
+  },
+  "check_point": {
+    "member": 3,
+    "member_length_m": 4.9,
+    "index": 6,
+    "p_id": "JTAN",
+    "position_m": 4.9,
+    "isMzCalc": true,
+    "isVyCalc": true,
+    "isMyCalc": false,
+    "isVzCalc": false,
+    "isMtCalc": false
+  },
+  "member": {
+    "m_no": 3,
+    "g_name": "柱",
+    "shape": 1,
+    "B": 4500,
+    "H": 2700,
+    "n": 1
+  },
+  "bar": {
+    "rebar1": {"rebar_dia": 32, "rebar_n": 29, "rebar_cover": 108, "rebar_ss": 150},
+    "rebar2": {"rebar_dia": 32, "rebar_n": 29, "rebar_cover": 108, "rebar_ss": 150},
+    "sidebar1": {"side_dia": 19, "side_n": 9, "side_cover": 350, "side_ss": 250},
+    "stirrup": {"stirrup_dia": 22, "stirrup_n": 10, "stirrup_ss": 150}
+  },
+  "pickup": {
+    "moment": {"0": 2, "1": 3, "2": null, "3": null, "4": null, "5": 1, "6": 5, "7": null, "8": null},
+    "shear_force": {"0": 2, "1": 3, "2": 4, "3": null, "4": null, "5": 1, "6": 5, "7": null},
+    "torsional_moment": {"0": null, "1": null, "5": null, "6": null, "7": null}
+  },
+  "safety_factor": [
+    {"id": 0, "M_rc": 1.0, "M_rs": 1.0, "M_rbs": 1.0, "V_rc": 1.0, "V_rs": 1.0, "V_rbc": 1.0, "V_rbs": 1.0, "V_rbv": null, "T_rbt": 1.0, "ri": 1.0, "range": 1},
+    {"id": 2, "M_rc": 1.3, "M_rs": 1.05, "M_rbs": 1.0, "V_rc": 1.3, "V_rs": 1.05, "V_rbc": 1.3, "V_rbs": 1.0, "V_rbv": null, "T_rbt": 1.0, "ri": 1.1, "range": 2},
+    {"id": 5, "M_rc": 1.3, "M_rs": 1.0, "M_rbs": 1.1, "V_rc": 1.3, "V_rs": 1.0, "V_rbc": 1.3, "V_rbs": 1.1, "V_rbv": 1.2, "T_rbt": 1.0, "ri": 1.2, "range": 2},
+    {"id": 6, "M_rc": 1.3, "M_rs": 1.0, "M_rbs": 1.0, "V_rc": 1.3, "V_rs": 1.0, "V_rbc": 1.3, "V_rbs": 1.1, "V_rbv": 1.2, "T_rbt": 1.0, "ri": 1.2, "range": 3},
+    {"id": 7, "M_rc": 1.3, "M_rs": 1.0, "M_rbs": 1.0, "V_rc": 1.3, "V_rs": 1.0, "V_rbc": 1.3, "V_rbs": 1.0, "V_rbv": 1.2, "T_rbt": 1.0, "ri": 1.0, "range": 3},
+    {"id": 8, "M_rc": 1.3, "M_rs": 1.0, "M_rbs": 1.0, "V_rc": null, "V_rs": null, "V_rbc": null, "V_rbs": null, "V_rbv": null, "T_rbt": null, "ri": 1.0, "range": 3}
+  ],
+  "material_bar": {
+    "grade": "SD390",
+    "tensionBar": {"fsy": 390, "fsu": 560},
+    "sidebar": {"fsy": 390, "fsu": 560},
+    "stirrup": {"fsy": 390, "fsu": 560}
+  },
+  "material_concrete": {"fck": 27.0, "dmax": 25.0},
+  "pile_factor_selected": "pile-000",
+  "crack": {
+    "con_u": 1, "con_l": 1, "con_s": 1,
+    "vis_u": true, "vis_l": true,
+    "ecsd_u": 300, "ecsd_l": 300,
+    "kr": 0.5, "k4": 0.85
+  },
+  "standard": {
+    "specification1": 0,
+    "specification2": 1,
+    "conditions": {"JR-001": true, "JR-004": false}
+  },
+  "calc": {
+    "print_calculate_checked": true,
+    "print_section_force_checked": true,
+    "print_summary_table_checked": false,
+    "calculate_moment_checked": true,
+    "calculate_shear_force": true,
+    "calculate_torsional_moment": false
+  },
+  "explanation": {
+    "safety_moment": {"page": "8-14", "gamma_i": "1.2", "gamma_b": "1.1"},
+    "safety_shear": {"page": "8-16", "gamma_i": "1.2"},
+    "durability_flexural_crack": {"page": "8-19", "gamma_i": "1.0", "k4": "0.85"},
+    "durability_shear_crack": {"page": "8-21", "kr": "0.5"},
+    "serviceability_flexural_crack": {"page": "8-23", "gamma_i": "1.0"},
+    "restorability_moment": {"page": "8-25", "gamma_i_printed": "1.0", "gamma_b": "1.0", "gamma_i_result_page": "1.20"}
+  },
+  "decisions": {
+    "restorability_gamma_i": "1.2 for bending and shear (owner, 2026-10-18): the WDJ row 6 and the result page 8-26 are right; 8-25's 1.0 is an error of the sample and is not reproduced (see notes)."
+  },
+  "acceptance": {
+    "bending_safety_destruction": {"page": "8-15", "ratio": "0.132", "Mud_kNm": "37449.1"},
+    "bending_restorability": {"page": "8-26", "ratio": "0.114", "Myd_kNm": "38260.8", "Md_kNm": "3619.6", "Nd_kN": "14404.5", "gamma_i": "1.20", "gamma_b": "1.00"},
+    "report_pages_of_capacita_for_the_sample": 13
+  }
+}

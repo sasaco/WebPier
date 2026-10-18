@@ -268,3 +268,37 @@ def test_closing_the_page_closes_its_dialog(editor):
 def test_summary_of_bars():
     assert column_dialogs.summary([{"diameter_mm": 32}, {"diameter_mm": 19}, {"diameter_mm": 32}]) == \
         "総本数 3 本　D19 × 1 / D32 × 2"
+
+
+def test_the_column_concrete_has_its_aggregate_size(editor):
+    """Decision 48: Dmax belongs to the column concrete; 0611 and the JRSNAP export both read it."""
+    size = cell(editor, *COLUMN, "aggregate_max_mm")
+    assert size.get() == "25.0"
+    assert size.sheet.get_cell_data(size.row, 0) == "粗骨材の最大寸法 Dmax"
+    assert size.sheet.get_cell_data(size.row, 2) == "mm"
+    size.type("20.04")
+    assert size.get() == "20.0" and editor.document.data["鉄筋"]["柱"]["aggregate_max_mm"] == 20.0
+
+
+def test_only_the_column_has_an_aggregate_size(editor):
+    page(editor).select_member("梁")
+    assert ("鉄筋", "梁", "aggregate_max_mm") not in editor.bindings.items
+
+
+def test_the_column_check_conditions_group(editor):
+    """Decision 48: the 柱の断面照査 conditions are entered with the column; one set for both directions."""
+    assert tuple(page(editor).group_buttons) == ("main", "hoops", "placement", "check")
+    assert page(editor).select_group("check")
+    environment = cell(editor, "柱の断面照査", "鋼材の腐食に対する環境条件")
+    assert environment.get() == "一般の環境"
+    assert environment.sheet.get_dropdown_values(environment.row, environment.column) == [
+        "", "一般の環境", "腐食性環境", "特に厳しい腐食性環境"]
+    shrinkage = cell(editor, "柱の断面照査", "ε'csd")
+    assert shrinkage.get() == "300" and shrinkage.sheet.get_cell_data(shrinkage.row, 2) == "×10⁻⁶"
+    assert cell(editor, "柱の断面照査", "外観の照査").get() == "行う"
+    assert cell(editor, "柱の断面照査", "適用基準の機関").get() == "運輸機構"
+    assert (cell(editor, "柱の断面照査", "JR-001").get(), cell(editor, "柱の断面照査", "JR-004").get()) == (
+        "適用する", "適用しない")
+    body = cell(editor, "柱の断面照査", "適用基準の機関")
+    body.type("JR東日本")
+    assert editor.document.data["柱の断面照査"]["適用基準の機関"] == "JR東日本"

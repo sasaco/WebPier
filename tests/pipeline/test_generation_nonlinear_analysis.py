@@ -17,10 +17,13 @@ import stat
 import pytest
 
 from pipeline_support import Recorder, copy_input, tree
+from webpier.core.errors import InputError
 from webpier.core.integrity import canonical_sha256
 from webpier.pipeline import generate, jrsnap, publication
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Registry, StageSpec
+from webpier.export.aggrese import databases
+from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry,
+                                     StageSpec)
 
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
@@ -41,7 +44,7 @@ def expected() -> dict[str, bytes]:
     """The stand-in's files of an analysis of NDU as model.ndu, by name."""
     digest = hashlib.sha256(NDU).hexdigest()
     return {f"{CASE}.{suffix}": f"FAKE {word} model.ndu {digest}\n".encode("utf-8")
-            for suffix, word in (("ndt", "NDT"), ("LOG", "LOG"), ("OUT", "OUT"))}
+            for suffix, word in (("ndt", "NDT"), ("DB1", "DB1"), ("LOG", "LOG"), ("OUT", "OUT"))}
 
 
 def sidecar(options: GenerationOptions, name: str) -> dict:
@@ -258,3 +261,52 @@ def test_the_input_may_not_be_inside_the_folder(env, tmp_path: Path):
     inside.write_bytes(Path(options.input_path).read_bytes())
     with pytest.raises(OSError, match="入力ファイルと出力ファイルを同じパスにはできません"):
         generate.generate(with_(options, input_path=inside, stage="E", overwrite=True), registry=stages)
+
+
+def projecting(recorder: Recorder, cases: int = 1) -> Registry:
+    """The registry with an Aggre-SE project beside the folder (decision 49), naming the DB1 of *cases* Cases."""
+    def build(results, pier):
+        recorder.log.append(("project", "C", tuple(results)))
+        return lambda folder, names: "\r\n".join(databases(folder, names, cases)).encode("cp932")
+    project = Project("aggrese", "model.xml", build, {"target": "Aggre-SE"})
+    return Registry((*registry(recorder).stages[:2],
+                     StageSpec("E", "E_解析", ("C",), opt_in=NONLINEAR_ANALYSIS,
+                               nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", FOLDER, project))))
+
+
+def test_the_project_names_the_databases_of_the_folder_and_is_published_beside_it(env):
+    options, recorder, _ = env
+    generation = generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder))
+    post = tree(Path(options.post_dir))
+    assert post["model.xml"] == f"{FOLDER}/{CASE}.DB1".encode("cp932")
+    assert ("project", "C", ("A", "C")) in recorder.log  # the analyzed stage's results, before the analysis
+    assert [artifact.role for artifact in generation.artifacts if artifact.role.startswith("E")] == [
+        "E.jrsnap", "E.aggrese", "E.jrsnap.provenance", "E.aggrese.provenance"]
+    document = sidecar(options, "model.xml")
+    files = {name: hashlib.sha256(content).hexdigest() for name, content in expected().items()}
+    assert {key: document[key] for key in ("stage", "export", "file", "sha256", "metadata", "aggrese_project")} == {
+        "stage": "E", "export": "aggrese", "file": "model.xml",
+        "sha256": hashlib.sha256(post["model.xml"]).hexdigest(),
+        "metadata": {"target": "Aggre-SE"},
+        "aggrese_project": {"jrsnap": {"stage": "E", "export": "jrsnap", "file": FOLDER,
+                                       "sha256": canonical_sha256(files)}}}
+    assert "nonlinear_analysis" not in document
+
+
+def test_a_project_without_the_databases_of_every_case_publishes_nothing(env):
+    options, recorder, _ = env
+    with pytest.raises(GenerationError, match=r"model.xml を作れません: JRSNAP の結果に Case1〜2 の DB1"):
+        generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder, cases=2))
+    assert not Path(options.post_dir).exists()
+
+
+def test_the_project_bytes_are_those_a_generation_writes(env):
+    """The acceptance rebuilds its candidate this way (decision 49); a stage without a project has none."""
+    options, recorder, stages = env
+    generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder))
+    names = list(expected())
+    assert generate.project_bytes(None, "E", names, registry=projecting(recorder)) == tree(
+        Path(options.post_dir))["model.xml"]
+    for stage in ("C", "E"):
+        with pytest.raises(InputError, match=f"{stage}に Aggre-SE のプロジェクトはありません"):
+            generate.project_bytes(None, stage, names, registry=stages)

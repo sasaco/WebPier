@@ -188,7 +188,6 @@ class JrsnapConditions:
     shear_factor_vcd: Printed | None  # γb of Vcd
     shear_factor_vsd: Printed | None  # γb of Vsd
     shear_factor_vdd: Printed | None  # γb of Vdd
-    aggregate_max: Printed | None  # Dmax, mm
     steps: int | None  # displacement increments to the target (DataInfo 3)
     limited_final_step: int | None  # last step of the limited incremental load (DataInfo 6)
     target_displacement: Printed | None  # magnitude (> 0) at the control node, m; the export signs it (DataInfo 19)
@@ -201,6 +200,26 @@ class Jrsnap:
 
 
 @dataclass(frozen=True)
+class SeismicDesign:
+    """耐震設計条件 (CONTEXT.md): one for the pier, shared by both directions; None is blank."""
+
+    region: str | None  # 地域別, one of choices.REGIONS
+    ground_class: str | None  # 地盤区分, one of choices.GROUND_CLASSES
+
+
+@dataclass(frozen=True)
+class ColumnCheck:
+    """柱の断面照査 (CONTEXT.md, decision 48): one set for the column, shared by both directions; None is blank."""
+
+    environment: str | None  # 鋼材の腐食に対する環境条件, one of choices.CORROSION_ENVIRONMENTS
+    appearance: str | None  # 外観の照査, one of choices.APPEARANCE_CHECKS
+    ecsd: Printed | None  # ε'csd, ×10⁻⁶
+    body: str | None  # 適用基準の機関, one of choices.STANDARD_BODIES
+    jr001: str | None  # JR-001 ひび割れ幅制限値に用いるかぶりは 100mm を上限とする; one of choices.ADOPTIONS
+    jr004: str | None  # JR-004 せん断耐力における βn 算定時の Mud は軸力を考慮しない; one of choices.ADOPTIONS
+
+
+@dataclass(frozen=True)
 class PierInput:
     substructure: Substructure
     spans: Spans
@@ -210,4 +229,6 @@ class PierInput:
     materials: Materials
     reserved: Reserved
     rebar: RebarInput
+    seismic_design: SeismicDesign
+    column_check: ColumnCheck  # 柱の断面照査 (decision 48)
     jrsnap: Jrsnap

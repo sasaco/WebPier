@@ -4,7 +4,8 @@ JRSNAP derives the M-θ curve of the micro member from a rectangular RC section 
 SectJiku / SectRein / SectSher / SectSafe). WebPier gives it:
 
 - b × h of the micro member (normal to / in the plane), La from the control node down to the footing top;
-- f'ck and Ec of the column concrete (calc.materials), Dmax and the three γb of the input conditions;
+- f'ck and Ec of the column concrete (calc.materials), Dmax of the column concrete (鉄筋.柱.aggregate_max_mm)
+  and the three γb of the input conditions;
 - the 方向別の鉄筋配置表 of the bending direction (calc.column_rebar), centres from the upper face;
 - DRTU = DRTL: the number of main-bar layers of that direction, and DELU = DELL their spacing along the face;
 - the one hoop row of that direction: 帯鉄筋の方向別有効本数, size, pitch, steel.
@@ -20,7 +21,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ...calc._exact import d, put
-from ...calc.column_rebar import Bar, ColumnLayout, table, yield_strength
+from ...calc.column_rebar import ColumnLayout, check_detail_positions, table, yield_strength
 from ...calc.frame import Frame, Node, NodeRole
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
@@ -43,20 +44,6 @@ def need(value, path: str):
 
 def _mm(length: Printed) -> Printed:
     return put(LENGTH_MM, d(length) * 1000)
-
-
-def _physical(bars: tuple[Bar, ...]) -> list[tuple[float, float, float, str]]:
-    return sorted((bar.x.value, bar.y.value, bar.diameter.value, bar.material) for bar in bars)
-
-
-def _check_detail(layout: ColumnLayout) -> None:
-    if layout.manual is None:
-        return
-    if not layout.manual_basis_current:
-        raise InputError(f"{_COLUMN}.manual_basis: 詳細位置の生成元が現在の基本入力と一致しません"
-                         "（基本条件の変更後に再配置していないか、生成元が記録されていません）")
-    if _physical(layout.manual) != _physical(layout.automatic):
-        raise InputError(f"{_COLUMN}.manual_positions: 移動した詳細位置は主鉄筋の段数・間隔に代表できないため未対応です")
 
 
 def _main(profile: Profile, layout: ColumnLayout, rows: tuple) -> tuple[int, Printed]:
@@ -102,7 +89,7 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     assert section is not None and concrete is not None  # an elastic member has both
     width, height = _mm(section.width), _mm(section.depth)
     span = put(LENGTH_MM, (d(control.y) - d(frame.node(NodeRole.FOOTING_TOP).y)) * 1000)
-    _check_detail(layout)
+    check_detail_positions(layout)
     rows = table(layout.bars, profile.face)
     if len(rows) > MAX_ROWS:
         raise InputError(f"{_COLUMN}: {profile.face}方向の表が{len(rows)}行です（JRSNAP は{MAX_ROWS}行まで）")
@@ -121,7 +108,7 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     return SectionData(
         width=width, height=height, shear_span=span, fck=concrete.strength,
         ec=put(EC_KN_MM2, d(concrete.modulus) * Decimal(10)),  # mantissa × 10^7 kN/m2 = × 10 kN/mm2
-        aggregate_max=need(conditions.aggregate_max, f"{key}.aggregate_max_mm"),
+        aggregate_max=need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),  # the column concrete's
         yield_strength=yield_strength(grades[0]), main_layers=layers, main_pitch=pitch,
         rows=tuple(RebarRow(row.center, row.diameter, row.count) for row in rows), shear=_shear(profile, pier),
         safety=(*SAFETY_BEFORE, factors[0], factors[1], SAFETY_GBS, SAFETY_K, factors[2], SAFETY_GBVO))

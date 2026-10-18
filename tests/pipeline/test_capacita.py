@@ -1,0 +1,143 @@
+"""The Capacita runner of the 0611 柱の断面照査 (decision 48, ADR-0008).
+
+The runner is found from STRUCTURAL_MCP_WEBDAN_RUNNER (environment, then .env; the name structural-mcp uses) and called
+as ``run-rc --pickup`` with the WDJ and the PIK of the same generation. Its envelope, its three files and the page
+ranges of the report sections are checked as the Capacita README states. Every case but the last uses the stand-in of
+tests/fixtures/capacita/fake_runner.py (tests/conftest.py); the last runs the real runner on the Example2 input, only
+when one is set up.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import pymupdf
+import pytest
+
+from webpier.pipeline import capacita
+from webpier.pipeline.capacita import RUNNER_KEY, check_column, runner_path
+from webpier.pipeline.fempython import RunnerError
+
+SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
+            "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
+WDJ = json.dumps({"crack": [{"vis_u": True}], "points": []}).encode("utf-8")
+PIK = b"PickUpNo\n    1    M    1\n"
+
+
+def completed(document: bytes, pik_name: str, pik: bytes) -> bytes:
+    """The WDJ the stand-in returns (its docstring), written out without the implementation."""
+    value = json.loads(document)
+    value["pickup_filename"] = pik_name
+    value["pickup_data"] = {"fake": hashlib.sha256(pik).hexdigest()}
+    return json.dumps(value, ensure_ascii=False, indent=2).encode("utf-8")
+
+
+def texts(pdf: bytes) -> list[str]:
+    with pymupdf.open(stream=pdf, filetype="pdf") as document:
+        return [page.get_text().strip() for page in document]
+
+
+def test_the_environment_comes_before_the_env_file(tmp_path: Path):
+    runner, other = tmp_path / "runner.exe", tmp_path / "other.exe"
+    runner.write_bytes(b""), other.write_bytes(b"")
+    env = tmp_path / ".env"
+    env.write_text(f"{RUNNER_KEY}='{other}'\nSTRUCTURAL_MCP_FEMPYTHON_RUNNER=x\n", encoding="utf-8")
+    assert runner_path({RUNNER_KEY: str(runner)}, env) == runner
+    assert runner_path({RUNNER_KEY: ""}, env) == other
+    assert runner_path({}, env) == other
+
+
+@pytest.mark.parametrize("setting,message", [(None, "Capacita の runner が設定されていません"), ("", "設定されていません"),
+                                             ("runner.exe", "絶対パス"), ("missing", "ありません")])
+def test_a_runner_that_is_not_set_up_is_an_error(tmp_path: Path, setting, message):
+    env = tmp_path / ".env"
+    if setting is not None:
+        value = str(tmp_path / "missing.exe") if setting == "missing" else setting
+        env.write_text(f"{RUNNER_KEY}={value}\n", encoding="utf-8")
+    with pytest.raises(RunnerError, match=message):
+        runner_path({}, env)
+
+
+def test_the_process_environment_is_used_by_default(monkeypatch: pytest.MonkeyPatch, fake_capacita_runner: Path):
+    monkeypatch.setenv(RUNNER_KEY, str(fake_capacita_runner))
+    assert runner_path() == fake_capacita_runner
+
+
+def test_the_stand_in_checks_the_given_wdj_with_the_given_pik(fake_capacita_runner: Path):
+    checked = check_column(WDJ, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS)
+    assert checked.engine_version == "fake-1"
+    assert checked.wdj == completed(WDJ, "線路方向.pik", PIK)
+    assert [section.id for section in checked.sections] == list(SECTIONS)
+    assert [(section.first, section.last) for section in checked.sections][:2] == [(1, 2), (3, 3)]
+    pages = texts(checked.pdf)
+    assert len(pages) == 9
+    digest = hashlib.sha256(WDJ).hexdigest()[:16]
+    assert pages[0] == f"FAKE CAPACITA section_forces 1/2 {digest}"
+    assert checked.section("shear_restorability") == (9, 9)
+
+
+def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
+    without = json.dumps({"crack": [{"vis_u": False}]}).encode("utf-8")
+    expected = tuple(name for name in SECTIONS if name != "bending_serviceability")
+    assert [section.id for section in check_column(without, "a.pik", PIK, fake_capacita_runner, expected).sections] \
+        == list(expected)
+    with pytest.raises(RunnerError, match="計算書の節が違います"):
+        check_column(without, "a.pik", PIK, fake_capacita_runner, SECTIONS)
+
+
+@pytest.mark.parametrize("mode,message", [
+    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"), ("pickup", "pickup_import_failed"),
+    ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
+    ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
+    ("artifacts", "成果物が計算結果・計算書・WDJ の3つではありません"),
+    ("missing", "成果物 model.wdj がありません"), ("extra", "出力先のファイルが成果物の一覧と一致しません"),
+    ("sha", r"model\.wdj が runner の応答の SHA256・バイト数と一致しません"),
+    ("sections", "計算書の節（reportSections）がありません"), ("order", "計算書の節が違います"),
+    ("gap", "計算書の節のページが PDF の"),
+])
+def test_a_runner_that_does_not_check_the_column_is_an_error(fake_capacita_runner: Path,
+                                                             monkeypatch: pytest.MonkeyPatch, mode, message):
+    monkeypatch.setenv("FAKE_CAPACITA", mode)
+    with pytest.raises(RunnerError, match=f"線路方向.pik で柱の断面照査ができません: .*{message}"):
+        check_column(WDJ, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS)
+
+
+def test_a_runner_that_cannot_start_is_an_error(tmp_path: Path):
+    runner = tmp_path / "runner.exe"
+    runner.write_bytes(b"not a program")
+    with pytest.raises(RunnerError, match="runner を起動できません"):
+        check_column(WDJ, "線路方向.pik", PIK, runner, SECTIONS)
+
+
+def test_a_runner_that_does_not_finish_is_an_error(fake_capacita_runner: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(capacita.subprocess, "run", _timeout)
+    with pytest.raises(RunnerError, match="秒で終わりませんでした"):
+        check_column(WDJ, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS, timeout=1)
+
+
+def _timeout(*args, **kwargs):
+    raise capacita.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
+
+
+def test_the_real_runner_checks_the_example2_column(real_capacita_runner: Path):
+    """The real Capacita on the WDJ of the Example2 input and the sample PIK of 08_線路 (FEMPython's layout: member 3
+    is the column, its JTAN the column bottom); skipped without a runner set up in .env."""
+    from webpier.calc.column_check import calculate_column_check
+    from webpier.calc.foundation import calculate_foundation
+    from webpier.calc.longitudinal import calculate_longitudinal
+    from webpier.calc.reaction import calculate_reaction
+    from webpier.export.capacita import build_wdj, write_wdj
+    from webpier.inputs import parse_input
+
+    root = Path(__file__).parents[2]
+    pier = parse_input(json.loads((root / "tests" / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8")))
+    reaction = calculate_reaction(pier)
+    check = calculate_column_check(pier, calculate_longitudinal(pier, calculate_foundation(pier), reaction))
+    pik = (root / ".claude" / "docs" / "Example橋脚2" / "08_線路" / "frameWebForJS.pik").read_bytes()
+    checked = check_column(write_wdj(build_wdj(check)), "線路方向.pik", pik, real_capacita_runner, check.sections)
+    assert [section.id for section in checked.sections] == list(SECTIONS)
+    assert len(texts(checked.pdf)) == checked.sections[-1].last
+    completed_document = json.loads(checked.wdj.decode("utf-8"))
+    assert completed_document["pickup_filename"] == "線路方向.pik" and completed_document["pickup_data"]

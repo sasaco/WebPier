@@ -9,12 +9,14 @@ all come from it, so adding a stage or an export is one entry.
 export, the stage's own result), so an undeclared dependency fails instead of silently working.
 
 A stage with ``load_diagram`` names the export whose load cases FEMPython draws (decision 44): its ``render``
-also receives those pages, to put into the report as they are.
+also receives those pages, to put into the report as they are. A stage with ``data_check`` names the NDU export
+whose データ確認図 JRSNAP draws (decision 50), and its ``render`` receives those pages the same way.
 
 A stage may have no report (no ``render``, and then no result JSON) and publish only files under post/. A stage with
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
 (decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
-returned file as one folder under post/ (decision 47). Such a stage is ``opt_in``: ``all`` leaves it out unless its
+returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
+results (decision 49). Such a stage is ``opt_in``: ``all`` leaves it out unless its
 switch is given (``--frame-analysis``, ``--nonlinear-analysis``), and so is every stage that reads one, with the same
 switch; chosen directly, it is calculated with its dependencies.
 """
@@ -36,9 +38,11 @@ from ..calc.seismic_transverse import calculate_seismic_transverse
 from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json
+from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
 from ..export.frameweb import build_frameweb, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, write_ndu
+from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION
 from ..inputs import PierInput
 from ..reporting.stages.foundation import render_foundation
@@ -94,6 +98,21 @@ class FrameAnalysis:
 
 
 @dataclass(frozen=True)
+class Project:
+    """The Aggre-SE project XML that reads the JRSNAP results of the analysis (decision 49).
+
+    ``build`` reads the results of the analyzed stage and the input before the analysis, so a blank input stops the
+    generation first; it returns the writer of the XML from the DB1 path of each Case (from the XML: the folder, then
+    the name JRSNAP gave the file). The XML is published under post/ beside the folder, with a provenance sidecar.
+    """
+
+    kind: str  # "aggrese"
+    file_name: str  # e.g. "線路方向.xml"
+    build: Callable[[Results, PierInput], Callable[[str, Sequence[str]], bytes]]
+    metadata: Mapping[str, Any] = field(default_factory=dict)  # fixed facts recorded in the sidecar
+
+
+@dataclass(frozen=True)
 class NonlinearAnalysis:
     """JRSNAP analyzes the NDU of a dependency (decision 47, ADR-0007).
 
@@ -105,6 +124,7 @@ class NonlinearAnalysis:
     export: str  # the kind of that export, "jrsnap"
     kind: str  # the kind the folder is published as
     folder: str  # the folder under post/, e.g. "線路方向_JRSNAP"
+    project: Project | None = None  # the Aggre-SE project beside the folder (decision 49), or none
 
 
 @dataclass(frozen=True)
@@ -113,10 +133,12 @@ class StageSpec:
     stem: str  # the report file name without suffix, e.g. "0610_線路方向荷重"
     depends_on: tuple[str, ...]
     calculate: Callable[[PierInput, Results], Any] | None = None  # none: the stage has no result
-    # (results, pier, path), and the load diagram PDF after the path when ``load_diagram`` is set; none: no report
+    # (results, pier, path), and after the path the PDF of the load diagram when ``load_diagram`` is set, or of the
+    # データ確認図 when ``data_check`` is; none: no report
     render: Callable[..., Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
+    data_check: str = ""  # the kind of the NDU export whose データ確認図 JRSNAP draws into the report (decision 50)
     opt_in: str = ""  # the switch without which all leaves the stage out (decisions 46, 47), or none
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
@@ -170,6 +192,8 @@ class Registry:
                 if stage.opt_in != NONLINEAR_ANALYSIS:
                     raise ValueError(f"{stage.id}は静的非線形解析するので選択式（{NONLINEAR_ANALYSIS}）の段階です")
                 outputs.append((nonlinear.kind, nonlinear.folder))
+                if nonlinear.project is not None:
+                    outputs.append((nonlinear.project.kind, nonlinear.project.file_name))
             for dependency in stage.depends_on:
                 if self.get(dependency).opt_in not in ("", stage.opt_in):
                     raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、同じスイッチ"
@@ -190,6 +214,12 @@ class Registry:
                 raise ValueError(f"{stage.id}の荷重図の出力{stage.load_diagram}がありません")
             if stage.load_diagram and not stage.has_report:
                 raise ValueError(f"{stage.id}の荷重図を差し込む計算書がありません")
+            if stage.data_check and stage.data_check not in {item.kind for item in stage.exports}:
+                raise ValueError(f"{stage.id}のデータ確認図の出力{stage.data_check}がありません")
+            if stage.data_check and not stage.has_report:
+                raise ValueError(f"{stage.id}のデータ確認図を差し込む計算書がありません")
+            if stage.data_check and stage.load_diagram:
+                raise ValueError(f"{stage.id}に荷重図とデータ確認図の両方は差し込めません")
             seen.append(stage.id)
 
     def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
@@ -241,11 +271,22 @@ def _frameweb(stage_id: str, build: Callable[[Any], dict[str, Any]]) -> Callable
     return lambda results, pier: dump_json(build(results[stage_id]))
 
 
+def _ndu_model(stage_id: str, profile: NduProfile, results: Results, pier: PierInput) -> NduModel:
+    foundation = results["0500"]
+    return build_ndu(profile, pier, foundation, calculate_embedment(pier, foundation), column_layout(pier),
+                     results[stage_id])
+
+
 def _jrsnap(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput], bytes]:
-    def build(results: Results, pier: PierInput) -> bytes:
-        foundation = results["0500"]
-        return write_ndu(build_ndu(profile, pier, foundation, calculate_embedment(pier, foundation),
-                                   column_layout(pier), results[stage_id]))
+    return lambda results, pier: write_ndu(_ndu_model(stage_id, profile, results, pier))
+
+
+def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput],
+                                                              Callable[[str, Sequence[str]], bytes]]:
+    """The project of the NDU of *stage_id*, checked before the analysis; then its writer (decision 49)."""
+    def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
+        project = build_project(_ndu_model(stage_id, profile, results, pier), pier)
+        return lambda folder, names: write_project(project, databases(folder, names, project.cases))
     return build
 
 
@@ -257,6 +298,9 @@ def _pickups(stem: str) -> tuple[tuple[str, str], ...]:
 
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
+# A normal generation only writes the project; Aggre-SE reading it and checking with it are separate records.
+_PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION, "app_read_verified": False,
+            "seismic_check_run": False}
 
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
@@ -284,16 +328,22 @@ STAGES = Registry((
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
                                                                    results["0610"]),
-              lambda results, pier, path: render_seismic_longitudinal(results["0710"], pier, path),
-              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),)),
+              lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], pier, path, pages),
+              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
+              data_check="jrsnap"),
     StageSpec("0711", "0711_線路方向非線形解析", ("0710",), opt_in=NONLINEAR_ANALYSIS,
-              nonlinear_analysis=NonlinearAnalysis("0710", "jrsnap", "jrsnap", "線路方向_JRSNAP")),
+              nonlinear_analysis=NonlinearAnalysis(
+                  "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
+                  Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT))),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
-              lambda results, pier, path: render_seismic_transverse(results["0720"], pier, path),
-              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),)),
+              lambda results, pier, path, pages: render_seismic_transverse(results["0720"], pier, path, pages),
+              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
+              data_check="jrsnap"),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
     StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), opt_in=NONLINEAR_ANALYSIS,
-              nonlinear_analysis=NonlinearAnalysis("0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP")),
+              nonlinear_analysis=NonlinearAnalysis(
+                  "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
+                  Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT))),
 ))

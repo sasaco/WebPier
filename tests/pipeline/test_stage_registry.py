@@ -6,7 +6,7 @@ import pytest
 
 from webpier.core.errors import InputError
 from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis,
-                                     NonlinearAnalysis, Registry, StageSpec)
+                                     NonlinearAnalysis, Project, Registry, StageSpec)
 
 
 def spec(stage_id, *depends_on, exports=()):
@@ -29,10 +29,15 @@ def analyzing(stage_id, *depends_on, source="A", files=PICKUPS, opt_in=FRAME_ANA
                      frame_analysis=FrameAnalysis(source, "frameweb", files))
 
 
-def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINEAR_ANALYSIS, kind="jrsnap"):
+def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINEAR_ANALYSIS, kind="jrsnap",
+            project=None):
     """A stage without a report that has JRSNAP analyze the NDU of *source* (decision 47)."""
     return StageSpec(stage_id, f"{stage_id}_解析", depends_on, opt_in=opt_in,
-                     nonlinear_analysis=NonlinearAnalysis(source, "jrsnap", kind, folder))
+                     nonlinear_analysis=NonlinearAnalysis(source, "jrsnap", kind, folder, project))
+
+
+def project(kind="aggrese", file_name="x.xml"):
+    return Project(kind, file_name, lambda results, pier: lambda folder, names: b"")
 
 
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
@@ -94,7 +99,7 @@ def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
 
 def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
     """Decision 47: 0711 and 0721 have no report; they publish the folder of the JRSNAP analysis of their seismic
-    stage's NDU."""
+    stage's NDU, and beside it the Aggre-SE project that reads it (decision 49)."""
     assert STAGES.opt_in(NONLINEAR_ANALYSIS) == ("0711", "0721")
     assert STAGES.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == (
         "0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
@@ -102,7 +107,12 @@ def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
     for stage_id, source, folder in (("0711", "0710", "線路方向_JRSNAP"), ("0721", "0720", "線路直角方向_JRSNAP")):
         stage = STAGES.get(stage_id)
         assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (False, None, (), None)
-        assert stage.nonlinear_analysis == NonlinearAnalysis(source, "jrsnap", "jrsnap", folder)
+        analysis = stage.nonlinear_analysis
+        assert (analysis.stage, analysis.export, analysis.kind, analysis.folder) == (source, "jrsnap", "jrsnap", folder)
+        project_file = folder.removesuffix("_JRSNAP") + ".xml"
+        assert (analysis.project.kind, analysis.project.file_name) == ("aggrese", project_file)
+        assert analysis.project.metadata == {"target": "Aggre-SE", "target_version": "5.3.0.1",
+                                             "app_read_verified": False, "seismic_check_run": False}
 
 
 def test_closure_adds_transitive_dependencies_in_registry_order():
@@ -202,6 +212,9 @@ def test_get_returns_the_spec():
     ((spec("A", exports=NDU), solving("B", "A", folder="x.ndu")), "出力ファイル名が重複しています: x.ndu"),
     ((spec("A", exports=NDU), solving("B", "A", folder="a/b")), "出力ファイル名が不正です: a/b"),
     ((spec("A", exports=NDU), solving("B", "A", kind="JRSNAP")), "出力の種類の名前が不正です: JRSNAP"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(file_name="x.ndu"))), "出力ファイル名が重複しています: x.ndu"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(kind="jrsnap"))), "Bの出力の種類が重複しています: jrsnap"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(file_name="a/x.xml"))), "出力ファイル名が不正です: a/x.xml"),
     ((spec("A", exports=(*FRAMEWEB, *NDU)),
       StageSpec("B", "B_名前", ("A",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS),
                 nonlinear_analysis=NonlinearAnalysis("A", "jrsnap", "jrsnap", "x_JRSNAP"))),

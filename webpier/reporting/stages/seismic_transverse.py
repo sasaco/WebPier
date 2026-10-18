@@ -5,11 +5,12 @@ girder level above the bearing seat (11-1 node 1), 11.2 the actions printed
 here (the seismic train of each track, the girder and train inertia, the
 self-weight inertia; the rest is "§9 と同様") and 11.3 the basic cases and one
 combination per track (decision 21). The earthquake acts toward W9 (→,
-decision 30). By the user's decision (decision 41) the report shows no springs
-(no spring symbol, value or table; Example2 11-7 prints the JRSNAP node
-springs), no enlarged figure of the column bottom and no load diagrams
-(Example2 11.3), so the combination is 11.3 here. The pushover and the checks
-(11-14 onward) are not part of this stage.
+decision 30). By the user's decision (decision 41) WebPier draws no springs
+(no spring symbol, value or table), no enlarged figure of the column bottom and
+no load diagrams (Example2 11.3), so the combination is 11.3 here. Between 11.1
+and 11.2 come JRSNAP's データ確認図 pages (Example2 11-3..11-7), drawn by
+JRSNAP from combination 1 of the NDU of the same generation (decision 50). The
+pushover and the checks (11-14 onward) are not part of this stage.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from ...calc.transverse import Track
 from ...inputs import PierInput
 from ..equations import terms
 from ..figures import pier_outline
+from . import data_check as data_check_pages
 from .frame_report import (
     Manuscript, Span, TableSpec, Unit, document, frame_figure, joined, material_lines,
     member_table, node_table, seat_moment, section_lines, self_weight_inertia, semantic_records as records,
@@ -35,6 +37,7 @@ from .seismic_longitudinal import INCREMENTS
 from .transverse import _train_table, horizontal_table
 
 PREFIX = "0720/"
+ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before (decision 50)
 ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←",
           ActionDirection.TOWARD_W9: "→"}
 TRACK_NAMES = {Track.UP: "上り", Track.DOWN: "下り"}
@@ -92,7 +95,7 @@ def _inertia(m: Manuscript, key: str, heading: str, inertia: HorizontalInertia) 
 
 
 def _actions(m: Manuscript, result: SeismicTransverseResult) -> None:
-    m.heading("actions.heading", "11.2 作用の計算", 1)
+    m.heading(ACTIONS, "11.2 作用の計算", 1)
     m.paragraph("actions.note", "下記以外の作用については，§9. 線路直角方向の計算（地震時以外）と同様とする．")
     m.heading("train.heading", "(5) 列車荷重", 2)
     m.paragraph("train.note", "鉛直力は 0600 の地震時列車荷重による反力に支承の分担率を乗じた値とする（上り線 L2，下り線 L1）．")
@@ -144,10 +147,14 @@ def semantic_records(result: SeismicTransverseResult, pier: PierInput) -> list[d
 
 
 def build_seismic_transverse(result: SeismicTransverseResult, pier: PierInput) -> Document:
-    """The 0720 report as a GridLayoutPdf Document (lay out or render it)."""
+    """The whole 0720 manuscript as one GridLayoutPdf Document, without the データ確認図 pages."""
     return document(content(result, pier))
 
 
-def render_seismic_transverse(result: SeismicTransverseResult, pier: PierInput, path: str | Path) -> Path:
-    """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
-    return build_seismic_transverse(result, pier).render(path, invariant=True)
+def render_seismic_transverse(result: SeismicTransverseResult, pier: PierInput, path: str | Path,
+                              data_check: bytes) -> Path:
+    """The report with JRSNAP's *data_check* pages before 11.2; atomically replaces *path*.
+
+    WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decision 50).
+    """
+    return data_check_pages.render(content(result, pier), PREFIX + ACTIONS, data_check, path)

@@ -15,30 +15,35 @@ import pytest
 from gridlayoutpdf import Circle, Text
 
 from frame_report_cases import CASES, chain
+from data_check_support import DATA_CHECK, PAGES, inserted, layout
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
 from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
 from webpier.core.printed import Printed
 from webpier.reporting.stages.seismic_longitudinal import (
-    build_seismic_longitudinal, render_seismic_longitudinal, semantic_records,
+    ACTIONS, PREFIX, content, render_seismic_longitudinal, semantic_records,
 )
 
 
 def render(case: str, path: Path) -> Path:
     pier, _, _, result = chain(case)
-    return render_seismic_longitudinal(result, pier, path)
+    return render_seismic_longitudinal(result, pier, path, DATA_CHECK)
 
 
 @pytest.mark.parametrize("case", list(CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
     pier, _, _, result = chain(case)
-    pages = build_seismic_longitudinal(result, pier).layout()
+    before, after = layout(content(result, pier), PREFIX + ACTIONS)
+    pages = before + after
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
     assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, pier)))
     with pymupdf.open(render(case, tmp_path / "0710.pdf")) as pdf:
-        assert len(pdf) == len(pages)
-        for page, scene in zip(pdf, pages):
+        # Decision 50: JRSNAP's データ確認図 pages come right after 10.1, and 10.2 starts the next page.
+        assert len(pdf) == len(pages) + PAGES
+        assert [inserted(page) for page in pdf] == [False] * len(before) + [True] * PAGES + [False] * len(after)
+        assert pdf[len(before) + PAGES].get_text().lstrip().startswith("10.2 作用の計算")
+        for page, scene in zip([page for page in pdf if not inserted(page)], pages):
             scene_text = "".join(c.text for c in scene.commands if isinstance(c, Text))
             assert Counter(squeeze(page.get_text())) == Counter(squeeze(scene_text))
             assert not PAGE_NUMBER.search(page.get_text())
@@ -64,7 +69,8 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
 def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     pier, _, _, result = chain("current")
     inertia = replace(result.self_weight, column=replace(result.self_weight.column, value=Printed(297.67, 2, "kN/m")))
-    path = render_seismic_longitudinal(replace(result, self_weight=inertia), pier, tmp_path / "w.pdf")
+    path = render_seismic_longitudinal(replace(result, self_weight=inertia), pier, tmp_path / "w.pdf",
+                                       DATA_CHECK)
     assert [check.printed for check in formula_checks(path) if not check.ok] == ["297.67"]
 
 
@@ -73,9 +79,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("current", tmp_path / "b.pdf").read_bytes() == first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import chain\n"
+              "from data_check_support import DATA_CHECK\n"
               "from webpier.reporting.stages.seismic_longitudinal import render_seismic_longitudinal\n"
               "pier, _, _, result = chain('current')\n"
-              "render_seismic_longitudinal(result, pier, sys.argv[1])\n")
+              "render_seismic_longitudinal(result, pier, sys.argv[1], DATA_CHECK)\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)

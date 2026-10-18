@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "jrsnap_ndu_acceptance",
   "date": "2026-10-18",
-  "verified_at": "2026-10-18T10:08:54+09:00",
+  "verified_at": "2026-10-18T18:15:58+09:00",
   "method": "JRSNAP_Input.exe の読込み・保存の処理（mdlDataFile.mdl_Get_NDUDataFile / mdl_Wrt_NDUDataFile）を画面なしで呼び、候補の複製を読込み・保存・再保存した（スキル jrsnap-input-open-save の save-ndu.ps1）。読込み直後に JRSNAP が保持する件数と組合せを jrsnap_state_probe.cs で取り出した。",
   "gui_operated": false,
   "analysis_run": false,
@@ -23,9 +23,9 @@
   },
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "63fc30de5caef1e806400195228b62652224409e56ef47a8733fc38bcc710b82"
+    "sha256": "30f23f71378be26f9e9e59a44b29bf44a17e4abafc2cb989f9874f16c3aa180c"
   },
-  "implementation_sha256": "62b16de5f831d8e01f0427c63d56bd13eeda5b720b3631f47af63360e1a124bf",
+  "implementation_sha256": "6d4e6c0c975a5d1c582f28c06b3e64dfd4f545521b2cbaea38bdb3396bef739c",
   "directions": {
     "0710": {
       "direction": "longitudinal",

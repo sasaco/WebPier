@@ -1,6 +1,6 @@
 # WebPier 鉄道橋脚の荷重計算
 
-`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成します。選べば（`--frame-analysis`）、0611・0621 でその FrameWeb 入力を FEMPython で骨組解析し、ピックアップ断面力・変位量・反力のファイルも作成します。別に選べば（`--nonlinear-analysis`）、0711・0721 で両方向の NDU を JRSNAP で静的非線形解析し、解析用データ（.NDT）と解析結果のファイルも作成します。
+`pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成し、その NDU を JRSNAP に読ませて描いたデータ確認図のページを 0710・0720 の計算書に差し込みます。選べば（`--frame-analysis`）、0611・0621 でその FrameWeb 入力を FEMPython で骨組解析し、ピックアップ断面力・変位量・反力のファイルも作成します。別に選べば（`--nonlinear-analysis`）、0711・0721 で両方向の NDU を JRSNAP で静的非線形解析し、解析用データ（.NDT）と解析結果のファイルに加えて、その結果を Aggre-SE（structural-mcp の `Batch`、Docu-SE）で耐震照査するためのプロジェクトXMLも作成します。
 
 計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、WebPier はそのピックアップを設計応答値として基礎の安定計算に使います（[ADR-0006](docs/adr/0006-frame-analysis-by-fempython.md)）。**寸法・配筋の最適化は対象外**です。
 
@@ -40,11 +40,11 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0620 | 0500, 0600 | `0620_直角方向荷重.pdf` / `.json` | `線路直角方向.json` と付帯JSON |
 | 0621（選択式） | 0620 | — | `線路直角方向.pik`・`線路直角方向_ピックアップ変位量.csv`・`線路直角方向_ピックアップ反力.csv` と各付帯JSON |
 | 0710 | 0500, 0600, 0610 | `0710_線路方向荷重.pdf` / `.json` | `線路方向.ndu` と付帯JSON |
-| 0711（選択式） | 0710 | — | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json` |
+| 0711（選択式） | 0710 | — | フォルダー `線路方向_JRSNAP/`（.NDT と JRSNAP の解析結果、JRSNAP の付けた名前のまま）と `線路方向_JRSNAP.provenance.json`、Aggre-SE のプロジェクト `線路方向.xml` と付帯JSON |
 | 0720 | 0500, 0600, 0620 | `0720_線路直角方向荷重.pdf` / `.json` | `線路直角方向.ndu` と付帯JSON |
-| 0721（選択式） | 0720 | — | フォルダー `線路直角方向_JRSNAP/`（同上）と `線路直角方向_JRSNAP.provenance.json` |
+| 0721（選択式） | 0720 | — | フォルダー `線路直角方向_JRSNAP/`（同上）と `線路直角方向_JRSNAP.provenance.json`、`線路直角方向.xml` と付帯JSON |
 
-`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定が必須で、空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
+`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
 
 0611・0621 は骨組解析の段階です（決定46、ADR-0006）。計算書（PDF・結果JSON）を持たず、`post/` のファイルだけを公開します。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、ピックアップのファイル6つと付帯JSON6つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
@@ -55,6 +55,16 @@ STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPyt
 ```
 
 設定がない・runner がない・runner が荷重図を描けない（骨組解析できない）ときは、0610・0620（0611・0621）を含む生成は何も公開せずに止まります（終了コード 2）。荷重図や骨組解析を省いて続けることはしません。
+
+0710・0720 の計算書には、検討モデル（10.1・11.1）の後に JRSNAP のデータ確認図（`S_DataCheck.exe`）のページを差し込みます（決定50）。同じ生成で一度だけ組み立てた NDU のバイトを、同じ名前で JRSNAP の Headless runner（`JRSNAP.Headless.exe data-check`）に渡し、runner は 0711 と同じ書出しで .NDT を作って、組合せ1の .NDT から次の図を1つずつ PDF にします。
+
+1. 非線形番号図
+2. 断面番号図
+3. 要素関連データ一覧表
+4. 断面詳細図（全断面）
+5. 節点ばね分布図
+
+組合せ1だけを描くのは、番号・断面・節点ばねが組合せで変わらないためです（0720 の組合せは2つ）。ページは見出しも本文も付けずにそのまま挟み、作用の計算（10.2・11.2）は新しいページから始めます。各ページのヘッダー（JRSNAP の版と印刷日、.NDT の名前）と枠は JRSNAP のもので、ページの中身・決定性は JRSNAP の責務です。0711・0721 を選ばない生成でも毎回描くので、0710・0720 を含む生成には JRSNAP の runner が必須です。PDF と .NDT は公開せず、NDU の付帯JSONの `data_check` に、差し込んだ計算書、runner の版、組合せ番号、図、runner の報告（JRSNAP の版、.NDT の名前と SHA256）を記録します。
 
 0711（線路方向）・0721（線路直角方向）は静的非線形解析の段階です（決定47、ADR-0007）。計算書を持たず、選択式なので `--stage all --nonlinear-analysis` で加わり、`--stage 0711`・`--stage 0721` で直接選べます。両方を含む生成では、runner を1方向ずつ順に呼びます（JRSNAP の共用の作業ファイルを使うため、同時には解析しません）。
 
@@ -74,6 +84,7 @@ STRUCTURAL_MCP_FEMPYTHON_RUNNER='C:\Users\<user>\Documents\structural-mcp\FEMPyt
     - runner の報告（`runner_summary`）：JRSNAP の版、表示の切替え、答えた確認
     - LOG の警告と EMG の文（`messages`）
     - `engineering_status: not_checked`：耐震性能は判定しない
+- **Aggre-SE のプロジェクト**（決定49）：フォルダーの横に `post/線路方向.xml`（0721 は `post/線路直角方向.xml`）を書きます。各 Case の DB1 をフォルダーからの相対パス（`線路方向_JRSNAP/線路方向(Case1_ρm10_αf1_正向).DB1`）で指し、Aggre-SE の画面で開くか structural-mcp の `aggrese_inspect`・`aggrese_calculate` に渡せば、そのまま耐震照査を計算できます。詳しくは[Aggre-SE（プロジェクトXML）](#aggre-seプロジェクトxml)。入力の `耐震設計条件` が空欄なら、解析の前に入力エラーで止まります。
 - **失敗**：次のときは、何も公開せずに止まります（終了コード 2）。
   - 解析の失敗（エラーの完了通知、答えない確認、タイムアウト）
   - 同じインストール先の JRSNAP の起動中
@@ -86,7 +97,7 @@ JRSNAP の runner の絶対パスも `.env` に書きます。JRSNAP のイン�
 STRUCTURAL_MCP_JRSNAP_RUNNER='C:\Users\<user>\Documents\structural-mcp\JRSNAPHeadless\bin\Release\JRSNAP.Headless.exe'
 ```
 
-JRSNAP の runner がない・解析できないときは、0711・0721 を含む生成は何も公開せずに止まります（終了コード 2）。JRSNAP の結果の中身・決定性は JRSNAP の責務で、実装の同一性（`dependency_hashes`）には含めません。
+JRSNAP の runner がない・データ確認図を描けない・解析できないときは、0710・0720（0711・0721）を含む生成は何も公開せずに止まります（終了コード 2）。JRSNAP の結果の中身・決定性は JRSNAP の責務で、実装の同一性（`dependency_hashes`）には含めません。
 
 書体は `%WINDIR%/Fonts` の `msmincho.ttc`・`msgothic.ttc`・`calibri.ttf`・`timesi.ttf` を使います。本文はMS明朝9.9pt、見出しはMSゴシック9.9pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
 
@@ -106,7 +117,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - 「入力チェック」は全段階の入力条件を確かめ、最初の入力エラーをパス付きで表示します。
 - 保存は、開いた後に他から変更されたファイルを上書きしません。置き換える前のバイトを同じフォルダの `input.json.<日時>.bak` に残します。
 - 「計算・印刷」の「保存して計算・PDF出力」は、入力を保存し、`python -m webpier --stage all --overwrite` を子プロセスで実行します。「骨組解析も行う」をオンにすると `--frame-analysis` を付け、0611・0621 のピックアップのファイルも作ります。「静的非線形解析も行う」をオンにすると `--nonlinear-analysis` を付け、0711・0721 の `線路方向_JRSNAP`・`線路直角方向_JRSNAP` フォルダーも作ります（数分かかり、JRSNAP の画面が出ます）。これらのチェックは入力JSONに入れず、利用者ごとのエディタの設定（`%APPDATA%\WebPier\editor.json`）に保存して、次回の起動でも保ちます（読めないときは既定のオフ）。出力先は `./output` と `./post` です。結果JSONと付帯JSONが保存した入力のSHA256を指し、付帯JSONが同じ世代の全ファイルを列挙していることを確かめてから、PDFプレビューを開きます。後から入力や出力ファイルが変わると、表示中のPDFを「今回の結果ではない」と示します。
-- 同じ画面に、JRSNAP の解析設定（方向ごとの7項目、[入力](#入力schema-2)を参照）の欄があります。
+- 同じ画面に、JRSNAP の解析設定（方向ごとの7項目、[入力](#入力schema-2)を参照）の欄があります。静的非線形解析の耐震照査の入力に使う `耐震設計条件`（地域別・地盤区分）は「地盤データ」のページにあります。
 
 鉄筋の画面は、梁・柱・フーチングの主鉄筋・側面鉄筋・横方向鉄筋の入力と、柱の配置の確認・詳細修正（自動配置を写した詳細位置の編集、鉄筋の追加・削除、再配置）を扱います。柱の配置と方向別の鉄筋配置表は `webpier/calc/column_rebar.py` が計算し、エディタは表示するだけです。梁・フーチングは外形だけを描きます。梁の詳細位置（`position_mode` = 指定）は、いまはどの段階も使わない予約入力で、形式だけを検査します（決定19）。
 
@@ -134,6 +145,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - 杭（杭種以外の杭の項目・杭の配置・杭の単位体積重量）、斜角、遠心の作用方向、梁の詳細位置は、近い将来の機能のための予約項目です。計算には使わず、形式と桁だけを検査します（決定19）。`出典` は検査しない自由記述です。
 - `復旧性制動係数` は側ごとの任意入力です。入力すると復旧性の制動係数としてそのまま使い、空欄なら安全性の ρu×γB を使います。Example2 07 p.7-11 の終点側は 1.0 を入力します。
 - `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`aggregate_max_mm`（粗骨材最大寸法、0.1〜999999 mm）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位の大きさ、0.001 m 単位の正の値。向きは入力せず、NDU にはその段階の地震の向き（0710 は −x、0720 は +x）の符号を付けて書きます。決定43）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。
+- `耐震設計条件` は橋脚に1組の `地域別`（A地域・B地域・C地域）と `地盤区分`（G0地盤〜G5地盤）です（決定49）。2方向で共有し、0711・0721 を含む生成に必須です（空欄なら入力エラー）。それ以外の生成には使いません。Aggre-SE の「応答塑性率の直接入力」（任意スペクトル）は、μ がプロジェクトXMLに入らないので選べません。
 - 鉄筋（`鉄筋`）は全キーが必須です。空欄は未入力として保存でき、柱の配置と JRSNAP 出力が値を要するときにパス付きの入力エラーになります。
 
 ## 計算の原則
@@ -159,7 +171,7 @@ webpier/
   inputs/     schema 2 の解析と検証。項目表 fields.py、選択肢 choices.py
   calc/       段階の計算（foundation, reaction, longitudinal, transverse, seismic_*）と共通の骨組・移動荷重
   reporting/  GridLayoutPdf による計算書（stages/ に段階ごとの組版）
-  export/     frameweb/（FEMPython・FrameWebforCS）、jrsnap/（JRSNAP 5.2-L03 NDU）
+  export/     frameweb/（FEMPython・FrameWebforCS）、jrsnap/（JRSNAP 5.2-L03 NDU）、aggrese/（Aggre-SE のプロジェクトXML）
   pipeline/   段階の登録表、生成、公開、CLI（python -m webpier）
   gui/        入力エディタ（python -m webpier.gui）
 ```
@@ -174,13 +186,13 @@ webpier/
 
 1. 段階と出力先をすべて検査してから始めます。同名のディレクトリやシンボリックリンク、入力と同じパスの出力は拒否します。
 2. 入力を一度だけバイト列で読み、厳密に解析します（重複キー・NaN・Infinity は入力エラー）。そのSHA256を全ての結果JSONと付帯JSONに記録します。
-3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。骨組解析の段階（0611・0621）は、同じ生成で組み立てた FrameWeb 入力を runner に解析させ（荷重図とは別の呼び出し）、計算書を描く前に結果を確かめます。静的非線形解析の段階（0711・0721）も同じく、同じ生成で組み立てた NDU を JRSNAP の runner に解析させます。runner は入力を読む前に探します。
+3. 選択した段階と依存段階をすべて計算してから描画します。保存済みの結果JSONは読みません。荷重図のある段階（0610・0620）は、ステージングした FrameWeb 入力を FEMPython の runner に描かせ、そのページを計算書に差し込みます。データ確認図のある段階（0710・0720）は、同じ生成で組み立てた NDU を JRSNAP の runner に描かせ、同じく差し込みます。骨組解析の段階（0611・0621）は、同じ生成で組み立てた FrameWeb 入力を runner に解析させ（荷重図とは別の呼び出し）、計算書を描く前に結果を確かめます。静的非線形解析の段階（0711・0721）も同じく、同じ生成で組み立てた NDU を JRSNAP の runner に解析させます。runner は入力を読む前に探します。
 4. 計算書・結果JSON・外部ソフト向け入力・付帯JSON・JRSNAP のフォルダーを各出力先の横でステージングし、`webpier/pipeline/publication.py` がまとめて公開します。旧ファイル（旧フォルダー）を同じファイルシステム内に退避して置き換え、公開した実バイト・入力・実装の同一性を最後に確かめます。フォルダーの実バイトは、中の全ファイルの SHA256 で確かめます。失敗すれば旧ファイルをすべて戻し、その実行で新しく作ったファイルは消します。複数ファイルがOS上で一瞬に切り替わる仕組みではありません。
 5. 強制終了や復元の失敗では、出力先ごとの `.webpier-*` に `publication-pending`・`publication-journal.json` と退避ファイルを残し、次の実行はそれを見つけて止まります。journal の各 `destination`・`backup`・`had_original` を照合して旧成果物を戻すか、一式を別の場所へ保全してから再実行してください。
 
-結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。骨組解析のファイル（`*.pik`・`*_ピックアップ変位量.csv`・`*_ピックアップ反力.csv`）の付帯JSONには、`frame_analysis` に runner の版（`engine_version`）と、解析した FrameWeb 入力の段階・種類・ファイル名・SHA256（`frameweb`）を記録します。`--stage 0611` のように単独で選んだ生成では FrameWeb 入力（`線路方向.json`）が同じ世代に入らないので、この `frame_analysis.frameweb.sha256` が、解析結果とその FrameWeb 入力を結び付ける唯一の根拠になります。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython と JRSNAP の runner はここに含めません（その出力はそれぞれの責務、決定44・46・47）。JRSNAP のフォルダーの付帯JSONは上の「0711・0721」の段落のとおりで、`nonlinear_analysis.ndu.sha256` が解析結果とその NDU を結び付けます。
+結果JSON（`output/<段階>.json`）は `schema_version`・`stage`・`input`（ファイル名とSHA256）・`implementation_sha256`・`result` を持ちます。付帯JSON（`post/*.provenance.json`）は、その外部入力のファイル名とSHA256、入力のSHA256、実装のSHA256、選択した段階、同じ世代の全成果物（役割・出力先・ファイル名・SHA256）を記録します。FrameWeb 入力の付帯JSONには、それを描いて計算書に差し込んだ runner の版（`load_diagram.engine_version`）も記録します。NDU の付帯JSONには、データ確認図を描いた runner の版と報告（`data_check`）を記録します。骨組解析のファイル（`*.pik`・`*_ピックアップ変位量.csv`・`*_ピックアップ反力.csv`）の付帯JSONには、`frame_analysis` に runner の版（`engine_version`）と、解析した FrameWeb 入力の段階・種類・ファイル名・SHA256（`frameweb`）を記録します。`--stage 0611` のように単独で選んだ生成では FrameWeb 入力（`線路方向.json`）が同じ世代に入らないので、この `frame_analysis.frameweb.sha256` が、解析結果とその FrameWeb 入力を結び付ける唯一の根拠になります。実装のSHA256は、`webpier` のソースと、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・書体ファイルのバイトから求めます（`webpier/pipeline/runtime.py`）。生成中にこれらが変わると公開しません。FEMPython と JRSNAP の runner はここに含めません（その出力はそれぞれの責務、決定44・46・47）。JRSNAP のフォルダーの付帯JSONは上の「0711・0721」の段落のとおりで、`nonlinear_analysis.ndu.sha256` が解析結果とその NDU を結び付けます。
 
-PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。例外は 0610・0620 に差し込む FEMPython の荷重図のページで、その中身は FEMPython の責務として毎回同じバイトになることを求めません。計算書にはページ番号を印刷しません（体裁の見本どおり）。
+PDFは作成日時を含まないので、同じ入力・書体・ライブラリからは毎回同じバイトになります。例外は 0610・0620 に差し込む FEMPython の荷重図のページと、0710・0720 に差し込む JRSNAP のデータ確認図のページ（ヘッダーに印刷日が入ります）で、その中身はそれぞれの責務として毎回同じバイトになることを求めません。計算書にはページ番号を印刷しません（体裁の見本どおり）。
 
 ## 計算書
 
@@ -193,7 +205,8 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - 0610 は20基本ケース・20 Define・16組合せ・8抽出、0620 は17基本ケース・15 Define・16組合せ・8抽出です。組合せは「用途別解決」として、各成分を印刷された係数×印刷された基本作用で求め、N・H・M・q ごとに一度だけ印字桁に丸めます。0620 の単線の成分は組合せの中で上り線・下り線のどちらか一方にそろえ、車両横荷重と風の正負は独立に選びます。
 - 0710 は8基本ケース・1組合せ（地震は起点側 ← の片方向）、0720 は9基本ケース・上り線・下り線それぞれの2組合せ（地震は → の片方向）です（決定21・30）。どちらも柱下端の0.010 mの微小部材（CONTEXT.md）を骨組図に示します。
 - 荷重図（0610 の 8.3、0620 の 9.3、決定44）：見出しだけを WebPier が組み、その後に FEMPython が FrameWeb 入力から描いたページ（A4縦、1ページに2ケース、軸線図なし）をそのまま差し込みます。描くのは FrameWeb 入力の全荷重ケースで、基本ケースのほか使用性の衝撃（`I1s` など）も含みます。次の節（組合せ、8.4・9.4）は新しいページから始めます。Example2 のように複数ケースを1図にまとめて値を右に並べる体裁にはしません。
-- Example2 にあっても印刷しないもの（決定41）：0710・0720 のばね（骨組図のばね記号、Kv・Ks・Kr、ばねの表と数値。Example2 10-7・11-7 の節点ばね分布図にあたる）と荷重図、0720 の柱下端の拡大図。節の番号は詰めます（0710 の組合せは 10.3、0720 は 11.3）。ばねを示さないことは、固定基礎や解析可能な支持条件を意味しません。
+- Example2 にあっても WebPier が描かないもの（決定41）：0710・0720 のばね（骨組図のばね記号、Kv・Ks・Kr、ばねの表と数値）と荷重図、0720 の柱下端の拡大図。節の番号は詰めます（0710 の組合せは 10.3、0720 は 11.3）。WebPier の図がばねを示さないことは、固定基礎や解析可能な支持条件を意味しません。JRSNAP に渡した節点ばねは、差し込むデータ確認図の節点ばね分布図（Example2 10-7・11-7 にあたる、決定50）に JRSNAP が描きます。
+- データ確認図（0710・0720、決定50）：Example2 10-3〜10-7・11-3〜11-7 にあたる JRSNAP のページです。Example2 の 1・2 ページ（節点番号図・要素番号図）は、WebPier の骨組図と重なるので入れません。
 
 ## 外部ソフト向けの入力
 
@@ -223,8 +236,23 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 - 対象の版は JRSNAP_Input.exe 5.2-L03（FileVersion・ProductVersion 5.2.3.0、AssemblyVersion 5.2.3.1）で、保存のヘッダは `Virsion=5.2.3.S.4`（キーの綴りは JRSNAP のまま）です。Example2 の NDU は 5.1.10 の保存で、5.2-L03 は DataInfo（23→26欄）、SectInfo（12→14欄）、SectSafe（11→12欄、GBVO = 1.3）、FootInfo（12→14欄、KR3 = 20 と未設定値 −3.402823E+38）の末尾に欄を加えます。
 - JRSNAP は NDU を先頭から順に読むので、レコードの順序は変えられません。`Tisou=` は TishouNum = 0 でも空のまま必要です（消すと読込みで例外になります）。`TanbuShiji=0,0` は断面のせん断耐力の算定に使う支持条件で、骨組のばねとは関係ありません。
 - 固定の設定値の根拠は Example2 の NDU と JRSNAP 5.2-L03 の操作説明書（`.claude/agents/jrsnap-operator/JRSNAP_Ver5.2-L03/JRSNAP_操作説明書.pdf`）です：座標 p.38、M-θ の集約 p.32–33、剛域の初期値 1000 m²・1000 m⁴・25 kN/mm² p.144–145、直接基礎の回転ばね KR2 = 2・最終勾配 1/20 p.155・515、La/d ≥ 2 と M-θ の名前20バイト p.143、件数の上限 p.29、SectConc の第5欄（粗骨材最大寸法）p.90・529。
-- 通常の生成は NDU を書くだけで、JRSNAP での読込み・解析はしません。付帯JSONの `app_read_verified` と `analysis_run` は常に false です。
+- 通常の生成は NDU を書き、データ確認図のために runner が JRSNAP の読込みで .NDT を作りますが（決定50）、解析はしません（0711・0721 を除く）。付帯JSONの `app_read_verified`（受入での読込み・保存・読戻しの確認）と `analysis_run` は常に false です。
 - **実アプリでの受入**（決定4、2026-10-18、`scripts/accept_jrsnap_ndu.py`、記録 `tests/fixtures/acceptance/jrsnap_v52/`）：`current.json`（Example2 の解析設定）の両方向の NDU の複製を、JRSNAP_Input.exe 5.2-L03 の読込み・保存の処理（スキル `jrsnap-input-open-save`、画面は操作しない）で読込み・保存・再保存しました。保存した NDU は全レコードが同じ順序・同じ値で、違いは JRSNAP の数値の書式（`GanmaA=1.2,1,1,1` → `1.20,1.00,1.00,1.00`）だけです。2回目の保存は1回目とバイト単位で同じです。読込み直後に JRSNAP が保持する件数と組合せ（`scripts/jrsnap_state_probe.cs`）も書いたものと一致し、**0720 の2つの組合せ（上り線・下り線）は両方とも読まれます**（`G_intConbNum = 2`）。このため 0720 は1つの NDU のままです（決定40）。解析（解析用データ出力・SNAP の実行）はしていません。生成する NDU が変わると `tests/acceptance` が失敗するので、受入をやり直します。受入は `current.json` で行います。
+
+### Aggre-SE（プロジェクトXML）
+
+0711・0721 の静的非線形解析の結果を Aggre-SE（structural-mcp の `Batch` サブモジュール、Docu-SE）で耐震照査するためのプロジェクトを、`post/線路方向.xml`・`post/線路直角方向.xml` に書きます（決定49、CONTEXT.md「耐震照査の入力」）。見本は Example2 の `10_線路(耐震)/P1_線路.xml`・`11_直角(耐震)/P1_直角.xml` です。WebPier は XML を書くだけで、Aggre-SE での照査（見本の 10.5・10.6）はしません。
+
+- 入力にするのは `耐震設計条件`（地域別・地盤区分）だけです。そのほかの条件は Example2 のプロジェクトと同じ WebPier の定めです。
+  - スペクトルⅠ,Ⅱ両方、液状化指数 5<PL<20、M6.5以上の震源エリアなし、低減係数 α = 1.000、不整形性 η(x) は考慮しない
+  - 全 Case で照査項目 ①〜⑨ のうち ④（破壊形態の検討）以外
+  - 非線形部材（柱下端の M-θ）の部材照査タイプは 2（柱）、せん断耐力式は ①RC標準。損傷レベルの制限値は梁・柱・杭の順に復旧性 2/2/2、安全性 2/3/2
+  - 直接基礎の制限値は空欄（Aggre-SE が自動計算）、帳票はカスタム仕様
+- NDU から決まる値：直接基礎の照査位置は FootInfo の節点（線路方向 7、線路直角方向 8）、せん断スパン La は柱の断面の L（7600・10350 mm）、着目節点は 0（各 DB1 の着目点）です。
+- 書式は Aggre-SE が保存するとおりです（Batch.exe 5.3.0.1 の `Input.GetXmlData` を Shift-JIS で書いたもの）。宣言は `encoding="utf-16"` ですが中身は Shift-JIS・CRLF で、ケースの配列は50件です。Aggre-SE の版が変われば書式を合わせます。
+- 付帯JSONは XML の SHA256 と、参照する JRSNAP のフォルダーの SHA256（`aggrese_project.jrsnap`）を記録します。`metadata` の `app_read_verified`・`seismic_check_run` は常に false です。
+- **既知の差**：WebPier の NDU は直接基礎の照査のデータ（`ChokuKisoNum`・`CHOKU_KISO`）を持たず、runner は基礎照査に「いいえ」と答えるので、JRSNAP の基礎照査が書く `<DB1名>_Output_Chokukiso.csv` はできません。Aggre-SE はそのとき DB1 から直接基礎の照査値を求めます。作用（Vd・Hd・Md）は見本 10-26 と一致しますが、抵抗側（Rvd など）は違います（決定49）。
+- **実アプリでの受入**（2026-10-18、`scripts/accept_aggrese_project.py`、記録 `tests/fixtures/acceptance/aggrese/`）：`current.json` から本物の JRSNAP の runner（5.2-L03）で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner（structural-mcp `Batch` の `AggreSE.Headless.exe`）で `inspect`・`run`（総括表・計算書）しました。両方向とも全 Case（線路方向1、線路直角方向2）を読んで集計しました。Aggre-SE 自身の保存し直し（`Input.SetXmData` → `applyVersion` → `Input.GetXmlData` → Shift-JIS、`scripts/aggrese_project_roundtrip.cs`）でバイト列は変わりません。照査の判定（OK/NG）は受入の対象外です。生成する XML が変わると `tests/acceptance` が失敗するので、受入をやり直します。
 
 ## Example2 との既知の差
 
@@ -251,7 +279,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 
 品質ゲートは `.claude/check.ps1` の1コマンドです（`& ".claude/check.ps1"`）。全件を coverage の下で実行し（`python -m webpier` などの子プロセスも `pyproject.toml` の `[tool.coverage]` の `patch = ["subprocess"]` で測ります）、層ごとの行・分岐カバレッジを下限と照合します（決定15）。下限は `webpier/core`・`inputs`・`calc`・`export`・`pipeline` が 100%、`reporting` が 95%、`gui` が 85% で、テストの失敗か下限割れで exit 2、ゲートを実行できなければ exit 3 です。結果の JSON の `tools.coverage.packages` に層ごとの値と合否が出ます。
 
-テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。FEMPython の runner は、全テストで代役（`tests/fixtures/fempython/fake_runner.py`。Headless と同じ引数・応答・成果物で、荷重図は荷重ケース2つにつき1ページ、骨組解析は解析したバイトの SHA256 を書いた PIK と2つの CSV を返す）に置き換えます（`tests/conftest.py`）。JRSNAP の runner も同じく代役（`tests/fixtures/jrsnap/fake_runner.py`。解析した NDU のバイトの SHA256 を書いた .ndt・.LOG・.OUT を返す）に置き換えます。エディタの設定ファイルも、テストごとの一時ファイルに置き換えます（`tests/gui/conftest.py`）。本物の runner を呼ぶのは `tests/pipeline/test_fempython.py` だけで（荷重図と骨組解析）、`.env` か環境変数で runner が設定されているときだけ実行します。本物の JRSNAP の runner は画面を出してインストール先の共用ファイルを書き換えるので、通常のテストでは呼ばず、受入で確かめます（決定47）。Headless のやり取りが変わったら代役も合わせて更新します。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
+テストは層ごとに `tests/core`・`inputs`・`calc`・`reporting`・`export`・`pipeline`・`gui` にあり、Excel は使いません。FEMPython の runner は、全テストで代役（`tests/fixtures/fempython/fake_runner.py`。Headless と同じ引数・応答・成果物で、荷重図は荷重ケース2つにつき1ページ、骨組解析は解析したバイトの SHA256 を書いた PIK と2つの CSV を返す）に置き換えます（`tests/conftest.py`）。JRSNAP の runner も同じく代役（`tests/fixtures/jrsnap/fake_runner.py`。解析は解析した NDU のバイトの SHA256 を書いた .ndt・.DB1・.LOG・.OUT を、データ確認図は図ごとに1ページの PDF を返す）に置き換えます。エディタの設定ファイルも、テストごとの一時ファイルに置き換えます（`tests/gui/conftest.py`）。本物の runner を呼ぶのは `tests/pipeline/test_fempython.py` だけで（荷重図と骨組解析）、`.env` か環境変数で runner が設定されているときだけ実行します。本物の JRSNAP の runner は画面を出してインストール先の共用ファイルを書き換えるので、通常のテストでは呼ばず、受入で確かめます（決定47）。Headless のやり取りが変わったら代役も合わせて更新します。`tests/acceptance` は、実アプリでの受入記録（`tests/fixtures/acceptance/`）が今の生成物のものであることを確かめます。実アプリは起動せず、生成物が変われば skip せずに失敗します。
 
 - 期待値は二種類だけです。Example2 の原資料から独立に転記した値（`tests/fixtures/example2/*.json` と転記の注記 `*_notes.md`、柱配筋 `column_rebar_example2.json`、FrameWeb の保存ファイルの写し `frameweb_*.json`）と、実装を使わない手計算（`Decimal`・四捨五入）です。実装の出力から期待値を作りません。実アプリでの受入記録は期待値ではなく、実アプリが読んだ生成物とその読戻しの記録です。
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。

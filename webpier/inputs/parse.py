@@ -15,8 +15,8 @@ from ..core.reader import Reader
 from . import choices
 from .fields import SNOW_KEYS, read
 from .model import (
-    Bearing, EndReaction, Jrsnap, JrsnapConditions, Materials, PierInput, Pile, Reactions, Reserved, Shares,
-    Soil, SoilLayer, Span, Spans, Substructure, Train,
+    Bearing, ColumnCheck, EndReaction, Jrsnap, JrsnapConditions, Materials, PierInput, Pile, Reactions, Reserved, SeismicDesign,
+    Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
 )
 from .rebar import parse_rebar
 
@@ -199,20 +199,35 @@ def _reserved(root: Reader) -> Reserved:
     )
 
 
-JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm", "analysis_steps",
+JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "analysis_steps",
                "limited_final_step", "target_displacement_m")
 
 
 def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
     node = root.at(key).only(*JRSNAP_KEYS)
-    vcd, vsd, vdd, size, steps, limited, target = (read(node.at(name)) for name in JRSNAP_KEYS)
+    vcd, vsd, vdd, steps, limited, target = (read(node.at(name)) for name in JRSNAP_KEYS)
     if steps is not None and limited is not None and limited > steps:
         raise node.at("limited_final_step").error(f"analysis_steps（{steps}）以下が必要です")
-    return JrsnapConditions(vcd, vsd, vdd, aggregate_max=size, steps=steps, limited_final_step=limited,
+    return JrsnapConditions(vcd, vsd, vdd, steps=steps, limited_final_step=limited,
                             target_displacement=target)
 
 
-TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋",
+def _seismic_design(root: Reader) -> SeismicDesign:
+    node = root.at("耐震設計条件").only("地域別", "地盤区分")
+    return SeismicDesign(region=read(node.at("地域別")), ground_class=read(node.at("地盤区分")))
+
+
+COLUMN_CHECK_KEYS = ("鋼材の腐食に対する環境条件", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")
+
+
+def _column_check(root: Reader) -> ColumnCheck:
+    node = root.at("柱の断面照査").only(*COLUMN_CHECK_KEYS)
+    environment, appearance, ecsd, body, jr001, jr004 = (read(node.at(name)) for name in COLUMN_CHECK_KEYS)
+    return ColumnCheck(environment=environment, appearance=appearance, ecsd=ecsd, body=body, jr001=jr001,
+                       jr004=jr004)
+
+
+TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋", "耐震設計条件", "柱の断面照査",
             "jrsnap_longitudinal", "jrsnap_transverse")
 
 
@@ -237,6 +252,8 @@ def parse_input(data: Any) -> PierInput:
         materials=_materials(root),
         reserved=_reserved(root),
         rebar=parse_rebar(root),
+        seismic_design=_seismic_design(root),
+        column_check=_column_check(root),
         jrsnap=Jrsnap(longitudinal=_jrsnap_conditions(root, "jrsnap_longitudinal"),
                       transverse=_jrsnap_conditions(root, "jrsnap_transverse")),
     )

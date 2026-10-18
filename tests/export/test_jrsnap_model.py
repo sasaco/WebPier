@@ -149,7 +149,9 @@ def test_transverse_loads(transverse):
 def test_the_conditions_are_the_input_of_the_direction():
     built = model("transverse", **{"jrsnap_transverse/shear_factor_vcd": 1.3, "jrsnap_longitudinal/shear_factor_vcd": 9})
     assert built.section.safety[6].value == 1.3
-    assert model("longitudinal", **{"jrsnap_longitudinal/aggregate_max_mm": 40}).section.aggregate_max.value == 40
+    # Dmax is the column concrete's (decision 48): both directions read 鉄筋.柱.aggregate_max_mm.
+    for direction in ("longitudinal", "transverse"):
+        assert model(direction, **{"鉄筋/柱/aggregate_max_mm": 40}).section.aggregate_max.value == 40
 
 
 @pytest.mark.parametrize("direction,steps,limited,target", [
@@ -178,11 +180,17 @@ def test_a_signed_or_zero_target_displacement_is_an_input_error(direction, targe
         model(direction, **{f"jrsnap_{direction}/target_displacement_m": target})
 
 
-@pytest.mark.parametrize("key", ["shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "aggregate_max_mm",
+@pytest.mark.parametrize("key", ["shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd",
                                  "analysis_steps", "limited_final_step", "target_displacement_m"])
 def test_blank_conditions_are_errors(key):
     with pytest.raises(InputError, match=re.escape(f"jrsnap_longitudinal.{key}: 値が必要です")):
         model("longitudinal", **{f"jrsnap_longitudinal/{key}": None})
+
+
+@pytest.mark.parametrize("direction", ["longitudinal", "transverse"])
+def test_a_blank_aggregate_size_of_the_column_is_an_error(direction):
+    with pytest.raises(InputError, match=re.escape("鉄筋.柱.aggregate_max_mm: 値が必要です")):
+        model(direction, **{"鉄筋/柱/aggregate_max_mm": None})
 
 
 def test_a_pedestal_adds_a_rigid_arm_and_a_reversed_member():

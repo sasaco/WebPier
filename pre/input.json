@@ -377,6 +377,7 @@
         "transverse": "SD390"
       },
       "concrete_strength_mpa": 27,
+      "aggregate_max_mm": 25,
       "pure_cover_mm": 70,
       "main_rows": [
         {
@@ -539,11 +540,22 @@
       "position_mode": "基本"
     }
   },
+  "耐震設計条件": {
+    "地域別": "C地域",
+    "地盤区分": "G2地盤"
+  },
+  "柱の断面照査": {
+    "鋼材の腐食に対する環境条件": "一般の環境",
+    "外観の照査": "行う",
+    "ε'csd": 300,
+    "適用基準の機関": "運輸機構",
+    "JR-001": "適用する",
+    "JR-004": "適用しない"
+  },
   "jrsnap_longitudinal": {
     "shear_factor_vcd": 2.0,
     "shear_factor_vsd": 1.3,
     "shear_factor_vdd": 1.8,
-    "aggregate_max_mm": 25,
     "analysis_steps": 300,
     "limited_final_step": 200,
     "target_displacement_m": 0.3
@@ -552,7 +564,6 @@
     "shear_factor_vcd": 2.0,
     "shear_factor_vsd": 1.3,
     "shear_factor_vdd": 1.8,
-    "aggregate_max_mm": 25,
     "analysis_steps": 350,
     "limited_final_step": 300,
     "target_displacement_m": 0.35

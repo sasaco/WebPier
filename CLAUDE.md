@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDUを生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
+鉄道橋脚の設計計算（0500直接基礎・0600上部工反力・0610線路方向荷重・0620直角方向荷重・0710/0720地震時荷重）を `pre/input.json`（schema 2）から行い、A4白黒の計算書PDFと結果JSON、FEMPython/FrameWeb入力、JRSNAP用NDU、JRSNAP の結果を読む Aggre-SE のプロジェクトXML（決定49）を生成する。骨組解析は FEMPython、柱の断面照査は Capacita に任せ、基礎の安定計算は WebPier で行う（ADR-0006）。最適化は対象外。仕様の詳細は `README.md`、用語は `CONTEXT.md`、原則は `docs/adr/`、決定事項は `.claude/docs/plans/refactoring-decisions.md` を正とする。
 
 ## コマンド
 
@@ -17,7 +17,7 @@ uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 050
 # 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
 # 骨組解析（0611/0621、選択式。all には含まれない。決定46）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
 uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
-# 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力
+# 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）
 uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite
 # run_design.py は python -m webpier と同じ
 
@@ -37,7 +37,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/t
 uv sync --project "." --locked --reinstall-package gridlayoutpdf
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。テストは `tests/conftest.py` が両方の代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図（決定50、`data-check`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721 を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。テストは `tests/conftest.py` が両方の代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 
@@ -50,7 +50,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 - `inputs`: schema 2 の解析と検証。`fields.py` の項目表（桁・単位・符号・選択肢・予約項目）をparserとエディタが共用する。選択肢は `choices.py`。
 - `calc`: 段階の計算。結果は `Printed` を持つ frozen dataclass で、描画に依存しない。
 - `reporting`: GridLayoutPdf で組む帳票（`reporting/stages/`）。工学計算をここに置かない。
-- `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）。
+- `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）、`aggrese`（Aggre-SE のプロジェクトXML。Aggre-SE が保存する書式どおりで、宣言は utf-16・中身は Shift-JIS）。
 - `pipeline`: 段階の登録表、生成、公開、CLI。
 - `gui`: 入力エディタ。「計算・印刷」は pipeline を子プロセス（`python -m webpier`）で実行し、付帯JSONで結果を確かめる。
 
@@ -62,7 +62,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 3. 成果物を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。0711・0721 の JRSNAP の結果はそれぞれフォルダー1つの成果物で、丸ごと置き換え、SHA は中の全ファイルから求める（`core.integrity.content_sha256`）。
 
 ### 決定性と実装の同一性
-- PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。例外は 0610・0620 に差し込む FEMPython の荷重図のページで、その中身は FEMPython の責務として決定性を求めない（ADR-0005）。WebPier が描く部分は決定的にし、テストは代役の runner で確かめる。FEMPython の runner は `dependency_hashes` に入れず、付帯JSONに `engineVersion` を記録する。JRSNAP の runner と結果も同じ（決定47）。
+- PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。例外は 0610・0620 に差し込む FEMPython の荷重図のページと、0710・0720 に差し込む JRSNAP のデータ確認図のページで、その中身はそれぞれの責務として決定性を求めない（ADR-0005、決定50）。WebPier が描く部分は決定的にし、テストは代役の runner で確かめる。FEMPython の runner は `dependency_hashes` に入れず、付帯JSONに `engineVersion` を記録する。JRSNAP の runner と結果も同じ（決定47）。
 - `webpier/pipeline/runtime.py` の `dependency_hashes` は、`webpier` のソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
 - ハッシュするソースと受入記録の補助スクリプトは `.gitattributes` で LF に固定している（`*.py`、`scripts/*.cs`、jrsnap-input-open-save の `scripts/*.ps1`・`*.cs`）。`core.autocrlf` で CRLF になると実装の同一性や受入記録の SHA が変わる。
 

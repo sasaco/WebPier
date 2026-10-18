@@ -36,9 +36,8 @@ if TYPE_CHECKING:
 POLL_MS = 100
 NOT_RUN = "未実行 — 表示できるPDFは今回の計算結果ではありません。"
 JRSNAP_ROWS = (("shear_factor_vcd", "部材係数 γb（Vcd）"), ("shear_factor_vsd", "部材係数 γb（Vsd）"),
-               ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("aggregate_max_mm", "粗骨材の最大寸法 Dmax"),
-               ("analysis_steps", "解析のステップ数"), ("limited_final_step", "限定増分の最終ステップ"),
-               ("target_displacement_m", "目標変位（大きさ）"))
+               ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("analysis_steps", "解析のステップ数"),
+               ("limited_final_step", "限定増分の最終ステップ"), ("target_displacement_m", "目標変位（大きさ）"))
 
 
 class CalculationPage:

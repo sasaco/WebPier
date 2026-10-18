@@ -274,3 +274,22 @@ def table(bars: Iterable[Bar], direction: str) -> tuple[TableRow, ...]:
         counts[key] = counts.get(key, 0) + 1
     return tuple(TableRow(center, diameter, count, material) for (center, diameter, material), count in
                  sorted(counts.items(), key=lambda item: (item[0][0].value, item[0][1].value, item[0][2])))
+
+
+def _physical(bars: Iterable[Bar]) -> list[tuple[float, float, float, str]]:
+    return sorted((bar.x.value, bar.y.value, bar.diameter.value, bar.material) for bar in bars)
+
+
+def check_detail_positions(layout: ColumnLayout) -> None:
+    """Detail positions are accepted only as the generated bars of the current basic input.
+
+    Moved bars have no layer count or spacing, so neither the JRSNAP export nor the 柱の断面照査 (decision 48) can
+    express them; anything else is an input error.
+    """
+    if layout.manual is None:
+        return
+    if not layout.manual_basis_current:
+        raise InputError(f"{_PATH}.manual_basis: 詳細位置の生成元が現在の基本入力と一致しません"
+                         "（基本条件の変更後に再配置していないか、生成元が記録されていません）")
+    if _physical(layout.manual) != _physical(layout.automatic):
+        raise InputError(f"{_PATH}.manual_positions: 移動した詳細位置は主鉄筋の段数・間隔に代表できないため未対応です")

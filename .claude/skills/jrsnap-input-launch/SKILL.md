@@ -53,6 +53,7 @@ start "" "C:\RTRI_Program\JRSNAP(Ver5.2-L03)\JRSNAP_Input.exe" %LicenseOptNo1111
 - `--analyze false` は `.ndt` を作るだけで、インストール先に何も書かない。画面で出力した `.ndt` との突き合わせに使う。
 - 解析の自動応答は `run-analysis.ps1` と同じ。違いは、タイムアウトや未知の確認（標準のメッセージボックス、または基礎照査以外の「解析機能」の窓が約3秒続く）のとき、`S_ANALYSIS.exe` とその子プロセスを終了させ、`renzoku.flg`・`nrwork.dir` を元のバイト列に戻すこと。`run-analysis.ps1` はタイムアウト時に残す。
 - インストール先は runner の横の `jrsnap-headless.json`（`{"installDir": ...}`）で決め、版は `JRSNAP_Input.exe` の AssemblyVersion で判定する。同じインストール先の解析は `Global\structural-mcp-jrsnap` の mutex と起動中のプロセスの検査で直列にする。
+- `data-check` は、同じ書出しの `.ndt` から「データ確認図」（`S_DataCheck.exe`）の図を図ごとに PDF にする（WebPier の 0710・0720 の計算書、決定50）。解析はしない。詳しくは `../jrsnap-data-check/SKILL.md`。
 
 ## 解析エンジンの画面と結果ファイル（2026-10-18 確認）
 

@@ -1,6 +1,7 @@
 """The real registry: every stage alone gives the same bytes as the all generation, the frame analysis stages
 (decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
-analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU."""
+analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU, with the Aggre-SE project
+that reads it (decision 49)."""
 
 from __future__ import annotations
 
@@ -10,10 +11,11 @@ import re
 
 import pytest
 
-from pipeline_support import copy_input, tree
+from pipeline_support import FIXTURES, copy_input, tree
 from webpier.core.errors import InputError
-from webpier.core.integrity import load_json, sha256
+from webpier.core.integrity import content_sha256, load_json, sha256
 from webpier.export.jrsnap import LONGITUDINAL, TRANSVERSE, validate_ndu
+from webpier.pipeline import jrsnap
 from webpier.pipeline.generate import GenerationOptions, generate
 from webpier.pipeline.stages import STAGES
 
@@ -154,12 +156,37 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
         digest = sha256(post[ndu])
         assert {name: content for name, content in post.items() if name.startswith(folder + "/")} == {
             f"{folder}/{stem}(Case{case}_ρm10_αf1_正向).{suffix}": f"FAKE {word} {ndu} {digest}\n".encode()
-            for case in cases for suffix, word in (("ndt", "NDT"), ("LOG", "LOG"), ("OUT", "OUT"))}
+            for case in cases for suffix, word in (("ndt", "NDT"), ("DB1", "DB1"), ("LOG", "LOG"), ("OUT", "OUT"))}
         sidecar = load_json(post[f"{folder}.provenance.json"])
         assert (sidecar["stage"], sidecar["export"], sidecar["file"]) == (stage, "jrsnap", folder)
         assert sidecar["nonlinear_analysis"]["ndu"] == {"stage": source_stage, "export": "jrsnap", "file": ndu,
                                                         "sha256": digest}
         assert post[ndu] == tree(all_generation[0] / "post")[ndu]
+        # Decision 49: the Example2 projects saved again by Aggre-SE (tests/fixtures/example2/aggrese/notes.md).
+        project = f"{stem}.xml"
+        assert post[project] == (FIXTURES / "example2" / "aggrese" / project).read_bytes()
+        sidecar = load_json(post[f"{project}.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (stage, "aggrese", sha256(post[project]))
+        assert sidecar["metadata"] == {"target": "Aggre-SE", "target_version": "5.3.0.1", "app_read_verified": False,
+                                       "seismic_check_run": False}
+        assert sidecar["aggrese_project"] == {"jrsnap": {"stage": stage, "export": "jrsnap", "file": folder,
+                                                         "sha256": content_sha256(tmp_path / "post" / folder)}}
+
+
+@pytest.mark.parametrize("key", ["地域別", "地盤区分"])
+@pytest.mark.parametrize("stage", ["0711", "0721"])
+def test_a_blank_seismic_design_condition_stops_a_nonlinear_analysis_before_it_runs(tmp_path, monkeypatch, stage,
+                                                                                    key):
+    """Decision 49: only 0711 and 0721 need the 耐震設計条件, and a blank one is an input error before the runner."""
+    source = copy_input(tmp_path / "pre")
+    document = load_json(source.read_bytes())
+    document["耐震設計条件"][key] = None
+    source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(jrsnap, "analyze_nonlinear", lambda *args, **kwargs: pytest.fail("the runner was called"))
+    with pytest.raises(InputError, match=re.escape(f"耐震設計条件.{key}: 値が必要です")):
+        generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
+    assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))  # all: no analysis, no condition
 
 
 @pytest.mark.parametrize("stage", ["0611", "0621"])

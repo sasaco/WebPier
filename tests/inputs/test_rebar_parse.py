@@ -1,4 +1,5 @@
-"""The 鉄筋 section and the JRSNAP conditions: digits, choices, unknown keys; blanks stay blanks (decisions 5, 17, 19).
+"""The 鉄筋 section, the 耐震設計条件 and the JRSNAP conditions: digits, choices, unknown keys; blanks stay blanks
+(decisions 5, 17, 19, 49).
 
 The editor saves a member before all its values are entered, so a blank (null) parses as "not entered yet". Only
 the column layout and the JRSNAP export ask for the values they use (tests/calc/test_column_rebar_layout.py).
@@ -69,7 +70,6 @@ def test_the_jrsnap_conditions_of_each_direction():
         assert conditions.shear_factor_vcd == Printed(2.0, 2, "")
         assert conditions.shear_factor_vsd == Printed(1.3, 2, "")
         assert conditions.shear_factor_vdd == Printed(1.8, 2, "")
-        assert conditions.aggregate_max == mm(25)
 
 
 @pytest.mark.parametrize("key,steps,limited,target", [
@@ -111,17 +111,14 @@ def test_a_blank_step_count_skips_the_limited_step_check():
 
 def test_jrsnap_conditions_may_be_blank_until_exported():
     document = data()
-    document["jrsnap_transverse"]["aggregate_max_mm"] = None
-    assert parse_input(document).jrsnap.transverse.aggregate_max is None
+    document["jrsnap_transverse"]["shear_factor_vcd"] = None
+    assert parse_input(document).jrsnap.transverse.shear_factor_vcd is None
 
 
 @pytest.mark.parametrize("key,value,message", [
     ("shear_factor_vcd", 0, "正の数値が必要です"),
     ("shear_factor_vsd", 100.0, "99.99以下が必要です"),
     ("shear_factor_vdd", 1.255, "小数2桁までで入力してください"),
-    ("aggregate_max_mm", 0.05, "小数1桁までで入力してください"),
-    ("aggregate_max_mm", 1_000_000, "0.1～999999 mmが必要です"),
-    ("aggregate_max_mm", 0, "0.1～999999 mmが必要です"),
 ])
 def test_jrsnap_condition_ranges(key, value, message):
     document = data()
@@ -311,3 +308,40 @@ def test_rebar_parse_does_not_mutate_the_document():
     document = data()
     parse_input(document)
     assert document == CURRENT
+
+
+def test_the_seismic_design_conditions_of_the_current_input():
+    """Decision 49: Example2 is C地域 and G2地盤 (10_線路(耐震)/P1_線路.xml; 10-24 G2地盤（地域別係数:0.70））."""
+    design = parse_input(data()).seismic_design
+    assert (design.region, design.ground_class) == ("C地域", "G2地盤")
+
+
+def test_the_seismic_design_conditions_may_be_blank_until_a_nonlinear_analysis():
+    document = data()
+    document["耐震設計条件"] = {"地域別": None, "地盤区分": None}
+    design = parse_input(document).seismic_design
+    assert (design.region, design.ground_class) == (None, None)
+
+
+@pytest.mark.parametrize("key,value,message", [
+    ("地域別", "D地域", "「A地域」「B地域」「C地域」のいずれかを選んでください（入力: 'D地域'）"),
+    ("地盤区分", "G6地盤", "「G0地盤」「G1地盤」「G2地盤」「G3地盤」「G4地盤」「G5地盤」のいずれかを選んでください"),
+    ("地盤区分", "応答塑性率の直接入力", "「G5地盤」のいずれかを選んでください（入力: '応答塑性率の直接入力'）"),  # no μ
+])
+def test_the_seismic_design_conditions_are_choices(key, value, message):
+    document = data()
+    document["耐震設計条件"][key] = value
+    with pytest.raises(InputError, match=re.escape(f"耐震設計条件.{key}: ") + ".*" + re.escape(message)):
+        parse_input(document)
+
+
+def test_the_seismic_design_conditions_are_one_section_with_two_keys():
+    document = data()
+    document["耐震設計条件"]["スペクトル"] = "Ⅰ,Ⅱ"  # WebPier's condition, not an input
+    fails(document, "耐震設計条件.スペクトル: 未知の入力項目です")
+    document = data()
+    del document["耐震設計条件"]["地盤区分"]
+    fails(document, "入力項目がありません: 耐震設計条件.地盤区分")
+    document = data()
+    del document["耐震設計条件"]
+    fails(document, "入力項目がありません: 耐震設計条件")

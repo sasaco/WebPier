@@ -103,6 +103,7 @@ class ColumnBars:
     manual_positions: tuple[ManualBar, ...]
     position_mode: str  # 基本: generated from main_rows; 指定: manual_positions
     manual_basis: ManualBasis | None
+    aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax, mm (decision 48)
 
 
 @dataclass(frozen=True)
@@ -269,8 +270,8 @@ def _mode(node: Reader) -> str:
 
 
 def _column(node: Reader) -> ColumnBars:
-    node.only("materials", "concrete_strength_mpa", "pure_cover_mm", "main_rows", "column_hoops", "side_rows",
-              "band_rows", "manual_positions", "position_mode", "manual_basis")
+    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "main_rows", "column_hoops",
+              "side_rows", "band_rows", "manual_positions", "position_mode", "manual_basis")
     for key in ("side_rows", "band_rows"):
         if node.at(key).items():
             raise node.at(key).error("柱では使いません（帯鉄筋は column_hoops に入力します）")
@@ -278,7 +279,7 @@ def _column(node: Reader) -> ColumnBars:
         materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
         main_rows=tuple(_column_row(row) for row in node.at("main_rows").items()),
         hoops=_hoops(node.at("column_hoops")), manual_positions=_manual(node), position_mode=_mode(node),
-        manual_basis=_basis(node.optional("manual_basis")))
+        manual_basis=_basis(node.optional("manual_basis")), aggregate_max=_value(node, "aggregate_max_mm"))
 
 
 def _side_row(node: Reader) -> SideRow:
