@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
+    [string]$ProjectRoot = '',
     [switch]$AllowNoGates,
     [string[]]$AllowProductPath = @()
 )
@@ -9,6 +9,11 @@ param(
 # (python -m webpier children included, pyproject.toml [tool.coverage]) and then checks the line+branch
 # coverage of each package against its target (decision 15). Below target is a gate failure.
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+# Windows PowerShell 5.1 leaves $PSScriptRoot empty in a param default under -File, so the root is derived here.
+if (-not $ProjectRoot) {
+    $taskScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+    $ProjectRoot = Split-Path -Parent $taskScriptDir
+}
 $taskLog = $null
 $taskTargets = [ordered]@{ core = 100; inputs = 100; calc = 100; export = 100; pipeline = 100; reporting = 95; gui = 85 }
 $taskPreviousCoverageFile = $env:COVERAGE_FILE
