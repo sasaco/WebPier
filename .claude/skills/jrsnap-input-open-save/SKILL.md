@@ -1,6 +1,6 @@
 ---
 name: jrsnap-input-open-save
-description: この環境のJRSNAP V5.2-L03／V5.3-L01体験版2で既存の .ndu を開き、版別に保存して結果を確認する。NDUの版互換性確認や旧版サンプルの保存にも使う。解析結果の再計算だけには使わない。
+description: この環境のJRSNAP V5.2-L03／V5.3-L01体験版2で既存の .ndu を開き、版別に保存して結果を確認する。NDUの版互換性確認や旧版サンプルの保存にも使う。解析用データ出力（.ndu→.ndt）を画面なしで呼ぶ仕組み（名前の規則・版・表示の切替え）も扱う。解析結果の再計算だけには使わない。
 ---
 
 # JRSNAP InputでNDUを開いて保存する
@@ -13,7 +13,7 @@ description: この環境のJRSNAP V5.2-L03／V5.3-L01体験版2で既存の .nd
 2. 対応する起動バッチでJRSNAPを起動する。`ファイル > 開く(&O)` で `.ndu` を選ぶ。読込に成功するとウィンドウのタイトルに開いたファイルのパスが入り、`mdlMenu.mnuFileOpen` は `WG_bytSystemDataFlg=3` にする。警告・読込失敗が出たファイルは保存しない。
 3. `ファイル > 上書き保存(&S)` を使う。別名が必要なら `名前を付けて保存(&A)` を使う。`mdlMenu.mnuFileSave` は `mdlDataFile.mdl_Wrt_NDUDataFile` で現在の `.ndu` を書く。保存の成功表示に加え、対象ファイルの更新時刻、先頭行の `Virsion=`、必要な入力項目を確認し、同じ版で再読込できるか確認する。複数ファイルでは各ファイルの成功・失敗を個別に記録する。
 
-`開く` と `上書き保存` は `.ndu` の操作である。`.ndt` は別の「解析用データ出力」で生成し、`.OUT` などの計算結果は解析実行で更新する。`.ndu` を保存しただけで、複製済みの計算結果をその版の結果として扱わない。
+`開く` と `上書き保存` は `.ndu` の操作である。`.ndt` は別の「解析用データ出力」で生成し（画面なしで行う方法は下の節）、`.OUT` などの計算結果は解析実行で更新する。`.ndu` を保存しただけで、複製済みの計算結果をその版の結果として扱わない。
 
 ## 画面操作できない環境での一括保存
 
@@ -31,5 +31,15 @@ description: この環境のJRSNAP V5.2-L03／V5.3-L01体験版2で既存の .nd
 インストール済み本体の `mdlDataFile.VerCommonNo` を確認した結果、V5.2-L03は読込形式番号が最大 `S.5`、V5.3-L01体験版2は最大 `S.6`。超過時は `mdl_Get_NDUDataFile` が200を返して読込を拒否する。`Virsion=5.3.1.S.6` の `.ndu` はV5.2-L03でそのまま開けない。ヘッダーだけを下げて実作業に使わない。
 
 `-ConvertS6` は対象の原ファイルを直接書き換えず、一時コピーの先頭行だけ `S.6` から `S.5` にしてV5.2本体で読込・保存する。その結果を、同じ原ファイルをV5.3本体で保存した結果と比較し、先頭行以外の全行が一致する場合だけ反映を許す。2026-10-11の対象6件では全件一致し、V5.2・V5.3の保存結果は各11件とも再保存時にバイト単位で一致した。直接基礎3件では両版で同じ1～2行が正規化される。この検証は今回の入力ファイルに限定され、計算結果や工学的な同等性までは確認しない。別のS.6ファイルへ機械的に適用する前に差分を再検査する。
+
+## 解析用データ出力を画面なしで行う（2026-10-18 確認）
+
+実際に使うときは JRSNAPHeadless の runner（`run --analyze false`。`../jrsnap-input-launch/SKILL.md` を参照）を使う。仕組みは次のとおりで、5.2-L03・5.3-L01体験版2 とも同じ。
+
+- 画面の経路：`frmMain.mnuDataOut_Click` → `mdlMenu.mdl_mnuGikkou_click(0)` → `frmKajyuuSelect` で組合せを選ぶ（`mdlMenu.M_CBCasePrint[1..20]`）→ 選んだ組合せ `i` ごとに `M_intCBCasePNo = i` として `mdlMenu.mnuFileWRT_NDTData`。この中で入力検査（MsgBox で中断）、変動ケースの問合せ（`G_intHendoSetInfo[1]==1` のときだけ）、最初の組合せでの保存ダイアログを経て、`mdlDATA_NDT.mdl_Wrt_NDTDataFile(ref path)`（0 が成功）を呼び、インストール先に `*.wk0`・`nrwork.dir` を書く。
+- 名前：`<元の名前>(Case{i}_ρm{Format(ρm*10,"00")}_αf{Format(αf,"0")}_正向|_逆向[応の接尾辞]).ndt`。古い版の見本には `(Case-1_ρm=1.0_αf=1.0_荷重正方向)` の形もある。
+- `mdl_Get_NDUDataFile` で読み、`M_intCBCasePNo` を設定して `mdl_Wrt_NDTDataFile` を直接呼ぶと、画面の `.ndt` とバイト単位で一致し（同じ版で作った見本6件）、インストール先には何も書かない。画面の検査は通らない。
+- 版は入口のアセンブリ（`My.Application.Info.Version`）から取る。`.ndt` の1行目 `START 52|53` と、読める `.ndu` の形式（`VerCommonNo`）がこれで決まる。版のない補助 exe から呼ぶと `START    0` になる。そのため、補助 exe には JRSNAP と同じ AssemblyVersion（5.2.3.1・5.3.1.3）を付けて x86 で作る。`scripts/roundtrip.cs` も同じ理由で版を付けている。
+- `G_intViewFlg` は `MDmain.Main` の値（JRSNAP では `G_intSNAP_FLG=1`）に、インストール先の `INI\DataInputTool.ini` の `[Option]` から [12] `CFT_Rect`（1→1、それ以外→2）、[22]=1、[24] `SekoJyoken` を重ねる。`mdl_Get_INIFile` は `Application.StartupPath`（補助 exe のフォルダー）の INI を読み、メイン画面の位置も設定するので、補助 exe からは呼ばずに値を自分で設定する。読込と `.ndt` の書出しが使うのは [1..7]・[16]・[23]・[24] だけ。古い見本との差は [23] が決める基礎の1項目に出る。
 
 根拠: V5.3本体の `JRSNAP_Input\frmMain.cs` のメニュー表示、`JRSNAP_Input\mdlMenu.cs` の `mnuFileOpen`／`mnuFileSave`／解析用データ出力、`JRSNAP_Input\mdlDataFile.cs` の読込・保存・形式番号判定。V5.2/V5.3の形式上限と変換差分はインストール済み本体を一時ファイルで検証した。
