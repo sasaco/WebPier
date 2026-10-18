@@ -1,4 +1,4 @@
-"""The model figure and the load diagrams draw the Frame: positions, labels and dimensions come from it.
+"""The model figure draws the Frame: positions, labels and dimensions come from it.
 
 Every expectation is taken from the Frame (node coordinates, member heights)
 and the input, never from the drawing code: one isotropic scale maps each node
@@ -19,10 +19,7 @@ from frame_report_cases import CASES, chain, pier_input, text
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.frame import Direction, NodeRole, Region, build_frame
 from webpier.calc.materials import calculate_materials
-from webpier.reporting.figures import (
-    AxialGlyph, DistributedGlyph, FrameFigure, HorizontalDimension, LoadDiagram, PointGlyph,
-    footing_dimensions, pier_outline,
-)
+from webpier.reporting.figures import FrameFigure, HorizontalDimension, footing_dimensions, pier_outline
 from webpier.reporting.fonts import load_fonts
 from webpier.reporting.styles import REPORT_STYLE, report_profile
 
@@ -178,73 +175,6 @@ def test_a_figure_too_small_for_its_labels_is_a_layout_error():
         FrameFigure(moved, pier_outline(pier, frame)).texts()
     with pytest.raises(ValueError):
         HorizontalDimension(1.0, 1.0, "0.000", 0)
-
-
-def _arrow_tips(drawn) -> list[tuple[float, float]]:
-    return [(c.points[1].x, c.points[1].y) for c in drawn if isinstance(c, Polyline) and len(c.points) == 3]
-
-
-@pytest.mark.parametrize("sign", [1, -1])
-def test_load_glyphs_point_in_the_direction_of_their_sign(sign: int):
-    _, _, by_stage = frames("current")
-    frame = by_stage["0710"]
-    top, centroid = frame.node(NodeRole.CAP_TOP), frame.node(NodeRole.FOOTING_CENTROID)
-    glyphs = (PointGlyph(top.number, "N", sign, "N"), PointGlyph(top.number, "H", sign, "H"),
-              PointGlyph(centroid.number, "P", sign, "P"))
-    drawn = commands(LoadDiagram(frame, glyphs), 240)
-    dots = node_circles(drawn)
-    node = dots[top.number - 1]
-    shafts = [c for c in drawn if isinstance(c, Line) and c.width == .8 and not c.dash][len(frame.members):]
-    n_shaft, h_shaft, p_shaft = shafts
-    # N: downward (+) ends at the node; upward (−) starts at it.
-    assert (n_shaft.y2 > n_shaft.y1) == (sign > 0) and n_shaft.x1 == n_shaft.x2 == node.x
-    # H: toward +x (→) for +, toward −x (←) for −, ending at the node.
-    assert (h_shaft.x2 > h_shaft.x1) == (sign > 0)
-    assert (h_shaft.x2, h_shaft.y2) == pytest.approx((node.x - sign * 1, node.y))
-    assert (p_shaft.y2 > p_shaft.y1) == (sign > 0)
-    assert [c.text for c in drawn if isinstance(c, Text)] == ["N", "H", "P"]
-
-
-def test_moment_arc_turns_clockwise_for_a_positive_moment():
-    _, _, by_stage = frames("current")
-    frame = by_stage["0610"]
-    top = frame.node(NodeRole.CAP_TOP).number
-    for sign, clockwise in ((1, True), (-1, False)):
-        drawn = commands(LoadDiagram(frame, (PointGlyph(top, "M", sign, "M"),)), 240)
-        arc = next(c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3)
-        centre = node_circles(drawn)[top - 1]
-        # In page coordinates (y down) a clockwise turn over the top runs from left to right.
-        assert (arc.points[0].x < centre.x < arc.points[-1].x) == clockwise
-        assert all(p.y <= centre.y + 1e-9 for p in arc.points)
-
-
-def test_axial_and_distributed_glyphs_follow_their_members():
-    _, _, by_stage = frames("pedestal")
-    frame = by_stage["0710"]
-    column_line = [m.number for m in frame.column_line]
-    beam, haunch = (next(m for m in frame.members if m.region is region) for region in (Region.BEAM, Region.HAUNCH))
-    glyphs = (AxialGlyph(tuple(column_line), "q"),
-              DistributedGlyph(((beam.number, -2.0, -2.0), (haunch.number, -2.0, -1.0)),
-                               ((beam.number, .5, "Hw1"), (haunch.number, 1.0, "Hw2"))))
-    diagram = LoadDiagram(frame, glyphs)
-    drawn = commands(diagram, 240)
-    dashed = [c for c in drawn if isinstance(c, Line) and c.dash]
-    assert len(dashed) == len(column_line)
-    dots = node_circles(drawn)
-    for member, line in zip(frame.column_line, dashed, strict=True):
-        assert line.y1 == pytest.approx(dots[member.start - 1].y) and line.y2 == pytest.approx(dots[member.end - 1].y)
-    outer = [c for c in drawn if isinstance(c, Line) and c.width == .5]
-    beam_outer = outer[0]
-    haunch_outer = outer[1]
-    # The beam intensity is twice the haunch-bottom one: the outer edge is twice as far from the base line.
-    base = dots[beam.start - 1].x + 6
-    assert (beam_outer.x1 - base) == pytest.approx(2 * (haunch_outer.x2 - base))
-    assert diagram.texts() == ("q", "Hw1", "Hw2")
-    assert [c.text for c in drawn if isinstance(c, Text)] == ["q", "Hw1", "Hw2"]
-    with pytest.raises(ValueError):
-        PointGlyph(1, "X", 1, "X")
-    with pytest.raises(ValueError):
-        commands(LoadDiagram(frame, (PointGlyph(99, "N", 1, "N"),)), 240)
 
 
 def test_the_figure_is_deterministic_and_independent_of_the_input_object():

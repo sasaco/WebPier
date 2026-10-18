@@ -53,14 +53,14 @@ def _nodes(item: Any) -> Iterator[Any]:
 
 @pytest.mark.parametrize(("stage", "case"), PARAMETERS)
 def test_no_input_sheet_symbol_and_no_stacked_fraction(stage: str, case: str):
-    from webpier.reporting.stages.frame_report import FigureSpec, DiagramSpec, semantic_records
+    from webpier.reporting.stages.frame_report import FigureSpec, semantic_records
 
     units = _units(stage, case)
     for record in semantic_records(units):
         assert not INPUT_SYMBOL.search(record["text"]), record
     for unit in units:
-        if isinstance(unit.value, (FigureSpec, DiagramSpec)):
-            continue  # drawings, not formulas
+        if isinstance(unit.value, FigureSpec):
+            continue  # a drawing, not a formula
         assert not any(isinstance(node, Fraction) for node in _nodes(unit.value)), unit.key
 
 

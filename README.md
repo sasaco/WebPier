@@ -2,7 +2,7 @@
 
 `pre/input.json`（schema 2）を読み、0500 直接基礎の地盤ばね、0600 上部工反力・橋脚自重、0610 線路方向荷重、0620 直角方向荷重、0710 地震時の線路方向荷重、0720 地震時の線路直角方向荷重を計算し、A4縦・白黒の計算書PDFと結果JSONを作成します。0610・0620 からは FEMPython / FrameWebforCS の入力、0710・0720 からは JRSNAP 5.2-L03 の入力（NDU）も作成します。
 
-計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。**構造解析による組合せ応答、部材の断面照査、寸法・配筋の最適化は対象外**です。
+計算はPython、計算書の組版は GridLayoutPdf、PDF描画はその ReportLab バックエンドです。実行時に Excel や元の xls・PDF は使いません。骨組解析は FEMPython に任せ、WebPier はその結果（ピックアップ断面力・変位量）を解釈せずに出力します（[ADR-0006](docs/adr/0006-frame-analysis-by-fempython.md)）。**部材の断面照査、寸法・配筋の最適化は対象外**です。
 
 用語は [CONTEXT.md](CONTEXT.md)、原則は [docs/adr/](docs/adr/)、決定事項は [.claude/docs/plans/refactoring-decisions.md](.claude/docs/plans/refactoring-decisions.md) を正とします。
 

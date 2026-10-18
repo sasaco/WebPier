@@ -10,24 +10,24 @@ them with a calculator (ADR-0003). Nothing is calculated here.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, field, replace
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, BreakHint, Cell, CellLines, Columns, Document, Equation, KeepWithNext, LayoutContext,
+    Block, BreakHint, Cell, CellLines, Document, Equation, KeepWithNext, LayoutContext,
     LayoutOverflowError, Literal, MathNode, MeasuredBlock, PreferKeepTogether, Root, Row, Script, TermStop, Text,
     as_math, measure_block,
 )
 
-from ...calc.frame import Frame, LineLoad, Member, NodeRole, PointLoad, Region, Section
+from ...calc.frame import Frame, Member, NodeRole, PointLoad, Region, Section
 from ...calc.materials import EC_EXPONENT, Concrete
 from ...core.printed import Printed
 from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, script, terms
-from ..figures import AxialGlyph, DistributedGlyph, FrameFigure, Glyph, LoadDiagram, PointGlyph
+from ..figures import FrameFigure
 from ..numbers import printed, unit
-from ..styles import BASELINE, BODY, BODY_LEADING, grid_units
+from ..styles import BASELINE, BODY, BODY_LEADING
 from ..tables import VerticalLabel, cell, table
 
 # Heading levels (reporting-style.md: chapter 58.92, then 14.52 steps) and the body.
@@ -100,17 +100,9 @@ class TableSpec:
 
 @dataclass(frozen=True)
 class FigureSpec:
-    block: Any  # a FrameFigure or a LoadDiagram
+    block: Any  # a FrameFigure
     texts: tuple[str, ...]
     left: float = 48.0
-
-
-@dataclass(frozen=True)
-class DiagramSpec:
-    """A load diagram with the values of its cases beside it."""
-
-    figure: LoadDiagram
-    lines: tuple[Any, ...]
 
 
 @dataclass(frozen=True)
@@ -124,7 +116,7 @@ class Definitions:
 class Unit:
     key: str
     value: Any
-    kind: str  # heading, paragraph, line, equation, definitions, table, figure, diagram
+    kind: str  # heading, paragraph, line, equation, definitions, table, figure
     left: float = BODY_LEFT
     keep: bool = False  # keep with the next unit (a lead-in line)
     level: int = 0
@@ -157,8 +149,6 @@ def plain(item: Any) -> str:
         return "".join(plain(cell_value) for row in item.rows for cell_value in row)
     if isinstance(item, FigureSpec):
         return "".join(item.texts)
-    if isinstance(item, DiagramSpec):
-        return "".join(item.figure.texts()) + "".join(plain(line) for line in item.lines)
     if isinstance(item, (tuple, list)):
         return "".join(plain(part) for part in item)
     raise TypeError(f"Unsupported frame report node: {type(item).__name__}")
@@ -206,9 +196,6 @@ class Manuscript:
 
     def figure(self, key: str, spec: FigureSpec) -> None:
         self.add(key, spec, "figure", left=spec.left)
-
-    def diagram(self, key: str, spec: DiagramSpec) -> None:
-        self.add(key, spec, "diagram")
 
 
 def semantic_records(units: Sequence[Unit]) -> list[dict[str, str]]:
@@ -323,14 +310,7 @@ def table_block(spec: TableSpec, block_id: str) -> Block:
                            block_id=block_id, **rules), spec.left)
 
 
-def _diagram_block(spec: DiagramSpec, block_id: str) -> Block:
-    lines = CellLines(spec.lines, style=BODY, line_advance=BODY_LEADING)
-    width = 528 - (BODY_LEFT - 48) - spec.figure.width - 14.52
-    return indent_to(Columns(spec.figure, lines, col_spans=(grid_units(spec.figure.width), grid_units(width)),
-                             gap_cols=grid_units(14.52), block_id=block_id), BODY_LEFT)
-
-
-_FLOATS = ("table", "figure", "diagram")
+_FLOATS = ("table", "figure")
 
 
 def _columns(equation: Equation) -> tuple[bool, bool]:
@@ -351,13 +331,13 @@ def _equations(run: Sequence[Unit]) -> Block:
 
 
 def _title_of(piece: Unit | None, following: Unit | None) -> bool:
-    """A kept paragraph directly before a table, figure or diagram is its title (as the 0500 table caption)."""
+    """A kept paragraph directly before a table or figure is its title (as the 0500 table caption)."""
     return (piece is not None and following is not None and piece.kind == "paragraph" and piece.keep
             and following.kind in _FLOATS)
 
 
 def blocks(units: Sequence[Unit]) -> list[Block]:
-    """A heading, table, figure or diagram (with its title) has one blank line before and after it, and a
+    """A heading, table or figure (with its title) has one blank line before and after it, and a
     lead-in line (a kept paragraph, "・橋脚天端に作用する荷重") opens its group with one blank line before it
     (0610 p4); blank lines never stack."""
     found: list[Block] = []
@@ -387,10 +367,8 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
             block = definitions(*piece.value.items, left=LABEL_LEFT, colon=DEFINITION_COLON, block_id=piece.key)
         elif piece.kind == "table":
             block = PreferKeepTogether(table_block(piece.value, piece.key))
-        elif piece.kind == "figure":
+        else:  # a figure
             block = indent_to(piece.value.block, piece.left)
-        else:
-            block = _diagram_block(piece.value, piece.key)
         lead_in = piece.kind == "paragraph" and piece.keep
         if lead_in or piece.kind in _FLOATS and not _title_of(previous, piece):
             blank(found)
@@ -639,176 +617,14 @@ def bearing_symbol(side: str) -> MathNode:
     return Row("起点側　" if side == "origin" else "終点側　", sub("R", "B" if side == "origin" else "C"), gap=0)
 
 
-# --- load diagrams (0620 9.3; 0610, 0710 and 0720 print none, decision 41) --------------------------------------
-
-
-@dataclass(frozen=True)
-class CaseLoads:
-    """One basic case on the frame, with its title and how the all-zero loads are listed."""
-
-    number: int
-    title: str
-    points: tuple[PointLoad, ...]
-    line_loads: tuple[LineLoad, ...] = ()
-    # member, start, end (signed, kN/m), and optionally the loaded part (t0, t1) of the member length
-    member_loads: tuple[tuple[Any, ...], ...] = ()
-    member_names: dict[Region, tuple[str, str]] = field(default_factory=dict)  # region → names of start, end
-    horizontal: bool = False  # an all-zero load is listed as H, otherwise as N
-
-
-_TOP = (NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP)
-
-
-def _point_names(case: CaseLoads) -> list[tuple[PointLoad, dict[str, str]]]:
-    """Symbols of each point load: N/M/H at the top, P/MP/H at the footing; N'/M'/H' at the beam top if a seat exists."""
-    anchors = {point.anchor for point in case.points}
-    named = []
-    top_horizontal = any(p.h.value for p in case.points if p.anchor in _TOP)
-    for point in case.points:
-        if point.anchor in _TOP:
-            prime = "'" if point.anchor is NodeRole.CAP_TOP and NodeRole.PEDESTAL_TOP in anchors else ""
-            names = {"n": "N" + prime, "m": "M" + prime, "h": "H" + prime}
-        else:
-            names = {"n": "P", "m": "M_P", "h": "H_P" if top_horizontal else "H"}
-        named.append((point, names))
-    return named
-
-
-def _listed(point: PointLoad, horizontal: bool) -> list[str]:
-    # Example2 9-11: N, then H, then M
-    found = [component for component in ("n", "h", "m") if getattr(point, component).value]
-    return found or (["h"] if horizontal else ["n"])
-
-
-def _symbol(name: str) -> MathNode | str:
-    base, _, suffix = name.partition("_")
-    return sub(base, suffix) if suffix else name
-
-
-def _point_signs(case: CaseLoads) -> list[tuple[int, str, str, int]]:
-    """(node, kind, label, sign) of each listed point component; a zero component has sign 0."""
-    kinds = {"n": "N", "m": "M", "h": "H"}
-    found = []
-    for point, names in _point_names(case):
-        for component in _listed(point, case.horizontal):
-            number = getattr(point, component).value
-            kind = "P" if component == "n" and point.anchor not in _TOP else kinds[component]
-            found.append((point.node, kind, names[component], (number > 0) - (number < 0)))
-    return found
-
-
-def case_glyphs(frame: Frame, case: CaseLoads, signs: Sequence[int] | None = None) -> list[Glyph]:
-    """The glyphs of *case*; *signs* (of a group) replace the case's own, a zero drawn positive."""
-    glyphs: list[Glyph] = []
-    points = _point_signs(case)
-    for index, (node, kind, label, sign) in enumerate(points):
-        chosen = signs[index] if signs is not None else sign
-        glyphs.append(PointGlyph(node, kind, -1 if chosen < 0 else 1, label))
-    for line in case.line_loads:
-        if line.n.value:
-            glyphs.append(AxialGlyph(line.members, "q"))
-        if line.h.value:
-            glyphs.append(DistributedGlyph(tuple((number, line.h.value, line.h.value) for number in line.members),
-                                           ((line.members[0], .5, "qh"),)))
-    if case.member_loads:
-        regions = {member.number: member.region for member in frame.members}
-        labels, seen = [], set()
-        for number, start, end, *_ in case.member_loads:
-            for where, name in zip((0.0, 1.0), case.member_names[regions[number]], strict=True):
-                if name not in seen:
-                    seen.add(name)
-                    labels.append((number, .5 if start == end else where, name))
-        glyphs.append(DistributedGlyph(tuple((n, s.value, e.value, *part) for n, s, e, *part in case.member_loads),
-                                       tuple(labels)))
-    return glyphs
-
-
-def directed(number: Printed) -> Row:
-    """A horizontal force as Example2 9-11 prints it: its magnitude and its direction (+x is →).
-
-    The sign stays in the calc result; only the way it is written changes.
-    """
-    magnitude = Printed(abs(number.value), number.digits, number.unit)
-    return Row(with_unit(magnitude), "（←）" if number.value < 0 else "（→）", gap=0)
-
-
-def case_lines(frame: Frame, case: CaseLoads) -> list[Any]:
-    """The values of one case: ``N = 8299.53 kN`` and so on, in the order of the glyphs.
-
-    Horizontal forces are written as magnitude and direction (Example2 9-11).
-    """
-    lines: list[Any] = []
-    for point, names in _point_names(case):
-        for component in _listed(point, case.horizontal):
-            number = getattr(point, component)
-            lines.append(Row(_symbol(names[component]), " = ", directed(number) if component == "h" else
-                             with_unit(number), gap=0))
-    for line in case.line_loads:
-        if line.n.value:
-            lines.append(Row("q = ", with_unit(line.n), gap=0))
-        if line.h.value:
-            lines.append(Row(sub("q", "h"), " = ", directed(line.h), gap=0))
-    if case.member_loads:
-        regions = {member.number: member.region for member in frame.members}
-        seen: set[str] = set()
-        for number, start, end, *_ in case.member_loads:
-            for intensity, name in zip((start, end), case.member_names[regions[number]], strict=True):
-                if name not in seen:
-                    seen.add(name)
-                    lines.append(Row(name, " = ", directed(intensity), gap=0))
-    return lines
-
-
-def _shape(frame: Frame, case: CaseLoads) -> tuple[Any, ...]:
-    """What a diagram draws for *case*, apart from the point directions."""
-    others = tuple(type(glyph) for glyph in case_glyphs(frame, case) if not isinstance(glyph, PointGlyph))
-    return tuple((node, kind, label) for node, kind, label, _ in _point_signs(case)) + others
-
-
-def _compatible(frame: Frame, cases: Sequence[CaseLoads]) -> list[tuple[list[CaseLoads], list[int]]]:
-    """Split *cases* into runs drawn by one diagram: the same glyphs, pointing the same way.
-
-    A zero load fits either direction; a run takes the direction of its first nonzero load.
-    """
-    runs: list[tuple[list[CaseLoads], list[int]]] = []
-    for case in cases:
-        signs = [sign for *_, sign in _point_signs(case)]
-        if runs and _shape(frame, runs[-1][0][0]) == _shape(frame, case) and \
-                all(a == b or not a or not b for a, b in zip(runs[-1][1], signs, strict=True)):
-            runs[-1][0].append(case)
-            runs[-1][1][:] = [a or b for a, b in zip(runs[-1][1], signs, strict=True)]
-        else:
-            runs.append(([case], signs))
-    return runs
-
-
-def diagram_groups(m: Manuscript, frame: Frame, groups: Iterable[tuple[str, str, Sequence[CaseLoads]]],
-                   title: Callable[[str, Sequence[CaseLoads]], str]) -> None:
-    """One diagram per group of cases with the same glyphs; each group heads its values with the case titles."""
-    for key, name, cases in groups:
-        runs = _compatible(frame, cases)
-        for index, (run, signs) in enumerate(runs):
-            suffix = "" if len(runs) == 1 else f".{index + 1}"
-            alone = f"　{run[0].title}" if len(run) == 1 and len(cases) > 1 else ""  # a case split from its group
-            m.paragraph(f"diagrams.{key}{suffix}.title", title(name, run) + alone, keep=True, left=LEVELS[3])
-            lines: list[Any] = []
-            for case in run:
-                if len(run) > 1:
-                    lines.append(f"Case {case.number}　{case.title}")
-                lines += case_lines(frame, case)
-            diagram = LoadDiagram(frame, tuple(case_glyphs(frame, run[0], signs)),
-                                  block_id=f"{m.prefix}diagrams.{key}{suffix}")
-            m.diagram(f"diagrams.{key}{suffix}", DiagramSpec(diagram, tuple(lines)))
-
-
 def frame_figure(frame: Frame, outline: Any, **options: Any) -> FigureSpec:
     figure = FrameFigure(frame, outline, **options)
     return FigureSpec(figure, figure.texts())
 
 
 __all__ = [
-    "BODY_LEFT", "CaseLoads", "Definitions", "DiagramSpec", "FigureSpec", "LEVELS", "Labelled", "Manuscript", "Span",
-    "TableSpec", "Unit", "bearing_symbol", "case_glyphs", "case_lines", "diagram_groups", "document",
+    "BODY_LEFT", "Definitions", "FigureSpec", "LEVELS", "Labelled", "Manuscript", "Span",
+    "TableSpec", "Unit", "bearing_symbol", "document",
     "frame_figure", "material_lines", "member_table", "node_table", "operand", "plain", "section_lines",
     "seat_moment", "semantic_records", "spring_table", "sub", "sup", "top_table", "used_concretes", "value",
     "with_unit",

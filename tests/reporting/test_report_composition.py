@@ -54,7 +54,6 @@ def test_0610_load_diagrams_are_a_heading_only_and_it_keeps_its_springs(case: st
     pier, reaction, result, _ = chain(case)
     found = records(longitudinal, result, reaction, pier)
     assert [text for text in found.values() if "荷重図" in text] == ["8.3荷重図"]
-    assert not any(unit.kind == "diagram" for unit in longitudinal.content(result, reaction, pier))
     assert sections(found) == ["8.1検討モデル", "8.2作用の計算", "8.3荷重図", "8.4設計作用の組合せ"]
     assert "0610/model.springs" in found and found["0610/basic"].startswith("No荷重名称区分バネ")
 
@@ -66,7 +65,6 @@ def test_0620_load_diagrams_are_a_heading_only(case: str):
     pier, reaction, result, _ = transverse_chain(case)
     found = records(transverse, result, reaction, pier)
     assert [text for text in found.values() if "荷重図" in text] == ["9.3荷重図"]
-    assert not any(unit.kind == "diagram" for unit in transverse.content(result, reaction, pier))
     assert sections(found) == ["9.1検討モデル", "9.2作用の計算", "9.3荷重図", "9.4設計作用の組合せ"]
 
 
@@ -79,7 +77,6 @@ def test_0710_shows_no_springs_and_no_load_diagrams(case: str):
     assert {key: text for key, text in found.items() if SPRING.search(text) or "荷重図" in text} == {}
     assert sections(found) == ["10.1検討モデル", "10.2作用の計算", "10.3作用の組合せ"]
     units = seismic_longitudinal.content(result, pier)
-    assert not any(unit.kind == "diagram" for unit in units)
     drawn = figure_commands(units, "0710/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []
     assert [c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3] == []  # no zigzag, no coil
@@ -94,7 +91,6 @@ def test_0720_shows_no_springs_no_load_diagrams_and_no_enlarged_column_bottom(ca
     assert {key: text for key, text in found.items() if SPRING.search(text) or "荷重図" in text} == {}
     assert sections(found) == ["11.1検討モデル", "11.2作用の計算", "11.3作用の組合せ"]
     units = seismic_transverse.content(result, pier)
-    assert not any(unit.kind == "diagram" for unit in units)
     assert [unit.key for unit in units if unit.kind == "figure"] == ["0720/model.figure"]  # the frame only
     drawn = figure_commands(units, "0720/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []

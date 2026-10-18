@@ -205,7 +205,7 @@ def test_headings_stay_with_what_follows_and_tables_are_not_split():
 
     units = content(result, reaction, pier)
     for index, unit in enumerate(units):
-        if unit.kind in ("table", "figure", "diagram"):
+        if unit.kind in ("table", "figure"):
             assert len(owners[unit.key]) == 1, unit.key
         if unit.kind == "heading" and index + 1 < len(units) and units[index + 1].key in owners:
             assert max(owners[unit.key]) <= min(owners[units[index + 1].key]), unit.key
