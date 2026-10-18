@@ -6,8 +6,9 @@ Three independent checks:
    No value of the result is left out.
 2. Every number written in a formula or table is the text of a result or input
    value, or a constant of the formula: the report computes no number.
-3. Key lines (decisions 11, 22, 23, 24, 27, and the braking rule) are written here
-   from the result with an independent formatter and compared as text.
+3. Key lines (decisions 11, 22, 23, 24, 27) are written here from the result with an
+   independent formatter and compared as text, and nothing explains more than the
+   samples do (decision 55).
 """
 
 from __future__ import annotations
@@ -28,8 +29,8 @@ CONSTANTS = {
     "0.5", "0.75", "1.0", "1.1", "1.2", "1.00", "0.20", "0.30", "0.2", "1.5", "3.0", "10.0",
     "0.80", "0.19", "0.76", "0.27", "0.25", "0.95",
 }
-# Numbers that are names, not values: the 0.8 LR combination and references to other sections.
-NAMES = {"0.8", "6.1", "6.3"}
+# Numbers that are names, not values: the 0.8 LR combination.
+NAMES = {"0.8"}
 
 
 def records(result, pier) -> dict[str, str]:
@@ -208,11 +209,25 @@ def test_no_pier_impact_is_printed():
     assert "橋脚く体に対する衝撃" not in actual and "Ds" not in actual and "Du" not in actual
 
 
-@pytest.mark.parametrize("name,rule", [("current", "軸重式"), ("ea17", "EA-17の規定式")])
-def test_the_braking_formula_names_the_vehicle_and_its_rule(name: str, rule: str):
-    result, pier = case(name)
-    actual = "\n".join(records(result, pier).values())
-    assert f"車両 {pier.train.vehicle}" in actual and rule in actual
+# The sentences and symbolic formulas of the samples (07 7-4, 7-5, 7-14; Example橋脚 0600 p14, p33).
+SAMPLE_TEXT = {
+    "制動荷重および始動荷重の特性値は下式によって求める。",
+    "線路方向の列車荷重慣性力は、車輪とレールとの粘着係数 μ = 0.20 とする。",
+    "列車荷重に遠心荷重係数 αc を乗じた値とする。",
+    "直線区間のため遠心荷重は考慮しない。",
+    "制動荷重：(0.27 + 1.00/Lv)・ΣR",
+    "始動荷重：(0.25 + 0.95/Lv)・ΣR",
+}
+# What explains or names a formula beyond the samples: sentences, "ここに" definitions, symbolic steps.
+EXPLAINING = re.compile(r"とする|である|乗じ|求め|作用させ|載荷し|ここに|Σ|×\s*n\b|γ|軸数|L\s*×\s*α|H\s*×\s*y")
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_nothing_is_explained_beyond_the_samples(name: str):
+    """Decision 55: no sentence, definition or symbolic step that the samples do not write."""
+    found = {key: value for key, value in records(*case(name)).items()
+             if value not in SAMPLE_TEXT and "heading" not in key and EXPLAINING.search(value)}
+    assert found == {}
 
 
 def test_the_report_reads_the_result_not_the_input():

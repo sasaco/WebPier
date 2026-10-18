@@ -6,14 +6,11 @@ their numbers (decision 41).
 
 from __future__ import annotations
 
-from gridlayoutpdf import Row
-
 from ....calc.reaction.self_weight import Body, HaunchShape, SelfWeightResult
 from ....core.printed import Printed
 from ....inputs import PierInput
-from ...numbers import printed
 from .figures import outline_figure
-from .manuscript import ITEM, SECTION, SUBSECTION, Manuscript, expr, sub, symbols
+from .manuscript import ITEM, SECTION, SUBSECTION, Manuscript, expr, sub
 from .tables import volume_table
 
 XL, XC = sub("x", "L"), sub("x", "C")
@@ -25,10 +22,9 @@ def pedestal_shown(sw: SelfWeightResult) -> bool:
 
 
 def centroid(m: Manuscript, key: str, body: Body, *, heights: bool = True) -> None:
-    """N = ΣV × γ, and the centroid ΣV·x / ΣV (a single prism keeps its own x)."""
+    """N = ΣV × γ, and the centroid ΣV·x / ΣV (a single prism keeps its own x), written in numbers."""
     m.start(key + ".totals")
-    m.formula(key + ".weight", "N", symbols("ΣV", "×", "γ"), (body.volume, "×", body.unit_weight), body.weight,
-              gap=True)
+    m.formula(key + ".weight", "N", None, (body.volume, "×", body.unit_weight), body.weight, gap=True)
     pairs = [(XL, body.moment_l, body.x_l), (XC, body.moment_c, body.x_c)]
     if heights:
         assert body.moment_y is not None and body.y is not None
@@ -38,32 +34,18 @@ def centroid(m: Manuscript, key: str, body: Body, *, heights: bool = True) -> No
         if len(body.rows) == 1 or body.volume.value == 0:
             m.value(name, lhs, position)
         else:
-            m.formula(name, lhs, Row("ΣV・", lhs, "/ΣV", gap=0), (moment, "/", body.volume), position)
-    if len(body.rows) > 1 and body.volume.value == 0:
-        m.paragraph(key + ".centroid.note", "ΣV = 0 のため重心位置は 0 とする。")
+            m.formula(name, lhs, None, (moment, "/", body.volume), position)
     m.end()
 
 
 def haunch(m: Manuscript, key: str, height: Printed, shape: HaunchShape, z: Printed) -> None:
-    """The exact centroid of a haunch whose plan sides vary linearly (decision 22)."""
-    m.paragraph(key + ".z.introduction",
-                "ハンチの重心は、幅と奥行きが直線的に変わる立体の厳密な式で、下面からの高さ z を求める"
-                "（h はハンチの高さ。相似な断面では錐台の式と一致する）。", gap=True)
-    b0, w0 = sub("b", "0"), sub("w", "0")
-    m.equation(key + ".z.symbolic", "z",
-               symbols("h", "×", "(", b0, w0, "/", "2", "+", "(", b0, "Δw", "+", w0, "Δb", ")", "/", "3", "+",
-                       "Δb", "Δw", "/", "4", ")", "/", "(", b0, w0, "+", "(", b0, "Δw", "+", w0, "Δb", ")", "/",
-                       "2", "+", "Δb", "Δw", "/", "3", ")"), checked=False)
+    """The exact centroid of a haunch whose plan sides vary linearly (decision 22), written in numbers."""
     lb, lw, cb, cw = shape.lower_length, shape.lower_width, shape.length_change, shape.width_change
     # On the line (not stacked); the outer parentheses open so that the long expression wraps at its operators.
     top = (lb, "×", lw, "/", 2, "+", "(", lb, "×", cw, "+", lw, "×", cb, ")", "/", 3, "+", cb, "×", cw, "/", 4)
     bottom = (lb, "×", lw, "+", "(", lb, "×", cw, "+", lw, "×", cb, ")", "/", 2, "+", cb, "×", cw, "/", 3)
-    m.equation(key + ".z", "z", expr(height, "×", "(", *top, ")", "/", "(", *bottom, ")", open_groups=True), z)
-
-
-def _haunch_label(height: Printed) -> str:
-    """The haunch is a frustum from its bottom face A2 to its top face A1; its volume is the frustum formula."""
-    return f"ハンチ部（高さ {printed(height)} m、下面 A2 から上面 A1 までの角錐台）"
+    m.equation(key + ".z", "z", expr(height, "×", "(", *top, ")", "/", "(", *bottom, ")", open_groups=True), z,
+               gap=True)
 
 
 def _pedestal(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> None:
@@ -96,18 +78,17 @@ def _beam(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> 
     m.formula("weight.beam.w0", w0, None, (w[1], "−", w[4], "−", w[5]), shape.lower_width)
     m.formula("weight.beam.db", "Δb", None, (b[1], "−", shape.lower_length), shape.length_change)
     m.formula("weight.beam.dw", "Δw", None, (w[1], "−", shape.lower_width), shape.width_change)
-    m.formula("weight.beam.bottom", a2, symbols(b0, "×", w0), (shape.lower_length, "×", shape.lower_width),
-              sw.beam_bottom_area)
+    m.formula("weight.beam.bottom", a2, None, (shape.lower_length, "×", shape.lower_width), sw.beam_bottom_area)
     m.end()
     m.start("weight.beam.prism")
-    m.paragraph("weight.beam.prism.label", "はり（直方体部）", gap=True)
+    m.paragraph("weight.beam.prism.label", "はり", gap=True)
     m.formula("weight.beam.prism.volume", "V", None, (sw.beam_top_area, "×", h[2]), prism.volume)
     m.formula("weight.beam.prism.x_l", XL, None, ("(", b[5], "−", b[4], ")", "/", 2), prism.x_l)
     m.formula("weight.beam.prism.x_c", XC, None, ("(", w[5], "−", w[4], ")", "/", 2), prism.x_c)
     m.formula("weight.beam.prism.y", "y", None, ("−", h[2], "/", 2), prism.y)
     m.end()
     m.start("weight.beam.haunch")
-    m.paragraph("weight.beam.haunch.label", _haunch_label(h[3]), gap=True)
+    m.paragraph("weight.beam.haunch.label", "ハンチ部", gap=True)
     m.formula("weight.beam.haunch.volume", "V", None,
               (h[3], "/", 6, "×", "(", shape.lower_length, "×", w[1], "+", b[1], "×", shape.lower_width, "+", 2,
                "×", "(", sw.beam_top_area, "+", sw.beam_bottom_area, ")", ")"), part.volume, open_groups=True)
@@ -121,8 +102,7 @@ def _beam(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) -> 
         if h[3].value == 0:
             m.value(name, lhs, getattr(part, field))
         else:
-            m.formula(name, lhs, symbols(Row(lhs, "(はり)", gap=0), "×", "z", "/", "h"),
-                      (getattr(prism, field), "×", sw.beam_haunch_centroid, "/", h[3]), getattr(part, field))
+            m.formula(name, lhs, None, (getattr(prism, field), "×", sw.beam_haunch_centroid, "/", h[3]), getattr(part, field))
     m.formula("weight.beam.haunch.y", "y", None,
               ("−", "(", h[2], "+", h[3], "−", sw.beam_haunch_centroid, ")"), part.y)
     m.end()
@@ -156,15 +136,14 @@ def _footing(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) 
     m.formula("weight.footing.length", "B", None, (b[7], "+", b[8], "+", b[9]), sw.footing_length)
     m.formula("weight.footing.width", "W", None, (w[7], "+", w[8], "+", w[9]), sw.footing_width)
     m.formula("weight.footing.top", a1, None, (b[8], "×", w[8]), sw.footing_top_area)
-    m.formula("weight.footing.bottom", a2, symbols("B", "×", "W"), (sw.footing_length, "×", sw.footing_width),
-              sw.footing_bottom_area)
-    m.value("weight.footing.b0", b0, shape.lower_length, symbolic="B")
-    m.value("weight.footing.w0", w0, shape.lower_width, symbolic="W")
+    m.formula("weight.footing.bottom", a2, None, (sw.footing_length, "×", sw.footing_width), sw.footing_bottom_area)
+    m.value("weight.footing.b0", b0, shape.lower_length)
+    m.value("weight.footing.w0", w0, shape.lower_width)
     m.formula("weight.footing.db", "Δb", None, (b[8], "−", shape.lower_length), shape.length_change)
     m.formula("weight.footing.dw", "Δw", None, (w[8], "−", shape.lower_width), shape.width_change)
     m.end()
     m.start("weight.footing.haunch")
-    m.paragraph("weight.footing.haunch.label", _haunch_label(h[5]), gap=True)
+    m.paragraph("weight.footing.haunch.label", "ハンチ部", gap=True)
     m.formula("weight.footing.haunch.volume", "V", None,
               (h[5], "/", 6, "×", "(", sw.footing_length, "×", w[8], "+", b[8], "×", sw.footing_width, "+", 2,
                "×", "(", sw.footing_top_area, "+", sw.footing_bottom_area, ")", ")"), part.volume, open_groups=True)
@@ -178,12 +157,11 @@ def _footing(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: int) 
         if h[5].value == 0:
             m.value(name, lhs, getattr(part, field))
         else:
-            m.formula(name, lhs, symbols(Row(lhs, "(柱)", gap=0), "×", "z", "/", "h"),
-                      (getattr(sw.column, field), "×", sw.footing_haunch_centroid, "/", h[5]), getattr(part, field))
+            m.formula(name, lhs, None, (getattr(sw.column, field), "×", sw.footing_haunch_centroid, "/", h[5]), getattr(part, field))
     m.formula("weight.footing.haunch.y", "y", None, (h[6], "+", sw.footing_haunch_centroid), part.y)
     m.end()
     m.start("weight.footing.prism")
-    m.paragraph("weight.footing.prism.label", "フーチング（直方体部）", gap=True)
+    m.paragraph("weight.footing.prism.label", "フーチング", gap=True)
     m.formula("weight.footing.prism.volume", "V", None, (sw.footing_bottom_area, "×", h[6]), prism.volume)
     m.value("weight.footing.prism.x_l", XL, prism.x_l)
     m.value("weight.footing.prism.x_c", XC, prism.x_c)
@@ -199,16 +177,13 @@ def _overburden(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: in
     rows = sw.overburden.rows
     depth = sw.soil_depth_at_column
     m.heading("weight.soil.heading", f"({number}) 上載土", SUBSECTION)
-    m.paragraph("weight.soil.introduction",
-                f"地表面はフーチング上面から起点側 {printed(s.df1)} m、終点側 {printed(s.df2)} m の高さで直線とし、"
-                "ハンチの層を含めて柱とフーチングのハンチを控除する。")
     m.start("weight.soil.depth")
     m.formula("weight.soil.depth", "d", None,
               ("(", s.df1, "−", s.df2, ")", "/", sw.footing_length, "×", "(", b[9], "+", b[8], "/", 2, ")", "+",
                s.df2), depth)
     m.end()
     m.start("weight.soil.trapezoid")
-    m.paragraph("weight.soil.trapezoid.label", "台形部（フーチング上面から地表面まで）", gap=True)
+    m.paragraph("weight.soil.trapezoid.label", "台形部", gap=True)
     m.formula("weight.soil.trapezoid.volume", "V", None,
               (sw.footing_bottom_area, "×", "(", s.df1, "+", s.df2, ")", "/", 2), rows[0].volume)
     if s.df1.value + s.df2.value == 0:
@@ -219,13 +194,12 @@ def _overburden(m: Manuscript, sw: SelfWeightResult, pier: PierInput, number: in
                    s.df2, ")", ")", "−", sw.footing_length, "/", 2), rows[0].x_l)
     m.end()
     m.start("weight.soil.deductions")
-    m.paragraph("weight.soil.column.label", "柱の控除（柱の位置の土被り d）", gap=True)
-    m.formula("weight.soil.column.volume", "V", symbols("−", "A", "×", "d"), ("−", sw.column_area, "×", depth),
-              rows[1].volume)
-    m.paragraph("weight.soil.layer.label", f"ハンチの層（フーチング平面全体、高さ {printed(h[5])} m）", gap=True)
+    m.paragraph("weight.soil.column.label", "柱の控除", gap=True)
+    m.formula("weight.soil.column.volume", "V", None, ("−", sw.column_area, "×", depth), rows[1].volume)
+    m.paragraph("weight.soil.layer.label", "ハンチの層", gap=True)
     m.formula("weight.soil.layer.volume", "V", None, (sw.footing_bottom_area, "×", h[5]), rows[2].volume)
     m.paragraph("weight.soil.haunch.label", "フーチングのハンチ部の控除", gap=True)
-    m.value("weight.soil.haunch.volume", "V", rows[3].volume, symbolic=Row("−V", "(ハンチ部)", gap=0))
+    m.value("weight.soil.haunch.volume", "V", rows[3].volume)
     m.end()
     m.table("weight.soil.table", volume_table(sw.overburden, ("台形部", "柱控除", "ハンチの層", "ハンチ控除"),
                                               heights=False), SUBSECTION)
@@ -236,10 +210,6 @@ def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> int:
     """(1) the shape, then each part; returns the number of the next item."""
     shown = pedestal_shown(sw)
     m.heading("weight.heading", "6.2 橋脚自重", SECTION)
-    m.paragraph("weight.introduction",
-                "重心位置 xL は線路方向、xC は線路直角方向とする。" + ("桁受けとはりは" if shown else "はりは")
-                + "柱の中心軸から、高さははり天端から上向きを正として測る。柱・フーチング・上載土はフーチング中心から、"
-                "高さはフーチング下面から測る。")
     m.heading("weight.shape.heading", "(1) 橋脚の形状", SUBSECTION)
     m.figure("weight.shape.figure", outline_figure(pier, sw), ITEM)
     number = 2

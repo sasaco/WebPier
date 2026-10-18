@@ -184,7 +184,7 @@ ROLES = {
     "common.section": "6.1",
     "common.subsection": "(1)",
     "common.subsubsection": "1)",
-    "common.body": "起点側桁は",
+    "common.body": "制動荷重および始動荷重の特性値は",
     "common.detail_heading": "(a)",
 }
 

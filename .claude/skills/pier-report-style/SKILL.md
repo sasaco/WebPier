@@ -27,6 +27,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 - 「ここに、」の定義：記号右揃え、全角コロンの列（0500 は x211.0 付近）、「(= 値 単位)」も列。
 - 見出しの出典【…】：見出しの右端 +9.9pt 以上で 340.8 + k×14.52 の最小の x。
 - 表：細罫 0.12pt、太罫 0.96pt。0610/0620 系の小表は開いた表（外枠・縦罫・見出し下の線なし、「合計」の上に 0.96pt の線1本）。
+- 見本にない説明の文、「ここに、」の記号の定義、記号の式の段（`N = ΣV × γ = …` の `ΣV × γ`）を足さない。式は「左辺 = 数値 = 結果」で書き、記号の行は見本が書いている式だけに残す。見本にある文は見本の文言で書く（決定55）。
 - 入力票の記号（B1〜B9、H1〜H6、W3〜W9、df1、df2）は印刷しない。風荷重の W1/W2 は設計記号なので可。
 
 ## 3. 部品の使い方
@@ -43,6 +44,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 - 式の左辺の置き方：`wide=True` は左辺をラベルとして左端（`left`）に左寄せし、その後に等号を置く。ラベルは等号の列より約4pt手前で終わらないと「text does not fit」や余分な1行になる。「※ T1」「Rm」のように等号のすぐ前に来る短い記号は、ラベルにせず左辺（右寄せ）にする。等号の列は `equal=` で式ごとに指定できる。
 - 「a / b」のような短い行は、下の行と項の形（列数・揃え）が同じだと列を共有して「320.00 /        2」と間延びする。`ratio()`／`over()` で1項の a/b にすれば共有しない。
 - `blank(out)`：空き行。頁頭で捨てられ、重ならない（`spacer()` を直接重ねない）。
+- 0600 の `Manuscript` で数値だけの式（決定55）：`m.formula(key, lhs, None, numeric, result)` と記号の段を `None` にすると「左辺 = 数値 = 結果」になる。計算のない記号の段（`H = RB`、`y = hs`、`b0 = B`）は `m.value(key, lhs, value)` で値だけ書く。見本が記号で書く式（`T = (D1 + D2 + S2) × Kh` など）は `m.equation(key, lhs, inline(symbols(...)), checked=False)` の記号の行として置く。
 - `tables.table(widths, rows, horizontal_rules=[...], vertical_rules=[])`：必要な罫線だけを引く開いた表。
 - フローチャート：GridLayoutPdf の `TextBox`（`rounded=True` で角丸の端子）・`TextDiamond`（判定）・`Connector`（折れ線＋矢じり）を `Figure` に置き、Yes/No は `Label`。文字は自動縮小せず、はみ出せば `LayoutOverflowError`。例は `reporting/stages/column_check.py` の `flowchart`。見本の箱の中で切れた文字（「σb ≦」だけ等）は再現せず、判定条件を書き切る。
 - 括り線：「※ T1 … ※ ∴ H」のように式のまとまりを左の縦線で括るときは、0600 の `Manuscript.rule_start()`／`rule_end()` で印を付け、layout が GridLayoutPdf の `SideRule` で包む（前後の空き行も含め、最初に `top`、最後に `bottom`）。線は空き行を見える部品にするので、まとまりの keep の鎖は空き行も `KeepWithNext` でつなぐ。
@@ -57,6 +59,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 4. `render_*` 関数で scratchpad に PDF を出し、`compare_pages.py` で見本と並べて目視する。
 5. テストを足す・直す。意味内容（`test_*_semantics.py`）、体裁（`test_*_pdf.py` と `test_report_spacing.py`・`test_report_definitions.py`・`test_report_equation_terms.py`・`test_frame_report_style.py`）、印刷物での検算。
 6. `& ".claude/check.ps1"` を通す（reporting は行・分岐カバレッジ 95%）。
+7. 帳票だけを直したときは、直す前の結果 JSON を scratchpad に写しておき、`--stage <段階> --overwrite` で作り直した結果 JSON と比べる。違うのが `implementation_sha256` だけなら計算は変わっていない。
 
 見本の使い分け：利用者が「Example橋脚2 のような式の表現に」と言うときは、式の書き方（何を何行で書くか、見出しの構成）を Example橋脚2 に合わせ、座標・列・空き行は体裁の基準 Example橋脚/output の実測を使う。式を1行に収めるために列を動かす前に、`tests/fixtures/reporting/appearance/reference-style.json` の役割（例：`horizontal.first_equals` は 276.72）が固定している列でないか確かめる。固定されている列は動かさず、別の意味の行（例：固定支承の候補）だけに別の列を与える。`TERM_GAP` など全体の値は変えない。
 
@@ -87,3 +90,6 @@ GridLayoutPdf の描画のソースを変えると、片持ち梁37頁の画素�
 - 線（括り線など）で空き行が見える部品になると、keep の鎖（`KeepWithNext` は次の「見える」部品と同じ頁に置く）が空き行で切れ、まとまりの最後の行だけ次の頁に送られる。線を引く空き行は、前の部品が keep なら `KeepWithNext` で包む。
 - TTC を何度も読む検査は遅い。フォント名はモジュールで1回求める。
 - 空き行は `blank()` で足し、重ねない。
+- 文や段を消す前に、その段だけが印刷している結果の値がないか確かめる。結果の全値が計算書に出ることをテストが確かめる（0600 の 6.3 2) の「（安全性（疲労破壊））iF(単線)・iF(複線)」は見本にない重複に見えるが、`train.fatigue.*_impact` を印刷する唯一の段なので残す）。
+- 組合せの名前の数値（「0.8 LR」）は値ではなく名前。係数の印字値から名前を作ると 0.8 LR が「1.0 LR」になるので、名前は表（0600 の `CASES`）に持ち、値から作るのは γB のような係数の部分だけにする。
+- 体裁のテスト（`test_*_pdf.py` の ROLES など）は行を文言で選ぶ。文言を変えたり消したりしたら、同じ役割（同じ x）の残る行の文言に選び直す（StopIteration で落ちる）。

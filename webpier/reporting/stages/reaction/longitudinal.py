@@ -11,8 +11,8 @@ from ....calc.reaction.longitudinal import (
     FRICTION_SHARE, LONG_RAIL, LONG_RAIL_CAP, LONG_RAIL_SERVICE, SEISMIC_KH, BearingForce, BearingType,
     CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing, SeismicForces,
 )
+from ....core.printed import Printed
 from ....inputs import BrakingRule, PierInput
-from ...equations import Definition
 from ...numbers import decimal_constant, printed
 from .manuscript import (
     CONCLUSION_EQUAL, DETAIL, FIXED_EQUAL, INDENTED, ITEM, MARK_EQUAL, PAIR_SECOND, SECTION, SUBSECTION,
@@ -21,17 +21,17 @@ from .manuscript import (
 from .tables import header, summary
 
 WIDE_NOTE = 160.56  # labels inside a bearing derivation
-RULES = {BrakingRule.AXLE: "軸重式", BrakingRule.EA17: "EA-17の規定式"}
 BEARINGS = {BearingType.FIXED: "固定", BearingType.MOVABLE: "可動"}
-# (check, label) of each combination; the combination itself is written from the calculator's definition.
+# (check, long rail) of each combination; γB follows the long rail in its label, and the combination is written
+# from the calculator's definition with the printed γL and γB (07 7-7: "1.0 LR + 1.23B  [1.1D1 + … の組合せ]").
 CASES = {
     LongitudinalCase.SERVICE_LR08: ("使用性", "0.8 LR"),
     LongitudinalCase.SERVICE_LR10: ("使用性", "1.0 LR"),
-    LongitudinalCase.SAFETY_LR10_B10: ("安全性（破壊）", "1.0 LR + 1.0 B"),
-    LongitudinalCase.SAFETY_LR11_B10: ("安全性（破壊）", "1.1 LR + 1.0 B"),
-    LongitudinalCase.SAFETY_LR10_B11: ("安全性（破壊）", "1.0 LR + 1.1 B"),
+    LongitudinalCase.SAFETY_LR10_B10: ("安全性（破壊）", "1.0 LR"),
+    LongitudinalCase.SAFETY_LR11_B10: ("安全性（破壊）", "1.1 LR"),
+    LongitudinalCase.SAFETY_LR10_B11: ("安全性（破壊）", "1.0 LR"),
     LongitudinalCase.SAFETY_LR10: ("安全性（破壊）", "1.0 LR"),
-    LongitudinalCase.RESTORABILITY_LR10_B10: ("復旧性", "1.0 LR + 1.0 B"),
+    LongitudinalCase.RESTORABILITY_LR10_B10: ("復旧性", "1.0 LR"),
     LongitudinalCase.RESTORABILITY_LR10: ("復旧性", "1.0 LR"),
 }
 SNOW = {"snow2": "S2", "snow10": "S10", "snow30": "S30"}
@@ -52,17 +52,38 @@ GROUPS = (
 assert [case for _, details in GROUPS for _, cases in details for case in cases] == list(LongitudinalCase)
 
 
-def combination(case: LongitudinalCase) -> str:
-    """The loads of a combination with their nominal factors, from the calculator's definition."""
-    definition = DEFINITIONS[case]
+def factors(case: CaseForces, pier: PierInput) -> tuple[Printed | None, Printed | None]:
+    """γL and γB of a combination as printed (ρf × the nominal factor). γB is that of a girder whose braking
+    factor is not the entered restorability one, or the entered one when both girders have it."""
+    definition = DEFINITIONS[case.case]
+    live = case.origin.live_factor if definition.live is not None else None
+    if definition.brake is None:
+        return live, None
+    entered = {side for side, _, _, _ in SIDES
+               if definition.restorability and getattr(pier.spans, side).recovery_brake_coefficient is not None}
+    side = next((side for side, _, _, _ in SIDES if side not in entered), SIDES[0][0])
+    return live, getattr(case, side).brake_factor
+
+
+def label(case: CaseForces, pier: PierInput) -> str:
+    """"1.0 LR + 1.23B": the long rail and γB."""
+    _, brake = factors(case, pier)
+    text = CASES[case.case][1]
+    return text if brake is None else f"{text} + {printed(brake)}B"
+
+
+def combination(case: CaseForces, pier: PierInput) -> str:
+    """The loads of a combination: the nominal factors of the calculator's definition, γL and γB as printed."""
+    definition = DEFINITIONS[case.case]
+    live, brake = factors(case, pier)
     parts = [f"{decimal_constant(definition.d1)}D1", f"{decimal_constant(definition.d2)}D2"]
-    if definition.live is not None:
-        parts.append(f"{decimal_constant(definition.live)}(L+I)")
+    if live is not None:
+        parts.append(f"{printed(live)}(L+I)")
     parts.append(SNOW[definition.snow.value])
     rail = "LR(8 kN/m)" if definition.service_rail else "LR"
     parts.append(f"{decimal_constant(definition.lr_factor)}{rail}")
-    if definition.brake is not None:
-        parts.append(f"{decimal_constant(definition.brake)}B")
+    if brake is not None:
+        parts.append(f"{printed(brake)}B")
     return " + ".join(parts)
 
 
@@ -71,37 +92,31 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
     t = pier.train
     m.heading("long.girder.heading", "(1) 桁に働く水平荷重", SUBSECTION)
     m.heading("long.rail.heading", "1) ロングレール縦荷重", ITEM)
-    m.paragraph("long.rail.introduction",
-                f"1軌道当り {decimal_constant(LONG_RAIL)} kN/m"
-                f"（使用性の 0.8 LR では {decimal_constant(LONG_RAIL_SERVICE)} kN/m）"
-                f"を桁長 L に載荷し、1軌道当り {decimal_constant(LONG_RAIL_CAP)} kN を上限とする。n は軌道数（6.1）。")
-    for key, name, _, _ in SIDES:
-        forces: GirderForces = getattr(lon, key)
-        m.start(f"long.rail.{key}")
-        m.paragraph(f"long.rail.{key}.label", name, gap=True)
-        for field, per_metre, label in (("long_rail", LONG_RAIL, "LR"), ("long_rail_service", LONG_RAIL_SERVICE,
-                                                                         "0.8 LR")):
-            m.formula(f"long.rail.{key}.{field}", Row(sub("T", "LR"), f"({label})", gap=0),
-                      symbols(call("min", symbols(decimal_constant(per_metre), "L"), decimal_constant(LONG_RAIL_CAP)),
-                              "×", "n"),
+    # 07 7-4: (a) 10 kN/m for the necessity check, safety and restorability, (b) 8 kN/m for serviceability.
+    for index, (field, per_metre, title) in enumerate((
+            ("long_rail", LONG_RAIL, "使用性の照査におけるひび割れの検討の必要性 および 安全性（破壊）,復旧性の照査"),
+            ("long_rail_service", LONG_RAIL_SERVICE, "使用性の照査"))):
+        m.heading(f"long.rail.{field}.heading", f"({chr(ord('a') + index)}) {title}", DETAIL)
+        m.start(f"long.rail.{field}")
+        m.paragraph(f"long.rail.{field}.load", f"1 軌道当り {decimal_constant(per_metre)} kN/m を考える。",
+                    left=INDENTED)
+        for key, _, _, _ in SIDES:
+            forces: GirderForces = getattr(lon, key)
+            m.formula(f"long.rail.{field}.{key}", MARKS[key], None,
                       (call("min", expr(per_metre, "×", forces.length), LONG_RAIL_CAP), "×", forces.track_total),
-                      getattr(forces, field), medium=True)
+                      getattr(forces, field))
         m.end()
     m.heading("long.brake.heading", "2) 制動荷重および始動荷重", ITEM)
     rule = lon.origin.braking_rule
-    m.paragraph("long.brake.rule",
-                f"車両 {t.vehicle} の制動荷重・始動荷重は{RULES[rule]}で求める（車両の選択による）。")
+    m.paragraph("long.brake.rule", "制動荷重および始動荷重の特性値は下式によって求める。")
     if rule is BrakingRule.EA17:
         braking = Row(f"({decimal_constant(EA17_BRAKING[0])} + {decimal_constant(EA17_BRAKING[1])}/Lv)・ΣR")
         starting = Row(f"({decimal_constant(EA17_STARTING[0])} + {decimal_constant(EA17_STARTING[1])}/Lv)・ΣR")
-        meanings = (Definition("ΣR", "桁の両端の列車反力（1軌道、荷重修正係数なし）"), Definition("Lv", "1両の長さ"))
     else:
         braking = Row(f"({decimal_constant(AXLE_BRAKING[0])} + {decimal_constant(AXLE_BRAKING[1])}/Lv・L)・P")
         starting = Row(f"({decimal_constant(AXLE_STARTING[0])} + {decimal_constant(AXLE_STARTING[1])}/Lv・L)・P")
-        meanings = (Definition("P", "軸重"), Definition("Lv", "1両の長さ"), Definition("L", "桁長"))
     m.math("long.brake.braking.formula", Row("制動荷重：", braking, gap=0), left=INDENTED)
     m.math("long.brake.starting.formula", Row("始動荷重：", starting, gap=0), left=INDENTED)
-    m.definitions("long.brake.symbols", *meanings)
     reactions = {"origin": (loading.ra, loading.rb), "end": (loading.rd, loading.rc)}
     for key, name, _, _ in SIDES:
         forces = getattr(lon, key)
@@ -116,48 +131,27 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
                 numeric = ("(", a, "+", b, "/", t.car_length, "×", forces.length, ")", "×", t.axle_load)
             m.formula(f"long.brake.{key}.{field}", Row("T(", label, ")", gap=0), None, numeric, getattr(forces, field),
                       medium=True)
-        m.formula(f"long.brake.{key}.adopted", "B", call("max", "T(制動)", "T(始動)"),
-                  (call("max", forces.braking, forces.starting),), forces.braking_adopted, medium=True)
+        m.formula(f"long.brake.{key}.adopted", "B", None, (call("max", forces.braking, forces.starting),),
+                  forces.braking_adopted, medium=True)
         m.end()
     m.heading("long.seismic.heading", f"3) 地震時慣性力（Kh = {decimal_constant(SEISMIC_KH)}）", ITEM)
-    m.paragraph("long.seismic.introduction", "桁の両端の支点の D1 + D2 + S2 に設計水平震度を乗じる。")
+    m.equation("long.seismic.symbols", "T", inline(symbols("(", "D1", "+", "D2", "+", "S2", ")", "×", "Kh")),
+               checked=False)
     dead = {"origin": result.dead.origin, "end": result.dead.end}
-    for key, name, near, far in SIDES:
+    for key, _, _, _ in SIDES:
         girder: GirderDead = dead[key]
         forces = getattr(lon, key)
         loads = (girder.far.d1, girder.pier.d1, girder.far.d2, girder.pier.d2, girder.far.snow2, girder.pier.snow2)
-        m.formula(f"long.seismic.{key}", Row("T(", name, ")", gap=0), None,
-                  ("(", *join(loads), ")", "×", SEISMIC_KH), forces.seismic_girder, medium=True)
+        m.formula(f"long.seismic.{key}", MARKS[key], None, ("(", *join(loads), ")", "×", SEISMIC_KH),
+                  forces.seismic_girder)
     m.heading("long.train.heading", "4) 地震時列車荷重慣性力", ITEM)
     m.paragraph("long.train.introduction",
-                f"車輪とレールの粘着係数 μ = {decimal_constant(ADHESION)} とし、桁の両端の地震時列車荷重に乗じる。")
+                f"線路方向の列車荷重慣性力は、車輪とレールとの粘着係数 μ = {decimal_constant(ADHESION)} とする。")
     seismic = result.train.seismic
-    for key, name, _, _ in SIDES:
+    for key, _, _, _ in SIDES:
         reaction = getattr(seismic, key)
-        m.formula(f"long.train.{key}", Row("T(", name, ")", gap=0), None,
-                  ("(", reaction, "+", reaction, ")", "×", ADHESION), getattr(lon, key).seismic_train, medium=True)
-
-
-def _factors(m: Manuscript, key: str, case: CaseForces, pier: PierInput) -> None:
-    """γB and γL of a combination: ρf × the nominal factor, or the entered restorability braking factor."""
-    definition = DEFINITIONS[case.case]
-    t = pier.train
-    entered = [(side, name) for side, name, _, _ in SIDES if definition.brake is not None
-               and definition.restorability and getattr(pier.spans, side).recovery_brake_coefficient is not None]
-    computed = [getattr(case, side).brake_factor for side, _, _, _ in SIDES
-                if definition.brake is not None and side not in dict(entered)]
-    if computed:
-        assert definition.brake is not None
-        m.formula(key + ".brake", sub("γ", "B"), symbols("ρf", "×", decimal_constant(definition.brake)),
-                  (t.factor_ultimate, "×", definition.brake), computed[0], left=INDENTED, equal=MARK_EQUAL)
-    if definition.live is not None:
-        rho = t.factor_service if definition.service_train else t.factor_ultimate
-        m.formula(key + ".live", sub("γ", "L"), symbols("ρf", "×", decimal_constant(definition.live)),
-                  (rho, "×", definition.live), case.origin.live_factor, left=INDENTED, equal=MARK_EQUAL)
-    for side, name in entered:
-        m.math(f"{key}.{side}.brake", Row(f"{name}の ", sub("γ", "B"), " は入力した復旧性制動係数 "
-                                          f"{printed(getattr(case, side).brake_factor)} とする。", gap=0),
-               left=INDENTED)
+        m.formula(f"long.train.{key}", MARKS[key], None, ("(", reaction, "+", reaction, ")", "×", ADHESION),
+                  getattr(lon, key).seismic_train)
 
 
 def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCase, side: str, mark: str,
@@ -186,7 +180,7 @@ def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCas
         # "× (1 + i)" is one term, so that a wrapped line begins with its operator, never with "(".
         vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total,
                      Row("×", " ", inline(expr("(", 1, "+", impact, ")")), gap=0)]
-        vertical_symbols += ["+", Row(sub("γ", "L"), "・R・軌道数・(1 + i)", gap=0)]
+        vertical_symbols += ["+", f"{printed(force.live_factor)}複線(L+I)"]
     vertical += ["+", getattr(loads, definition.snow.value)]
     vertical_symbols += ["+", SNOW[definition.snow.value]]
     m.rule_start()
@@ -240,10 +234,6 @@ def _seismic(m: Manuscript, field: str, title: str, lon: LongitudinalResult) -> 
 def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     lon = result.longitudinal
     m.heading("long.bearing.heading", "(2) 支承に働く水平荷重", SUBSECTION)
-    m.definitions("long.bearing.symbols", Definition("T1", "起点側桁に働く水平荷重"),
-                  Definition("T2", "終点側桁に働く水平荷重"), Definition("Rm", "可動支承の鉛直荷重"),
-                  Definition("R", "支点の列車反力（6.3）"), Definition("i", "衝撃係数（複線）"),
-                  Definition("μ", "支承の摩擦係数"))
     for item, (title, details) in enumerate(GROUPS, 1):
         m.heading(f"long.item.{item}.heading", f"{item}) {title}", ITEM)
         for detail, (subtitle, cases) in enumerate(details):
@@ -253,18 +243,17 @@ def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
                 name = which.name.lower()
                 for side, _, _, _ in SIDES:
                     key = f"long.case.{name}.{side}"
-                    m.start(key)  # the combination and its factors stay with the first girder
+                    m.start(key)  # the combination stays with the first girder
                     if side == SIDES[0][0]:
-                        m.pair(f"long.case.{name}.label", f"・{CASES[which][1]}",
-                               f"[{combination(which)} の組合せ]", INDENTED, PAIR_SECOND, gap=True)
-                        _factors(m, f"long.case.{name}", case, pier)
+                        m.pair(f"long.case.{name}.label", f"・{label(case, pier)}",
+                               f"[{combination(case, pier)} の組合せ]", INDENTED, PAIR_SECOND, gap=True)
                     _bearing(m, key, getattr(case, side), which, side, MARKS[side], result, pier)
                     m.end()
     _seismic(m, "seismic_girder", f"{len(GROUPS) + 1}) 地震時慣性力", lon)
     _seismic(m, "seismic_train", f"{len(GROUPS) + 2}) 地震時列車荷重慣性力", lon)
 
 
-def _summary(m: Manuscript, result: ReactionResult) -> None:
+def _summary(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     lon = result.longitudinal
     m.heading("long.summary.heading", f"{len(GROUPS) + 3}) 支承に働く水平荷重のまとめ", ITEM)
     head = ((CellSpec("荷重種別", colspan=2, align="center"),
@@ -275,13 +264,13 @@ def _summary(m: Manuscript, result: ReactionResult) -> None:
     for index, case in enumerate(lon.cases):
         group = groups[index]
         span = groups.count(group) if group != previous else 0
-        label = [CellSpec(group, rowspan=span, align="center")] if span else []
-        body.append((*label, *cells(CASES[case.case][1], case.origin.force, case.end.force, case.total)))
+        group_cell = [CellSpec(group, rowspan=span, align="center")] if span else []
+        body.append((*group_cell, *cells(label(case, pier), case.origin.force, case.end.force, case.total)))
         previous = group
-    for index, (field, label) in enumerate((("seismic_girder", "1.0 EQ（桁）"), ("seismic_train", "1.0 EQ（列車）"))):
+    for index, (field, name) in enumerate((("seismic_girder", "1.0 EQ（桁）"), ("seismic_train", "1.0 EQ（列車）"))):
         forces = getattr(lon, field)
         first = [CellSpec("地震時", rowspan=2, align="center")] if index == 0 else []
-        body.append((*first, *cells(label, forces.origin.force, forces.end.force, forces.total)))
+        body.append((*first, *cells(name, forces.origin.force, forces.end.force, forces.total)))
     m.table("long.summary.table", summary((87.12, 116.16, 87.12, 87.12, 87.12), head, body, (2, 3, 4)), SUBSECTION)
 
 
@@ -290,5 +279,5 @@ def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     m.heading("long.direction.heading", "6.4.1 線路方向に働く水平荷重", SECTION)
     _girder_forces(m, result, pier)
     _cases(m, result, pier)
-    _summary(m, result)
+    _summary(m, result, pier)
 

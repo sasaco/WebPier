@@ -7,7 +7,7 @@ from gridlayoutpdf import Row
 from ....calc.reaction import ReactionResult
 from ....calc.reaction.dead import GirderDead, SupportLoads
 from .manuscript import (
-    CHAPTER, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, expr, join, sub, symbols,
+    CHAPTER, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, expr, join, sub,
 )
 from .tables import GIRDER_ROW, header
 
@@ -41,11 +41,7 @@ def _bearing_table(girder: GirderDead) -> TableSpec:
 
 def _girder(m: Manuscript, key: str, title: str, support: str, girder: GirderDead) -> None:
     m.heading(f"dead.{key}.heading", title, ITEM)
-    if not girder.bearings:
-        m.paragraph(f"dead.{key}.none",
-                    f"{support}支点に支承がない（全ての支承枠が空き）ため、荷重と軌道数は 0 とする。")
-    else:
-        m.paragraph(f"dead.{key}.introduction", f"{support}支点の荷重は支承ごとの値の合計とする（空き支承枠は除く）。")
+    if girder.bearings:
         m.table(f"dead.{key}.bearings", _bearing_table(girder), SUBSECTION)
     m.start(f"dead.{key}.sums")
     for field, _, symbol in LOADS:
@@ -58,17 +54,15 @@ def _girder(m: Manuscript, key: str, title: str, support: str, girder: GirderDea
             m.value(f"dead.{key}.sum.{field}", lhs, total, medium=True)
     m.end()
     m.start(f"dead.{key}.shares")
-    m.paragraph(f"dead.{key}.shares.introduction",
-                "複線載荷の分担率は下り・上りの分担率の和、軌道数 n はその合計とする。", gap=True)
-    for item in girder.bearings:
+    for index, item in enumerate(girder.bearings):
         shares = item.bearing.shares
-        m.equation(f"dead.{key}.double.{item.slot}", bearing_name(item.slot),
-                   expr(symbols("L1", "+", "L2"), "=", shares.l1, "+", shares.l2), item.double)
+        m.equation(f"dead.{key}.double.{item.slot}", bearing_name(item.slot), expr(shares.l1, "+", shares.l2),
+                   item.double, gap=index == 0)
     doubles = [item.double for item in girder.bearings]
     if doubles:
         m.equation(f"dead.{key}.tracks", "n", expr(*join(doubles)), girder.track_total)
     else:
-        m.value(f"dead.{key}.tracks", "n", girder.track_total)
+        m.value(f"dead.{key}.tracks", "n", girder.track_total, gap=True)
     m.end()
 
 
@@ -77,9 +71,6 @@ def section(m: Manuscript, result: ReactionResult) -> None:
     m.heading("title", "§6. 上部工反力 及び 橋脚自重", CHAPTER)
     m.heading("dead.heading", "6.1 死荷重および雪荷重", SECTION)
     m.heading("dead.supports.heading", "(1) 支点反力", SUBSECTION)
-    m.paragraph("dead.supports.introduction",
-                "起点側桁は A支点（他端）と B支点（本橋脚）、終点側桁は C支点（本橋脚）と D支点（他端）で支持される。"
-                "A支点・D支点は入力した合計、B支点・C支点は (2) の支承ごとの値の合計である。")
     m.table("dead.supports.table", _support_table((dead.origin.far, dead.origin.pier, dead.end.pier, dead.end.far)),
             SUBSECTION)
     m.heading("dead.bearings.heading", "(2) 本橋脚の支承の荷重と列車の分担率", SUBSECTION)

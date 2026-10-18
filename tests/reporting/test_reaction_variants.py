@@ -32,11 +32,13 @@ def test_a_pedestal_is_calculated_and_drawn():
     assert actual["weight.pedestal.x_l"].endswith("=(2×0.300+1.200−3.000−0.400+0.200)/2=-0.700m")
     assert "|0.250|" in actual["weight.shape.figure"]  # H1 is dimensioned
     assert "0.250" not in records("current")["weight.shape.figure"].replace("2.250", "")
-    # The footing haunch (H5 = 0.400) is placed by the column's position, the beam haunch by the beam's.
-    # h is the haunch height, defined with z.
-    assert actual["weight.footing.haunch.x_l"].startswith("xL=xL(柱)×z/h=")
-    assert actual["weight.beam.haunch.x_l"].startswith("xL=xL(はり)×z/h=")
-    assert "（hはハンチの高さ。" in actual["weight.beam.z.introduction"]
+    # The footing haunch (H5 = 0.400) is placed by the column's position, the beam haunch by the beam's:
+    # x × z / h in numbers.
+    sw = result.self_weight
+    assert actual["weight.footing.haunch.x_l"] == (f"xL={text(sw.column.x_l)}×{text(sw.footing_haunch_centroid)}"
+                                                   f"/0.400={text(sw.footing.rows[0].x_l)}m")
+    assert actual["weight.beam.haunch.x_l"].startswith(f"xL={text(sw.beam.rows[0].x_l)}×"
+                                                       f"{text(sw.beam_haunch_centroid)}/")
 
 
 @pytest.mark.parametrize("name,wedge_side", [("pedestal", "end"), ("mirrored", "origin")])
@@ -44,10 +46,12 @@ def test_the_submerged_sloped_soil_is_a_wedge_on_the_lower_side(name: str, wedge
     result, _ = case(name)
     actual = records(name)
     high = result.self_weight.buoyancy_high
-    assert actual["weight.water.high.wedge"] == (f"b'=min(Bh''/Δdf,B)=min({text(result.self_weight.footing_length)}"
-                                                 f"×{text(high.submerged)}/{text(result.self_weight.soil_step)},"
-                                                 f"{text(result.self_weight.footing_length)})={text(high.wedge)}m")
-    expected = "xL=b''+b'/3−B/2=" if wedge_side == "end" else "xL=2b'/3−B/2="
+    sw = result.self_weight
+    assert actual["weight.water.high.wedge"] == (f"b'=min({text(sw.footing_length)}×{text(high.submerged)}"
+                                                 f"/{text(sw.soil_step)},{text(sw.footing_length)})={text(high.wedge)}m")
+    # The wedge lies on the lower side: after the rectangle (b'' + b'/3) or from the origin end (2b'/3).
+    wedge, rectangle, half = text(high.wedge), text(high.rectangle), text(sw.footing_length)
+    expected = f"xL={rectangle}+{wedge}/3−{half}/2=" if wedge_side == "end" else f"xL=2×{wedge}/3−{half}/2="
     assert actual["weight.water.high.wedge.x_l"].startswith(expected)
     # The low water is below the footing top: nothing of the slope is submerged.
     assert actual["weight.water.low.wedge"] == "b'=0.000m"
@@ -59,11 +63,10 @@ def test_no_haunch_no_cover_and_no_bearing():
     assert actual["weight.beam.haunch.x_l"] == "xL=0.000m"  # H3 = 0: no position from z / H3
     assert actual["weight.soil.trapezoid.x_l"] == "xL=0.000m"  # df1 + df2 = 0
     assert actual["weight.soil.centroid.x_l"] == "xL=0.000m"  # ΣV = 0
-    assert "weight.soil.centroid.note" in actual
-    assert "dead.end.bearings" not in actual and "dead.end.none" in actual
+    assert "dead.end.bearings" not in actual
     assert actual["dead.end.sum.d1"] == "RC(D1)=0.00kN"
     assert actual["dead.end.tracks"] == "n=0.000"
-    assert actual["long.rail.end.long_rail"].endswith("×0.000=0.00kN")
+    assert actual["long.rail.long_rail.end"].endswith("×0.000=0.00kN")
     assert result.dead.end.track_total.value == 0.0
 
 
@@ -74,16 +77,16 @@ def test_empty_slots_keep_their_bearing_numbers_and_zero_snow_is_printed():
     assert "dead.origin.double.1" not in actual and "dead.origin.double.6" in actual
     assert actual["dead.end.double.9"].startswith("G10=")
     assert actual["dead.origin.sum.snow2"] == "RB(S2)=0.00+0.00+0.00+0.00=0.00kN"
-    assert actual["trans.seismic.origin.force"] == "H=(D1+D2+S2)×Kh=(5740.00+520.00+0.00)×1.00=6260.00kN"
+    assert actual["trans.seismic.origin.force"] == "H=(5740.00+520.00+0.00)×1.00=6260.00kN"
 
 
 def test_p16_uses_the_axle_load_rule_and_ea17_its_own_rule():
     current, ea17 = records("current"), records("ea17")
-    assert current["long.brake.rule"] == "車両P-16の制動荷重・始動荷重は軸重式で求める（車両の選択による）。"
+    assert current["long.brake.braking.formula"] == "制動荷重：(0.20+0.80/Lv・L)・P"
     assert current["long.brake.origin.braking"] == "T(制動)=(0.20+0.80/20.000×20.000)×160.00=160.00kN"
     assert current["long.brake.origin.starting"] == "T(始動)=(0.19+0.76/20.000×20.000)×160.00=152.00kN"
-    assert current["long.brake.origin.adopted"] == "B=max(T(制動),T(始動))=max(160.00,152.00)=160.00kN"
-    assert ea17["long.brake.rule"] == "車両EA-17の制動荷重・始動荷重はEA-17の規定式で求める（車両の選択による）。"
+    assert current["long.brake.origin.adopted"] == "B=max(160.00,152.00)=160.00kN"
+    assert ea17["long.brake.braking.formula"] == "制動荷重：(0.27+1.00/Lv)・ΣR"
     result, _ = case("ea17")
     loading = result.train.loading
     assert ea17["long.brake.origin.braking"] == (f"T(制動)=(0.27+1.00/16.400)×({text(loading.ra)}+{text(loading.rb)})="
@@ -118,15 +121,24 @@ def test_bearing_types_choose_the_printed_candidates():
 def test_the_restorability_braking_factor_is_the_entered_one_or_rho_times_gamma():
     current, ea17 = records("current"), records("ea17")
     key = "long.case.restorability_lr10_b10"
-    # current: the end girder's factor is entered (Example2 7-11), the origin girder's is ρf × 1.0.
-    assert current[f"{key}.brake"] == "γB=ρf×1.0=1.231×1.0=1.23"
-    assert current[f"{key}.end.brake"] == "終点側桁のγBは入力した復旧性制動係数1.000とする。"
-    assert f"{key}.origin.brake" not in current
+    # current: the end girder's factor is entered (Example2 7-11), the origin girder's is ρf × 1.0 = 1.23,
+    # which names the combination as 07 7-11 does.
+    combination = "・1.0LR+1.23B[1.0D1+1.0D2+1.23(L+I)+S10+1.0LR+1.23Bの組合せ]"
+    assert current[f"{key}.label"] == combination
     assert current[f"{key}.origin.applied"] == "※T1=1.0×400.00+1.23×160.00=596.80kN"
     assert current[f"{key}.end.applied"] == "※T2=1.0×200.00+1.000×96.00=296.00kN"
-    # ea17 enters no restorability factor: both girders take ρf × 1.0, printed once.
-    assert ea17[f"{key}.brake"] == "γB=ρf×1.0=1.231×1.0=1.23"
-    assert f"{key}.end.brake" not in ea17 and f"{key}.origin.brake" not in ea17
+    # ea17 enters no restorability factor: both girders take ρf × 1.0.
+    assert ea17[f"{key}.label"] == combination
+    assert not [name for name in current if name.endswith(".brake") or name.endswith(".live")]
+
+
+def test_each_combination_is_named_with_its_printed_factors():
+    """07 7-7 to 7-13: γB in the label, γL and γB in the combination, the same names in the summary."""
+    actual = records("current")
+    assert actual["long.case.service_lr08.label"] == "・0.8LR[1.0D1+1.0D2+S2+1.0LR(8kN/m)の組合せ]"
+    assert actual["long.case.safety_lr10_b11.label"] == "・1.0LR+1.35B[1.1D1+1.2D2+1.23(L+I)+S10+1.0LR+1.35Bの組合せ]"
+    assert actual["long.case.safety_lr10_b10.origin.vertical.symbols"] == "Rm=1.1D1+1.2D2+1.35複線(L+I)+S10"
+    assert "|1.0LR+1.23B|298.40|175.03|473.43|1.1LR+1.23B|" in actual["long.summary.table"]
 
 
 def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():
@@ -139,7 +151,7 @@ def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():
     assert actual["weight.bottom.y"] == f"y={text(sw.pier_bottom.y)}m"
 
 
-def test_a_girder_without_axles_says_so():
+def test_a_girder_without_axles_prints_its_reactions_as_values():
     result, pier = case("current")
     loading = result.train.loading
     # Without the two end axles (x = 20.0, 22.2), the last spacing runs from x = 17.2 to D (29.625).
@@ -147,7 +159,7 @@ def test_a_girder_without_axles_says_so():
                           end_axles=Printed(0.0, 0, ""), spacings=(*loading.spacings[:4], LENGTH(12.425)))
     actual = records("", replace(result, train=replace(result.train, loading=origin_only)), pier)
     assert actual["train.loading.c"] == f"RC={text(loading.rc)}kN"
-    assert "train.loading.c.none" in actual
+    assert actual["train.loading.d"] == f"RD={text(loading.rd)}kN"
 
 
 def test_a_derivation_lhs_must_be_text():
@@ -176,4 +188,4 @@ def test_the_axle_count_of_ra_is_read_from_the_result():
     result, pier = case("current")
     odd = replace(result.train.loading, origin_axles=Printed(7.0, 0, ""))
     actual = records("", replace(result, train=replace(result.train, loading=odd)), pier)
-    assert actual["train.loading.a"] == "RA=P×軸数−RB=160.00×7−272.47=367.53kN"
+    assert actual["train.loading.a"] == "RA=160.00×7−272.47=367.53kN"
