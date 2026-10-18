@@ -6,8 +6,9 @@
 3. The selected stages and their dependencies are all calculated, and every export of the selected stages
    built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
    error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
-   FrameWeb file, and its report takes those pages (decision 44); a stage with a データ確認図 (0710, 0720) has the
-   JRSNAP runner draw it from its NDU the same way (decision 50). A stage with a frame analysis (0611, 0612, 0621,
+   FrameWeb file, and its report takes those pages (decision 44); a stage with JRSNAP's figures (0710, 0720) has the
+   JRSNAP runner draw the データ確認図 and the 荷重図 from its NDU in one call, each basic case from the combination
+   the stage names for it, and its report takes those pages the same way (decisions 50, 51). A stage with a frame analysis (0611, 0612, 0621,
    0622, opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
    rendered; the returned pickup files are staged as they are (decision 46). Stages that analyze the same file share
    one call and one set of files, staged under the first of them; a stage that reads them (the 基礎の照査, decision
@@ -188,6 +189,19 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
     return item.build(_own(registry, results, selected), pier)
 
 
+def figure_cases(pier: PierInput, stage_id: str, *, registry: Registry = STAGES) -> tuple[tuple[int, int], ...]:
+    """(basic case, combination) of each 荷重図 page JRSNAP draws for *stage_id*, as a generation asks for them.
+
+    The real-app acceptance draws its candidate pages with this (decision 51).
+    """
+    (selected,) = registry.select(stage_id)
+    figures = registry.get(selected).jrsnap_figures
+    if figures is None:
+        raise InputError(f"{selected}に JRSNAP のデータ確認図と荷重図はありません")
+    results = _calculate(registry, pier, (selected,))
+    return figures.load_cases(_own(registry, results, selected), pier)
+
+
 def project_bytes(pier: PierInput, stage_id: str, names: Sequence[str], *, registry: Registry = STAGES) -> bytes:
     """The Aggre-SE project of *stage_id* for the JRSNAP result files *names*, as a generation writes it.
 
@@ -277,19 +291,24 @@ def _sidecar(post: _PostFile, staging: ArtifactStaging, artifacts: list[Artifact
 
 
 def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadDiagramPages],
-                  checked: Mapping[str, jrsnap.DataCheckPages]) -> dict[str, Any]:
+                  figures: Mapping[str, jrsnap.FigurePages]) -> dict[str, Any]:
     facts: dict[str, Any] = {"metadata": to_json(post.export.metadata)}
     if post.kind == registry.get(post.stage).load_diagram:
         # The runner's pages are FEMPython's (decision 44): only which runner drew them is recorded.
         facts["load_diagram"] = {"report": f"{post.stage}.pdf", "engine": ENGINE,
                                  "engine_version": drawn[post.stage].engine_version}
-    if post.kind == registry.get(post.stage).data_check:
-        # The pages are JRSNAP's (decision 50): which runner drew which figures of which combination, and what it
-        # reports of JRSNAP and of the .ndt it wrote from this file.
-        pages = checked[post.stage]
-        facts["data_check"] = {"report": f"{post.stage}.pdf", "engine": jrsnap.ENGINE,
-                               "engine_version": pages.engine_version, "case": jrsnap.DATA_CHECK_CASE,
-                               "figures": list(jrsnap.DATA_CHECK_FIGURES), "runner_summary": dict(pages.summary)}
+    if post.stage in figures and post.kind == registry.get(post.stage).jrsnap_figures.export:
+        # The pages are JRSNAP's (decisions 50, 51): which runner drew which figures of which combination, the
+        # combination each load diagram page was taken from, and what it reports of JRSNAP and of the .ndt it wrote
+        # from this file.
+        pages = figures[post.stage]
+        facts["jrsnap_figures"] = {"report": f"{post.stage}.pdf", "engine": jrsnap.ENGINE,
+                                   "engine_version": pages.engine_version,
+                                   "data_check": {"combination": jrsnap.DATA_CHECK_COMBINATION,
+                                                  "figures": list(jrsnap.DATA_CHECK_FIGURES)},
+                                   "load_diagram": [{"case": case, "combination": combination}
+                                                    for case, combination in pages.load_cases],
+                                   "runner_summary": dict(pages.summary)}
     return facts
 
 
@@ -404,8 +423,8 @@ def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str
 
 
 def _jrsnap_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).data_check or registry.get(stage_id).nonlinear_analysis is not None
-               for stage_id in selected):
+    if not any(registry.get(stage_id).jrsnap_figures is not None
+               or registry.get(stage_id).nonlinear_analysis is not None for stage_id in selected):
         return None
     try:
         return jrsnap.runner_path()
@@ -420,9 +439,10 @@ def _draw(document: Path, runner: Path) -> LoadDiagramPages:
         raise GenerationError(str(exc)) from exc
 
 
-def _draw_data_check(name: str, document: bytes, runner: Path) -> jrsnap.DataCheckPages:
+def _draw_figures(name: str, document: bytes, runner: Path, load_cases: Sequence[tuple[int, int]]
+                  ) -> jrsnap.FigurePages:
     try:
-        return jrsnap.draw_data_check(name, document, runner)
+        return jrsnap.draw_figures(name, document, runner, load_cases)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
 
@@ -487,9 +507,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
         drawn = {post.stage: _draw(staging.path_for(post.native.path), runner) for post in posts
                  if runner is not None and post.kind == registry.get(post.stage).load_diagram}
-        checked = {post.stage: _draw_data_check(post.native.path.name, built[(post.stage, post.kind)], jrsnap_runner)
-                   for post in posts
-                   if post.export is not None and post.kind == registry.get(post.stage).data_check}
+        figures = {post.stage: _draw_figures(post.native.path.name, built[(post.stage, post.kind)], jrsnap_runner,
+                                             spec.jrsnap_figures.load_cases(_own(registry, results, post.stage), pier))
+                   for post in posts if post.export is not None
+                   and (spec := registry.get(post.stage)).jrsnap_figures is not None
+                   and post.kind == spec.jrsnap_figures.export}
         runs: dict[tuple[str, str], AnalysisFiles] = {}  # one call for each FrameWeb file (decision 54)
         for analysis in analyses.values():
             if _analysis_key(analysis) not in runs:
@@ -529,11 +551,12 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
                 continue
-            pages = ((drawn[stage_id].pdf,) if stage_id in drawn else (checked[stage_id].pdf,) if stage_id in checked
-                     else (inspected[stage_id],) if stage_id in inspected else ())
+            # The pages of other programs, by the name the report takes them: none, or those of one runner.
+            pages = {name: content for drawn_by in (drawn, figures, inspected) if stage_id in drawn_by
+                     for name, content in drawn_by[stage_id].pages.items()}
             try:
                 registry.get(stage_id).render(_own(registry, results, stage_id), pier,
-                                              staging.path_for(by_role[f"{stage_id}.pdf"].path), *pages)
+                                              staging.path_for(by_role[f"{stage_id}.pdf"].path), pages)
             except LayoutError as exc:
                 raise GenerationError(f"{stage_id}の帳票を作成できません: {exc}") from exc
             document = result_document(stage_id, results[stage_id], input_file=common["input"]["file"],
@@ -548,7 +571,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     "skipped_sections": list(inspected[stage_id].skipped)}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
-            facts = (_export_facts(registry, post, drawn, checked) if post.export is not None
+            facts = (_export_facts(registry, post, drawn, figures) if post.export is not None
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None

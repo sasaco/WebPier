@@ -119,7 +119,7 @@ def test_nonlinear_analysis_adds_its_opt_in_stages_to_all(tmp_path, registry, ca
 
 
 def test_the_stage_choices_come_from_the_registry(capsys):
-    plain = Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path: path),))
+    plain = Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path, pages: path),))
     with pytest.raises(SystemExit) as exit_info:
         cli.main(["--stage", "B"], registry=plain)
     assert exit_info.value.code == 2
@@ -127,7 +127,7 @@ def test_the_stage_choices_come_from_the_registry(capsys):
 
 
 def test_default_paths_are_the_project_input_and_output():
-    arguments = cli.parser(Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path: path),))
+    arguments = cli.parser(Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path, pages: path),))
                            ).parse_args([])
     assert (arguments.input, arguments.output_dir, arguments.post_dir, arguments.stage, arguments.overwrite) == (
         ROOT / "pre" / "input.json", ROOT / "output", None, "all", False)

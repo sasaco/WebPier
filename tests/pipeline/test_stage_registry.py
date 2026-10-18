@@ -11,7 +11,7 @@ from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES,
 
 def spec(stage_id, *depends_on, exports=()):
     return StageSpec(stage_id, f"{stage_id}_名前", depends_on, lambda pier, results: stage_id,
-                     lambda results, pier, path: path, exports)
+                     lambda results, pier, path, pages: path, exports)
 
 
 def export(kind, file_name):
@@ -175,7 +175,7 @@ def test_get_returns_the_spec():
     ((spec("A", "B"), spec("B")), "Aの依存段階Bが先に登録されていません"),
     ((spec("A", "A"),), "Aの依存段階Aが先に登録されていません"),
     ((spec("all"),), "段階の名前にallは使えません"),
-    ((StageSpec("A", "B_名前", (), lambda p, r: 0, lambda r, p, path: path),), "AのファイルB_名前の名前"),
+    ((StageSpec("A", "B_名前", (), lambda p, r: 0, lambda r, p, path, pages: path),), "AのファイルB_名前の名前"),
     ((spec("A", exports=(export("frameweb", "x.json"),)), spec("B", exports=(export("frameweb", "x.json"),))),
      "出力ファイル名が重複しています: x.json"),
     ((spec("A", exports=(export("frameweb", "x.json"), export("frameweb", "y.json"))),),
@@ -183,12 +183,12 @@ def test_get_returns_the_spec():
     ((spec("A", exports=(export("Frame Web", "x.ndu"),)),), "出力の種類の名前が不正です: Frame Web"),
     ((spec("A", exports=(export("frameweb", "sub/x.json"),)),), "出力ファイル名が不正です: sub/x.json"),
     ((spec("A", exports=(export("frameweb", ".."),)),), r"出力ファイル名が不正です: \.\."),
-    ((StageSpec("A", "A_a\\b", (), lambda p, r: 0, lambda r, p, path: path),), r"AのファイルA_a\\bの名前"),
-    ((StageSpec("A", "A_名前", (), None, lambda r, p, path: path),), "Aの計算書には計算が必要です"),
+    ((StageSpec("A", "A_a\\b", (), lambda p, r: 0, lambda r, p, path, pages: path),), r"AのファイルA_a\\bの名前"),
+    ((StageSpec("A", "A_名前", (), None, lambda r, p, path, pages: path),), "Aの計算書には計算が必要です"),
     ((StageSpec("A", "A_名前", ()),), "Aには成果物がありません"),
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),
      "Aの荷重図を差し込む計算書がありません"),
-    ((spec("A", exports=FRAMEWEB), StageSpec("B", "B_名前", ("A",), lambda p, r: 0, lambda r, p, path: path,
+    ((spec("A", exports=FRAMEWEB), StageSpec("B", "B_名前", ("A",), lambda p, r: 0, lambda r, p, path, pages: path,
                                              opt_in=FRAME_ANALYSIS, load_diagram="pik",
                                              frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS))),
      "Bの荷重図の出力pikがありません"),  # a load diagram draws one of the stage's own exports
@@ -210,9 +210,9 @@ def test_get_returns_the_spec():
     ((spec("A", exports=FRAMEWEB), analyzing("B", "A"), spec("C", "B")),
      "Cは選択式の段階Bに依存するので、同じスイッチ（frame_analysis）の選択式の段階です"),
     ((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"),
-      StageSpec("C", "C_名前", ("B",), lambda p, r: 0, lambda r, p, path: path, opt_in=NONLINEAR_ANALYSIS)),
+      StageSpec("C", "C_名前", ("B",), lambda p, r: 0, lambda r, p, path, pages: path, opt_in=NONLINEAR_ANALYSIS)),
      "Cは選択式の段階Bに依存するので、同じスイッチ（frame_analysis）の選択式の段階です"),
-    ((StageSpec("A", "A_名前", (), lambda p, r: 0, lambda r, p, path: path, opt_in="other"),),
+    ((StageSpec("A", "A_名前", (), lambda p, r: 0, lambda r, p, path, pages: path, opt_in="other"),),
      "Aの選択式のスイッチotherがありません"),
     ((spec("A", exports=NDU), solving("B", "A", opt_in=FRAME_ANALYSIS)),
      "Bは静的非線形解析するので選択式（nonlinear_analysis）の段階です"),
@@ -236,6 +236,6 @@ def test_an_inconsistent_registry_is_a_programming_error(stages, message):
 
 def test_stage_callables_are_kept_as_given():
     calculate = lambda pier, results: 1  # noqa: E731
-    render = lambda results, pier, path: Path(path)  # noqa: E731
+    render = lambda results, pier, path, pages: Path(path)  # noqa: E731
     stage = StageSpec("A", "A_名前", (), calculate, render)
     assert (stage.calculate, stage.render, stage.exports) == (calculate, render, ())

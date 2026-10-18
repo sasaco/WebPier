@@ -8,17 +8,19 @@ all come from it, so adding a stage or an export is one entry.
 ``calculate`` and ``render`` receive only the results of the declared dependencies (and, for ``render`` and an
 export, the stage's own result), so an undeclared dependency fails instead of silently working.
 
-A stage with ``load_diagram`` names the export whose load cases FEMPython draws (decision 44): its ``render``
-also receives those pages, to put into the report as they are. A stage with ``data_check`` names the NDU export
-whose データ確認図 JRSNAP draws (decision 50), and its ``render`` receives those pages the same way.
+Every ``render`` receives, after the path, the pages of other programs to put into the report as they are, by the
+name the report takes them (reporting.stages.insertion); a stage without any receives an empty mapping. A stage with
+``load_diagram`` names the export whose load cases FEMPython draws (decision 44): its ``render`` receives those pages
+as ``load_diagram``. A stage with ``jrsnap_figures`` names the NDU export from which JRSNAP draws the データ確認図 and
+the 荷重図 (decisions 50, 51): its ``render`` receives them as ``data_check`` and ``load_diagram``.
 
 A stage may have no report (no ``render``, and then no result JSON) and publish only files under post/. A stage with
 ``frame_analysis`` has FEMPython analyze the FrameWeb file of a dependency and publishes the returned pickup files
 (decision 46). A stage with ``nonlinear_analysis`` has JRSNAP analyze the NDU of a dependency and publishes every
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
 results (decision 49). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
-the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages and section
-ranges, and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
+the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages of each section
+by the section's id (none for a section Capacita skipped), and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
 with the files of its frame analysis (the 基礎の照査 reads the support reactions, decision 54): ``calculate`` gives
 what the input alone decides, before any runner. Stages that analyze the same FrameWeb file declare the same files and
 share one analysis: a generation runs it once and publishes its files once (decision 54). Such a stage is ``opt_in``: ``all`` leaves it out unless its
@@ -52,7 +54,7 @@ from ..export.aggrese import BATCH_VERSION, build_project, databases, write_proj
 from ..export.capacita import build_wdj, point_index, write_wdj
 from ..export.frameweb import build_frameweb, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
-from ..export.jrsnap import build_ndu, write_ndu
+from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION
 from ..inputs import PierInput
@@ -161,18 +163,26 @@ class NonlinearAnalysis:
 
 
 @dataclass(frozen=True)
+class JrsnapFigures:
+    """JRSNAP draws the データ確認図 and the 荷重図 of the stage's NDU into its report (decisions 50, 51)."""
+
+    export: str  # the kind of the NDU export, "jrsnap"
+    load_cases: Callable[[Results, PierInput], tuple[tuple[int, int], ...]]  # (basic case, combination) to draw
+
+
+@dataclass(frozen=True)
 class StageSpec:
     id: str
     stem: str  # the report file name without suffix, e.g. "0610_線路方向荷重"
     depends_on: tuple[str, ...]
     calculate: Callable[[PierInput, Results], Any] | None = None  # none: the stage has no result
-    # (results, pier, path), and after the path the PDF of the load diagram when ``load_diagram`` is set, or of the
-    # データ確認図 when ``data_check`` is, or Capacita's pages (pipeline.capacita.ColumnCheckPages) when
-    # ``section_check`` is; none: no report
-    render: Callable[..., Any] | None = None
+    # (results, pier, path, pages): pages maps the name of each insertion (reporting.stages.insertion) to its PDF,
+    # FEMPython's load diagram when ``load_diagram`` is set, JRSNAP's データ確認図 and 荷重図 when ``jrsnap_figures``
+    # is, or Capacita's pages of each section when ``section_check`` is; empty for a stage with none. None: no report
+    render: Callable[[Results, PierInput, Any, Mapping[str, bytes]], Any] | None = None
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
-    data_check: str = ""  # the kind of the NDU export whose データ確認図 JRSNAP draws into the report (decision 50)
+    jrsnap_figures: JrsnapFigures | None = None  # JRSNAP draws figures of the NDU into the report (decisions 50, 51)
     opt_in: str = ""  # the switch without which all leaves the stage out (decisions 46, 47), or none
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
@@ -268,12 +278,13 @@ class Registry:
                 raise ValueError(f"{stage.id}の荷重図の出力{stage.load_diagram}がありません")
             if stage.load_diagram and not stage.has_report:
                 raise ValueError(f"{stage.id}の荷重図を差し込む計算書がありません")
-            if stage.data_check and stage.data_check not in {item.kind for item in stage.exports}:
-                raise ValueError(f"{stage.id}のデータ確認図の出力{stage.data_check}がありません")
-            if stage.data_check and not stage.has_report:
-                raise ValueError(f"{stage.id}のデータ確認図を差し込む計算書がありません")
-            if stage.data_check and stage.load_diagram:
-                raise ValueError(f"{stage.id}に荷重図とデータ確認図の両方は差し込めません")
+            if (figures := stage.jrsnap_figures) is not None:
+                if figures.export not in {item.kind for item in stage.exports}:
+                    raise ValueError(f"{stage.id}のデータ確認図と荷重図の出力{figures.export}がありません")
+                if not stage.has_report:
+                    raise ValueError(f"{stage.id}のデータ確認図と荷重図を差し込む計算書がありません")
+                if stage.load_diagram:  # both put pages into the report as its load diagram
+                    raise ValueError(f"{stage.id}にFEMPythonの荷重図とJRSNAPの荷重図の両方は差し込めません")
             seen.append(stage.id)
 
     def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
@@ -335,6 +346,12 @@ def _jrsnap(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput]
     return lambda results, pier: write_ndu(_ndu_model(stage_id, profile, results, pier))
 
 
+def _load_cases(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput], tuple[tuple[int, int], ...]]:
+    """(basic case, combination) of each 荷重図 page of the NDU of *stage_id*, from the model the NDU is written from
+    (decision 51)."""
+    return lambda results, pier: diagram_combinations(_ndu_model(stage_id, profile, results, pier))
+
+
 def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput],
                                                               Callable[[str, Sequence[str]], bytes]]:
     """The project of the NDU of *stage_id*, checked before the analysis; then its writer (decision 49)."""
@@ -372,7 +389,7 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
     shared with the column check of the same file (decision 54)."""
     return StageSpec(stage_id, stem, ("0500", source),
                      lambda pier, results: prepare_foundation_check(pier, results["0500"], results[source], direction),
-                     lambda results, pier, path: render_foundation_check(results[stage_id], path, chapter),
+                     lambda results, pier, path, pages: render_foundation_check(results[stage_id], path, chapter),
                      opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
                      complete=lambda basis, files: check_foundation(basis, support_reactions(files["reaction"],
                                                                                              basis.node)))
@@ -387,11 +404,11 @@ _PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION, "app_read_ver
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
-              lambda results, pier, path: render_foundation(
+              lambda results, pier, path, pages: render_foundation(
                   results["0500"], pier, applicable_embedment(pier, results["0500"]), path)),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
-              lambda results, pier, path: render_reaction(results["0600"], pier, path)),
+              lambda results, pier, path, pages: render_reaction(results["0600"], pier, path)),
     StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
@@ -412,7 +429,7 @@ STAGES = Registry((
                                                                    results["0610"]),
               lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], pier, path, pages),
               (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
-              data_check="jrsnap"),
+              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL))),
     StageSpec("0711", "0711_線路方向非線形解析", ("0710",), opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
@@ -422,7 +439,7 @@ STAGES = Registry((
                                                                  results["0620"]),
               lambda results, pier, path, pages: render_seismic_transverse(results["0720"], pier, path, pages),
               (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
-              data_check="jrsnap"),
+              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE))),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
     StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(

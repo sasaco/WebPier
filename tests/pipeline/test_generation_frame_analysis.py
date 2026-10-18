@@ -18,6 +18,7 @@ from webpier.core.errors import InputError
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
 from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, StageSpec
+from webpier.reporting.stages.insertion import LOAD_DIAGRAM
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}, "2": {}, "3": {}}}).encode()
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
@@ -25,7 +26,7 @@ PICKUP_FILES = ["frame.pik", "frame_変位量.csv", "frame_反力.csv"]
 
 
 def registry(recorder: Recorder, *, load_diagram: bool = False, pages: list | None = None) -> Registry:
-    def render(results, pier, path, *drawn):
+    def render(results, pier, path, drawn):
         recorder.log.append(("render", "B", tuple(results)))
         if pages is not None:
             pages.append(drawn)
@@ -130,8 +131,9 @@ def test_the_load_diagram_and_the_analysis_are_separate_calls(tmp_path: Path, mo
     options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
                                 frame_analysis=True)
     generate.generate(options, registry=stages)
-    ((drawn,),) = pages
-    assert drawn.startswith(b"%PDF")
+    (drawn,) = pages
+    assert sorted(drawn) == [LOAD_DIAGRAM]
+    assert drawn[LOAD_DIAGRAM].startswith(b"%PDF")
     assert (tmp_path / "post" / "frame.pik").read_bytes() == expected("PIK")
     assert sidecar(options, "frame.json")["load_diagram"]["engine_version"] == "fake-1"
 

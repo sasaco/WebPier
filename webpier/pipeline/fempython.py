@@ -34,6 +34,7 @@ from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
 from ..calc.foundation_check import ReactionError, Reactions, SupportReaction
+from ..reporting.stages.insertion import LOAD_DIAGRAM
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 ENV_FILE = PROJECT_DIR / ".env"
@@ -67,6 +68,11 @@ class RunnerError(Exception):
 class LoadDiagramPages:
     pdf: bytes
     engine_version: str
+
+    @property
+    def pages(self) -> dict[str, bytes]:
+        """The pages by the name the report takes them (reporting.stages.insertion)."""
+        return {LOAD_DIAGRAM: self.pdf}
 
 
 @dataclass(frozen=True)

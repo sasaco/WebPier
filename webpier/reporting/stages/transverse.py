@@ -13,6 +13,7 @@ this stage. Horizontal forces print as magnitude and direction, as in 0710.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -31,13 +32,13 @@ from ...inputs import PierInput
 from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
-from . import load_diagrams
 from .frame_report import (
     BODY_LEFT, Manuscript, Span, TableSpec, Unit, coefficient_table, document,
     extraction_table, factor_lines, frame_figure, joined, material_lines, member_table, node_table,
     operand, overlap_lines, seat_moment, seat_split, section_lines, semantic_records as records, spring_table, sub,
     top_table, used_concretes, value, with_unit,
 )
+from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
 
 PREFIX = "0620/"
 TRACKS = {Track.UP: "上り線載荷", Track.DOWN: "下り線載荷", Track.DOUBLE: "複線載荷"}
@@ -371,7 +372,7 @@ def content(result: TransverseResult, reaction: ReactionResult, pier: PierInput)
     _dead(m, result, reaction, pier)
     _train_impact(m, result)
     _horizontal(m, result, pier)
-    load_diagrams.heading(m, "9.3 荷重図")
+    diagrams_heading(m, "9.3 荷重図")
     _combinations(m, result, pier)
     return tuple(m.units)
 
@@ -386,9 +387,11 @@ def build_transverse(result: TransverseResult, reaction: ReactionResult, pier: P
 
 
 def render_transverse(result: TransverseResult, reaction: ReactionResult, pier: PierInput, path: str | Path,
-                      load_diagram: bytes) -> Path:
-    """The report with the FEMPython *load_diagram* pages after 9.3; atomically replaces *path*.
+                      pages: Mapping[str, bytes]) -> Path:
+    """The report with the FEMPython load diagram pages (``pages[LOAD_DIAGRAM]``) after 9.3; atomically replaces
+    *path*.
 
     The pages WebPier lays out are the same for the same input; the load diagram pages are FEMPython's.
     """
-    return load_diagrams.render(content(result, reaction, pier), PREFIX, load_diagram, path)
+    return render_with_pages(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS),), pages,
+                             path)

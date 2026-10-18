@@ -15,34 +15,43 @@ import pytest
 from gridlayoutpdf import Circle, Text
 
 from frame_report_cases import CASES, chain
-from data_check_support import DATA_CHECK, PAGES, inserted, layout
+from jrsnap_pages_support import (
+    DATA_CHECK_PAGES, LONGITUDINAL_LOAD_CASES, data_check_page, inserted, layout, load_diagram_page,
+    page_order, pages as stand_ins,
+)
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
 from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
 from webpier.core.printed import Printed
 from webpier.reporting.stages.seismic_longitudinal import (
-    ACTIONS, PREFIX, content, render_seismic_longitudinal, semantic_records,
+    INSERTIONS, content, render_seismic_longitudinal, semantic_records,
 )
+
+REPORT = stand_ins(LONGITUDINAL_LOAD_CASES)
 
 
 def render(case: str, path: Path) -> Path:
     pier, _, _, result = chain(case)
-    return render_seismic_longitudinal(result, pier, path, DATA_CHECK)
+    return render_seismic_longitudinal(result, pier, path, REPORT)
 
 
 @pytest.mark.parametrize("case", list(CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
     pier, _, _, result = chain(case)
-    before, after = layout(content(result, pier), PREFIX + ACTIONS)
-    pages = before + after
+    model, actions, combinations = layout(content(result, pier), INSERTIONS)
+    pages = model + actions + combinations
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
     assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, pier)))
     with pymupdf.open(render(case, tmp_path / "0710.pdf")) as pdf:
-        # Decision 50: JRSNAP's データ確認図 pages come right after 10.1, and 10.2 starts the next page.
-        assert len(pdf) == len(pages) + PAGES
-        assert [inserted(page) for page in pdf] == [False] * len(before) + [True] * PAGES + [False] * len(after)
-        assert pdf[len(before) + PAGES].get_text().lstrip().startswith("10.2 作用の計算")
+        # Decisions 50, 51: JRSNAP's データ確認図 pages come right after 10.1 and its load diagram after 10.3.
+        assert len(pdf) == len(pages) + DATA_CHECK_PAGES + LONGITUDINAL_LOAD_CASES
+        assert [data_check_page(page) for page in pdf] == (
+            [False] * len(model) + [True] * DATA_CHECK_PAGES
+            + [False] * (len(actions) + LONGITUDINAL_LOAD_CASES + len(combinations)))
+        assert [load_diagram_page(page) for page in pdf] == (
+            [False] * (len(model) + DATA_CHECK_PAGES + len(actions)) + [True] * LONGITUDINAL_LOAD_CASES
+            + [False] * len(combinations))
         for page, scene in zip([page for page in pdf if not inserted(page)], pages):
             scene_text = "".join(c.text for c in scene.commands if isinstance(c, Text))
             assert Counter(squeeze(page.get_text())) == Counter(squeeze(scene_text))
@@ -51,6 +60,10 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
     # The micro member is marked on the model figure (Example2 10-1 ◎).
     rings = [c for c in pages[0].commands if isinstance(c, Circle) and c.fill is None]
     assert len(rings) == 1
+
+
+def test_the_pages_are_the_model_the_data_check_the_actions_the_load_diagram_and_the_combinations(tmp_path: Path):
+    page_order(render("current", tmp_path / "0710.pdf"), 10, LONGITUDINAL_LOAD_CASES)
 
 
 @pytest.mark.parametrize("case", list(CASES))
@@ -70,7 +83,7 @@ def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     pier, _, _, result = chain("current")
     inertia = replace(result.self_weight, column=replace(result.self_weight.column, value=Printed(297.67, 2, "kN/m")))
     path = render_seismic_longitudinal(replace(result, self_weight=inertia), pier, tmp_path / "w.pdf",
-                                       DATA_CHECK)
+                                       REPORT)
     assert [check.printed for check in formula_checks(path) if not check.ok] == ["297.67"]
 
 
@@ -79,10 +92,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("current", tmp_path / "b.pdf").read_bytes() == first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import chain\n"
-              "from data_check_support import DATA_CHECK\n"
+              "from jrsnap_pages_support import LONGITUDINAL_LOAD_CASES, pages\n"
               "from webpier.reporting.stages.seismic_longitudinal import render_seismic_longitudinal\n"
               "pier, _, _, result = chain('current')\n"
-              "render_seismic_longitudinal(result, pier, sys.argv[1], DATA_CHECK)\n")
+              "render_seismic_longitudinal(result, pier, sys.argv[1], pages(LONGITUDINAL_LOAD_CASES))\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)

@@ -94,6 +94,18 @@ def test_a_section_capacita_skipped_for_zero_forces_is_missing_with_its_code(fak
         check_column(WDJ, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS)
 
 
+def test_the_report_takes_the_pages_of_each_returned_section_by_its_id(fake_capacita_runner: Path,
+                                                                       monkeypatch: pytest.MonkeyPatch):
+    """Each section's page range of the report, cut as it is (assembly.page_range); a skipped section has none."""
+    monkeypatch.setenv("FAKE_CAPACITA", "skip")
+    checked = check_column(WDJ, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS)
+    report = texts(checked.pdf)
+    assert list(checked.pages) == [section.id for section in checked.sections]
+    assert {section: texts(content) for section, content in checked.pages.items()} == {
+        section.id: report[section.first - 1:section.last] for section in checked.sections}
+    assert len(texts(checked.pages["section_forces"])) == 2 and "shear_durability" not in checked.pages
+
+
 def test_the_codes_of_the_skipped_checks_are_capacitas():
     """RcDan ErrorMessage_1000_1999 (ZeroForce_RailH16_*): the H16 messages of every body."""
     assert capacita.SKIPPED == {"bending_serviceability": "WD-1901", "bending_safety_destruction": "WD-1902",

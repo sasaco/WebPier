@@ -44,7 +44,7 @@ class Recorder:
         return calculate
 
     def render(self, stage: str):
-        def render(results, pier, path):
+        def render(results, pier, path, pages):
             self.log.append(("render", stage, tuple(results)))
             self._hook("render", stage)
             Path(path).write_bytes(f"%PDF {stage} {results[stage].read}".encode())

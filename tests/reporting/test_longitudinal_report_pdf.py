@@ -20,7 +20,7 @@ from frame_report_cases import CASES, chain
 from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
 from webpier.core.printed import Printed
-from load_diagram_support import LOAD_DIAGRAM, PAGES, inserted, layout
+from load_diagram_support import PAGES, REPORT, inserted, layout
 from webpier.reporting.stages.longitudinal import (
     PREFIX, build_longitudinal, content, render_longitudinal, semantic_records,
 )
@@ -43,7 +43,7 @@ def squeeze(value: str) -> str:
 
 def render(case: str, path: Path) -> Path:
     pier, reaction, result, _ = chain(case)
-    return render_longitudinal(result, reaction, pier, path, LOAD_DIAGRAM)
+    return render_longitudinal(result, reaction, pier, path, REPORT)
 
 
 @pytest.mark.parametrize("case", list(CASES))
@@ -86,11 +86,11 @@ def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     wrong = replace(table, rows=(replace(table.rows[0], m=Printed(table.rows[0].m.value + 0.01, 2, "kN m")),
                                  *table.rows[1:]))
     path = render_longitudinal(replace(result, snow=(wrong, *result.snow[1:])), reaction, pier, tmp_path / "w.pdf",
-                               LOAD_DIAGRAM)
+                               REPORT)
     bad = [check for check in table_checks(path) if not check.ok]
     assert [check.kind for check in bad] == ["row", "total"]
     fixed = replace(result.fixed, n=Printed(result.fixed.n.value + 0.01, 2, "kN"))
-    path = render_longitudinal(replace(result, fixed=fixed), reaction, pier, tmp_path / "f.pdf", LOAD_DIAGRAM)
+    path = render_longitudinal(replace(result, fixed=fixed), reaction, pier, tmp_path / "f.pdf", REPORT)
     assert [check.printed for check in formula_checks(path) if not check.ok] == [f"{fixed.n.value:.2f}"]
 
 
@@ -100,10 +100,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert b"CreationDate" not in first or b"D:20000101000000" in first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import chain\n"
-              "from load_diagram_support import LOAD_DIAGRAM\n"
+              "from load_diagram_support import REPORT\n"
               "from webpier.reporting.stages.longitudinal import render_longitudinal\n"
               "pier, reaction, result, _ = chain('current')\n"
-              "render_longitudinal(result, reaction, pier, sys.argv[1], LOAD_DIAGRAM)\n")
+              "render_longitudinal(result, reaction, pier, sys.argv[1], REPORT)\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)
@@ -119,7 +119,7 @@ def test_render_replaces_the_target_only_after_a_complete_layout(tmp_path: Path)
     path = tmp_path / "previous.pdf"
     path.write_bytes(b"previous-published-bytes")
     with pytest.raises(LayoutError):
-        render_longitudinal(huge, reaction, pier, path, LOAD_DIAGRAM)
+        render_longitudinal(huge, reaction, pier, path, REPORT)
     assert path.read_bytes() == b"previous-published-bytes"
 
 

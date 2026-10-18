@@ -12,7 +12,6 @@ from __future__ import annotations
 import io
 import json
 from copy import deepcopy
-from dataclasses import dataclass
 from pathlib import Path
 
 import pymupdf
@@ -49,19 +48,9 @@ def check(*, transverse=False, **conditions):
     return pier, calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL)
 
 
-@dataclass(frozen=True)
-class Pages:
-    """Stand-in Capacita pages: section_forces has two pages, every other section one; none for a skipped one."""
-
-    pdf: bytes
-    ranges: dict
-    skipped: tuple[str, ...] = ()
-
-    def section(self, section_id):
-        return None if section_id in self.skipped else self.ranges[section_id]
-
-
-def capacita(sections, skipped=()) -> Pages:
+def capacita_report(sections, skipped=()) -> tuple[bytes, dict]:
+    """A stand-in Capacita report and the page range of each section: section_forces has two pages, every other
+    section one; none for a skipped one."""
     stream, ranges, number = io.BytesIO(), {}, 0
     page = canvas.Canvas(stream, pagesize=(595, 842), invariant=1)
     for section in sections:
@@ -74,7 +63,13 @@ def capacita(sections, skipped=()) -> Pages:
             page.drawString(60, 780, f"{MARK} {section} {index + 1}")
             page.showPage()
     page.save()
-    return Pages(stream.getvalue(), ranges, tuple(skipped))
+    return stream.getvalue(), ranges
+
+
+def capacita(sections, skipped=()) -> dict[str, bytes]:
+    """The pages the report receives: each section's pages by its id, cut by its range; a skipped one is not in it."""
+    pdf, ranges = capacita_report(sections, skipped)
+    return {section: page_range(pdf, *found) for section, found in ranges.items()}
 
 
 def render(tmp_path: Path, *, transverse=False, skipped=(), **conditions) -> list[str]:
@@ -194,11 +189,22 @@ def test_the_report_is_the_same_bytes_for_the_same_pages(tmp_path):
     assert one == two
 
 
+def test_a_section_capacita_cannot_skip_must_have_its_pages(tmp_path):
+    """Only a check in OMITTED may come without pages; the section force list (the first section) may not."""
+    pier, result = check()
+    first = result.sections[0]
+    assert first not in OMITTED
+    given = {section: found for section, found in capacita(result.sections).items() if section != first}
+    with pytest.raises(ValueError, match=f"差し込むページ {first} がありません"):
+        render_column_check(result, pier, tmp_path / "report.pdf", given, CHAPTER_8)
+    assert not (tmp_path / "report.pdf").exists()
+
+
 def test_a_page_range_is_cut_as_it_is():
-    given = capacita(["section_forces", "bending_safety_destruction"])
-    with pymupdf.open(stream=page_range(given.pdf, 2, 3), filetype="pdf") as cut:
+    given, _ = capacita_report(["section_forces", "bending_safety_destruction"])
+    with pymupdf.open(stream=page_range(given, 2, 3), filetype="pdf") as cut:
         assert [page.get_text().strip() for page in cut] == [f"{MARK} section_forces 2",
                                                             f"{MARK} bending_safety_destruction 1"]
     for first, last in ((0, 1), (2, 1), (1, 4)):
         with pytest.raises(ValueError):
-            page_range(given.pdf, first, last)
+            page_range(given, first, last)

@@ -4,9 +4,10 @@
   FEMPython's pages after it (decision 44). 0610 keeps its spring table and the
   spring column of the basic cases (Example2 08 p.8-1, p.8-9).
 - 0710 and 0720 show no springs at all (no spring symbol in the frame figure,
-  no Kv/Ks/Kr, no spring table or values), no load diagrams and no enlarged
-  figure of the column bottom. Example2 10-7 / 11-7 print the JRSNAP node
-  springs; the user's decision wins over the sample.
+  no Kv/Ks/Kr, no spring table or values) and no enlarged figure of the column
+  bottom. Example2 10-7 / 11-7 print the JRSNAP node springs; the user's
+  decision wins over the sample. They draw no load diagram of their own either:
+  10.3 / 11.3 is a heading with JRSNAP's pages after it (decision 51).
 - 0600 leaves out 桁受け when its volume V is 0, and the following items close
   up their numbers; the bearing table lists only occupied bearing slots, under
   their own G numbers.
@@ -69,13 +70,14 @@ def test_0620_load_diagrams_are_a_heading_only(case: str):
 
 
 @pytest.mark.parametrize("case", list(CASES))
-def test_0710_shows_no_springs_and_no_load_diagrams(case: str):
+def test_0710_load_diagrams_are_a_heading_only_and_it_shows_no_springs(case: str):
     from webpier.reporting.stages import seismic_longitudinal
 
     pier, _, _, result = chain(case)
     found = records(seismic_longitudinal, result, pier)
-    assert {key: text for key, text in found.items() if SPRING.search(text) or "荷重図" in text} == {}
-    assert sections(found) == ["10.1検討モデル", "10.2作用の計算", "10.3作用の組合せ"]
+    assert {key: text for key, text in found.items() if SPRING.search(text)} == {}
+    assert [text for text in found.values() if "荷重図" in text] == ["10.3荷重図"]
+    assert sections(found) == ["10.1検討モデル", "10.2作用の計算", "10.3荷重図", "10.4作用の組合せ"]
     units = seismic_longitudinal.content(result, pier)
     drawn = figure_commands(units, "0710/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []
@@ -83,13 +85,14 @@ def test_0710_shows_no_springs_and_no_load_diagrams(case: str):
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
-def test_0720_shows_no_springs_no_load_diagrams_and_no_enlarged_column_bottom(case: str):
+def test_0720_load_diagrams_are_a_heading_only_and_it_shows_no_springs_and_no_enlarged_column_bottom(case: str):
     from webpier.reporting.stages import seismic_transverse
 
     pier, _, _, result = transverse_chain(case)
     found = records(seismic_transverse, result, pier)
-    assert {key: text for key, text in found.items() if SPRING.search(text) or "荷重図" in text} == {}
-    assert sections(found) == ["11.1検討モデル", "11.2作用の計算", "11.3作用の組合せ"]
+    assert {key: text for key, text in found.items() if SPRING.search(text)} == {}
+    assert [text for text in found.values() if "荷重図" in text] == ["11.3荷重図"]
+    assert sections(found) == ["11.1検討モデル", "11.2作用の計算", "11.3荷重図", "11.4作用の組合せ"]
     units = seismic_transverse.content(result, pier)
     assert [unit.key for unit in units if unit.kind == "figure"] == ["0720/model.figure"]  # the frame only
     drawn = figure_commands(units, "0720/model.figure")

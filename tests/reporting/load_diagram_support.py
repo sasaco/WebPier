@@ -10,7 +10,8 @@ import io
 
 from reportlab.pdfgen import canvas
 
-from webpier.reporting.stages import load_diagrams
+from webpier.reporting.stages import insertion
+from webpier.reporting.stages.insertion import DIAGRAMS, Insertion
 
 MARK = "FAKE LOAD DIAGRAM"
 PAGES = 2
@@ -27,6 +28,7 @@ def _pdf() -> bytes:
 
 
 LOAD_DIAGRAM = _pdf()
+REPORT = {insertion.LOAD_DIAGRAM: LOAD_DIAGRAM}  # the pages the report receives (StageSpec.render)
 
 
 def inserted(page) -> bool:
@@ -41,5 +43,5 @@ def report_pages(pdf) -> list:
 
 def layout(units, prefix: str) -> tuple[list, list]:
     """The scene pages of the two documents the report is laid out in (before and after the load diagrams)."""
-    before, after = load_diagrams.documents(units, prefix)
+    before, after = insertion.documents(units, (Insertion(insertion.LOAD_DIAGRAM, prefix + DIAGRAMS),))
     return list(before.layout()), list(after.layout())

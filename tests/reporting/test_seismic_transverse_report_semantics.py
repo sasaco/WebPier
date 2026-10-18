@@ -93,7 +93,8 @@ def expected(case: str) -> dict[str, str]:
     add("inertia.footing.formula", "H=V×(γ−γ')×Kh")
     add("inertia.footing", f"H={t(f.volume)}×({t(f.unit_weight)}−{t(f.displaced)})×{t(f.kh)}={t(f.force)}kN")
     add("inertia.footing.note", "ここに、V：フーチングの体積（§6）γ'：排除した土（表層）の湿潤単位体積重量")
-    add("combination.heading", "11.3作用の組合せ")
+    add("diagrams.heading", "11.3荷重図")
+    add("combination.heading", "11.4作用の組合せ")
     add("basic.caption", "基本Case")
     arrows = {"downward": "↓", "upward": "↑", "toward_w9": "→"}
     kinds = {"fixed": "固定", "incremental": "増分", "limited_incremental": "限定増分"}

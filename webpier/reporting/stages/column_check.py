@@ -1,14 +1,15 @@
 """0611 線路方向の照査 (8.5〜8.9) and 0621 直角方向の照査 (9.5〜9.9): 柱の断面照査 (decision 48, ADR-0008).
 
 WebPier lays out only the headings and the explanations (the check formulas, the symbols and the flowchart of the
-flexural crack check). Each part is followed by Capacita's pages of its section, cut from Capacita's report by the
-page ranges Capacita returns (its section ids): n.5 the section force list, n.6 safety (bending, shear), n.7
-durability (flexural, shear cracks), n.8 serviceability (appearance; only with the appearance check: without it
-there is no n.8 and n.9 keeps its number), n.9 restorability (bending, shear), with n the ``Chapter`` of the stage (8
-for 0611, 9 for 0621; the two directions differ by nothing else). The chapter heading (§8, §9) is not printed; the
-foundation check will be n.10. A check Capacita skipped for zero section forces (pipeline.capacita.SKIPPED) keeps its
-heading and explanation, followed by the reason it is omitted instead of Capacita's pages (decision 48, owner
-2026-10-18; Example2 across the track: the serviceability and the shear durability checks).
+flexural crack check). Each part is followed by Capacita's pages of its section (``stages.insertion``), which the
+report receives by section id, cut from Capacita's report by the page ranges Capacita returns: n.5 the section force
+list, n.6 safety (bending, shear), n.7 durability (flexural, shear cracks), n.8 serviceability (appearance; only
+with the appearance check: without it there is no n.8 and n.9 keeps its number), n.9 restorability (bending, shear),
+with n the ``Chapter`` of the stage (8 for 0611, 9 for 0621; the two directions differ by nothing else). The chapter
+heading (§8, §9) is not printed; the foundation check will be n.10. A check Capacita skipped for zero section forces
+(pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by the reason it is omitted instead of
+Capacita's pages (decision 48, owner 2026-10-18; Example2 across the track: the serviceability and the shear
+durability checks).
 
 The explanations follow Example2 08 pp.8-14, 8-16, 8-18, 8-19, 8-21, 8-23 and 8-25 (09 pp.9-18, 9-20 and 9-22 are the
 same text). The values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd) and the corrosion environment of the input
@@ -22,20 +23,20 @@ omission is stated).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
 
 from gridlayoutpdf import Connector, Document, Figure, Label, TextBox, TextDiamond
 
 from ...calc.column_check import ColumnCheckResult, SafetyFactors
 from ...inputs import PierInput
-from ..assembly import document_bytes, join, page_range
-from ..document import blank, paragraph, report
+from ..document import blank
 from ..equations import Definition  # values in the text: (= …), as Example2 8-14
-from ..styles import BODY, HEADING, grid_units
+from ..styles import BODY, grid_units
+from . import insertion
 from .frame_report import FigureSpec, Manuscript, Unit, blocks, value
+from .insertion import Insertion, render_with_pages
 
 COLON = 211.0  # the "：" of the 0500 "ここに、" lists (reporting-style.md): room for σwpd and ε'csd
 
@@ -62,16 +63,6 @@ OMITTED = {
     "bending_restorability": "曲げモーメントが生じないため，曲げ耐力の照査を省略する．",
     "shear_restorability": "せん断力が生じないため，せん断に対する照査を省略する．",
 }
-
-
-class ColumnCheckPages(Protocol):
-    """Capacita's report, the page range of each of its sections and the sections it skipped
-    (pipeline.capacita.ColumnCheckPages)."""
-
-    pdf: bytes
-    skipped: tuple[str, ...]
-
-    def section(self, section_id: str) -> tuple[int, int] | None: ...
 
 
 def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
@@ -281,37 +272,26 @@ def _blocks(units: Sequence[Unit]) -> list:
     return found
 
 
-def _document(units: Sequence[Unit]) -> Document:
-    """A part as one Document. A part that ends with a heading (8.5) ends with it set as a line in the heading style:
-    Capacita's pages are what it heads, and a GridLayoutPdf Heading must stay with a next block of its own document."""
-    if units[-1].kind != "heading":
-        if len({unit.key for unit in units}) != len(units):
-            raise ValueError("帳票の単位に重複したキーがあります")
-        return report(*_blocks(units))
-    title = units[-1]
-    found = _blocks(units[:-1])
-    blank(found)
-    found.append(paragraph(title.value, left=title.left, style=HEADING, block_id=title.key, min_first=1, min_last=1))
-    return report(*found)
-
-
 def build_column_check(result: ColumnCheckResult, chapter: Chapter,
                        skipped: Sequence[str] = ()) -> tuple[Document, ...]:
-    """WebPier's documents of 0611 or 0621, one before each of Capacita's sections, without Capacita's pages."""
-    return tuple(_document(units) for units, _ in parts(result, chapter, skipped))
+    """WebPier's documents of 0611 or 0621, one before each of Capacita's sections, without Capacita's pages. A part
+    that ends with a heading (n.5) ends with it set as a line in the heading style (``stages.insertion``)."""
+    found = parts(result, chapter, skipped)
+    units = tuple(unit for part, _ in found for unit in part)
+    insertions = tuple(Insertion(section, part[-1].key, optional=True) for part, section in found)
+    return insertion.documents(units, insertions, blocks=_blocks)
 
 
-def render_column_check(result: ColumnCheckResult, pier: PierInput, path: str | Path, pages: ColumnCheckPages,
+def render_column_check(result: ColumnCheckResult, pier: PierInput, path: str | Path, pages: Mapping[str, bytes],
                         chapter: Chapter) -> Path:
-    """The report: each of WebPier's parts, then Capacita's pages of its section (none for a skipped one);
-    atomically replaces *path*.
+    """The report: each of WebPier's parts, then Capacita's pages of its section (``pages``: the pages of each
+    section by its id, cut by ``assembly.page_range``; a section Capacita skipped for zero forces has none, and its
+    part ends with the reason it is omitted); atomically replaces *path*.
 
     WebPier's pages are the same bytes for the same input; Capacita's are its own (decision 48).
     """
-    pieces: list[bytes] = []
-    for built, (_, section) in zip(build_column_check(result, chapter, pages.skipped),
-                                   parts(result, chapter, pages.skipped)):
-        pieces.append(document_bytes(built))
-        if (found := pages.section(section)) is not None:
-            pieces.append(page_range(pages.pdf, *found))
-    return join(pieces, path)
+    skipped = tuple(section for section in result.sections if section not in pages and section in OMITTED)
+    found = parts(result, chapter, skipped)
+    units = tuple(unit for part, _ in found for unit in part)
+    insertions = tuple(Insertion(section, part[-1].key, optional=section in OMITTED) for part, section in found)
+    return render_with_pages(units, insertions, pages, path, blocks=_blocks)

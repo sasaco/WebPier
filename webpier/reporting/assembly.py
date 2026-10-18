@@ -1,9 +1,9 @@
-"""A report with the pages of another program between its parts (decision 44, ADR-0005).
+"""The parts of a report with the pages of another program in it (decisions 44, 48, 50, 51; ADR-0005).
 
-0610 and 0620 are laid out as two documents split after the load diagram heading; the load diagram pages that
-FEMPython drew go between them as they are: pages, not a figure, so nothing is cropped, scaled or rasterized, and
-their content is FEMPython's. pypdf writes the pages in order. It adds no date and its file identifier is a
-checksum of the content, so the same parts give the same bytes. No page is numbered (the reference prints none).
+``document_bytes`` lays out one of WebPier's documents, ``join`` writes the documents and the other program's pages
+in order as one PDF, and ``page_range`` cuts pages out of another program's report. Where the pages go is
+``stages.insertion``. pypdf writes the pages in order. It adds no date and its file identifier is a checksum of the
+content, so the same parts give the same bytes. No page is numbered (the reference prints none).
 """
 
 from __future__ import annotations
@@ -58,8 +58,3 @@ def page_range(pdf: bytes, first: int, last: int) -> bytes:
     stream = BytesIO()
     writer.write(stream)
     return stream.getvalue()
-
-
-def render_with_pages(before: Document, pages: bytes, after: Document, path: str | Path) -> Path:
-    """*before*, then the pages of *pages* as they are, then *after* on a new page."""
-    return join((document_bytes(before), pages, document_bytes(after)), path)

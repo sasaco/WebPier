@@ -46,7 +46,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF）を、�
 - `tables.table(widths, rows, horizontal_rules=[...], vertical_rules=[])`：必要な罫線だけを引く開いた表。
 - フローチャート：GridLayoutPdf の `TextBox`（`rounded=True` で角丸の端子）・`TextDiamond`（判定）・`Connector`（折れ線＋矢じり）を `Figure` に置き、Yes/No は `Label`。文字は自動縮小せず、はみ出せば `LayoutOverflowError`。例は `reporting/stages/column_check.py` の `flowchart`。見本の箱の中で切れた文字（「σb ≦」だけ等）は再現せず、判定条件を書き切る。
 - 括り線：「※ T1 … ※ ∴ H」のように式のまとまりを左の縦線で括るときは、0600 の `Manuscript.rule_start()`／`rule_end()` で印を付け、layout が GridLayoutPdf の `SideRule` で包む（前後の空き行も含め、最初に `top`、最後に `bottom`）。線は空き行を見える部品にするので、まとまりの keep の鎖は空き行も `KeepWithNext` でつなぐ。
-- 他のエンジンのページの差し込み（荷重図＝FEMPython、0611 の結果表＝Capacita）：原稿を差し込み位置で文書に分けて描き、`assembly.join` で「WebPier の部品 → エンジンのページ」の順につなぐ。エンジンが返す頁範囲で切るのは `assembly.page_range`。エンジンのページは書き換えず、決定性も求めない。エンジンの中にだけある値（RC標準の制限値の表など）は解説に印刷しない（ADR-0008）。
+- 他のエンジンのページの差し込み（0610・0620 の荷重図＝FEMPython、0611・0621 の節＝Capacita、0710・0720 のデータ確認図と荷重図＝JRSNAP）：`reporting/stages/insertion.py` の1つの仕組みで行う。段階は差し込む場所を `Insertion(<ページの名前>, <単位のキー>, before=…, optional=…)` で宣言し（どの単位の後か、`before=True` なら前か。ページの名前は `load_diagram`・`data_check`・Capacita の節の ID。`optional=True` はページがなくてよいもの＝Capacita が断面力0で飛ばした節）、`render_with_pages` が原稿をその位置で文書に分けて描き、`assembly.join` で「WebPier の部品 → エンジンのページ」の順につなぐ。差し込みの後の文書は新しいページから始まる。見出しで終わる部分（8.3・10.3・n.5 など）は、その見出しを見出しの書体の行として置いて終わる（GridLayoutPdf の Heading は同じ文書の次の部品と離れないため）。ページは `render` の `pages`（ページの名前 → PDF の bytes）で受け取る。エンジンが返す頁範囲で切るのは `assembly.page_range`（Capacita の節）。エンジンのページは書き換えず、決定性も求めない。エンジンの中にだけある値（RC標準の制限値の表など）は解説に印刷しない（ADR-0008）。
 
 ## 4. 手順
 

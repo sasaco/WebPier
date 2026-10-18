@@ -1,27 +1,16 @@
-"""A report with another program's pages between its parts (decision 44): order, no date, the same bytes."""
+"""The parts of a report with another program's pages in it (decision 44): the join adds no date and gives the same
+bytes, and replaces its destination atomically. Where the pages go is tested in test_insertion."""
 
 from __future__ import annotations
 
-from io import BytesIO
 from pathlib import Path
 
 import pytest
-from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
-from load_diagram_support import LOAD_DIAGRAM, MARK, PAGES
-from webpier.reporting.assembly import document_bytes, join, render_with_pages
+from load_diagram_support import LOAD_DIAGRAM
+from webpier.reporting.assembly import document_bytes, join
 from webpier.reporting.document import paragraph, report
-
-
-def texts(data: bytes) -> list[str]:
-    return [page.extract_text().strip() for page in PdfReader(BytesIO(data)).pages]
-
-
-def test_the_pages_go_between_the_parts_as_they_are(tmp_path: Path):
-    path = render_with_pages(report(paragraph("前半")), LOAD_DIAGRAM, report(paragraph("後半")), tmp_path / "r.pdf")
-    assert texts(path.read_bytes()) == ["前半", *(f"{MARK} {n}/{PAGES}" for n in range(1, PAGES + 1)), "後半"]
-    assert list(tmp_path.iterdir()) == [path]
 
 
 def test_the_join_adds_no_date_and_gives_the_same_bytes(tmp_path: Path):

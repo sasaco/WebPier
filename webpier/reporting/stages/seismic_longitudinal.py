@@ -3,11 +3,14 @@
 10.1 the model with the 0.010 m column-base micro member (figure, nodes and
 members, the section of the micro member, Ec), 10.2 the actions printed here
 (the seismic train, the bearing horizontal forces and the self-weight inertia;
-the rest is "§8 と同様") and 10.3 the basic cases and the combination. By the
-user's decision (decision 41) WebPier draws no springs (no spring symbol,
-no Kv/Ks/Kr, no spring table) and no load diagrams (Example2 10.3), so the
-combination is 10.3 here. Leaving the springs out does not mean a fixed base or
-any other support condition. Between 10.1 and 10.2 come JRSNAP's データ確認図
+the rest is "§8 と同様"), 10.3 the load diagrams: JRSNAP's 荷重図
+(S_LoadPicture) of each basic case, one page per case in CASE order, each drawn
+from the .ndt of the first combination that uses the case (decision 51;
+Example2 10.3 is an Excel figure of two or three cases a page, which is not
+reproduced), and 10.4 the basic cases and the combination. By the user's
+decision (decision 41) WebPier draws no springs (no spring symbol, no Kv/Ks/Kr,
+no spring table). Leaving the springs out does not mean a fixed base or any
+other support condition. Between 10.1 and 10.2 come JRSNAP's データ確認図
 pages (Example2 10-3..10-7: the nonlinear and section numbers, the element
 table, the section rebar and the node springs), drawn by JRSNAP from the NDU of
 the same generation (decision 50). The pushover and the checks (10-13 onward)
@@ -16,6 +19,7 @@ are not part of this stage.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -28,15 +32,17 @@ from ...calc.seismic_longitudinal import (
 )
 from ...inputs import PierInput
 from ..figures import pier_outline
-from . import data_check as data_check_pages
 from .frame_report import (
     Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
     frame_figure, material_lines, member_table, node_table, section_lines, seat_moment,
     self_weight_inertia, semantic_records as records, sub, top_table, used_concretes, value, with_unit,
 )
+from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
 
 PREFIX = "0710/"
 ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before (decision 50)
+# JRSNAP's データ確認図 before 10.2 (decision 50) and its load diagram after 10.3 (decision 51).
+INSERTIONS = (Insertion(DATA_CHECK, PREFIX + ACTIONS, before=True), Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS))
 ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←"}
 INCREMENTS = {Increment.FIXED: "固定", Increment.INCREMENTAL: "増分", Increment.LIMITED: "限定増分"}
 # 10-12: symbol (base, subscript) and name; the inertia names carry their Kh.
@@ -112,7 +118,7 @@ def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
 
 
 def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
-    m.heading("combination.heading", "10.3 作用の組合せ", 1)
+    m.heading("combination.heading", "10.4 作用の組合せ", 1)
     m.paragraph("basic.caption", "基本Case", keep=True)
     rows: list[tuple[Any, ...]] = [("Case", "記号", "作用方向", "荷重種別", "荷　重　名　称")]
     for action in result.basic_cases:
@@ -136,6 +142,7 @@ def content(result: SeismicLongitudinalResult, pier: PierInput) -> tuple[Unit, .
     m = Manuscript(PREFIX)
     _model(m, result, pier)
     _actions(m, result)
+    diagrams_heading(m, "10.3 荷重図")
     _combinations(m, result)
     return tuple(m.units)
 
@@ -145,14 +152,15 @@ def semantic_records(result: SeismicLongitudinalResult, pier: PierInput) -> list
 
 
 def build_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput) -> Document:
-    """The whole 0710 manuscript as one GridLayoutPdf Document, without the データ確認図 pages."""
+    """The whole 0710 manuscript as one GridLayoutPdf Document, without JRSNAP's pages."""
     return document(content(result, pier))
 
 
 def render_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput, path: str | Path,
-                                data_check: bytes) -> Path:
-    """The report with JRSNAP's *data_check* pages before 10.2; atomically replaces *path*.
+                                pages: Mapping[str, bytes]) -> Path:
+    """The report with JRSNAP's データ確認図 (``pages[DATA_CHECK]``) before 10.2 and its load diagram
+    (``pages[LOAD_DIAGRAM]``) after 10.3; atomically replaces *path*.
 
-    WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decision 50).
+    WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decisions 50, 51).
     """
-    return data_check_pages.render(content(result, pier), PREFIX + ACTIONS, data_check, path)
+    return render_with_pages(content(result, pier), INSERTIONS, pages, path)

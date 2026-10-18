@@ -31,7 +31,7 @@ def write_pdf(path: Path, pages: int = 2) -> Path:
 
 
 def _render(stage: str, pages: int):
-    def render(results, pier, path):
+    def render(results, pier, path, drawn):
         Path(path).write_bytes(pdf_bytes(pages, stage))
     return render
 

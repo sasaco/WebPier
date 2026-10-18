@@ -14,12 +14,13 @@ from pipeline_support import Recorder, copy_input, tree
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions
 from webpier.pipeline.stages import Export, Registry, StageSpec
+from webpier.reporting.stages.insertion import LOAD_DIAGRAM
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}, "2": {}, "3": {}}}).encode()
 
 
 def registry(recorder: Recorder, pages: list) -> Registry:
-    def render(results, pier, path, *drawn):
+    def render(results, pier, path, drawn):
         pages.append(drawn)
         Path(path).write_bytes(b"%PDF B")
         return path
@@ -48,9 +49,10 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 def test_the_report_takes_the_pages_drawn_from_the_staged_file(env):
     options, stages, pages = env
     generate.generate(options, registry=stages)
-    ((drawn,),) = pages  # stage B only, and the pages after its path
-    assert [page.extract_text().strip().partition(" CASES ")[2] for page in PdfReader(BytesIO(drawn)).pages] == [
-        "1 2", "3"]
+    (drawn,) = pages  # stage B only, its pages by name
+    assert sorted(drawn) == [LOAD_DIAGRAM]
+    assert [page.extract_text().strip().partition(" CASES ")[2]
+            for page in PdfReader(BytesIO(drawn[LOAD_DIAGRAM])).pages] == ["1 2", "3"]
     sidecar = json.loads((Path(options.post_dir) / "frame.json.provenance.json").read_text(encoding="utf-8"))
     assert sidecar["load_diagram"] == {"report": "B.pdf", "engine": "fempython", "engine_version": "fake-1"}
 

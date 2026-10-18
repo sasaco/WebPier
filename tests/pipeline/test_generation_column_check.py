@@ -13,12 +13,12 @@ import hashlib
 import json
 from pathlib import Path
 
+import pymupdf
 import pytest
 
 from pipeline_support import Recorder, copy_input, tree
 from webpier.export.capacita import PickupError
 from webpier.pipeline import capacita, fempython, generate
-from webpier.pipeline.capacita import ColumnCheckPages
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
 from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, SectionCheck, StageSpec
 
@@ -31,6 +31,11 @@ SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destru
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def texts(pdf: bytes) -> list[str]:
+    with pymupdf.open(stream=pdf, filetype="pdf") as document:
+        return [page.get_text().strip() for page in document]
 
 
 PIK = f"FAKE PIK frame.json {sha(FRAMEWEB)}\n".encode()  # tests/fixtures/fempython/fake_runner.py
@@ -88,9 +93,10 @@ def test_the_check_publishes_the_completed_wdj_and_the_report(env):
     assert "D_照査.pdf" in output and "D_照査.json" in output
     assert post["frame.wdj"] == completed() and post["frame.pik"] == PIK
     assert "model.wdj" not in post and not any(name.endswith(".xlsx") for name in post)
-    (pages,) = rendered
-    assert isinstance(pages, ColumnCheckPages) and [section.id for section in pages.sections] == list(SECTIONS)
-    assert pages.wdj == completed()
+    (pages,) = rendered  # Capacita's pages of each section, by its id, as the report takes them
+    assert list(pages) == list(SECTIONS)
+    assert {section: [text.rsplit(" ", 2)[0] for text in texts(content)] for section, content in pages.items()} == {
+        section: [f"FAKE CAPACITA {section}"] * (2 if section == "section_forces" else 1) for section in SECTIONS}
     assert recorder.actions("export") == ["B", "D"]  # each built once
     assert given == [PIK]  # the WDJ is built from the PIK of the same analysis (point_index)
 
@@ -153,7 +159,7 @@ def test_a_failing_check_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch,
 
 def test_the_registry_needs_a_frame_analysis_and_a_report_for_a_check():
     check = SectionCheck("wdj", "frame.wdj", lambda results, pier, pik: WDJ, lambda results: SECTIONS)
-    base = (StageSpec("A", "A_基礎", (), lambda pier, results: 1, lambda results, pier, path: path,
+    base = (StageSpec("A", "A_基礎", (), lambda pier, results: 1, lambda results, pier, path, pages: path,
                       (Export("frameweb", "frame.json", lambda results, pier: FRAMEWEB),)),)
     with pytest.raises(ValueError, match="骨組解析"):
         Registry((*base, StageSpec("D", "D_照査", ("A",), lambda pier, results: 1,
@@ -173,8 +179,9 @@ def test_the_sections_capacita_skipped_reach_the_report_and_the_result_json(env,
     options, recorder, rendered, stages, given = env
     monkeypatch.setenv("FAKE_CAPACITA", "skip")
     generate.generate(options, registry=stages)
-    (pages,) = rendered
-    assert pages.skipped == ("shear_durability", "bending_serviceability")
+    (pages,) = rendered  # a skipped section has no pages
+    assert list(pages) == [section for section in SECTIONS
+                           if section not in ("shear_durability", "bending_serviceability")]
     document = json.loads((Path(options.output_dir) / "D_照査.json").read_text(encoding="utf-8"))
     assert document["section_check"]["skipped_sections"] == ["shear_durability", "bending_serviceability"]
 

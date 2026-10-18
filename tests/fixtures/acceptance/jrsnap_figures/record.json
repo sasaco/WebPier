@@ -1,0 +1,689 @@
+{
+  "schema_version": 1,
+  "kind": "jrsnap_figures_acceptance",
+  "date": "2026-10-18",
+  "verified_at": "2026-10-18T23:14:57+09:00",
+  "method": "WebPier が 0710・0720 で書く NDU を本物の JRSNAP 5.2-L03 の runner（JRSNAPHeadless の figures）に渡してデータ確認図と荷重図を描かせ、WebPier が受け取るページ（draw_figures）を pymupdf で測った。",
+  "analysis_run": false,
+  "runner": {
+    "engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
+    "product": "5.2-L03",
+    "assemblyVersion": "5.2.3.1"
+  },
+  "input": {
+    "path": "tests/fixtures/inputs/current.json",
+    "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
+  },
+  "implementation_sha256": "895210c157e3014a992b089d532ce847c61ae5915dec9e039f8380d2aa1a331c",
+  "stages": {
+    "0710": {
+      "ndu": {
+        "file": "線路方向.ndu",
+        "sha256": "3199e7cc381660ae420f9f5e28e7a5be140134ce577163403a150904877e860b"
+      },
+      "load_cases": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          1
+        ]
+      ],
+      "data_check": {
+        "figures": [
+          "nonlinear-numbers",
+          "section-numbers",
+          "element-table",
+          "section-detail",
+          "node-springs"
+        ],
+        "combination": 1,
+        "pages": 5,
+        "sizes": [
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ]
+        ]
+      },
+      "load_diagram": [
+        {
+          "page": 1,
+          "case": 1,
+          "combination": 1,
+          "title": "CASE-1 固定死荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 2,
+          "case": 2,
+          "combination": 1,
+          "title": "CASE-2 付加死荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 3,
+          "case": 3,
+          "combination": 1,
+          "title": "CASE-3 浮力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 4,
+          "case": 4,
+          "combination": 1,
+          "title": "CASE-4 雪荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 5,
+          "case": 5,
+          "combination": 1,
+          "title": "CASE-5 列車荷重（地震時）",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": true
+        },
+        {
+          "page": 6,
+          "case": 6,
+          "combination": 1,
+          "title": "CASE-6 地震時桁荷重慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 7,
+          "case": 7,
+          "combination": 1,
+          "title": "CASE-7 地震時列車荷重慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 8,
+          "case": 8,
+          "combination": 1,
+          "title": "CASE-8 自重による地震時慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        }
+      ],
+      "runner_summary": {
+        "jrsnap": {
+          "product": "5.2-L03",
+          "assemblyVersion": "5.2.3.1",
+          "installDir": "C:\\RTRI_Program\\JRSNAP(Ver5.2-L03)"
+        },
+        "viewFlags": [
+          1,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          0
+        ],
+        "dataCheck": {
+          "combination": 1,
+          "ndt": "線路方向(Case1_ρm10_αf1_正向).ndt",
+          "sha256": "47f51e5a8ff51cbc2fab6f637b6ec122968d1ba7fe80dc74458fe94af23190f7",
+          "figures": [
+            {
+              "figure": "nonlinear-numbers",
+              "file": "nonlinear-numbers.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "section-numbers",
+              "file": "section-numbers.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "element-table",
+              "file": "element-table.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "section-detail",
+              "file": "section-detail.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "node-springs",
+              "file": "node-springs.pdf",
+              "pages": 1
+            }
+          ]
+        },
+        "loadDiagram": [
+          {
+            "combination": 1,
+            "ndt": "線路方向(Case1_ρm10_αf1_正向).ndt",
+            "sha256": "47f51e5a8ff51cbc2fab6f637b6ec122968d1ba7fe80dc74458fe94af23190f7",
+            "file": "load-diagram-1.pdf",
+            "pages": [
+              {
+                "page": 1,
+                "case": 1,
+                "title": "CASE-1  固定死荷重"
+              },
+              {
+                "page": 2,
+                "case": 2,
+                "title": "CASE-2  付加死荷重"
+              },
+              {
+                "page": 3,
+                "case": 3,
+                "title": "CASE-3  浮力"
+              },
+              {
+                "page": 4,
+                "case": 4,
+                "title": "CASE-4  雪荷重"
+              },
+              {
+                "page": 5,
+                "case": 5,
+                "title": "CASE-5  列車荷重（地震時）"
+              },
+              {
+                "page": 6,
+                "case": 6,
+                "title": "CASE-6  地震時桁荷重慣性力"
+              },
+              {
+                "page": 7,
+                "case": 7,
+                "title": "CASE-7  地震時列車荷重慣性力"
+              },
+              {
+                "page": 8,
+                "case": 8,
+                "title": "CASE-8  自重による地震時慣性力"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "0720": {
+      "ndu": {
+        "file": "線路直角方向.ndu",
+        "sha256": "36d470afcec6cce19e0c90e83202dad657f3d633bf7f2d4627a92b0e2a66927b"
+      },
+      "load_cases": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          9,
+          1
+        ]
+      ],
+      "data_check": {
+        "figures": [
+          "nonlinear-numbers",
+          "section-numbers",
+          "element-table",
+          "section-detail",
+          "node-springs"
+        ],
+        "combination": 1,
+        "pages": 5,
+        "sizes": [
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ],
+          [
+            595.3,
+            841.9
+          ]
+        ]
+      },
+      "load_diagram": [
+        {
+          "page": 1,
+          "case": 1,
+          "combination": 1,
+          "title": "CASE-1 固定死荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 2,
+          "case": 2,
+          "combination": 1,
+          "title": "CASE-2 付加死荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 3,
+          "case": 3,
+          "combination": 1,
+          "title": "CASE-3 浮力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 4,
+          "case": 4,
+          "combination": 1,
+          "title": "CASE-4 雪荷重",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 5,
+          "case": 5,
+          "combination": 1,
+          "title": "CASE-5 列車荷重（地震時・上り線）",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": true
+        },
+        {
+          "page": 6,
+          "case": 6,
+          "combination": 2,
+          "title": "CASE-6 列車荷重（地震時・下り線）",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": true
+        },
+        {
+          "page": 7,
+          "case": 7,
+          "combination": 1,
+          "title": "CASE-7 地震時桁荷重慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 8,
+          "case": 8,
+          "combination": 1,
+          "title": "CASE-8 列車荷重慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        },
+        {
+          "page": 9,
+          "case": 9,
+          "combination": 1,
+          "title": "CASE-9 自重による地震時慣性力",
+          "size": [
+            595.3,
+            841.9
+          ],
+          "colored_pixels": 0,
+          "page_numbers": [],
+          "has_480": false
+        }
+      ],
+      "runner_summary": {
+        "jrsnap": {
+          "product": "5.2-L03",
+          "assemblyVersion": "5.2.3.1",
+          "installDir": "C:\\RTRI_Program\\JRSNAP(Ver5.2-L03)"
+        },
+        "viewFlags": [
+          1,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          1,
+          1,
+          1,
+          0,
+          1,
+          2,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          0
+        ],
+        "dataCheck": {
+          "combination": 1,
+          "ndt": "線路直角方向(Case1_ρm10_αf1_正向).ndt",
+          "sha256": "ac223f12655e456f31604e9015927d4616353db36aa8ab7c50df405256f24051",
+          "figures": [
+            {
+              "figure": "nonlinear-numbers",
+              "file": "nonlinear-numbers.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "section-numbers",
+              "file": "section-numbers.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "element-table",
+              "file": "element-table.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "section-detail",
+              "file": "section-detail.pdf",
+              "pages": 1
+            },
+            {
+              "figure": "node-springs",
+              "file": "node-springs.pdf",
+              "pages": 1
+            }
+          ]
+        },
+        "loadDiagram": [
+          {
+            "combination": 1,
+            "ndt": "線路直角方向(Case1_ρm10_αf1_正向).ndt",
+            "sha256": "ac223f12655e456f31604e9015927d4616353db36aa8ab7c50df405256f24051",
+            "file": "load-diagram-1.pdf",
+            "pages": [
+              {
+                "page": 1,
+                "case": 1,
+                "title": "CASE-1  固定死荷重"
+              },
+              {
+                "page": 2,
+                "case": 2,
+                "title": "CASE-2  付加死荷重"
+              },
+              {
+                "page": 3,
+                "case": 3,
+                "title": "CASE-3  浮力"
+              },
+              {
+                "page": 4,
+                "case": 4,
+                "title": "CASE-4  雪荷重"
+              },
+              {
+                "page": 5,
+                "case": 5,
+                "title": "CASE-5  列車荷重（地震時・上り線）"
+              },
+              {
+                "page": 6,
+                "case": 6,
+                "title": "CASE-6  列車荷重（地震時・下り線）"
+              },
+              {
+                "page": 7,
+                "case": 7,
+                "title": "CASE-7  地震時桁荷重慣性力"
+              },
+              {
+                "page": 8,
+                "case": 8,
+                "title": "CASE-8  列車荷重慣性力"
+              },
+              {
+                "page": 9,
+                "case": 9,
+                "title": "CASE-9  自重による地震時慣性力"
+              }
+            ]
+          },
+          {
+            "combination": 2,
+            "ndt": "線路直角方向(Case2_ρm10_αf1_正向).ndt",
+            "sha256": "f0ed6affc763f54ff086faa77059a1fe4f37f1c91ba3ee74d6deee659166a321",
+            "file": "load-diagram-2.pdf",
+            "pages": [
+              {
+                "page": 1,
+                "case": 1,
+                "title": "CASE-1  固定死荷重"
+              },
+              {
+                "page": 2,
+                "case": 2,
+                "title": "CASE-2  付加死荷重"
+              },
+              {
+                "page": 3,
+                "case": 3,
+                "title": "CASE-3  浮力"
+              },
+              {
+                "page": 4,
+                "case": 4,
+                "title": "CASE-4  雪荷重"
+              },
+              {
+                "page": 5,
+                "case": 5,
+                "title": "CASE-5  列車荷重（地震時・上り線）"
+              },
+              {
+                "page": 6,
+                "case": 6,
+                "title": "CASE-6  列車荷重（地震時・下り線）"
+              },
+              {
+                "page": 7,
+                "case": 7,
+                "title": "CASE-7  地震時桁荷重慣性力"
+              },
+              {
+                "page": 8,
+                "case": 8,
+                "title": "CASE-8  列車荷重慣性力"
+              },
+              {
+                "page": 9,
+                "case": 9,
+                "title": "CASE-9  自重による地震時慣性力"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

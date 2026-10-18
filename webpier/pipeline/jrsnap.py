@@ -1,5 +1,5 @@
-"""The JRSNAP runner: the データ確認図 of 0710 and 0720 (decision 50) and the static nonlinear analysis of 0711 and
-0721 (decision 47, ADR-0007).
+"""The JRSNAP runner: the データ確認図 and the 荷重図 of 0710 and 0720 (decisions 50, 51) and the static nonlinear
+analysis of 0711 and 0721 (decision 47, ADR-0007).
 
 The NDU a generation writes is given, as it is and under its own name, to ``JRSNAP.Headless.exe``. For the analysis
 (``run``) the runner writes the analysis data (.ndt) of every combination as JRSNAP's 解析用データ出力 does, has
@@ -9,9 +9,14 @@ neither checked further nor bound to the implementation identity. The sidecar re
 ``engineVersion`` and what the runner reports of JRSNAP (version, display flags, the confirmations it answered, the
 messages of the analysis).
 
-For the データ確認図 (``data-check``) the runner writes the .ndt the same way and has JRSNAP's S_DataCheck.exe print
-the figures of ``DATA_CHECK_FIGURES`` for combination 1, one PDF each; their pages, in that order, go into the
-report as they are. They are not published by themselves, and the NDU's sidecar records which runner drew them.
+For the figures (``figures``) the runner writes the .ndt the same way, in one call: JRSNAP's S_DataCheck.exe prints
+the データ確認図 figures of ``DATA_CHECK_FIGURES`` from the .ndt of combination 1, one PDF each, and its
+S_LoadPicture.exe draws the 荷重図 of each combination the stage's ``load_cases`` name from that combination's .ndt,
+one PDF per combination with one page per basic case. The pages of the データ確認図 go into the report in that order;
+the load diagram pages are taken one each, in case order, each from the combination named for its case (JRSNAP writes
+the loads of a case a combination does not use as 0; decision 51). The pages go in as they are and are not published
+by themselves; the NDU's sidecar records which runner drew them, the combination of each case and what the runner
+reports (decisions 50, 51).
 
 The runner is the absolute path in ``STRUCTURAL_MCP_JRSNAP_RUNNER``: the process environment first, then the
 ``.env`` file at the repository root (not tracked). The JRSNAP installation is the runner's own setting. Without a
@@ -34,6 +39,7 @@ from typing import Any
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PyPdfError
 
+from ..reporting.stages.insertion import DATA_CHECK, LOAD_DIAGRAM
 from .fempython import ENV_FILE, RunnerError, read_env
 
 RUNNER_KEY = "STRUCTURAL_MCP_JRSNAP_RUNNER"
@@ -44,13 +50,12 @@ ANALYSIS_TIMEOUT = 1800
 TIMEOUT = ANALYSIS_TIMEOUT + 60
 _KINDS = {"ndt", "analysis-result"}
 _ANALYZE = "を JRSNAP で静的非線形解析できません"
-# The figures of the データ確認図, in the order of the report (decision 50; Example2 10-3..10-7), and the combination
-# they are drawn for: the numbers, sections and node springs do not change with the combination.
+# The figures of the データ確認図, in the order of the report (decision 50; Example2 10-3..10-7).
 DATA_CHECK_FIGURES = ("nonlinear-numbers", "section-numbers", "element-table", "section-detail", "node-springs")
-DATA_CHECK_CASE = 1
-DATA_CHECK_TIMEOUT = 300
-DATA_CHECK_WAIT = DATA_CHECK_TIMEOUT + 60
-_DATA_CHECK = "のデータ確認図を JRSNAP で描けません"
+DATA_CHECK_COMBINATION = 1  # 番号図・断面・節点ばねは組合せで変わらない（決定50）
+FIGURES_TIMEOUT = 300  # the runner's time for the データ確認図 …
+LOAD_DIAGRAM_TIMEOUT = 120  # … and for the 荷重図 of each combination; WebPier waits a minute longer
+_FIGURES = "のデータ確認図と荷重図を JRSNAP で描けません"
 
 
 @dataclass(frozen=True)
@@ -62,10 +67,17 @@ class NonlinearFiles:
 
 
 @dataclass(frozen=True)
-class DataCheckPages:
-    pdf: bytes  # the pages of every figure, in the order of DATA_CHECK_FIGURES
+class FigurePages:
+    data_check: bytes  # the pages of every figure, in the order of DATA_CHECK_FIGURES
+    load_diagram: bytes  # one page per basic case, in case order, each from its combination's .ndt
+    load_cases: tuple[tuple[int, int], ...]  # (basic case, combination) of each load diagram page
     engine_version: str
-    summary: Mapping[str, Any]  # what the runner reports of JRSNAP, the .ndt and the figures
+    summary: Mapping[str, Any]  # what the runner reports of JRSNAP, the .ndt and the pages
+
+    @property
+    def pages(self) -> dict[str, bytes]:
+        """The pages by the name the report takes them (reporting.stages.insertion)."""
+        return {DATA_CHECK: self.data_check, LOAD_DIAGRAM: self.load_diagram}
 
 
 def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None) -> Path:
@@ -163,28 +175,81 @@ def analyze_nonlinear(name: str, document: bytes, runner: Path, *, timeout: floa
     return NonlinearFiles(files, envelope["engineVersion"], envelope["summary"], tuple(envelope["messages"]))
 
 
-def draw_data_check(name: str, document: bytes, runner: Path, *, timeout: float = DATA_CHECK_WAIT
-                    ) -> DataCheckPages:
-    """The データ確認図 pages *runner* draws for combination 1 of the NDU *document*, given to it as *name*
-    (decision 50): the pages of each figure of ``DATA_CHECK_FIGURES``, in that order."""
-    names = [f"{figure}.pdf" for figure in DATA_CHECK_FIGURES]
-    envelope, files = _call(
-        name, document, runner, "data-check",
-        ("--figures", ",".join(DATA_CHECK_FIGURES), "--case", str(DATA_CHECK_CASE),
-         "--timeout-seconds", str(DATA_CHECK_TIMEOUT)), timeout, _DATA_CHECK,
-        lambda artifacts: ([item.get("relativePath") for item in artifacts] == names
-                           and all(item.get("kind") == "data-check" for item in artifacts)),
-        "データ確認図の図ごとの PDF")
+def _pages(name: str, file: str, content: bytes) -> list[Any]:
+    """The pages of the returned PDF *file*, which must have some."""
+    try:
+        pages = list(PdfReader(BytesIO(content), strict=True).pages)
+    except (PyPdfError, ValueError, OSError) as exc:
+        raise _fail(name, f"{file} を読めません（{exc}）", _FIGURES) from exc
+    if not pages:
+        raise _fail(name, f"{file} にページがありません", _FIGURES)
+    return pages
+
+
+def _pdf(pages: Sequence[Any]) -> bytes:
     writer = PdfWriter()
-    for file in names:
-        try:
-            pages = PdfReader(BytesIO(files[file]), strict=True).pages
-        except (PyPdfError, ValueError, OSError) as exc:
-            raise _fail(name, f"{file} を読めません（{exc}）", _DATA_CHECK) from exc
-        if not pages:
-            raise _fail(name, f"{file} にページがありません", _DATA_CHECK)
-        for page in pages:
-            writer.add_page(page)
+    for page in pages:
+        writer.add_page(page)
     stream = BytesIO()
     writer.write(stream)
-    return DataCheckPages(stream.getvalue(), envelope["engineVersion"], envelope["summary"])
+    return stream.getvalue()
+
+
+def _diagrams(name: str, summary: Mapping[str, Any], files: Mapping[str, bytes],
+              combinations: Sequence[int]) -> dict[int, dict[int, Any]]:
+    """The load diagram page of each basic case by its number, for each combination: the runner's
+    ``summary.loadDiagram`` must list, in the order asked, one page per page of each combination's PDF."""
+    listed = summary.get("loadDiagram")
+    if (not isinstance(listed, list) or len(listed) != len(combinations)
+            or not all(isinstance(item, dict) for item in listed)):
+        raise _fail(name, f"runner の応答に組合せ {'・'.join(map(str, combinations))} の荷重図のページ"
+                          f"（summary.loadDiagram）がありません（{listed!r}）", _FIGURES)
+    found: dict[int, dict[int, Any]] = {}
+    for combination, item in zip(combinations, listed):
+        file = f"load-diagram-{combination}.pdf"
+        pages, numbers = _pages(name, file, files[file]), item.get("pages")
+        if (item.get("combination") != combination or item.get("file") != file or not isinstance(numbers, list)
+                or not all(isinstance(page, dict) for page in numbers)
+                or [page.get("page") for page in numbers] != list(range(1, len(pages) + 1))
+                or not all(type(page.get("case")) is int for page in numbers)
+                or len({page["case"] for page in numbers}) != len(numbers)):
+            raise _fail(name, f"{file} のページが runner の応答（summary.loadDiagram）と一致しません（{item!r}）",
+                        _FIGURES)
+        found[combination] = {page["case"]: pages[page["page"] - 1] for page in numbers}
+    return found
+
+
+def draw_figures(name: str, document: bytes, runner: Path, load_cases: Sequence[tuple[int, int]], *,
+                 timeout: float | None = None) -> FigurePages:
+    """The データ確認図 and the 荷重図 pages *runner* draws for the NDU *document*, given to it as *name*, in one call
+    (decisions 50, 51): the pages of each figure of ``DATA_CHECK_FIGURES`` for combination 1, in that order, and the
+    load diagram page of each (basic case, combination) of *load_cases*, in that order, from that combination's .ndt.
+
+    *timeout* (seconds) is how long WebPier waits: by default a minute longer than the runner's own time.
+    ``ValueError`` when *load_cases* is empty, repeats a case or names a combination below 1.
+    """
+    cases = [case for case, _ in load_cases]
+    combinations = sorted({combination for _, combination in load_cases})
+    if not load_cases or len(set(cases)) != len(cases) or combinations[0] < 1:
+        raise ValueError(f"荷重図のケースと組合せが不正です: {list(load_cases)!r}")
+    seconds = FIGURES_TIMEOUT + LOAD_DIAGRAM_TIMEOUT * len(combinations)
+    figures = [f"{figure}.pdf" for figure in DATA_CHECK_FIGURES]
+    diagrams = [f"load-diagram-{combination}.pdf" for combination in combinations]
+    kinds = ["data-check"] * len(figures) + ["load-diagram"] * len(diagrams)
+    envelope, files = _call(
+        name, document, runner, "figures",
+        ("--data-check", ",".join(DATA_CHECK_FIGURES), "--data-check-combination", str(DATA_CHECK_COMBINATION),
+         "--load-diagram", ",".join(map(str, combinations)), "--timeout-seconds", str(seconds)),
+        seconds + 60 if timeout is None else timeout, _FIGURES,
+        lambda artifacts: ([item.get("relativePath") for item in artifacts] == figures + diagrams
+                           and [item.get("kind") for item in artifacts] == kinds),
+        "データ確認図の図ごとの PDF と組合せごとの荷重図の PDF")
+    data_check = _pdf([page for file in figures for page in _pages(name, file, files[file])])
+    drawn = _diagrams(name, envelope["summary"], files, combinations)
+    pages = []
+    for case, combination in load_cases:
+        if case not in drawn[combination]:
+            raise _fail(name, f"組合せ {combination} の荷重図に CASE-{case} のページがありません", _FIGURES)
+        pages.append(drawn[combination][case])
+    return FigurePages(data_check, _pdf(pages), tuple((case, combination) for case, combination in load_cases),
+                       envelope["engineVersion"], envelope["summary"])

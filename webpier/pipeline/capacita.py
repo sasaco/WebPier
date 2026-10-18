@@ -33,6 +33,7 @@ from typing import Any
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
+from ..reporting.assembly import page_range
 from .fempython import ENV_FILE, RunnerError, read_env
 
 RUNNER_KEY = "STRUCTURAL_MCP_WEBDAN_RUNNER"
@@ -76,6 +77,12 @@ class ColumnCheckPages:
                 raise KeyError(section_id)
             return None
         return found.first, found.last
+
+    @property
+    def pages(self) -> dict[str, bytes]:
+        """The pages of each returned section by its id (``assembly.page_range``), by the name the report takes them
+        (reporting.stages.insertion); a skipped section has none."""
+        return {section.id: page_range(self.pdf, section.first, section.last) for section in self.sections}
 
 
 def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None) -> Path:

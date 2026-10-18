@@ -19,13 +19,13 @@ from frame_report_pdf_checks import table_checks
 from pdf_handcheck import formula_checks
 from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
 from webpier.core.printed import Printed
-from load_diagram_support import LOAD_DIAGRAM, PAGES, inserted, layout
+from load_diagram_support import PAGES, REPORT, inserted, layout
 from webpier.reporting.stages.transverse import PREFIX, content, render_transverse, semantic_records
 
 
 def render(case: str, path: Path) -> Path:
     pier, reaction, result, _ = transverse_chain(case)
-    return render_transverse(result, reaction, pier, path, LOAD_DIAGRAM)
+    return render_transverse(result, reaction, pier, path, REPORT)
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
@@ -70,7 +70,7 @@ def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
     wrong = replace(table, rows=(replace(table.rows[0], n=Printed(table.rows[0].n.value + .01, 2, "kN")),
                                  *table.rows[1:]))
     path = render_transverse(replace(result, train=replace(result.train, up=wrong)), reaction, pier, tmp_path / "w.pdf",
-                             LOAD_DIAGRAM)
+                             REPORT)
     assert [check.kind for check in table_checks(path) if not check.ok] == ["row", "total"]
 
 
@@ -79,10 +79,10 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("current", tmp_path / "b.pdf").read_bytes() == first
     script = ("import sys; sys.path[:0] = [sys.argv[2], sys.argv[3]]\n"
               "from frame_report_cases import transverse_chain\n"
-              "from load_diagram_support import LOAD_DIAGRAM\n"
+              "from load_diagram_support import REPORT\n"
               "from webpier.reporting.stages.transverse import render_transverse\n"
               "pier, reaction, result, _ = transverse_chain('current')\n"
-              "render_transverse(result, reaction, pier, sys.argv[1], LOAD_DIAGRAM)\n")
+              "render_transverse(result, reaction, pier, sys.argv[1], REPORT)\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)
