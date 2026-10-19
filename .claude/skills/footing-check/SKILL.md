@@ -1,6 +1,6 @@
 ---
 name: footing-check
-description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は foundation-check、Aggre-SE の runner は structural-aggrese（WebPier の呼び出しは webpier-aggrese）、Capacita は capacita-column-check。
+description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は foundation-check、Aggre-SE の runner は structural-aggrese（WebPier の呼び出しは webpier-aggrese）、Capacita は webpier-capacita（Capacita そのものは structural-capacita）。
 ---
 
 # フーチングの照査（0800・0810・0820）
@@ -44,7 +44,7 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 
 - 張出しは起点側・終点側（B7・B9／W7・W9、土かぶり df1・df2）の両方を計算し、Md の大きい側を採る（同じなら起点側）。結果JSONに両側と採った側（`chosen`）。計算書は採った側だけ。
 - `鉄筋.フーチング`：方向ごとの下側の主鉄筋の行（1 m 当たり 1000／pitch 本。空欄・割り切れない・2段以上は入力エラー）、中心かぶりは 指定 の `center_mm` か 自動 の `pure_cover_mm`＋外側の段の径＋自径/2（`stack_order` 1 が最外）、`band_rows` の方向ごとの1行（密度は `density_per_m`、間隔は 1000／`width_pitch_mm`）、`materials`、`concrete_strength_mpa`、`aggregate_max_mm`（フーチング自身の値。柱の値は使わない。owner 2026-10-19）。環境条件・ε'csd・機関・JR-001/004 は `柱の断面照査` と同じ。`pre/input.json` は見本の D25@125 中心 100・D29@125 中心 127・D16 2本/m@250・SD390・27・25。`tests/fixtures/inputs/current.json` は `aggregate_max_mm: null` の1行だけ持ち（受入記録が SHA を縛る）、テストは `tests/pipeline/pipeline_support.py` の `footing_input`／`SAMPLE_FOOTING` で項目を上書きする。
-- Capacita への対応：安全性（破壊）の曲げ・せん断は安全性2列のうち Md の大きい列の Md・Vd・La（見本は Vd最大の列 760.7／675.1／1127）、耐久性の縁引張＝短期の Md、永久作用＝長期の Md、復旧性（地震時）＝地震時の Md・Vd・La。La は着目点に1つなので方向ごとに2点（「線路方向」「線路方向（地震時）」）。耐久性のせん断・使用性・復旧性（地震時以外）は渡さない。詳細は capacita-column-check スキルの「フーチングの断面照査」。
+- Capacita への対応：安全性（破壊）の曲げ・せん断は安全性2列のうち Md の大きい列の Md・Vd・La（見本は Vd最大の列 760.7／675.1／1127）、耐久性の縁引張＝短期の Md、永久作用＝長期の Md、復旧性（地震時）＝地震時の Md・Vd・La。La は着目点に1つなので方向ごとに2点（「線路方向」「線路方向（地震時）」）。耐久性のせん断・使用性・復旧性（地震時以外）は渡さない。詳細は webpier-capacita スキルの「フーチングの断面照査」（断面力入力モードの WDJ の一般的な性質はスキル structural-capacita）。
 - 受入での Capacita の耐力：線路方向 安全性 Mud 3670.5（見本 255 と一致）、Myd 3863.6；直角 Mud 4581.9／Myd 4808.1。
 
 ## 生成

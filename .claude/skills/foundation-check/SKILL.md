@@ -1,6 +1,6 @@
 ---
 name: foundation-check
-description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「基礎の照査」）を扱う。FEMPython の骨組解析の反力 CSV（*_ピックアップ反力.csv）から基礎中心の Vd・Hd・Md を読む仕組み（support_reactions、支点の節点、抽出ケースと4列の対応、符号）、鉛直支持・水平支持・回転の式と印字桁（webpier/calc/foundation_check.py）、水位ごとの γe2、長期の上限値と土質区分、計算書 8.10・9.10（webpier/reporting/stages/foundation_check.py）、0611 と骨組解析を共有する登録表（StageSpec.complete）、独立の手計算と本物の FEMPython での受入に使う。見本 08_線路.pdf 8-27〜8-32・09_直角.pdf 9-24〜9-29 と値が合わない、反力が読めない、列の組合せが違う、照査の式や定数を変えるときにも使う。柱の断面照査（Capacita）は capacita-column-check。
+description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「基礎の照査」）を扱う。FEMPython の骨組解析の反力 CSV（*_ピックアップ反力.csv）から基礎中心の Vd・Hd・Md を読む仕組み（support_reactions、支点の節点、抽出ケースと4列の対応、符号）、鉛直支持・水平支持・回転の式と印字桁（webpier/calc/foundation_check.py）、水位ごとの γe2、長期の上限値と土質区分、計算書 8.10・9.10（webpier/reporting/stages/foundation_check.py）、0611 と骨組解析を共有する登録表（StageSpec.complete）、独立の手計算と本物の FEMPython での受入に使う。見本 08_線路.pdf 8-27〜8-32・09_直角.pdf 9-24〜9-29 と値が合わない、反力が読めない、列の組合せが違う、照査の式や定数を変えるときにも使う。柱の断面照査（Capacita）は webpier-capacita。
 ---
 
 # 基礎の照査（0612・0622）
