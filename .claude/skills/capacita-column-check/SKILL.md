@@ -1,6 +1,6 @@
 ---
 name: capacita-column-check
-description: Capacita（structural-mcp の Capacita サブモジュール、RcDan／WebDanforCS、旧名 WebDan）で柱の RC 断面照査を行う 0611・0621（決定48、ADR-0008）を扱う。WebPier が書く WDJ（webpier/export/capacita）、Headless の run-rc --pickup と節ごとのページ範囲 reportSections、0611・0621 の計算書への差し込み、断面力0で飛ばされる照査（WD-1901〜1908）、見本 Example橋脚2 の WebDan.wdj を今の Capacita で読む・計算する・ページを画像にして確かめるときに使う。WDJ が「有効な算出点がありません」や WD-9999 で失敗するとき、照査の条件や安全係数を変えるとき、着目点の番号や配筋の写し方が合わないときにも使う。
+description: Capacita（structural-mcp の Capacita サブモジュール、RcDan／WebDanforCS、旧名 WebDan）で柱の RC 断面照査を行う 0611・0621（決定48、ADR-0008）を扱う。WebPier が書く WDJ（webpier/export/capacita）、Headless の run-rc --pickup と節ごとのページ範囲 reportSections、0611・0621 の計算書への差し込み、断面力0で飛ばされる照査（WD-1901〜1913）、--pickup なしで断面力表つきの WDJ を計算させる 0910・0810・0820、見本 Example橋脚2 の WebDan.wdj を今の Capacita で読む・計算する・ページを画像にして確かめるときに使う。WDJ が「有効な算出点がありません」や WD-9999 で失敗するとき、照査の条件や安全係数を変えるとき、着目点の番号や配筋の写し方が合わないときにも使う。
 ---
 
 # Capacita で柱の断面照査を行う（0611・0621）
