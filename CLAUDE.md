@@ -40,7 +40,7 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests/calc/test_foundation.py -q
 uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/test_foundation.py::test_name" -q
 
-# 手元の GridLayoutPdf の作業ツリーを試す（GridLayoutPdf は pyproject.toml の git 参照で入る。下の「GridLayoutPdf の責務は GridLayoutPdf 側で直す」）
+# 手元の GridLayoutPdf の作業ツリーを試す（GridLayoutPdf は pyproject.toml の URL 参照の wheel で入る。下の「GridLayoutPdf の責務は GridLayoutPdf 側で直す」）
 uv pip install --python ".venv" --no-deps --reinstall "C:\Users\sasai\Documents\GridLayoutPdf"
 uv run --project "." --no-sync --group dev python -X utf8 -m pytest tests -q
 ```
@@ -99,10 +99,10 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 
 - WebPier 側で回避しない。モンキーパッチ、ライブラリのコードの複製・同梱、内部APIへの依存、WebPier 内だけの代替実装などで済ませることは禁止。
 - GridLayoutPdf を修正するときは、そのrepoの `AGENTS.md` から辿れる規則（`.claude/rules/` など）に従い、そのrepoのテストも通す。
-- GridLayoutPdf は `pyproject.toml` の `[tool.uv.sources]` の git 参照（`rev` は commit の完全な SHA）で入る。structural-mcp の submodule として clone した PC でも同じ版になるように、手元のパスの参照に戻さない。
-- 修正中に WebPier で試すときは、上記の `uv pip install ... --reinstall` で手元の作業ツリーを venv に入れ、`uv run --project "." --no-sync ...` で実行する。`--locked` を付けた実行（品質ゲートを含む）は venv を lock の git の版に戻す。
-- 取り込むときは、GridLayoutPdf で commit して push し、`rev` をその commit の完全な SHA に変えて `uv lock --project "."` と `uv sync --project "." --locked` を行い、品質ゲートを通してから `pyproject.toml` と `uv.lock` を一緒に commit する。push していない commit を `rev` にしない（clone した PC で `uv sync --locked` が通らない）。
-- uv の git の取り出しは git の `core.autocrlf` に従うので、インストールされる GridLayoutPdf のファイルの改行は PC の git の設定で変わり、`dependency_hashes`（`implementation_sha256`）の値も変わりうる。中身は同じなので PDF のバイトは変わらない。
+- GridLayoutPdf は `pyproject.toml` の `[tool.uv.sources]` の URL 参照で、GitHub Release（`sasaco/grid_layout_pdf` の `v0.1.0` など）に載せた wheel から入る（uv.lock に wheel の SHA-256）。git の参照にしないのは、git のない PC（structural-mcp の MSI の利用先）で `uv sync --locked` が通らないため（uv は git の依存の取得に git の実行ファイルを使う）。structural-mcp の submodule として clone した PC でも同じ版になるように、手元のパスの参照に戻さない。
+- 修正中に WebPier で試すときは、上記の `uv pip install ... --reinstall` で手元の作業ツリーを venv に入れ、`uv run --project "." --no-sync ...` で実行する。`--locked` を付けた実行（品質ゲートを含む）は venv を lock の版に戻す。
+- 取り込むときは、GridLayoutPdf で commit して push し、その commit にタグ（版の番号）を付けた Release を作って wheel を載せる。wheel は、その commit を `git -c core.autocrlf=false clone` で取り出し、`SOURCE_DATE_EPOCH=315532800` を付けた `uv build --wheel` で作る（付けると同じ commit から同じバイトになる）。`url` をその wheel に変えて `uv lock --project "."` と `uv sync --project "." --locked` を行い、品質ゲートを通してから `pyproject.toml` と `uv.lock` を一緒に commit する。Release の wheel は載せた後に差し替えない（uv.lock の SHA-256 と合わなくなる）。
+- wheel の中の GridLayoutPdf のファイルの改行は commit のまま（LF）なので、`dependency_hashes`（`implementation_sha256`）の値は PC の git の設定によらない。
 - 橋脚固有の内容（計算、帳票の項目や文言、WebPier 用の帳票構成）は WebPier 側に置き、GridLayoutPdf へ持ち込まない。
 
 ## FEMPython の責務は FEMPython 側で直す

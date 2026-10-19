@@ -253,11 +253,24 @@ wheels = [
 [[package]]
 name = "gridlayoutpdf"
 version = "0.1.0"
-source = { git = "https://github.com/sasaco/grid_layout_pdf?rev=a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f#a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f" }
+source = { url = "https://github.com/sasaco/grid_layout_pdf/releases/download/v0.1.0/gridlayoutpdf-0.1.0-py3-none-any.whl" }
 dependencies = [
     { name = "pillow" },
     { name = "reportlab" },
 ]
+wheels = [
+    { url = "https://github.com/sasaco/grid_layout_pdf/releases/download/v0.1.0/gridlayoutpdf-0.1.0-py3-none-any.whl", hash = "sha256:bacfa76504174f54b3c7ec2cfdcf55d9b2b3e84a404021e81b1ca6ab8a7d5397" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pillow", specifier = ">=9.0.0" },
+    { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.28.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.1.0" },
+    { name = "reportlab", specifier = ">=5.0.1" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "hypothesis"
@@ -550,7 +563,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gridlayoutpdf", git = "https://github.com/sasaco/grid_layout_pdf?rev=a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f" },
+    { name = "gridlayoutpdf", url = "https://github.com/sasaco/grid_layout_pdf/releases/download/v0.1.0/gridlayoutpdf-0.1.0-py3-none-any.whl" },
     { name = "openpyxl", specifier = ">=3.1,<4" },
     { name = "pymupdf", specifier = ">=1.24,<2" },
     { name = "pypdf", specifier = ">=5,<7" },
