@@ -93,18 +93,21 @@ class ColumnCheckPages:
         return {section.id: page_range(self.pdf, section.first, section.last) for section in self.sections}
 
 
-def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None) -> Path:
-    """The runner executable: the environment variable, else the ``.env`` setting (both as they are now)."""
+def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None, *, dotenv: bool = True
+                ) -> Path:
+    """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
+    decision 61) the ``.env`` setting; both as they are now."""
     environ = os.environ if environ is None else environ
     env_file = ENV_FILE if env_file is None else env_file
     value = environ.get(RUNNER_KEY, "")
     where = f"環境変数 {RUNNER_KEY}"
-    if not value:
+    if not value and dotenv:
         value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
         where = f"{env_file} の {RUNNER_KEY}"
     if not value:
-        raise RunnerError(f"柱の断面照査に使う Capacita の runner が設定されていません。リポジトリのルートの .env に "
-                          f"{RUNNER_KEY}='<WebDanforCS.Headless.exe の絶対パス>' を書いてください")
+        raise RunnerError(f"柱の断面照査に使う Capacita の runner が設定されていません。" + (
+            f"リポジトリのルートの .env に {RUNNER_KEY}='<WebDanforCS.Headless.exe の絶対パス>' を書いてください" if dotenv
+            else f"環境変数 {RUNNER_KEY} に WebDanforCS.Headless.exe の絶対パスを設定してください"))
     path = Path(value)
     if not path.is_absolute():
         raise RunnerError(f"{where} は絶対パスにしてください: {value}")

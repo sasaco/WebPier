@@ -60,6 +60,17 @@ def test_the_environment_comes_before_the_env_file(tmp_path: Path):
     assert runner_path({}, env) == other
 
 
+def test_the_headless_runner_reads_only_the_environment(tmp_path: Path):
+    """Decision 61: without dotenv a runner set only in the .env file is not set."""
+    runner, other = tmp_path / "runner.exe", tmp_path / "other.exe"
+    runner.write_bytes(b""), other.write_bytes(b"")
+    env = tmp_path / ".env"
+    env.write_text(f"{RUNNER_KEY}='{other}'\n", encoding="utf-8")
+    assert runner_path({RUNNER_KEY: str(runner)}, env, dotenv=False) == runner
+    with pytest.raises(RunnerError, match=f"環境変数 {RUNNER_KEY} に AggreSE.Headless.exe の絶対パスを設定してください"):
+        runner_path({}, env, dotenv=False)
+
+
 @pytest.mark.parametrize("setting,message", [(None, "Aggre-SE の runner が設定されていません"), ("", "設定されていません"),
                                              ("runner.exe", "絶対パス"), ("missing", "ありません")])
 def test_a_runner_that_is_not_set_up_is_an_error(tmp_path: Path, setting, message):

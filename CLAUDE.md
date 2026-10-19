@@ -25,6 +25,9 @@ uv run --project "." --locked python -m webpier --stage all --frame-analysis --o
 uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite
 # run_design.py は python -m webpier と同じ
 
+# headless runner（structural-mcp が起動する。決定61、webpier/pipeline/headless.py）：stdout は protocol v1 の envelope 1つ。runner は環境変数だけ（.env を読まない）
+.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --stage 0612   # validate / contract / schema も
+
 # 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）
 uv run --project "." --locked python -m webpier.gui
 

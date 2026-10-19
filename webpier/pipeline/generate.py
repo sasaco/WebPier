@@ -38,6 +38,7 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 from gridlayoutpdf import LayoutError
@@ -50,14 +51,13 @@ from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
-from . import aggrese, capacita, jrsnap
-from .fempython import (ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram,
-                        runner_path)
+from . import aggrese, capacita, fempython, jrsnap
+from .fempython import ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry, SectionCheck, SeismicCheck, seismic_file)
+                     Project, Registry, SectionCheck, SeismicCheck, StageSpec, seismic_file)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -107,6 +107,10 @@ def _identity() -> dict[Path, str]:
         return dependency_hashes()
     except (RuntimeIdentityError, LayoutError) as exc:
         raise GenerationError(f"プログラム・描画依存を確認できません: {exc}") from exc
+
+
+def _implementation_sha256(identity: Mapping[Path, str]) -> str:
+    return canonical_sha256({str(path): digest for path, digest in identity.items()})
 
 
 def _state(path: Path) -> str | None:
@@ -242,6 +246,11 @@ class Candidate:
         self._sha256 = {artifact.role: content_sha256(self.staged(artifact.role)) for artifact in artifacts}
         self._active = True
         self._attempted = False
+
+    @property
+    def implementation_sha256(self) -> str:
+        """The implementation identity the result JSON and the sidecars record."""
+        return _implementation_sha256(self._identity)
 
     def staged(self, role: str) -> Path:
         artifact = next(artifact for artifact in self.artifacts if artifact.role == role)
@@ -417,32 +426,38 @@ def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes
         raise GenerationError(f"{post.native.path.name} を作れません: {exc}") from exc
 
 
-def _runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).load_diagram or registry.get(stage_id).frame_analysis is not None
-               for stage_id in selected):
-        return None
-    try:
-        return runner_path()
-    except RunnerError as exc:
-        raise GenerationError(str(exc)) from exc
+# The runner each kind of stage calls, by the module that finds and calls it, in the order they are looked up:
+# FEMPython draws the load diagrams and analyzes the frames (decisions 44, 46), JRSNAP draws the figures and analyzes
+# the NDU (decisions 47, 50, 51), Capacita checks the sections (decisions 48, 59) and Aggre-SE the seismic checks
+# (decision 56).
+_RUNNERS: tuple[tuple[ModuleType, Callable[[StageSpec], bool]], ...] = (
+    (fempython, lambda stage: bool(stage.load_diagram) or stage.frame_analysis is not None),
+    (jrsnap, lambda stage: stage.jrsnap_figures is not None or stage.nonlinear_analysis is not None),
+    (capacita, lambda stage: stage.section_check is not None),
+    (aggrese, lambda stage: stage.seismic_check is not None),
+)
+RUNNERS = tuple(module for module, _ in _RUNNERS)  # every runner a generation may call, in lookup order
 
 
-def _capacita_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).section_check is not None for stage_id in selected):
-        return None
-    try:
-        return capacita.runner_path()
-    except RunnerError as exc:
-        raise GenerationError(str(exc)) from exc
+def _required(registry: Registry, selected: Sequence[str]) -> tuple[ModuleType, ...]:
+    return tuple(module for module, calls in _RUNNERS
+                 if any(calls(registry.get(stage_id)) for stage_id in selected))
 
 
-def _aggrese_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).seismic_check is not None for stage_id in selected):
-        return None
-    try:
-        return aggrese.runner_path()
-    except RunnerError as exc:
-        raise GenerationError(str(exc)) from exc
+def required_runners(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[ModuleType, ...]:
+    """The modules of the runners a generation with *options* calls (each has ``ENGINE``, ``RUNNER_KEY`` and
+    ``runner_path``), in the order they are looked up; nothing is read."""
+    return _required(registry, _select(options, registry))
+
+
+def _runner_paths(registry: Registry, selected: tuple[str, ...]) -> dict[ModuleType, Path]:
+    paths: dict[ModuleType, Path] = {}
+    for module in _required(registry, selected):
+        try:
+            paths[module] = module.runner_path()
+        except RunnerError as exc:
+            raise GenerationError(str(exc)) from exc
+    return paths
 
 
 def _check_seismic(project: Path, folder: Path, runner: Path) -> aggrese.SeismicCheckPages:
@@ -508,16 +523,6 @@ def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str
         raise GenerationError(f"{pik_name} で柱の断面照査の WDJ を作れません: {exc}") from exc
 
 
-def _jrsnap_runner(registry: Registry, selected: tuple[str, ...]) -> Path | None:
-    if not any(registry.get(stage_id).jrsnap_figures is not None
-               or registry.get(stage_id).nonlinear_analysis is not None for stage_id in selected):
-        return None
-    try:
-        return jrsnap.runner_path()
-    except RunnerError as exc:
-        raise GenerationError(str(exc)) from exc
-
-
 def _draw(document: Path, runner: Path) -> LoadDiagramPages:
     try:
         return draw_load_diagram(document, runner)
@@ -559,22 +564,22 @@ def _build(registry: Registry, pier: PierInput, results: Mapping[str, Any], post
     return built
 
 
-@contextmanager
-def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
-    """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
-    selected = _select(options, registry)
-    artifacts, posts = _plan(options, registry, selected)
-    destinations = [artifact.path for artifact in artifacts]
-    validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
-                          folders=_folders(artifacts))
-    baseline = {path: _state(path) for path in destinations}
-    identity = _identity()
-    runner = _runner(registry, selected)
-    jrsnap_runner = _jrsnap_runner(registry, selected)
-    capacita_runner = _capacita_runner(registry, selected)
-    aggrese_runner = _aggrese_runner(registry, selected)
+@dataclass(frozen=True)
+class _Inputs:
+    """What a generation decides from the input before any runner is called."""
+
+    data: bytes
+    pier: PierInput
+    results: dict[str, Any]
+    analyses: dict[str, FrameAnalysis]
+    nonlinear: dict[str, NonlinearAnalysis]
+    built: dict[tuple[str, str], bytes]
+    writers: dict[str, Callable[[str, Sequence[str]], bytes]]
+
+
+def _inputs(options: GenerationOptions, registry: Registry, selected: tuple[str, ...],
+            posts: list[_PostFile]) -> _Inputs:
     data = Path(options.input_path).read_bytes()
-    input_sha256 = sha256(data)
     pier = parse_input(load_json(data))
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
@@ -585,8 +590,38 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     # The projects' input is checked now, before any analysis or report; each is written from the analysis' files.
     writers = {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
                for stage_id, analysis in nonlinear.items() if analysis.project is not None}
+    return _Inputs(data, pier, results, analyses, nonlinear, built, writers)
+
+
+def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[str, ...]:
+    """Check the input of a generation with *options* as far as it is decided before any runner: the strict parse,
+    the calculations of the selected stages and their dependencies, every export and the Aggre-SE projects' input.
+    Nothing is written and no runner is looked up or called; a result a runner's files finish (decisions 54, 59, 60)
+    is checked only by a generation. Returns the selected stages."""
+    selected = _select(options, registry)
+    _inputs(options, registry, selected, _plan(options, registry, selected)[1])
+    return selected
+
+
+@contextmanager
+def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
+    """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
+    selected = _select(options, registry)
+    artifacts, posts = _plan(options, registry, selected)
+    destinations = [artifact.path for artifact in artifacts]
+    validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
+                          folders=_folders(artifacts))
+    baseline = {path: _state(path) for path in destinations}
+    identity = _identity()
+    runners = _runner_paths(registry, selected)
+    runner, jrsnap_runner = runners.get(fempython), runners.get(jrsnap)
+    capacita_runner, aggrese_runner = runners.get(capacita), runners.get(aggrese)
+    found = _inputs(options, registry, selected, posts)
+    pier, results, built = found.pier, found.results, found.built
+    analyses, nonlinear, writers = found.analyses, found.nonlinear, found.writers
+    input_sha256 = sha256(found.data)
     common = {"input": {"file": Path(options.input_path).name, "sha256": input_sha256},
-              "implementation_sha256": canonical_sha256({str(path): digest for path, digest in identity.items()})}
+              "implementation_sha256": _implementation_sha256(identity)}
     with ArtifactStaging(destinations) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
         for post in posts:

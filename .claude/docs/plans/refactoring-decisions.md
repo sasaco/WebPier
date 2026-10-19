@@ -294,6 +294,17 @@
    - 鉛直力が等しい極値（FEMPython の反力 CSV はピックアップの fy・mz・fx の各極値の行に組合せの2つの向き（水平力の向きの違い）を分けて書くので、鉛直力最大はその全行から探す。12.1 の使用性の列）は、|mz| の大きい行、さらに同じなら |fx| の大きい行を採る（`foundation_check.pick`。0612・0622 と共通。受入記録 8-30・9-27 に同値の組合せはなく値は不変。owner 2026-10-19）。
    - 受入（`scripts/accept_footing.py`）：使用性の列の Vd の許容差は 0800 だけ 0.5 kN（見本の隠れ桁の丸め。0612 は 0.25 のまま。owner 2026-10-19）。線路方向の安全性（破壊）の Mud は見本 255 の 3670.5 と 0.2% で照合する。
 
+61. **headless runner**（structural-mcp から呼ぶ入口。owner 2026-10-19、structural-mcp の `.claude/docs/plans/global-engine-skills-plan.md` §5.1・`phase4-webpier-mcp.md`）を `webpier/pipeline/headless.py` に、起動用のスクリプトを repo のルートの `run_headless.py`（`run_design.py` と同じ薄いスクリプト）に置く。structural-mcp は `.venv\Scripts\python.exe -X utf8 run_headless.py` で最小の環境から起動する。
+   - コマンド：`run --input <JSON> --output-dir <空のフォルダー> [--stage <段階|all>] [--frame-analysis true|false] [--nonlinear-analysis true|false]`、`validate`（同じ選択で入力の検査だけ。`--output-dir` は使わない）、`contract`（段階の表）、`schema`（入力の JSON Schema）。stdout は protocol v1 の envelope 1つ（`engine: "webpier"`、`engineVersion` は `pyproject.toml` の版）で、生成中にほかが印字したものは stderr へ回す。
+   - 生成は CLI と同じ `generate()`（`--output-dir` の下の `output/`・`post/`。出力先は空なので `--overwrite` は付けない）。成果物のバイトは CLI と同じ（テストで照合）。
+   - runner は**環境変数だけ**：生成の前に、選んだ段階が呼ぶ runner（`generate.required_runners`。`_runner_paths` と同じ表）を `runner_path(dotenv=False)` で確かめ、欠けていれば `RUNNER_UNAVAILABLE`（欠けたものをすべて `summary.missingRunners` に）。確認を通った runner は環境変数にあるので、生成が `.env` を読むことはない。
+   - 終了コードは CLI と同じ（0、2、3）。`errors[0].code`：`INVALID_ARGUMENT`（引数、空でない出力先）・`INPUT_ERROR`（メッセージの先頭が入力のパス（最初の区切りが `TOP_KEYS` のどれか）ならそれを `path` に）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`（原因が runner の失敗の `GenerationError`）・`GENERATION_FAILED`（ほかの `GenerationError`）・`IO_ERROR`・`RECOVERY_REQUIRED`（終了コード 3）。
+   - artifacts：公開したファイルすべて。`kind` は役割の `.` を `-` にしたもの（`0610-pdf`、`0610-frameweb-provenance`。structural-mcp は kind を artifact の ID にする）、`relativePath` は `output/…`・`post/…`。JRSNAP の結果フォルダー（決定47）は中のファイルを1つずつ同じ kind（`0711-jrsnap`）で並べ、`application/octet-stream` にする。テキスト（PIK・CSV・NDU）は UTF-8 で読めれば `charset=utf-8`、読めなければ `charset=shift_jis`。
+   - summary（run）：選択、実行した段階ごとの `engineeringStatus`、呼んだ runner と、結果JSON・付帯JSONが記録した `engine_version`、入力のファイル名と SHA256、`implementationSha256`。段階の `engineeringStatus` は結果の `engineering_status`（0612・0622 の ok／not_ok、決定54）、ほかは `not_evaluated`（Capacita・Aggre-SE の照査も判定しない。ADR-0008・0009）。全体は not_ok が1つでもあれば not_ok、判定した段階がすべて ok なら ok、判定した段階がなければ not_evaluated。
+   - `validate` は `generate.validate`：`prepare` と同じ関数（`_inputs`）で、厳密な解析、選んだ段階と依存段階の計算、外部出力と Aggre-SE のプロジェクトの入力を確かめる。runner の結果で仕上げる段階（0612・0622 の反力、0800 のステップ表、0910 の照査の条件）の入力エラーは生成のときにしか出ない。`summary.requiredRunners` に選択が呼ぶ runner と、環境変数にあるかを返す。
+   - `contract` は登録表から：段階ごとの `dependsOn`・`optIn`・`hasReport`、スイッチ、runner の一覧、`all` とスイッチの4通りと各段階を直接選んだときの、生成する段階・呼ぶ runner・公開するファイル（`planned`）。
+   - `schema` は `fields.FIELDS` から作る入れ子の JSON Schema（Draft 2020-12）。葉は型・選択肢・整数の範囲・正負、`x-webpier-unit`・`x-webpier-digits`・`x-webpier-limit`・`x-webpier-reserved`。項目表にないパーサーの構造の規則だけを足す（`schema_version`・`鉄筋.version` は定数、空き支承枠は枠ごと null で10枠、柱の `side_rows`・`band_rows` は空、`manual_basis` は省略か null、`出典` は自由）。必須の項目と項目間の規則は書かない（`validate` が正）。テストが `current.json` と `pre/input.json` を照合する。
+
 ## 実装メモ（決定から導いたもの）
 
 ### 入力の印字桁（.claude/docs/Example橋脚/pre/input-*.pdf の入力票に合わせる）

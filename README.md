@@ -143,6 +143,23 @@ JRSNAP の runner がない・データ確認図・荷重図を描けない・�
 - **0810・0820**：0800 の応答値を断面力表に書いた WDJ（部材「フーチング」1000×H6、下側引張、N′d＝0。安全性（破壊）の曲げ・せん断は安全性 2 列のうち Md の大きい列の Md・Vd・La、耐久性の縁引張（永久＋変動）は短期の Md、永久作用は長期の Md、復旧性（地震時）の曲げ・せん断は地震時の Md・Vd・La。Capacita は着目点に 1 つのせん断スパンしか持たないので、復旧性（地震時）は 2 点目「…（地震時）」に書く）を Capacita の `run-rc`（`--pickup` なし）で計算させ、安全性の照査（曲げ・せん断）・耐久性の照査（曲げひび割れ。せん断ひび割れは面部材のため省略する旨の見本の文だけ）・復旧性（地震時）の照査（曲げ・せん断）の見出しと見本の解説（RC標準の値は印刷しない）の後に Capacita の 5 節（`bending_safety_destruction`・`shear_safety_destruction`・`bending_durability`・`bending_restorability_eq`・`shear_restorability_eq`）のページを差し込みます。WDJ は `post/線路方向フーチング.wdj`・`post/線路直角方向フーチング.wdj` に付帯JSON付きで公開し、結果JSONの `section_check` は `not_evaluated` です。どの節も Capacita のページが要り、欠ければ生成は止まります。
 - **入力**：`鉄筋.フーチング`（方向ごとの下側の主鉄筋の行（1 m 当たり 1000／pitch 本。空欄・割り切れない・2 段以上は入力エラー。中心かぶりは「指定」の `center_mm` か「自動」の `pure_cover_mm`＋外側の段の径＋自径/2）、`band_rows` の方向ごとの 1 行（密度は `density_per_m`、間隔は 1000／`width_pitch_mm` の本数）、`materials`、`concrete_strength_mpa`、`aggregate_max_mm`（フーチングのコンクリートの粗骨材最大寸法。柱の値は使わない。決定60））と、`柱の断面照査` の環境条件・ε'csd・機関・JR-001/004。0800・0810・0820 を含む生成だけに必須で、それ以外の生成は形式だけを検査します。
 
+### structural-mcp から使う（headless runner、決定61）
+
+structural-mcp（MCP の `webpier_get_input_schema`・`webpier_get_contract`・`webpier_validate`・`webpier_generate`）は、repo のルートの `run_headless.py` を venv の python で起動します。直接呼ぶ場合も同じです。
+
+```powershell
+.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --stage 0612
+.venv\Scripts\python.exe -X utf8 .\run_headless.py validate --input pre\input.json --stage all --nonlinear-analysis true
+.venv\Scripts\python.exe -X utf8 .\run_headless.py contract
+.venv\Scripts\python.exe -X utf8 .\run_headless.py schema
+```
+
+- stdout は JSON 1つ（protocol v1 の envelope、`engine: "webpier"`）。`run` は `--output-dir` の下に `output/`・`post/` を CLI と同じ配置・同じバイトで書き、`artifacts` に全ファイルの相対パス・SHA-256・サイズを返します（JRSNAP の結果フォルダーは中のファイルを1つずつ）。
+- runner は**環境変数だけ**から読みます（`.env` は読みません）。選んだ段階が要る runner がなければ何も書かずに `RUNNER_UNAVAILABLE` で終わります。
+- 終了コードは CLI と同じ（0・2・3）。失敗の種類は `errors[0].code`（`INVALID_ARGUMENT`・`INPUT_ERROR`（入力のパス付き）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`・`GENERATION_FAILED`・`IO_ERROR`・`RECOVERY_REQUIRED`）。
+- `engineeringStatus` は段階ごと（0612・0622 は ok／not_ok、ほかは not_evaluated）と全体（not_ok が1つでもあれば not_ok、判定した段階がすべて ok なら ok）。実行の成否（`ok`）とは別です。
+- `validate` は runner を呼ばずに決まる範囲（解析・計算・外部出力・Aggre-SE のプロジェクトの入力）を確かめます。`contract` は段階・依存・必要な runner・公開するファイル、`schema` は入力の JSON Schema（項目表から。必須と項目間の規則は `validate` が正）。
+
 ## 入力エディタ
 
 ```powershell
