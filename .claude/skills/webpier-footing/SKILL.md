@@ -1,6 +1,6 @@
 ---
-name: footing-check
-description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は foundation-check、Aggre-SE の runner は structural-aggrese（WebPier の呼び出しは webpier-aggrese）、Capacita は webpier-capacita（Capacita そのものは structural-capacita）。
+name: webpier-footing
+description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は webpier-foundation、Aggre-SE の runner は structural-aggrese（WebPier の呼び出しは webpier-aggrese）、Capacita は webpier-capacita（Capacita そのものは structural-capacita）。
 ---
 
 # フーチングの照査（0800・0810・0820）
@@ -62,4 +62,4 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 
 ## 知見を更新する
 
-見本や原資料との新しい差、runner の挙動、受入で見つかった値の違いは、根拠（コード・実アプリ・推定の別）を付けてこのスキルに足す。決定は `.claude/docs/plans/refactoring-decisions.md` の決定60に。
+見本や原資料との新しい差、runner の挙動、受入で見つかった値の違いは、根拠（コード・実アプリ・推定の別）を付けてこのスキルに足す。決定は `.claude/docs/plans/refactoring-decisions.md` の決定60に。計算書を使う人向けの 0800〜0820 の説明（応答値の5列、Capacita の照査、既知の差）は structural-mcp のスキル `structural-webpier` の checks.md にある（ここには書かない）。式・既知の差を変えたら、そちらも直して structural-mcp で commit する。

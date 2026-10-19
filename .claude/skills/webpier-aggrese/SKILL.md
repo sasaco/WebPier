@@ -47,5 +47,6 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 
 - WebPier の実装・決定・受入・見本との対応：このスキルか `.claude/docs/plans/refactoring-decisions.md`。
 - Aggre-SE そのものの性質（項目の意味、画面との対応、runner の挙動、Batch の版による書式の違い）：structural-mcp の `skills/structural-aggrese/` を編集し、structural-mcp で commit する（ここには書かない）。
+- 計算書を使う人向けの 0711・0721 の説明（計算書は Aggre-SE の帳票そのもの、判定の読み方、既知の差）：structural-mcp のスキル `structural-webpier` の checks.md（ここには書かない）。
 - 案件の判断・見本の読み替え：その案件の repo。
 - コードで確かめたこと、実アプリで試したこと、推定を区別して書く。

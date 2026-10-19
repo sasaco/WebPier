@@ -1,6 +1,6 @@
 ---
-name: cantilever-check
-description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.6（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は webpier-capacita（Capacita そのものは structural-capacita）、Aggre-SE の runner と総括表は structural-aggrese（WebPier の取り込みは webpier-aggrese）、フーチングは footing-check。
+name: webpier-cantilever
+description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.6（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は webpier-capacita（Capacita そのものは structural-capacita）、Aggre-SE の runner と総括表は structural-aggrese（WebPier の取り込みは webpier-aggrese）、フーチングは webpier-footing。
 ---
 
 # 片持ち梁の照査（0900・0910）
@@ -62,3 +62,9 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 - 入力を増やしたら `fields.py`・`parse.py`・`model.py`（`CantileverCheck`・`Span` の箇所数）・`pre/input.json`・`tests/fixtures/inputs/current.json`・エディタ（`gui/pages.py` の支承データの表、`gui/rebar_page.py` の 梁「断面照査の条件」）・README の入力の節を一緒に。受入記録（`tests/fixtures/acceptance/*`）は入力の SHA を持つので、`scripts/accept_*.py` でやり直す。
 - 組合せを変えるなら `combinations.DEFINITIONS` と `FORCE_ROWS`、見本の `作用の組合せ` シート（係数の列と参照先）を突き合わせる。
 - Capacita の節の集合を変えたら `check.SECTIONS`、`pipeline/capacita.SKIPPED`、`reporting/stages/cantilever_check.py` の `OMITTED`、代役の `FORCE_SECTIONS`/`SECTION_OF_ROW` を合わせる。
+
+## 知見を更新する
+
+- WebPier の実装・決定・受入・見本との対応：このスキルか `.claude/docs/plans/refactoring-decisions.md` の決定59。
+- 計算書を使う人向けの 0900・0910 の説明（応答値と組合せの要約、Capacita の照査、支承の水平荷重のモデル）は structural-mcp のスキル `structural-webpier` の checks.md にある（ここには書かない）。既知の差や照査の範囲を変えたら、そちらも直して structural-mcp で commit する。
+- コードで確かめたこと、実アプリで試したこと、推定を区別して書く。

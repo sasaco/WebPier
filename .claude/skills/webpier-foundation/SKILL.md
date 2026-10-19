@@ -1,5 +1,5 @@
 ---
-name: foundation-check
+name: webpier-foundation
 description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「基礎の照査」）を扱う。FEMPython の骨組解析の反力 CSV（*_ピックアップ反力.csv）から基礎中心の Vd・Hd・Md を読む仕組み（support_reactions、支点の節点、抽出ケースと4列の対応、符号）、鉛直支持・水平支持・回転の式と印字桁（webpier/calc/foundation_check.py）、水位ごとの γe2、長期の上限値と土質区分、計算書 8.10・9.10（webpier/reporting/stages/foundation_check.py）、0611 と骨組解析を共有する登録表（StageSpec.complete）、独立の手計算と本物の FEMPython での受入に使う。見本 08_線路.pdf 8-27〜8-32・09_直角.pdf 9-24〜9-29 と値が合わない、反力が読めない、列の組合せが違う、照査の式や定数を変えるときにも使う。柱の断面照査（Capacita）は webpier-capacita。
 ---
 
@@ -27,7 +27,7 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 - 4列：長期支持＝抽出ケース 7、短期支持＝8（組合せ 15 低水位と 16 高水位があり、Vd の大きい 15）、安全性 鉛直力最大＝6 の fy 最小（組合せ 10）、曲げ最大＝6 の |mz| 最大（線路方向 11、直角方向 12）。どれも見本と同じ組合せになる。
 - 見本との差：線路方向は長期が一致、短期は Vd＋0.22・Md −0.09、安全性は 0.03 以内（見本の隠れた桁）。直角方向は 0620 の風荷重が見本と違う（決定12・35）ので Hd・Md は比べない（Vd は一致）。
 - 代役の FEMPython（`tests/fixtures/fempython/fake_runner.py`）は本物と同じ列で反力 CSV を書き、支点（`fix_node`）にだけ `reaction(c)` の値を入れる。テストは `tests/pipeline/pipeline_support.py` の `fake_reactions(frameweb)` で期待値を作る。
-- `pick`（極値の選び方）と `bearing_capacity`／`Capacity`（qvd・qd・Mmd）は 0800 フーチングの応答値（決定60、footing-check スキル）と共用。`pick` は fy が max 行と min 行で同値のとき |mz| の大きい行、さらに同じなら |fx| の大きい行を採る（owner 2026-10-19。断面照査用のピックアップ 2・3 で起きる。0612・0622 の受入記録の列は変わらない）。式を変えるときは両方のテストを回す。
+- `pick`（極値の選び方）と `bearing_capacity`／`Capacity`（qvd・qd・Mmd）は 0800 フーチングの応答値（決定60、webpier-footing スキル）と共用。`pick` は fy が max 行と min 行で同値のとき |mz| の大きい行、さらに同じなら |fx| の大きい行を採る（owner 2026-10-19。断面照査用のピックアップ 2・3 で起きる。0612・0622 の受入記録の列は変わらない）。式を変えるときは両方のテストを回す。
 
 ## 式と見本の扱い
 
@@ -57,3 +57,9 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 - `m.equation` の式の見出し（「平水位」など）は記号の左に収まる長さまで（`_LabelledBlock` が重なりを `LayoutOverflowError` にする）。
 - 表で縦に結合したセル（`Span(rowspan=…)`）の下の行はそのセルを省くので、列の番号がずれて `TableSpec.numeric` の右揃えが外れる。数値のセルは `Span(値, align="right")` で揃えを明示する。
 - 決定55（見本にない説明の文・「ここに、」・記号の式の段を書かない）より前に書いた帳票なので、見本にない文（γe2 の使い分けの文、回転の照査式など）が残っている。直すときは見本 8-27〜8-32 と並べて決定55に合わせる。
+
+## 知見を更新する
+
+- WebPier の実装・決定・受入・見本との対応：このスキルか `.claude/docs/plans/refactoring-decisions.md` の決定54。
+- 計算書を使う人向けの 0612・0622 の照査の中身（式の要約、4列、見本との既知の差、判定の読み方）は structural-mcp のスキル `structural-webpier` の checks.md にある（ここには書かない）。式・定数・既知の差を変えたら、そちらも直して structural-mcp で commit する。
+- コードで確かめたこと、実アプリで試したこと、推定を区別して書く。

@@ -57,5 +57,6 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 
 - WebPier の実装・決定・受入・見本との対応：このスキルか `.claude/docs/plans/refactoring-decisions.md`。
 - JRSNAP・JRSNAPHeadless そのものの性質：structural-mcp の `skills/structural-jrsnap-*/` を編集し、structural-mcp で commit する（ここには書かない）。
+- 計算書を使う人向けの 0710・0720・0711・0721 の説明（差し込む図、JRSNAP への答え方、成果物）：structural-mcp のスキル `structural-webpier` の checks.md・outputs.md（ここには書かない）。
 - 案件の判断・見本の読み替え：その案件の repo。
 - コードで確かめたこと、実アプリで試したこと、推定を区別して書く。
