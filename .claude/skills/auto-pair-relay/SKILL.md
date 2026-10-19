@@ -293,6 +293,18 @@ teammate を spawn できない harness（Agent Teams が無効・`/resume` 後�
 
 fallback でも「1 論点ずつ・1 手ずつ・batch しない」の規律は崩さない。これは harness の通信能力に依存しない作業単位の話で、Teams でも subAgent でも同じ。**この harness では Navigator/Driver が最初の 1-2 ターンで「Bash を持っていない」「SendMessage が無い」と返して判明する**ので、判明したら即この運用に切り替える。
 
+## WebPier での運用の知見（2026-10-19、決定60 フーチングの照査を A〜H の8段で完走）
+
+- **grill は lead が先に回してよい**。lead が `grill-with-docs` で決定（決定60）と CONTEXT.md の用語まで書き終えてから Navigator を spawn し、spawn prompt に「grill は完了済み、再 grill 不要、決定に無いことで owner 判断が要るものだけ `[owner-decision]`」と書く。Navigator は決定の Read から入れるので、grill ゲートの心配がない。
+- **spawn prompt に「手順の骨子（A〜H）」を外部記憶として入れる**。respawn の引き継ぎ block もこの骨子の進み具合で書かれ、後任が迷わない。実績：Navigator 2体（1回の respawn）、約 2.3M token。
+- **respawn の引き継ぎは原文のまま渡す**が、新 Navigator には役割の定義（Navigator であること、Driver の spawn の仕方、規律）を spawn prompt の冒頭に再掲する。引き継ぎ block は役割を語らないので、これなしでは後任が自分を Driver や lead と取り違える。引き継ぎの中身は変えない。
+- **利用上限（rate limit）で Navigator と Driver が途中終了する**ことがある。解除後に同じ Navigator へ SendMessage で「止まったところから続ける。途中終了した Driver の編集は反映されたと仮定せず Read で確かめてから出し直す」と送れば context は保たれる。新規 spawn しない。
+- **owner 判断が見出しだけで届く**ことがある（Navigator の中間報告が「A: …、B: …」と要約される）。lead は推測で埋めず、「Human にそのまま見せられる形で1問ずつ送り直して」と返す。届いたら Human には**1問ずつ**出す（2問一度に出すと片方の回答が曖昧になる）。
+- **「waiting on its own background work」の通知は中間報告**。Navigator が自分の背景ジョブ（受入・`check.ps1` は 15〜20 分）を待っているだけなので、lead は催促せず Human に「結果待ち」とだけ伝える。
+- **lead の最終ゲート**：Navigator の `check.ps1` の数字を受けても、lead は変更範囲のテストを自分で1回回す（今回 258 passed）。その後に生成物（PDF）を本物の runner で作って画像で見てから完了を報告する。
+- **共有の作業ツリーでのコミット**：別セッションの未コミット変更と約50ファイルで混在したときは、hunk の切り出しより「一緒にコミット」を Human に選んでもらうほうが早い（今回は Human がそう決めた）。submodule（Batch）の変更は先に submodule でコミットし、ルートのポインタは他の未コミット変更があれば触らない。
+- **Navigator に Bash は付与されていた**（pytest・dotnet・MSBuild・本物の runner まで自分で回した）。「Bash が無い harness の運用」は不要だった。
+
 ## 合言葉
 
 頭脳は永続 teammate、手は使い捨て subAgent。  

@@ -27,6 +27,7 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 - 4列：長期支持＝抽出ケース 7、短期支持＝8（組合せ 15 低水位と 16 高水位があり、Vd の大きい 15）、安全性 鉛直力最大＝6 の fy 最小（組合せ 10）、曲げ最大＝6 の |mz| 最大（線路方向 11、直角方向 12）。どれも見本と同じ組合せになる。
 - 見本との差：線路方向は長期が一致、短期は Vd＋0.22・Md −0.09、安全性は 0.03 以内（見本の隠れた桁）。直角方向は 0620 の風荷重が見本と違う（決定12・35）ので Hd・Md は比べない（Vd は一致）。
 - 代役の FEMPython（`tests/fixtures/fempython/fake_runner.py`）は本物と同じ列で反力 CSV を書き、支点（`fix_node`）にだけ `reaction(c)` の値を入れる。テストは `tests/pipeline/pipeline_support.py` の `fake_reactions(frameweb)` で期待値を作る。
+- `pick`（極値の選び方）と `bearing_capacity`／`Capacity`（qvd・qd・Mmd）は 0800 フーチングの応答値（決定60、footing-check スキル）と共用。`pick` は fy が max 行と min 行で同値のとき |mz| の大きい行、さらに同じなら |fx| の大きい行を採る（owner 2026-10-19。断面照査用のピックアップ 2・3 で起きる。0612・0622 の受入記録の列は変わらない）。式を変えるときは両方のテストを回す。
 
 ## 式と見本の扱い
 
@@ -40,6 +41,8 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 ## 生成
 
 - `uv run --project "." --locked python -m webpier --stage 0612 --frame-analysis --overwrite`（0622 も同じ）。`--frame-analysis` がないと選べない（`all` にも入らない）。runner は `.env` の `STRUCTURAL_MCP_FEMPYTHON_RUNNER`。0611 も選ぶと解析は1回で済むが、Capacita の runner も要る。
+- `--stage` で1つの段階を直接選ぶと、依存のうち runner を動かす段階も一緒に生成して公開する（決定60の規則、2026-10-19）。`--stage 0612` 自体は依存に runner の段階がないので変わらないが、0800 を選ぶと 0612・0622 の計算書も公開される。
+- `current.json` を変えると受入記録（`record_0612.json`・`record_0622.json`）の SHA が合わなくなり `tests/acceptance` が落ちる。`scripts/accept_foundation_check.py 0612`／`0622` を回し直す（工学値は変わらないはず。2026-10-19 に確認）。
 - 並行して別のセッションが作業しているときは CLI（`output/` と `post/` を書き換える）を避け、`render_foundation_check` で scratchpad に出す。
 - Example2（`pre/input.json`、2026-10-18）は両方向とも全項目 OK、照査値の最大は長期の鉛直支持の 0.743。
 
