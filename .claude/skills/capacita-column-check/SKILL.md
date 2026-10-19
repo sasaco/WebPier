@@ -48,6 +48,7 @@ description: Capacita（structural-mcp の Capacita サブモジュール、RcDa
 - Capacita を直したら Release でビルドし直す（structural-mcp のルートで `dotnet build .\Capacita\WebDanforCS\Headless\WebDanforCS.Headless.csproj -c Release`）。テストは `dotnet test` で `WebDanforCS/tests/UiTests`（`ReportSectionsTests`・`HeadlessPickupTests`）。`PreviewTests` の `.agents/logs` 未作成、クリップボード、Steel 印刷は以前から落ちることがある（今回の変更と無関係）。`WebDanforCS.Tests` は NU1201 で restore できず、`RcDan/tests` は確認用の WinForms アプリ。
 - 節の ID を変える・足すと、WebPier の `pipeline/capacita.py`（求める節の集合、頁範囲が PDF を順に隙間なく覆うことの検査）と代役の runner も合わせる。
 - 代役：Capacita の代役は `FAKE_CAPACITA=skip`（耐久性のせん断・使用性を WD-1906・WD-1901 付きで抜く）と `skipnocode`（コードなしで抜く）で省略を真似る。FEMPython の代役の PIK は1行目が `FAKE PIK <名前> <SHA256>`（見出しの代わり）で、その後に FrameWeb の部材荷重の区間の端から途中点を足した本物と同じ並びの着目点を書くので、`point_index` は本物と同じ番号になる。
+- 地震時の照査に使える PIK（まだ使っていない）：0711・0721 は Aggre-SE のピックアップを `post/線路方向_Aggre-SE.pik`・`post/線路直角方向_Aggre-SE.pik` に書く（決定57、スキル aggrese-project）。行の書式は FEMPython の PIK と同じだが、先頭行は `Batch ver1.0.0`。ピックアップの番号は 1＝L1地震動・2＝復旧性L2・3＝安全性L2で、抽出ケースの番号（1 安全性（破壊）…）とは対応しない。部材の番号は JRSNAP の骨組（NDU の MemberInfo。線路方向 1〜6、線路直角方向 1〜7）で、FrameWeb の部材番号ではない。着目点は各部材の ITAN・JTAN だけで途中点はない（2026-10-19、本物の出力で確認）。Capacita に渡すなら、`point_index` や WDJ の着目点をこの骨組から求め直す必要がある（別の決定）。
 - `run-rc` のやり取りを変えたら代役の runner も更新する。本物の runner のテスト（`tests/pipeline/test_capacita.py`）は `.env` があるときだけ走り、その失敗が合図。
 
 ## 直角方向（0621）と照査の省略
