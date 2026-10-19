@@ -81,7 +81,8 @@ def test_the_member_and_the_point(built):
     assert (point["index"], point["m_no"], point["position"], point["axis_type"]) == (1, 1, None, 2)
     assert point["isUpperCalc"] and point["isLowerCalc"]
     (shear,) = document["shear"]
-    assert (shear["index"], shear["m_no"], shear["p_name"], shear["La"]) == (1, 1, "柱前面", 1.55)
+    assert (shear["index"], shear["m_no"], shear["p_name"], shear["La"]) == (1, 1, "柱前面", 1550)  # a = 1.55 m, in mm
+    assert isinstance(shear["La"], int)  # RcDan reads La in mm (La / d); 1.55 would be a deep beam of 1.55 mm
 
 
 def test_the_bars(built):

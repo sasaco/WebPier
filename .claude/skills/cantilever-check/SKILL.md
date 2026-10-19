@@ -43,7 +43,7 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 
 - **総括表は同じ世代の runner の返したバイト列を読む。** post/ の .xlsx は読まない。0900 を単独で選んでも 0711・0721（JRSNAP・Aggre-SE）が走る。3つの runner（JRSNAP・Aggre-SE・Capacita）が要り、本物での生成は数分。
 - **`complete` の順序**：Aggre-SE の照査 → 依存段階の `complete`（登録表の順。0900 は総括表、0910 は 0900 の完成結果）→ Capacita。`_completion_files` は依存段階の閉包の耐震性能照査のファイルを `"<stage>/<kind>"` で渡す（0910 にも 0711 のファイルが渡るが使わない）。
-- **Capacita（`--pickup` なし）**：`section_forces` は出ない。返る節は断面力表の行で決まる。Md8（最小鉄筋量）を空欄にすると warn WD-408 が1つ出るが問題ない。せん断スパンは `shear[0].La` で、片持ち梁上の最も遠い支承の X。いまは m で書いているが、Capacita は mm として読むので耐力を過大に見積もる（2026-10-19 に見つけた未修正の不具合。詳細はスキル webpier-capacita の「片持ち梁の断面照査」）。`fatigues.train_A_count` 等は文字列。
+- **Capacita（`--pickup` なし）**：`section_forces` は出ない。返る節は断面力表の行で決まる。Md8（最小鉄筋量）を空欄にすると warn WD-408 が1つ出るが問題ない。せん断スパンは `shear[0].La` で、片持ち梁上の最も遠い支承の X。計算（`shear_span`）は m、WDJ の La は mm（Capacita は mm として読む。2026-10-19 まで m で書いていて耐力を過大に見積もっていたのを直した。詳細はスキル webpier-capacita の「片持ち梁の断面照査」）。`fatigues.train_A_count` 等は文字列。
 - **横置きの表**：`QuarterTurn` は1部で分割不可。表の幅（＝回転後の高さ）は本文の高さ 705.72 pt 以下、高さは幅 528 pt 以下。見出しとは同じページに入らないので、見出しの直後には縦置きの表を置く。セルの幅・行の高さは 0.12 pt の倍数（`grid_units`）。全角の文字は約 9.9 pt、半角は約 5.5 pt、クリアランスは 0600 の表が左右 6.99 pt、`compact=True` の表（組合せ）が 4.11 pt。2行のセルは行の高さ 28.56 pt が要る。セルが収まらないと `LayoutOverflowError: line n exceeds available width` で止まるので、幅は文字数から見積もって決める。
 - **0600 の manuscript の `wide=True`** は左辺を文字列のラベルにし「ラベル ＝ 記号 ＝ 数値」と組む。記号を左辺にするなら `medium=True`。
 - **reporting は計算しない**：ΣR や地震時の桁慣性力など帳票に要る値は calc の結果に持たせる（`SupportLoads` の合計、`GirderDevices.inertia`）。

@@ -5,10 +5,11 @@ section forces of each check are 0900's governing combinations, written to the f
 bending row, Vd with its Md of each shear row, Mt with its Md and Vd of each torsion row; Md negative, tension at the
 top), and Capacita's Headless calculates the WDJ as given (``run-rc`` without ``--pickup``, which returns no
 ``model.wdj``). One member (the beam, rectangle B1 × (H2 + H3)) with one point, 柱前面, checked for bending, shear and
-torsion; the shear table gives the point's shear span a. The faces have their own corrosion environments (``con_u``,
-``con_l``, ``con_s``), the crack row ε'csd of 0900's cracking moment, and the fatigue conditions the trains of the input
-(the counts as text, as Capacita writes them). The side bars' centre from the side face (``sidebar2.side_cover``) is
-the one the main bars' spacing is measured from.
+torsion; the shear table gives the point's shear span a, in mm as RcDan reads it (the shear span ratio is La / d with d
+in mm: a length in m would be taken for a few mm, a deep beam with βa at its cap). The faces have their own corrosion
+environments (``con_u``, ``con_l``, ``con_s``), the crack row ε'csd of 0900's cracking moment, and the fatigue
+conditions the trains of the input (the counts as text, as Capacita writes them). The side bars' centre from the side
+face (``sidebar2.side_cover``) is the one the main bars' spacing is measured from.
 """
 
 from __future__ import annotations
@@ -17,12 +18,19 @@ from typing import Any
 
 from ...calc.cantilever.check import MEMBER, MEMBER_NAME, POINT_NAME, CantileverSectionResult
 from ...calc.cantilever.combinations import Quantity
+from ...core.printed import Precision, Printed
 from .wdj import (_CONDITIONS, _MOMENT_TITLES, _PILE_FACTORS, _SEPARATE, _SHEAR_TITLES, _TORSION_TITLES, BODIES, GROUP,
                   RECTANGLE, SCHEMA, STANDARDS, VERSION, _main, _number, _safety_row, _strengths)
 
 MOMENT_ROWS = tuple(range(9))  # Md0 … Md8
 SHEAR_ROWS = tuple(range(8))  # Vd0 … Vd7
 TORSION_ROWS = (0, 1, 5, 6, 7)  # Mt0, Mt1, Mt5, Mt6, Mt7
+MILLIMETRES = Precision(0, "mm")  # the shear span a (m to 3 decimals) is a whole number of mm
+
+
+def _millimetres(length: Printed) -> int | float | None:
+    """*length* (m) in the mm RcDan reads La in."""
+    return _number(MILLIMETRES(length.value * 1000))
 
 
 def _blank_fatigue(*keys: str) -> dict[str, Any]:
@@ -110,8 +118,8 @@ def build_cantilever_wdj(check: CantileverSectionResult) -> dict[str, Any]:
                     "isMyCalc": False, "isVyCalc": True, "isMzCalc": True, "isVzCalc": False, "isMtCalc": True,
                     "axis_type": 2, "isUpperCalc": True, "isLowerCalc": True}],
         "bar": [_bar(check)],
-        "shear": [{"index": 1, "m_no": MEMBER, "p_name": POINT_NAME, "La": _number(check.shear_span), "fixed_end": None,
-                   "L": None, "concrete": None, "bar": None, "g_name": None}],
+        "shear": [{"index": 1, "m_no": MEMBER, "p_name": POINT_NAME, "La": _millimetres(check.shear_span),
+                   "fixed_end": None, "L": None, "concrete": None, "bar": None, "g_name": None}],
         "fatigues": _fatigue(check),
         "safety": {
             "safety_factor": {GROUP: [_safety_row(factors) for factors in check.safety]},

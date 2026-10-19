@@ -44,8 +44,9 @@ the sample that WebPier deliberately does not reproduce.
   1058.28 (sample 1058.29), case 24 Mt 1437.43 (sample 1437.42), Mcrd 7055.19 (sample 7053.1 from the unrounded I).
 - **WDJ**: `shape` is the number 1 (the sample's "矩形" is not read by the current Capacita); the force table fills
   Vd6, Mt0, Mt1 and Mt6 too (the sample leaves them blank and so skips the restorability shear and the torsion
-  durability checks); the `shear` table gives the shear span a = 1.55 m (the farthest cantilever bearing) instead of
-  the sample's `La: 1` on the point; the point list has one point (the sample has nine, eight empty); `steel` rows
+  durability checks); the `shear` table gives the shear span a = 1.55 m (the farthest cantilever bearing), written as La 1550 (mm,
+  as RcDan reads it: La / d; 2026-10-19, a length in m had been taken for 1.55 mm) instead of
+  the sample's `La: 1` on the point (to RcDan, La 1 means "from |Md / Vd|"); the point list has one point (the sample has nine, eight empty); `steel` rows
   are not written; `sidebar2.side_cover` 184 (the side bars' centre) is the cover the main bars' spacing
   (2700 − 2 × 184)/16 = 145.75 is measured from; ε'csd is 300 from 13-55 (the sample's WDJ holds 450).
 - **ΣN**: Capacita computes it from the WDJ (`train_A_count` 60, `service_life` 100, NA 10.39); the external
