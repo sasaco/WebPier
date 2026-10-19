@@ -1,6 +1,6 @@
 ---
 name: footing-check
-description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は foundation-check、Aggre-SE の runner は aggrese-project、Capacita は capacita-column-check。
+description: WebPier の 0800・0810・0820 フーチングの照査（決定60、CONTEXT.md「フーチングの応答値」「Rvd到達ステップ」「フーチングの断面照査」）を扱う。0800 の応答値の算定（反力 CSV の断面照査用ピックアップ 1〜3、Aggre-SE の runner が返す直接基礎のステップ表と Rvd到達ステップ、地盤反力形状 Case 1〜4、両側の張出し、自重・浮力、Md・Vd・La、webpier/calc/footing.py）、フーチングの配筋の入力（footing_rebar.py）、0810・0820 の Capacita への断面力入力モードの WDJ（footing_check.py・export/capacita/footing_wdj.py）、計算書 12.1〜12.7（reporting/stages/footing*.py）、原資料 0700_線路フーチング.xls の式の読み方、本物の4つの runner での受入（scripts/accept_footing.py）に使う。見本 12_フーチング.pdf 244〜267 ページと値が合わない、Rvd に到達しない、ピックアップや Case の選び方が違う、q2 や分布の式を変えるときにも使う。基礎の安定計算（0612・0622）は foundation-check、Aggre-SE の runner は structural-aggrese（WebPier の呼び出しは webpier-aggrese）、Capacita は capacita-column-check。
 ---
 
 # フーチングの照査（0800・0810・0820）
@@ -36,7 +36,7 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 - 4列：安全性 Md最大＝ピックアップ 1 安全性（破壊）の |mz| 最大、安全性 Vd最大＝1 の fy 最大、使用性 短期＝2 耐久性 永久＋変動の fy 最大、長期＝3 永久作用の fy 最大。支点の節点は骨組の役割 `FOOTING_BOTTOM`、符号と丸めは 0612 と同じ（Vd＝−fy、Hd＝|fx|、Md＝|mz|、2桁）。
 - ピックアップ 2・3 は fy が max 行と min 行で同じ（19506.36）で、mz が ±（水平力の向き違い）の2つある。`foundation_check.pick` は fy が同値なら |mz| の大きい行、さらに同じなら |fx| の大きい行を採る（owner 2026-10-19）。これで使用性の Md は見本（3327.13／3056.25）と一致する。先頭の行を採ると 2852.88／1887.75 になる。
 - 使用性の Vd は 19506.36 で見本 19505.93 と 0.43 違う（見本の隠れ桁）。受入の許容差は使用性の Vd だけ 0.5 kN、他は 0.25。
-- ステップ表（`foundation-steps.csv`）：`case_index, case_name, node, step, V, H, M, qvd, qd, Rvd, Mmd, plasticity`。SNAPDBLib が返す JRSNAP の値のまま（aggrese-project スキル参照）。Rvd到達ステップは `V ≧ Rvd` の最初の行。Case が複数（0721）なら Case ごとに求めて |M| が最大の Case。Vd＝V（0以下はエラー）、Hd＝|H|、Md＝|M|。見本 10-23・11-24 の「増分ステップ＝31／32」と同じ番号付け。
+- ステップ表（`foundation-steps.csv`）：`case_index, case_name, node, step, V, H, M, qvd, qd, Rvd, Mmd, plasticity`。SNAPDBLib が返す JRSNAP の値のまま（列と step の番号はスキル structural-aggrese 参照）。Rvd到達ステップは `V ≧ Rvd` の最初の行。Case が複数（0721）なら Case ごとに求めて |M| が最大の Case。Vd＝V（0以下はエラー）、Hd＝|H|、Md＝|M|。見本 10-23・11-24 の「増分ステップ＝31／32」と同じ番号付け。
 - Example2（`pre/input.json`、Df 4.70）の結果：線路方向は Case 1 のステップ 32（見本 31）、Vd 16825.97（一致）、Hd 5901.07／Md 54168.43（見本 5747.86／52784.78）。Df・γe2 の既知の差で1ステップ遅い。Aggre-SE の PIK（決定57、応答値までの包絡）は Md が約7%大きく、使わない（owner 2026-10-19）。
 - 地震時の列の抵抗側は WebPier が求める：地盤抵抗係数 1.00（`FACTORS` の地震時）、γe2 は平水位、Df は 0612 と同じ表層厚。ステップ表の qd・Rvd は到達の判定にだけ使う。
 

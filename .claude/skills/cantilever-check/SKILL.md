@@ -1,6 +1,6 @@
 ---
 name: cantilever-check
-description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.6（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は capacita-column-check、Aggre-SE の runner と総括表は aggrese-project、フーチングは footing-check。
+description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.6（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は capacita-column-check、Aggre-SE の runner と総括表は structural-aggrese（WebPier の取り込みは webpier-aggrese）、フーチングは footing-check。
 ---
 
 # 片持ち梁の照査（0900・0910）

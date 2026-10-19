@@ -39,7 +39,7 @@ start "" "C:\RTRI_Program\JRSNAP(Ver5.2-L03)\JRSNAP_Input.exe" %LicenseOptNo1111
 
 `-Execute` はエンジンの既知の確認も自動で進める。単一解析では、`Nrail.exe` のコンソールに「エンターキーを押して画面を閉じて下さい」が出たときだけ Enter を送り、「耐力と変形性能の自動算定」では画面の初期チェック状態のまま「実行」を押し、「基礎照査機能を起動しますか？」には「いいえ」を選ぶ。後者の基礎照査機能まで必要な依頼にはこのスクリプトをそのまま使わない。複数解析の実機試験では途中の2種類の確認は出ず、最後の「解析が全て終了しました。」だけを自動で閉じた。エラーがあるという完了通知ならスクリプトは失敗として報告する。`S_ANALYSIS.exe` の画面は表示されるため、これは非対話の自動操作であり、エンジン自体の headless モードではない。未知の確認画面では自動選択せず、タイムアウト時は起動中のエンジンと制御ファイルを残す。
 
-「基礎照査機能」は `S_SubstCheck.exe`（増分解析は `E_SubstCheck.exe`）で、直接基礎の照査値 `<DB1名>_Output_Chokukiso.csv`、算定値 `_Output_PIC.csv`、判定 `_直接基礎照査No1.csv` を結果の横に書く（2026-10-18、両 exe の文字列で確認）。NDU に直接基礎の照査のデータ（`ChokuKisoNum`・`CHOKU_KISO`・`CHOKU_KISO_Link`）がなければ確認自体が出ない。WebPier の NDU はこのデータを持たないので、この CSV はできない。Aggre-SE が `_Output_Chokukiso.csv` を読む関係は [aggrese-project](../aggrese-project/SKILL.md) を参照。
+「基礎照査機能」は `S_SubstCheck.exe`（増分解析は `E_SubstCheck.exe`）で、直接基礎の照査値 `<DB1名>_Output_Chokukiso.csv`、算定値 `_Output_PIC.csv`、判定 `_直接基礎照査No1.csv` を結果の横に書く（2026-10-18、両 exe の文字列で確認）。NDU に直接基礎の照査のデータ（`ChokuKisoNum`・`CHOKU_KISO`・`CHOKU_KISO_Link`）がなければ確認自体が出ない。WebPier の NDU はこのデータを持たないので、この CSV はできない。Aggre-SE が `_Output_Chokukiso.csv` を読む関係はスキル `structural-aggrese` を参照。
 
 `S_ANALYSIS.exe` のライセンス処理は引数の先頭 12 文字が `LicenseOptNo` であることを確認する。スクリプトは選択したバージョンの `start` コマンドの `%` を含めず、同じライセンス文字列をエンジンへ渡す。対応するインストール先は上記2件のみで、それ以外は実行前に拒否する。
 
