@@ -69,7 +69,7 @@ runner は `Batch\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe`（使い�
 - Batch の版が変わったら：見本を保存し直して書式の差を見る → `writer.py` の `BATCH_VERSION` と並びを合わせる → 期待値を作り直す（`notes.md` の手順）→ `scripts/accept_aggrese_project.py --overwrite` で受入を取り直す（本物の JRSNAP で 0711・0721 を生成するので数分かかり、画面が出る）。
 - 受入記録は `tests/fixtures/acceptance/aggrese/record.json`。入力（`current.json`）や生成する XML が変わると `tests/acceptance` が失敗する。
 
-## 0711・0721 の計算書とピックアップ（決定56・57）
+## 0711・0721 の計算書・ピックアップ・総括表（決定56〜58）
 
 - WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx true --report-pdf true --check-tables false --pik true --pile-anchor-bar-pdf false` を呼ぶ（決定56〜58。返る成果物は result.json・report.pdf・pickup.pik・summary.xlsx の4つ）（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。runner は DB1 のフォルダーに何も書かない（実アプリで確認）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。
 - `report.pdf` の構成（実アプリで確認、Batch 5.3.0.1）：Case ごとに7ページ（荷重～変位曲線と水平震度の表、非線形応答スペクトル法の算定、変位図、M・S・N 図、損傷状況図）、続けて応答値一覧表、設計総括表（A3 横）、安全率一覧表、直接基礎の照査（A3 横）。線路方向は11ページ、線路直角方向（2 Case）は18ページ。1ページ目の見出しは DB1 の `KihonInfo.Title`（NDU の題名）と `Comment`（空なら DB1 の名前）で、`reports/PDFReport.vb` の `Create荷重変位曲線`（コードで確認）。見本 10.5・10.6 の見出しは作成者が書き込んだもので、WebPier は再現しない。
@@ -81,6 +81,12 @@ runner は `Batch\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe`（使い�
 - 見本の PDF は 13 ページ以降がほぼ画像で、`pdftotext` では読めない。`uv run --project . --locked --group dev python -X utf8` で `pymupdf` を使い、ページを PNG にして見る（文字の取り出しは見出しだけ）。
 - `scripts/accept_aggrese_project.py`（決定49の受入）も 0711・0721 を生成するので、いまは Aggre-SE の runner が `.env` に要る。スクリプトを書き換えると記録の helpers の SHA が変わり、受入のやり直しが要る。
 - 受入は `scripts/accept_aggrese_report.py --overwrite`（本物の JRSNAP で生成するので数分かかり、画面が出る）。記録は `tests/fixtures/acceptance/aggrese_report/record.json`。応答値は2ページ目の文字（`Ｋheq = …`・`δeq  = … mm`・`μ = …`・`δr = μ・δeq = … = … mm`・`Khr = …`）から読む。線路方向は見本 10-14 と一致する。
+
+## post の出力を作る・最新か確かめる
+
+- 作る：`uv run --project "." --locked python -m webpier --stage 0711 --overwrite`（0721 も同じ。両方なら `--stage all --nonlinear-analysis --overwrite`）。依存段階は内部で計算するだけで、0711 を選んだ生成が書くのは `output/0711_線路方向非線形解析.pdf`・`.json` と `post/` の `線路方向_JRSNAP/`・`線路方向.xml`・`線路方向_Aggre-SE.pik`・`線路方向_Aggre-SE.xlsx` と各付帯JSON。1方向数分かかり、JRSNAP の画面が出る。`.env` に JRSNAP と Aggre-SE の runner が要る。
+- 最新か確かめる（作り直す前に）：付帯JSONの `input.sha256` を `pre/input.json` の SHA256 と、`implementation_sha256` を `canonical_sha256({str(p): d for p, d in webpier.pipeline.runtime.dependency_hashes().items()})` と比べる。両方一致すれば、いまの入力と実装で作ったもの（2026-10-19、「出力して」と言われて確かめた手順）。総括表と計算書はバイトが毎回変わるので、ファイルの SHA256 どうしを比べて新旧を判断しない。
+- 同じ作業ツリーで別のセッションが `CONTEXT.md` などを編集していることがある。コミットは `git commit --only <自分のファイル>` で、他人の差分を含めない（`git diff -U0` で自分の差分か確かめる）。
 
 ## 知見を更新する
 
