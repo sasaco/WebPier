@@ -45,6 +45,7 @@ BAND_TYPES = ("外巻き", "内側")
 LEGS_MODES = ("自動", "指定")
 LEGS_AUTOMATIC = LEGS_MODES[0]
 WIDTH_MODES = ("間隔", "密度")
+WIDTH_SPACING, WIDTH_DENSITY = WIDTH_MODES
 
 # 柱の断面照査 (decision 48): one set for the column, shared by both directions.
 CORROSION_ENVIRONMENTS = ("一般の環境", "腐食性環境", "特に厳しい腐食性環境")  # 鋼材の腐食に対する環境条件

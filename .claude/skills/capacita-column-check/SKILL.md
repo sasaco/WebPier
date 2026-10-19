@@ -51,6 +51,15 @@ description: Capacita（structural-mcp の Capacita サブモジュール、RcDa
 - 地震時の照査に使える PIK（まだ使っていない）：0711・0721 は Aggre-SE のピックアップを `post/線路方向_Aggre-SE.pik`・`post/線路直角方向_Aggre-SE.pik` に書く（決定57、スキル aggrese-project）。行の書式は FEMPython の PIK と同じだが、先頭行は `Batch ver1.0.0`。ピックアップの番号は 1＝L1地震動・2＝復旧性L2・3＝安全性L2で、抽出ケースの番号（1 安全性（破壊）…）とは対応しない。部材の番号は JRSNAP の骨組（NDU の MemberInfo。線路方向 1〜6、線路直角方向 1〜7）で、FrameWeb の部材番号ではない。着目点は各部材の ITAN・JTAN だけで途中点はない（2026-10-19、本物の出力で確認）。Capacita に渡すなら、`point_index` や WDJ の着目点をこの骨組から求め直す必要がある（別の決定）。
 - `run-rc` のやり取りを変えたら代役の runner も更新する。本物の runner のテスト（`tests/pipeline/test_capacita.py`）は `.env` があるときだけ走り、その失敗が合図。
 
+## 片持ち梁の断面照査（0910、決定59）
+
+- 0910 は `run-rc` を `--pickup` なしで呼ぶ（`pipeline/capacita.py: check_section`）。WDJ（`export/capacita/cantilever.py`）の `force[0]` に 0900 の採用値を書き（Md0・1・3〜7、Vd0〜7、Mt0・1・5・6・7。Md は負＝上側引張）、Capacita はそのまま計算して `result.json`・`report.pdf` の2つだけを返す（`model.wdj` は返らないので、公開する `post/片持ち梁.wdj` は WebPier が書いたもの）。
+- 返る節は断面力表の行で決まる（2026-10-19、本物の runner で確認）：bending/shear/torsion_safety_destruction、bending/shear_safety_fatigue、bending/shear/torsion_durability、（外観の照査を行えば bending_serviceability）、bending/shear/torsion_restorability、bending/shear/torsion_restorability_eq の順。`section_forces` は `print_section_force_checked: true` でも出ない。断面力の欠けた行は warn の WD-408/409/410（Md8 最小鉄筋量は空欄なので WD-408 が1つ出る）。
+- 断面力0の省略コードは 1901〜1913（`pipeline.capacita.SKIPPED`：1903 疲労曲げ、1905 復旧性地震時曲げ、1909 同せん断、1910 耐久性ねじり、1911 安全性ねじり、1912 復旧性ねじり、1913 同地震時）。
+- 疲労は WDJ の `fatigues`（`train_A_count`・`train_B_count`・`service_life` は文字列、`fatigue_list[0]` の M1/V1 に SA・SB・NA06・NB06・NA12・NB12・r1）から Capacita が ΣN を計算する（`RcDan/Calculation/Calc_NRepetition.cs`）。見本の 10.39 は外部プログラム N-EQUIVALENT の値で、入力 `片持ち梁の照査.疲労` から写す。
+- せん断スパンは `shear[0].La`（m）。見本の WDJ は `points[0].La: 1` だが、今の RcDan は `shear` 表から読む。
+- 代役の runner は `--pickup` なしのとき WDJ の `force` の行から節を決める（`tests/fixtures/capacita/fake_runner.py: force_sections`）。0810・0820 のフーチングの WDJ も同じ規則で 5 節になる。
+
 ## 直角方向（0621）と照査の省略
 
 - 解説の文は見本 08 と 09 で同じで、違うのは節の番号（9.5〜9.9）だけ。WDJ の `basic`・`safety`・ひび割れの行も 08 と同じ（`column_section_check_09.json` の `same_as_08`）。
@@ -59,3 +68,10 @@ description: Capacita（structural-mcp の Capacita サブモジュール、RcDa
 - **安全性（破壊）の曲げは側方鉄筋を数えない**（Ase「-」。見本の WebDan も同じ）。復旧性の曲げは数える。直角方向の耐力は見本と 0.2% 未満の差（Mud 29326.7／29334.2、Myd 48634.5／48663.2）。
 - 見本 09 の照査値（0.338、0.098）は WebPier と比べられない。WebPier の 0620 の風荷重（決定12・35）は見本と違い、柱下端の Md が違う（安全性（破壊）10939.1／見本 8256.6）。N'd は同じ（13264.1、14404.5）なので受入は耐力で比べる。見本自身の WDJ（`shape` を `"1"` にした複製）を今の Capacita で計算すると 0.338・0.098 が再現するので、WebPier の WDJ との違いは断面力だけと確かめられる。
 - 省略の理由の文は解説の後に空き1行を置いて組む（`_blocks` はキーが `.omitted` で終わる単位で区切る）。省略した節の後は Capacita のページを挟まず、次の節の文書が新しいページから始まる。
+
+## フーチングの断面照査（0810・0821 ではなく 0810・0820、決定60）：断面力入力モードの WDJ
+
+- `webpier/calc/footing_check.py` が条件を組み（部材「フーチング」1000×H6 mm、下側の主鉄筋とスターラップ、材料、`柱の断面照査` の条件、Dmax は `鉄筋.フーチング.aggregate_max_mm`（owner 2026-10-19））、`webpier/export/capacita/footing_wdj.py` が WDJ を書く。runner は `pipeline.capacita.check_section`（`--pickup` なし。成果物は result.json と report.pdf だけ。決定59と共用）。代役は `tests/fixtures/capacita/fake_runner.py` の引数7個のモード（5節、1/2/2/1/2 頁、warn WD-408/409）。
+- 断面力入力モードの WDJ（2026-10-19、本物の runner で確認）：`pickup_filename` を空にすると Manual モード（`RcConditionEditor.ConditionInputMode`）。断面力は `force[]` の行に `Md<id>_Md`・`Md<id>_Nd`・`Vd<id>_Vd`・`Vd<id>_Md`・`Vd<id>_Nd`（id は `basic.pickup_moment`／`pickup_shear_force` の id：0 耐久性 応力度、1 耐久性 永久荷重、5 安全性 破壊、7 復旧性 地震時。`no` は null でよい）。せん断スパンは `shear[]` の行の `La`（mm、整数）。正の Md が下側引張（`rebar2`）。与えない id の照査は warn WD-408（曲げ）／WD-409（せん断）で印刷されず、`reportSections` にも出ない（info の WD-19xx ではない）。
+- **La は着目点ごとに1つ**なので、限界状態ごとに La を変えるには着目点を分ける。フーチングは方向ごとに2点：点1「線路方向」（Md0・Md1・Md5・Vd5、安全性の La）、点2「線路方向（地震時）」（Md7・Vd7、地震時の La）。各節はその節の断面力を持つ点だけを印刷する（1点だけの表になる）。見本 12 章は安全性 1127・地震時 1819 と別の La を印刷しているので、旧 WebDan は照査ごとの La を持っていた。
+- 上側鉄筋なしは `rebar1` を全部 null（`enable` は true のまま）で通る。`print_section_force_checked` は Manual モードでは効かない（断面力一覧は出ない）。見本 p255 の値（Mud 3670.5、0.249）と p258（Vdd 4337.2、0.187）は今の Capacita で再現する。

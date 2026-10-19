@@ -2,15 +2,15 @@
   "schema_version": 1,
   "kind": "capacita_column_check_acceptance",
   "stage": "0611",
-  "date": "2026-10-18",
-  "verified_at": "2026-10-18T21:13:44+09:00",
+  "date": "2026-10-19",
+  "verified_at": "2026-10-19T17:22:08+09:00",
   "method": "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の 8-15・8-26 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "359935af1863c3d9b79602bccd6ddb078f5d86003473002a2c36bc17f1290689"
+    "sha256": "99569a68707df6eab1742b22bda0fab56a054243e5d1eddc37e9ef07f1275717"
   },
-  "implementation_sha256": "dd010a012f96cbfc05ceaef1d0f6f924cb4060dc6ccb6a6d34ffb86aee99a23f",
+  "implementation_sha256": "9b8e77bc530be2b81b2f7f8ecb328c0eba7172e0423cc337b1f594eed43bc297",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",

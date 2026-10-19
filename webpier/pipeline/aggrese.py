@@ -6,7 +6,9 @@ XML names them (``--snap-map``: the index of each ``SnapDBPath`` → its DB1, re
 runner reads them, writes nothing beside the DB1, and returns its result (checked, not kept), its report
 (``report.pdf``), which is the stage's report as it is, and the files of ``PUBLISHED``, each published under post/
 as it is by its kind: the section force pickup (``pickup.pik``, decision 57) and the summary workbook
-(``summary.xlsx``, decision 58); no check tables or pile anchor report is asked for. Every Case must be aggregated.
+(``summary.xlsx``, decision 58) and the step table of the direct foundation (``foundation-steps.csv``, decision 60:
+every output step of each direct-foundation node, which 0800 reads for the Rvd到達ステップ); no check tables or pile
+anchor report is asked for. Every Case must be aggregated.
 The content and bytes of these files are Aggre-SE's (the report and the workbook differ between runs), so they are
 checked no further than being a PDF and a workbook (a zip) and are not bound to the implementation identity; the
 result JSON and the sidecars record the runner's ``engineVersion``. Aggre-SE returns no check values or judgement
@@ -20,10 +22,12 @@ a generation that needs it stops; nothing is published.
 from __future__ import annotations
 
 from collections.abc import Mapping
+import csv
 from dataclasses import dataclass
 import hashlib
-from io import BytesIO
+from io import BytesIO, StringIO
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -35,6 +39,7 @@ import zipfile
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
+from ..calc.footing import FoundationStep, StepsError
 from ..reporting.stages.seismic_check import SEISMIC_CHECK
 from .fempython import ENV_FILE, RunnerError, read_env
 
@@ -42,11 +47,17 @@ RUNNER_KEY = "STRUCTURAL_MCP_AGGRESE_RUNNER"
 PROTOCOL_VERSION = 1
 ENGINE = "aggrese"
 TIMEOUT = 600  # seconds
-# The report (decision 56), the pickup (decision 57) and the summary workbook (decision 58).
+# The report (decision 56), the pickup (decision 57), the summary workbook (decision 58) and the step table of the
+# direct foundation (decision 60).
 ARGUMENTS = ("--summary-xlsx", "true", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
-             "--pile-anchor-bar-pdf", "false")
+             "--pile-anchor-bar-pdf", "false", "--foundation-steps", "true")
 # The files published under post/, by the kind a stage publishes them as: (the runner's kind, its file name).
-PUBLISHED = {"pik": ("pickup-pik", "pickup.pik"), "xlsx": ("summary-xlsx", "summary.xlsx")}
+PUBLISHED = {"pik": ("pickup-pik", "pickup.pik"), "xlsx": ("summary-xlsx", "summary.xlsx"),
+             "steps": ("foundation-steps-csv", "foundation-steps.csv")}
+# The columns of the step table (Batch/Aggre-SE/Headless/README.md): V, H, M as Aggre-SE sums the support springs
+# (H signed, M absolute), qvd〜plasticity as JRSNAP wrote them, step the number of JRSNAP's output list (from 1).
+FOUNDATION_STEPS_COLUMNS = ("case_index", "case_name", "node", "step", "V", "H", "M", "qvd", "qd", "Rvd", "Mmd",
+                            "plasticity")
 _FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PUBLISHED.values()}
 # The pickups of the PIK, by number: Batch's default (Option_PickUpFileCase = 0, reports/ExcelReportPickUpFile.vb),
 # each the envelope of every Case up to its response step (decision 57).
@@ -155,7 +166,8 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         if (not isinstance(artifacts, list) or len(artifacts) != len(_FILES)
                 or not all(isinstance(item, dict) for item in artifacts)
                 or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != _FILES):
-            raise _Failure(f"runner の成果物が結果・計算書・ピックアップ・総括表の4つではありません（{artifacts!r}）")
+            raise _Failure("runner の成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"
+                           f"（{artifacts!r}）")
         files: dict[str, bytes] = {}
         for item in artifacts:
             path = output / item["relativePath"]
@@ -178,13 +190,46 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         raise _Failure("計算書の PDF にページがありません")
     if not zipfile.is_zipfile(BytesIO(files["summary.xlsx"])):
         raise _Failure("総括表が xlsx（zip）ではありません")
+    try:
+        steps = files["foundation-steps.csv"].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise _Failure(f"直接基礎のステップ表を UTF-8 で読めません（{exc}）") from exc
+    if steps.split("\r\n", 1)[0] != ",".join(FOUNDATION_STEPS_COLUMNS):
+        raise _Failure("直接基礎のステップ表の列が違います")
     return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in PUBLISHED.items()}, cases, version)
 
 
 def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT) -> SeismicCheckPages:
     """Aggre-SE's report and published files for the project XML at *project* and the DB1 it names
-    (decisions 56〜58)."""
+    (decisions 56〜58, 60)."""
     try:
         return _run(Path(project), runner, timeout)
     except _Failure as exc:
         raise RunnerError(f"{Path(project).name} {_CHECK}: {exc}") from exc
+
+
+def foundation_steps(content: bytes) -> tuple[FoundationStep, ...]:
+    """The rows of the step table of the direct foundation as the runner returned it (decision 60): UTF-8 (a BOM and
+    LF endings tolerated), the columns of FOUNDATION_STEPS_COLUMNS; ``StepsError`` when it cannot be read."""
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise StepsError(f"直接基礎のステップ表を読めません（{exc}）") from exc
+    rows = list(csv.reader(StringIO(text)))
+    if not rows or tuple(rows[0]) != FOUNDATION_STEPS_COLUMNS:
+        raise StepsError("直接基礎のステップ表の列が違います")
+    if len(rows) < 2:
+        raise StepsError("直接基礎のステップ表に行がありません")
+    found = []
+    for number, row in enumerate(rows[1:], 2):
+        try:
+            if len(row) != len(FOUNDATION_STEPS_COLUMNS):
+                raise ValueError(f"{len(row)} 列")
+            case_index, name, node, step = int(row[0]), row[1], int(row[2]), int(row[3])
+            values = tuple(float(value) for value in row[4:])
+        except ValueError as exc:
+            raise StepsError(f"直接基礎のステップ表を読めません（{number} 行目: {exc}）") from exc
+        if not all(map(math.isfinite, values)):
+            raise StepsError(f"直接基礎のステップ表の {number} 行目に有限でない値があります")
+        found.append(FoundationStep(case_index, name, node, step, *values))
+    return tuple(found)

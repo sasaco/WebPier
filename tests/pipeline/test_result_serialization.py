@@ -3,17 +3,15 @@
 import enum
 import json
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
 
+from pipeline_support import footing_document
 from webpier.core.integrity import load_json
 from webpier.core.printed import FORCE, LENGTH, Printed
 from webpier.inputs import parse_input
 from webpier.pipeline.serialize import result_document, to_json
 from webpier.pipeline.stages import STAGES
-
-CURRENT = Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json"
 
 
 class Side(enum.Enum):
@@ -98,10 +96,10 @@ def test_result_document_records_stage_input_and_implementation():
 
 
 def test_every_stage_result_serializes_to_strict_json_and_back():
-    pier = parse_input(load_json(CURRENT.read_bytes()))
+    pier = parse_input(footing_document())  # 0800 needs the footing bars (decision 60)
     results = {}
-    for stage in [stage for stage in STAGES.stages if stage.calculate is not None]:  # 0611, 0621 calculate nothing
-        results[stage.id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on})
+    for stage in [stage for stage in STAGES.stages if stage.calculate is not None]:  # 0711, 0721, 0910 calculate nothing
+        results[stage.id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on if name in results})
         encoded = json.dumps(to_json(results[stage.id]), ensure_ascii=False, allow_nan=False).encode()
         decoded = load_json(encoded)
         assert decoded == to_json(results[stage.id])

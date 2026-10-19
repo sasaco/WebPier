@@ -45,6 +45,8 @@ from gridlayoutpdf import LayoutError
 from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..export.aggrese import ProjectError
+from ..calc.cantilever import ResponseError
+from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
@@ -55,7 +57,7 @@ from .publication import ArtifactStaging, backup_path, publish_outputs, validate
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry, SectionCheck, SeismicCheck)
+                     Project, Registry, SectionCheck, SeismicCheck, seismic_file)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -361,13 +363,16 @@ def _pik_name(registry: Registry, stage_id: str) -> str:
 
 def _check_facts(registry: Registry, post: _PostFile, inspected: Mapping[str, capacita.ColumnCheckPages],
                  given: Mapping[str, bytes], analyzed: Mapping[str, AnalysisFiles]) -> dict[str, Any]:
-    # The completed WDJ is Capacita's (decision 48): which runner returned it, for which WDJ and which PIK. Capacita
-    # returns no judgement, so the check is recorded as run, not as passed (ADR-0008).
-    return {"section_check": {"engine": capacita.ENGINE, "engine_version": inspected[post.stage].engine_version,
-                              "engineering_status": "not_evaluated",
-                              "pik": {"stage": post.stage, "kind": "pik", "file": _pik_name(registry, post.stage),
-                                      "sha256": sha256(analyzed[post.stage].files["pik"])},
-                              "wdj_given": {"sha256": sha256(given[post.stage])}}}
+    # The completed WDJ is Capacita's (decision 48): which runner returned it, for which WDJ and which PIK. Without a
+    # PIK (decision 59) the WDJ is WebPier's, calculated as given: which runner checked it. Capacita returns no
+    # judgement, so the check is recorded as run, not as passed (ADR-0008).
+    facts: dict[str, Any] = {"engine": capacita.ENGINE, "engine_version": inspected[post.stage].engine_version,
+                             "engineering_status": "not_evaluated"}
+    if post.stage in analyzed:
+        facts["pik"] = {"stage": post.stage, "kind": "pik", "file": _pik_name(registry, post.stage),
+                        "sha256": sha256(analyzed[post.stage].files["pik"])}
+    facts["wdj_given"] = {"sha256": sha256(given[post.stage])}
+    return {"section_check": facts}
 
 
 def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
@@ -388,8 +393,8 @@ def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
 
 def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
                    checked: Mapping[str, aggrese.SeismicCheckPages]) -> dict[str, Any]:
-    # The file is Aggre-SE's (decisions 57, 58): which runner returned it with which report, for which project and
-    # folder, and for the pickup what each of its pickups is.
+    # The file is Aggre-SE's (decisions 57, 58, 60): which runner returned it with which report, for which project
+    # and folder, for the pickup what each of its pickups is, and for the step table what its columns are.
     analysis = registry.get(post.stage).nonlinear_analysis
     project = post.native.path.with_name(analysis.project.file_name)
     folder = staging.path_for(project.with_name(analysis.folder))
@@ -399,6 +404,8 @@ def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
              "jrsnap": {"file": analysis.folder, "sha256": content_sha256(folder)}}
     if post.kind == "pik":
         facts["pickups"] = {str(number): name for number, name in aggrese.PICKUPS.items()}
+    if post.kind == "steps":
+        facts["columns"] = list(aggrese.FOUNDATION_STEPS_COLUMNS)
     return {"seismic_check": facts}
 
 
@@ -459,12 +466,39 @@ def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections:
         raise GenerationError(str(exc)) from exc
 
 
-def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str, bytes]) -> Any:
+def _check_section(name: str, wdj: bytes, runner: Path, sections: tuple[str, ...]) -> capacita.ColumnCheckPages:
     try:
-        return registry.get(stage_id).complete(result, files)
+        return capacita.check_section(wdj, name, runner, sections)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _completion_files(registry: Registry, stage_id: str, analyzed: Mapping[str, AnalysisFiles],
+                      checked: Mapping[str, aggrese.SeismicCheckPages]) -> dict[str, bytes]:
+    """The files a stage's ``complete`` reads: its frame analysis' by kind, and its dependencies' frame analyses' and
+    seismic checks' by ``seismic_file`` (decisions 54, 59, 60)."""
+    files: dict[str, bytes] = dict(analyzed[stage_id].files) if stage_id in analyzed else {}
+    for name in registry.closure(registry.get(stage_id).depends_on):
+        for returned in (analyzed, checked):
+            if name in returned:
+                files |= {seismic_file(name, kind): content for kind, content in returned[name].files.items()}
+    return files
+
+
+def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str, bytes], pier: PierInput,
+              results: Mapping[str, Any]) -> Any:
+    try:
+        return registry.get(stage_id).complete(result, files, pier, results)
     except ReactionError as exc:
-        name = dict(registry.get(stage_id).frame_analysis.files)["reaction"]
+        analysis = registry.get(stage_id).frame_analysis
+        if analysis is None:  # the reactions of its dependencies' analyses (0800, decision 60)
+            raise GenerationError(f"依存段階の反力で{stage_id}の結果を仕上げられません: {exc}") from exc
+        name = dict(analysis.files)["reaction"]
         raise GenerationError(f"{name} で{stage_id}の基礎の照査ができません: {exc}") from exc
+    except StepsError as exc:  # the step table of its dependencies' seismic checks (0800, decision 60)
+        raise GenerationError(f"直接基礎のステップ表で{stage_id}の結果を仕上げられません: {exc}") from exc
+    except ResponseError as exc:
+        raise GenerationError(f"{stage_id}の片持ち梁の照査ができません: {exc}") from exc
 
 
 def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str, pik: bytes) -> bytes:
@@ -571,22 +605,9 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 runs[_analysis_key(analysis)] = _analyze(_source(registry, analysis).file_name,
                                                          built[(analysis.stage, analysis.export)], runner)
         analyzed = {stage_id: runs[_analysis_key(analysis)] for stage_id, analysis in analyses.items()}
-        for stage_id in selected:
-            if registry.get(stage_id).complete is not None:
-                results[stage_id] = _complete(registry, stage_id, results[stage_id], analyzed[stage_id].files)
         solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
                                                built[(analysis.stage, analysis.export)], jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
-        # Capacita checks the column with the PIK the stage's own frame analysis returned (decision 48).
-        given: dict[str, bytes] = {}
-        inspected: dict[str, capacita.ColumnCheckPages] = {}
-        for stage_id in selected:
-            if (check := registry.get(stage_id).section_check) is not None:
-                own = _own(registry, results, stage_id)
-                pik = analyzed[stage_id].files["pik"]
-                given[stage_id] = _build_wdj(check, own, pier, _pik_name(registry, stage_id), pik)
-                inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id], pik,
-                                                    capacita_runner, tuple(check.sections(own)))
         for post in posts:
             if post.native.folder:
                 folder = staging.path_for(post.native.path)
@@ -597,12 +618,6 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 analysis = registry.get(post.stage).nonlinear_analysis
                 staging.path_for(post.native.path).write_bytes(
                     _write_project(post, writers[post.stage], analysis.folder, list(solved[post.stage].files)))
-            elif post.check is not None:
-                staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
-            elif post.seismic is not None:
-                continue  # written below, from the check with the staged project and folder
-            elif post.export is None:
-                staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         # Aggre-SE checks with the project and the folder staged beside it (decision 56).
         checked = {post.stage: _check_seismic(
                        staging.path_for(post.native.path),
@@ -610,9 +625,35 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                        aggrese_runner)
                    for post in posts
                    if post.project is not None and registry.get(post.stage).seismic_check is not None}
+        # A stage finishes its result with the files of its frame analysis, or of the seismic checks of its
+        # dependencies, or with their finished results (decisions 54, 59), in registry order.
+        for stage_id in selected:
+            if registry.get(stage_id).complete is not None:
+                results[stage_id] = _complete(registry, stage_id, results.get(stage_id),
+                                              _completion_files(registry, stage_id, analyzed, checked), pier, results)
+        # Capacita checks the section the stage describes: the column with the PIK the stage's own frame analysis
+        # returned (decision 48), or the beam with the section forces written in the WDJ (decision 59).
+        given: dict[str, bytes] = {}
+        inspected: dict[str, capacita.ColumnCheckPages] = {}
+        for stage_id in selected:
+            if (check := registry.get(stage_id).section_check) is not None:
+                own = _own(registry, results, stage_id)
+                if stage_id in analyzed:
+                    pik = analyzed[stage_id].files["pik"]
+                    given[stage_id] = _build_wdj(check, own, pier, _pik_name(registry, stage_id), pik)
+                    inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id], pik,
+                                                        capacita_runner, tuple(check.sections(own)))
+                else:
+                    given[stage_id] = check.build(own, pier, None)
+                    inspected[stage_id] = _check_section(check.file_name, given[stage_id], capacita_runner,
+                                                         tuple(check.sections(own)))
         for post in posts:
-            if post.seismic is not None:
+            if post.check is not None:
+                staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
+            elif post.seismic is not None:
                 staging.path_for(post.native.path).write_bytes(checked[post.stage].files[post.kind])
+            elif post.export is None and not post.native.folder and post.project is None:
+                staging.path_for(post.native.path).write_bytes(analyzed[post.stage].files[post.kind])
         for stage_id in selected:
             if not registry.get(stage_id).has_report:
                 continue

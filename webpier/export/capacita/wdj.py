@@ -16,7 +16,8 @@ point's), and the document no ``steel`` rows (an RC WDJ with them is refused).
 Only the column bottom is checked (bending about z, shear in y; no torsion). ``shape`` is the number 1 (rectangle;
 RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5, 0621 as 9.5. Side bars
 without positions (calc.column_check.SideBars) are written without ``side_cover`` and ``side_ss``: Capacita spaces
-them evenly between the main bars.
+them evenly between the main bars. The footing WDJ (footing_wdj) shares the basic lists, the safety tables and the
+number formatting of this module.
 """
 
 from __future__ import annotations

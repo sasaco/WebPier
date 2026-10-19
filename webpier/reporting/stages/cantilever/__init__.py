@@ -1,0 +1,56 @@
+"""0900 片持ち梁: 13.1 応答値の算定 and 13.2 設計作用の組合せ (decision 59; Example2 13-1 to 13-37).
+
+The report is authored with the 0600 manuscript (reporting.stages.reaction.manuscript, prefix 0900/) and laid out by
+its layout: formula lines whose numbers a reader recomputes, the 0600 tables, the loading figure of 0600, and the
+combination tables turned on the page as the sample prints them (QuarterTurn). The chapter heading 「13. 片持ち梁の
+照査」 is not printed. 13.1 (1) and (2) hold for both cantilevers and are printed once; (3) 片持梁の自重, (4) 荷重設計
+の集計 and 13.2 are printed for the left cantilever, then for the right one, and 13.2 ends with the table of the
+governing cases of either side for each check (decision 59). Every number is a Printed value of the CantileverResult,
+of the 0600 result it was calculated from, or of the input; nothing is calculated here.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from gridlayoutpdf import Document
+
+from ....calc.cantilever import CantileverResult, Side
+from ....calc.reaction import ReactionResult
+from ....inputs import PierInput
+from ..reaction.layout import document
+from ..reaction.manuscript import SECTION, Manuscript, Unit, plain
+from . import combinations, horizontal, summary, vertical
+
+PREFIX = "0900/"
+SIDES = {Side.LEFT: "左側", Side.RIGHT: "右側"}
+
+
+def content(result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
+    """One ordered manuscript, used by both the layout and the semantic tests."""
+    m = Manuscript(prefix=PREFIX)
+    m.heading("title", "13.1 応答値の算定", SECTION)
+    vertical.section(m, result, reaction, pier)
+    horizontal.section(m, result, reaction, pier)
+    for side, side_result in result.sides.items():
+        summary.section(m, side, SIDES[side], side_result, result, reaction)
+    for side, side_result in result.sides.items():
+        combinations.section(m, side, SIDES[side], side_result, pier)
+    combinations.adopted(m, result, SIDES)
+    return tuple(m.units)
+
+
+def semantic_records(result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> list[dict[str, str]]:
+    return [{"id": unit.identifier, "text": plain(unit.value)} for unit in content(result, reaction, pier)]
+
+
+def build_cantilever(result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> Document:
+    return document(content(result, reaction, pier))
+
+
+def render_cantilever(result: CantileverResult, reaction: ReactionResult, pier: PierInput, path: str | Path) -> Path:
+    """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
+    return build_cantilever(result, reaction, pier).render(path, invariant=True)
+
+
+__all__ = ["PREFIX", "SIDES", "build_cantilever", "content", "render_cantilever", "semantic_records"]

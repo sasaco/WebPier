@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "kind": "footing_acceptance",
+  "verified_at": "2026-10-19T15:56:30+09:00",
+  "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で --frame-analysis --nonlinear-analysis の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
+  "input": {
+    "path": "tests/fixtures/inputs/current.json",
+    "footing_bars": {
+      "materials": {
+        "main": "SD390",
+        "transverse": "SD390"
+      },
+      "concrete_strength_mpa": 27,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": null,
+      "main_rows": [
+        {
+          "diameter_mm": null,
+          "material": null,
+          "cover_mode": "自動",
+          "center_mm": null,
+          "clear_gap_mm": null,
+          "direction": "線路",
+          "face": "上",
+          "pitch_mm": null,
+          "layers": 1,
+          "stack_order": 1
+        },
+        {
+          "diameter_mm": 25,
+          "material": null,
+          "cover_mode": "指定",
+          "center_mm": 100,
+          "clear_gap_mm": null,
+          "direction": "線路",
+          "face": "下",
+          "pitch_mm": 125,
+          "layers": 1,
+          "stack_order": 1
+        },
+        {
+          "diameter_mm": null,
+          "material": null,
+          "cover_mode": "自動",
+          "center_mm": null,
+          "clear_gap_mm": null,
+          "direction": "直角",
+          "face": "上",
+          "pitch_mm": null,
+          "layers": 1,
+          "stack_order": 2
+        },
+        {
+          "diameter_mm": 29,
+          "material": null,
+          "cover_mode": "指定",
+          "center_mm": 127,
+          "clear_gap_mm": null,
+          "direction": "直角",
+          "face": "下",
+          "pitch_mm": 125,
+          "layers": 1,
+          "stack_order": 2
+        }
+      ],
+      "side_rows": [],
+      "band_rows": [
+        {
+          "type": "内側",
+          "direction": "線路",
+          "diameter_mm": 16,
+          "material": null,
+          "sets": null,
+          "pitch_mm": 250,
+          "start_mm": null,
+          "end_mm": null,
+          "legs_mode": "指定",
+          "effective_legs": null,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        },
+        {
+          "type": "内側",
+          "direction": "直角",
+          "diameter_mm": 16,
+          "material": null,
+          "sets": null,
+          "pitch_mm": 250,
+          "start_mm": null,
+          "end_mm": null,
+          "legs_mode": "指定",
+          "effective_legs": null,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        }
+      ],
+      "manual_positions": [],
+      "position_mode": "基本"
+    },
+    "file": "input.json",
+    "sha256": "2198f55ceb0a4cb1f66ce1792b7e62637348d1d03a6cda876bd234b6dee2bd2e"
+  },
+  "implementation_sha256": "9b8e77bc530be2b81b2f7f8ecb328c0eba7172e0423cc337b1f594eed43bc297",
+  "runners": {
+    "fempython": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
+    "jrsnap": "C:\\Users\\sasai\\Documents\\structural-mcp\\JRSNAPHeadless\\bin\\Release\\JRSNAP.Headless.exe",
+    "aggrese": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+    "capacita": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe"
+  },
+  "engines": {
+    "frameweb": {
+      "線路方向.json": "c3c6350cdc61ecb723f0ce968319c6afb0d498c8a88335f77c0f3d2753246d81",
+      "線路直角方向.json": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df"
+    },
+    "reaction": {
+      "線路方向_ピックアップ反力.csv": "0c017670dae4c60f38821d36d0c45744e1a14d579c149b73bf8b221040cb18ce",
+      "線路直角方向_ピックアップ反力.csv": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"
+    },
+    "ndu": {
+      "線路方向.ndu": "3199e7cc381660ae420f9f5e28e7a5be140134ce577163403a150904877e860b",
+      "線路直角方向.ndu": "36d470afcec6cce19e0c90e83202dad657f3d633bf7f2d4627a92b0e2a66927b"
+    },
+    "steps": {
+      "線路方向_Aggre-SE_直接基礎.csv": "e5fbd819568ee6395a141ed24196049d52bb63974f0a7daf777698ceb2d2e66d",
+      "線路直角方向_Aggre-SE_直接基礎.csv": "457dd09198549a708a12d5b09ab45ab358ba7afb6fcc252e474c224388abaece"
+    }
+  },
+  "tolerance": 0.25,
+  "service_vd_tolerance": 0.5,
+  "capacity_tolerance": 0.002,
+  "sample_mud": {
+    "0810": 3670.5
+  },
+  "directions": {
+    "longitudinal": {
+      "sample_page": "244",
+      "seismic_sample_page": "10-23",
+      "compared": [
+        "vd",
+        "hd",
+        "md"
+      ],
+      "node": 6,
+      "columns": {
+        "safety_moment": {
+          "ours": {
+            "vd": 21870.78,
+            "hd": 495.01,
+            "md": 5460.44,
+            "chosen": "起点側",
+            "design": {
+              "md": 790.66,
+              "vd": 718.76,
+              "la": 1.1
+            },
+            "combination": 2
+          },
+          "sample": {
+            "Vd": 21870.77,
+            "Hd": 495.01,
+            "Md": 5460.42
+          },
+          "differences": {
+            "vd": 0.01,
+            "hd": 0.0,
+            "md": 0.02
+          }
+        },
+        "safety_shear": {
+          "ours": {
+            "vd": 22585.15,
+            "hd": 473.43,
+            "md": 4767.97,
+            "chosen": "起点側",
+            "design": {
+              "md": 799.16,
+              "vd": 728.89,
+              "la": 1.096
+            },
+            "combination": 1
+          },
+          "sample": {
+            "Vd": 22585.12,
+            "Hd": 473.43,
+            "Md": 4767.98
+          },
+          "differences": {
+            "vd": 0.03,
+            "hd": 0.0,
+            "md": -0.01
+          }
+        },
+        "short_term": {
+          "ours": {
+            "vd": 19506.36,
+            "hd": 300.0,
+            "md": 3327.12,
+            "chosen": "起点側",
+            "design": {
+              "md": 625.52,
+              "vd": 571.65,
+              "la": 1.094
+            },
+            "combination": 5
+          },
+          "sample": {
+            "Vd": 19505.93,
+            "Hd": 300.0,
+            "Md": 3327.13
+          },
+          "differences": {
+            "vd": 0.43,
+            "hd": 0.0,
+            "md": -0.01
+          }
+        },
+        "long_term": {
+          "ours": {
+            "vd": 18049.95,
+            "hd": 240.0,
+            "md": 3056.25,
+            "chosen": "起点側",
+            "design": {
+              "md": 564.36,
+              "vd": 516.16,
+              "la": 1.093
+            },
+            "combination": 6
+          },
+          "sample": {
+            "Vd": 18049.95,
+            "Hd": 240.0,
+            "Md": 3056.25
+          },
+          "differences": {
+            "vd": 0.0,
+            "hd": 0.0,
+            "md": 0.0
+          }
+        },
+        "seismic": {
+          "ours": {
+            "vd": 16825.97,
+            "hd": 5893.09,
+            "md": 54082.78,
+            "chosen": "起点側",
+            "design": {
+              "md": 3293.19,
+              "vd": 1706.33,
+              "la": 1.93
+            },
+            "case_index": 0,
+            "case_name": "線路方向(Case1_ρm10_αf1_正向)",
+            "step": 32,
+            "rvd": 16342.62
+          },
+          "sample": {
+            "Vd": 16825.97,
+            "Hd": 5747.86,
+            "Md": 52784.78
+          }
+        }
+      },
+      "check": {
+        "stage": "0810",
+        "wdj": {
+          "file": "線路方向フーチング.wdj",
+          "sha256": "f26b324593a3ef6b17505c383b13af9c69731ef3803e46a8679d895ec429dacd"
+        },
+        "engine_version": "1.0.0",
+        "sections": {
+          "bending_safety_destruction": {
+            "page": 1,
+            "ratio": "0.261",
+            "capacity": "3670.5"
+          },
+          "bending_restorability_eq": {
+            "page": 6,
+            "ratio": "0.852",
+            "capacity": "3863.6"
+          }
+        }
+      }
+    },
+    "transverse": {
+      "sample_page": "249",
+      "seismic_sample_page": "11-24",
+      "compared": [
+        "vd"
+      ],
+      "node": 6,
+      "columns": {
+        "safety_moment": {
+          "ours": {
+            "vd": 20045.0,
+            "hd": 788.53,
+            "md": 13068.19,
+            "chosen": "起点側",
+            "design": {
+              "md": 934.37,
+              "vd": 804.4,
+              "la": 1.162
+            },
+            "combination": 3
+          },
+          "sample": {
+            "Vd": 20045.0,
+            "Hd": 797.47,
+            "Md": 10409.79
+          },
+          "differences": {
+            "vd": 0.0,
+            "hd": -8.94,
+            "md": 2658.4
+          }
+        },
+        "safety_shear": {
+          "ours": {
+            "vd": 22585.13,
+            "hd": 465.94,
+            "md": 7389.08,
+            "chosen": "起点側",
+            "design": {
+              "md": 909.74,
+              "vd": 793.64,
+              "la": 1.146
+            },
+            "combination": 1
+          },
+          "sample": {
+            "Vd": 22585.12,
+            "Hd": 194.91,
+            "Md": 3451.7
+          },
+          "differences": {
+            "vd": 0.01,
+            "hd": 271.03,
+            "md": 3937.38
+          }
+        },
+        "short_term": {
+          "ours": {
+            "vd": 19506.35,
+            "hd": 0.0,
+            "md": 0.0,
+            "chosen": "起点側",
+            "design": {
+              "md": 593.42,
+              "vd": 527.49,
+              "la": 1.125
+            },
+            "combination": 5
+          },
+          "sample": {
+            "Vd": 19505.93,
+            "Hd": 0.0,
+            "Md": 0.0
+          },
+          "differences": {
+            "vd": 0.42,
+            "hd": 0.0,
+            "md": 0.0
+          }
+        },
+        "long_term": {
+          "ours": {
+            "vd": 18049.95,
+            "hd": 0.0,
+            "md": 0.0,
+            "chosen": "起点側",
+            "design": {
+              "md": 534.92,
+              "vd": 475.49,
+              "la": 1.125
+            },
+            "combination": 6
+          },
+          "sample": {
+            "Vd": 18049.95,
+            "Hd": 0.0,
+            "Md": 0.0
+          },
+          "differences": {
+            "vd": 0.0,
+            "hd": 0.0,
+            "md": 0.0
+          }
+        },
+        "seismic": {
+          "ours": {
+            "vd": 16825.97,
+            "hd": 6203.02,
+            "md": 69249.04,
+            "chosen": "起点側",
+            "design": {
+              "md": 4294.66,
+              "vd": 2234.36,
+              "la": 1.922
+            },
+            "case_index": 0,
+            "case_name": "線路直角方向(Case1_ρm10_αf1_正向)",
+            "step": 32,
+            "rvd": 16816.75
+          },
+          "sample": {
+            "Vd": 16825.97,
+            "Hd": 6112.85,
+            "Md": 68015.89
+          }
+        }
+      },
+      "check": {
+        "stage": "0820",
+        "wdj": {
+          "file": "線路直角方向フーチング.wdj",
+          "sha256": "ad93fd7a8ca7f276a3f8c786054c334aa6c081d53960937ca25dc038ac4d64bd"
+        },
+        "engine_version": "1.0.0",
+        "sections": {
+          "bending_safety_destruction": {
+            "page": 1,
+            "ratio": "0.245",
+            "capacity": "4581.9"
+          },
+          "bending_restorability_eq": {
+            "page": 6,
+            "ratio": "0.893",
+            "capacity": "4808.1"
+          }
+        }
+      }
+    }
+  },
+  "accepted": true,
+  "failures": []
+}

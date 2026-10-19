@@ -157,14 +157,14 @@ def test_a_failing_check_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch,
     assert rendered == []
 
 
-def test_the_registry_needs_a_frame_analysis_and_a_report_for_a_check():
+def test_the_registry_needs_a_report_for_a_check_and_allows_one_without_a_frame_analysis():
+    """Decision 59: a section check without a frame analysis is a WDJ with its own forces (0910)."""
     check = SectionCheck("wdj", "frame.wdj", lambda results, pier, pik: WDJ, lambda results: SECTIONS)
     base = (StageSpec("A", "A_基礎", (), lambda pier, results: 1, lambda results, pier, path, pages: path,
                       (Export("frameweb", "frame.json", lambda results, pier: FRAMEWEB),)),)
-    with pytest.raises(ValueError, match="骨組解析"):
-        Registry((*base, StageSpec("D", "D_照査", ("A",), lambda pier, results: 1,
-                                   lambda results, pier, path, pages: path, opt_in=FRAME_ANALYSIS,
-                                   section_check=check)))
+    without = Registry((*base, StageSpec("D", "D_照査", ("A",), lambda pier, results: 1,
+                                         lambda results, pier, path, pages: path, section_check=check)))
+    assert without.get("D").frame_analysis is None and without.get("D").section_check is check
     with pytest.raises(ValueError, match="計算書"):
         Registry((*base, StageSpec("D", "D_照査", ("A",), opt_in=FRAME_ANALYSIS,
                                    frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS), section_check=check)))

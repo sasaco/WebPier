@@ -74,9 +74,11 @@ class CalculationPage:
         ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
                   style="Muted.TLabel").pack(anchor="w")
         self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
-        checked = [stage.id for stage in registry.stages if stage.section_check is not None]
+        checked = [stage.id for stage in registry.stages
+                   if stage.section_check is not None and stage.frame_analysis is not None]
         column_check = f"。{'・'.join(checked)} は Capacita で柱の断面照査も行う（決定48）" if checked else ""
-        founded = [stage.id for stage in registry.stages if stage.complete is not None]
+        founded = [stage.id for stage in registry.stages
+                   if stage.complete is not None and stage.frame_analysis is not None]
         column_check += f"。{'・'.join(founded)} は反力で基礎の照査も行う（決定54）" if founded else ""
         self.frame_analysis_box = ttk.Checkbutton(
             page, variable=self.frame_analysis, command=self._analysis_changed,
@@ -87,6 +89,15 @@ class CalculationPage:
         seismic = [stage.id for stage in registry.stages if stage.seismic_check is not None]
         seismic_check = (f"。{'・'.join(seismic)} は Aggre-SE で耐震性能照査も行い、ピックアップ（PIK）と総括表（xlsx）を post に出力（決定56〜58）"
                          if seismic else "")
+        cantilever = [stage.id for stage in registry.stages if stage.opt_in == (NONLINEAR_ANALYSIS,)
+                      and stage.nonlinear_analysis is None and stage.seismic_check is None]
+        wdj = [stage.section_check.file_name for stage in registry.stages
+               if stage.id in cantilever and stage.section_check is not None]
+        seismic_check += (f"。{'・'.join(cantilever)} は片持ち梁の応答値と Capacita の断面照査も行い、"
+                          f"post/{'・'.join(wdj)} を出力（決定59）") if cantilever else ""
+        both = [stage.id for stage in registry.stages if len(stage.opt_in) == 2]
+        seismic_check += (f"。{'・'.join(both)} はフーチングの応答値と Capacita の断面照査で、骨組解析と両方を選んだときに"
+                          "加わる（決定60）") if both else ""
         self.nonlinear_analysis_box = ttk.Checkbutton(
             page, variable=self.nonlinear_analysis, command=self._analysis_changed,
             text=f"静的非線形解析も行う（{'・'.join(registry.opt_in(NONLINEAR_ANALYSIS))}。JRSNAP：解析用データと解析結果を "

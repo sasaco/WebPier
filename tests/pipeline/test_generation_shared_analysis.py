@@ -22,7 +22,7 @@ PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reac
 PICKUP_FILES = [name for _, name in PICKUPS]
 
 
-def _complete(result: FakeResult, files) -> FakeResult:
+def _complete(result: FakeResult, files, pier=None, results=None) -> FakeResult:
     return replace(result, read=(*result.read, "reaction " + hashlib.sha256(files["reaction"]).hexdigest()))
 
 
@@ -97,7 +97,7 @@ def test_the_stage_chosen_alone_publishes_the_shared_files_as_its_own(env):
 def test_reactions_that_cannot_be_read_stop_the_generation_before_any_report(env):
     options, recorder, _ = env
 
-    def broken(result, files):
+    def broken(result, files, pier=None, results=None):
         raise ReactionError("支点の反力のピックアップ 7（fy）がありません")
 
     with pytest.raises(GenerationError, match="frame_反力.csv でEの基礎の照査ができません: 支点の反力のピックアップ 7"):
@@ -118,7 +118,7 @@ def test_the_registry_checks_the_shared_analysis_and_the_finishing_step():
     other = (("pik", "other.pik"), ("displacement", "other_変位量.csv"), ("reaction", "other_反力.csv"))
     with pytest.raises(ValueError, match="FはBの骨組解析を共有するので、同じ出力が必要です"):
         Registry((*base, _stage("D"), replace(_stage("F"), frame_analysis=FrameAnalysis("B", "frameweb", other))))
-    with pytest.raises(ValueError, match="Fの結果を骨組解析の出力で仕上げるには、骨組解析と計算書が必要です"):
+    with pytest.raises(ValueError, match="Fの結果を仕上げるには、骨組解析か、耐震性能照査または仕上げる結果を持つ依存段階が必要です"):
         Registry((*base, replace(_stage("F"), frame_analysis=None, opt_in="", complete=_complete)))
-    with pytest.raises(ValueError, match="Fの結果を骨組解析の出力で仕上げるには、骨組解析と計算書が必要です"):
+    with pytest.raises(ValueError, match="Fの結果を仕上げるには計算書が必要です"):
         Registry((*base, replace(_stage("F"), render=None, complete=_complete)))

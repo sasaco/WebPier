@@ -96,7 +96,7 @@ def test_the_hoop_group(editor):
     assert len(editor.document.data["鉄筋"]["柱"]["column_hoops"]["direction_rows"]) == 3
 
 
-@pytest.mark.parametrize("member,groups", [("梁", ("main", "bands", "placement")), ("フーチング", ("main", "bands"))])
+@pytest.mark.parametrize("member,groups", [("梁", ("main", "bands", "placement", "check")), ("フーチング", ("main", "bands"))])
 def test_beam_and_footing_show_their_tables_and_outline(editor, member, groups):
     assert page(editor).select_member(member)
     assert tuple(page(editor).group_buttons) == groups
@@ -280,9 +280,12 @@ def test_the_column_concrete_has_its_aggregate_size(editor):
     assert size.get() == "20.0" and editor.document.data["鉄筋"]["柱"]["aggregate_max_mm"] == 20.0
 
 
-def test_only_the_column_has_an_aggregate_size(editor):
+def test_the_beam_and_the_footing_have_their_own_aggregate_sizes(editor):
+    """Decisions 59, 60: the cantilever beam's Dmax is the beam concrete's and the footing's the footing concrete's."""
     page(editor).select_member("梁")
-    assert ("鉄筋", "梁", "aggregate_max_mm") not in editor.bindings.items
+    assert ("鉄筋", "梁", "aggregate_max_mm") in editor.bindings.items
+    page(editor).select_member("フーチング")
+    assert ("鉄筋", "フーチング", "aggregate_max_mm") in editor.bindings.items
 
 
 def test_the_column_check_conditions_group(editor):

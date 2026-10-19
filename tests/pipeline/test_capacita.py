@@ -18,13 +18,19 @@ import pymupdf
 import pytest
 
 from webpier.pipeline import capacita
-from webpier.pipeline.capacita import RUNNER_KEY, check_column, runner_path
+from webpier.pipeline.capacita import RUNNER_KEY, check_column, check_section, runner_path
 from webpier.pipeline.fempython import RunnerError
 
 SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
             "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
 WDJ = json.dumps({"crack": [{"vis_u": True}], "points": []}).encode("utf-8")
 PIK = b"PickUpNo\n    1    M    1\n"
+FOOTING_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
+                    "bending_restorability_eq", "shear_restorability_eq")
+# The force table asks for the footing's sections (the stand-in derives them from the rows, as the real runner does).
+FOOTING_WDJ = json.dumps({"pickup_filename": "", "crack": [{"vis_u": False}],
+                          "force": [{"index": 1, "Md0_Md": -100.0, "Md5_Md": 799.16, "Vd5_Vd": 500.0},
+                                    {"index": 2, "Md7_Md": -900.0, "Vd7_Vd": 600.0}]}).encode("utf-8")
 
 
 def completed(document: bytes, pik_name: str, pik: bytes) -> bytes:
@@ -109,8 +115,12 @@ def test_the_report_takes_the_pages_of_each_returned_section_by_its_id(fake_capa
 def test_the_codes_of_the_skipped_checks_are_capacitas():
     """RcDan ErrorMessage_1000_1999 (ZeroForce_RailH16_*): the H16 messages of every body."""
     assert capacita.SKIPPED == {"bending_serviceability": "WD-1901", "bending_safety_destruction": "WD-1902",
-                                "bending_restorability": "WD-1904", "shear_durability": "WD-1906",
-                                "shear_safety_destruction": "WD-1907", "shear_restorability": "WD-1908"}
+                                "bending_safety_fatigue": "WD-1903", "bending_restorability": "WD-1904",
+                                "bending_restorability_eq": "WD-1905", "shear_durability": "WD-1906",
+                                "shear_safety_destruction": "WD-1907", "shear_restorability": "WD-1908",
+                                "shear_restorability_eq": "WD-1909", "torsion_durability": "WD-1910",
+                                "torsion_safety_destruction": "WD-1911", "torsion_restorability": "WD-1912",
+                                "torsion_restorability_eq": "WD-1913"}
 
 
 def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
@@ -155,6 +165,107 @@ def test_a_runner_that_does_not_finish_is_an_error(fake_capacita_runner: Path, m
 
 def _timeout(*args, **kwargs):
     raise capacita.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
+
+
+def test_the_stand_in_checks_a_footing_wdj_without_a_pickup(fake_capacita_runner: Path):
+    """Decision 60: run-rc without --pickup (the WDJ holds the forces); result.json and report.pdf come back, with the
+    five sections of the footing check in order (the real runner's page counts: 1, 2, 2, 1, 2)."""
+    checked = check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS)
+    assert checked.engine_version == "fake-1"
+    assert [section.id for section in checked.sections] == list(FOOTING_SECTIONS)
+    assert [(section.first, section.last) for section in checked.sections] == [(1, 1), (2, 3), (4, 5), (6, 6), (7, 8)]
+    assert checked.skipped == ()
+    pages = texts(checked.pdf)
+    digest = hashlib.sha256(FOOTING_WDJ).hexdigest()[:16]
+    assert pages[0] == f"FAKE CAPACITA bending_safety_destruction 1/1 {digest}"
+    assert pages[7] == f"FAKE CAPACITA shear_restorability_eq 2/2 {digest}"
+    assert checked.section("shear_restorability_eq") == (7, 8)
+    assert {section: len(texts(content)) for section, content in checked.pages.items()} == {
+        "bending_safety_destruction": 1, "shear_safety_destruction": 2, "bending_durability": 2,
+        "bending_restorability_eq": 1, "shear_restorability_eq": 2}
+    with pytest.raises(RunnerError, match="計算書の節が違います"):
+        check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS[:4])
+
+
+@pytest.mark.parametrize("mode,message", [
+    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"),
+    ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
+    ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
+    ("artifacts", "成果物が計算結果・計算書の2つではありません"),
+    ("extra", "出力先のファイルが成果物の一覧と一致しません"),
+    ("sections", "計算書の節（reportSections）がありません"), ("order", "計算書の節が違います"),
+    ("gap", "計算書の節のページが PDF の"), ("hole", "計算書の節のページが PDF の"), ("broken", "計算書の PDF を読めません"),
+])
+def test_a_runner_that_does_not_check_the_footing_is_an_error(fake_capacita_runner: Path,
+                                                              monkeypatch: pytest.MonkeyPatch, mode, message):
+    monkeypatch.setenv("FAKE_CAPACITA", mode)
+    with pytest.raises(RunnerError, match=f"線路方向フーチング.wdj で断面照査ができません: .*{message}"):
+        check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS)
+
+
+def _footing_wdj() -> bytes:
+    """The 線路方向 footing WDJ of current.json made sandy with the sample's bars, the sample's reactions and the
+    stand-in's step table (as tests/calc/footing_support.py builds it)."""
+    from copy import deepcopy
+
+    from webpier.calc import foundation_check as fc
+    from webpier.calc import footing
+    from webpier.calc.footing_check import calculate_footing_check
+    from webpier.calc.foundation import calculate_foundation
+    from webpier.calc.longitudinal import calculate_longitudinal
+    from webpier.calc.reaction import calculate_reaction
+    from webpier.export.capacita.footing_wdj import build_footing_wdj, write_footing_wdj
+    from webpier.inputs import parse_input
+
+    root = Path(__file__).parents[2]
+    data = json.loads((root / "tests" / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
+    data["地盤データ"]["層"][1]["土質区分"] = "砂質土"
+    data["地盤データ"]["層"][0]["単位体積重量"]["水中"] = 9.0
+
+    def row(direction, face, diameter=None, pitch=None, cover_mode="自動", center=None, stack_order=1):
+        return {"diameter_mm": diameter, "material": None, "cover_mode": cover_mode, "center_mm": center,
+                "clear_gap_mm": None, "direction": direction, "face": face, "pitch_mm": pitch, "layers": 1,
+                "stack_order": stack_order}
+
+    def stirrup(direction):
+        return {"type": "内側", "direction": direction, "diameter_mm": 16, "material": None, "sets": None,
+                "pitch_mm": 250, "start_mm": None, "end_mm": None, "legs_mode": "指定", "effective_legs": None,
+                "distribution_mode": "密度", "width_pitch_mm": None, "density_per_m": 2}
+
+    data["鉄筋"]["フーチング"] = {
+        "materials": {"main": "SD390", "transverse": "SD390"}, "concrete_strength_mpa": 27, "aggregate_max_mm": 25,
+        "pure_cover_mm": None,
+        "main_rows": [row("線路", "上"), row("線路", "下", 25, 125, "指定", 100, 1), row("直角", "上", stack_order=2),
+                      row("直角", "下", 29, 125, "指定", 127, 2)],
+        "side_rows": [], "band_rows": [stirrup("線路"), stirrup("直角")], "manual_positions": [],
+        "position_mode": "基本"}
+    pier = parse_input(deepcopy(data))
+    foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
+    basis = footing.prepare(pier, foundation, calculate_longitudinal(pier, foundation, reaction), footing.LONGITUDINAL)
+    actions = {"safety_moment": (21870.77, 495.01, 5460.42), "safety_shear": (22585.12, 473.43, 4767.98),
+               "short_term": (19505.93, 300.0, 3327.13), "long_term": (18049.95, 240.0, 3056.25)}
+    reactions = {}
+    for number, (key, spec) in enumerate(zip(actions, footing.COLUMNS), 11):
+        vd, hd, md = actions[key]
+        extreme = fc.SupportReaction(number, hd, -vd, md)
+        reactions[(basis.pickups[key], spec.focus.value)] = (extreme, extreme)
+    steps = tuple(footing.FoundationStep(0, "Case1", 7, number, v, h, m, 3236.74, 3296.9, rvd, 54120.2, 0.081)
+                  for number, v, h, m, rvd in ((1, 16825.97, 0.0, 580.25, 543358.71),
+                                               (2, 16825.97, -5747.86, 52784.78, 22069.94),
+                                               (3, 16825.97, -5901.07, 54168.43, 16655.87),
+                                               (4, 16825.97, -5949.26, 54514.06, 16655.87)))
+    check = calculate_footing_check(pier, footing.complete(basis, reactions, steps))
+    return write_footing_wdj(build_footing_wdj(check))
+
+
+def test_the_real_runner_checks_the_footing_of_the_sample_bars(real_capacita_runner: Path):
+    """The WDJ of calc.footing_check / export.capacita.footing_wdj on the real runner (2026-10-19: five sections)."""
+    wdj = _footing_wdj()
+    checked = check_section(wdj, "線路方向フーチング.wdj", real_capacita_runner, FOOTING_SECTIONS)
+    assert [section.id for section in checked.sections] == list(FOOTING_SECTIONS)
+    assert checked.skipped == ()
+    first = texts(checked.pdf)[0]
+    assert "フーチング" in first and "線路方向" in first and "下側" in first and "D25-8" in first
 
 
 def test_the_real_runner_checks_the_example2_column(real_capacita_runner: Path):

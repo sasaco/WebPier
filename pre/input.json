@@ -188,12 +188,20 @@
     "支承データ": {
       "起点側": {
         "支承名": "可動",
-        "摩擦係数_μ": 0.1
+        "摩擦係数_μ": 0.1,
+        "ゴム支承の箇所数": 4,
+        "ストッパーの箇所数": 3,
+        "片持ち梁上のゴム支承": 1,
+        "片持ち梁上のストッパー": 1
       },
       "終点側": {
         "支承名": "固定",
         "摩擦係数_μ": 0.1,
-        "復旧性制動係数": 1.0
+        "復旧性制動係数": 1.0,
+        "ゴム支承の箇所数": 2,
+        "ストッパーの箇所数": 7,
+        "片持ち梁上のゴム支承": 1,
+        "片持ち梁上のストッパー": 0
       }
     },
     "列車": {
@@ -443,10 +451,11 @@
     },
     "フーチング": {
       "materials": {
-        "main": null,
-        "transverse": null
+        "main": "SD390",
+        "transverse": "SD390"
       },
       "concrete_strength_mpa": 27,
+      "aggregate_max_mm": 25,
       "pure_cover_mm": null,
       "main_rows": [
         {
@@ -462,14 +471,14 @@
           "stack_order": 1
         },
         {
-          "diameter_mm": null,
+          "diameter_mm": 25,
           "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
+          "cover_mode": "指定",
+          "center_mm": 100,
           "clear_gap_mm": null,
           "direction": "線路",
           "face": "下",
-          "pitch_mm": null,
+          "pitch_mm": 125,
           "layers": 1,
           "stack_order": 1
         },
@@ -486,56 +495,125 @@
           "stack_order": 2
         },
         {
-          "diameter_mm": null,
+          "diameter_mm": 29,
           "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
+          "cover_mode": "指定",
+          "center_mm": 127,
           "clear_gap_mm": null,
           "direction": "直角",
           "face": "下",
-          "pitch_mm": null,
+          "pitch_mm": 125,
           "layers": 1,
           "stack_order": 2
         }
       ],
       "side_rows": [],
-      "band_rows": [],
+      "band_rows": [
+        {
+          "type": "内側",
+          "direction": "線路",
+          "diameter_mm": 16,
+          "material": "SD390",
+          "sets": null,
+          "pitch_mm": 250,
+          "start_mm": null,
+          "end_mm": null,
+          "legs_mode": "指定",
+          "effective_legs": null,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        },
+        {
+          "type": "内側",
+          "direction": "直角",
+          "diameter_mm": 16,
+          "material": "SD390",
+          "sets": null,
+          "pitch_mm": 250,
+          "start_mm": null,
+          "end_mm": null,
+          "legs_mode": "指定",
+          "effective_legs": null,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        }
+      ],
       "manual_positions": [],
       "position_mode": "基本"
     },
     "梁": {
       "materials": {
-        "main": null,
-        "transverse": null
+        "main": "SD390",
+        "transverse": "SD390"
       },
       "concrete_strength_mpa": 27,
+      "aggregate_max_mm": 25,
       "pure_cover_mm": null,
       "main_rows": [
         {
-          "diameter_mm": null,
+          "diameter_mm": 32,
           "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
+          "cover_mode": "指定",
+          "center_mm": 108,
           "clear_gap_mm": null,
           "face": "上",
           "bar_type": "直筋",
           "layer": 1,
-          "count": null
+          "count": 17
         },
         {
-          "diameter_mm": null,
+          "diameter_mm": 32,
           "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
+          "cover_mode": "指定",
+          "center_mm": 172,
+          "clear_gap_mm": null,
+          "face": "上",
+          "bar_type": "直筋",
+          "layer": 2,
+          "count": 8
+        },
+        {
+          "diameter_mm": 19,
+          "material": null,
+          "cover_mode": "指定",
+          "center_mm": 121,
           "clear_gap_mm": null,
           "face": "下",
           "bar_type": "直筋",
           "layer": 1,
-          "count": null
+          "count": 18
         }
       ],
-      "side_rows": [],
-      "band_rows": [],
+      "side_rows": [
+        {
+          "diameter_mm": 22,
+          "material": null,
+          "per_face_count": 17,
+          "columns": 1,
+          "column_pitch_mm": null,
+          "start_mm": 350,
+          "pitch_mm": 125,
+          "stirrup_position": "内側",
+          "cover_mode": "指定",
+          "center_mm": 184
+        }
+      ],
+      "band_rows": [
+        {
+          "type": "外巻き",
+          "direction": "線路",
+          "diameter_mm": 22,
+          "material": null,
+          "sets": 1,
+          "pitch_mm": 125,
+          "start_mm": null,
+          "end_mm": null,
+          "legs_mode": "指定",
+          "effective_legs": 4
+        }
+      ],
       "manual_positions": [],
       "position_mode": "基本"
     }
@@ -551,6 +629,29 @@
     "適用基準の機関": "運輸機構",
     "JR-001": "適用する",
     "JR-004": "適用しない"
+  },
+  "片持ち梁の照査": {
+    "鋼材の腐食に対する環境条件": {
+      "上面": "腐食性環境",
+      "下面": "一般の環境",
+      "側面": "腐食性環境"
+    },
+    "外観の照査": "行わない",
+    "疲労": {
+      "旅客列車本数": 60,
+      "貨物列車本数": 0,
+      "設計耐用年数": 100,
+      "等価繰返し回数": {
+        "A列車": {
+          "k=0.06": 10.39,
+          "k=0.12": 10.39
+        },
+        "B列車": {
+          "k=0.06": 10.39,
+          "k=0.12": 10.39
+        }
+      }
+    }
   },
   "jrsnap_longitudinal": {
     "shear_factor_vcd": 2.0,

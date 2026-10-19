@@ -5,6 +5,7 @@ description = "WebPier: railway pier design calculations (0500-0720) and calcula
 requires-python = ">=3.12"
 dependencies = [
     "gridlayoutpdf",
+    "openpyxl>=3.1,<4",
     "pymupdf>=1.24,<2",
     "pypdf>=5,<7",
     "reportlab>=5.0.1,<6",

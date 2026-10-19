@@ -52,12 +52,20 @@ def test_the_column_of_the_current_input():
     assert column.manual_positions == () and column.position_mode == "基本" and column.manual_basis is None
 
 
-def test_beam_and_footing_drafts_keep_their_blanks():
+def test_the_beam_bars_of_the_current_input_and_the_footing_draft():
+    """Example2 13_片持ち梁照査/WebDan.wdj: 上側 D32 × 25 in two layers (17 at 108, 8 at 172), 下側 D19 × 18 at 121,
+    side bars D22 × 17 from 350 at 125, stirrups D22 with 4 legs at 125 (decision 59)."""
     rebar = parse_input(data()).rebar
     beam = rebar.beam
-    assert [(row.face, row.bar_type, row.layer, row.count, row.diameter) for row in beam.main_rows] == [
-        ("上", "直筋", 1, None, None), ("下", "直筋", 1, None, None)]
-    assert beam.pure_cover is None and beam.materials.main is None
+    assert [(row.face, row.bar_type, row.layer, row.count, row.diameter, row.center) for row in beam.main_rows] == [
+        ("上", "直筋", 1, 17, mm(32, 0), mm(108)), ("上", "直筋", 2, 8, mm(32, 0), mm(172)),
+        ("下", "直筋", 1, 18, mm(19, 0), mm(121))]
+    assert beam.pure_cover is None and beam.materials.main == "SD390" and beam.aggregate_max == mm(25)
+    (side,) = beam.side_rows
+    assert (side.diameter, side.per_face_count, side.start, side.pitch, side.center) == (mm(22, 0), 17, mm(350),
+                                                                                           mm(125), mm(184))
+    (band,) = beam.band_rows
+    assert (band.diameter, band.effective_legs, band.pitch, band.legs_mode) == (mm(22, 0), 4, mm(125), "指定")
     footing = rebar.footing
     assert [(row.direction, row.face, row.layers, row.stack_order) for row in footing.main_rows] == [
         ("線路", "上", 1, 1), ("線路", "下", 1, 1), ("直角", "上", 1, 2), ("直角", "下", 1, 2)]

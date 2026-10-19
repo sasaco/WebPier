@@ -35,6 +35,7 @@ STRENGTH = Precision(1, "N/mm2")
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
 SHRINKAGE = Precision(0, "×10⁻⁶")  # ε'csd of the flexural crack width (decision 48; Example2 300)
+REPETITIONS = Precision(2, "")  # 1編成当りの等価繰返し回数 of the fatigue check (decision 59; Example2 13-46 10.39)
 # 鉄筋 (lengths in mm)
 LENGTH_MM = Precision(1, "mm")  # covers, centres, gaps, pitches, positions
 DIAMETER = Precision(0, "mm")  # nominal bar size (D32 → 32), as Example2 10-6 / 11-6 print it
@@ -46,6 +47,10 @@ AGGREGATE_RANGE = (0.1, 999_999)
 MAX_STEPS = 100_000
 MAX_COUNT = 10_000
 MAX_LAYER = 100
+MAX_TRAINS = 10_000  # 列車本数, per track per day
+MAX_YEARS = 1_000  # 設計耐用年数
+BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own corrosion environment (decision 59)
+REPETITION_SLOPES = ("k=0.06", "k=0.12")  # the S-N slopes an equivalent repetition count is given for
 BASIS_VERSION = 1  # generator of 鉄筋.柱.manual_basis
 
 Kind = Literal["number", "integer", "choice", "text", "blank"]
@@ -158,7 +163,11 @@ def _superstructure() -> dict[str, Field]:
         }
         support = f"上部構造.支承データ.{side}"
         table |= {f"{support}.支承名": choice(choices.BEARING_TYPES), f"{support}.摩擦係数_μ": number(FRICTION),
-                  f"{support}.復旧性制動係数": number(RATIO, nullable=True)}
+                  f"{support}.復旧性制動係数": number(RATIO, nullable=True),
+                  # decision 59: the rubber bearings and the stoppers of the girder, and those on the cantilever beam;
+                  # needed only by 0900
+                  **{f"{support}.{key}": integer(0, MAX_COUNT, nullable=True)
+                     for key in ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")}}
     train = "上部構造.列車"
     table |= {
         f"{train}.車両名": choice(choices.VEHICLES), f"{train}.1両の長さ": number(LENGTH, "positive"),
@@ -229,6 +238,22 @@ def _column_check() -> dict[str, Field]:
             f"{section}.適用基準の機関": choice(choices.STANDARD_BODIES, nullable=True),
             f"{section}.JR-001": choice(choices.ADOPTIONS, nullable=True),
             f"{section}.JR-004": choice(choices.ADOPTIONS, nullable=True)}
+
+
+def _cantilever_check() -> dict[str, Field]:
+    # 片持ち梁の照査: the conditions of the cantilever beam check; needed only by 0900 and 0910 (decision 59).
+    section = "片持ち梁の照査"
+    fatigue = f"{section}.疲労"
+    table = {f"{section}.鋼材の腐食に対する環境条件.{face}": choice(choices.CORROSION_ENVIRONMENTS, nullable=True)
+             for face in BEAM_SURFACES}
+    table |= {f"{section}.外観の照査": choice(choices.APPEARANCE_CHECKS, nullable=True),
+              f"{fatigue}.旅客列車本数": integer(0, MAX_TRAINS, nullable=True),
+              f"{fatigue}.貨物列車本数": integer(0, MAX_TRAINS, nullable=True),
+              f"{fatigue}.設計耐用年数": integer(1, MAX_YEARS, nullable=True)}
+    for train in ("A列車", "B列車"):
+        for slope in REPETITION_SLOPES:
+            table[f"{fatigue}.等価繰返し回数.{train}.{slope}"] = number(REPETITIONS, nullable=True)
+    return table
 
 
 def _jrsnap() -> dict[str, Field]:
@@ -319,6 +344,9 @@ def _rebar() -> dict[str, Field]:
                 f"{basis}.geometry.width_mm": number(LENGTH_MM, "positive"),
                 f"{basis}.geometry.height_mm": number(LENGTH_MM, "positive")}
             continue
+        # Dmax: a property of the beam concrete, read by 0900 and 0910 (decision 59), and of the footing concrete, read
+        # by 0810 and 0820 (decision 60)
+        table[f"{base}.aggregate_max_mm"] = number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))
         table |= {f"{base}.materials.main": _STEEL, f"{base}.materials.transverse": _STEEL,
                   f"{base}.pure_cover_mm": _LENGTH_MM, **_prefixed(f"{base}.main_rows[*]", _main_row(member)),
                   **_prefixed(f"{base}.side_rows[*]", SIDE_ROW),
@@ -327,7 +355,7 @@ def _rebar() -> dict[str, Field]:
 
 
 FIELDS: dict[str, Field] = {**_reactions(), **_superstructure(), **_substructure(), **_soil(), **_rebar(),
-                            **_seismic_design(), **_column_check(), **_jrsnap()}
+                            **_seismic_design(), **_column_check(), **_cantilever_check(), **_jrsnap()}
 _INDEX = re.compile(r"\[\d+\]")
 
 

@@ -2,8 +2,8 @@
 
 The runner is found from STRUCTURAL_MCP_AGGRESE_RUNNER (environment, then .env; the name structural-mcp uses) and
 called as ``run`` with the project XML where it is staged and the DB1 of each Case mapped as the XML names them. Its
-envelope, its four files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report
-and the files published under post/ are returned as they are (decisions 56〜58). Every case uses the stand-in of
+envelope, its five files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report
+and the files published under post/ are returned as they are (decisions 56〜58, 60). Every case uses the stand-in of
 tests/fixtures/aggrese/fake_runner.py (tests/conftest.py); the real runner is accepted by
 scripts/accept_aggrese_report.py.
 """
@@ -16,10 +16,13 @@ from pathlib import Path
 import zipfile
 
 import pymupdf
+from openpyxl import load_workbook
 import pytest
 
 from webpier.pipeline import aggrese
-from webpier.pipeline.aggrese import RUNNER_KEY, check_seismic, runner_path, snap_map
+from webpier.calc.footing import FoundationStep, StepsError
+from webpier.pipeline.aggrese import (FOUNDATION_STEPS_COLUMNS, RUNNER_KEY, check_seismic, foundation_steps,
+                                      runner_path, snap_map)
 from webpier.pipeline.fempython import RunnerError
 from webpier.reporting.stages.seismic_check import SEISMIC_CHECK
 
@@ -104,10 +107,25 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
                      f"FAKE AGGRESE SUMMARY {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}"]
     assert checked.pages == {SEISMIC_CHECK: checked.pdf}
     digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
-    assert sorted(checked.files) == ["pik", "xlsx"]
+    assert sorted(checked.files) == ["pik", "steps", "xlsx"]
     assert checked.files["pik"] == f"Batch ver1.0.0\r\nFAKE PIK {digest}\r\n".encode("cp932")
-    with zipfile.ZipFile(io.BytesIO(checked.files["xlsx"])) as workbook:
-        assert workbook.read("fake.txt") == f"FAKE XLSX {digest}".encode()
+    # Decision 59: a real workbook whose 応答値一覧表 holds the 最大応答震度 of each Case (0.385/0.386, then +0.01 a Case).
+    workbook = load_workbook(io.BytesIO(checked.files["xlsx"]), read_only=True)
+    assert workbook.sheetnames == ["応答値一覧表", "設計総括表", "安全率一覧表", "直接基礎"]
+    sheet = workbook["応答値一覧表"]
+    assert (sheet["B15"].value, sheet["D15"].value, sheet["E15"].value) == ("最大応答震度", "0.385", "0.395")
+    assert (sheet["A17"].value, sheet["D19"].value, sheet["E19"].value) == ("安全性", "0.386", "0.396")
+    assert workbook["設計総括表"]["A1"].value == f"FAKE XLSX {digest}"
+    workbook.close()
+    # Decision 60: the direct-foundation step table, UTF-8 and CRLF, one row per Case, node and output step.
+    steps = checked.files["steps"].decode("utf-8")
+    assert "\n" not in steps.replace("\r\n", "") and steps.endswith("\r\n")
+    lines = steps.split("\r\n")[:-1]
+    assert lines[0] == ",".join(FOUNDATION_STEPS_COLUMNS) == (
+        "case_index,case_name,node,step,V,H,M,qvd,qd,Rvd,Mmd,plasticity")
+    assert len(lines) == 1 + 4 * len(NAMES)
+    assert lines[1] == "0,線路方向(Case1_ρm10_αf1_正向),7,1,16825.97,0,580.25,8650.41,8710.57,543358.71,57085.22,0"
+    assert lines[7] == "1,線路方向(Case2_ρm10_αf1_正向),7,3,16825.97,-5901.07,54268.43,3236.74,3296.9,16655.87,54120.2,0.081"
     assert sorted(path.name for path in (tmp_path / FOLDER).iterdir()) == sorted(NAMES)
 
 
@@ -115,10 +133,12 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
     ("fail", "CALCULATION_FAILED: 集計できませんでした。"),
     ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
     ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
-    ("artifacts", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
-    ("nopik", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
-    ("noxlsx", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
+    ("artifacts", "成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"),
+    ("nopik", "成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"),
+    ("noxlsx", "成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"),
     ("notzip", r"総括表が xlsx（zip）ではありません"),
+    ("nocsv", "成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"),
+    ("badcsv", "直接基礎のステップ表の列が違います"), ("notutf8csv", "直接基礎のステップ表を UTF-8 で読めません"),
     ("missing", "成果物 report.pdf がありません"), ("extra", "出力先のファイルが成果物の一覧と一致しません"),
     ("sha", r"report\.pdf が runner の応答の SHA256・バイト数と一致しません"),
     ("cases", r"解析ケース（summary\.cases）がありません"), ("unaggregated", "全 2 ケースが集計されていません"),
@@ -157,3 +177,41 @@ def test_a_runner_that_does_not_finish_is_an_error(tmp_path: Path, fake_aggrese_
 
 def _timeout(*args, **kwargs):
     raise aggrese.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
+
+
+HEADER = "case_index,case_name,node,step,V,H,M,qvd,qd,Rvd,Mmd,plasticity"
+ROW = "0,線路方向(Case1_ρm10_αf1_正向),7,32,16825.970703125,-5901.0673828125,54168.42578125,3236.7393900986663," \
+      "3296.8993900986661,16655.873658566576,54120.199464658981,0.081009116849374715"
+
+
+def test_the_step_table_is_read_into_rows(tmp_path: Path, fake_aggrese_runner: Path):
+    """Decision 60: the step table of the direct foundation, as the runner writes it (UTF-8, CRLF), row by row."""
+    rows = foundation_steps(f"{HEADER}\r\n{ROW}\r\n1,Case2,8,1,1.5,-2,3,4,5,6,7,0\r\n".encode("utf-8"))
+    assert rows == (
+        FoundationStep(0, "線路方向(Case1_ρm10_αf1_正向)", 7, 32, 16825.970703125, -5901.0673828125, 54168.42578125,
+                       3236.7393900986663, 3296.8993900986661, 16655.873658566576, 54120.199464658981,
+                       0.081009116849374715),
+        FoundationStep(1, "Case2", 8, 1, 1.5, -2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 0.0))
+    checked = check_seismic(project(tmp_path), fake_aggrese_runner)
+    stand_in = foundation_steps(checked.files["steps"])
+    assert [(row.case_index, row.node, row.step) for row in stand_in] == [(index, 7, step) for index in (0, 1)
+                                                                          for step in (1, 2, 3, 4)]
+    assert stand_in[2].v >= stand_in[2].rvd > stand_in[1].rvd - stand_in[1].v  # step 3 reaches Rvd
+
+
+def test_a_bom_and_lf_endings_are_tolerated():
+    (row,) = foundation_steps(("﻿" + HEADER + "\n" + ROW + "\n").encode("utf-8"))
+    assert (row.case_index, row.step, row.v) == (0, 32, 16825.970703125)
+
+
+@pytest.mark.parametrize("content,message", [
+    (b"case,step\r\n0,1\r\n", "直接基礎のステップ表の列が違います"),
+    (f"{HEADER}\r\n".encode(), "直接基礎のステップ表に行がありません"),
+    (f"{HEADER}\r\n0,Case1,7,x,1,2,3,4,5,6,7,0\r\n".encode(), "直接基礎のステップ表を読めません"),
+    (f"{HEADER}\r\n0,Case1,7,1,1,2,3,4,5,6,7\r\n".encode(), "直接基礎のステップ表を読めません"),
+    (f"{HEADER}\r\n0,Case1,7,1,nan,2,3,4,5,6,7,0\r\n".encode(), "有限でない値"),
+    ("直接基礎\r\n".encode("cp932"), "直接基礎のステップ表を読めません"),
+])
+def test_an_unreadable_step_table_is_an_error(content, message):
+    with pytest.raises(StepsError, match=message):
+        foundation_steps(content)

@@ -74,6 +74,8 @@ def same_as_b7(form: Form) -> bool:
     return True
 
 
+# decision 59: the rubber bearings and the stoppers of each girder, used only by 0900
+BEARING_DEVICES = ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")
 SPAN_COLUMNS = ((("桁長", "L1"), "桁端 L1"), (("桁長", "スパン長"), "スパン長"), (("桁長", "L2"), "桁端 L2"),
                 (("衝撃係数_単線終局",), "衝撃係数\n単線終局"), (("曲線半径",), "曲線半径"), (("列車速度",), "列車速度"),
                 (("遠心作用方向",), "遠心作用方向\n（予約）"), *((("高さ", f"h{i}"), f"高さ h{i}") for i in range(1, 5)),
@@ -93,11 +95,13 @@ def superstructure(form: Form) -> None:
                [80, 85, 80, 90, 85, 85, 100, 75, 75, 75, 75, 85, 85], row_labels=list(SIDES), index_width=80)
     form.figure(body, "superstructure", "桁長・高さ・支承位置 / 原図・記号確認用")
 
-    body = form.section("02  支承データ", note="復旧性制動係数：空欄のときは安全性（破壊）の荷重修正係数から求めます。")
+    body = form.section("02  支承データ", note="復旧性制動係数：空欄のときは安全性（破壊）の荷重修正係数から求めます。"
+                        "ゴム支承・ストッパーの箇所数と片持ち梁上の個数は片持ち梁の照査（0900、決定59）だけが使い、ほかは空欄のままで構いません。")
     support = (*SUPER, "支承データ")
-    form.table(body, ["支承名", "摩擦係数 μ", "復旧性制動係数"],
-               [[(*support, side, key) for key in ("支承名", "摩擦係数_μ", "復旧性制動係数")] for side in SIDES],
-               [140, 120, 150], row_labels=list(SIDES), index_width=80)
+    form.table(body, ["支承名", "摩擦係数 μ", "復旧性制動係数", *BEARING_DEVICES],
+               [[(*support, side, key) for key in ("支承名", "摩擦係数_μ", "復旧性制動係数", *BEARING_DEVICES)]
+                for side in SIDES],
+               [120, 100, 120, 110, 120, 130, 130], row_labels=list(SIDES), index_width=80)
 
     body = form.section("03  列車", note="車両名は一覧から選びます（EA-17：EA-17の規定式、P-16：軸重式）。")
     table = ttk.Frame(body)

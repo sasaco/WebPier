@@ -93,8 +93,9 @@ def test_frame_analysis_with_one_stage_is_exit_code_2(tmp_path, registry, capsys
 def test_the_analysis_options_name_their_opt_in_stages(capsys):
     with pytest.raises(SystemExit):
         cli.parser(STAGES).parse_args(["--help"])
-    help_text = capsys.readouterr().out
-    assert "0611・0612・0621・0622" in help_text and "（0711・0721）" in help_text
+    help_text = "".join(capsys.readouterr().out.split())  # argparse wraps the lists over lines
+    assert "（0611・0612・0621・0622・0800・0810・0820）" in help_text
+    assert "（0711・0721・0800・0810・0820・0900・0910）" in help_text
     arguments = cli.parser(STAGES).parse_args([])
     assert (arguments.frame_analysis, arguments.nonlinear_analysis) == (False, False)
 

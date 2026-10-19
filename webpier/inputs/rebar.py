@@ -159,6 +159,7 @@ class BeamBars:
     band_rows: tuple[BandRow, ...]
     manual_positions: tuple[ManualBar, ...]
     position_mode: str
+    aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax of the beam concrete, mm (decision 59)
 
 
 @dataclass(frozen=True)
@@ -184,6 +185,7 @@ class FootingBars:
     band_rows: tuple[BandRow, ...]
     manual_positions: tuple[ManualBar, ...]
     position_mode: str  # always 基本
+    aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax of the footing concrete, mm (decision 60)
 
 
 @dataclass(frozen=True)
@@ -329,7 +331,7 @@ SHARED_KEYS = ("materials", "concrete_strength_mpa", "pure_cover_mm", "main_rows
 
 
 def _beam(node: Reader) -> BeamBars:
-    node.only(*SHARED_KEYS)
+    node.only(*SHARED_KEYS, "aggregate_max_mm")
     rows = []
     for row in node.at("main_rows").items():
         row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "face", "bar_type", "layer",
@@ -343,11 +345,11 @@ def _beam(node: Reader) -> BeamBars:
         materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
         side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
         band_rows=tuple(_band_row(row, footing=False) for row in node.at("band_rows").items()),
-        manual_positions=_manual(node), position_mode=_mode(node))
+        manual_positions=_manual(node), position_mode=_mode(node), aggregate_max=_value(node, "aggregate_max_mm"))
 
 
 def _footing(node: Reader) -> FootingBars:
-    node.only(*SHARED_KEYS)
+    node.only(*SHARED_KEYS, "aggregate_max_mm")
     rows = []
     for row in node.at("main_rows").items():
         row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "direction", "face",
@@ -365,7 +367,7 @@ def _footing(node: Reader) -> FootingBars:
         materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
         side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
         band_rows=tuple(_band_row(row, footing=True) for row in node.at("band_rows").items()),
-        manual_positions=_manual(node), position_mode=mode)
+        manual_positions=_manual(node), position_mode=mode, aggregate_max=_value(node, "aggregate_max_mm"))
 
 
 def parse_rebar(root: Reader) -> RebarInput:

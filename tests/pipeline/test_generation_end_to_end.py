@@ -162,9 +162,10 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
     """The stand-in writes one case per combination of the NDU: the transverse one has two (decision 47)."""
     source = copy_input(tmp_path / "pre")
     generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", nonlinear_analysis=True))
-    assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
+    assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721", "0900", "0910")
     output = tree(tmp_path / "output")
-    reports = {"0711": "0711_線路方向非線形解析", "0721": "0721_線路直角方向非線形解析"}
+    reports = {"0711": "0711_線路方向非線形解析", "0721": "0721_線路直角方向非線形解析", "0900": "0900_片持ち梁",
+               "0910": "0910_片持ち梁照査"}
     assert {name: content for name, content in output.items()
             if not name.startswith(tuple(reports.values()))} == tree(all_generation[0] / "output")
     post = tree(tmp_path / "post")
@@ -202,8 +203,9 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
                       for case in cases],
             "project": {"file": project, "sha256": sha256(post[project])},
             "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)},
-            "files": {kind: {"file": f"{stem}_Aggre-SE.{kind}", "sha256": sha256(post[f"{stem}_Aggre-SE.{kind}"])}
-                      for kind in ("pik", "xlsx")}}
+            "files": {kind: {"file": name, "sha256": sha256(post[name])}
+                      for kind, name in (("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx"),
+                                         ("steps", f"{stem}_Aggre-SE_直接基礎.csv"))}}
         # Decision 57: Aggre-SE's pickup beside the folder, as the stand-in returned it, with its sidecar.
         assert post[f"{stem}_Aggre-SE.pik"] == f"Batch ver1.0.0\r\nFAKE PIK {sha256(post[project])[:16]}\r\n".encode()
         sidecar = load_json(post[f"{stem}_Aggre-SE.pik.provenance.json"])
@@ -213,6 +215,13 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
         sidecar = load_json(post[f"{stem}_Aggre-SE.xlsx.provenance.json"])
         assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (
             stage, "xlsx", sha256(post[f"{stem}_Aggre-SE.xlsx"]))
+        # Decision 60: the step table of the direct foundation beside them, with its columns in the sidecar.
+        steps = f"{stem}_Aggre-SE_直接基礎.csv"
+        assert post[steps].startswith(b"case_index,case_name,node,step,V,H,M,qvd,qd,Rvd,Mmd,plasticity\r\n")
+        sidecar = load_json(post[f"{steps}.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (stage, "steps", sha256(post[steps]))
+        assert sidecar["seismic_check"]["columns"] == [
+            "case_index", "case_name", "node", "step", "V", "H", "M", "qvd", "qd", "Rvd", "Mmd", "plasticity"]
 
 
 @pytest.mark.parametrize("key", ["地域別", "地盤区分"])

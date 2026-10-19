@@ -3,8 +3,9 @@
 One set of conditions for the column, shared by both directions: the corrosion environment (one for the column, not
 per face), whether the appearance is checked, ε'csd, the body whose standard applies, and whether JR-001 and JR-004
 are adopted. The choices belong to the program (decision 6). Every value may stay blank until 0611 asks for it, but
-the section and its keys are required. Dmax is a property of the column concrete (鉄筋.柱.aggregate_max_mm); the
-JRSNAP conditions no longer hold it (no compatibility reading).
+the section and its keys are required. Dmax is a property of the column concrete (鉄筋.柱.aggregate_max_mm) and, for the
+cantilever beam, of the beam concrete (鉄筋.梁.aggregate_max_mm, decision 59); the JRSNAP conditions no longer hold it
+(no compatibility reading).
 """
 
 import json
@@ -114,8 +115,30 @@ def test_the_aggregate_size_range(value, message):
     fails(document, f"鉄筋.柱.aggregate_max_mm: {message}")
 
 
-@pytest.mark.parametrize("path", [("jrsnap_longitudinal",), ("jrsnap_transverse",), ("鉄筋", "梁"),
-                                  ("鉄筋", "フーチング")])
+def test_the_beam_concrete_has_its_own_aggregate_size():
+    """Decision 59: the cantilever beam's Dmax is the beam concrete's, not the column's."""
+    assert parse_input(data()).rebar.beam.aggregate_max == Printed(25, 1, "mm")
+    document = data()
+    document["鉄筋"]["梁"]["aggregate_max_mm"] = None
+    assert parse_input(document).rebar.beam.aggregate_max is None
+    document = data()
+    del document["鉄筋"]["梁"]["aggregate_max_mm"]
+    fails(document, "入力項目がありません: 鉄筋.梁.aggregate_max_mm")
+
+
+def test_the_footing_concrete_has_its_own_aggregate_size():
+    """Decision 60 (owner 2026-10-19): the footing's Dmax is the footing concrete's, not the column's; the fixture
+    keeps it blank and the footing tests give the sample's 25."""
+    assert parse_input(data()).rebar.footing.aggregate_max is None
+    document = data()
+    document["鉄筋"]["フーチング"]["aggregate_max_mm"] = 25
+    assert parse_input(document).rebar.footing.aggregate_max == Printed(25, 1, "mm")
+    document = data()
+    del document["鉄筋"]["フーチング"]["aggregate_max_mm"]
+    fails(document, "入力項目がありません: 鉄筋.フーチング.aggregate_max_mm")
+
+
+@pytest.mark.parametrize("path", [("jrsnap_longitudinal",), ("jrsnap_transverse",)])
 def test_no_other_place_holds_an_aggregate_size(path):
     document = data()
     node = document

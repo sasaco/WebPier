@@ -56,6 +56,12 @@ class Span:
     bearing: str
     mu: Printed
     recovery_brake_coefficient: Printed | None
+    # decision 59 (0900): the rubber bearings and the stoppers of the girder on this pier, and those on the cantilever
+    # beam; None is blank
+    rubber_count: int | None = None  # ゴム支承の箇所数
+    stopper_count: int | None = None  # ストッパーの箇所数
+    rubber_on_cantilever: int | None = None  # 片持ち梁上のゴム支承
+    stopper_on_cantilever: int | None = None  # 片持ち梁上のストッパー
 
 
 @dataclass(frozen=True)
@@ -220,6 +226,27 @@ class ColumnCheck:
 
 
 @dataclass(frozen=True)
+class FatigueTrains:
+    """片持ち梁の照査.疲労 (decision 59): the trains of the fatigue check; None is blank."""
+
+    passenger_trains: int | None  # 旅客列車本数 (A列車), per track per day
+    freight_trains: int | None  # 貨物列車本数 (B列車)
+    service_life: int | None  # 設計耐用年数, years
+    # 1編成当りの等価繰返し回数 by (train, S-N slope): ("A列車", "k=0.06") …, as fields.REPETITION_SLOPES name them
+    repetitions: dict[tuple[str, str], Printed | None]
+
+
+@dataclass(frozen=True)
+class CantileverCheck:
+    """片持ち梁の照査 (CONTEXT.md, decision 59): the conditions of the cantilever beam check, shared by both
+    overhangs; None is blank."""
+
+    environments: dict[str, str | None]  # 鋼材の腐食に対する環境条件 by face (fields.BEAM_SURFACES: 上面, 下面, 側面)
+    appearance: str | None  # 外観の照査, one of choices.APPEARANCE_CHECKS
+    fatigue: FatigueTrains
+
+
+@dataclass(frozen=True)
 class PierInput:
     substructure: Substructure
     spans: Spans
@@ -231,4 +258,5 @@ class PierInput:
     rebar: RebarInput
     seismic_design: SeismicDesign
     column_check: ColumnCheck  # 柱の断面照査 (decision 48)
+    cantilever_check: CantileverCheck  # 片持ち梁の照査 (decision 59)
     jrsnap: Jrsnap

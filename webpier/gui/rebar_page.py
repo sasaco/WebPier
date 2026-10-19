@@ -1,5 +1,5 @@
-"""The 鉄筋 page: the basic reinforcement of each member, and for the column its layout, detail positions, Dmax and the
-柱の断面照査 conditions (decision 48).
+"""The 鉄筋 page: the basic reinforcement of each member, for the column its layout, detail positions, Dmax and the
+柱の断面照査 conditions (decision 48), and for the beam its Dmax and the 片持ち梁の照査 conditions (decision 59).
 
 Cells are bound through the field table like every input page. The column drawing, the 方向別の鉄筋配置表 and
 every layout error come from calc.column_rebar via rebar_edit; nothing here checks the reinforcement itself.
@@ -34,16 +34,31 @@ LABELS = {
     "width_pitch_mm": "幅方向の\n間隔 mm", "density_per_m": "幅方向の\n密度 本/m", "x_mm": "X mm", "y_mm": "Y mm",
 }
 GROUPS = {"柱": (("main", "基本配筋"), ("hoops", "帯鉄筋"), ("placement", "詳細修正"), ("check", "断面照査の条件")),
-          "梁": (("main", "基本配筋"), ("bands", "横補強筋"), ("placement", "指定位置")),
+          "梁": (("main", "基本配筋"), ("bands", "横補強筋"), ("placement", "指定位置"), ("check", "断面照査の条件")),
           "フーチング": (("main", "基本配筋"), ("bands", "横補強筋"))}
 COMMON = ((("materials", "main"), "主鉄筋の材質"), (("materials", "transverse"), "横補強筋の材質"),
           (("concrete_strength_mpa",), "コンクリート強度"), (("pure_cover_mm",), "純かぶり"))
-COLUMN_CONCRETE = ((("aggregate_max_mm",), "粗骨材の最大寸法 Dmax"),)  # the column concrete's (decision 48)
+COLUMN_CONCRETE = ((("aggregate_max_mm",), "粗骨材の最大寸法 Dmax"),)  # the column's (decision 48), the beam's (59), the footing's (60)
 CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
 CHECK_LABELS = (("鋼材の腐食に対する環境条件", "鋼材の腐食に対する環境条件"), ("外観の照査", "外観の照査"),
                 ("ε'csd", "ε'csd（収縮・クリープによるひび割れ幅の増加）"), ("適用基準の機関", "適用基準の機関"),
                 ("JR-001", "JR-001 ひび割れ幅制限値に用いるかぶりは100mmを上限"),
                 ("JR-004", "JR-004 βn算定時のMudは軸力を考慮しない"))
+CANTILEVER_CHECK = "片持ち梁の照査"  # one set for both overhangs of the beam (decision 59)
+CANTILEVER_LABELS = (
+    (("鋼材の腐食に対する環境条件", "上面"), "鋼材の腐食に対する環境条件：上面"),
+    (("鋼材の腐食に対する環境条件", "下面"), "鋼材の腐食に対する環境条件：下面"),
+    (("鋼材の腐食に対する環境条件", "側面"), "鋼材の腐食に対する環境条件：側面"),
+    (("外観の照査",), "外観の照査"),
+    (("疲労", "旅客列車本数"), "旅客列車本数（本/日）"), (("疲労", "貨物列車本数"), "貨物列車本数（本/日）"),
+    (("疲労", "設計耐用年数"), "設計耐用年数（年）"),
+    (("疲労", "等価繰返し回数", "A列車", "k=0.06"), "等価繰返し回数 A列車 k=0.06"),
+    (("疲労", "等価繰返し回数", "A列車", "k=0.12"), "等価繰返し回数 A列車 k=0.12"),
+    (("疲労", "等価繰返し回数", "B列車", "k=0.06"), "等価繰返し回数 B列車 k=0.06"),
+    (("疲労", "等価繰返し回数", "B列車", "k=0.12"), "等価繰返し回数 B列車 k=0.12"),
+)
+CANTILEVER_NOTE = ("片持ち梁の照査（0900・0910）の条件です。左右の張出しで共通です。"
+                   "等価繰返し回数は外部プログラム（N-EQUIVALENT）の値を入力します。")
 OUTLINE_ONLY = "配筋位置を計算する段階がまだないため、断面の外形だけを表示します。"
 
 
@@ -145,7 +160,7 @@ class RebarPage:
             ttk.Button(line, text="選択行を削除", command=lambda: self.delete_row(family)).pack(side="left", padx=2)
 
     def _build_inputs(self) -> None:
-        common = COMMON + COLUMN_CONCRETE if self.member == "柱" else COMMON
+        common = COMMON + COLUMN_CONCRETE  # every member's concrete has its Dmax (decisions 48, 59, 60)
         self.form.properties(self.inputs, [(self._path(*tail), label) for tail, label in common])
         ttk.Label(self.inputs, text="純かぶり：コンクリート面から外側の帯鉄筋の外面まで。空欄は未入力です。",
                   style="Muted.TLabel").pack(anchor="w", pady=(2, 8))
@@ -161,6 +176,9 @@ class RebarPage:
             self._rows_table("direction_rows", "帯鉄筋の方向別有効本数")
             ttk.Label(self.inputs, text="方向別の合計有効本数を入力します。本数から帯鉄筋の形状は決めません。",
                       style="Muted.TLabel").pack(anchor="w")
+        elif self.group == "check" and self.member == "梁":
+            self.form.properties(self.inputs, [((CANTILEVER_CHECK, *tail), label) for tail, label in CANTILEVER_LABELS])
+            ttk.Label(self.inputs, text=CANTILEVER_NOTE, style="Muted.TLabel", wraplength=520).pack(anchor="w")
         elif self.group == "check":
             self.form.properties(self.inputs, [((CHECK, key), label) for key, label in CHECK_LABELS])
             ttk.Label(self.inputs, text="柱の断面照査（0611・0621）の条件です。線路方向・線路直角方向で共通です。",

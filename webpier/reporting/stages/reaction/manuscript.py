@@ -215,6 +215,7 @@ class TableSpec:
     row_height: float = 14.88
     header_height: float | None = None
     numeric_columns: tuple[int, ...] = ()
+    compact: bool = False  # the narrower cell clearance of the combination tables (0610 p10), not 0600's
 
 
 @dataclass(frozen=True)
@@ -246,10 +247,11 @@ class Unit:
     gap_before: bool = False
     keep: bool = False  # kept on the page of the following unit (an introduction to what follows)
     ruled: bool = False  # bracketed by the rule at RULE_X, with the blank lines around it
+    prefix: str = PREFIX  # of the block ids: the stage (0600/; 0900/ for the cantilever report, decision 59)
 
     @property
     def identifier(self) -> str:
-        return PREFIX + self.key
+        return self.prefix + self.key
 
 
 @dataclass
@@ -258,6 +260,7 @@ class Manuscript:
     _group: str = ""
     _ruled: bool = False
     _keys: set[str] = field(default_factory=set)
+    prefix: str = PREFIX  # the stage whose units these are (0900 shares this manuscript, decision 59)
 
     def start(self, name: str) -> None:
         """Following units, up to the next start, are kept together."""
@@ -275,9 +278,9 @@ class Manuscript:
 
     def _add(self, unit: Unit) -> None:
         if unit.key in self._keys:
-            raise ValueError(f"0600: 重複した帳票キーです: {unit.key}")
+            raise ValueError(f"{self.prefix}: 重複した帳票キーです: {unit.key}")
         self._keys.add(unit.key)
-        self.units.append(replace(unit, ruled=self._ruled))
+        self.units.append(replace(unit, ruled=self._ruled, prefix=self.prefix))
 
     def heading(self, key: str, text: str, left: float) -> None:
         self._add(Unit(key, "heading", text, left))
@@ -308,7 +311,7 @@ class Manuscript:
             raise TypeError("0600: 導出式の左辺は文字列で書きます")
         node = Equation("" if wide else lhs, rhs, label=lhs if wide else "",
                         result=None if result is None else printed(result),
-                        unit=None if result is None else unit_of(result), block_id=PREFIX + key)
+                        unit=None if result is None else unit_of(result), block_id=self.prefix + key)
         first_equal = equal if equal is not None else WIDE_EQUAL if wide else MEDIUM_EQUAL if medium else SHORT_EQUAL
         self._add(Unit(key, "equation", node, left if left is not None else WIDE_LHS if wide else SHORT_LHS,
                        first_equal=first_equal, group=self._group,
@@ -341,6 +344,10 @@ class Manuscript:
 
     def table(self, key: str, spec: TableSpec, left: float) -> None:
         self._add(Unit(key, "table", spec, left, gap_before=True))
+
+    def rotated_table(self, key: str, spec: TableSpec, left: float) -> None:
+        """A table turned 90° counterclockwise on the page (the combination tables of 0900, decision 59)."""
+        self._add(Unit(key, "rotated", spec, left, gap_before=True))
 
     def figure(self, key: str, spec: FigureSpec, left: float = SUBSECTION) -> None:
         self._add(Unit(key, "figure", spec, left, gap_before=True))

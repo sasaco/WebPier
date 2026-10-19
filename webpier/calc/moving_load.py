@@ -8,7 +8,9 @@ The search keeps the source semantics: every axle in turn is aligned with each
 of the seven support/joint points (from the far end backwards); axles off the
 bridge are skipped; an axle exactly at the joint goes to the girder where it
 gives the larger pier reaction (ties to the end girder); the candidate with the
-largest RB + RC is adopted, and an equal total keeps the earlier candidate.
+largest objective (RB + RC for 0600 and 0620; RB alone or RC alone for the
+B支点最大 and C支点最大 loadings of 0900, decision 59) is adopted, and an equal
+value keeps the earlier candidate.
 
 The search is not rounded (ADR-0003: iterations are exempt), but it runs on
 exact decimal positions: every input length is a printed millimetre value, so
@@ -33,6 +35,14 @@ from ._exact import d, put, total
 
 
 AXLES = Precision(0, "")  # a number of axles, printed in RA = P × (axles) − RB
+
+
+class Objective(Enum):
+    """What a loading maximises: the reactions on this pier (Example2 07 7-1, 13-1 c)), or one of them."""
+
+    PIER = "RB+RC"  # both supports on this pier (0600, 0620)
+    ORIGIN = "RB"  # the origin girder's support B (0900 B支点最大)
+    END = "RC"  # the end girder's support C (0900 C支点最大)
 
 
 class Girder(Enum):
@@ -82,7 +92,7 @@ def _axle_offsets(cars: int, car_length: Decimal, a1: Decimal, a2: Decimal) -> l
 
 
 def search_reactions(origin: Span, end: Span, *, axle_load: Printed, cars: int, car_length: Printed,
-                     a1: Printed, a2: Printed) -> MovingLoadResult:
+                     a1: Printed, a2: Printed, objective: Objective = Objective.PIER) -> MovingLoadResult:
     o_far, o_span, o_pier = d(origin.l1), d(origin.span), d(origin.l2)
     e_pier, e_span, e_far = d(end.l1), d(end.span), d(end.l2)
     points = [Decimal(0)]
@@ -117,10 +127,11 @@ def search_reactions(origin: Span, end: Span, *, axle_load: Printed, cars: int, 
                     candidate.append(x)
             rb = sum((load * origin_lever(x) / o_span for x in candidate if on_origin(x)), Decimal(0))
             rc = sum((load * end_lever(x) / e_span for x in candidate if not on_origin(x)), Decimal(0))
-            if rb + rc > best_score:
-                best, best_score = candidate, rb + rc
+            score = {Objective.PIER: rb + rc, Objective.ORIGIN: rb, Objective.END: rc}[objective]
+            if score > best_score:
+                best, best_score = candidate, score
     if best is None:
-        raise InputError("移動荷重: 正の反力となる載荷位置がなく、RB+RCの最大を求められません（軸重・寸法を確認）")
+        raise InputError(f"移動荷重: 正の反力となる載荷位置がなく、{objective.value}の最大を求められません（軸重・寸法を確認）")
 
     axles = tuple(
         LoadedAxle(Girder.ORIGIN, put(LENGTH, origin_lever(x))) if on_origin(x)

@@ -19,6 +19,10 @@ them (ADR-0001, ADR-0003): ex is used as printed everywhere (8-30 and 8-32 diffe
 smaller of B′ and L (9-27 takes B′ even when it is larger), the long term qd uses the printed γe2, the bearing check
 uses the largest pd1 and says so, and Rhb is rounded once. Df is the 0500 表層厚 and γe2 that of the water level of the
 column (CONTEXT.md 有効根入れ深さと平均有効単位重量): 長期 the normal water level, 短期 and 安全性 the high one.
+
+``bearing_capacity`` (ex, the effective base, δ, the inclination and shape factors, qvd, the unlimited qd and Mmd of
+one set of actions) and ``pick`` (the extreme of a reaction pickup) are shared with the footing's response values
+(calc.footing, decision 60).
 """
 
 from __future__ import annotations
@@ -268,13 +272,19 @@ def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameRe
                  pickups={spec.key: numbers[spec.group] for spec in COLUMNS})
 
 
-def _pick(reactions: Reactions, pickup: int, focus: Focus) -> SupportReaction:
+def pick(reactions: Reactions, pickup: int, focus: Focus) -> SupportReaction:
+    """The extreme of *pickup* at the support node the column reads: the largest Vd (the smallest fy) or the largest
+    |Md|. The largest Vd is looked for on every row of the pickup (its fy, mz and fx extremes: FEMPython's fy rows
+    carry one of the two variants of a combination, the horizontal force in either direction; 12.1 使用性), and rows
+    with the same fy give the one with the larger |Md|, then the larger |Hd| (decision 60, owner 2026-10-19)."""
     try:
         largest, smallest = reactions[(pickup, focus.value)]
     except KeyError as exc:
         raise ReactionError(f"支点の反力のピックアップ {pickup}（{focus.value}）がありません") from exc
     if focus is Focus.VERTICAL:  # the largest Vd = −fy is the smallest fy
-        return smallest if smallest.fy <= largest.fy else largest
+        rows = [row for component in ("fy", "mz", "fx") if (pickup, component) in reactions
+                for row in reactions[(pickup, component)]]
+        return min(rows, key=lambda row: (row.fy, -abs(row.mz), -abs(row.fx)))
     return smallest if abs(smallest.mz) > abs(largest.mz) else largest
 
 
@@ -283,27 +293,40 @@ def _judged(value: Decimal, precision: Precision = RATIO) -> Judged:
     return Judged(printed, printed.value <= 1.0)
 
 
-def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column:
-    factors = FACTORS[spec.requirement]
-    vd, hd, md = FORCE(-reaction.fy), FORCE(abs(reaction.fx)), MOMENT(abs(reaction.mz))
+@dataclass(frozen=True)
+class Capacity:
+    """The bearing capacity of one set of actions at the footing base (8-30), before the checks of a column."""
+
+    ex: Printed  # Md/Vd
+    b_effective: Printed  # B′ = B − 2ex
+    area_effective: Printed  # A′ = B′L
+    delta: Printed  # δ = tan⁻¹(Hd/Vd), 度
+    gamma_e2: Printed
+    i_gamma: Printed  # (1 − δ/φ)², not below 0
+    i_q: Printed  # (1 − δ/90)²
+    beta_b: Printed  # 0.5 − 0.2(B′/L), B′/L as L/B′ when B′ > L
+    b_e: Printed  # min(B′, L)
+    term_gamma: Printed  # frγ Iγ βb Be γe1 Nγ
+    term_q: Printed  # frq Iq γe2 Df (Nq − 1)
+    qvd: Printed
+    qd_unlimited: Printed  # qvd + γe2 Df
+    mmd: Printed  # Vd B/2 (1 − Vd/(qd B L)) with the unlimited qd
+
+
+def bearing_capacity(basis: Basis, factors: Factors, cover: CoverWeight, vd: Printed, hd: Printed, md: Printed,
+                     name: str = "基礎の照査") -> Capacity:
+    """The capacity of the actions *vd*, *hd*, *md* with the 地盤抵抗係数 of *factors* and the cover soil *cover*
+    (8-30 and 安定計算.xls); the footing's columns use it too (decision 60). Actions outside the equations (Vd upward,
+    ex outside the footing) are input errors naming *name*."""
     if vd.value <= 0:
-        raise InputError(f"基礎の照査（{spec.name}）: フーチング底面の鉛直力 Vd が上向きです（{vd.value} kN）")
+        raise InputError(f"{name}: フーチング底面の鉛直力 Vd が上向きです（{vd.value} kN）")
     b, l = d(basis.b), d(basis.l)
     ex = put(ECCENTRICITY, d(md) / d(vd))
     if d(ex) * 2 >= b:
-        raise InputError(f"基礎の照査（{spec.name}）: 合力の作用位置 ex＝{ex.value} m がフーチングの外にあり、"
-                         "照査できません")
+        raise InputError(f"{name}: 合力の作用位置 ex＝{ex.value} m がフーチングの外にあり、照査できません")
     b_eff = put(LENGTH, b - 2 * d(ex))
     area = put(AREA, d(b_eff) * l)
     delta = ANGLE(math.degrees(math.atan2(hd.value, vd.value)))
-    triangular = d(ex) * 6 > b
-    if triangular:
-        width = put(LENGTH, 3 * (b / 2 - d(ex)))
-        pd1, pd2 = put(PRESSURE, 2 * d(vd) / (3 * l * (b / 2 - d(ex)))), PRESSURE(0)
-    else:
-        width = basis.b
-        pd1, pd2 = (put(PRESSURE, d(vd) / (b * l) * (1 + sign * 6 * d(ex) / b)) for sign in (1, -1))
-    cover = basis.normal if spec.requirement is Requirement.LONG_TERM else basis.high
     gamma_e2, depth = cover.unit_weight, basis.depth
     i_gamma = put(FACTOR, max(1 - d(delta) / d(basis.friction_angle), Decimal(0)) ** 2)
     i_q = put(FACTOR, (1 - d(delta) / 90) ** 2)
@@ -315,6 +338,28 @@ def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column
     term_q = put(PRESSURE, d(factors.f_q) * d(i_q) * d(gamma_e2) * d(depth) * (d(basis.n_q) - 1))
     qvd = put(PRESSURE, d(term_gamma) + d(term_q))
     qd_unlimited = put(PRESSURE, d(qvd) + d(gamma_e2) * d(depth))
+    mmd = put(MOMENT, d(vd) * b / 2 * (1 - d(vd) / (d(qd_unlimited) * b * l)))
+    return Capacity(ex, b_eff, area, delta, gamma_e2, i_gamma, i_q, beta_b, b_e, term_gamma, term_q, qvd,
+                    qd_unlimited, mmd)
+
+
+def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column:
+    factors = FACTORS[spec.requirement]
+    vd, hd, md = FORCE(-reaction.fy), FORCE(abs(reaction.fx)), MOMENT(abs(reaction.mz))
+    cover = basis.normal if spec.requirement is Requirement.LONG_TERM else basis.high
+    capacity = bearing_capacity(basis, factors, cover, vd, hd, md, f"基礎の照査（{spec.name}）")
+    b, l = d(basis.b), d(basis.l)
+    ex, b_eff, area, delta = capacity.ex, capacity.b_effective, capacity.area_effective, capacity.delta
+    triangular = d(ex) * 6 > b
+    if triangular:
+        width = put(LENGTH, 3 * (b / 2 - d(ex)))
+        pd1, pd2 = put(PRESSURE, 2 * d(vd) / (3 * l * (b / 2 - d(ex)))), PRESSURE(0)
+    else:
+        width = basis.b
+        pd1, pd2 = (put(PRESSURE, d(vd) / (b * l) * (1 + sign * 6 * d(ex) / b)) for sign in (1, -1))
+    gamma_e2, depth = capacity.gamma_e2, basis.depth
+    i_gamma, i_q, beta_b, b_e = capacity.i_gamma, capacity.i_q, capacity.beta_b, capacity.b_e
+    term_gamma, term_q, qvd, qd_unlimited = capacity.term_gamma, capacity.term_q, capacity.qvd, capacity.qd_unlimited
     long_term = spec.requirement is Requirement.LONG_TERM
     qd = (basis.long_term_limit if long_term and basis.long_term_limit.value < qd_unlimited.value
           else qd_unlimited)
@@ -323,7 +368,7 @@ def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column
     horizontal = _judged(d(factors.gamma_i_horizontal) * d(hd) / d(rhb))
     if spec.requirement is Requirement.SAFETY:
         rvd = put(FORCE, d(area) * d(qvd) + d(gamma_e2) * d(depth) * d(area))
-        mmd = put(MOMENT, d(vd) * b / 2 * (1 - d(vd) / (d(qd) * b * l)))
+        mmd = capacity.mmd  # qd is the unlimited one for 安全性
         moment = _judged(gamma * d(md) / d(mmd)) if mmd.value > 0 else Judged(None, False)
         return Column(spec.key, spec.requirement, basis.pickups[spec.key], reaction.combination, vd, hd, md, ex,
                       b_eff, area, delta, triangular, width, pd1, pd2, gamma_e2, i_gamma, i_q, beta_b, b_e, factors,
@@ -338,6 +383,6 @@ def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column
 
 def check(basis: Basis, reactions: Reactions) -> FoundationCheckResult:
     """The four columns from the reactions at the support node (``ReactionError`` when a pickup is missing)."""
-    columns = tuple(_column(basis, spec, _pick(reactions, basis.pickups[spec.key], spec.focus)) for spec in COLUMNS)
+    columns = tuple(_column(basis, spec, pick(reactions, basis.pickups[spec.key], spec.focus)) for spec in COLUMNS)
     ok = all(judged.ok for column in columns for judged in column.judgements)
     return FoundationCheckResult(basis, columns, "ok" if ok else "not_ok")

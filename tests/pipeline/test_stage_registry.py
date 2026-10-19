@@ -37,7 +37,7 @@ def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINE
                      seismic_check=seismic_check)
 
 
-PIK = SeismicCheck((("pik", "x_Aggre-SE.pik"), ("xlsx", "x_Aggre-SE.xlsx")))
+PIK = SeismicCheck((("pik", "x_Aggre-SE.pik"), ("xlsx", "x_Aggre-SE.xlsx"), ("steps", "x_Aggre-SE_直接基礎.csv")))
 
 
 def project(kind="aggrese", file_name="x.xml"):
@@ -47,7 +47,8 @@ def project(kind="aggrese", file_name="x.xml"):
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
     ids = STAGES.ids
     assert ids[:2] == ("0500", "0600")
-    assert ids == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721")
+    assert ids == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
+                   "0800", "0810", "0820", "0900", "0910")
     for position, stage in enumerate(STAGES.stages):
         assert set(stage.depends_on) <= set(ids[:position])
         assert stage.stem.startswith(stage.id + "_")
@@ -59,7 +60,8 @@ def test_report_stems_are_the_japanese_stage_names():
                 "0620": "0620_直角方向荷重", "0710": "0710_線路方向荷重", "0720": "0720_線路直角方向荷重",
                 "0611": "0611_線路方向照査", "0621": "0621_直角方向照査", "0612": "0612_線路方向基礎",
                 "0622": "0622_直角方向基礎", "0711": "0711_線路方向非線形解析",
-                "0721": "0721_線路直角方向非線形解析"}
+                "0721": "0721_線路直角方向非線形解析", "0800": "0800_フーチング", "0810": "0810_線路方向フーチング照査",
+                "0820": "0820_直角方向フーチング照査", "0900": "0900_片持ち梁", "0910": "0910_片持ち梁照査"}
     assert stems == {stage: expected[stage] for stage in stems}
 
 
@@ -68,7 +70,8 @@ def test_declared_dependencies_of_the_real_stages():
     expected = {"0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
                 "0710": ("0500", "0600", "0610"), "0720": ("0500", "0600", "0620"), "0611": ("0610",),
                 "0621": ("0620",), "0612": ("0500", "0610"), "0622": ("0500", "0620"), "0711": ("0710",),
-                "0721": ("0720",)}
+                "0721": ("0720",), "0800": ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
+                "0810": ("0800",), "0820": ("0800",), "0900": ("0600", "0711", "0721"), "0910": ("0900",)}
     assert depends == {stage: expected[stage] for stage in depends}
 
 
@@ -93,7 +96,7 @@ def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
     """Decision 46: 0611 and 0621 publish the pickup files of their load stage's FrameWeb, and each the column
     section check by Capacita with that PIK (decision 48); 0612 and 0622 share that analysis for the 基礎の照査, which
     reads its reactions (decision 54)."""
-    assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0612", "0621", "0622")
+    assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0612", "0621", "0622", "0800", "0810", "0820")
     assert STAGES.select("all") == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS})) == (
         "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0720")
@@ -114,21 +117,56 @@ def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
     """Decision 47: 0711 and 0721 publish the folder of the JRSNAP analysis of their seismic stage's NDU, and beside it
     the Aggre-SE project that reads it (decision 49); their report is Aggre-SE's, without a calculation of their own
     (decision 56)."""
-    assert STAGES.opt_in(NONLINEAR_ANALYSIS) == ("0711", "0721")
+    assert STAGES.opt_in(NONLINEAR_ANALYSIS) == ("0711", "0721", "0800", "0810", "0820", "0900", "0910")
     assert STAGES.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == (
-        "0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721")
+        "0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721", "0900", "0910")
     assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == STAGES.ids
     for stage_id, source, folder in (("0711", "0710", "線路方向_JRSNAP"), ("0721", "0720", "線路直角方向_JRSNAP")):
         stage = STAGES.get(stage_id)
         assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (True, None, (), None)
         stem = folder.removesuffix("_JRSNAP")
-        assert stage.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")))
+        assert stage.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx"),
+                                                    ("steps", f"{stem}_Aggre-SE_直接基礎.csv")))
         assert stage.section_check is None and stage.jrsnap_figures is None
         analysis = stage.nonlinear_analysis
         assert (analysis.stage, analysis.export, analysis.kind, analysis.folder) == (source, "jrsnap", "jrsnap", folder)
         project_file = folder.removesuffix("_JRSNAP") + ".xml"
         assert (analysis.project.kind, analysis.project.file_name) == ("aggrese", project_file)
         assert analysis.project.metadata == {"target": "Aggre-SE", "target_version": "5.3.0.1"}
+
+
+def test_the_footing_stages_opt_into_both_switches_and_read_the_analyses_of_both_directions():
+    """Decision 60: 0800 is prepared from 0500 and the frames of 0610・0620 and finished with the reactions of the
+    analyses of 0612・0622 and the step tables of the seismic checks of 0711・0721; 0810・0820 have Capacita check
+    the WDJ of their direction as given (no frame analysis of their own)."""
+    for stage_id, stem, depends in (
+            ("0800", "0800_フーチング", ("0500", "0610", "0612", "0620", "0622", "0711", "0721")),
+            ("0810", "0810_線路方向フーチング照査", ("0800",)), ("0820", "0820_直角方向フーチング照査", ("0800",))):
+        stage = STAGES.get(stage_id)
+        assert (stage.stem, stage.depends_on, stage.opt_in) == (stem, depends, (FRAME_ANALYSIS, NONLINEAR_ANALYSIS))
+        assert stage.has_report and stage.complete is not None and stage.exports == ()
+        assert stage.frame_analysis is None and stage.nonlinear_analysis is None and stage.seismic_check is None
+    assert STAGES.get("0800").calculate is not None and STAGES.get("0800").section_check is None
+    for stage_id, name in (("0810", "線路方向フーチング.wdj"), ("0820", "線路直角方向フーチング.wdj")):
+        check = STAGES.get(stage_id).section_check
+        assert (check.kind, check.file_name) == ("wdj", name) and STAGES.get(stage_id).calculate is None
+    assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == STAGES.ids
+    assert STAGES.closure(("0810",)) == ("0500", "0600", "0610", "0612", "0620", "0622", "0710", "0711", "0720",
+                                         "0721", "0800", "0810")
+
+
+def test_a_stage_chosen_alone_brings_the_dependencies_that_run_engines_or_finish_results():
+    """Decision 60 (owner 2026-10-19): --stage 0800 generates and publishes, from its closure, the stages whose
+    runners' files it reads (the frame analyses of 0612・0622, the nonlinear analyses and seismic checks of
+    0711・0721) and the stages that finish a result (0800 for 0810); the plain stages are only calculated. The same
+    rule serves 0900・0910 (decision 59)."""
+    assert STAGES.select("0612") == ("0612",)
+    assert STAGES.select("0800") == ("0612", "0622", "0711", "0721", "0800")
+    assert STAGES.select("0810") == ("0612", "0622", "0711", "0721", "0800", "0810")
+    assert STAGES.select("0820") == ("0612", "0622", "0711", "0721", "0800", "0820")
+    assert STAGES.select("0900") == ("0711", "0721", "0900")
+    assert STAGES.select("0910") == ("0711", "0721", "0900", "0910")
+    assert STAGES.select("0610") == ("0610",)
 
 
 def test_closure_adds_transitive_dependencies_in_registry_order():
@@ -171,6 +209,27 @@ def test_all_leaves_out_the_opt_in_stages_unless_they_are_asked_for():
         registry.select("all", switches=frozenset({"other"}))
 
 
+def test_a_stage_opting_into_both_switches_is_in_all_only_with_both():
+    """Decision 60: 0800〜0820 read the frame analyses and the nonlinear analyses, so all includes them only when both
+    switches are given; they may depend on the opt-in stages of either switch; chosen directly they are one stage."""
+    both = StageSpec("F", "F_名前", ("B", "D"), lambda pier, results: "F", lambda results, pier, path, pages: path,
+                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS))
+    registry = Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), solving("D", "A"), both))
+    assert registry.get("F").opt_in == (FRAME_ANALYSIS, NONLINEAR_ANALYSIS)
+    assert registry.get("B").opt_in == (FRAME_ANALYSIS,) and registry.get("A").opt_in == ()
+    assert registry.select("all") == ("A",)
+    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS})) == ("A", "B")
+    assert registry.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == ("A", "D")
+    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == ("A", "B", "D", "F")
+    assert registry.closure(("F",)) == ("A", "B", "D", "F")
+    assert registry.select("F") == ("B", "D", "F")  # chosen alone: with the stages whose runners' files it reads
+    assert (registry.opt_in(FRAME_ANALYSIS), registry.opt_in(NONLINEAR_ANALYSIS)) == (("B", "F"), ("D", "F"))
+    with pytest.raises(ValueError, match="Gは選択式の段階Fに依存するので、そのスイッチ（frame_analysis・nonlinear_analysis）を含む"):
+        Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), solving("D", "A"), both,
+                  StageSpec("G", "G_名前", ("F",), lambda pier, results: "G", lambda results, pier, path, pages: path,
+                            opt_in=NONLINEAR_ANALYSIS)))
+
+
 def test_get_returns_the_spec():
     first = spec("A")
     assert Registry((first,)).get("A") is first
@@ -198,14 +257,15 @@ def test_get_returns_the_spec():
     ((spec("A", exports=NDU), solving("B", "A", project=project(), seismic_check=PIK)),
      "Bの耐震性能照査の計算書がありません"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
-                                      seismic_check=SeismicCheck((("pik", "x.ndu"), ("xlsx", "x.xlsx"))))),
+                                      seismic_check=SeismicCheck((("pik", "x.ndu"), ("xlsx", "x.xlsx"),
+                                                                  ("steps", "x.csv"))))),
      "出力ファイル名が重複しています: x.ndu"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
                                       seismic_check=SeismicCheck((("pik", "y.pik"),)))),
-     "Bの耐震性能照査の出力は pik・xlsx です"),
+     "Bの耐震性能照査の出力は pik・xlsx・steps です"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
                                       seismic_check=SeismicCheck((("pik", "y.pik"), ("aggrese", "y.xlsx"))))),
-     "Bの耐震性能照査の出力は pik・xlsx です"),
+     "Bの耐震性能照査の出力は pik・xlsx・steps です"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path)),
      "Bの計算書には計算が必要です"),  # only Aggre-SE's report needs no calculation (decision 56)
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),
@@ -230,10 +290,10 @@ def test_get_returns_the_spec():
     ((spec("A", exports=FRAMEWEB), analyzing("B", "A", opt_in=NONLINEAR_ANALYSIS)),
      "Bは骨組解析するので選択式（frame_analysis）の段階です"),
     ((spec("A", exports=FRAMEWEB), analyzing("B", "A"), spec("C", "B")),
-     "Cは選択式の段階Bに依存するので、同じスイッチ（frame_analysis）の選択式の段階です"),
+     "Cは選択式の段階Bに依存するので、そのスイッチ（frame_analysis）を含む選択式の段階です"),
     ((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"),
       StageSpec("C", "C_名前", ("B",), lambda p, r: 0, lambda r, p, path, pages: path, opt_in=NONLINEAR_ANALYSIS)),
-     "Cは選択式の段階Bに依存するので、同じスイッチ（frame_analysis）の選択式の段階です"),
+     "Cは選択式の段階Bに依存するので、そのスイッチ（frame_analysis）を含む選択式の段階です"),
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, lambda r, p, path, pages: path, opt_in="other"),),
      "Aの選択式のスイッチotherがありません"),
     ((spec("A", exports=NDU), solving("B", "A", opt_in=FRAME_ANALYSIS)),

@@ -1,7 +1,8 @@
-"""A stage with a 耐震性能照査 (decisions 56〜58, ADR-0009): after JRSNAP's analysis, Aggre-SE checks with the staged
-project and the staged folder beside it; its report is the stage's report byte for byte, its pickup and summary
-workbook are published under post/ as they are with a sidecar each, the result JSON records the check without a
-judgement, the project's sidecar names the report, and a missing, failing or meddling runner publishes nothing.
+"""A stage with a 耐震性能照査 (decisions 56〜58, 60, ADR-0009): after JRSNAP's analysis, Aggre-SE checks with the staged
+project and the staged folder beside it; its report is the stage's report byte for byte, its pickup, summary
+workbook and direct-foundation step table are published under post/ as they are with a sidecar each, the result JSON
+records the check without a judgement, the project's sidecar names the report, and a missing, failing or meddling
+runner publishes nothing.
 
 The analysis and the check are the stand-ins' (tests/fixtures/jrsnap/fake_runner.py, tests/fixtures/aggrese/
 fake_runner.py)."""
@@ -27,7 +28,8 @@ from webpier.reporting.stages.seismic_check import render_seismic_check
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
 CASE = "model(Case1_ρm10_αf1_正向)"
-PIK, XLSX = "model_Aggre-SE.pik", "model_Aggre-SE.xlsx"
+PIK, XLSX, STEPS = "model_Aggre-SE.pik", "model_Aggre-SE.xlsx", "model_Aggre-SE_直接基礎.csv"
+COLUMNS = ["case_index", "case_name", "node", "step", "V", "H", "M", "qvd", "qd", "Rvd", "Mmd", "plasticity"]
 
 
 def project(folder: str, names) -> bytes:
@@ -47,7 +49,7 @@ def registry(recorder: Recorder) -> Registry:
                   nonlinear_analysis=NonlinearAnalysis(
                       "C", "jrsnap", "jrsnap", FOLDER,
                       Project("aggrese", "model.xml", lambda results, pier: project, {"target": "Aggre-SE"})),
-                  seismic_check=SeismicCheck((("pik", PIK), ("xlsx", XLSX)))),
+                  seismic_check=SeismicCheck((("pik", PIK), ("xlsx", XLSX), ("steps", STEPS)))),
     ))
 
 
@@ -86,11 +88,13 @@ def test_the_report_is_aggre_ses_report_as_it_is(env, monkeypatch: pytest.Monkey
                      f"FAKE AGGRESE SUMMARY {hashlib.sha256(post['model.xml']).hexdigest()[:16]}"]
     assert recorder.actions("render") == ["A", "C"] and recorder.actions("calculate") == ["A", "C"]
     assert [artifact.role for artifact in generation.artifacts if artifact.role.startswith("E")] == [
-        "E.pdf", "E.json", "E.jrsnap", "E.aggrese", "E.pik", "E.xlsx", "E.jrsnap.provenance",
-        "E.aggrese.provenance", "E.pik.provenance", "E.xlsx.provenance"]
+        "E.pdf", "E.json", "E.jrsnap", "E.aggrese", "E.pik", "E.xlsx", "E.steps", "E.jrsnap.provenance",
+        "E.aggrese.provenance", "E.pik.provenance", "E.xlsx.provenance", "E.steps.provenance"]
     assert post[PIK] == made[0].files["pik"] == (
         f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(post['model.xml']).hexdigest()[:16]}\r\n".encode("cp932"))
     assert post[XLSX] == made[0].files["xlsx"]
+    assert post[STEPS] == made[0].files["steps"]
+    assert post[STEPS].startswith(",".join(COLUMNS).encode() + b"\r\n")
     assert planned(options, registry=stages) == generation.artifacts
 
 
@@ -106,7 +110,8 @@ def test_the_result_records_the_check_and_its_files_without_a_judgement(env):
         "project": {"file": "model.xml", "sha256": hashlib.sha256(post["model.xml"]).hexdigest()},
         "jrsnap": {"file": FOLDER, "sha256": content_sha256(Path(options.post_dir) / FOLDER)},
         "files": {"pik": {"file": PIK, "sha256": hashlib.sha256(post[PIK]).hexdigest()},
-                  "xlsx": {"file": XLSX, "sha256": hashlib.sha256(post[XLSX]).hexdigest()}}}
+                  "xlsx": {"file": XLSX, "sha256": hashlib.sha256(post[XLSX]).hexdigest()},
+                  "steps": {"file": STEPS, "sha256": hashlib.sha256(post[STEPS]).hexdigest()}}}
     pik = json.loads((Path(options.post_dir) / f"{PIK}.provenance.json").read_text(encoding="utf-8"))
     assert (pik["stage"], pik["export"], pik["file"], pik["sha256"]) == (
         "E", "pik", PIK, hashlib.sha256(post[PIK]).hexdigest())
@@ -119,6 +124,10 @@ def test_the_result_records_the_check_and_its_files_without_a_judgement(env):
     assert (xlsx["stage"], xlsx["export"], xlsx["file"], xlsx["sha256"]) == (
         "E", "xlsx", XLSX, hashlib.sha256(post[XLSX]).hexdigest())
     assert xlsx["seismic_check"] == {key: value for key, value in pik["seismic_check"].items() if key != "pickups"}
+    steps = json.loads((Path(options.post_dir) / f"{STEPS}.provenance.json").read_text(encoding="utf-8"))
+    assert (steps["stage"], steps["export"], steps["file"], steps["sha256"]) == (
+        "E", "steps", STEPS, hashlib.sha256(post[STEPS]).hexdigest())
+    assert steps["seismic_check"] == {**xlsx["seismic_check"], "columns": COLUMNS}
     sidecar = json.loads((Path(options.post_dir) / "model.xml.provenance.json").read_text(encoding="utf-8"))
     assert sidecar["seismic_check"] == {"report": "E.pdf", "engine": "aggrese", "engine_version": "fake-1"}
     folder = json.loads((Path(options.post_dir) / f"{FOLDER}.provenance.json").read_text(encoding="utf-8"))
@@ -145,7 +154,11 @@ def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.
 @pytest.mark.parametrize("mode,message", [
     ("fail", "model.xml で耐震性能照査ができません: CALCULATION_FAILED"),
     ("unaggregated", "model.xml で耐震性能照査ができません: 全 1 ケースが集計されていません"),
-    ("noxlsx", "model.xml で耐震性能照査ができません: runner の成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
+    ("noxlsx", "model.xml で耐震性能照査ができません: runner の成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の"
+               "5つではありません"),
+    ("nocsv", "model.xml で耐震性能照査ができません: runner の成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の"
+              "5つではありません"),
+    ("badcsv", "model.xml で耐震性能照査ができません: 直接基礎のステップ表の列が違います"),
     ("write", f"Aggre-SE の runner が model.xml か {FOLDER} を変更しました"),
 ])
 def test_a_failing_check_stops_before_any_report_and_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch, mode,

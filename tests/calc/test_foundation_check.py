@@ -187,3 +187,22 @@ def test_a_reaction_the_check_cannot_take_is_an_input_error(fy, mz, message):
     basis = prepared()
     with pytest.raises(InputError, match=re.escape(message)):
         fc.check(basis, uniform(basis, reaction(1, 0, fy, mz)))
+
+
+def test_pick_takes_the_larger_moment_then_the_larger_horizontal_force_among_equal_vertical_forces():
+    """Decision 60 (owner 2026-10-19): the two extremes of a pickup with the same fy (the horizontal force in either
+    direction: 12.1 使用性) give the row with the larger |mz|, then the larger |fx|; the largest Vd is still the
+    smallest fy."""
+    plus = fc.SupportReaction(5, 300.0, -19506.36, 3327.12)
+    minus = fc.SupportReaction(5, -300.0, -19506.36, -2852.88)
+    assert fc.pick({(2, "fy"): (minus, plus)}, 2, fc.Focus.VERTICAL) is plus
+    assert fc.pick({(2, "fy"): (plus, minus)}, 2, fc.Focus.VERTICAL) is plus
+    wider = fc.SupportReaction(6, -240.0, -18049.95, 1887.75)
+    narrower = fc.SupportReaction(6, 100.0, -18049.95, -1887.75)
+    assert fc.pick({(3, "fy"): (narrower, wider)}, 3, fc.Focus.VERTICAL) is wider
+    heavier = fc.SupportReaction(7, 0.0, -20000.0, 1.0)
+    assert fc.pick({(8, "fy"): (heavier, plus)}, 8, fc.Focus.VERTICAL) is heavier
+    # FEMPython's fy rows carry one of the two variants of the combination; the other is on the mz (or fx) rows.
+    assert fc.pick({(2, "fy"): (minus, minus), (2, "mz"): (plus, minus)}, 2, fc.Focus.VERTICAL) is plus
+    assert fc.pick({(2, "fy"): (minus, minus), (2, "fx"): (plus, minus), (2, "mz"): (heavier, minus)}, 2,
+                   fc.Focus.VERTICAL) is heavier

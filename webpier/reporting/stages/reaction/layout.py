@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from gridlayoutpdf import Block, Cell, Document, KeepWithNext, Leading, MathBlock, PreferKeepTogether, SideRule
+import math
+
+from gridlayoutpdf import (Block, Cell, Document, GridSpec, KeepWithNext, Leading, MathBlock, PreferKeepTogether,
+                           QuarterTurn, SideRule)
 
 from ...document import blank, columns, heading, indent_to, math_line, paragraph, report, spacer
 from ...equations import definitions, equation_group
-from ...styles import BODY, BODY_LEADING, grid_units, report_profile
-from ...tables import REACTION_CELL_PADDING, cell, math_cell, table
+from ...styles import BODY, BODY_LEADING, PITCH, grid_units, report_profile
+from ...tables import CELL_PADDING, REACTION_CELL_PADDING, cell, math_cell, table
 from .figures import LoadingFigure, OutlineFigure
 from .manuscript import (
     FRAME_RIGHT, RESULT_EQUAL, RESULT_RIGHT, RULE_BOTTOM, RULE_TOP, RULE_WIDTH, RULE_X, UNIT_START, CellSpec,
@@ -19,21 +22,36 @@ from .manuscript import (
 FIGURES = {"outline": OutlineFigure, "loading": LoadingFigure}
 
 
-def _cell(spec: CellSpec) -> Cell:
-    """0600 tables use the clearance measured in the reference 0600 tables."""
+def _cell(spec: CellSpec, compact: bool = False) -> Cell:
+    """0600 tables use the clearance measured in the reference 0600 tables; a compact table the combination tables'."""
+    padding = CELL_PADDING if compact else REACTION_CELL_PADDING
     if isinstance(spec.content, str):
-        return cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align,
-                    padding=REACTION_CELL_PADDING)
-    return math_cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align,
-                     padding=REACTION_CELL_PADDING)
+        return cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align, padding=padding)
+    return math_cell(spec.content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align, padding=padding)
+
+
+def _heights(spec: TableSpec) -> list[float]:
+    heights = [spec.header_height or spec.row_height] * spec.header_rows
+    return heights + [spec.row_height] * (len(spec.rows) - spec.header_rows)
+
+
+def _raw_table(spec: TableSpec, block_id: str) -> Block:
+    rows = [[_cell(item, spec.compact) for item in row] for row in spec.rows]
+    return table(spec.widths, rows, row_heights=_heights(spec), header_rows=spec.header_rows,
+                 numeric_columns=spec.numeric_columns, block_id=block_id)
 
 
 def _table(spec: TableSpec, block_id: str) -> Block:
-    heights = [spec.header_height or spec.row_height] * spec.header_rows
-    heights += [spec.row_height] * (len(spec.rows) - spec.header_rows)
-    rows = [[_cell(item) for item in row] for row in spec.rows]
-    return PreferKeepTogether(table(spec.widths, rows, row_heights=heights, header_rows=spec.header_rows,
-                                    numeric_columns=spec.numeric_columns, block_id=block_id))
+    return PreferKeepTogether(_raw_table(spec, block_id))
+
+
+def _rotated(spec: TableSpec, block_id: str) -> Block:
+    """The table measured on its own grid as wide as it is, then turned counterclockwise (GridLayoutPdf
+    QuarterTurn): one indivisible part whose height on the page is the table's width."""
+    columns = sum(grid_units(width) for width in spec.widths) + 1
+    rows = math.ceil(sum(_heights(spec)) / PITCH) + 40
+    return QuarterTurn(_raw_table(spec, block_id + ".table"), turns=1, local_grid=GridSpec(0, 0, PITCH, PITCH, columns, rows),
+                       block_id=block_id)
 
 
 def _pair(pair: Pair, left: float, second: float, block_id: str) -> Block:
@@ -79,6 +97,8 @@ def _block(unit: Unit) -> Block:
         return definitions(*unit.value, left=unit.left, colon=unit.first_equal, block_id=unit.identifier)
     if unit.kind == "table":
         return indent_to(_table(unit.value, unit.identifier), unit.left)
+    if unit.kind == "rotated":
+        return indent_to(_rotated(unit.value, unit.identifier), unit.left)
     if unit.kind == "figure":
         return indent_to(FIGURES[unit.value.kind](unit.value.data, unit.identifier), unit.left)
     return math_line(unit.value, left=unit.left, block_id=unit.identifier)
@@ -116,7 +136,7 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
     index = 0
     while index < len(units):
         unit = units[index]
-        if unit.kind in ("heading", "table", "figure") or unit.gap_before:
+        if unit.kind in ("heading", "table", "rotated", "figure") or unit.gap_before:
             before = len(out)
             blank(out)
             if len(out) > before and (unit.ruled or index > 0 and units[index - 1].ruled):
@@ -138,7 +158,7 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
         if unit.kind == "heading":
             out.append(KeepWithNext(spacer()))
             ruled.append(False)
-        elif unit.kind in ("table", "figure"):
+        elif unit.kind in ("table", "rotated", "figure"):
             out.append(spacer())
             ruled.append(False)
     return _ruled(out, ruled)

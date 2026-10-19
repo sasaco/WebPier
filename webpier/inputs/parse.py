@@ -13,10 +13,10 @@ from typing import Any
 from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
-from .fields import SNOW_KEYS, read
+from .fields import BEAM_SURFACES, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
-    Bearing, ColumnCheck, EndReaction, Jrsnap, JrsnapConditions, Materials, PierInput, Pile, Reactions, Reserved, SeismicDesign,
-    Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
+    Bearing, CantileverCheck, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions, Materials, PierInput,
+    Pile, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
 )
 from .rebar import parse_rebar
 
@@ -55,12 +55,16 @@ def _substructure(root: Reader) -> Substructure:
     )
 
 
+# decision 59: the rubber bearings and the stoppers of each girder (0900); every value may stay blank
+BEARING_DEVICE_KEYS = ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")
+
+
 def _span(root: Reader, side: str) -> Span:
     span = root.at("上部構造", side).only("桁長", "衝撃係数_単線終局", "曲線半径", "列車速度", "遠心作用方向",
                                         "高さ", "重心高_hs", "支承位置_f")
     lengths = span.at("桁長").only("L1", "スパン長", "L2")
     heights = span.at("高さ").only("h1", "h2", "h3", "h4")
-    support = root.at("上部構造", "支承データ", side).only("支承名", "摩擦係数_μ", "復旧性制動係数")
+    support = root.at("上部構造", "支承データ", side).only("支承名", "摩擦係数_μ", "復旧性制動係数", *BEARING_DEVICE_KEYS)
     brake = support.optional("復旧性制動係数")
     return Span(
         l1=read(lengths.at("L1")), span=read(lengths.at("スパン長")), l2=read(lengths.at("L2")),
@@ -69,6 +73,9 @@ def _span(root: Reader, side: str) -> Span:
         hs=read(span.at("重心高_hs")), f=read(span.at("支承位置_f")),
         bearing=read(support.at("支承名")), mu=read(support.at("摩擦係数_μ")),
         recovery_brake_coefficient=None if brake is None else read(brake),
+        rubber_count=read(support.at(BEARING_DEVICE_KEYS[0])), stopper_count=read(support.at(BEARING_DEVICE_KEYS[1])),
+        rubber_on_cantilever=read(support.at(BEARING_DEVICE_KEYS[2])),
+        stopper_on_cantilever=read(support.at(BEARING_DEVICE_KEYS[3])),
     )
 
 
@@ -227,8 +234,29 @@ def _column_check(root: Reader) -> ColumnCheck:
                        jr004=jr004)
 
 
+CANTILEVER_CHECK = "片持ち梁の照査"
+FATIGUE_KEYS = ("旅客列車本数", "貨物列車本数", "設計耐用年数", "等価繰返し回数")
+
+
+def _cantilever_check(root: Reader) -> CantileverCheck:
+    node = root.at(CANTILEVER_CHECK).only("鋼材の腐食に対する環境条件", "外観の照査", "疲労")
+    environments = node.at("鋼材の腐食に対する環境条件").only(*BEAM_SURFACES)
+    fatigue = node.at("疲労").only(*FATIGUE_KEYS)
+    repetitions = fatigue.at("等価繰返し回数").only("A列車", "B列車")
+    counts = {}
+    for train in ("A列車", "B列車"):
+        slopes = repetitions.at(train).only(*REPETITION_SLOPES)
+        counts |= {(train, slope): read(slopes.at(slope)) for slope in REPETITION_SLOPES}
+    return CantileverCheck(
+        environments={face: read(environments.at(face)) for face in BEAM_SURFACES},
+        appearance=read(node.at("外観の照査")),
+        fatigue=FatigueTrains(passenger_trains=read(fatigue.at("旅客列車本数")),
+                              freight_trains=read(fatigue.at("貨物列車本数")),
+                              service_life=read(fatigue.at("設計耐用年数")), repetitions=counts))
+
+
 TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋", "耐震設計条件", "柱の断面照査",
-            "jrsnap_longitudinal", "jrsnap_transverse")
+            CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse")
 
 
 def parse_input(data: Any) -> PierInput:
@@ -254,6 +282,7 @@ def parse_input(data: Any) -> PierInput:
         rebar=parse_rebar(root),
         seismic_design=_seismic_design(root),
         column_check=_column_check(root),
+        cantilever_check=_cantilever_check(root),
         jrsnap=Jrsnap(longitudinal=_jrsnap_conditions(root, "jrsnap_longitudinal"),
                       transverse=_jrsnap_conditions(root, "jrsnap_transverse")),
     )
