@@ -48,7 +48,7 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 - 0910 は `run-rc` を `--pickup` なしで呼ぶ（`pipeline/capacita.py: check_section`）。WDJ（`export/capacita/cantilever.py`）の `force[0]` に 0900 の採用値を書き（Md0・1・3〜7、Vd0〜7、Mt0・1・5・6・7。Md は負＝上側引張）、Capacita はそのまま計算して `result.json`・`report.pdf` の2つだけを返す（`model.wdj` は返らないので、公開する `post/片持ち梁.wdj` は WebPier が書いたもの）。
 - 返る節の並びと WD-408/409/410 は `structural-capacita` の wdj.md（Md8 最小鉄筋量は空欄なので WD-408 が1つ出る）。省略コードと節の対応は `pipeline.capacita.SKIPPED`。
 - 疲労の ΣN は Capacita が計算する。見本の 10.39 は外部プログラム N-EQUIVALENT の値で、入力 `片持ち梁の照査.疲労` から写す。
-- せん断スパンは `shear[0].La`（m。`calc/cantilever/check.py` の `shear_span`）。見本の WDJ は `points[0].La: 1` だが、今の RcDan は `shear` 表から読む。
+- せん断スパンは `shear[0].La`。WebPier は `calc/cantilever/check.py` の `shear_span`（m）をそのまま書いている。**2026-10-19 に見つけた不具合（未修正）**：Capacita は La を mm として読む（スキル `structural-capacita` の wdj.md）ので、いまの `post/片持ち梁.wdj` の `La: 1.55` は 1.55 mm として計算され、計算書に「せん断スパン長 (mm) 1.6」「せん断スパン比 0.001」と出て βa が上限 5.000 に張り付く。安全性（破壊）のディープビームの耐力 Vdd が 15179.9 kN（1550 mm なら 11134.6 kN）、照査値 0.415（同 0.566）と安全側でない。`export/capacita/cantilever.py` で mm（×1000）にして書く修正と受入のやり直しが要る。 見本の WDJ の `points[0].La: 1` は「自動算定」（|Md/Vd|）の意味で、今の RcDan は `points` の La を読まず `shear` 表から読む。
 - 代役の runner は `--pickup` なしのとき WDJ の `force` の行から節を決める（`tests/fixtures/capacita/fake_runner.py: force_sections`）。0810・0820 のフーチングの WDJ も同じ規則で 5 節になる。
 
 ## 直角方向（0621）と照査の省略
@@ -63,7 +63,7 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 ## フーチングの断面照査（0810・0820、決定60）：断面力入力モードの WDJ
 
 - `webpier/calc/footing_check.py` が条件を組み（部材「フーチング」1000×H6 mm、下側の主鉄筋とスターラップ、材料、`柱の断面照査` の条件、Dmax は `鉄筋.フーチング.aggregate_max_mm`（owner 2026-10-19））、`webpier/export/capacita/footing_wdj.py` が WDJ を書く。runner は `pipeline.capacita.check_section`（`--pickup` なし。成果物は result.json と report.pdf だけ。決定59と共用）。代役は `tests/fixtures/capacita/fake_runner.py` の引数7個のモード（5節、1/2/2/1/2 頁、warn WD-408/409）。
-- 使う id：0 耐久性 応力度、1 耐久性 永久荷重、5 安全性 破壊、7 復旧性 地震時。せん断スパンは `shear[]` の行の `La`（WebPier は mm の整数で書いている。`FootingCheckResult.la` の注記は mm）。**RcDan のコードは La を m として読む（`MemberGroup.cs:367`）ので、単位が合っているかは未確認**（2026-10-19、phase5 の分割の作業中に気づいた。見本の値は再現したと記録されている）。
+- 使う id：0 耐久性 応力度、1 耐久性 永久荷重、5 安全性 破壊、7 復旧性 地震時。せん断スパンは `shear[]` の行の `La`（WebPier は mm の整数で書いている。`FootingCheckResult.la` の注記は mm）。Capacita は La を mm として読むので**正しい**（2026-10-19、本物の runner で m に変えた複製と比べて確認。`MemberGroup.cs:367` の「(m)」のコメントは誤り）。
 - **La は着目点ごとに1つ**なので、方向ごとに2点にしている：点1「線路方向」（Md0・Md1・Md5・Vd5、安全性の La）、点2「線路方向（地震時）」（Md7・Vd7、地震時の La）。見本 12 章は安全性 1127・地震時 1819 と別の La を印刷している。
 - 上側鉄筋なしは `rebar1` を全部 null で通る。断面力一覧は出ない。見本 p255 の値（Mud 3670.5、0.249）と p258（Vdd 4337.2、0.187）は今の Capacita で再現する。
 
