@@ -337,4 +337,4 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 - 入力は `tests/fixtures/inputs/current.json` を基に、変えたい項目だけを書き換えて作ります。
 - 性質テスト（hypothesis、`tests/*/test_*_properties.py`）は、式から言える恒等式と順序だけを確かめます。印字桁の丸め（四捨五入・冪等・符号の対称）、厳密なJSONの往復と拒否、項目表による入力の検証、印刷された部分の和としての合計、移動荷重の釣合い、地盤ばねの Ed への比例、NDU の読戻しと FrameWeb の妥当性です。`tests/conftest.py` のプロファイルで `derandomize=True` にしており、毎回同じ例で実行します。
 - 帳票は、意味内容（印刷された数値・文字が計算結果と印字桁に一致する）、体裁（`tests/fixtures/reporting/appearance` の、見本PDFから独立に測った値に一致する）、印刷物での検算（PDFから読んだ数値だけで各式と合計が再現できる）を確かめます。`appearance` の値は新しい描画結果から作り直しません。
-- GridLayoutPdf のソースを変えたときは、`uv sync --project "." --locked --reinstall-package gridlayoutpdf` で取り込み直します。取り込み直さないと実装の同一性の照合が食い違い、テストが失敗します。
+- GridLayoutPdf は `pyproject.toml` の git 参照（commit の完全な SHA）で入ります。GridLayoutPdf を変えたときは、その commit を push してから `rev` を変え、`uv lock --project "."` と `uv sync --project "." --locked` で取り込みます。手元の作業ツリーを試す手順は CLAUDE.md にあります。

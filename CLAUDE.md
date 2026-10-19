@@ -37,8 +37,9 @@ uv run --project "." --locked --group dev python -X utf8 -m pytest tests -q
 uv run --project "." --locked --group dev python -X utf8 -m pytest tests/calc/test_foundation.py -q
 uv run --project "." --locked --group dev python -X utf8 -m pytest "tests/calc/test_foundation.py::test_name" -q
 
-# GridLayoutPdf のソースを変更した後の取り込み直し
-uv sync --project "." --locked --reinstall-package gridlayoutpdf
+# 手元の GridLayoutPdf の作業ツリーを試す（GridLayoutPdf は pyproject.toml の git 参照で入る。下の「GridLayoutPdf の責務は GridLayoutPdf 側で直す」）
+uv pip install --python ".venv" --no-deps --reinstall "C:\Users\sasai\Documents\GridLayoutPdf"
+uv run --project "." --no-sync --group dev python -X utf8 -m pytest tests -q
 ```
 
 Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図と荷重図（決定50・51、`figures`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721（と 0900・0910）を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。0611・0621 の柱の断面照査は Capacita の Headless runner（`run-rc --pickup`、ADR-0008、`webpier/pipeline/capacita.py`）で行い、`.env` に `STRUCTURAL_MCP_WEBDAN_RUNNER='<Capacita>\WebDanforCS\Headless\bin\Release\net8.0\WebDanforCS.Headless.exe'` を書く（未設定なら 0611・0621・0810・0820・0910 を含む生成は停止する。Capacita を直したら `dotnet build .\Capacita\WebDanforCS\Headless\WebDanforCS.Headless.csproj -c Release` を structural-mcp のルートで）。0711・0721 の耐震性能照査は Aggre-SE の Headless runner（`run --snap-map`、ADR-0009、`webpier/pipeline/aggrese.py`）で行い、`.env` に `STRUCTURAL_MCP_AGGRESE_RUNNER='<Batch>\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe'` を書く（未設定なら 0711・0721・0800・0810・0820・0900・0910 を含む生成は停止する。Batch は Visual Studio の MSBuild でビルドする）。テストは `tests/conftest.py` が4つの代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
@@ -95,7 +96,10 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 
 - WebPier 側で回避しない。モンキーパッチ、ライブラリのコードの複製・同梱、内部APIへの依存、WebPier 内だけの代替実装などで済ませることは禁止。
 - GridLayoutPdf を修正するときは、そのrepoの `AGENTS.md` から辿れる規則（`.claude/rules/` など）に従い、そのrepoのテストも通す。
-- 修正後は上記の `uv sync ... --reinstall-package gridlayoutpdf` で WebPier に取り込み直す（同じversion番号のままでは置き換わらないことがある）。
+- GridLayoutPdf は `pyproject.toml` の `[tool.uv.sources]` の git 参照（`rev` は commit の完全な SHA）で入る。structural-mcp の submodule として clone した PC でも同じ版になるように、手元のパスの参照に戻さない。
+- 修正中に WebPier で試すときは、上記の `uv pip install ... --reinstall` で手元の作業ツリーを venv に入れ、`uv run --project "." --no-sync ...` で実行する。`--locked` を付けた実行（品質ゲートを含む）は venv を lock の git の版に戻す。
+- 取り込むときは、GridLayoutPdf で commit して push し、`rev` をその commit の完全な SHA に変えて `uv lock --project "."` と `uv sync --project "." --locked` を行い、品質ゲートを通してから `pyproject.toml` と `uv.lock` を一緒に commit する。push していない commit を `rev` にしない（clone した PC で `uv sync --locked` が通らない）。
+- uv の git の取り出しは git の `core.autocrlf` に従うので、インストールされる GridLayoutPdf のファイルの改行は PC の git の設定で変わり、`dependency_hashes`（`implementation_sha256`）の値も変わりうる。中身は同じなので PDF のバイトは変わらない。
 - 橋脚固有の内容（計算、帳票の項目や文言、WebPier 用の帳票構成）は WebPier 側に置き、GridLayoutPdf へ持ち込まない。
 
 ## FEMPython の責務は FEMPython 側で直す

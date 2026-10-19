@@ -253,27 +253,10 @@ wheels = [
 [[package]]
 name = "gridlayoutpdf"
 version = "0.1.0"
-source = { directory = "../../GridLayoutPdf" }
+source = { git = "https://github.com/sasaco/grid_layout_pdf?rev=a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f#a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f" }
 dependencies = [
     { name = "pillow" },
     { name = "reportlab" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pillow", specifier = ">=9.0.0" },
-    { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.28.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.1.0" },
-    { name = "reportlab", specifier = ">=5.0.1" },
-]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pymupdf", specifier = ">=1.28.2" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
 ]
 
 [[package]]
@@ -567,7 +550,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gridlayoutpdf", directory = "../../GridLayoutPdf" },
+    { name = "gridlayoutpdf", git = "https://github.com/sasaco/grid_layout_pdf?rev=a8c52284a248ecf1f0a12013fa0ca597c9e0ab5f" },
     { name = "openpyxl", specifier = ">=3.1,<4" },
     { name = "pymupdf", specifier = ">=1.24,<2" },
     { name = "pypdf", specifier = ">=5,<7" },
