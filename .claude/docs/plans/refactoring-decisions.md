@@ -239,7 +239,7 @@
 56. 耐震性能照査（CONTEXT.md）を 0711・0721 で行い、Aggre-SE の帳票そのものをそれぞれの計算書にする（ADR-0009）。見本は `.claude/docs/Example橋脚2/10_線路(耐震).pdf` の 13〜26 ページ（10.5 応答値の算定・10.6 応答値一覧表）、`11_直角(耐震).pdf` の 14〜27 ページ。決定49の「Aggre-SE の runner を呼んで計算書に差し込むことは後の決定」をこれで決める（owner 2026-10-19）。
    - 計算書：`output/0711_線路方向非線形解析.pdf`・`output/0721_線路直角方向非線形解析.pdf` は、Aggre-SE の runner（structural-mcp の `Batch`、`AggreSE.Headless.exe run`）が返した `report.pdf` のバイト列そのもの。WebPier は見出し・節の番号（見本の 10.5・10.6）・「Case1 ← ρm=1.0, αf=1.0」を足さず、ページの選択・並べ替え・回転もしない。Aggre-SE の1ページ目の見出しは DB1 の `KihonInfo.Title`（NDU の題名）と DB1 の名前のまま。見本にない安全率一覧表もそのまま入る。見本の Case ごとの設計総括表・直接基礎の照査（10-20・21）と、JRSNAP の地盤反力分布図・直接基礎底面回転ばねの算定値（10-22・23。JRSNAP の基礎照査の出力）は入らない。
    - 呼び出し：同じ生成でステージングした XML と JRSNAP のフォルダーを、`run --input <XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx false --report-pdf true --check-tables false --pik false --pile-anchor-bar-pdf false` で計算させる。snap map は XML の `SnapDBPath` の各 Case を XML のフォルダーから解決した DB1 の絶対パス。runner は DB1 のフォルダーに何も書かない（2026-10-19 に確認）。runner は `.env`（またはプロセスの環境変数）の `STRUCTURAL_MCP_AGGRESE_RUNNER`（structural-mcp と同じ名前）。未設定・起動できない・`ok: false`・Case のどれかが集計されない・成果物が `result.json` と `report.pdf` でない・PDF が読めないときは、生成全体を止めて何も公開しない（JRSNAP のフォルダーと XML も）。新しい段階やスイッチは作らず、`--nonlinear-analysis` の選択式のまま。
-   - 記録：結果JSON（`output/0711_線路方向非線形解析.json`）は計算の結果を持たず（`result: null`）、`seismic_check` に runner の `engineVersion`、`engineering_status: not_evaluated`、Case ごとの名前と集計の有無、使った XML と JRSNAP のフォルダーの SHA256 を記録する。照査値・OK/NG は記録しない（runner が返さない。判定は計算書で見る。ADR-0008 の Capacita と同じ）。NG でも生成は止めない。XML の付帯JSONには計算書と runner の版を記録し、決定49の `app_read_verified`・`seismic_check_run` は除く（同じ生成で Aggre-SE が読んで計算するため）。`summary.xlsx` は作らせず公開しない（総括表は PDF に入る）。PDF のバイトの決定性は求めない。
+   - 記録：結果JSON（`output/0711_線路方向非線形解析.json`）は計算の結果を持たず（`result: null`）、`seismic_check` に runner の `engineVersion`、`engineering_status: not_evaluated`、Case ごとの名前と集計の有無、使った XML と JRSNAP のフォルダーの SHA256 を記録する。照査値・OK/NG は記録しない（runner が返さない。判定は計算書で見る。ADR-0008 の Capacita と同じ）。NG でも生成は止めない。XML の付帯JSONには計算書と runner の版を記録し、決定49の `app_read_verified`・`seismic_check_run` は除く（同じ生成で Aggre-SE が読んで計算するため）。~~`summary.xlsx` は作らせず公開しない（総括表は PDF に入る）~~ → 決定58で `post/線路方向_Aggre-SE.xlsx` に公開する。PDF のバイトの決定性は求めない。
    - 既知の差（決定49のまま、owner 2026-10-19）：`_Output_Chokukiso.csv` がないので、直接基礎の照査の抵抗側（Rvd など）は Aggre-SE が DB1 から求めた値で、見本と違う（0711 の Rvd 106418.6／見本 86173.5）。作用側は一致する。この値のまま計算書に印刷する。Df・γ2 の差と JRSNAP の基礎照査との差の切り分け、NDU への `CHOKU_KISO` の追加は別の決定で扱う。
    - テストと受入：通常のテストは4つ目の代役の runner（Aggre-SE）で、引数と snap map、envelope の検証、PDF をバイト列のまま公開すること、結果JSON、失敗・未設定で何も公開しないことを確かめる。受入は `scripts/accept_aggrese_report.py` で、本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、Case ごとの Kheq・δeq・μ・δr（復旧性・安全性）とページ数を `tests/fixtures/acceptance/aggrese_report/record.json` に記録する。線路方向は見本 10-14 と比べ（試行で Kheq 0.368・δeq 30.5・μ 9.32/5.78・δr 284.3/176.3 が一致）、線路直角方向は風荷重の差（決定12・35）があるので記録だけにする。
 
@@ -247,6 +247,11 @@
    - 中身：Aggre-SE（Batch `reports/ExcelReportPickUpFile.vb`）が書いたバイト列のまま。Shift-JIS・CRLF、先頭行 `Batch ver1.0.0`、行の書式は FEMPython の PIK と同じ。ピックアップは Batch の既定（`Option_PickUpFileCase = 0`）の3つで、1＝L1地震動、2＝復旧性L2地震動、3＝安全性L2地震動。どれも全 Case の各着目点の最大・最小で、Case ごとに分けない（0721 は2 Case を1つに包絡）。同じ入力で毎回同じバイト（2026-10-19 に確認）。
    - 使い道：公開するだけで、WebPier は中身を読まない（Capacita などでの地震時の照査は別の決定）。付帯JSONは runner の版、計算書、使った XML と JRSNAP のフォルダーの SHA256、ピックアップの番号の意味（プログラムの定数）を記録する。結果JSONの `seismic_check` にも PIK のファイル名と SHA256 を加える。
    - 失敗：runner が PIK を返さない・成果物の一覧と違うときは、生成全体を止めて何も公開しない。受入（`scripts/accept_aggrese_report.py`）は PIK の SHA256 と行数も記録する。
+
+58. 0711・0721 は、同じ Aggre-SE の runner の呼び出しに `--summary-xlsx true` も足し、返った総括表（`summary.xlsx`）を `post/線路方向_Aggre-SE.xlsx`・`post/線路直角方向_Aggre-SE.xlsx` に、付帯JSON付きで同じ一括公開に入れる（owner 2026-10-19）。決定56の「`summary.xlsx` は作らせず公開しない」を改める。
+   - 中身：Aggre-SE が返したバイト列のまま。シートは応答値一覧表・設計総括表・安全率一覧表・直接基礎の4枚で、計算書の最後の4ページと同じ内容。WebPier は中身を読まず、xlsx（zip）であることだけを確かめる。
+   - 決定性：同じ入力でも毎回バイトが変わる（Excel の文書 ID の GUID と更新日時。2026-10-19 に確認）。計算書の PDF と同じく Aggre-SE の責務とし、受入は SHA256 ではなくシート名の並びを記録する。
+   - 付帯JSON・結果JSON・失敗は決定57の PIK と同じ。結果JSONの `seismic_check.files` に、公開したファイル（PIK・総括表）の名前と SHA256 を種類ごとに記録する。
 
 ## 実装メモ（決定から導いたもの）
 

@@ -85,7 +85,7 @@ class CalculationPage:
         self.frame_analysis_box.pack(anchor="w", pady=(6, 0))
         self.nonlinear_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.nonlinear_analysis)
         seismic = [stage.id for stage in registry.stages if stage.seismic_check is not None]
-        seismic_check = (f"。{'・'.join(seismic)} は Aggre-SE で耐震性能照査も行い、ピックアップ（PIK）を post に出力（決定56・57）"
+        seismic_check = (f"。{'・'.join(seismic)} は Aggre-SE で耐震性能照査も行い、ピックアップ（PIK）と総括表（xlsx）を post に出力（決定56〜58）"
                          if seismic else "")
         self.nonlinear_analysis_box = ttk.Checkbutton(
             page, variable=self.nonlinear_analysis, command=self._analysis_changed,

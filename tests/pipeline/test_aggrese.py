@@ -2,8 +2,8 @@
 
 The runner is found from STRUCTURAL_MCP_AGGRESE_RUNNER (environment, then .env; the name structural-mcp uses) and
 called as ``run`` with the project XML where it is staged and the DB1 of each Case mapped as the XML names them. Its
-envelope, its three files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report
-and the pickup are returned as they are (decisions 56, 57). Every case uses the stand-in of
+envelope, its four files and the Cases it aggregated are checked as the Aggre-SE runner's README states; the report
+and the files published under post/ are returned as they are (decisions 56〜58). Every case uses the stand-in of
 tests/fixtures/aggrese/fake_runner.py (tests/conftest.py); the real runner is accepted by
 scripts/accept_aggrese_report.py.
 """
@@ -11,7 +11,9 @@ scripts/accept_aggrese_report.py.
 from __future__ import annotations
 
 import hashlib
+import io
 from pathlib import Path
+import zipfile
 
 import pymupdf
 import pytest
@@ -101,8 +103,11 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
                        for number, name in enumerate(NAMES, 1)),
                      f"FAKE AGGRESE SUMMARY {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}"]
     assert checked.pages == {SEISMIC_CHECK: checked.pdf}
-    assert checked.pik == (f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}\r\n"
-                           .encode("cp932"))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    assert sorted(checked.files) == ["pik", "xlsx"]
+    assert checked.files["pik"] == f"Batch ver1.0.0\r\nFAKE PIK {digest}\r\n".encode("cp932")
+    with zipfile.ZipFile(io.BytesIO(checked.files["xlsx"])) as workbook:
+        assert workbook.read("fake.txt") == f"FAKE XLSX {digest}".encode()
     assert sorted(path.name for path in (tmp_path / FOLDER).iterdir()) == sorted(NAMES)
 
 
@@ -110,8 +115,10 @@ def test_the_stand_in_checks_each_case_the_project_names(tmp_path: Path, fake_ag
     ("fail", "CALCULATION_FAILED: 集計できませんでした。"),
     ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
     ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
-    ("artifacts", "成果物が結果・計算書・ピックアップの3つではありません"),
-    ("nopik", "成果物が結果・計算書・ピックアップの3つではありません"),
+    ("artifacts", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
+    ("nopik", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
+    ("noxlsx", "成果物が結果・計算書・ピックアップ・総括表の4つではありません"),
+    ("notzip", r"総括表が xlsx（zip）ではありません"),
     ("missing", "成果物 report.pdf がありません"), ("extra", "出力先のファイルが成果物の一覧と一致しません"),
     ("sha", r"report\.pdf が runner の応答の SHA256・バイト数と一致しません"),
     ("cases", r"解析ケース（summary\.cases）がありません"), ("unaggregated", "全 2 ケースが集計されていません"),

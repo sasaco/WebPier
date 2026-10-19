@@ -1,6 +1,6 @@
 ---
 name: aggrese-project
-description: Aggre-SE（structural-mcp の Batch サブモジュール、Docu-SE）のプロジェクトXML（P1_線路.xml や WebPier の post/線路方向.xml）を読む・項目を画面と対応付ける・Aggre-SE の runner で複製を inspect/run する・Aggre-SE 自身の保存し直しで書式を確かめる。XML の項目の意味、DB1 と横に置くファイル、WebPier の書出し（決定49）を直すとき、0711・0721 の計算書（Aggre-SE の report.pdf そのもの、決定56、webpier/pipeline/aggrese.py）とピックアップ post/*_Aggre-SE.pik（決定57）や見本 10.5・10.6 との対応を扱うとき、Batch の版が変わって書式を追うとき、耐震照査の入力が Aggre-SE で読めるか調べるときに使う。JRSNAP の解析そのものには使わない。
+description: Aggre-SE（structural-mcp の Batch サブモジュール、Docu-SE）のプロジェクトXML（P1_線路.xml や WebPier の post/線路方向.xml）を読む・項目を画面と対応付ける・Aggre-SE の runner で複製を inspect/run する・Aggre-SE 自身の保存し直しで書式を確かめる。XML の項目の意味、DB1 と横に置くファイル、WebPier の書出し（決定49）を直すとき、0711・0721 の計算書（Aggre-SE の report.pdf そのもの、決定56、webpier/pipeline/aggrese.py）とピックアップ・総括表 post/*_Aggre-SE.pik・.xlsx（決定57・58）や見本 10.5・10.6 との対応を扱うとき、Batch の版が変わって書式を追うとき、耐震照査の入力が Aggre-SE で読めるか調べるときに使う。JRSNAP の解析そのものには使わない。
 ---
 
 # Aggre-SE のプロジェクトXMLを扱う
@@ -71,10 +71,11 @@ runner は `Batch\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe`（使い�
 
 ## 0711・0721 の計算書とピックアップ（決定56・57）
 
-- WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx false --report-pdf true --check-tables false --pik false --pile-anchor-bar-pdf false` を呼ぶ（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。runner は DB1 のフォルダーに何も書かない（実アプリで確認）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。
+- WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx true --report-pdf true --check-tables false --pik true --pile-anchor-bar-pdf false` を呼ぶ（決定56〜58。返る成果物は result.json・report.pdf・pickup.pik・summary.xlsx の4つ）（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。runner は DB1 のフォルダーに何も書かない（実アプリで確認）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。
 - `report.pdf` の構成（実アプリで確認、Batch 5.3.0.1）：Case ごとに7ページ（荷重～変位曲線と水平震度の表、非線形応答スペクトル法の算定、変位図、M・S・N 図、損傷状況図）、続けて応答値一覧表、設計総括表（A3 横）、安全率一覧表、直接基礎の照査（A3 横）。線路方向は11ページ、線路直角方向（2 Case）は18ページ。1ページ目の見出しは DB1 の `KihonInfo.Title`（NDU の題名）と `Comment`（空なら DB1 の名前）で、`reports/PDFReport.vb` の `Create荷重変位曲線`（コードで確認）。見本 10.5・10.6 の見出しは作成者が書き込んだもので、WebPier は再現しない。
 - 帳票は毎回同じバイトにならない（同じ入力で SHA が変わった。実アプリ）。
 - ピックアップ（決定57）：同じ呼び出しを `--pik true` にすると `pickup.pik`（kind `pickup-pik`、`text/plain; charset=shift_jis`）も返り、WebPier は `post/線路方向_Aggre-SE.pik`・`post/線路直角方向_Aggre-SE.pik` にそのまま書く。書式は FEMPython の PIK と同じ行で、先頭行 `Batch ver1.0.0`、Shift-JIS・CRLF。ピックアップは `reports/ExcelReportPickUpFile.vb` の `GetPickUpFile` で、`Option_PickUpFileCase = 0`（既定）なら3つ：1＝L1地震動（`復旧性_L1震度step`）、2＝復旧性L2（`復旧性_最大応答step`）、3＝安全性L2（`安全性_最大応答step`）。どれも照査対象 ⑨断面力ピックアップ（`_解析対象(8)`）の全 Case について、ステップ 0〜そのステップの各部材の両端の M・S・N の最大・最小。`Option_PickUpFileCase > 0` だと普通地盤・液状化・応答変位法に分けた10個になる（コードで確認）。同じ入力で同じバイト（実アプリで確認）。線路方向は109行・11 KB（部材1〜6）、線路直角方向は127行・13 KB（部材1〜7）。部材の番号は JRSNAP の骨組のもので、着目点は ITAN・JTAN だけ。`post/線路方向.pik` は 0611 の FEMPython の PIK なので、名前を分けている。
+- 総括表（決定58）：`summary.xlsx`（kind `summary-xlsx`、約27 KB）。シートは応答値一覧表・設計総括表・安全率一覧表・直接基礎の4枚（計算書の最後の4ページと同じ）。zip の中の日時は 1980-01-01 で固定だが、`xl/workbook.xml` の `documentId`、各シート・図の `xr:uid`・`a16:creationId` の GUID と `docProps/core.xml` の `dcterms:modified` が毎回変わるので、同じ入力でもバイトが変わる（2026-10-19、2回作って比べた）。WebPier は `post/線路方向_Aggre-SE.xlsx` に書き、zip であることだけを確かめる。受入はシート名の並びを記録する。
 - runner の成果物は引数で決まる：`--report-pdf false --pik true` なら `result.json` と `pickup.pik` だけ、`--summary-xlsx false --report-pdf true --pik false` なら `result.json` と `report.pdf` だけ（実アプリで確認）。`summary.outputs` に作ったものの名前が並ぶ。WebPier は成果物の組（kind と relativePath）が求めたものとちょうど一致しないと止める。
 - 見本との対応（2026-10-19、見本を画像にして確認）：`10_線路(耐震).pdf` の 13〜21 ページ（10.5）は Case ごとの上の7ページと設計総括表・直接基礎の照査（A3 を A4 に回転して縮小）、22・23 ページは JRSNAP の基礎照査の出力（地盤反力分布図と「直接基礎底面回転ばねの算定値」のリスト。Aggre-SE の出力ではない）、24〜26 ページ（10.6）は応答値一覧表・設計総括表・直接基礎の照査。`11_直角(耐震).pdf` は 14〜27 ページで、見本は Case1 だけ。見本の Aggre-SE の版は古く、直接基礎の照査の見出しが「1.復旧性（性能レベル1）…3.安全性」（いまの Batch は「1.安定レベル1…3.安定レベル3」）。見本にない安全率一覧表は、いまの Batch が出す。
 - 見本の PDF は 13 ページ以降がほぼ画像で、`pdftotext` では読めない。`uv run --project . --locked --group dev python -X utf8` で `pymupdf` を使い、ページを PNG にして見る（文字の取り出しは見出しだけ）。

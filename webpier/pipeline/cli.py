@@ -41,7 +41,7 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
     result.add_argument(flag(NONLINEAR_ANALYSIS), action="store_true",
                         help=f"--stage {ALL} に選択式の段階（{'・'.join(registry.opt_in(NONLINEAR_ANALYSIS))}）を加える。"
                              "JRSNAP で静的非線形解析し、解析用データと解析結果を解析入力の出力先のフォルダーに書き、"
-                             "Aggre-SE で耐震性能照査した帳票を計算書にし、そのピックアップ（PIK）を解析入力の出力先に書く")
+                             "Aggre-SE で耐震性能照査した帳票を計算書にし、そのピックアップ（PIK）と総括表（xlsx）を解析入力の出力先に書く")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
     return result
 
@@ -58,7 +58,7 @@ def _label(role: str, registry: Registry) -> str:
     spec = registry.get(stage)
     returned = {*(dict(spec.frame_analysis.files) if spec.frame_analysis is not None else ()),
                 *((spec.nonlinear_analysis.kind,) if spec.nonlinear_analysis is not None else ()),
-                *((spec.seismic_check.kind,) if spec.seismic_check is not None else ())}
+                *(dict(spec.seismic_check.files) if spec.seismic_check is not None else ())}
     native = "解析結果" if kind in returned else "入力"
     return f"{stage} {kind}{'付帯JSON' if sidecar else native}"
 

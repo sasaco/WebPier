@@ -1,15 +1,16 @@
-"""The Aggre-SE runner: the 耐震性能照査 of 0711 and 0721 (decision 56, ADR-0009).
+"""The Aggre-SE runner: the 耐震性能照査 of 0711 and 0721 (decisions 56〜58, ADR-0009).
 
 The project XML a generation stages (export.aggrese, decision 49) and the JRSNAP folder staged beside it are given,
 where they are, to ``AggreSE.Headless.exe run`` (structural-mcp ``Batch``), with the DB1 of each Case mapped as the
 XML names them (``--snap-map``: the index of each ``SnapDBPath`` → its DB1, resolved from the XML's folder). The
 runner reads them, writes nothing beside the DB1, and returns its result (checked, not kept), its report
-(``report.pdf``), which is the stage's report as it is, and its section force pickup (``pickup.pik``), which is
-published under post/ as it is (decision 57); no summary workbook, check tables or pile anchor report is asked for.
-Every Case must be aggregated. The report's content and bytes are Aggre-SE's, so it is neither checked
-further than being a PDF nor bound to the implementation identity; the result JSON and the project's sidecar record
-the runner's ``engineVersion``. Aggre-SE returns no check values or judgement (``engineeringStatus``
-not_evaluated): the judgement is read in the report (ADR-0009).
+(``report.pdf``), which is the stage's report as it is, and the files of ``PUBLISHED``, each published under post/
+as it is by its kind: the section force pickup (``pickup.pik``, decision 57) and the summary workbook
+(``summary.xlsx``, decision 58); no check tables or pile anchor report is asked for. Every Case must be aggregated.
+The content and bytes of these files are Aggre-SE's (the report and the workbook differ between runs), so they are
+checked no further than being a PDF and a workbook (a zip) and are not bound to the implementation identity; the
+result JSON and the sidecars record the runner's ``engineVersion``. Aggre-SE returns no check values or judgement
+(``engineeringStatus`` not_evaluated): the judgement is read in the report (ADR-0009).
 
 The runner is the absolute path in ``STRUCTURAL_MCP_AGGRESE_RUNNER`` (the name structural-mcp uses): the process
 environment first, then the ``.env`` file at the repository root (not tracked). Without a runner, or when it fails,
@@ -29,6 +30,7 @@ import subprocess
 import tempfile
 from typing import Any
 import xml.etree.ElementTree as ET
+import zipfile
 
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
@@ -40,10 +42,12 @@ RUNNER_KEY = "STRUCTURAL_MCP_AGGRESE_RUNNER"
 PROTOCOL_VERSION = 1
 ENGINE = "aggrese"
 TIMEOUT = 600  # seconds
-# The report (decision 56; the summary is in it) and the pickup (decision 57); nothing else is published.
-ARGUMENTS = ("--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
+# The report (decision 56), the pickup (decision 57) and the summary workbook (decision 58).
+ARGUMENTS = ("--summary-xlsx", "true", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
              "--pile-anchor-bar-pdf", "false")
-_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), ("pickup-pik", "pickup.pik")}
+# The files published under post/, by the kind a stage publishes them as: (the runner's kind, its file name).
+PUBLISHED = {"pik": ("pickup-pik", "pickup.pik"), "xlsx": ("summary-xlsx", "summary.xlsx")}
+_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PUBLISHED.values()}
 # The pickups of the PIK, by number: Batch's default (Option_PickUpFileCase = 0, reports/ExcelReportPickUpFile.vb),
 # each the envelope of every Case up to its response step (decision 57).
 PICKUPS = {1: "L1地震動", 2: "復旧性L2地震動", 3: "安全性L2地震動"}
@@ -57,7 +61,7 @@ class _Failure(Exception):
 @dataclass(frozen=True)
 class SeismicCheckPages:
     pdf: bytes  # report.pdf as returned
-    pik: bytes  # pickup.pik as returned (Shift-JIS)
+    files: Mapping[str, bytes]  # each file of PUBLISHED as returned, by its kind
     cases: tuple[Mapping[str, Any], ...]  # the runner's summary.cases, in order
     engine_version: str
 
@@ -151,7 +155,7 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         if (not isinstance(artifacts, list) or len(artifacts) != len(_FILES)
                 or not all(isinstance(item, dict) for item in artifacts)
                 or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != _FILES):
-            raise _Failure(f"runner の成果物が結果・計算書・ピックアップの3つではありません（{artifacts!r}）")
+            raise _Failure(f"runner の成果物が結果・計算書・ピックアップ・総括表の4つではありません（{artifacts!r}）")
         files: dict[str, bytes] = {}
         for item in artifacts:
             path = output / item["relativePath"]
@@ -172,11 +176,14 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         raise _Failure(f"計算書の PDF を読めません（{exc}）") from exc
     if not pages:
         raise _Failure("計算書の PDF にページがありません")
-    return SeismicCheckPages(pdf, files["pickup.pik"], cases, version)
+    if not zipfile.is_zipfile(BytesIO(files["summary.xlsx"])):
+        raise _Failure("総括表が xlsx（zip）ではありません")
+    return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in PUBLISHED.items()}, cases, version)
 
 
 def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT) -> SeismicCheckPages:
-    """Aggre-SE's report and pickup for the project XML at *project* and the DB1 it names (decisions 56, 57)."""
+    """Aggre-SE's report and published files for the project XML at *project* and the DB1 it names
+    (decisions 56〜58)."""
     try:
         return _run(Path(project), runner, timeout)
     except _Failure as exc:

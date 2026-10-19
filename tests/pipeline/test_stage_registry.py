@@ -37,7 +37,7 @@ def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINE
                      seismic_check=seismic_check)
 
 
-PIK = SeismicCheck("pik", "x_Aggre-SE.pik")
+PIK = SeismicCheck((("pik", "x_Aggre-SE.pik"), ("xlsx", "x_Aggre-SE.xlsx")))
 
 
 def project(kind="aggrese", file_name="x.xml"):
@@ -121,7 +121,8 @@ def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
     for stage_id, source, folder in (("0711", "0710", "線路方向_JRSNAP"), ("0721", "0720", "線路直角方向_JRSNAP")):
         stage = STAGES.get(stage_id)
         assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (True, None, (), None)
-        assert stage.seismic_check == SeismicCheck("pik", folder.removesuffix("_JRSNAP") + "_Aggre-SE.pik")
+        stem = folder.removesuffix("_JRSNAP")
+        assert stage.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")))
         assert stage.section_check is None and stage.jrsnap_figures is None
         analysis = stage.nonlinear_analysis
         assert (analysis.stage, analysis.export, analysis.kind, analysis.folder) == (source, "jrsnap", "jrsnap", folder)
@@ -197,11 +198,14 @@ def test_get_returns_the_spec():
     ((spec("A", exports=NDU), solving("B", "A", project=project(), seismic_check=PIK)),
      "Bの耐震性能照査の計算書がありません"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
-                                      seismic_check=SeismicCheck("pik", "x.ndu"))),
+                                      seismic_check=SeismicCheck((("pik", "x.ndu"), ("xlsx", "x.xlsx"))))),
      "出力ファイル名が重複しています: x.ndu"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
-                                      seismic_check=SeismicCheck("aggrese", "y.pik"))),
-     "Bの出力の種類が重複しています: aggrese"),
+                                      seismic_check=SeismicCheck((("pik", "y.pik"),)))),
+     "Bの耐震性能照査の出力は pik・xlsx です"),
+    ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
+                                      seismic_check=SeismicCheck((("pik", "y.pik"), ("aggrese", "y.xlsx"))))),
+     "Bの耐震性能照査の出力は pik・xlsx です"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path)),
      "Bの計算書には計算が必要です"),  # only Aggre-SE's report needs no calculation (decision 56)
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),

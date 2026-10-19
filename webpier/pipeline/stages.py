@@ -20,7 +20,8 @@ A stage may have no report (no ``render``, and then no result JSON) and publish 
 returned file as one folder under post/ (decision 47), and may write beside it the Aggre-SE project that reads those
 results (decision 49). A stage with ``seismic_check`` (0711, 0721) also has Aggre-SE check with that project and
 those results: its report is Aggre-SE's report as it is, which its ``render`` receives, and it needs no calculation
-(decision 56, ADR-0009); Aggre-SE's section force pickup is published under post/ as it is (decision 57). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
+(decision 56, ADR-0009); Aggre-SE's section force pickup and summary workbook are published under post/ as they
+are (decisions 57, 58). A stage with ``section_check`` (0611, 0621) also has Capacita check the column bottom with
 the PIK of its own frame analysis (decision 48, ADR-0008): its ``render`` receives Capacita's pages of each section
 by the section's id (none for a section Capacita skipped), and the completed WDJ is published under post/. A stage with ``complete`` (0612, 0622) finishes its result
 with the files of its frame analysis (the 基礎の照査 reads the support reactions, decision 54): ``calculate`` gives
@@ -72,6 +73,7 @@ from ..reporting.stages.seismic_check import render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
+from .aggrese import PUBLISHED as AGGRESE_FILES
 from .fempython import ANALYSIS_FILES, support_reactions
 
 Results = Mapping[str, Any]
@@ -167,14 +169,14 @@ class NonlinearAnalysis:
 
 @dataclass(frozen=True)
 class SeismicCheck:
-    """Aggre-SE checks with the project of the stage's nonlinear analysis (decisions 56, 57, ADR-0009).
+    """Aggre-SE checks with the project of the stage's nonlinear analysis (decisions 56〜58, ADR-0009).
 
-    Its report is the stage's report as it is; its section force pickup (PIK) is published under post/ as ``kind``,
-    with a provenance sidecar naming the project, the folder and the meaning of each pickup.
+    Its report is the stage's report as it is; each of its other files (pipeline.aggrese.PUBLISHED: the section force
+    pickup "pik", the summary workbook "xlsx") is published under post/ as it is, by its kind, with a provenance
+    sidecar naming the project and the folder (and, for the pickup, the meaning of each pickup).
     """
 
-    kind: str  # "pik"
-    file_name: str  # e.g. "線路方向_Aggre-SE.pik"
+    files: tuple[tuple[str, str], ...]  # (kind, file name) of each file, e.g. ("pik", "線路方向_Aggre-SE.pik")
 
 
 @dataclass(frozen=True)
@@ -281,7 +283,9 @@ class Registry:
                     raise ValueError(f"{stage.id}の耐震性能照査には静的非線形解析と Aggre-SE のプロジェクトが必要です")
                 if not stage.has_report:
                     raise ValueError(f"{stage.id}の耐震性能照査の計算書がありません")
-                outputs.append((seismic.kind, seismic.file_name))
+                if sorted(kind for kind, _ in seismic.files) != sorted(AGGRESE_FILES):
+                    raise ValueError(f"{stage.id}の耐震性能照査の出力は {'・'.join(AGGRESE_FILES)} です")
+                outputs += seismic.files
             for dependency in stage.depends_on:
                 if self.get(dependency).opt_in not in ("", stage.opt_in):
                     raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、同じスイッチ"
@@ -390,6 +394,11 @@ def _seismic_check(results: Results, pier: PierInput, path: Any, pages: Mapping[
     return render_seismic_check(path, pages)
 
 
+def _aggrese_files(stem: str) -> SeismicCheck:
+    """The pickup and the summary workbook of Aggre-SE's check, beside ``<stem>.xml`` (decisions 57, 58)."""
+    return SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")))
+
+
 def _pickups(stem: str) -> tuple[tuple[str, str], ...]:
     """The files of a frame analysis of ``<stem>.json`` (decision 46)."""
     return (("pik", f"{stem}.pik"), ("displacement", f"{stem}_ピックアップ変位量.csv"),
@@ -462,7 +471,7 @@ STAGES = Registry((
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
                   Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
-              seismic_check=SeismicCheck("pik", "線路方向_Aggre-SE.pik")),
+              seismic_check=_aggrese_files("線路方向")),
     StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
               lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
                                                                  results["0620"]),
@@ -474,5 +483,5 @@ STAGES = Registry((
               nonlinear_analysis=NonlinearAnalysis(
                   "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
                   Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
-              seismic_check=SeismicCheck("pik", "線路直角方向_Aggre-SE.pik")),
+              seismic_check=_aggrese_files("線路直角方向")),
 ))

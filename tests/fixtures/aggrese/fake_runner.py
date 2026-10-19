@@ -10,14 +10,17 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
 - ``report.pdf``: one page per Case saying ``FAKE AGGRESE Case<n> <SHA256 of its DB1, 16 hex>``, then one
   page ``FAKE AGGRESE SUMMARY <SHA256 of the XML, 16 hex>``;
 - ``pickup.pik``: ``Batch ver1.0.0`` and one line ``FAKE PIK <SHA256 of the XML, 16 hex>``, in Shift-JIS with CRLF;
+- ``summary.xlsx``: a zip with one member ``fake.txt`` saying ``FAKE XLSX <SHA256 of the XML, 16 hex>`` (dated
+  1980-01-01, so the stand-in's bytes are the same each run; the real workbook's are not);
 - ``result.json``: ``{"command": "run", "cases": [...]}``;
 and ``summary.cases`` lists each Case (caseNumber from 1, the DB1 name without its suffix, selected and aggregated).
 
 When the real runner's protocol changes, change this too. ``FAKE_AGGRESE`` makes it misbehave, for the error tests:
 fail, exit, text, list, protocol, engine, version, artifacts (one artifact listed twice), missing (report.pdf not
-written), nopik (no pickup.pik returned), sha (report.pdf's SHA256 wrong), extra (an unlisted file), cases (no summary.cases), unaggregated (the
-first Case not aggregated), broken (report.pdf is not a PDF), empty (report.pdf has no page), write (a file written
-beside the DB1).
+written), nopik (no pickup.pik returned), noxlsx (no summary.xlsx returned), notzip (summary.xlsx is not a zip), sha
+(report.pdf's SHA256 wrong), extra (an unlisted file), cases (no summary.cases), unaggregated (the first Case not
+aggregated), broken (report.pdf is not a PDF), empty (report.pdf has no page), write (a file written beside the
+DB1).
 """
 
 import hashlib
@@ -27,11 +30,12 @@ import os
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
+import zipfile
 
 from pypdf import PdfWriter
 from reportlab.pdfgen import canvas
 
-SWITCHES = ["--summary-xlsx", "false", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
+SWITCHES = ["--summary-xlsx", "true", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
             "--pile-anchor-bar-pdf", "false"]
 
 
@@ -55,6 +59,13 @@ def report(lines):
         page.drawString(60, 780, line)
         page.showPage()
     page.save()
+    return stream.getvalue()
+
+
+def workbook(text):
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(zipfile.ZipInfo("fake.txt", (1980, 1, 1, 0, 0, 0)), text)
     return stream.getvalue()
 
 
@@ -104,21 +115,26 @@ def main(argv):
              for number, path in enumerate(databases, 1)]
     result = json.dumps({"command": "run", "cases": cases}, ensure_ascii=False).encode("utf-8")
     pik = f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(data).hexdigest()[:16]}\r\n".encode("cp932")
+    xlsx = b"not a zip" if mode == "notzip" else workbook(f"FAKE XLSX {hashlib.sha256(data).hexdigest()[:16]}")
     output.mkdir(parents=True, exist_ok=True)
     artifacts = []
     files = [("result-json", "application/json", "result.json", result),
              ("report-pdf", "application/pdf", "report.pdf", pdf),
-             ("pickup-pik", "text/plain; charset=shift_jis", "pickup.pik", pik)]
-    for kind, media, name, content in files[:2] if mode == "nopik" else files:
+             ("pickup-pik", "text/plain; charset=shift_jis", "pickup.pik", pik),
+             ("summary-xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "summary.xlsx",
+              xlsx)]
+    dropped = {"nopik": "pickup.pik", "noxlsx": "summary.xlsx"}.get(mode)
+    for kind, media, name, content in (file for file in files if file[2] != dropped):
         if not (mode == "missing" and name == "report.pdf"):
             (output / name).write_bytes(content)
         artifacts.append({"kind": kind, "mediaType": media, "relativePath": name, "bytes": len(content),
                           "sha256": hashlib.sha256(b"other" if mode == "sha" and name == "report.pdf"
                                                    else content).hexdigest()})
     if mode == "extra":
-        (output / "summary.xlsx").write_bytes(b"x")
+        (output / "unlisted.txt").write_bytes(b"x")
     summary = {"command": "run", "inputVersion": "5.3.0.1", "productStyle": 1, "cases": cases,
-               "spectralDuctility": [], "outputs": ["report.pdf", "pickup.pik"], "warnings": []}
+               "spectralDuctility": [], "outputs": ["summary.xlsx", "report.pdf", "pickup.pik"],
+               "warnings": []}
     if mode == "cases":
         del summary["cases"]
     changes = {"protocol": {"protocolVersion": 2}, "engine": {"engine": "webdan2"}, "version": {"engineVersion": ""},

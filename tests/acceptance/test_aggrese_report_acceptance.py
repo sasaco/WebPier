@@ -70,9 +70,19 @@ def test_aggre_se_returned_the_pickup_of_the_three_earthquakes(stage):
     """Decision 57: Batch's default pickups 1 L1, 2 restorability L2, 3 safety L2, each the envelope of every Case."""
     direction = RECORD["directions"][stage]
     pik = direction["pik"]
-    assert pik["file"] == STAGES.get(stage).seismic_check.file_name
-    assert direction["seismic_check"]["pik"] == {"file": pik["file"], "sha256": pik["sha256"]}
+    assert pik["file"] == dict(STAGES.get(stage).seismic_check.files)["pik"]
+    assert direction["seismic_check"]["files"]["pik"] == {"file": pik["file"], "sha256": pik["sha256"]}
     assert (pik["header"], pik["pickups"]) == ("Batch ver1.0.0", [1, 2, 3])
+
+
+@pytest.mark.parametrize("stage", STAGES_ACCEPTED)
+def test_aggre_se_returned_the_summary_workbook_of_the_report(stage):
+    """Decision 58: the workbook's sheets are the last four pages of the report; its bytes differ each run."""
+    direction = RECORD["directions"][stage]
+    xlsx = direction["xlsx"]
+    assert xlsx["file"] == dict(STAGES.get(stage).seismic_check.files)["xlsx"]
+    assert direction["seismic_check"]["files"]["xlsx"]["file"] == xlsx["file"]
+    assert xlsx["sheets"] == ["応答値一覧表", "設計総括表", "安全率一覧表", "直接基礎"]
 
 
 def test_the_longitudinal_response_is_example2s():

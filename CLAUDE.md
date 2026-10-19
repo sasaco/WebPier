@@ -19,7 +19,7 @@ uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 050
 # 0611・0621 はそのピックアップで柱の断面照査も Capacita で行い、計算書（8.5〜8.9・9.5〜9.9）と post/線路方向.wdj・post/線路直角方向.wdj を出力する（決定48）
 # 0612・0622 は同じ解析の支点反力で基礎の照査を WebPier で行い、計算書（8.10・9.10）を出力する（決定54）
 uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
-# 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）。その XML で Aggre-SE の runner が照査した report.pdf をバイト列のまま 0711・0721 の計算書にし（決定56、ADR-0009。見出しや節の番号は足さない）、同じ呼び出しのピックアップを post/線路方向_Aggre-SE.pik・post/線路直角方向_Aggre-SE.pik に出力する（決定57）
+# 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）。その XML で Aggre-SE の runner が照査した report.pdf をバイト列のまま 0711・0721 の計算書にし（決定56、ADR-0009。見出しや節の番号は足さない）、同じ呼び出しのピックアップと総括表を post/線路方向_Aggre-SE.pik・.xlsx（線路直角方向も同じ）に出力する（決定57・58）
 uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite
 # run_design.py は python -m webpier と同じ
 

@@ -2,7 +2,7 @@
 (decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
 analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU, with the Aggre-SE project
 that reads it (decision 49), the reports of 0711 and 0721, which are the stand-in Aggre-SE runner's (decision 56),
-and its pickups (decision 57)."""
+and its pickups and summary workbooks (decisions 57, 58)."""
 
 from __future__ import annotations
 
@@ -191,8 +191,9 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
         # Decision 56: the report is the stand-in Aggre-SE runner's, one page per Case and a summary page.
         with pymupdf.open(stream=output[f"{reports[stage]}.pdf"], filetype="pdf") as document:
             pages = [page.get_text().strip() for page in document]
-        assert pages == [*(f"FAKE AGGRESE Case{case} {sha256(post[f'{folder}/{stem}(Case{case}_ρm10_αf1_正向).DB1'])[:16]}"
-                           for case in cases), f"FAKE AGGRESE SUMMARY {sha256(post[project])[:16]}"]
+        databases = [post[f"{folder}/{stem}(Case{case}_ρm10_αf1_正向).DB1"] for case in cases]
+        assert pages == [*(f"FAKE AGGRESE Case{case} {sha256(database)[:16]}" for case, database in zip(cases, databases)),
+                         f"FAKE AGGRESE SUMMARY {sha256(post[project])[:16]}"]
         result = load_json(output[f"{reports[stage]}.json"])
         assert result["result"] is None
         assert result["seismic_check"] == {
@@ -201,12 +202,17 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
                       for case in cases],
             "project": {"file": project, "sha256": sha256(post[project])},
             "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)},
-            "pik": {"file": f"{stem}_Aggre-SE.pik", "sha256": sha256(post[f"{stem}_Aggre-SE.pik"])}}
+            "files": {kind: {"file": f"{stem}_Aggre-SE.{kind}", "sha256": sha256(post[f"{stem}_Aggre-SE.{kind}"])}
+                      for kind in ("pik", "xlsx")}}
         # Decision 57: Aggre-SE's pickup beside the folder, as the stand-in returned it, with its sidecar.
         assert post[f"{stem}_Aggre-SE.pik"] == f"Batch ver1.0.0\r\nFAKE PIK {sha256(post[project])[:16]}\r\n".encode()
         sidecar = load_json(post[f"{stem}_Aggre-SE.pik.provenance.json"])
         assert (sidecar["stage"], sidecar["export"]) == (stage, "pik")
         assert sidecar["seismic_check"]["pickups"] == {"1": "L1地震動", "2": "復旧性L2地震動", "3": "安全性L2地震動"}
+        # Decision 58: Aggre-SE's summary workbook beside it the same way.
+        sidecar = load_json(post[f"{stem}_Aggre-SE.xlsx.provenance.json"])
+        assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (
+            stage, "xlsx", sha256(post[f"{stem}_Aggre-SE.xlsx"]))
 
 
 @pytest.mark.parametrize("key", ["地域別", "地盤区分"])
