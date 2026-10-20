@@ -1,7 +1,10 @@
 """0600 superstructure reactions and pier self weight.
 
 ``calculate_reaction`` returns every value the 0600 report prints and that the
-later stages (0610, 0620, 0710, 0720) take over, as Printed values.
+later stages (0610, 0620, 0710, 0720) take over, as Printed values. With a load
+model (decision 70) ``calculate_dead_reaction`` gives the dead loads D1 and D2 and
+the self weight only: the train, the snow and the forces of the girders are the
+load model's, and the input does not have them.
 """
 
 from __future__ import annotations
@@ -10,7 +13,7 @@ from dataclasses import dataclass
 
 from ...core.errors import InputError
 from ...inputs import PierInput
-from .dead import DeadResult, calculate_dead
+from .dead import DeadLoadsResult, DeadResult, calculate_dead, calculate_dead_loads
 from .longitudinal import LongitudinalResult, calculate_longitudinal
 from .self_weight import SelfWeightResult, calculate_self_weight
 from .train import TrainResult, calculate_train
@@ -26,6 +29,27 @@ class ReactionResult:
     transverse: TransverseResult  # transverse forces, heights and moments at B and C
 
 
+def _too_large(exc: Exception) -> InputError:
+    return InputError(f"0600: 入力が大きすぎるため計算できません（{exc}）")
+
+
+@dataclass(frozen=True)
+class DeadReactionResult:
+    """0600 with a load model (decision 70)."""
+
+    dead: DeadLoadsResult  # D1 and D2 at A..D and at each bearing
+    self_weight: SelfWeightResult
+
+
+def calculate_dead_reaction(pier: PierInput) -> DeadReactionResult:
+    try:
+        return DeadReactionResult(dead=calculate_dead_loads(pier), self_weight=calculate_self_weight(pier))
+    except InputError:
+        raise
+    except (ArithmeticError, ValueError) as exc:
+        raise _too_large(exc) from exc
+
+
 def calculate_reaction(pier: PierInput) -> ReactionResult:
     try:
         dead = calculate_dead(pier)
@@ -39,7 +63,7 @@ def calculate_reaction(pier: PierInput) -> ReactionResult:
     except InputError:
         raise
     except (ArithmeticError, ValueError) as exc:
-        raise InputError(f"0600: 入力が大きすぎるため計算できません（{exc}）") from exc
+        raise _too_large(exc) from exc
 
 
-__all__ = ["ReactionResult", "calculate_reaction"]
+__all__ = ["DeadReactionResult", "ReactionResult", "calculate_dead_reaction", "calculate_reaction"]

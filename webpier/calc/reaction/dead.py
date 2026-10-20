@@ -3,6 +3,9 @@
 The origin girder rests on A (far end) and B (this pier); the end girder on C
 (this pier) and D (far end). B and C are summed from their bearing slots; A and
 D are entered as totals. Printed digits follow Example2 07 7-1/7-3.
+
+With a load model (decision 70) the snow and the train shares are the load model's: ``calculate_dead_loads`` gives
+D1 and D2 alone, in the same shape.
 """
 
 from __future__ import annotations
@@ -84,3 +87,42 @@ def calculate_dead(pier: PierInput) -> DeadResult:
     origin = _girder(reactions.a, reactions.b)
     end = _girder(reactions.d, reactions.c)
     return DeadResult(origin=origin, end=end)
+
+
+@dataclass(frozen=True)
+class DeadLoads:
+    """D1 and D2 at one support (decision 70)."""
+
+    d1: Printed
+    d2: Printed
+
+
+@dataclass(frozen=True)
+class BearingDead:
+    slot: int  # index of the input slot (0..9); empty slots are skipped
+    bearing: Bearing  # the entered position and dead loads
+
+
+@dataclass(frozen=True)
+class GirderDeadLoads:
+    far: DeadLoads  # A or D, entered totals
+    pier: DeadLoads  # B or C, sums of the bearings
+    bearings: tuple[BearingDead, ...]
+
+
+@dataclass(frozen=True)
+class DeadLoadsResult:
+    origin: GirderDeadLoads
+    end: GirderDeadLoads
+
+
+def _girder_dead(far: EndReaction, slots: tuple[Bearing | None, ...]) -> GirderDeadLoads:
+    bearings = tuple(BearingDead(index, bearing) for index, bearing in enumerate(slots) if bearing is not None)
+    pier = DeadLoads(*(put(FORCE, total(getattr(item.bearing, field) for item in bearings)) for field in ("d1", "d2")))
+    return GirderDeadLoads(far=DeadLoads(far.d1, far.d2), pier=pier, bearings=bearings)
+
+
+def calculate_dead_loads(pier: PierInput) -> DeadLoadsResult:
+    """D1 and D2 at the four supports, without the snow and the train shares (decision 70)."""
+    reactions = pier.reactions
+    return DeadLoadsResult(origin=_girder_dead(reactions.a, reactions.b), end=_girder_dead(reactions.d, reactions.c))

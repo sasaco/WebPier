@@ -47,9 +47,9 @@ class Span:
     l1: Printed
     span: Printed
     l2: Printed
-    impact: Printed
-    radius: Printed
-    speed: Printed
+    impact: Printed | None  # None with a load model (decision 70), like radius and speed
+    radius: Printed | None
+    speed: Printed | None
     heights: dict[int, Printed]
     hs: Printed
     f: Printed
@@ -101,10 +101,10 @@ class Bearing:
     position: Printed
     d1: Printed
     d2: Printed
-    snow2: Printed
-    snow10: Printed
-    snow30: Printed
-    shares: Shares
+    snow2: Printed | None  # None with a load model (decision 70), like the snow loads after it and the shares
+    snow10: Printed | None
+    snow30: Printed | None
+    shares: Shares | None
 
 
 @dataclass(frozen=True)
@@ -113,9 +113,9 @@ class EndReaction:
 
     d1: Printed
     d2: Printed
-    snow2: Printed
-    snow10: Printed
-    snow30: Printed
+    snow2: Printed | None  # None with a load model (decision 70)
+    snow10: Printed | None
+    snow30: Printed | None
 
 
 @dataclass(frozen=True)
@@ -184,7 +184,7 @@ class Reserved:
     pile_unit_weight_inertia: Printed | None
     cast_in_place_condition: str | None
     piles: tuple[Pile, ...]
-    centrifugal_direction: tuple[str, str]
+    centrifugal_direction: tuple[str, str] | None  # None with a load model (decision 70)
 
 
 @dataclass(frozen=True)
@@ -250,7 +250,7 @@ class CantileverCheck:
 class PierInput:
     substructure: Substructure
     spans: Spans
-    train: Train
+    train: Train | None  # None with a load model (decision 70)
     reactions: Reactions
     soil: Soil
     materials: Materials

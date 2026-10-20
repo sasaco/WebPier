@@ -4,6 +4,11 @@ Nothing is filled in: a missing value is an input error, a value finer than
 the printed digits is an input error, and an unknown key is an input error.
 Every scalar is read through the field table (fields.py), which the editor
 uses too; this module adds the rules between fields.
+
+With a load model (``load_model=True``, decision 70) the items that belong to the load model are not read: the
+train (上部構造.列車), the impact coefficient, the curve radius, the train speed and the centrifugal direction of each
+side, and the snow loads and train shares of the supports. They may be there with any value, or not be there; their
+attributes are None. Every other item, and an unknown key, is read as without one.
 """
 
 from __future__ import annotations
@@ -59,7 +64,7 @@ def _substructure(root: Reader) -> Substructure:
 BEARING_DEVICE_KEYS = ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")
 
 
-def _span(root: Reader, side: str) -> Span:
+def _span(root: Reader, side: str, load_model: bool) -> Span:
     span = root.at("上部構造", side).only("桁長", "衝撃係数_単線終局", "曲線半径", "列車速度", "遠心作用方向",
                                         "高さ", "重心高_hs", "支承位置_f")
     lengths = span.at("桁長").only("L1", "スパン長", "L2")
@@ -68,7 +73,9 @@ def _span(root: Reader, side: str) -> Span:
     brake = support.optional("復旧性制動係数")
     return Span(
         l1=read(lengths.at("L1")), span=read(lengths.at("スパン長")), l2=read(lengths.at("L2")),
-        impact=read(span.at("衝撃係数_単線終局")), radius=read(span.at("曲線半径")), speed=read(span.at("列車速度")),
+        impact=None if load_model else read(span.at("衝撃係数_単線終局")),
+        radius=None if load_model else read(span.at("曲線半径")),
+        speed=None if load_model else read(span.at("列車速度")),
         heights={index: read(heights.at(f"h{index}")) for index in range(1, 5)},
         hs=read(span.at("重心高_hs")), f=read(span.at("支承位置_f")),
         bearing=read(support.at("支承名")), mu=read(support.at("摩擦係数_μ")),
@@ -112,36 +119,42 @@ def _snow(node: Reader) -> Printed:
     return LOAD(0) if value is None else value
 
 
-def _bearing(slot: Reader) -> Bearing | None:
+def _snows(node: Reader, load_model: bool) -> tuple[Printed | None, ...]:
+    """The snow loads of a support; with a load model they are not read (decision 70)."""
+    return (None,) * len(SNOW_KEYS) if load_model else tuple(_snow(node.at(key)) for key in SNOW_KEYS)
+
+
+def _bearing(slot: Reader, load_model: bool) -> Bearing | None:
     if slot.is_null:  # 空き支承枠
         return None
     slot.only(*BEARING_KEYS)
-    shares = slot.at("列車分担").only("L1", "L2", "L3", "L4")
-    for track in ("L3", "L4"):  # decision 23: two tracks only; L3/L4 stay blank
-        read(shares.at(track))
+    shares = None if load_model else slot.at("列車分担").only("L1", "L2", "L3", "L4")
+    if shares is not None:
+        for track in ("L3", "L4"):  # decision 23: two tracks only; L3/L4 stay blank
+            read(shares.at(track))
+    position, d1, d2 = (read(slot.at(key)) for key in ("支承位置", "固定死荷重_D1", "付加死荷重_D2"))
+    snow2, snow10, snow30 = _snows(slot, load_model)
     return Bearing(
-        position=read(slot.at("支承位置")), d1=read(slot.at("固定死荷重_D1")), d2=read(slot.at("付加死荷重_D2")),
-        snow2=_snow(slot.at(SNOW_KEYS[0])), snow10=_snow(slot.at(SNOW_KEYS[1])), snow30=_snow(slot.at(SNOW_KEYS[2])),
-        shares=Shares(l1=read(shares.at("L1")), l2=read(shares.at("L2"))),
+        position=position, d1=d1, d2=d2, snow2=snow2, snow10=snow10, snow30=snow30,
+        shares=None if shares is None else Shares(l1=read(shares.at("L1")), l2=read(shares.at("L2"))),
     )
 
 
-def _end(node: Reader) -> EndReaction:
+def _end(node: Reader, load_model: bool) -> EndReaction:
     node.only("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)
-    return EndReaction(read(node.at("固定死荷重_D1")), read(node.at("付加死荷重_D2")),
-                       *(_snow(node.at(key)) for key in SNOW_KEYS))
+    return EndReaction(read(node.at("固定死荷重_D1")), read(node.at("付加死荷重_D2")), *_snows(node, load_model))
 
 
-def _reactions(root: Reader) -> Reactions:
+def _reactions(root: Reader, load_model: bool) -> Reactions:
     reactions = root.at("上部工反力").only("起点側", "終点側")
     origin = reactions.at("起点側").only("A支点", "B支点")
     end = reactions.at("終点側").only("C支点", "D支点")
 
     def slots(node: Reader) -> tuple[Bearing | None, ...]:
-        return tuple(_bearing(slot) for slot in node.items(minimum=BEARING_SLOTS, maximum=BEARING_SLOTS))
+        return tuple(_bearing(slot, load_model) for slot in node.items(minimum=BEARING_SLOTS, maximum=BEARING_SLOTS))
 
-    return Reactions(a=_end(origin.at("A支点")), b=slots(origin.at("B支点")),
-                     c=slots(end.at("C支点")), d=_end(end.at("D支点")))
+    return Reactions(a=_end(origin.at("A支点"), load_model), b=slots(origin.at("B支点")),
+                     c=slots(end.at("C支点")), d=_end(end.at("D支点"), load_model))
 
 
 LAYER_KEYS = ("層番", "層厚", "土質区分", "N値", "単位体積重量", "内部摩擦角_φd", "内部摩擦角の上限値",
@@ -195,7 +208,7 @@ def _materials(root: Reader) -> Materials:
     return Materials(*(read(rebar.at(part, "concrete_strength_mpa")) for part in ("梁", "柱", "フーチング")))
 
 
-def _reserved(root: Reader) -> Reserved:
+def _reserved(root: Reader, load_model: bool) -> Reserved:
     sub = root.at("下部構造")
     skew = sub.at("斜角").only("θ", "タイプ")
     pile_weights = sub.at("単位体積重量", "杭").only("鉛直重量", "慣性力")
@@ -213,7 +226,8 @@ def _reserved(root: Reader) -> Reserved:
         pile_unit_weight_inertia=read(pile_weights.at("慣性力")),
         cast_in_place_condition=read(sub.at("場所打ち杭の施工条件")),
         piles=tuple(piles),
-        centrifugal_direction=tuple(read(root.at("上部構造", side, "遠心作用方向")) for side in ("起点側", "終点側")),
+        centrifugal_direction=None if load_model else tuple(
+            read(root.at("上部構造", side, "遠心作用方向")) for side in ("起点側", "終点側")),
     )
 
 
@@ -270,8 +284,9 @@ TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下�
             CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse")
 
 
-def parse_input(data: Any) -> PierInput:
-    """Validate the whole input once; never mutate *data*."""
+def parse_input(data: Any, *, load_model: bool = False) -> PierInput:
+    """Validate the whole input once; never mutate *data*. With *load_model* the items of the load model are not read
+    (decision 70)."""
     root = Reader(data)
     root.only(*TOP_KEYS)
     root.at("schema_version").integer(SCHEMA_VERSION, SCHEMA_VERSION)
@@ -284,12 +299,12 @@ def parse_input(data: Any) -> PierInput:
         raise sub.at("杭種").error(f"{foundation}は未対応です（{choices.SUPPORTED_FOUNDATION}のみ計算できます）")
     return PierInput(
         substructure=_substructure(root),
-        spans=Spans(_span(root, "起点側"), _span(root, "終点側")),
-        train=_train(root),
-        reactions=_reactions(root),
+        spans=Spans(_span(root, "起点側", load_model), _span(root, "終点側", load_model)),
+        train=None if load_model else _train(root),
+        reactions=_reactions(root, load_model),
         soil=_soil(root),
         materials=_materials(root),
-        reserved=_reserved(root),
+        reserved=_reserved(root, load_model),
         rebar=parse_rebar(root),
         seismic_design=_seismic_design(root),
         column_check=_column_check(root),
