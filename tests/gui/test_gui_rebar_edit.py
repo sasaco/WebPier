@@ -126,3 +126,29 @@ def test_a_blank_the_beam_preview_needs_is_reported_with_its_path(path, message)
     rebar_edit.items(document, path[:-1])[path[-1]] = None
     with pytest.raises(EditorError, match=re.escape(message)):
         rebar_edit.beam_preview(document)
+
+
+LOST = {"source_center_mm": 999.0, "source_diameter_mm": 32.0, "center_mm": 110.0, "diameter_mm": None}
+COLUMN_WARNING = "柱：配置表の変更のうち 1 件は、元の芯位置・径の鉄筋がないため使われていません（計算でも使いません）。"
+BEAM_WARNING = "梁：鉄筋が 2 か所で重なっています。05 鉄筋の梁の配筋略図で赤い鉄筋を確かめてください（計算は止めません）。"
+
+
+def test_the_warnings_of_the_input_check():
+    document = data()
+    assert rebar_edit.warnings(document) == []
+    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    assert rebar_edit.warnings(document) == [COLUMN_WARNING]
+    document = data()
+    document["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108  # the top side bars on the upper face's outermost bars
+    assert rebar_edit.warnings(document) == [BEAM_WARNING]
+    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    assert rebar_edit.warnings(document) == [COLUMN_WARNING, BEAM_WARNING]
+
+
+@pytest.mark.parametrize("group,key,left", [("側面", "B1", [COLUMN_WARNING]), ("正面", "W6", [BEAM_WARNING])])
+def test_a_member_without_its_layout_has_no_warning(group, key, left):
+    document = data()
+    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    document["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108
+    document["下部構造"]["寸法"][group][key] = None  # an input error of the calculation, not a warning
+    assert rebar_edit.warnings(document) == left

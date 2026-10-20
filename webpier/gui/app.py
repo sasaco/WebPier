@@ -23,7 +23,7 @@ from .binding import Bindings
 from .document import EditorDocument, EditorError, fingerprint
 from .form import Form
 from .lifecycle import destroy_children
-from . import pages, reaction_page, settings
+from . import pages, reaction_page, rebar_edit, settings
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 INPUT_PAGES: dict[str, Callable[[Form], None]] = {
@@ -333,7 +333,8 @@ class InputEditor:
         return True
 
     def check_input(self) -> bool:
-        """Parse the whole input as every stage will."""
+        """Parse the whole input as every stage will; when it can be calculated, name the warnings of the 鉄筋 section
+        (rebar_edit.warnings: they do not stop the calculation). Whether it can be calculated."""
         if self.busy or not self.ready_to_leave():
             return False
         try:
@@ -341,6 +342,12 @@ class InputEditor:
         except InputError as exc:
             messagebox.showwarning("入力チェック", f"このままでは計算できません。\n\n{exc}", parent=self.root)
             return False
+        found = rebar_edit.warnings(self.document.data)
+        if found:
+            messagebox.showwarning("入力チェック", "すべての段階の入力条件を満たしています（計算できます）。"
+                                   "ただし次を確かめてください。\n\n" + "\n".join(f"・{w}" for w in found),
+                                   parent=self.root)
+            return True
         messagebox.showinfo("入力チェック", "すべての段階の入力条件を満たしています。", parent=self.root)
         return True
 

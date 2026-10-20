@@ -174,3 +174,26 @@ def beam_preview(data: Any) -> BeamLayout:
         return beam_layout(parse_rebar(root).beam, width, depth)
     except InputError as exc:
         raise _editor_error(exc) from None
+
+
+def warnings(data: Any) -> list[str]:
+    """What the input check names besides the input errors: the column's table changes whose generated bars are gone
+    and the beam's overlapping bars, column first. Neither stops the calculation. A member whose layout cannot be made
+    has no warning here: the calculation reports it as an input error and the 鉄筋 page shows it (the input check parses
+    the form only)."""
+    found = []
+    try:
+        unmatched = column_preview(data).unmatched
+    except EditorError:
+        unmatched = ()
+    if unmatched:
+        found.append(f"柱：配置表の変更のうち {len(unmatched)} 件は、元の芯位置・径の鉄筋がないため使われていません"
+                     "（計算でも使いません）。")
+    try:
+        overlaps = beam_preview(data).overlaps
+    except EditorError:
+        overlaps = ()
+    if overlaps:
+        found.append(f"梁：鉄筋が {len(overlaps)} か所で重なっています。05 鉄筋の梁の配筋略図で赤い鉄筋を確かめてください"
+                     "（計算は止めません）。")
+    return found

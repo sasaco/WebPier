@@ -106,6 +106,15 @@ def test_input_check_parses_the_whole_input(editor, quiet):
     assert calls[-1][0] == "showwarning" and "下部構造.寸法.側面.B1: 値が必要です" in calls[-1][2]
 
 
+def test_input_check_names_the_rebar_warnings(editor, quiet):
+    calls, _ = quiet
+    editor.document.data["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108  # two pairs of overlapping bars
+    assert editor.check_input()
+    name, title, text = calls[-1][:3]
+    assert name == "showwarning" and title == "入力チェック" and "（計算できます）" in text
+    assert "・梁：鉄筋が 2 か所で重なっています。" in text
+
+
 def test_closing_saves_discards_or_continues(tk_root, input_path, quiet):
     _, answers = quiet
     editor = gui.InputEditor(tk_root, input_path)
