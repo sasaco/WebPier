@@ -138,6 +138,8 @@ def test_the_wheel_scrolls_the_form_but_not_the_rebar_page(editor):
     editor.select("鉄筋")
     editor._wheel(event)
     editor._resized(SimpleNamespace(width=900, height=600))
+    editor.select("計算・印刷")
+    editor._wheel(event)  # a page without its own wheel
     editor.select("下部構造")
     editor._resized(SimpleNamespace(width=900, height=600))
 

@@ -1,11 +1,12 @@
 """The 鉄筋 page: each member's reinforcement through the field table, the column's section and 方向別の鉄筋配置表 in
-a modeless window (column_window), the 柱の断面照査 conditions (decision 48) and the 片持ち梁の照査 conditions
-(decision 59).
+a modeless window (column_window) and the beam's 配筋略図 in another (beam_window), the 柱の断面照査 conditions
+(decision 48) and the 片持ち梁の照査 conditions (decision 59).
 
-A provisional page for the 鉄筋 input of decision 68: the values of a member are listed by their paths, and the layers
-inside layer 1 and the hoop rows are small tables with rows to add and delete. The column drawing, the 方向別の鉄筋配置表,
-every layout error and the table changes whose generated bars are gone (a warning: the generation leaves them out)
-come from calc.column_rebar via rebar_edit; nothing here checks the reinforcement itself.
+The column and the beam are entered on cards (column_cards, beam_cards; decision 68); the footing is still a
+provisional page where its values are listed by their paths, its layers inside layer 1 in small tables. The column's
+and the beam's layouts, every layout error, the beam's overlapping bars and the column's table changes whose generated
+bars are gone (warnings: the calculation goes on) come from calc.column_rebar and calc.beam_rebar via rebar_edit;
+nothing here checks the reinforcement itself.
 """
 
 from __future__ import annotations
@@ -14,9 +15,11 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any
 
+from ..calc.beam_rebar import BeamLayout
 from ..calc.column_rebar import ColumnLayout
 from ..inputs import choices
-from . import column_cards, rebar_edit
+from . import beam_cards, column_cards, rebar_edit
+from .beam_window import BeamWindow
 from .column_window import ColumnWindow
 from .document import EditorError
 from .form import Form
@@ -32,18 +35,11 @@ GROUPS = {"柱": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("check", "断�
 COMMON = ((("materials", "main"), "主鉄筋の材質"), (("materials", "transverse"), "帯鉄筋・スターラップの材質"),
           (("concrete_strength_mpa",), "コンクリート強度"), (("aggregate_max_mm",), "粗骨材の最大寸法 Dmax"),
           (("pure_cover_mm",), "純かぶり"))
-BEAM_FIRST = ((("diameter_mm",), "径"), (("count",), "1段目の本数"), (("cover_mode",), "芯かぶりの決め方"),
-              (("center_mm",), "芯かぶり（指定）"))
-SIDE_BARS = ((("diameter_mm",), "径"), (("per_face_count",), "本数（1つの面）"), (("start_mm",), "開始位置（上面から）"),
-             (("pitch_mm",), "ピッチ"), (("stirrup_position",), "スターラップの内側・外側"),
-             (("cover_mode",), "芯かぶりの決め方"), (("center_mm",), "芯かぶり（指定）"))
-STIRRUPS = ((("diameter_mm",), "径"), (("effective_legs",), "効く脚の本数"), (("pitch_mm",), "間隔"))
 FOOTING_FIRST = ((("diameter_mm",), "径"), (("pitch_mm",), "ピッチ"), (("cover_mode",), "芯かぶりの決め方"),
                  (("center_mm",), "芯かぶり（指定）"))
 FOOTING_STIRRUPS = ((("diameter_mm",), "径"), (("pitch_mm",), "間隔"), (("distribution_mode",), "幅方向の指定"),
                     (("width_pitch_mm",), "幅方向の間隔"), (("density_per_m",), "幅方向の 1 m 当たり本数"))
-LAYER_LABELS = {"per_face_count": "本数（1つの面）", "count": "本数", "pitch_mm": "ピッチ\nmm",
-                "clear_gap_mm": "前の段との\nあき mm"}
+LAYER_LABELS = {"per_face_count": "本数（1つの面）", "pitch_mm": "ピッチ\nmm", "clear_gap_mm": "前の段との\nあき mm"}
 CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
 CHECK_LABELS = (("鋼材の腐食に対する環境条件", "鋼材の腐食に対する環境条件"), ("外観の照査", "外観の照査"),
                 ("ε'csd", "ε'csd（収縮・クリープによるひび割れ幅の増加）"), ("適用基準の機関", "適用基準の機関"),
@@ -77,8 +73,8 @@ class RebarPage:
         self.group: str = state.setdefault("group", "main")
         self.direction: str = state.setdefault("direction", "線路")
         self.selected: tuple | None = state.get("selected")  # (list path, row) of a table, or ("layer", key)
-        self.layout: ColumnLayout | None = None
-        self.section: SectionView | None = None  # the outline of the beam or the footing; the column has its window
+        self.layout: ColumnLayout | BeamLayout | None = None
+        self.section: SectionView | None = None  # the outline of the footing
         self.direction_sheet: Any = None
         self.frame = ttk.Frame(parent)
         self.frame.pack(fill="both", expand=True)
@@ -96,9 +92,12 @@ class RebarPage:
             self.group_buttons[name] = button
         if self.group not in self.group_buttons:
             self.group = state["group"] = "main"
-        column = self.member == "柱"
+        column, footing = self.member == "柱", self.member == "フーチング"
         if column:
             ttk.Button(bar, text="断面図・配置表", command=self.toggle_window).pack(side="right")
+        elif not footing:
+            ttk.Button(bar, text="配筋略図", command=self.toggle_window).pack(side="right")
+        if not footing:
             left = ttk.Frame(self.frame)
             left.pack(fill="both", expand=True)
         else:
@@ -117,17 +116,18 @@ class RebarPage:
         self.inputs_canvas.create_window((0, 0), window=self.inputs, anchor="nw")
         self.inputs.bind("<Configure>", lambda event: self.inputs_canvas.configure(
             scrollregion=self.inputs_canvas.bbox("all")))
-        self.status = tk.StringVar(master=self.frame)  # the column's layout error or warning
-        if column:
+        self.status = tk.StringVar(master=self.frame)  # the column's or the beam's layout error or warning
+        if not footing:
             line = ttk.Frame(self.inputs)
             line.pack(fill="x", pady=(0, 6))
             ttk.Label(line, textvariable=self.status, foreground="#8e1d1d", wraplength=900).pack(side="left")
+        if column:
             self.fix_corner = ttk.Button(line, command=self.match_corner_sizes)  # packed when the sizes differ
         self.form = Form(editor, self.inputs)
         self.tables: dict[tuple, Any] = {}
         self.readouts: dict[tuple[str, int], tk.StringVar] = {}
         self._build_inputs()
-        if not column:
+        if footing:
             title = ttk.Frame(right)
             title.pack(fill="x")
             ttk.Label(title, text="断面図", style="Symbol.TLabel").pack(side="left")
@@ -176,7 +176,7 @@ class RebarPage:
         self._rows_table(parent, (*prefix, "inner_layers"), keys, tuple(LAYER_LABELS[key] for key in keys))
 
     def _build_inputs(self) -> None:
-        if self.member != "柱":  # the column's steels, concrete and covers are its card (column_cards.common)
+        if self.member == "フーチング":  # the column's and the beam's are on their cards (column_cards, beam_cards)
             self._values(self.inputs, self._path(), COMMON)
             ttk.Label(self.inputs, text="純かぶり：コンクリート面から最も外側の鉄筋の外面まで。空欄は未入力です。",
                       style="Muted.TLabel").pack(anchor="w", pady=(2, 8))
@@ -193,19 +193,7 @@ class RebarPage:
         elif self.member == "柱":
             column_cards.main(self)
         elif self.member == "梁":
-            for face in choices.BEAM_FACES:
-                group = self._group(f"{face}面の主鉄筋")
-                prefix = self._path("faces", face)
-                shape = (((("bar_type",), "形状"),) if face == choices.BEAM_FACES[0] else ())
-                self._values(group, prefix, (*BEAM_FIRST, *shape))
-                self._layers(group, prefix, ("count", "clear_gap_mm"))
-            group = self._group("側面筋")
-            present = self.editor.document.data["鉄筋"]["梁"]["side_bars"] is not None
-            if present:
-                self._values(group, self._path("side_bars"), SIDE_BARS)
-            ttk.Button(group, text="側面筋なしにする" if present else "側面筋を入れる",
-                       command=lambda: self.set_side_bars(not present)).pack(anchor="w", pady=(4, 0))
-            self._values(self._group("スターラップ"), self._path("stirrups"), STIRRUPS)
+            beam_cards.main(self)
         else:
             for face in choices.BEAM_FACES:
                 group = self._group(f"{face}面の主鉄筋")
@@ -315,31 +303,36 @@ class RebarPage:
         return self._restructure(lambda: rebar_edit.set_side_bars(self.editor.document.data, present),
                                  "側面筋を変更できません")
 
-    # the column's window ------------------------------------------------------------------------------------
+    # the member's window ------------------------------------------------------------------------------------
 
-    def window(self) -> ColumnWindow | None:
-        """The open section and table window of the column, kept by the editor while the page is rebuilt."""
+    def window(self) -> ColumnWindow | BeamWindow | None:
+        """The open window of the member (the column's section and tables, the beam's 配筋略図), kept by the editor
+        while the page is rebuilt."""
         window = self.editor.rebar_state.get("window")
         return window if window is not None and window.window.winfo_exists() else None
 
     def toggle_window(self) -> bool:
-        """Open the window, or close it; whether it is open."""
+        """Open the member's window, or close the open one; whether it is open."""
         window = self.window()
         if window is not None:
             window.close()
             return False
-        self.editor.rebar_state["window"] = ColumnWindow(self.editor, self._window_closed)
+        kind = ColumnWindow if self.member == "柱" else BeamWindow
+        self.editor.rebar_state["window"] = kind(self.editor, self._window_closed)
         return True
 
     def _window_closed(self) -> None:
         self.editor.rebar_state["window"] = None
 
     def _close_window_if_left(self) -> None:
-        """After the page is disposed: close the window unless the 鉄筋 page of the column comes back. Decided from
+        """After the page is disposed: close the window unless the 鉄筋 page of its member comes back. Decided from
         where the editor goes (its page, the member kept in rebar_state), not from editor.view: a new page may still be
         being built when this runs (tksheet updates the idle tasks while it builds a table)."""
-        staying = self.editor.page == "鉄筋" and self.editor.rebar_state.get("member") == "柱"
-        if not staying and (window := self.window()) is not None:
+        window = self.window()
+        if window is None:
+            return
+        staying = self.editor.page == "鉄筋" and self.editor.rebar_state.get("member") == window.member
+        if not staying:
             window.close()
 
     # preview ------------------------------------------------------------------------------------------------
@@ -369,6 +362,22 @@ class RebarPage:
             if (window := self.window()) is not None:
                 window.refresh()
             return
+        if self.member == "梁":
+            self.layout = None
+            try:
+                self.layout = rebar_edit.beam_preview(data)
+                problem = ""
+            except EditorError as exc:
+                problem = str(exc)
+            if self.layout is not None and self.layout.overlaps:
+                problem = (f"警告：鉄筋が {len(self.layout.overlaps)} か所で重なっています。配筋略図の赤い鉄筋を確かめて"
+                           "ください（計算は止めません）。")
+            self.status.set(problem)
+            for key, variable in self.readouts.items():
+                variable.set(beam_cards.readout(self, key))
+            if (window := self.window()) is not None:
+                window.refresh()
+            return
         try:
             polygon = outline(self.member, data, self.direction)
         except EditorError as exc:
@@ -383,6 +392,18 @@ class RebarPage:
         self.direction_sheet.readonly_cells(cells=[(r, c) for r in range(len(rows)) for c in range(4)])
 
     # the editor's page interface ------------------------------------------------------------------------------
+
+    def wheel(self, event: Any) -> bool:
+        """The mouse wheel over the inputs scrolls them, but not over a table (it scrolls itself); whether it did."""
+        widget = self.editor.root.winfo_containing(event.x_root, event.y_root)
+        name = "" if widget is None else str(widget)
+
+        def within(parent: Any) -> bool:
+            return name == str(parent) or name.startswith(f"{parent}.")
+        if not within(self.inputs_canvas) or any(within(sheet) for sheet in self.tables.values()):
+            return False
+        self.inputs_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return True
 
     def input_changed(self) -> None:
         self.refresh()

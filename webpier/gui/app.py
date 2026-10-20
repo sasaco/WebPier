@@ -38,7 +38,7 @@ HINTS = {
     "上部構造": "起点側と終点側を並べて入力します。支承と列車の条件は下に続きます。",
     "上部工反力": "支点・支承の並びに沿って、支承位置、死荷重、雪荷重、列車分担を入力します。",
     "地盤データ": "上から順に1層ずつ入力します。行を選ぶと、その層を複製・移動・削除できます。",
-    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」で開きます。",
+    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁の配筋略図は「配筋略図」で開きます。",
     CALCULATION: "入力を保存して全帳票を作り直し、PDFで確認します。",
 }
 
@@ -151,8 +151,12 @@ class InputEditor:
         self.canvas.itemconfigure(self.form_window, width=width, height=event.height if fill else 0)
 
     def _wheel(self, event: tk.Event) -> None:
-        if self.page in (REBAR, CALCULATION) or event.state & 0x5:
-            return  # those pages and modified wheels scroll their own widgets
+        if event.state & 0x5:
+            return  # modified wheels scroll their own widgets
+        if self.page in (REBAR, CALCULATION):
+            if (wheel := getattr(self.view, "wheel", None)) is not None:
+                wheel(event)
+            return  # those pages scroll their own widgets (the 鉄筋 page its cards, through its wheel)
         widget = self.root.winfo_containing(event.x_root, event.y_root)
         if widget is not None and str(widget).startswith(str(self.form)):
             self.canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")

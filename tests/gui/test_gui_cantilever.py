@@ -54,9 +54,10 @@ def test_the_bearing_devices_are_integer_columns_of_the_support_table(editor):
 def test_the_beam_has_its_own_aggregate_size(editor):
     assert editor.select("鉄筋")
     assert editor.view.select_member("梁")  # every selection rebuilds the page: editor.view is the new one
-    dmax = cell(editor, "鉄筋", "梁", "aggregate_max_mm")
+    dmax = cell(editor, "鉄筋", "梁", "aggregate_max_mm")  # a card's entry (decision 68)
     assert dmax.get() == "25.0"
-    dmax.type("20.04")
+    dmax.show("20.04")
+    editor.bindings.entered(editor.bindings.items[("鉄筋", "梁", "aggregate_max_mm")])
     assert dmax.get() == "20.0"
     assert editor.document.data["鉄筋"]["梁"]["aggregate_max_mm"] == 20.0
     assert editor.view.select_member("フーチング")

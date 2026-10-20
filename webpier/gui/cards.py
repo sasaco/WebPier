@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .form import Form
 
 SIZES = (10, 13, 16, 19, 22, 25, 29, 32, 35, 38, 41, 51)  # 異形棒鋼の呼び名 (JIS G 3112)
+NO_VALUE = "—"  # a readout without its value
 BORDER, PRESSED = "#b8c3cd", "#cfe0f2"
 FONT = ("Yu Gothic UI", 10)
 
@@ -121,6 +122,31 @@ class Help:
         body = ttk.Frame(window, padding=10)
         body.pack(fill="both", expand=True)
         self.build(body)
+
+
+def help_button(parent: tk.Misc, title: str, lines: Callable[[], list[str]]) -> Help:
+    """(?) after the inputs of *parent*; *lines* gives the text for the values at the time it opens."""
+    def build(body: tk.Misc) -> None:
+        for text in lines():
+            ttk.Label(body, text=text, wraplength=360, justify="left").pack(anchor="w")
+    help_ = Help(parent, title, build)
+    help_.button.pack(side="left", padx=(0, 10), pady=(18, 4))
+    return help_
+
+
+def remove_button(parent: tk.Misc, command: Callable[[], object]) -> tk.Button:
+    """×: removes the item of its line."""
+    button = tk.Button(parent, text="×", width=2, padx=0, pady=0, relief="groove", borderwidth=1,
+                       font=("Yu Gothic UI", 8), fg="#8e1d1d", cursor="hand2", command=command)
+    button.pack(side="left", pady=(18, 4))
+    return button
+
+
+def readout_label(parent: tk.Misc, readouts: dict, key: tuple, label: str = "芯かぶり mm") -> None:
+    """A value calculated elsewhere, under *label*: the variable kept in *readouts* by *key* is set by the page."""
+    frame = labelled(parent, label)
+    variable = readouts.setdefault(key, tk.StringVar(master=parent, value=NO_VALUE))
+    ttk.Label(frame, textvariable=variable, style="Symbol.TLabel").pack(anchor="w")
 
 
 def card(parent: tk.Misc, title: str) -> ttk.LabelFrame:

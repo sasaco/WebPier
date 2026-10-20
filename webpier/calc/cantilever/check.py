@@ -4,13 +4,9 @@ Capacita (RcDan) calculates and prints the checks; WebPier decides the condition
 
 - the member: the beam, b = B1 and h = H2 + H3 at the column face, mm; one point, 柱前面, checked for bending about
   z, shear in y and torsion, with the shear span a = the farthest bearing on either cantilever from the column face;
-- the bars of 鉄筋.梁 (decisions 59, 68): each face's layers, of one size: layer 1's centre is the cover (given, or
-  the pure cover + the stirrup + half the bar) and each layer inside lies one bar and its clear gap further in, the
-  gaps equal; the counts as Capacita splits them by layer 1's, every layer but the last as many as layer 1 and the
-  last at most as many; the spacing along the face (B1 − 2 c)/(n − 1) with c the side bars' centre from the side
-  face, else the cover. The side bars on both side faces from their start below the upper face at their pitch, their
-  centre given or the pure cover (+ the stirrup when inside it) + half the bar; the stirrups' diameter, effective legs
-  and pitch. The main and side bars are of the member's main steel, the stirrups of its transverse steel. What the WDJ
+- the bars of 鉄筋.梁 (decisions 59, 68) as calc.beam_rebar places them: each face's main bars (its layers, their
+  cover, layer spacing and spacing along the face) and the side bars; the stirrups' diameter, effective legs and
+  pitch. The main and side bars are of the member's main steel, the stirrups of its transverse steel. What the WDJ
   cannot hold is an input error naming its path;
 - f'ck and Dmax of the beam concrete (鉄筋.梁);
 - the 片持ち梁の照査 conditions: the corrosion environment of each face, the appearance check, the trains of the
@@ -24,7 +20,6 @@ Capacita (RcDan) calculates and prints the checks; WebPier decides the condition
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
 
 from ...core.errors import InputError
 from ...core.printed import LENGTH, Precision, Printed
@@ -32,7 +27,8 @@ from ...inputs import PierInput, choices
 from ...inputs.fields import BEAM_SURFACES
 from ...inputs.rebar import BeamBars
 from .._exact import d, put
-from ..column_check import (K4, KR, LENGTH_MM, SAFETY_FACTORS_OF_BODY, Hoops, MainBars, SafetyFactors, SideBars, Steel,
+from ..beam_rebar import beam_layout, beam_section
+from ..column_check import (K4, KR, SAFETY_FACTORS_OF_BODY, Hoops, MainBars, SafetyFactors, SideBars, Steel,
                             tensile_strength)
 from ..column_rebar import yield_strength
 from . import CantileverResult
@@ -113,52 +109,6 @@ def _need(value, path: str):
     return value
 
 
-def _face(beam: BeamBars, face: str, width_mm: Printed, side_cover: Printed | None, stirrup: Printed) -> MainBars:
-    bars, path = beam.faces[face], f"{_BEAM}.faces.{face}"
-    diameter = _need(bars.diameter, f"{path}.diameter_mm")
-    count = _need(bars.count, f"{path}.count")
-    if count < 2:
-        raise InputError(f"{path}.count: 2本以上が必要です")
-    if _need(bars.cover_mode, f"{path}.cover_mode") == choices.COVER_SPECIFIED:
-        cover = _need(bars.center, f"{path}.center_mm")
-    else:
-        pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
-        cover = put(LENGTH_MM, d(pure) + d(stirrup) + d(diameter) / 2)
-    counts, gaps = [count], set()
-    for index, layer in enumerate(bars.inner_layers):
-        here = f"{path}.inner_layers[{index}]"
-        counts.append(_need(layer.count, f"{here}.count"))
-        gaps.add(_need(layer.clear_gap, f"{here}.clear_gap_mm"))
-    if len(gaps) > 1:
-        raise InputError(f"{path}.inner_layers: 段のあきが一定ではないため表せません")
-    if any(other != count for other in counts[1:-1]) or counts[-1] > count:
-        raise InputError(f"{path}.inner_layers: 段の本数は、最後の段を除いて1段目と同じ、最後の段は1段目以下が必要です"
-                         "（Capacita は1段目の本数で段に分けます）")
-    edge = side_cover if side_cover is not None else cover
-    spacing = put(LENGTH_MM, (d(width_mm) - 2 * d(edge)) / (count - 1))
-    layer_spacing = put(LENGTH_MM, d(diameter) + d(gaps.pop())) if gaps else None
-    return MainBars(diameter=diameter, per_layer=count, layers=len(counts), count=sum(counts), cover=cover,
-                    layer_spacing=layer_spacing, spacing=spacing)
-
-
-def _side(beam: BeamBars, stirrup: Printed) -> tuple[SideBars, Printed] | None:
-    """The side bars and their centre from the side faces: given (指定), or the pure cover, the stirrup when the bars
-    are inside it, and half the bar (自動)."""
-    side, path = beam.side, f"{_BEAM}.side_bars"
-    if side is None:
-        return None
-    diameter = _need(side.diameter, f"{path}.diameter_mm")
-    count = _need(side.per_face_count, f"{path}.per_face_count")
-    if _need(side.cover_mode, f"{path}.cover_mode") == choices.COVER_SPECIFIED:
-        centre = _need(side.center, f"{path}.center_mm")
-    else:
-        pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
-        inside = _need(side.stirrup_position, f"{path}.stirrup_position") == choices.STIRRUP_POSITIONS[0]
-        centre = put(LENGTH_MM, d(pure) + (d(stirrup) if inside else 0) + d(diameter) / 2)
-    return SideBars(diameter=diameter, count=count, first=_need(side.start, f"{path}.start_mm"),
-                    spacing=_need(side.pitch, f"{path}.pitch_mm") if count > 1 else None), centre
-
-
 def _stirrups(beam: BeamBars) -> Hoops:
     stirrups, path = beam.stirrups, f"{_BEAM}.stirrups"
     return Hoops(diameter=_need(stirrups.diameter, f"{path}.diameter_mm"),
@@ -185,15 +135,12 @@ def _fatigue(pier: PierInput) -> Fatigue:
 def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) -> CantileverSectionResult:
     """The beam check Capacita is given, from the input and 0900's result."""
     s, beam = pier.substructure, pier.rebar.beam
-    width = put(LENGTH_MM, d(s.b[1]) * 1000)
-    depth = put(LENGTH_MM, (d(s.h[2]) + d(s.h[3])) * 1000)
+    width, depth = beam_section(s.b[1], s.h[2], s.h[3])
     stirrups = _stirrups(beam)
     main_grade = _need(beam.materials.main, f"{_BEAM}.materials.main")
     stirrup_grade = _need(beam.materials.transverse, f"{_BEAM}.materials.transverse")
-    side = _side(beam, stirrups.diameter)
-    side_cover = None if side is None else side[1]
-    upper = _face(beam, "上", width, side_cover, stirrups.diameter)
-    lower = _face(beam, "下", width, side_cover, stirrups.diameter)
+    layout = beam_layout(beam, width, depth)
+    upper, lower, side = layout.faces["上"], layout.faces["下"], layout.side
     conditions, column = pier.cantilever_check, pier.column_check
     environments = {face: _need(conditions.environments[face], f"{_CHECK}.鋼材の腐食に対する環境条件.{face}")
                     for face in BEAM_SURFACES}
@@ -205,7 +152,7 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
                key=lambda x: x.value)
     return CantileverSectionResult(
         width=width, depth=depth, shear_span=put(LENGTH, d(span)), upper=upper, lower=lower,
-        side=None if side is None else side[0], stirrups=stirrups, main_steel=_steel(main_grade),
+        side=side, stirrups=stirrups, main_steel=_steel(main_grade),
         side_steel=None if side is None else _steel(main_grade), stirrup_steel=_steel(stirrup_grade),
         fck=pier.materials.beam, aggregate_max=_need(beam.aggregate_max, f"{_BEAM}.aggregate_max_mm"),
         environments=environments,

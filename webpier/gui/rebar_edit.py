@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from ..calc.beam_rebar import BeamLayout, beam_layout, beam_section
 from ..calc.column_rebar import ColumnLayout, LayerKey, section_layout
 from ..core.errors import InputError
 from ..core.printed import Printed
@@ -22,6 +23,7 @@ MEMBERS = ("梁", "柱", "フーチング")
 COLUMN = "柱"
 W6 = ("下部構造", "寸法", "正面", "W6")
 B6 = ("下部構造", "寸法", "側面", "B6")
+BEAM_SECTION = (("下部構造", "寸法", "側面", "B1"), ("下部構造", "寸法", "高さ", "H2"), ("下部構造", "寸法", "高さ", "H3"))
 SIDE_BARS = ("鉄筋", "梁", "side_bars")
 OVERRIDES = ("鉄筋", "柱", "table_overrides")
 JsonPath = tuple[str | int, ...]
@@ -159,5 +161,16 @@ def column_preview(data: Any) -> ColumnLayout:
     width, height = section(data)
     try:
         return section_layout(parse_rebar(Reader(data)).column, width, height)
+    except InputError as exc:
+        raise _editor_error(exc) from None
+
+
+def beam_preview(data: Any) -> BeamLayout:
+    """The beam layout of the current input (B1 × (H2 + H3) at the column face), from the same reader and calculation
+    as 0910."""
+    root = Reader(data)
+    try:
+        width, depth = beam_section(*(read(root.at(*path)) for path in BEAM_SECTION))
+        return beam_layout(parse_rebar(root).beam, width, depth)
     except InputError as exc:
         raise _editor_error(exc) from None

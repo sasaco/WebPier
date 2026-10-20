@@ -39,6 +39,8 @@ def _field(key: str):
 
 
 class ColumnWindow:
+    member = "柱"
+
     def __init__(self, editor: InputEditor, on_close: Callable[[], None]) -> None:
         self.editor, self.on_close = editor, on_close
         self.view: str = editor.rebar_state.get("window_view", "section")

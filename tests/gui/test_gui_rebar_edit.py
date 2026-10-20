@@ -1,6 +1,7 @@
 """Editing the 鉄筋 section: blank items from the field table, the column preview; checks come from inputs/calc."""
 
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -109,3 +110,19 @@ def test_changes_without_their_bars_are_removed():
     changes["直角"] = [{"source_center_mm": 102.0, "source_diameter_mm": 19.0, "center_mm": 110.0, "diameter_mm": None}]
     assert rebar_edit.remove_unmatched(document, rebar_edit.column_preview(document)) == 1
     assert changes["線路"] == [] and len(changes["直角"]) == 1
+
+
+def test_the_beam_preview_is_the_calculated_layout():
+    layout = rebar_edit.beam_preview(data())
+    assert (layout.width.value, layout.depth.value) == (2700.0, 2700.0) and len(layout.bars) == 77
+
+
+@pytest.mark.parametrize("path,message", [
+    (("下部構造", "寸法", "高さ", "H3"), "下部構造.寸法.高さ.H3: 値が必要です"),
+    (("鉄筋", "梁", "faces", "上", "count"), "鉄筋.梁.faces.上.count: 値が必要です"),
+])
+def test_a_blank_the_beam_preview_needs_is_reported_with_its_path(path, message):
+    document = data()
+    rebar_edit.items(document, path[:-1])[path[-1]] = None
+    with pytest.raises(EditorError, match=re.escape(message)):
+        rebar_edit.beam_preview(document)

@@ -1,9 +1,11 @@
 """The 鉄筋 page: values through the field table, the column in its section and table window (decision 68)."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from webpier.gui import app as gui
-from webpier.gui import column_cards, rebar_page
+from webpier.gui import beam_cards, column_cards, rebar_page
 
 COLUMN = ("鉄筋", "柱")
 RAIL = (*COLUMN, "main_bars", "線路")
@@ -124,11 +126,9 @@ def test_the_hoop_group(editor):
     assert len(editor.document.data["鉄筋"]["柱"]["column_hoops"]["direction_rows"]) == 3
 
 
-@pytest.mark.parametrize("member,groups,layers", [
-    ("梁", ("main", "check"), ("鉄筋", "梁", "faces", "上", "inner_layers")),
-    ("フーチング", ("main",), ("鉄筋", "フーチング", "faces", "下", "線路", "inner_layers"))])
-def test_beam_and_footing_show_their_tables_and_outline(editor, member, groups, layers):
-    assert page(editor).select_member(member)
+def test_the_footing_shows_its_tables_and_outline(editor):
+    groups, layers = ("main",), ("鉄筋", "フーチング", "faces", "下", "線路", "inner_layers")
+    assert page(editor).select_member("フーチング")
     assert tuple(page(editor).group_buttons) == groups
     assert page(editor).section.canvas.find_withtag("section-outline")
     assert not page(editor).section.canvas.find_withtag("rebar")
@@ -287,3 +287,131 @@ def test_hoop_ranges_are_added_and_removed(editor):
     assert (*COLUMN, "column_hoops", "direction_rows", 2, "effective_legs") in editor.bindings.items
     assert page(editor).remove_row((*COLUMN, "column_hoops", "direction_rows"), 2) and len(rows) == 2
     helps(page(editor).inputs)[-1].invoke()  # 効く脚
+
+
+BEAM = ("鉄筋", "梁")
+UPPER, LOWER = (*BEAM, "faces", "上"), (*BEAM, "faces", "下")
+
+
+@pytest.fixture
+def beam(editor):
+    assert page(editor).select_member("梁")
+    editor.root.update()
+    return editor
+
+
+def buttons(widget, text):
+    """The buttons under *widget* with *text*."""
+    found = [widget] if widget.winfo_class() in ("TButton", "Button") and widget.cget("text") == text else []
+    for child in widget.winfo_children():
+        found += buttons(child, text)
+    return found
+
+
+def test_the_beam_is_entered_on_cards_without_the_outline(beam):
+    view = page(beam)
+    assert tuple(view.group_buttons) == ("main", "check") and view.section is None
+    assert (*UPPER, "bar_type") in beam.bindings.items and (*LOWER, "bar_type") not in beam.bindings.items
+    assert view.status.get() == "" and len(view.layout.bars) == 77
+
+
+def test_the_lower_layers_inside_are_kept_but_not_shown(beam):
+    beam.document.data["鉄筋"]["梁"]["faces"]["下"]["inner_layers"] = [{"count": 18, "clear_gap_mm": 30}]
+    page(beam)._rebuild()
+    assert (*LOWER, "inner_layers", 0, "count") not in beam.bindings.items
+    assert not buttons(page(beam).inputs, "＋ 2段目を追加")  # the upper face's button says 3段目
+    enter(beam, (*BEAM, "concrete_strength_mpa"), "30")
+    assert beam.document.data["鉄筋"]["梁"]["faces"]["下"]["inner_layers"] == [{"count": 18, "clear_gap_mm": 30}]
+
+
+def test_the_beam_readouts(beam):
+    view = page(beam)
+    assert view.readouts[("上", 2)].get() == "172.0（左右対称になりません）"  # 17 − 8 = 9 left over
+    assert ("側面", 1) not in view.readouts  # the side bars' centre is given (指定)
+    press(beam, (*UPPER, "cover_mode"), "自動")
+    assert page(beam).readouts[("上", 1)].get() == "—"  # no pure cover yet
+    assert page(beam).status.get() == "鉄筋.梁.pure_cover_mm: 値が必要です"
+    enter(beam, (*BEAM, "pure_cover_mm"), "70")
+    assert page(beam).readouts[("上", 1)].get() == "108.0"  # 70 + 22 + 32 / 2
+    assert beam_cards.cover_lines(page(beam), "上") == [
+        "純かぶり　70", "＋ スターラップの径　22", "＋ 主鉄筋の径／2　16", "芯かぶり　108.0"]
+    assert beam_cards.readout(page(beam), ("上", 3)) == "—"
+
+
+def test_the_side_bars_centre_is_read_out_when_automatic(beam):
+    press(beam, (*BEAM, "side_bars", "cover_mode"), "自動")
+    enter(beam, (*BEAM, "pure_cover_mm"), "70")
+    assert page(beam).readouts[("側面", 1)].get() == "103.0"  # 70 + 22 (inside the stirrups) + 22 / 2
+    assert page(beam).set_side_bars(False)
+    assert beam_cards.readout(page(beam), ("側面", 1)) == "—"
+    assert buttons(page(beam).inputs, "側面筋を入れる")
+
+
+def over(editor, monkeypatch, widget, delta=-120):
+    """A wheel event with the pointer over *widget*. Tk's own events do not reach the tests and the withdrawn window
+    is not on the screen, so the widget under the pointer is given."""
+    monkeypatch.setattr(editor.root, "winfo_containing", lambda x, y: widget, raising=False)
+    return SimpleNamespace(x_root=0, y_root=0, delta=delta, state=0)
+
+
+def test_the_wheel_scrolls_the_cards(beam, monkeypatch):
+    view = page(beam)
+    card = beam.bindings.items[(*BEAM, "concrete_strength_mpa")].cell.widget
+    before = view.inputs_canvas.yview()
+    assert view.wheel(over(beam, monkeypatch, card)) and view.inputs_canvas.yview() != before
+    assert view.wheel(over(beam, monkeypatch, card, delta=120)) and view.inputs_canvas.yview() == before
+    beam._wheel(over(beam, monkeypatch, card))  # the editor hands the wheel to the page
+    assert view.inputs_canvas.yview() != before
+    assert not view.wheel(over(beam, monkeypatch, beam.tree))  # outside the page
+    assert not view.wheel(over(beam, monkeypatch, None))  # outside the editor
+
+
+def test_the_wheel_leaves_a_table_to_scroll_itself(editor, monkeypatch):
+    assert page(editor).select_member("フーチング")
+    view = page(editor)
+    sheet = view.tables[("鉄筋", "フーチング", "faces", "上", "線路", "inner_layers")]
+    before = view.inputs_canvas.yview()
+    assert not view.wheel(over(editor, monkeypatch, sheet.winfo_children()[0]))
+    assert view.inputs_canvas.yview() == before
+
+
+def test_the_side_bars_take_the_main_sizes(beam):
+    values = cell(beam, *BEAM, "side_bars", "diameter_mm").widget.cget("values")
+    assert tuple(values) == ("", *(f"D{size}" for size in beam_cards.MAIN_SIZES)) and values[1] == "D16"
+
+
+def test_overlapping_bars_are_a_warning(beam):
+    enter(beam, (*BEAM, "side_bars", "start_mm"), "108")
+    assert "2 か所で重なっています" in page(beam).status.get()
+
+
+def test_a_blank_the_beam_layout_needs_is_named(beam):
+    enter(beam, (*UPPER, "diameter_mm"), "")
+    assert page(beam).status.get() == "鉄筋.梁.faces.上.diameter_mm: 値が必要です"
+    assert page(beam).readouts[("上", 2)].get() == "—"  # no layout: no centre
+
+
+def test_upper_layers_are_added_and_removed(beam):
+    rows = beam.document.data["鉄筋"]["梁"]["faces"]["上"]["inner_layers"]
+    (add,) = buttons(page(beam).inputs, "＋ 3段目を追加")
+    add.invoke()
+    beam.root.update()
+    assert len(rows) == 2 and (*UPPER, "inner_layers", 1, "count") in beam.bindings.items
+    (remove, _) = buttons(page(beam).inputs, "×")  # the 2nd layer's: it and the layers inside it go
+    remove.invoke()
+    beam.root.update()
+    assert rows == []
+
+
+def test_the_beam_helps(beam):
+    found = helps(page(beam).inputs)
+    assert len(found) == 5  # 純かぶり, 芯かぶり of both faces, 側面筋, 効く脚
+    for button in found:
+        button.invoke()
+    assert all(any(child.winfo_class() == "Toplevel" for child in button.winfo_children()) for button in found)
+
+
+def test_the_beam_check_group_holds_only_the_conditions(beam):
+    assert page(beam).select_group("check")
+    assert (*BEAM, "aggregate_max_mm") not in beam.bindings.items
+    assert ("片持ち梁の照査", "外観の照査") in beam.bindings.items

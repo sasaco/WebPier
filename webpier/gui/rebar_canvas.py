@@ -1,7 +1,8 @@
-"""The section drawing of the rebar page: the outline of the member and, for the column, the bars in use.
+"""The section drawing of the rebar page: the outline of the member and, for the column and the beam, the bars in
+use with their hoop or stirrup.
 
-Drawing only. The column bars come from calc.column_rebar; the beam and the footing are drawn as outlines, because
-no stage places their bars yet.
+Drawing only. The column bars come from calc.column_rebar and the beam's from calc.beam_rebar; the footing is drawn as
+its outline, because no stage places its bars yet.
 """
 
 from __future__ import annotations
@@ -39,14 +40,11 @@ def _mm(data: Any, group: str, key: str) -> float:
 
 
 def outline(member: str, data: Any, direction: str = "線路") -> list[Point]:
-    """The section polygon in mm (x to the right, y down from the top face)."""
+    """The section polygon of the column (W6 × B6) or the footing (in *direction*) in mm (x to the right, y down from
+    the top face). The beam's 配筋略図 is its b × h rectangle, drawn by beam_window."""
     if member == "柱":
         width, height = _mm(data, "正面", "W6"), _mm(data, "側面", "B6")
         return [(0, 0), (width, 0), (width, height), (0, height)]
-    if member == "梁":
-        width, left, right = (_mm(data, "側面", key) for key in ("B1", "B4", "B5"))
-        h2, h3 = _mm(data, "高さ", "H2"), _mm(data, "高さ", "H3")
-        return [(0, 0), (width, 0), (width, h2), (width - right, h2 + h3), (left, h2 + h3), (0, h2)]
     group, prefix = ("側面", "B") if direction == "線路" else ("正面", "W")
     first, top, last = (_mm(data, group, f"{prefix}{index}") for index in (7, 8, 9))
     taper, depth = _mm(data, "高さ", "H5"), _mm(data, "高さ", "H6")
@@ -70,21 +68,22 @@ class SectionView(ttk.Frame):
         self.notice = ttk.Label(self, text="", style="Muted.TLabel", wraplength=300, justify="left")
         self.notice.pack(fill="x")
         self._on_bar = on_bar
-        self._shown: tuple = ([], [], [], "", "")
+        self._shown: tuple = ([], [], [], [], "", "")
         self.canvas.bind("<Configure>", lambda event: self._draw())
         self.canvas.tag_bind("rebar", "<Button-1>", self._clicked)
 
     def show(self, polygon: Sequence[Point], circles: Sequence[Circle] = (), hoop: Sequence[Point] = (), *,
-             caption: str = "", notice: str = "") -> None:
-        self._shown = (list(polygon), list(circles), list(hoop), caption, notice)
+             lines: Sequence[tuple[Point, Point]] = (), caption: str = "", notice: str = "") -> None:
+        """*lines*: dashed lines inside the hoop (the beam's effective legs of the stirrup)."""
+        self._shown = (list(polygon), list(circles), list(hoop), list(lines), caption, notice)
         self._draw()
 
     def _draw(self) -> None:
-        polygon, circles, hoop, caption, notice = self._shown
+        polygon, circles, hoop, lines, caption, notice = self._shown
         canvas = self.canvas
         canvas.delete("all")
-        self.notice.configure(text=notice)
         width, height = canvas.winfo_width(), canvas.winfo_height()
+        self.notice.configure(text=notice, wraplength=max(300, width - 10))
         if not polygon:
             canvas.create_text(max(width, 2) / 2, max(height, 2) / 2, text="断面寸法を入力してください", fill="#64748b",
                                tags=("empty",))
@@ -102,6 +101,8 @@ class SectionView(ttk.Frame):
         if hoop:
             canvas.create_polygon([v for xy in hoop for v in point(*xy)], fill="", outline="#829bb5", width=1.5,
                                   tags=("hoop",))
+        for start, end in lines:
+            canvas.create_line(*point(*start), *point(*end), fill="#8a99a8", dash=(4, 3), width=1.5, tags=("leg",))
         for index, circle in enumerate(circles):
             x, y = point(circle.x, circle.y)
             radius = max(2.5, circle.diameter * scale / 2)
