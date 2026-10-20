@@ -7,9 +7,10 @@ import pytest
 
 from reaction_support import FIXTURES, D, pier, q
 from webpier.calc.foundation import calculate_foundation
-from webpier.calc.frame import BODY_REGIONS, Direction, NodeRole, Region, build_frame
+from webpier.calc.frame import BODY_REGIONS, Direction, NodeRole, Region, build_frame, control_level
 from webpier.calc.materials import calculate_materials
 from webpier.calc.reaction import calculate_reaction
+from webpier.core.printed import FORCE, LENGTH
 from webpier.core.errors import InputError
 
 L08 = json.loads((FIXTURES / "example2" / "longitudinal.json").read_text(encoding="utf-8"))
@@ -230,3 +231,11 @@ def test_pier_height_is_the_beam_top_above_the_footing_top():
     # Without beam and haunch it is the column; with the micro member it still includes it (7.590 + 0.010).
     assert frame(dims(H2=0.0, H3=0.0)).pier_height.value == 4.9
     assert frame(column_base_micro_member=True).pier_height.value == 7.6
+
+
+def test_the_control_level_weights_the_girder_heights_by_their_inertia():
+    # Decision 65: Σ Hi × (h1 + h2)i / Σ Hi; the common height when both girders are as high
+    assert control_level((LENGTH(2.5), LENGTH(2.5)), (FORCE(0), FORCE(0))) == LENGTH(2.5)
+    assert control_level((LENGTH(2.0), LENGTH(3.0)), (FORCE(300), FORCE(100))) == LENGTH(2.25)
+    with pytest.raises(InputError, match="桁の地震時慣性力の合計が0以下"):
+        control_level((LENGTH(2.0), LENGTH(3.0)), (FORCE(0), FORCE(0)))

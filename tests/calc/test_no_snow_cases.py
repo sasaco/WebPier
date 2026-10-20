@@ -2,6 +2,8 @@
 
 from functools import cache
 
+import pytest
+
 from cantilever_support import result_of
 from reaction_support import document
 from webpier.calc.foundation import calculate_foundation
@@ -96,3 +98,11 @@ def test_0900_has_no_snow_action_and_its_cases_lose_the_snow_part():
         for with_snow, without in zip(full.sides[side].cases, item.cases, strict=True):
             assert without.definition == with_snow.definition
             assert [part for part in without.contributions if part.column == "S"] == []
+
+
+def test_a_case_not_made_is_not_found():
+    _, longitudinal, transverse = results(False)
+    with pytest.raises(KeyError):
+        longitudinal.basic(L.SNOW2)
+    with pytest.raises(KeyError):
+        transverse.basic(T.SNOW30)
