@@ -14,8 +14,8 @@ it), not by branches:
   are the corner bars of the other direction's main row (at its own cover from the faces, inside the main bars:
   Example2 across the track) and only the two end gaps break the spacing, they are written by number only and
   Capacita spaces them evenly between the main bars, as the sample 09_直角/WebDan.wdj does (owner, 2026-10-18).
-  Anything else cannot be written to the WDJ and is an input error naming its path; detail positions are accepted
-  only as the generated bars of the current basic input (the same rule as the JRSNAP export);
+  Anything else cannot be written to the WDJ and is an input error naming its path. The bars are those in use, with
+  the changes made in the 方向別の鉄筋配置表 (decision 68);
 - f'ck of the column concrete and its Dmax (鉄筋.柱.aggregate_max_mm);
 - the 柱の断面照査 conditions of the input, shared by both directions;
 - the extraction case of each check from the extraction groups of 0610 / 0620 (decision 48): Capacita's rows by id;
@@ -36,8 +36,7 @@ from ..core.errors import InputError
 from ..core.printed import Precision, Printed
 from ..inputs import PierInput, choices
 from ._exact import d, put
-from .column_rebar import (YIELD_STRENGTH, ColumnLayout, TableRow, check_detail_positions, column_layout, table,
-                           yield_strength)
+from .column_rebar import YIELD_STRENGTH, ColumnLayout, TableRow, column_layout, table, yield_strength
 from .frame import Frame, Member, NodeRole, Region
 from .longitudinal.combinations import Extraction, ExtractionGroup
 
@@ -276,7 +275,7 @@ def _spacing(centres: list[Printed], path: str, what: str) -> Printed | None:
 
 def _face(layers: list[TableRow], depth: Printed | None, pitch: Printed, face: str) -> MainBars:
     """One face's layers, outermost first; *depth* measures the centres from the lower face."""
-    path = f"{_COLUMN}.main_rows"
+    path = f"{_COLUMN}.main_bars"
     kind = _one({(row.diameter, row.count, row.material) for row in layers}, path,
                 f"{face}の主鉄筋の段の径・本数・材質")
     centres = [row.center if depth is None else put(LENGTH_MM, d(depth) - d(row.center)) for row in layers]
@@ -287,12 +286,12 @@ def _face(layers: list[TableRow], depth: Printed | None, pitch: Printed, face: s
 
 def _main(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str,
           depth: Printed) -> tuple[MainBars, MainBars, str]:
-    path = f"{_COLUMN}.main_rows"
+    path = f"{_COLUMN}.main_bars"
     face_rows = [row for row in layout.rows if row.direction == face]
     if not face_rows:
-        raise InputError(f"{path}: {face}の主鉄筋の行が必要です")
-    indices = {row.index for row in face_rows}
-    main = table((bar for bar in layout.automatic if indices.intersection(bar.rows)), face)
+        raise InputError(f"{path}: {face}の主鉄筋が必要です")
+    keys = {row.key for row in face_rows}
+    main = table((bar for bar in layout.bars if keys.intersection(bar.rows)), face)
     layers = len(face_rows)
     if len(main) != 2 * layers or rows[:layers] != main[:layers] or rows[-layers:] != main[-layers:]:
         raise InputError(f"{path}: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
@@ -321,7 +320,7 @@ def _side(rows: tuple[TableRow, ...], side: str,
     Capacita spaces them evenly, as the sample 09_直角/WebDan.wdj (owner, 2026-10-18)."""
     if not rows:
         return None
-    path = f"{_COLUMN}.main_rows"
+    path = f"{_COLUMN}.main_bars"
     diameter, grade = _one({(row.diameter, row.material) for row in rows}, path, "側方鉄筋の径・材質")
     if any(row.count != 2 for row in rows):
         raise InputError(f"{path}: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます（{side}の多段は表せません）")
@@ -343,9 +342,7 @@ def _hoops(pier: PierInput, face: str) -> tuple[Hoops, str]:
         raise InputError(f"{path}: {face}の帯鉄筋で柱下端を含む行がちょうど1行必要です（{len(rows)}行）")
     ((index, row),) = rows
     here = f"{path}[{index}]"
-    grade = row.material or column.materials.transverse
-    if grade is None:
-        raise InputError(f"{here}.material: 値が必要です（行と{_COLUMN}.materials.transverse が空欄）")
+    grade = _need(column.materials.transverse, f"{_COLUMN}.materials.transverse")
     return Hoops(diameter=_need(row.diameter, f"{here}.diameter_mm"), legs=_need(row.effective_legs,
                  f"{here}.effective_legs"), pitch=_need(row.pitch, f"{here}.pitch_mm")), grade
 
@@ -358,7 +355,6 @@ def calculate_column_check(pier: PierInput, frame_result: FrameResult, direction
     """The check of the column bottom in *direction*: LONGITUDINAL from 0610, TRANSVERSE from 0620."""
     member = _column_member(frame_result.frame)
     layout = column_layout(pier)
-    check_detail_positions(layout)
     width, depth = direction.section(layout)
     rows = table(layout.bars, direction.face)
     upper, lower, main_grade = _main(layout, rows, direction.face, depth)

@@ -7,6 +7,10 @@ error naming its path. The concrete strengths of this section are read into ``Ma
 
 Column coordinates: origin at the upper-left corner, X across the track (W6), Y along it (B6). A 線路 row
 lies on the two faces normal to Y, a 直角 row on the two faces normal to X (CONTEXT.md 柱の軸方向鉄筋).
+A direction's layers inside layer 1 take only their 片面本数 and clear gap; changes made in the 方向別の鉄筋配置表
+are kept per table, keyed by the generated centre and size (decision 68). A beam face likewise has one size,
+layer 1 and the layers inside it; the side bars are null when there are none. A footing face holds both
+directions, each with layer 1 and the layers inside it, and names the direction outside.
 """
 
 from __future__ import annotations
@@ -16,15 +20,15 @@ from dataclasses import dataclass
 from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
-from .fields import BASIS_VERSION, LENGTH_MM, read
+from .fields import LENGTH_MM, read
 
-__all__ = ["BASIS_VERSION", "LENGTH_MM", "RebarInput", "parse_rebar"]  # the digits come from the field table
-REBAR_VERSION = 2
+__all__ = ["LENGTH_MM", "RebarInput", "parse_rebar"]  # the digits come from the field table
+REBAR_VERSION = 3
 
 
 @dataclass(frozen=True)
 class SteelMaterials:
-    """The shared steel of a member; a row's own material overrides it."""
+    """The steels of a member: the main bars' (and the side bars'), and the transverse bars' (hoops, stirrups)."""
 
     main: str | None
     transverse: str | None
@@ -40,19 +44,36 @@ class Distribution:
 
 
 @dataclass(frozen=True)
-class ColumnMainRow:
-    """One layer of column main bars on a pair of opposite faces (片面本数 per face)."""
+class InnerLayer:
+    """A layer inside layer 1 of a column direction: its 片面本数 and the clear gap to the layer outside it (the size
+    and the distribution are layer 1's)."""
+
+    per_face_count: int | None
+    clear_gap: Printed | None
+
+
+@dataclass(frozen=True)
+class ColumnMainBars:
+    """The main bars of one direction on its two opposite faces: layer 1 in full, then the layers inside it."""
 
     diameter: Printed | None
-    material: str | None
-    cover_mode: str | None  # 自動: from the pure cover and the layers outside; 指定: center
-    center: Printed | None  # 主鉄筋の芯かぶり when 指定
-    clear_gap: Printed | None  # clear gap from the layer outside (layer > 1)
-    face_direction: str | None
-    layer: int | None
-    per_face_count: int | None
+    per_face_count: int | None  # 片面本数 of layer 1
+    cover_mode: str | None  # 自動: the pure cover + the enclosing hoop + half the bar; 指定: center
+    center: Printed | None  # 主鉄筋の芯かぶり of layer 1 when 指定
     endpoints: str | None  # 等分: whether the end positions carry a bar
     distribution: Distribution
+    inner_layers: tuple[InnerLayer, ...]
+
+
+@dataclass(frozen=True)
+class TableOverride:
+    """A change made in the 方向別の鉄筋配置表: the bars generated at source_center (from the reference face of the
+    direction) with source_diameter take center and/or diameter instead."""
+
+    source_center: Printed
+    source_diameter: Printed
+    center: Printed | None
+    diameter: Printed | None
 
 
 @dataclass(frozen=True)
@@ -61,7 +82,6 @@ class HoopRow:
 
     direction: str | None
     diameter: Printed | None
-    material: str | None
     effective_legs: int | None
     pitch: Printed | None
     start: Printed | None  # from the column base
@@ -75,116 +95,105 @@ class ColumnHoops:
 
 
 @dataclass(frozen=True)
-class ManualBar:
-    x: Printed | None
-    y: Printed | None
-    diameter: Printed | None
-    material: str | None
-
-
-@dataclass(frozen=True)
-class ManualBasis:
-    """The basic input the detail positions were generated from, to tell whether it has changed since."""
-
-    width: Printed  # X, mm
-    height: Printed  # Y, mm
-    materials: SteelMaterials
-    pure_cover: Printed | None
-    main_rows: tuple[ColumnMainRow, ...]
-    hoops: ColumnHoops
-
-
-@dataclass(frozen=True)
 class ColumnBars:
     materials: SteelMaterials
     pure_cover: Printed | None  # 純かぶり
-    main_rows: tuple[ColumnMainRow, ...]
+    main_bars: dict[str, ColumnMainBars]  # by direction, choices.REBAR_DIRECTIONS
+    overrides: dict[str, tuple[TableOverride, ...]]  # by the direction of the table
     hoops: ColumnHoops
-    manual_positions: tuple[ManualBar, ...]
-    position_mode: str  # 基本: generated from main_rows; 指定: manual_positions
-    manual_basis: ManualBasis | None
     aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax, mm (decision 48)
 
 
 @dataclass(frozen=True)
-class BeamMainRow:
-    diameter: Printed | None
-    material: str | None
-    cover_mode: str | None
-    center: Printed | None
-    clear_gap: Printed | None
-    face: str | None
-    bar_type: str | None
-    layer: int | None
+class BeamLayer:
+    """A layer inside layer 1 of a beam face: its count and the clear gap to the layer outside it (one size per
+    face)."""
+
     count: int | None
+    clear_gap: Printed | None
 
 
 @dataclass(frozen=True)
-class SideRow:
+class BeamFace:
+    """The main bars of one face of the beam: layer 1 in full, then the layers inside it."""
+
     diameter: Printed | None
-    material: str | None
-    per_face_count: int | None
-    columns: int | None
-    column_pitch: Printed | None
-    start: Printed | None
-    pitch: Printed | None
-    stirrup_position: str | None
-    cover_mode: str | None
+    count: int | None  # layer 1
+    bar_type: str | None  # the upper face's shape; the lower bars are straight and have none
+    cover_mode: str | None  # 自動: the pure cover + the stirrup + half the bar; 指定: center
     center: Printed | None
+    inner_layers: tuple[BeamLayer, ...]
 
 
 @dataclass(frozen=True)
-class BandRow:
-    type: str | None
-    direction: str | None
+class BeamSideBars:
     diameter: Printed | None
-    material: str | None
-    sets: Printed | None
+    per_face_count: int | None
+    start: Printed | None  # centre of the first bar from the upper face
     pitch: Printed | None
-    start: Printed | None
-    end: Printed | None
-    legs_mode: str | None
+    stirrup_position: str | None  # 内側: inside the stirrups; 外側: outside
+    cover_mode: str | None  # 自動: the pure cover (+ the stirrup when inside) + half the bar; 指定: center
+    center: Printed | None  # from the side face
+
+
+@dataclass(frozen=True)
+class BeamStirrups:
+    diameter: Printed | None
     effective_legs: int | None
-    width_mode: str | None  # footing only: spacing across the width by pitch or by density
-    width_pitch: Printed | None
-    density: Printed | None
+    pitch: Printed | None
 
 
 @dataclass(frozen=True)
 class BeamBars:
     materials: SteelMaterials
     pure_cover: Printed | None
-    main_rows: tuple[BeamMainRow, ...]
-    side_rows: tuple[SideRow, ...]
-    band_rows: tuple[BandRow, ...]
-    manual_positions: tuple[ManualBar, ...]
-    position_mode: str
+    faces: dict[str, BeamFace]  # by face, choices.BEAM_FACES
+    side: BeamSideBars | None  # None: no side bars (null)
+    stirrups: BeamStirrups
     aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax of the beam concrete, mm (decision 59)
 
 
 @dataclass(frozen=True)
-class FootingMainRow:
-    diameter: Printed | None
-    material: str | None
-    cover_mode: str | None
-    center: Printed | None
-    clear_gap: Printed | None
-    direction: str | None
-    face: str | None
+class FootingLayer:
+    """A layer inside layer 1 of a footing direction: its pitch and the clear gap to the previous layer of the
+    direction (the size is layer 1's)."""
+
     pitch: Printed | None
-    layers: int | None
-    stack_order: int | None
+    clear_gap: Printed | None
+
+
+@dataclass(frozen=True)
+class FootingMainBars:
+    """The main bars of one direction on one face of the footing: layer 1 in full, then the layers inside it."""
+
+    diameter: Printed | None
+    pitch: Printed | None
+    cover_mode: str | None  # 自動: the pure cover and the outer direction's layer 1 under it; 指定: center
+    center: Printed | None  # from the face
+    inner_layers: tuple[FootingLayer, ...]
+
+
+@dataclass(frozen=True)
+class FootingFace:
+    outer_direction: str | None  # the direction whose layer 1 lies against the face
+    bars: dict[str, FootingMainBars]  # by direction, choices.REBAR_DIRECTIONS
+
+
+@dataclass(frozen=True)
+class FootingStirrups:
+    diameter: Printed | None
+    pitch: Printed | None  # along the overhang
+    width_mode: str | None  # across the width: by spacing (width_pitch) or by the bars per metre (density)
+    width_pitch: Printed | None
+    density: Printed | None
 
 
 @dataclass(frozen=True)
 class FootingBars:
     materials: SteelMaterials
     pure_cover: Printed | None
-    main_rows: tuple[FootingMainRow, ...]
-    side_rows: tuple[SideRow, ...]
-    band_rows: tuple[BandRow, ...]
-    manual_positions: tuple[ManualBar, ...]
-    position_mode: str  # always 基本
+    faces: dict[str, FootingFace]  # by face, choices.BEAM_FACES
+    stirrups: dict[str, FootingStirrups]  # by direction
     aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax of the footing concrete, mm (decision 60)
 
 
@@ -210,164 +219,137 @@ def _materials(node: Reader) -> SteelMaterials:
     return SteelMaterials(main=_value(node, "main"), transverse=_value(node, "transverse"))
 
 
-COLUMN_ROW_KEYS = ("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "face_direction", "layer",
-                   "per_face_count", "endpoints", "distribution")
-
-
-def _column_row(node: Reader) -> ColumnMainRow:
-    node.only(*COLUMN_ROW_KEYS)
+def _column_bars(node: Reader) -> ColumnMainBars:
+    node.only("diameter_mm", "per_face_count", "cover_mode", "center_mm", "endpoints", "distribution", "inner_layers")
     spacing = node.at("distribution").only("mode", "edge_center_mm", "pitch_mm")
-    row = ColumnMainRow(
-        diameter=_value(node, "diameter_mm"), material=_value(node, "material"), cover_mode=_value(node, "cover_mode"),
-        center=_value(node, "center_mm"), clear_gap=_value(node, "clear_gap_mm"),
-        face_direction=_value(node, "face_direction"),
-        layer=_value(node, "layer"), per_face_count=_value(node, "per_face_count"),
-        endpoints=_value(node, "endpoints"),
-        distribution=Distribution(mode=_value(spacing, "mode"),
-                                  edge_center=_value(spacing, "edge_center_mm"),
-                                  pitch=_value(spacing, "pitch_mm")))
-    if row.distribution.mode == choices.EDGE_AND_PITCH and row.per_face_count == 1:
+    inner = []
+    for layer in node.at("inner_layers").items():
+        layer.only("per_face_count", "clear_gap_mm")
+        inner.append(InnerLayer(per_face_count=_value(layer, "per_face_count"),
+                                clear_gap=_value(layer, "clear_gap_mm")))
+    bars = ColumnMainBars(
+        diameter=_value(node, "diameter_mm"), per_face_count=_value(node, "per_face_count"),
+        cover_mode=_value(node, "cover_mode"), center=_value(node, "center_mm"), endpoints=_value(node, "endpoints"),
+        distribution=Distribution(mode=_value(spacing, "mode"), edge_center=_value(spacing, "edge_center_mm"),
+                                  pitch=_value(spacing, "pitch_mm")),
+        inner_layers=tuple(inner))
+    if bars.distribution.mode == choices.EDGE_AND_PITCH and bars.per_face_count == 1:
         raise node.at("per_face_count").error(f"{choices.EDGE_AND_PITCH}の配列は2本以上が必要です")
-    return row
+    return bars
+
+
+def _overrides(node: Reader) -> tuple[TableOverride, ...]:
+    """The changes of one table. A change whose generated bars no longer exist is the layout's to report (a warning in
+    the editor); a change of nothing, or two changes of one generated row, cannot be applied."""
+    found: list[TableOverride] = []
+    for row in node.items():
+        row.only("source_center_mm", "source_diameter_mm", "center_mm", "diameter_mm")
+        override = TableOverride(source_center=_value(row, "source_center_mm"),
+                                 source_diameter=_value(row, "source_diameter_mm"),
+                                 center=_value(row, "center_mm"), diameter=_value(row, "diameter_mm"))
+        if override.center is None and override.diameter is None:
+            raise row.error("芯位置か径の変更が必要です")
+        if any((other.source_center, other.source_diameter) == (override.source_center, override.source_diameter)
+               for other in found):
+            raise row.error("同じ元の芯位置・径の変更がほかの行にあります")
+        found.append(override)
+    return tuple(found)
 
 
 def _hoops(node: Reader) -> ColumnHoops:
     node.only("enclosing_diameter_mm", "direction_rows")
     rows = []
     for row in node.at("direction_rows").items():
-        row.only("direction", "diameter_mm", "material", "effective_legs", "pitch_mm", "start_mm", "end_mm")
+        row.only("direction", "diameter_mm", "effective_legs", "pitch_mm", "start_mm", "end_mm")
         start, end = _value(row, "start_mm"), _value(row, "end_mm")
         _ordered(row, start, end)
         rows.append(HoopRow(direction=_value(row, "direction"), diameter=_value(row, "diameter_mm"),
-                            material=_value(row, "material"), effective_legs=_value(row, "effective_legs"),
+                            effective_legs=_value(row, "effective_legs"),
                             pitch=_value(row, "pitch_mm"), start=start, end=end))
     return ColumnHoops(enclosing_diameter=_value(node, "enclosing_diameter_mm"), rows=tuple(rows))
 
 
-def _manual(node: Reader) -> tuple[ManualBar, ...]:
-    bars = []
-    for row in node.at("manual_positions").items():
-        row.only("x_mm", "y_mm", "diameter_mm", "material")
-        bars.append(ManualBar(x=_value(row, "x_mm"), y=_value(row, "y_mm"), diameter=_value(row, "diameter_mm"),
-                              material=_value(row, "material")))
-    return tuple(bars)
-
-
-def _basis(node: Reader | None) -> ManualBasis | None:
-    if node is None:
-        return None
-    node.only("generator_version", "geometry", "inputs")
-    read(node.at("generator_version"))
-    size = node.at("geometry").only("width_mm", "height_mm")
-    inputs = node.at("inputs").only("main_rows", "materials", "pure_cover_mm", "column_hoops")
-    return ManualBasis(
-        width=read(size.at("width_mm")), height=read(size.at("height_mm")),
-        materials=_materials(inputs.at("materials")), pure_cover=_value(inputs, "pure_cover_mm"),
-        main_rows=tuple(_column_row(row) for row in inputs.at("main_rows").items()),
-        hoops=_hoops(inputs.at("column_hoops")))
-
-
-def _mode(node: Reader) -> str:
-    return read(node.at("position_mode"))
-
-
 def _column(node: Reader) -> ColumnBars:
-    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "main_rows", "column_hoops",
-              "side_rows", "band_rows", "manual_positions", "position_mode", "manual_basis")
-    for key in ("side_rows", "band_rows"):
-        if node.at(key).items():
-            raise node.at(key).error("柱では使いません（帯鉄筋は column_hoops に入力します）")
+    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "main_bars", "table_overrides",
+              "column_hoops")
+    bars = node.at("main_bars").only(*choices.REBAR_DIRECTIONS)
+    overrides = node.at("table_overrides").only(*choices.REBAR_DIRECTIONS)
     return ColumnBars(
         materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
-        main_rows=tuple(_column_row(row) for row in node.at("main_rows").items()),
-        hoops=_hoops(node.at("column_hoops")), manual_positions=_manual(node), position_mode=_mode(node),
-        manual_basis=_basis(node.optional("manual_basis")), aggregate_max=_value(node, "aggregate_max_mm"))
+        main_bars={direction: _column_bars(bars.at(direction)) for direction in choices.REBAR_DIRECTIONS},
+        overrides={direction: _overrides(overrides.at(direction)) for direction in choices.REBAR_DIRECTIONS},
+        hoops=_hoops(node.at("column_hoops")), aggregate_max=_value(node, "aggregate_max_mm"))
 
 
-def _side_row(node: Reader) -> SideRow:
-    node.only("diameter_mm", "material", "per_face_count", "columns", "column_pitch_mm", "start_mm", "pitch_mm",
-              "stirrup_position", "cover_mode", "center_mm")
-    row = SideRow(
-        diameter=_value(node, "diameter_mm"), material=_value(node, "material"),
-        per_face_count=_value(node, "per_face_count"), columns=_value(node, "columns"),
-        column_pitch=_value(node, "column_pitch_mm"),
+def _beam_face(node: Reader, *, shaped: bool) -> BeamFace:
+    node.only("diameter_mm", "count", "cover_mode", "center_mm", "inner_layers", *(("bar_type",) if shaped else ()))
+    inner = []
+    for layer in node.at("inner_layers").items():
+        layer.only("count", "clear_gap_mm")
+        inner.append(BeamLayer(count=_value(layer, "count"), clear_gap=_value(layer, "clear_gap_mm")))
+    return BeamFace(diameter=_value(node, "diameter_mm"), count=_value(node, "count"),
+                    bar_type=_value(node, "bar_type") if shaped else None, cover_mode=_value(node, "cover_mode"),
+                    center=_value(node, "center_mm"), inner_layers=tuple(inner))
+
+
+def _beam_side(node: Reader) -> BeamSideBars | None:
+    if node.is_null:
+        return None
+    node.only("diameter_mm", "per_face_count", "start_mm", "pitch_mm", "stirrup_position", "cover_mode", "center_mm")
+    return BeamSideBars(
+        diameter=_value(node, "diameter_mm"), per_face_count=_value(node, "per_face_count"),
         start=_value(node, "start_mm"), pitch=_value(node, "pitch_mm"),
-        stirrup_position=_value(node, "stirrup_position"),
-        cover_mode=_value(node, "cover_mode"), center=_value(node, "center_mm"))
-    if row.per_face_count and row.columns is not None and row.columns > row.per_face_count:
-        raise node.at("columns").error("片面本数以下が必要です")
-    return row
-
-
-BAND_KEYS = ("type", "direction", "diameter_mm", "material", "sets", "pitch_mm", "start_mm", "end_mm", "legs_mode",
-             "effective_legs")
-WIDTH_KEYS = ("distribution_mode", "width_pitch_mm", "density_per_m")
-
-
-def _band_row(node: Reader, *, footing: bool) -> BandRow:
-    node.only(*BAND_KEYS, *(WIDTH_KEYS if footing else ()))
-    start, end = _value(node, "start_mm"), _value(node, "end_mm")
-    _ordered(node, start, end)
-    sets_node = node.at("sets")
-    sets = read(sets_node)
-    width_mode = width_pitch = density = None
-    if footing:
-        width_mode = _value(node, "distribution_mode")
-        width_pitch = _value(node, "width_pitch_mm")
-        density = _value(node, "density_per_m")
-    row = BandRow(
-        type=_value(node, "type"), direction=_value(node, "direction"),
-        diameter=_value(node, "diameter_mm"), material=_value(node, "material"), sets=sets,
-        pitch=_value(node, "pitch_mm"),
-        start=start, end=end, legs_mode=_value(node, "legs_mode"),
-        effective_legs=_value(node, "effective_legs"), width_mode=width_mode, width_pitch=width_pitch, density=density)
-    if row.legs_mode == choices.LEGS_AUTOMATIC and sets is not None and not (sets.value * 2).is_integer():
-        raise sets_node.error("有効脚数（1組＝2脚）が整数にならないため、有効脚数を指定してください")
-    return row
-
-
-SHARED_KEYS = ("materials", "concrete_strength_mpa", "pure_cover_mm", "main_rows", "side_rows", "band_rows",
-               "manual_positions", "position_mode")
+        stirrup_position=_value(node, "stirrup_position"), cover_mode=_value(node, "cover_mode"),
+        center=_value(node, "center_mm"))
 
 
 def _beam(node: Reader) -> BeamBars:
-    node.only(*SHARED_KEYS, "aggregate_max_mm")
-    rows = []
-    for row in node.at("main_rows").items():
-        row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "face", "bar_type", "layer",
-                 "count")
-        rows.append(BeamMainRow(
-            diameter=_value(row, "diameter_mm"), material=_value(row, "material"), cover_mode=_value(row, "cover_mode"),
-            center=_value(row, "center_mm"), clear_gap=_value(row, "clear_gap_mm"),
-            face=_value(row, "face"), bar_type=_value(row, "bar_type"),
-            layer=_value(row, "layer"), count=_value(row, "count")))
+    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "faces", "side_bars",
+              "stirrups")
+    faces = node.at("faces").only(*choices.BEAM_FACES)
+    stirrups = node.at("stirrups").only("diameter_mm", "effective_legs", "pitch_mm")
     return BeamBars(
-        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
-        side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
-        band_rows=tuple(_band_row(row, footing=False) for row in node.at("band_rows").items()),
-        manual_positions=_manual(node), position_mode=_mode(node), aggregate_max=_value(node, "aggregate_max_mm"))
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
+        faces={face: _beam_face(faces.at(face), shaped=face == choices.BEAM_FACES[0]) for face in choices.BEAM_FACES},
+        side=_beam_side(node.at("side_bars")),
+        stirrups=BeamStirrups(diameter=_value(stirrups, "diameter_mm"),
+                              effective_legs=_value(stirrups, "effective_legs"), pitch=_value(stirrups, "pitch_mm")),
+        aggregate_max=_value(node, "aggregate_max_mm"))
+
+
+def _footing_bars(node: Reader) -> FootingMainBars:
+    node.only("diameter_mm", "pitch_mm", "cover_mode", "center_mm", "inner_layers")
+    inner = []
+    for layer in node.at("inner_layers").items():
+        layer.only("pitch_mm", "clear_gap_mm")
+        inner.append(FootingLayer(pitch=_value(layer, "pitch_mm"), clear_gap=_value(layer, "clear_gap_mm")))
+    return FootingMainBars(diameter=_value(node, "diameter_mm"), pitch=_value(node, "pitch_mm"),
+                           cover_mode=_value(node, "cover_mode"), center=_value(node, "center_mm"),
+                           inner_layers=tuple(inner))
+
+
+def _footing_face(node: Reader) -> FootingFace:
+    node.only("outer_direction", *choices.REBAR_DIRECTIONS)
+    return FootingFace(outer_direction=_value(node, "outer_direction"),
+                       bars={direction: _footing_bars(node.at(direction)) for direction in choices.REBAR_DIRECTIONS})
+
+
+def _footing_stirrups(node: Reader) -> FootingStirrups:
+    node.only("diameter_mm", "pitch_mm", "distribution_mode", "width_pitch_mm", "density_per_m")
+    return FootingStirrups(diameter=_value(node, "diameter_mm"), pitch=_value(node, "pitch_mm"),
+                           width_mode=_value(node, "distribution_mode"), width_pitch=_value(node, "width_pitch_mm"),
+                           density=_value(node, "density_per_m"))
 
 
 def _footing(node: Reader) -> FootingBars:
-    node.only(*SHARED_KEYS, "aggregate_max_mm")
-    rows = []
-    for row in node.at("main_rows").items():
-        row.only("diameter_mm", "material", "cover_mode", "center_mm", "clear_gap_mm", "direction", "face",
-                 "pitch_mm", "layers", "stack_order")
-        rows.append(FootingMainRow(
-            diameter=_value(row, "diameter_mm"), material=_value(row, "material"), cover_mode=_value(row, "cover_mode"),
-            center=_value(row, "center_mm"), clear_gap=_value(row, "clear_gap_mm"),
-            direction=_value(row, "direction"),
-            face=_value(row, "face"), pitch=_value(row, "pitch_mm"),
-            layers=_value(row, "layers"), stack_order=_value(row, "stack_order")))
-    mode = _mode(node)
-    if mode != choices.POSITION_BASIC:
-        raise node.at("position_mode").error("フーチングは方向別の芯かぶり・重ね順で配置します")
+    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "faces", "stirrups")
+    faces = node.at("faces").only(*choices.BEAM_FACES)
+    stirrups = node.at("stirrups").only(*choices.REBAR_DIRECTIONS)
     return FootingBars(
-        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"), main_rows=tuple(rows),
-        side_rows=tuple(_side_row(row) for row in node.at("side_rows").items()),
-        band_rows=tuple(_band_row(row, footing=True) for row in node.at("band_rows").items()),
-        manual_positions=_manual(node), position_mode=mode, aggregate_max=_value(node, "aggregate_max_mm"))
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
+        faces={face: _footing_face(faces.at(face)) for face in choices.BEAM_FACES},
+        stirrups={direction: _footing_stirrups(stirrups.at(direction)) for direction in choices.REBAR_DIRECTIONS},
+        aggregate_max=_value(node, "aggregate_max_mm"))
 
 
 def parse_rebar(root: Reader) -> RebarInput:

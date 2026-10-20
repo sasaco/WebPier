@@ -28,25 +28,23 @@ SAMPLE_ACTIONS = {
 }
 
 
-def _row(direction, face, diameter=None, pitch=None, cover_mode="自動", center=None, stack_order=1):
-    return {"diameter_mm": diameter, "material": None, "cover_mode": cover_mode, "center_mm": center,
-            "clear_gap_mm": None, "direction": direction, "face": face, "pitch_mm": pitch, "layers": 1,
-            "stack_order": stack_order}
+def _bars(diameter=None, pitch=None, cover_mode="自動", center=None):
+    return {"diameter_mm": diameter, "pitch_mm": pitch, "cover_mode": cover_mode, "center_mm": center,
+            "inner_layers": []}
 
 
-def _stirrup(direction):
-    return {"type": "内側", "direction": direction, "diameter_mm": 16, "material": None, "sets": None, "pitch_mm": 250,
-            "start_mm": None, "end_mm": None, "legs_mode": "指定", "effective_legs": None, "distribution_mode": "密度",
-            "width_pitch_mm": None, "density_per_m": 2}
+def _stirrup():
+    return {"diameter_mm": 16, "pitch_mm": 250, "distribution_mode": "密度", "width_pitch_mm": None,
+            "density_per_m": 2}
 
 
 def sample_rebar():
     return {"materials": {"main": "SD390", "transverse": "SD390"}, "concrete_strength_mpa": 27, "aggregate_max_mm": 25,
             "pure_cover_mm": None,
-            "main_rows": [_row("線路", "上"), _row("線路", "下", 25, 125, "指定", 100, 1), _row("直角", "上", stack_order=2),
-                          _row("直角", "下", 29, 125, "指定", 127, 2)],
-            "side_rows": [], "band_rows": [_stirrup("線路"), _stirrup("直角")], "manual_positions": [],
-            "position_mode": "基本"}
+            "faces": {"上": {"outer_direction": "線路", "線路": _bars(), "直角": _bars()},
+                      "下": {"outer_direction": "線路", "線路": _bars(25, 125, "指定", 100),
+                             "直角": _bars(29, 125, "指定", 127)}},
+            "stirrups": {"線路": _stirrup(), "直角": _stirrup()}}
 
 
 def footing_pier():

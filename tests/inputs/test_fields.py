@@ -59,7 +59,8 @@ def error_of(document):
 def test_paths_are_written_as_input_errors_name_them():
     assert path_text(("上部工反力", "起点側", "B支点", 3, "支承位置")) == "上部工反力.起点側.B支点[3].支承位置"
     assert path_text(()) == ""
-    assert pattern("鉄筋.柱.main_rows[12].distribution.mode") == "鉄筋.柱.main_rows[*].distribution.mode"
+    assert (pattern("鉄筋.柱.main_bars.線路.inner_layers[12].clear_gap_mm")
+            == "鉄筋.柱.main_bars.線路.inner_layers[*].clear_gap_mm")
 
 
 def test_a_field_is_found_by_text_or_keys_and_unknown_paths_are_named():

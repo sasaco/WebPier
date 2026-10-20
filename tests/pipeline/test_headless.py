@@ -132,7 +132,8 @@ def test_a_switch_with_one_stage_is_an_input_error_without_a_path(tmp_path: Path
 
 @pytest.mark.parametrize("message,path", [
     ("上部工反力.起点側.B支点[0].支承位置: はりの張出しにあります", "上部工反力.起点側.B支点[0].支承位置"),
-    ("入力項目がありません: 鉄筋.柱.main_rows[2].layer", "鉄筋.柱.main_rows[2].layer"),
+    ("入力項目がありません: 鉄筋.柱.main_bars.線路.inner_layers[2].clear_gap_mm",
+     "鉄筋.柱.main_bars.線路.inner_layers[2].clear_gap_mm"),
     ("入力項目がありません: jrsnap_transverse", "jrsnap_transverse"),
     ("柱の断面照査.ε'csd: 値が必要です", "柱の断面照査.ε'csd"),
     ("FrameWeb入力: 全体: 不正です", None), ("0600 本体: 面積が0です", None), ("計算段階が不正です: 9", None),
@@ -367,15 +368,19 @@ def test_the_schema_leaves(schema):
     assert angle["type"] == ["number", "null"] and angle["x-webpier-limit"] == "90度未満が必要です"
     repetitions = properties["片持ち梁の照査"]["properties"]["疲労"]["properties"]["等価繰返し回数"]["properties"]
     assert list(repetitions["A列車"]["properties"]) == ["k=0.06", "k=0.12"]
-    assert properties["鉄筋"]["properties"]["version"] == {"const": 2}
+    assert properties["鉄筋"]["properties"]["version"] == {"const": 3}
     assert properties["schema_version"] == {"const": 2}
     for side, slots in (("起点側", "B支点"), ("終点側", "C支点")):  # an empty bearing slot is null
         array = properties["上部工反力"]["properties"][side]["properties"][slots]
         assert (array["items"]["type"], array["minItems"], array["maxItems"]) == (["object", "null"], 10, 10)
     assert properties["地盤データ"]["properties"]["層"]["items"]["type"] == "object"
     column = properties["鉄筋"]["properties"]["柱"]["properties"]
-    assert column["side_rows"] == column["band_rows"] == {"type": "array", "maxItems": 0}
-    assert column["manual_basis"]["type"] == ["object", "null"]
+    rail = column["main_bars"]["properties"]["線路"]["properties"]
+    assert rail["inner_layers"]["type"] == "array"
+    assert set(rail["inner_layers"]["items"]["properties"]) == {"per_face_count", "clear_gap_mm"}
+    changes = column["table_overrides"]["properties"]["直角"]
+    assert set(changes["items"]["properties"]) == {"source_center_mm", "source_diameter_mm", "center_mm", "diameter_mm"}
+    assert "side_rows" not in column and "manual_basis" not in column
     assert column["column_hoops"]["type"] == "object"
 
 

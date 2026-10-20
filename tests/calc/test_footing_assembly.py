@@ -166,8 +166,8 @@ def test_an_upward_vd_in_a_column_is_an_input_error_naming_the_column():
 
 
 def test_blank_footing_bars_stop_prepare_before_any_analysis():
-    with pytest.raises(InputError, match="鉄筋.フーチング.main_rows"):
-        prepared("0800_longitudinal", **{"鉄筋/フーチング/main_rows/1/diameter_mm": None})
+    with pytest.raises(InputError, match="鉄筋.フーチング.faces.下.線路"):
+        prepared("0800_longitudinal", **{"鉄筋/フーチング/faces/下/線路/diameter_mm": None})
 
 
 def test_the_result_of_both_directions():

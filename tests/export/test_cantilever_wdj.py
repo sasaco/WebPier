@@ -197,7 +197,7 @@ def test_the_appearance_check_asks_for_both_faces(built):
 
 
 def test_without_side_bars_the_sidebar_row_is_blank_and_the_strengths_are_the_main_bars(built):
-    pier, _, result = result_of(**{"鉄筋/梁/side_rows": []})
+    pier, _, result = result_of(**{"鉄筋/梁/side_bars": None})
     document = build_cantilever_wdj(calculate_cantilever_section(pier, result))
     assert document["bar"][0]["sidebar1"] == {"side_dia": None, "side_n": None, "side_cover": None, "side_ss": None}
     assert document["safety"]["material_bar"]["1"][0]["sidebar"] == {"fsy": 390, "fsu": 560}

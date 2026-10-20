@@ -58,20 +58,16 @@ DIRECTIONS = {"longitudinal": ("0800_longitudinal", "244", ("vd", "hd", "md"), "
 CHECKS = {"bending_safety_destruction": ("γi･Md/Mud", "Mud (kN･m)"),
           "bending_restorability_eq": ("γi･Md/Myd", "Myd (kN･m)")}
 # The sample's footing bars (12_フーチング.pdf 255・258); current.json itself keeps 鉄筋.フーチング blank.
-_ROW = {"diameter_mm": None, "material": None, "cover_mode": "自動", "center_mm": None, "clear_gap_mm": None,
-        "direction": "線路", "face": "上", "pitch_mm": None, "layers": 1, "stack_order": 1}
-_STIRRUP = {"type": "内側", "direction": "線路", "diameter_mm": 16, "material": None, "sets": None, "pitch_mm": 250,
-            "start_mm": None, "end_mm": None, "legs_mode": "指定", "effective_legs": None, "distribution_mode": "密度",
-            "width_pitch_mm": None, "density_per_m": 2}
+_BARS = {"diameter_mm": None, "pitch_mm": None, "cover_mode": "自動", "center_mm": None, "inner_layers": []}
+_STIRRUP = {"diameter_mm": 16, "pitch_mm": 250, "distribution_mode": "密度", "width_pitch_mm": None, "density_per_m": 2}
 FOOTING = {
     "materials": {"main": "SD390", "transverse": "SD390"}, "concrete_strength_mpa": 27, "aggregate_max_mm": 25,
     "pure_cover_mm": None,
-    "main_rows": [_ROW, {**_ROW, "face": "下", "diameter_mm": 25, "pitch_mm": 125, "cover_mode": "指定", "center_mm": 100},
-                  {**_ROW, "direction": "直角", "stack_order": 2},
-                  {**_ROW, "direction": "直角", "face": "下", "diameter_mm": 29, "pitch_mm": 125, "cover_mode": "指定",
-                   "center_mm": 127, "stack_order": 2}],
-    "side_rows": [], "band_rows": [_STIRRUP, {**_STIRRUP, "direction": "直角"}], "manual_positions": [],
-    "position_mode": "基本"}
+    "faces": {"上": {"outer_direction": "線路", "線路": _BARS, "直角": _BARS},
+              "下": {"outer_direction": "線路",
+                     "線路": {**_BARS, "diameter_mm": 25, "pitch_mm": 125, "cover_mode": "指定", "center_mm": 100},
+                     "直角": {**_BARS, "diameter_mm": 29, "pitch_mm": 125, "cover_mode": "指定", "center_mm": 127}}},
+    "stirrups": {"線路": _STIRRUP, "直角": _STIRRUP}}
 
 
 class AcceptanceError(RuntimeError):

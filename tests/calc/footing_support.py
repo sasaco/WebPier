@@ -24,26 +24,24 @@ SAMPLE_ACTIONS = {
 }
 
 
-def row(direction, face, diameter=None, pitch=None, cover_mode="自動", center=None, stack_order=1):
-    return {"diameter_mm": diameter, "material": None, "cover_mode": cover_mode, "center_mm": center,
-            "clear_gap_mm": None, "direction": direction, "face": face, "pitch_mm": pitch, "layers": 1,
-            "stack_order": stack_order}
+def bars(diameter=None, pitch=None, cover_mode="自動", center=None):
+    return {"diameter_mm": diameter, "pitch_mm": pitch, "cover_mode": cover_mode, "center_mm": center,
+            "inner_layers": []}
 
 
-def stirrup(direction):
-    return {"type": "内側", "direction": direction, "diameter_mm": 16, "material": None, "sets": None, "pitch_mm": 250,
-            "start_mm": None, "end_mm": None, "legs_mode": "指定", "effective_legs": None, "distribution_mode": "密度",
-            "width_pitch_mm": None, "density_per_m": 2}
+def stirrup():
+    return {"diameter_mm": 16, "pitch_mm": 250, "distribution_mode": "密度", "width_pitch_mm": None,
+            "density_per_m": 2}
 
 
 def sample_rebar():
     """The sample's footing bars (12_フーチング.pdf 255・258): D25@125 at 100 along, D29@125 at 127 across, D16 2本/m."""
     return {"materials": {"main": "SD390", "transverse": "SD390"}, "concrete_strength_mpa": 27, "aggregate_max_mm": 25,
             "pure_cover_mm": None,
-            "main_rows": [row("線路", "上"), row("線路", "下", 25, 125, "指定", 100, 1), row("直角", "上", stack_order=2),
-                          row("直角", "下", 29, 125, "指定", 127, 2)],
-            "side_rows": [], "band_rows": [stirrup("線路"), stirrup("直角")], "manual_positions": [],
-            "position_mode": "基本"}
+            "faces": {"上": {"outer_direction": "線路", "線路": bars(), "直角": bars()},
+                      "下": {"outer_direction": "線路", "線路": bars(25, 125, "指定", 100),
+                             "直角": bars(29, 125, "指定", 127)}},
+            "stirrups": {"線路": stirrup(), "直角": stirrup()}}
 
 
 def step(case_index, number, v, h, m, rvd):

@@ -342,10 +342,7 @@ def input_schema() -> dict[str, Any]:
         node["properties"][last] = _leaf(spec)
     rebar = root["properties"]["鉄筋"]["properties"]
     rebar["version"] = {"const": REBAR_VERSION}
-    column = rebar["柱"]["properties"]
-    for key in ("side_rows", "band_rows"):  # the column's bands are its column_hoops; these stay empty (rebar._column)
-        column[key] = {"type": "array", "maxItems": 0}
-    column["manual_basis"]["type"] = ["object", "null"]  # absent or null without manual positions (rebar._basis)
+    rebar["梁"]["properties"]["side_bars"]["type"] = ["object", "null"]  # null: no side bars (rebar._beam_side)
     reactions = root["properties"]["上部工反力"]["properties"]
     for side, slots in (("起点側", "B支点"), ("終点側", "C支点")):  # an empty bearing slot is null (parse._bearing)
         array = reactions[side]["properties"][slots]

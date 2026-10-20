@@ -36,20 +36,20 @@ def test_the_column_of_the_current_input():
     column = parse_input(data()).rebar.column
     assert column.materials.main == "SD390" and column.materials.transverse == "SD390"
     assert column.pure_cover == mm(70)
-    first, second = column.main_rows
-    assert first.diameter == mm(32, 0) and first.material is None
-    assert (first.cover_mode, first.center, first.face_direction, first.layer) == ("自動", None, "線路", 1)
-    assert first.per_face_count == 29 and first.endpoints == "含む"
-    assert first.distribution.mode == "両端＋中央ピッチ"
-    assert first.distribution.edge_center == mm(108) and first.distribution.pitch == mm(150)
-    assert (second.cover_mode, second.center, second.face_direction) == ("指定", mm(102), "直角")
-    assert second.distribution.mode == "中央ピッチ" and second.distribution.edge_center is None
+    rail, cross = column.main_bars["線路"], column.main_bars["直角"]
+    assert (rail.diameter, rail.per_face_count, rail.cover_mode, rail.center, rail.endpoints) == (
+        mm(32, 0), 29, "自動", None, "含む")
+    assert rail.distribution.mode == "両端＋中央ピッチ"
+    assert rail.distribution.edge_center == mm(108) and rail.distribution.pitch == mm(150)
+    assert rail.inner_layers == ()
+    assert (cross.cover_mode, cross.center) == ("指定", mm(102))
+    assert cross.distribution.mode == "中央ピッチ" and cross.distribution.edge_center is None
+    assert column.overrides == {"線路": (), "直角": ()}
     assert column.hoops.enclosing_diameter == mm(22, 0)
-    rail, cross = column.hoops.rows
-    assert (rail.direction, rail.diameter, rail.material, rail.effective_legs, rail.pitch) == (
-        "線路", mm(22, 0), "SD390", 10, mm(150))
-    assert (cross.direction, cross.effective_legs, cross.start, cross.end) == ("直角", 6, None, None)
-    assert column.manual_positions == () and column.position_mode == "基本" and column.manual_basis is None
+    hoop_rail, hoop_cross = column.hoops.rows
+    assert (hoop_rail.direction, hoop_rail.diameter, hoop_rail.effective_legs, hoop_rail.pitch) == (
+        "線路", mm(22, 0), 10, mm(150))
+    assert (hoop_cross.direction, hoop_cross.effective_legs, hoop_cross.start, hoop_cross.end) == ("直角", 6, None, None)
 
 
 def test_the_beam_bars_of_the_current_input_and_the_footing_draft():
@@ -57,19 +57,22 @@ def test_the_beam_bars_of_the_current_input_and_the_footing_draft():
     side bars D22 × 17 from 350 at 125, stirrups D22 with 4 legs at 125 (decision 59)."""
     rebar = parse_input(data()).rebar
     beam = rebar.beam
-    assert [(row.face, row.bar_type, row.layer, row.count, row.diameter, row.center) for row in beam.main_rows] == [
-        ("上", "直筋", 1, 17, mm(32, 0), mm(108)), ("上", "直筋", 2, 8, mm(32, 0), mm(172)),
-        ("下", "直筋", 1, 18, mm(19, 0), mm(121))]
+    upper, lower = beam.faces["上"], beam.faces["下"]
+    assert (upper.diameter, upper.count, upper.bar_type, upper.cover_mode, upper.center) == (
+        mm(32, 0), 17, "直筋", "指定", mm(108))
+    assert [(layer.count, layer.clear_gap) for layer in upper.inner_layers] == [(8, mm(32))]  # 108 + 32 + 32 = 172
+    assert (lower.diameter, lower.count, lower.bar_type, lower.center, lower.inner_layers) == (
+        mm(19, 0), 18, None, mm(121), ())
     assert beam.pure_cover is None and beam.materials.main == "SD390" and beam.aggregate_max == mm(25)
-    (side,) = beam.side_rows
-    assert (side.diameter, side.per_face_count, side.start, side.pitch, side.center) == (mm(22, 0), 17, mm(350),
-                                                                                           mm(125), mm(184))
-    (band,) = beam.band_rows
-    assert (band.diameter, band.effective_legs, band.pitch, band.legs_mode) == (mm(22, 0), 4, mm(125), "指定")
+    side = beam.side
+    assert (side.diameter, side.per_face_count, side.start, side.pitch, side.stirrup_position, side.center) == (
+        mm(22, 0), 17, mm(350), mm(125), "内側", mm(184))
+    assert (beam.stirrups.diameter, beam.stirrups.effective_legs, beam.stirrups.pitch) == (mm(22, 0), 4, mm(125))
     footing = rebar.footing
-    assert [(row.direction, row.face, row.layers, row.stack_order) for row in footing.main_rows] == [
-        ("線路", "上", 1, 1), ("線路", "下", 1, 1), ("直角", "上", 1, 2), ("直角", "下", 1, 2)]
-    assert footing.main_rows[0].pitch is None and footing.position_mode == "基本"
+    assert [footing.faces[face].outer_direction for face in ("上", "下")] == ["線路", "線路"]
+    lower = footing.faces["下"].bars["線路"]
+    assert (lower.diameter, lower.pitch, lower.cover_mode, lower.inner_layers) == (None, None, "自動", ())
+    assert footing.stirrups["直角"].width_mode is None
 
 
 def test_the_jrsnap_conditions_of_each_direction():
@@ -141,10 +144,13 @@ def test_jrsnap_conditions_reject_unknown_keys():
 
 
 @pytest.mark.parametrize("path", [
-    ("鉄筋",), ("鉄筋", "柱"), ("鉄筋", "柱", "materials"), ("鉄筋", "柱", "main_rows", 0),
-    ("鉄筋", "柱", "main_rows", 0, "distribution"), ("鉄筋", "柱", "column_hoops"),
-    ("鉄筋", "柱", "column_hoops", "direction_rows", 1), ("鉄筋", "梁", "main_rows", 1), ("鉄筋", "フーチング"),
-    ("鉄筋", "フーチング", "main_rows", 3),
+    ("鉄筋",), ("鉄筋", "柱"), ("鉄筋", "柱", "materials"), ("鉄筋", "柱", "main_bars"), ("鉄筋", "柱", "main_bars", "線路"),
+    ("鉄筋", "柱", "main_bars", "線路", "distribution"), ("鉄筋", "柱", "table_overrides"), ("鉄筋", "柱", "column_hoops"),
+    ("鉄筋", "柱", "column_hoops", "direction_rows", 1), ("鉄筋", "梁", "faces", "上"),
+    ("鉄筋", "梁", "faces", "上", "inner_layers", 0), ("鉄筋", "梁", "side_bars"), ("鉄筋", "梁", "stirrups"),
+    ("鉄筋", "フーチング"),
+    ("鉄筋", "フーチング", "faces", "下", "直角"), ("鉄筋", "フーチング", "faces", "上"),
+    ("鉄筋", "フーチング", "stirrups", "線路"),
 ])
 def test_unknown_rebar_keys_are_rejected(path):
     document = data()
@@ -157,10 +163,15 @@ def test_unknown_rebar_keys_are_rejected(path):
 
 
 @pytest.mark.parametrize("path,key", [
-    (("鉄筋", "柱", "main_rows", 0), "endpoints"),
-    (("鉄筋", "柱", "main_rows", 0), "distribution"),
+    (("鉄筋", "柱", "main_bars", "線路"), "endpoints"),
+    (("鉄筋", "柱", "main_bars", "直角"), "distribution"),
+    (("鉄筋", "柱", "main_bars", "線路"), "inner_layers"),
+    (("鉄筋", "柱", "main_bars"), "直角"),
+    (("鉄筋", "柱", "table_overrides"), "線路"),
     (("鉄筋", "柱"), "column_hoops"),
-    (("鉄筋", "梁", "main_rows", 0), "bar_type"),
+    (("鉄筋", "梁", "faces", "上"), "bar_type"),
+    (("鉄筋", "梁"), "side_bars"),
+    (("鉄筋", "フーチング", "faces", "上"), "outer_direction"),
     (("鉄筋",), "フーチング"),
 ])
 def test_every_rebar_key_is_required(path, key):
@@ -174,39 +185,64 @@ def test_every_rebar_key_is_required(path, key):
     fails(document, f"入力項目がありません: {prefix}.{key}")
 
 
-def test_rebar_format_version_must_be_2():
+def test_rebar_format_version_must_be_3():
     document = data()
-    document["鉄筋"]["version"] = 1
-    fails(document, "鉄筋.version: 2～2の整数が必要です")
+    document["鉄筋"]["version"] = 2
+    fails(document, "鉄筋.version: 3～3の整数が必要です")
 
 
 @pytest.mark.parametrize("key,value,message", [
     ("endpoints", "含まない", "「含む」「含めない」のいずれかを選んでください"),
-    ("face_direction", "橋軸", "「線路」「直角」のいずれかを選んでください"),
     ("cover_mode", "手動", "「自動」「指定」のいずれかを選んでください"),
-    ("material", "SD490", "「SD295」「SD345」「SD390」のいずれかを選んでください"),
     ("diameter_mm", 31.8, "小数0桁までで入力してください"),
     ("diameter_mm", 0, "正の数値が必要です"),
-    ("clear_gap_mm", 40.25, "小数1桁までで入力してください"),
     ("per_face_count", 2.5, "0～10000の整数が必要です"),
-    ("layer", 0, "1～100の整数が必要です"),
 ])
-def test_column_main_row_values(key, value, message):
+def test_column_main_bar_values(key, value, message):
     document = data()
-    document["鉄筋"]["柱"]["main_rows"][0][key] = value
-    fails(document, f"鉄筋.柱.main_rows[0].{key}: {message}")
+    document["鉄筋"]["柱"]["main_bars"]["線路"][key] = value
+    fails(document, f"鉄筋.柱.main_bars.線路.{key}: {message}")
 
 
 def test_distribution_mode_is_a_choice():
     document = data()
-    document["鉄筋"]["柱"]["main_rows"][0]["distribution"]["mode"] = "端部ピッチ"
-    fails(document, "鉄筋.柱.main_rows[0].distribution.mode: 「等分」「中央ピッチ」「両端＋中央ピッチ」のいずれか")
+    document["鉄筋"]["柱"]["main_bars"]["線路"]["distribution"]["mode"] = "端部ピッチ"
+    fails(document, "鉄筋.柱.main_bars.線路.distribution.mode: 「等分」「中央ピッチ」「両端＋中央ピッチ」のいずれか")
 
 
 def test_edge_bars_need_at_least_two_bars_per_face():
     document = data()
-    document["鉄筋"]["柱"]["main_rows"][0]["per_face_count"] = 1
-    fails(document, "鉄筋.柱.main_rows[0].per_face_count: 両端＋中央ピッチの配列は2本以上が必要です")
+    document["鉄筋"]["柱"]["main_bars"]["線路"]["per_face_count"] = 1
+    fails(document, "鉄筋.柱.main_bars.線路.per_face_count: 両端＋中央ピッチの配列は2本以上が必要です")
+
+
+def test_layers_inside_take_only_their_count_and_gap():
+    document = data()
+    document["鉄筋"]["柱"]["main_bars"]["線路"]["inner_layers"] = [
+        {"per_face_count": 27, "clear_gap_mm": 40}, {"per_face_count": None, "clear_gap_mm": None}]
+    inner = parse_input(document).rebar.column.main_bars["線路"].inner_layers
+    assert [(layer.per_face_count, layer.clear_gap) for layer in inner] == [(27, mm(40)), (None, None)]
+    layer = document["鉄筋"]["柱"]["main_bars"]["線路"]["inner_layers"][0]
+    layer["per_face_count"] = 0
+    fails(document, "鉄筋.柱.main_bars.線路.inner_layers[0].per_face_count: 1～10000の整数が必要です")
+    layer["per_face_count"] = 27
+    layer["diameter_mm"] = 32
+    fails(document, "鉄筋.柱.main_bars.線路.inner_layers[0].diameter_mm: 未知の入力項目です")
+
+
+def test_table_overrides():
+    document = data()
+    changes = document["鉄筋"]["柱"]["table_overrides"]["線路"]
+    changes.append({"source_center_mm": 180, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": 29})
+    (change,) = parse_input(document).rebar.column.overrides["線路"]
+    assert (change.source_center, change.source_diameter, change.center, change.diameter) == (
+        mm(180), mm(32, 0), None, mm(29, 0))
+    changes.append({"source_center_mm": 180, "source_diameter_mm": 32, "center_mm": 190, "diameter_mm": None})
+    fails(document, "鉄筋.柱.table_overrides.線路[1]: 同じ元の芯位置・径の変更がほかの行にあります")
+    changes[1] = {"source_center_mm": 300, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": None}
+    fails(document, "鉄筋.柱.table_overrides.線路[1]: 芯位置か径の変更が必要です")
+    changes[1] = {"source_center_mm": None, "source_diameter_mm": 32, "center_mm": 310, "diameter_mm": None}
+    fails(document, "鉄筋.柱.table_overrides.線路[1].source_center_mm: 値が必要です")
 
 
 def test_column_hoop_rows():
@@ -220,96 +256,39 @@ def test_column_hoop_rows():
     assert parse_input(document).rebar.column.hoops.rows[0].direction is None
 
 
-def test_column_side_and_band_rows_are_not_used():
-    # The column is reinforced by main_rows and column_hoops; the editor keeps these two lists empty.
-    for key in ("side_rows", "band_rows"):
-        document = data()
-        document["鉄筋"]["柱"][key] = [{}]
-        fails(document, f"鉄筋.柱.{key}: 柱では使いません（帯鉄筋は column_hoops に入力します）")
-
-
-def test_manual_positions_and_their_basis():
-    document = data()
-    column = document["鉄筋"]["柱"]
-    column["position_mode"] = "指定"
-    column["manual_positions"] = [{"x_mm": 108, "y_mm": 108, "diameter_mm": 32, "material": "SD390"},
-                                  {"x_mm": None, "y_mm": None, "diameter_mm": None, "material": None}]
-    column["manual_basis"] = {
-        "generator_version": 1, "geometry": {"width_mm": 4500, "height_mm": 2700},
-        "inputs": {key: deepcopy(column[key]) for key in ("main_rows", "materials", "pure_cover_mm", "column_hoops")}}
-    parsed = parse_input(document).rebar.column
-    assert parsed.position_mode == "指定"
-    assert parsed.manual_positions[0].x == mm(108) and parsed.manual_positions[1].material is None
-    basis = parsed.manual_basis
-    assert (basis.width, basis.height) == (mm(4500), mm(2700))
-    assert basis.main_rows == parsed.main_rows and basis.hoops == parsed.hoops
-    assert basis.materials == parsed.materials and basis.pure_cover == parsed.pure_cover
-    column["manual_basis"]["generator_version"] = 2
-    fails(document, "鉄筋.柱.manual_basis.generator_version: 1～1の整数が必要です")
-    column["manual_basis"]["generator_version"] = 1
-    column["manual_basis"]["inputs"]["band_rows"] = []
-    fails(document, "鉄筋.柱.manual_basis.inputs.band_rows: 未知の入力項目です")
-
-
-def test_a_blank_basis_is_no_basis():
-    document = data()
-    document["鉄筋"]["柱"]["manual_basis"] = None
-    assert parse_input(document).rebar.column.manual_basis is None
-
-
-def test_position_mode_is_required_and_a_choice():
-    document = data()
-    document["鉄筋"]["梁"]["position_mode"] = None
-    fails(document, "鉄筋.梁.position_mode: 空でない文字列が必要です")
-
-
-def test_the_footing_has_no_detail_positions():
-    document = data()
-    document["鉄筋"]["フーチング"]["position_mode"] = "指定"
-    fails(document, "鉄筋.フーチング.position_mode: フーチングは方向別の芯かぶり・重ね順で配置します")
-
-
-def test_beam_side_and_band_rows():
+def test_beam_side_bars_may_be_none_and_the_lower_face_has_no_shape():
     document = data()
     beam = document["鉄筋"]["梁"]
-    beam["side_rows"] = [{"diameter_mm": 16, "material": "SD345", "per_face_count": 4, "columns": 2,
-                          "column_pitch_mm": 60, "start_mm": 300, "pitch_mm": 250, "stirrup_position": "内側",
-                          "cover_mode": "自動", "center_mm": None}]
-    beam["band_rows"] = [{"type": "外巻き", "direction": "線路", "diameter_mm": 16, "material": None, "sets": 1.5,
-                          "pitch_mm": 200, "start_mm": None, "end_mm": None, "legs_mode": "自動",
-                          "effective_legs": None}]
-    rebar = parse_input(document).rebar.beam
-    side, = rebar.side_rows
-    assert (side.per_face_count, side.columns, side.column_pitch, side.stirrup_position) == (4, 2, mm(60), "内側")
-    band, = rebar.band_rows
-    assert (band.type, band.sets, band.legs_mode, band.width_mode) == ("外巻き", Printed(1.5, 1, "組"), "自動", None)
-    beam["side_rows"][0]["columns"] = 5
-    fails(document, "鉄筋.梁.side_rows[0].columns: 片面本数以下が必要です")
-    beam["side_rows"][0]["columns"] = 2
-    beam["band_rows"][0]["sets"] = 1.3  # 2.6 legs
-    fails(document, "鉄筋.梁.band_rows[0].sets: 有効脚数（1組＝2脚）が整数にならないため、有効脚数を指定してください")
-    beam["band_rows"][0].update(legs_mode="指定", effective_legs=3)
-    assert parse_input(document).rebar.beam.band_rows[0].effective_legs == 3
-    beam["band_rows"][0]["width_pitch_mm"] = 200
-    fails(document, "鉄筋.梁.band_rows[0].width_pitch_mm: 未知の入力項目です")
+    beam["side_bars"] = None
+    assert parse_input(document).rebar.beam.side is None
+    beam["side_bars"] = {"diameter_mm": 16, "per_face_count": 4, "start_mm": 300, "pitch_mm": 250,
+                         "stirrup_position": "外側", "cover_mode": "自動", "center_mm": None}
+    side = parse_input(document).rebar.beam.side
+    assert (side.per_face_count, side.stirrup_position, side.cover_mode, side.center) == (4, "外側", "自動", None)
+    beam["side_bars"]["columns"] = 1
+    fails(document, "鉄筋.梁.side_bars.columns: 未知の入力項目です")
+    del beam["side_bars"]["columns"]
+    beam["stirrups"]["effective_legs"] = 0
+    fails(document, "鉄筋.梁.stirrups.effective_legs: 1～10000の整数が必要です")
+    beam["stirrups"]["effective_legs"] = 4
+    beam["faces"]["下"]["bar_type"] = "直筋"
+    fails(document, "鉄筋.梁.faces.下.bar_type: 未知の入力項目です")
 
 
-def test_footing_band_rows_have_a_width_distribution():
+def test_footing_stirrups_have_a_width_distribution():
     document = data()
-    document["鉄筋"]["フーチング"]["band_rows"] = [{
-        "type": "内側", "direction": "直角", "diameter_mm": 13, "material": "SD345", "sets": None, "pitch_mm": 300,
-        "start_mm": 0, "end_mm": 2700, "legs_mode": "指定", "effective_legs": 12, "distribution_mode": "密度",
-        "width_pitch_mm": None, "density_per_m": 2.5}]
-    band, = parse_input(document).rebar.footing.band_rows
-    assert (band.width_mode, band.width_pitch, band.density) == ("密度", None, Printed(2.5, 1, "本/m"))
-    document["鉄筋"]["フーチング"]["band_rows"][0]["distribution_mode"] = "本数"
-    fails(document, "鉄筋.フーチング.band_rows[0].distribution_mode: 「間隔」「密度」のいずれか")
+    document["鉄筋"]["フーチング"]["stirrups"]["直角"] = {
+        "diameter_mm": 13, "pitch_mm": 300, "distribution_mode": "密度", "width_pitch_mm": None, "density_per_m": 2.5}
+    stirrups = parse_input(document).rebar.footing.stirrups["直角"]
+    assert (stirrups.width_mode, stirrups.width_pitch, stirrups.density) == ("密度", None, Printed(2.5, 1, "本/m"))
+    document["鉄筋"]["フーチング"]["stirrups"]["直角"]["distribution_mode"] = "本数"
+    fails(document, "鉄筋.フーチング.stirrups.直角.distribution_mode: 「間隔」「密度」のいずれか")
 
 
-def test_footing_rows_need_positive_layers_and_order():
+def test_the_footing_face_names_a_direction_outside():
     document = data()
-    document["鉄筋"]["フーチング"]["main_rows"][2]["stack_order"] = 0
-    fails(document, "鉄筋.フーチング.main_rows[2].stack_order: 1～100の整数が必要です")
+    document["鉄筋"]["フーチング"]["faces"]["下"]["outer_direction"] = "橋軸"
+    fails(document, "鉄筋.フーチング.faces.下.outer_direction: 「線路」「直角」のいずれかを選んでください")
 
 
 def test_rebar_parse_does_not_mutate_the_document():

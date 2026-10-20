@@ -7,9 +7,11 @@ Vd5, Vd7 with their Md; N′d 0) and the shear span La of each point in ``shear`
 One member フーチング (1 m of width by H6, shape 1) and two points per direction, because Capacita keeps one La per
 point: index 1, the direction's name, carries the 安全性 and 耐久性 forces with the safety La; index 2, the name with
 （地震時）, the 復旧性（地震時） forces with the seismic La. Each section of the report then prints the point that has
-its forces (tried on the real runner, 2026-10-19). The bar rows have the lower bars as the tensile side (rebar2) and
-no upper or side bars, the crack rows no appearance check (vis false), and the calculation switches print the checks
-only (the section force list belongs to the pickup mode). The basic lists name the cases with no pickup numbers.
+its forces (tried on the real runner, 2026-10-19). The bar rows have the lower bars as the tensile side (rebar2)
+(per 1 m of width, the count fractional when the pitch does not divide 1 m; with several layers the first layer's
+count and the layer spacing, as Capacita splits them, decision 68) and no upper or side bars, the crack rows no
+appearance check (vis false), and the calculation switches print the checks only (the section force list belongs to
+the pickup mode). The basic lists name the cases with no pickup numbers.
 """
 
 from __future__ import annotations
@@ -50,9 +52,10 @@ def _main(bars, title: str) -> dict[str, Any]:
     if bars is None:
         return {"title": title, "rebar_dia": None, "rebar_n": None, "rebar_cover": None, "rebar_lines": None,
                 "rebar_space": None, "rebar_ss": None, "cos": None, "enable": True}
-    return {"title": title, "rebar_dia": _number(bars.diameter), "rebar_n": bars.count,
-            "rebar_cover": _number(bars.cover), "rebar_lines": None, "rebar_space": None,
-            "rebar_ss": _number(bars.pitch), "cos": None, "enable": True}
+    layered = len(bars.counts) > 1
+    return {"title": title, "rebar_dia": _number(bars.diameter), "rebar_n": _number(bars.count),
+            "rebar_cover": _number(bars.cover), "rebar_lines": _number(bars.counts[0]) if layered else None,
+            "rebar_space": _number(bars.layer_spacing), "rebar_ss": _number(bars.pitch), "cos": None, "enable": True}
 
 
 def _point(index: int, name: str) -> dict[str, Any]:
@@ -67,7 +70,7 @@ def _bar(check: FootingCheckResult, index: int, name: str) -> dict[str, Any]:
         "index": index, "m_no": 1, "haunch_M": None, "haunch_V": None,
         "rebar1": _main(None, "上側"), "rebar2": _main(check.bars, "下側"),
         "sidebar1": dict(none), "sidebar2": dict(none),
-        "stirrup": {"stirrup_dia": _number(check.stirrups.diameter), "stirrup_n": check.stirrups.legs,
+        "stirrup": {"stirrup_dia": _number(check.stirrups.diameter), "stirrup_n": _number(check.stirrups.legs),
                     "stirrup_ss": _number(check.stirrups.pitch)},
         "bend": {"bending_dia": None, "bending_n": None, "bending_ss": None, "bending_angle": None},
         "tan": None, "g_name": None, "p_name": name, "b": _number(check.width), "h": _number(check.depth),

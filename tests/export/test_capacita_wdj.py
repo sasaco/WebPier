@@ -190,8 +190,9 @@ def test_whole_numbers_are_written_as_integers(document):
 
 def test_multi_layer_main_bars_and_no_side_bars():
     data = deepcopy(CURRENT)
-    rows = data["鉄筋"]["柱"]["main_rows"]
-    rows[1:] = [deepcopy(rows[0]) | {"layer": 2, "cover_mode": "自動", "center_mm": None, "clear_gap_mm": 50}]
+    bars = data["鉄筋"]["柱"]["main_bars"]
+    bars["線路"]["inner_layers"] = [{"per_face_count": 29, "clear_gap_mm": 50}]  # 108 + 32 + 50 = 190: spacing 82
+    bars["直角"]["per_face_count"] = 0  # no side bars
     pier = parse_input(data)
     reaction = calculate_reaction(pier)
     check = calculate_column_check(pier, calculate_longitudinal(pier, calculate_foundation(pier), reaction),

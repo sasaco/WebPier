@@ -31,7 +31,7 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = json.loads((FIXTURES / "inputs" / "current.json").read_text(encoding="utf-8"))
 SAMPLE = json.loads((FIXTURES / "example2" / "column_section_check.json").read_text(encoding="utf-8"))
 SAMPLE_09 = json.loads((FIXTURES / "example2" / "column_section_check_09.json").read_text(encoding="utf-8"))
-MAIN = "鉄筋/柱/main_rows"
+MAIN = "鉄筋/柱/main_bars"
 HOOPS = "鉄筋/柱/column_hoops/direction_rows"
 CHECK = "柱の断面照査"
 SAFETY_KEYS = ("M_rc", "M_rs", "M_rbs", "V_rc", "V_rs", "V_rbc", "V_rbs", "V_rbv", "T_rbt", "ri")
@@ -179,9 +179,7 @@ def test_a_blank_condition_is_an_input_error(path):
 
 def two_layers(**second):
     data = document()
-    rows = data["鉄筋"]["柱"]["main_rows"]
-    layer = deepcopy(rows[0]) | {"layer": 2, "cover_mode": "自動", "center_mm": None, "clear_gap_mm": 50} | second
-    rows.insert(1, layer)
+    data["鉄筋"]["柱"]["main_bars"]["線路"]["inner_layers"] = [{"per_face_count": 29, "clear_gap_mm": 50} | second]
     return data
 
 
@@ -193,20 +191,20 @@ def test_equal_layers_of_main_bars_are_one_face_with_its_layer_spacing():
 
 
 def test_layers_with_different_bars_are_an_input_error():
-    fails("鉄筋.柱.main_rows", two_layers(per_face_count=27))
+    fails("鉄筋.柱.main_bars", two_layers(per_face_count=27))
 
 
 def test_two_kinds_of_side_bars_are_an_input_error():
     data = document()
-    rows = data["鉄筋"]["柱"]["main_rows"]
-    rows.append(deepcopy(rows[1]) | {"layer": 2, "diameter_mm": 16, "cover_mode": "自動", "center_mm": None,
-                                     "clear_gap_mm": 40})
-    fails("鉄筋.柱.main_rows", data)
+    # the 直角 bars at x = 102 become D16 in the 直角 table; those at 4398 stay D19
+    data["鉄筋"]["柱"]["table_overrides"]["直角"] = [
+        {"source_center_mm": 102, "source_diameter_mm": 19, "center_mm": None, "diameter_mm": 16}]
+    fails("鉄筋.柱.main_bars", data)
 
 
 def test_without_side_bars():
     data = document()
-    del data["鉄筋"]["柱"]["main_rows"][1]
+    data["鉄筋"]["柱"]["main_bars"]["直角"]["per_face_count"] = 0
     assert check(data).side is None
 
 
@@ -227,35 +225,29 @@ def test_the_hoop_row_from_the_base_is_used_when_the_column_has_sections():
     assert (hoops.legs, hoops.pitch.value) == (10, 150)
 
 
-def test_moved_detail_positions_are_an_input_error():
+def test_a_table_change_is_in_the_checked_section():
     data = document()
-    column = data["鉄筋"]["柱"]
-    bars = column_layout(parse_input(document())).bars
-    column["position_mode"] = "指定"
-    column["manual_positions"] = [{"x_mm": b.x.value, "y_mm": b.y.value, "diameter_mm": b.diameter.value,
-                                   "material": b.material} for b in bars]
-    source = document()["鉄筋"]["柱"]
-    column["manual_basis"] = {"generator_version": 1, "geometry": {"width_mm": 4500, "height_mm": 2700},
-                              "inputs": {key: deepcopy(source[key]) for key in
-                                         ("main_rows", "materials", "pure_cover_mm", "column_hoops")}}
-    assert check(deepcopy(data)).upper == check().upper
-    column["manual_positions"][0]["x_mm"] = 120
-    fails("鉄筋.柱.manual_positions: 移動した詳細位置は", data)
+    # the 線路 bars at 108 from the upper face become D29: the upper face only
+    data["鉄筋"]["柱"]["table_overrides"]["線路"] = [
+        {"source_center_mm": 108, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": 29}]
+    result = check(data)
+    assert (result.upper.diameter, result.lower.diameter) == (Printed(29, 0, "mm"), Printed(32, 0, "mm"))
+    assert (result.upper.per_layer, result.upper.cover) == (29, Printed(108, 1, "mm"))
 
 
 @pytest.mark.parametrize("changes,message", [
     # side bars at uneven centres (両端＋中央ピッチ: 350, then 300 apart in the middle)
-    ({f"{MAIN}/1/distribution": {"mode": "両端＋中央ピッチ", "edge_center_mm": 350.0, "pitch_mm": 300.0}},
-     "鉄筋.柱.main_rows: 側方鉄筋の間隔が一定ではないため表せません"),
+    ({f"{MAIN}/直角/distribution": {"mode": "両端＋中央ピッチ", "edge_center_mm": 350.0, "pitch_mm": 300.0}},
+     "鉄筋.柱.main_bars: 側方鉄筋の間隔が一定ではないため表せません"),
     # a 直角 row outside the 線路 main bars (等分 from 60 mm, ends included)
-    ({f"{MAIN}/1/distribution": {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None}, f"{MAIN}/1/endpoints": "含む"},
-     "鉄筋.柱.main_rows: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
+    ({f"{MAIN}/直角/distribution": {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None},
+      f"{MAIN}/直角/endpoints": "含む"},
+     "鉄筋.柱.main_bars: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
     # two edge bars only (両端＋中央ピッチ): no spacing along the face
-    ({f"{MAIN}/0/per_face_count": 2},
-     "鉄筋.柱.main_rows: 線路の主鉄筋の間隔が一つに定まりません"),
+    ({f"{MAIN}/線路/per_face_count": 2},
+     "鉄筋.柱.main_bars: 線路の主鉄筋の間隔が一つに定まりません"),
     # no hoop steel anywhere
-    ({f"{HOOPS}/0/material": None, "鉄筋/柱/materials/transverse": None},
-     "鉄筋.柱.column_hoops.direction_rows[0].material: 値が必要です"),
+    ({"鉄筋/柱/materials/transverse": None}, "鉄筋.柱.materials.transverse: 値が必要です"),
     ({f"{HOOPS}/0/pitch_mm": None}, "鉄筋.柱.column_hoops.direction_rows[0].pitch_mm: 値が必要です"),
 ])
 def test_layouts_the_wdj_cannot_express(changes, message):
@@ -264,22 +256,20 @@ def test_layouts_the_wdj_cannot_express(changes, message):
 
 def test_a_column_without_track_main_bars_is_an_input_error():
     data = document()
-    del data["鉄筋"]["柱"]["main_rows"][0]
-    fails("鉄筋.柱.main_rows: 線路の主鉄筋の行が必要です", data)
+    data["鉄筋"]["柱"]["main_bars"]["線路"]["per_face_count"] = 0
+    fails("鉄筋.柱.main_bars: 線路の主鉄筋が必要です", data)
 
 
 def test_two_layers_of_side_bars_are_an_input_error():
     data = document()
-    rows = data["鉄筋"]["柱"]["main_rows"]
-    rows.append(deepcopy(rows[1]) | {"layer": 2, "cover_mode": "自動", "center_mm": None, "clear_gap_mm": 40})
-    fails("鉄筋.柱.main_rows: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます", data)
+    data["鉄筋"]["柱"]["main_bars"]["直角"]["inner_layers"] = [{"per_face_count": 9, "clear_gap_mm": 40}]
+    fails("鉄筋.柱.main_bars: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます", data)
 
 
 def test_layers_at_uneven_spacing_are_an_input_error():
     data = two_layers()
-    rows = data["鉄筋"]["柱"]["main_rows"]
-    rows.insert(2, deepcopy(rows[1]) | {"layer": 3, "clear_gap_mm": 80})
-    fails("鉄筋.柱.main_rows: 線路の主鉄筋の段の間隔が一定ではないため表せません", data)
+    data["鉄筋"]["柱"]["main_bars"]["線路"]["inner_layers"].append({"per_face_count": 29, "clear_gap_mm": 80})
+    fails("鉄筋.柱.main_bars: 線路の主鉄筋の段の間隔が一定ではないため表せません", data)
 
 
 def test_the_report_sections_follow_the_checks_asked_for(example):
@@ -349,7 +339,7 @@ def test_side_bars_are_spaced_by_capacita_only_between_corner_bars(centres, mess
     from webpier.calc.column_rebar import TableRow
     rows = tuple(TableRow(Printed(centre, 1, "mm"), Printed(32, 0, "mm"), 2, "SD390") for centre in centres)
     if message is not None:
-        with pytest.raises(InputError, match=re.escape(f"鉄筋.柱.main_rows: {message}ため表せません")):
+        with pytest.raises(InputError, match=re.escape(f"鉄筋.柱.main_bars: {message}ため表せません")):
             _side(rows, "線路", CORNER)
         return
     side, _ = _side(rows, "線路", CORNER)

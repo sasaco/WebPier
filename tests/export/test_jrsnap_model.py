@@ -14,19 +14,16 @@ are those of the files. Documented differences:
 """
 
 import re
-from copy import deepcopy
 from dataclasses import replace
 
 import pytest
 
-from jrsnap_support import D, PEDESTAL, PROFILES, ROW0, ROW1, document, example2, model, results
-from webpier.calc.column_rebar import column_layout
+from jrsnap_support import CROSS, D, PEDESTAL, PROFILES, RAIL, document, example2, model, results
 from webpier.calc.frame import Region
 from webpier.calc.seismic_longitudinal import MemberLoad
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.export.jrsnap import LONGITUDINAL, build_ndu, validate_ndu, write_ndu
-from webpier.inputs import parse_input
 
 
 def values(fields):
@@ -354,23 +351,18 @@ def test_a_blank_qu_is_zero():
 
 
 def test_two_layers_of_main_bars():
-    second = {"diameter_mm": 32, "material": None, "cover_mode": "自動", "center_mm": None, "clear_gap_mm": 40,
-              "face_direction": "線路", "layer": 2, "per_face_count": 27, "endpoints": None,
-              "distribution": {"mode": "中央ピッチ", "edge_center_mm": None, "pitch_mm": 150}}
-    rows = deepcopy(document()["鉄筋"]["柱"]["main_rows"]) + [second]
-    section = model("longitudinal", **{"鉄筋/柱/main_rows": rows}).section
-    # 108 + 16 + 40 + 16 = 180 from each face; DRTU = DRTL = 2 rows, both at 150.
+    section = model("longitudinal", **{f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 40}]}).section
+    # 108 + 32 + 40 = 180 from each face; DRTU = DRTL = 2 rows, both at 150.
     assert section.main_layers == 2 and section.main_pitch.value == 150
     assert [(r.center.value, r.count) for r in section.rows[:2]] == [(108, 29), (180, 27)]
     assert [(r.center.value, r.count) for r in section.rows[-2:]] == [(2520, 27), (2592, 29)]
 
 
 @pytest.mark.parametrize("changes,message", [
-    ({f"{ROW1}/distribution/pitch_mm": 330},  # the 直角 D19 bars start at 30, outside the 線路 main bars at 108
-     "鉄筋.柱.main_rows: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
-    ({f"{ROW0}/per_face_count": 2}, "鉄筋.柱.main_rows: 線路の主鉄筋の間隔が一つに定まりません"),
-    ({f"{ROW0}/per_face_count": 0}, "鉄筋.柱.main_rows: 線路の主鉄筋の行が必要です"),
-    ({f"{ROW1}/material": "SD345"}, "鉄筋.柱: 主鉄筋の材質が1種類ではありません（SD345・SD390）"),
+    ({f"{CROSS}/distribution/pitch_mm": 330},  # the 直角 D19 bars start at 30, outside the 線路 main bars at 108
+     "鉄筋.柱.main_bars: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
+    ({f"{RAIL}/per_face_count": 2}, "鉄筋.柱.main_bars: 線路の主鉄筋の間隔が一つに定まりません"),
+    ({f"{RAIL}/per_face_count": 0}, "鉄筋.柱.main_bars: 線路の主鉄筋が必要です"),
 ])
 def test_section_reinforcement_outside_v1(changes, message):
     with pytest.raises(InputError, match=re.escape(message)):
@@ -378,7 +370,7 @@ def test_section_reinforcement_outside_v1(changes, message):
 
 
 def test_more_than_100_table_rows_are_rejected():
-    many = {f"{ROW0}/diameter_mm": 10, f"{ROW0}/per_face_count": 120, f"{ROW0}/distribution/mode": "等分"}
+    many = {f"{RAIL}/diameter_mm": 10, f"{RAIL}/per_face_count": 120, f"{RAIL}/distribution/mode": "等分"}
     with pytest.raises(InputError, match=re.escape("直角方向の表が122行です（JRSNAP は100行まで）")):
         model("transverse", **many)
 
@@ -390,44 +382,29 @@ HOOPS = "鉄筋/柱/column_hoops/direction_rows"
     ({f"{HOOPS}/1/direction": "線路"}, "鉄筋.柱.column_hoops.direction_rows: 線路の帯鉄筋はちょうど1行が必要です（2行）"),
     ({f"{HOOPS}/0/start_mm": 0}, "鉄筋.柱.column_hoops.direction_rows[0]: 区間を指定した帯鉄筋は未対応です"),
     ({f"{HOOPS}/0/effective_legs": None}, "鉄筋.柱.column_hoops.direction_rows[0].effective_legs: 値が必要です"),
-    ({f"{HOOPS}/0/material": None, "鉄筋/柱/materials/transverse": None},
-     "鉄筋.柱.column_hoops.direction_rows[0].material: 値が必要です（行と鉄筋.柱.materials.transverse が空欄）"),
+    ({"鉄筋/柱/materials/transverse": None}, "鉄筋.柱.materials.transverse: 値が必要です"),
 ])
 def test_the_hoop_of_the_direction(changes, message):
     with pytest.raises(InputError, match=re.escape(message)):
         model("longitudinal", **changes)
 
 
-def test_the_hoop_material_may_be_the_shared_one():
-    built = model("longitudinal", **{f"{HOOPS}/0/material": None, "鉄筋/柱/materials/transverse": "SD345"})
+def test_the_hoop_steel_is_the_members():
+    built = model("longitudinal", **{"鉄筋/柱/materials/transverse": "SD345"})
     assert built.section.shear.yield_strength.value == 345
 
 
-def manual(**changes):
-    data = document(**changes)
-    column = data["鉄筋"]["柱"]
-    auto = model("longitudinal").section
-    bars = column_layout(parse_input(document())).bars
-    column["position_mode"] = "指定"
-    column["manual_positions"] = [{"x_mm": b.x.value, "y_mm": b.y.value, "diameter_mm": b.diameter.value,
-                                   "material": b.material} for b in bars]
-    source = document()["鉄筋"]["柱"]
-    column["manual_basis"] = {"generator_version": 1, "geometry": {"width_mm": 4500, "height_mm": 2700},
-                              "inputs": {key: deepcopy(source[key]) for key in
-                                         ("main_rows", "materials", "pure_cover_mm", "column_hoops")}}
-    return data, auto
+CHANGES = "鉄筋/柱/table_overrides/線路"
 
 
-def test_detail_positions_equal_to_the_generated_bars():
-    data, auto = manual()
-    assert model("longitudinal", data=data).section == auto
+def test_a_table_change_is_written_to_the_section():
+    # the 直角 D19 bars 350 from the upper face move to 360 in the 線路 table
+    change = [{"source_center_mm": 350, "source_diameter_mm": 19, "center_mm": 360, "diameter_mm": None}]
+    section = model("longitudinal", **{CHANGES: change}).section
+    assert [(r.center.value, r.count) for r in section.rows[:3]] == [(108, 29), (360, 2), (600, 2)]
 
 
-def test_detail_positions_from_another_basis_or_moved_are_rejected():
-    data, _ = manual(**{f"{ROW1}/distribution/pitch_mm": 240})
-    with pytest.raises(InputError, match=re.escape("鉄筋.柱.manual_basis: 詳細位置の生成元が現在の基本入力と一致しません")):
-        model("longitudinal", data=data)
-    data, _ = manual()
-    data["鉄筋"]["柱"]["manual_positions"][0]["x_mm"] = 120
-    with pytest.raises(InputError, match=re.escape("鉄筋.柱.manual_positions: 移動した詳細位置は")):
-        model("longitudinal", data=data)
+def test_a_change_without_its_generated_bars_is_ignored():
+    # the editor warns of it; the generation leaves it out (owner, decision 68)
+    change = [{"source_center_mm": 999, "source_diameter_mm": 32, "center_mm": 360, "diameter_mm": None}]
+    assert model("longitudinal", **{CHANGES: change}) == model("longitudinal")

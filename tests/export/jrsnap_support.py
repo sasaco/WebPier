@@ -33,7 +33,7 @@ EXAMPLE2_FILES = {"longitudinal": EXAMPLE2_DIR / "10_線路(耐震)" / "線路�
 DIMS = {"B": "下部構造/寸法/側面/", "W": "下部構造/寸法/正面/", "H": "下部構造/寸法/高さ/"}
 PEDESTAL = {DIMS["B"] + "B2": 0.5, DIMS["B"] + "B3": 1.0, DIMS["W"] + "W2": 1.0, DIMS["W"] + "W3": 7.0,
             DIMS["H"] + "H1": 0.3}
-ROW0, ROW1 = "鉄筋/柱/main_rows/0", "鉄筋/柱/main_rows/1"
+RAIL, CROSS = "鉄筋/柱/main_bars/線路", "鉄筋/柱/main_bars/直角"
 
 
 def example2(direction):

@@ -4,11 +4,14 @@ Capacita (RcDan) calculates and prints the checks; WebPier decides the condition
 
 - the member: the beam, b = B1 and h = H2 + H3 at the column face, mm; one point, 柱前面, checked for bending about
   z, shear in y and torsion, with the shear span a = the farthest bearing on either cantilever from the column face;
-- the bars of 鉄筋.梁 (decision 59): the 上 and 下 main rows (one or more layers of one size, the outermost layer's
-  centre as the cover, the layer centres equally spaced; the spacing along the face (B1 − 2 c)/(n − 1) with c the
-  side bars' centre from the side face, else the cover), one side row (on both side faces, from its start at its
-  pitch) and one band row (the stirrups: diameter, effective legs, pitch). What the WDJ cannot hold is an input error
-  naming its path;
+- the bars of 鉄筋.梁 (decisions 59, 68): each face's layers, of one size: layer 1's centre is the cover (given, or
+  the pure cover + the stirrup + half the bar) and each layer inside lies one bar and its clear gap further in, the
+  gaps equal; the counts as Capacita splits them by layer 1's, every layer but the last as many as layer 1 and the
+  last at most as many; the spacing along the face (B1 − 2 c)/(n − 1) with c the side bars' centre from the side
+  face, else the cover. The side bars on both side faces from their start below the upper face at their pitch, their
+  centre given or the pure cover (+ the stirrup when inside it) + half the bar; the stirrups' diameter, effective legs
+  and pitch. The main and side bars are of the member's main steel, the stirrups of its transverse steel. What the WDJ
+  cannot hold is an input error naming its path;
 - f'ck and Dmax of the beam concrete (鉄筋.梁);
 - the 片持ち梁の照査 conditions: the corrosion environment of each face, the appearance check, the trains of the
   fatigue check (the equivalent repetitions per train of the input; SA/SC = SB/SC = 1.0 and γ1 = 1.0 for the main
@@ -27,7 +30,7 @@ from ...core.errors import InputError
 from ...core.printed import LENGTH, Precision, Printed
 from ...inputs import PierInput, choices
 from ...inputs.fields import BEAM_SURFACES
-from ...inputs.rebar import BeamBars, BeamMainRow
+from ...inputs.rebar import BeamBars
 from .._exact import d, put
 from ..column_check import (K4, KR, LENGTH_MM, SAFETY_FACTORS_OF_BODY, Hoops, MainBars, SafetyFactors, SideBars, Steel,
                             tensile_strength)
@@ -110,87 +113,57 @@ def _need(value, path: str):
     return value
 
 
-def _one(values: set, path: str, what: str):
-    if len(values) != 1:
-        raise InputError(f"{path}: {what}が1種類ではありません（{'・'.join(sorted(map(str, values)))}）")
-    (value,) = values
-    return value
-
-
-def _centre(row: BeamMainRow, index: int, previous: Printed | None, beam: BeamBars, stirrup: Printed) -> Printed:
-    path = f"{_BEAM}.main_rows[{index}]"
-    mode = _need(row.cover_mode, f"{path}.cover_mode")
-    if mode == choices.COVER_SPECIFIED:
-        return _need(row.center, f"{path}.center_mm")
-    diameter = _need(row.diameter, f"{path}.diameter_mm")
-    if previous is None:
+def _face(beam: BeamBars, face: str, width_mm: Printed, side_cover: Printed | None, stirrup: Printed) -> MainBars:
+    bars, path = beam.faces[face], f"{_BEAM}.faces.{face}"
+    diameter = _need(bars.diameter, f"{path}.diameter_mm")
+    count = _need(bars.count, f"{path}.count")
+    if count < 2:
+        raise InputError(f"{path}.count: 2本以上が必要です")
+    if _need(bars.cover_mode, f"{path}.cover_mode") == choices.COVER_SPECIFIED:
+        cover = _need(bars.center, f"{path}.center_mm")
+    else:
         pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
-        return put(LENGTH_MM, d(pure) + d(stirrup) + d(diameter) / 2)
-    gap = _need(row.clear_gap, f"{path}.clear_gap_mm")
-    return put(LENGTH_MM, d(previous) + d(gap) + d(diameter))
-
-
-def _face(beam: BeamBars, face: str, width_mm: Printed, side_cover: Printed | None, stirrup: Printed
-          ) -> tuple[MainBars, str]:
-    rows = [(index, row) for index, row in enumerate(beam.main_rows) if row.face == face]
-    path = f"{_BEAM}.main_rows"
-    if not rows:
-        raise InputError(f"{path}: 面「{face}」の主鉄筋の行が必要です")
-    layers = sorted(_need(row.layer, f"{path}[{index}].layer") for index, row in rows)
-    if layers != list(range(1, len(rows) + 1)):
-        raise InputError(f"{path}: 面「{face}」の段は 1 から順に1行ずつ必要です（{'・'.join(map(str, layers))}）")
-    rows.sort(key=lambda item: item[1].layer)
-    diameter = _one({_need(row.diameter, f"{path}[{index}].diameter_mm") for index, row in rows}, path,
-                    f"面「{face}」の主鉄筋の径")
-    grade = _one({row.material or beam.materials.main for _, row in rows}, path, f"面「{face}」の主鉄筋の材質")
-    if grade is None:
-        raise InputError(f"{path}: 面「{face}」の主鉄筋の材質が必要です（行と{_BEAM}.materials.main が空欄）")
-    counts = [_need(row.count, f"{path}[{index}].count") for index, row in rows]
-    centres: list[Printed] = []
-    for index, row in rows:
-        centres.append(_centre(row, index, centres[-1] if centres else None, beam, stirrup))
-    gaps = {put(LENGTH_MM, d(second) - d(first)) for first, second in zip(centres, centres[1:])}
+        cover = put(LENGTH_MM, d(pure) + d(stirrup) + d(diameter) / 2)
+    counts, gaps = [count], set()
+    for index, layer in enumerate(bars.inner_layers):
+        here = f"{path}.inner_layers[{index}]"
+        counts.append(_need(layer.count, f"{here}.count"))
+        gaps.add(_need(layer.clear_gap, f"{here}.clear_gap_mm"))
     if len(gaps) > 1:
-        raise InputError(f"{path}: 面「{face}」の段の間隔が一定ではないため表せません")
-    if counts[0] < 2:
-        raise InputError(f"{path}: 面「{face}」の1段目は2本以上が必要です")
-    edge = side_cover if side_cover is not None else centres[0]
-    spacing = put(LENGTH_MM, (d(width_mm) - 2 * d(edge)) / (counts[0] - 1))
-    return MainBars(diameter=diameter, per_layer=counts[0], layers=len(rows), count=sum(counts), cover=centres[0],
-                    layer_spacing=next(iter(gaps), None), spacing=spacing), grade
+        raise InputError(f"{path}.inner_layers: 段のあきが一定ではないため表せません")
+    if any(other != count for other in counts[1:-1]) or counts[-1] > count:
+        raise InputError(f"{path}.inner_layers: 段の本数は、最後の段を除いて1段目と同じ、最後の段は1段目以下が必要です"
+                         "（Capacita は1段目の本数で段に分けます）")
+    edge = side_cover if side_cover is not None else cover
+    spacing = put(LENGTH_MM, (d(width_mm) - 2 * d(edge)) / (count - 1))
+    layer_spacing = put(LENGTH_MM, d(diameter) + d(gaps.pop())) if gaps else None
+    return MainBars(diameter=diameter, per_layer=count, layers=len(counts), count=sum(counts), cover=cover,
+                    layer_spacing=layer_spacing, spacing=spacing)
 
 
-def _side(beam: BeamBars) -> tuple[SideBars, str, Printed | None] | None:
-    path = f"{_BEAM}.side_rows"
-    if not beam.side_rows:
+def _side(beam: BeamBars, stirrup: Printed) -> tuple[SideBars, Printed] | None:
+    """The side bars and their centre from the side faces: given (指定), or the pure cover, the stirrup when the bars
+    are inside it, and half the bar (自動)."""
+    side, path = beam.side, f"{_BEAM}.side_bars"
+    if side is None:
         return None
-    if len(beam.side_rows) != 1:
-        raise InputError(f"{path}: 側面筋は1行だけ表せます（{len(beam.side_rows)}行）")
-    row, here = beam.side_rows[0], f"{path}[0]"
-    grade = row.material or beam.materials.main
-    if grade is None:
-        raise InputError(f"{here}.material: 値が必要です（行と{_BEAM}.materials.main が空欄）")
-    if row.columns not in (None, 1):
-        raise InputError(f"{here}.columns: 側面筋は1列だけ表せます（{row.columns}列）")
-    count = _need(row.per_face_count, f"{here}.per_face_count")
-    centre = row.center if row.cover_mode == choices.COVER_SPECIFIED else None
-    return (SideBars(diameter=_need(row.diameter, f"{here}.diameter_mm"), count=count,
-                     first=_need(row.start, f"{here}.start_mm"),
-                     spacing=_need(row.pitch, f"{here}.pitch_mm") if count > 1 else None), grade, centre)
+    diameter = _need(side.diameter, f"{path}.diameter_mm")
+    count = _need(side.per_face_count, f"{path}.per_face_count")
+    if _need(side.cover_mode, f"{path}.cover_mode") == choices.COVER_SPECIFIED:
+        centre = _need(side.center, f"{path}.center_mm")
+    else:
+        pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
+        inside = _need(side.stirrup_position, f"{path}.stirrup_position") == choices.STIRRUP_POSITIONS[0]
+        centre = put(LENGTH_MM, d(pure) + (d(stirrup) if inside else 0) + d(diameter) / 2)
+    return SideBars(diameter=diameter, count=count, first=_need(side.start, f"{path}.start_mm"),
+                    spacing=_need(side.pitch, f"{path}.pitch_mm") if count > 1 else None), centre
 
 
-def _stirrups(beam: BeamBars) -> tuple[Hoops, str]:
-    path = f"{_BEAM}.band_rows"
-    if len(beam.band_rows) != 1:
-        raise InputError(f"{path}: スターラップの行がちょうど1行必要です（{len(beam.band_rows)}行）")
-    row, here = beam.band_rows[0], f"{path}[0]"
-    grade = row.material or beam.materials.transverse
-    if grade is None:
-        raise InputError(f"{here}.material: 値が必要です（行と{_BEAM}.materials.transverse が空欄）")
-    if row.legs_mode != choices.LEGS_MODES[1]:
-        raise InputError(f"{here}.legs_mode: 有効本数は「{choices.LEGS_MODES[1]}」で入力してください")
-    return Hoops(diameter=_need(row.diameter, f"{here}.diameter_mm"), legs=_need(row.effective_legs,
-                 f"{here}.effective_legs"), pitch=_need(row.pitch, f"{here}.pitch_mm")), grade
+def _stirrups(beam: BeamBars) -> Hoops:
+    stirrups, path = beam.stirrups, f"{_BEAM}.stirrups"
+    return Hoops(diameter=_need(stirrups.diameter, f"{path}.diameter_mm"),
+                 legs=_need(stirrups.effective_legs, f"{path}.effective_legs"),
+                 pitch=_need(stirrups.pitch, f"{path}.pitch_mm"))
 
 
 def _steel(grade: str) -> Steel:
@@ -214,12 +187,13 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
     s, beam = pier.substructure, pier.rebar.beam
     width = put(LENGTH_MM, d(s.b[1]) * 1000)
     depth = put(LENGTH_MM, (d(s.h[2]) + d(s.h[3])) * 1000)
-    stirrups, stirrup_grade = _stirrups(beam)
-    side = _side(beam)
-    side_cover = None if side is None else side[2]
-    upper, main_grade = _face(beam, "上", width, side_cover, stirrups.diameter)
-    lower, lower_grade = _face(beam, "下", width, side_cover, stirrups.diameter)
-    grade = _one({main_grade, lower_grade}, f"{_BEAM}.main_rows", "主鉄筋の材質")
+    stirrups = _stirrups(beam)
+    main_grade = _need(beam.materials.main, f"{_BEAM}.materials.main")
+    stirrup_grade = _need(beam.materials.transverse, f"{_BEAM}.materials.transverse")
+    side = _side(beam, stirrups.diameter)
+    side_cover = None if side is None else side[1]
+    upper = _face(beam, "上", width, side_cover, stirrups.diameter)
+    lower = _face(beam, "下", width, side_cover, stirrups.diameter)
     conditions, column = pier.cantilever_check, pier.column_check
     environments = {face: _need(conditions.environments[face], f"{_CHECK}.鋼材の腐食に対する環境条件.{face}")
                     for face in BEAM_SURFACES}
@@ -231,8 +205,8 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
                key=lambda x: x.value)
     return CantileverSectionResult(
         width=width, depth=depth, shear_span=put(LENGTH, d(span)), upper=upper, lower=lower,
-        side=None if side is None else side[0], stirrups=stirrups, main_steel=_steel(grade),
-        side_steel=None if side is None else _steel(side[1]), stirrup_steel=_steel(stirrup_grade),
+        side=None if side is None else side[0], stirrups=stirrups, main_steel=_steel(main_grade),
+        side_steel=None if side is None else _steel(main_grade), stirrup_steel=_steel(stirrup_grade),
         fck=pier.materials.beam, aggregate_max=_need(beam.aggregate_max, f"{_BEAM}.aggregate_max_mm"),
         environments=environments,
         environment_numbers={face: choices.CORROSION_ENVIRONMENTS.index(name) + 1 for face, name in environments.items()},

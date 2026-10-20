@@ -35,9 +35,9 @@ def test_the_point_is_the_overhang_section_of_one_metre_by_h6():
 
 def test_the_bars_and_materials_are_the_footings():
     check = checked()
-    assert (check.bars.diameter.value, check.bars.count, check.bars.cover.value, check.bars.pitch.value) == (
+    assert (check.bars.diameter.value, check.bars.count.value, check.bars.cover.value, check.bars.pitch.value) == (
         25, 8, 100, 125)
-    assert (check.stirrups.diameter.value, check.stirrups.legs, check.stirrups.pitch.value) == (16, 2, 250)
+    assert (check.stirrups.diameter.value, check.stirrups.legs.value, check.stirrups.pitch.value) == (16, 2, 250)
     assert (check.main_steel.grade, check.main_steel.fsy.value, check.main_steel.fsu.value) == ("SD390", 390, 560)
     assert (check.stirrup_steel.grade, check.stirrup_steel.fsu.value) == ("SD390", 560)
     assert (check.fck.value, check.aggregate_max.value) == (27, 25)

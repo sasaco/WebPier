@@ -39,19 +39,16 @@ REPETITIONS = Precision(2, "")  # 1編成当りの等価繰返し回数 of the f
 # 鉄筋 (lengths in mm)
 LENGTH_MM = Precision(1, "mm")  # covers, centres, gaps, pitches, positions
 DIAMETER = Precision(0, "mm")  # nominal bar size (D32 → 32), as Example2 10-6 / 11-6 print it
-SETS = Precision(1, "組")  # the old band input allows a fractional set count
 DENSITY = Precision(1, "本/m")
 
 SHEAR_FACTOR_MAX = 99.99
 AGGREGATE_RANGE = (0.1, 999_999)
 MAX_STEPS = 100_000
 MAX_COUNT = 10_000
-MAX_LAYER = 100
 MAX_TRAINS = 10_000  # 列車本数, per track per day
 MAX_YEARS = 1_000  # 設計耐用年数
 BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own corrosion environment (decision 59)
 REPETITION_SLOPES = ("k=0.06", "k=0.12")  # the S-N slopes an equivalent repetition count is given for
-BASIS_VERSION = 1  # generator of 鉄筋.柱.manual_basis
 
 Kind = Literal["number", "integer", "choice", "text", "blank"]
 
@@ -280,44 +277,17 @@ _PITCH_MM = number(LENGTH_MM, "positive", nullable=True)
 _DIAMETER = number(DIAMETER, "positive", nullable=True)
 _STEEL = choice(choices.STEEL_GRADES, nullable=True)
 _COUNT = integer(0, MAX_COUNT, nullable=True)
-_LAYER = integer(1, MAX_LAYER, nullable=True)
 
 
 def _optional_choice(options: Iterable[str]) -> Field:
     return choice(options, nullable=True)
 
 
-def _main_row(member: str) -> dict[str, Field]:
-    row = {"diameter_mm": _DIAMETER, "material": _STEEL, "cover_mode": _optional_choice(choices.COVER_MODES),
-           "center_mm": _LENGTH_MM, "clear_gap_mm": _LENGTH_MM}
-    if member == "柱":
-        row |= {"face_direction": _optional_choice(choices.REBAR_DIRECTIONS), "layer": _LAYER,
-                "per_face_count": _COUNT, "endpoints": _optional_choice(choices.ENDPOINTS),
-                "distribution.mode": _optional_choice(choices.DISTRIBUTION_MODES),
-                "distribution.edge_center_mm": _LENGTH_MM, "distribution.pitch_mm": _PITCH_MM}
-    elif member == "梁":
-        row |= {"face": _optional_choice(choices.BEAM_FACES), "bar_type": _optional_choice(choices.BAR_TYPES),
-                "layer": _LAYER, "count": _COUNT}
-    else:
-        row |= {"direction": _optional_choice(choices.REBAR_DIRECTIONS), "face": _optional_choice(choices.BEAM_FACES),
-                "pitch_mm": _PITCH_MM, "layers": _LAYER, "stack_order": _LAYER}
-    return row
-
-
-SIDE_ROW = {"diameter_mm": _DIAMETER, "material": _STEEL, "per_face_count": _COUNT, "columns": _LAYER,
-            "column_pitch_mm": _PITCH_MM, "start_mm": _LENGTH_MM, "pitch_mm": _PITCH_MM,
-            "stirrup_position": _optional_choice(choices.STIRRUP_POSITIONS),
-            "cover_mode": _optional_choice(choices.COVER_MODES), "center_mm": _LENGTH_MM}
-BAND_ROW = {"type": _optional_choice(choices.BAND_TYPES), "direction": _optional_choice(choices.REBAR_DIRECTIONS),
-            "diameter_mm": _DIAMETER, "material": _STEEL, "sets": number(SETS, nullable=True), "pitch_mm": _PITCH_MM,
-            "start_mm": _LENGTH_MM, "end_mm": _LENGTH_MM, "legs_mode": _optional_choice(choices.LEGS_MODES),
-            "effective_legs": _COUNT}
-FOOTING_BAND_ROW = BAND_ROW | {"distribution_mode": _optional_choice(choices.WIDTH_MODES), "width_pitch_mm": _PITCH_MM,
-                               "density_per_m": number(DENSITY, "positive", nullable=True)}
-MANUAL_ROW = {"x_mm": _LENGTH_MM, "y_mm": _LENGTH_MM, "diameter_mm": _DIAMETER, "material": _STEEL}
-HOOP_ROW = {"direction": _optional_choice(choices.REBAR_DIRECTIONS), "diameter_mm": _DIAMETER, "material": _STEEL,
+HOOP_ROW = {"direction": _optional_choice(choices.REBAR_DIRECTIONS), "diameter_mm": _DIAMETER,
             "effective_legs": integer(1, MAX_COUNT, nullable=True), "pitch_mm": _PITCH_MM, "start_mm": _LENGTH_MM,
             "end_mm": _LENGTH_MM}
+OVERRIDE_ROW = {"source_center_mm": number(LENGTH_MM), "source_diameter_mm": number(DIAMETER, "positive"),
+                "center_mm": _LENGTH_MM, "diameter_mm": _DIAMETER}
 MEMBERS = ("梁", "柱", "フーチング")
 
 
@@ -325,12 +295,65 @@ def _prefixed(prefix: str, rows: dict[str, Field]) -> dict[str, Field]:
     return {f"{prefix}.{key}": spec for key, spec in rows.items()}
 
 
-def _column_inputs(prefix: str) -> dict[str, Field]:
-    """The column's basic input, also kept under manual_basis.inputs."""
-    return {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
-            f"{prefix}.pure_cover_mm": _LENGTH_MM, **_prefixed(f"{prefix}.main_rows[*]", _main_row("柱")),
-            f"{prefix}.column_hoops.enclosing_diameter_mm": _DIAMETER,
-            **_prefixed(f"{prefix}.column_hoops.direction_rows[*]", HOOP_ROW)}
+def _column(prefix: str) -> dict[str, Field]:
+    """The column (decision 68): one steel and cover for the member; each direction's main bars, layer 1 in full and the
+    layers inside it only their 片面本数 and the clear gap to the layer outside (the size and distribution are layer
+    1's); the changes made in the 方向別の鉄筋配置表, keyed by the generated centre and size; the hoops."""
+    table = {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
+             f"{prefix}.pure_cover_mm": _LENGTH_MM, f"{prefix}.column_hoops.enclosing_diameter_mm": _DIAMETER,
+             **_prefixed(f"{prefix}.column_hoops.direction_rows[*]", HOOP_ROW)}
+    for direction in choices.REBAR_DIRECTIONS:
+        table |= _prefixed(f"{prefix}.main_bars.{direction}", {
+            "diameter_mm": _DIAMETER, "per_face_count": _COUNT, "cover_mode": _optional_choice(choices.COVER_MODES),
+            "center_mm": _LENGTH_MM, "endpoints": _optional_choice(choices.ENDPOINTS),
+            "distribution.mode": _optional_choice(choices.DISTRIBUTION_MODES),
+            "distribution.edge_center_mm": _LENGTH_MM, "distribution.pitch_mm": _PITCH_MM,
+            "inner_layers[*].per_face_count": integer(1, MAX_COUNT, nullable=True),
+            "inner_layers[*].clear_gap_mm": _LENGTH_MM})
+        table |= _prefixed(f"{prefix}.table_overrides.{direction}[*]", OVERRIDE_ROW)
+    return table
+
+
+def _beam(prefix: str) -> dict[str, Field]:
+    """The beam (decision 68): one steel and cover for the member; each face's main bars, layer 1 in full and the
+    layers inside it only their count and the clear gap to the layer outside (one size per face; the lower bars are
+    straight and have no shape); the side bars, or none (null); the stirrups: size, effective legs and pitch."""
+    table = {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
+             f"{prefix}.pure_cover_mm": _LENGTH_MM, f"{prefix}.faces.{choices.BEAM_FACES[0]}.bar_type":
+             _optional_choice(choices.BAR_TYPES)}
+    for face in choices.BEAM_FACES:
+        table |= _prefixed(f"{prefix}.faces.{face}", {
+            "diameter_mm": _DIAMETER, "count": _COUNT, "cover_mode": _optional_choice(choices.COVER_MODES),
+            "center_mm": _LENGTH_MM, "inner_layers[*].count": integer(1, MAX_COUNT, nullable=True),
+            "inner_layers[*].clear_gap_mm": _LENGTH_MM})
+    table |= _prefixed(f"{prefix}.side_bars", {
+        "diameter_mm": _DIAMETER, "per_face_count": _COUNT, "start_mm": _LENGTH_MM, "pitch_mm": _PITCH_MM,
+        "stirrup_position": _optional_choice(choices.STIRRUP_POSITIONS),
+        "cover_mode": _optional_choice(choices.COVER_MODES), "center_mm": _LENGTH_MM})
+    table |= _prefixed(f"{prefix}.stirrups", {
+        "diameter_mm": _DIAMETER, "effective_legs": integer(1, MAX_COUNT, nullable=True), "pitch_mm": _PITCH_MM})
+    return table
+
+
+def _footing(prefix: str) -> dict[str, Field]:
+    """The footing (decision 68): one steel and cover for the member; on each face the direction whose layer 1 lies
+    outside, and each direction's main bars, layer 1 in full and the layers inside it only their pitch and the clear
+    gap to the previous layer of the direction (one size per direction and face); each direction's stirrups."""
+    table = {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
+             f"{prefix}.pure_cover_mm": _LENGTH_MM}
+    for face in choices.BEAM_FACES:
+        table[f"{prefix}.faces.{face}.outer_direction"] = _optional_choice(choices.REBAR_DIRECTIONS)
+        for direction in choices.REBAR_DIRECTIONS:
+            table |= _prefixed(f"{prefix}.faces.{face}.{direction}", {
+                "diameter_mm": _DIAMETER, "pitch_mm": _PITCH_MM, "cover_mode": _optional_choice(choices.COVER_MODES),
+                "center_mm": _LENGTH_MM, "inner_layers[*].pitch_mm": _PITCH_MM,
+                "inner_layers[*].clear_gap_mm": _LENGTH_MM})
+    for direction in choices.REBAR_DIRECTIONS:
+        table |= _prefixed(f"{prefix}.stirrups.{direction}", {
+            "diameter_mm": _DIAMETER, "pitch_mm": _PITCH_MM,
+            "distribution_mode": _optional_choice(choices.WIDTH_MODES), "width_pitch_mm": _PITCH_MM,
+            "density_per_m": number(DENSITY, "positive", nullable=True)})
+    return table
 
 
 def _rebar() -> dict[str, Field]:
@@ -338,24 +361,16 @@ def _rebar() -> dict[str, Field]:
     for member in MEMBERS:
         base = f"鉄筋.{member}"
         table |= {f"{base}.concrete_strength_mpa": number(STRENGTH, "positive"),
-                  f"{base}.position_mode": choice(choices.POSITION_MODES),
-                  **_prefixed(f"{base}.manual_positions[*]", MANUAL_ROW)}
+                  # Dmax: a property of each member's concrete, read by 0611 and the JRSNAP export for the column
+                  # (decision 48), by 0900 and 0910 for the beam (decision 59), by 0810 and 0820 for the footing (60)
+                  f"{base}.aggregate_max_mm": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))}
         if member == "柱":
-            basis = f"{base}.manual_basis"
-            table |= _column_inputs(base) | _column_inputs(f"{basis}.inputs") | {
-                # Dmax: a property of the column concrete, read by 0611 and the JRSNAP export (decision 48)
-                f"{base}.aggregate_max_mm": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm")),
-                f"{basis}.generator_version": integer(BASIS_VERSION, BASIS_VERSION),
-                f"{basis}.geometry.width_mm": number(LENGTH_MM, "positive"),
-                f"{basis}.geometry.height_mm": number(LENGTH_MM, "positive")}
+            table |= _column(base)
             continue
-        # Dmax: a property of the beam concrete, read by 0900 and 0910 (decision 59), and of the footing concrete, read
-        # by 0810 and 0820 (decision 60)
-        table[f"{base}.aggregate_max_mm"] = number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))
-        table |= {f"{base}.materials.main": _STEEL, f"{base}.materials.transverse": _STEEL,
-                  f"{base}.pure_cover_mm": _LENGTH_MM, **_prefixed(f"{base}.main_rows[*]", _main_row(member)),
-                  **_prefixed(f"{base}.side_rows[*]", SIDE_ROW),
-                  **_prefixed(f"{base}.band_rows[*]", FOOTING_BAND_ROW if member == "フーチング" else BAND_ROW)}
+        if member == "梁":
+            table |= _beam(base)
+            continue
+        table |= _footing(base)
     return table
 
 

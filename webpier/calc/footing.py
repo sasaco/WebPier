@@ -389,7 +389,8 @@ def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameRe
     rebar = footing_reinforcement(pier, direction.name)
     sub = pier.substructure
     column, left, right = direction.across(sub)
-    width = effective_width(column, left, right, sub.h[6], rebar.main.cover)
+    # the effective depth to the centroid of the tensile bars (owner, decision 68); one layer: its centre
+    width = effective_width(column, left, right, sub.h[6], rebar.main.centroid)
     sides = tuple(
         OverhangSide(name, length, cover_depth,
                      self_weight(cover_depth, sub.h[6], length, sub.unit_weight_overburden, sub.unit_weight_footing),

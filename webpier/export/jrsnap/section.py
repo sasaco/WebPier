@@ -13,8 +13,8 @@ SectJiku / SectRein / SectSher / SectSafe). WebPier gives it:
 
 JRSNAP takes the first and last DRTU rows of the table as the tension bars and has no face identity, so the
 main bars of the direction must be exactly those rows (a side bar outside them, or between two layers, is not
-representable). Detail positions are accepted only as the generated bars of the current basic input, because
-moved bars have no layer count or spacing. Anything else is an input error: nothing is guessed.
+representable). The bars are those in use, with the changes made in the 方向別の鉄筋配置表 (decision 68).
+Anything else is an input error: nothing is guessed.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ...calc._exact import d, put
-from ...calc.column_rebar import ColumnLayout, check_detail_positions, table, yield_strength
+from ...calc.column_rebar import ColumnLayout, table, yield_strength
 from ...calc.frame import Frame, Node, NodeRole
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
@@ -52,16 +52,16 @@ def _main(profile: Profile, layout: ColumnLayout, rows: tuple) -> tuple[int, Pri
     face = profile.face
     face_rows = [row for row in layout.rows if row.direction == face]
     if not face_rows:
-        raise InputError(f"{_COLUMN}.main_rows: {face}の主鉄筋の行が必要です")
-    indices = {row.index for row in face_rows}
-    main = table((bar for bar in layout.automatic if indices.intersection(bar.rows)), face)
+        raise InputError(f"{_COLUMN}.main_bars: {face}の主鉄筋が必要です")
+    keys = {row.key for row in face_rows}
+    main = table((bar for bar in layout.bars if keys.intersection(bar.rows)), face)
     layers = len(face_rows)
     if len(main) != 2 * layers or rows[:layers] != main[:layers] or rows[-layers:] != main[-layers:]:
-        raise InputError(f"{_COLUMN}.main_rows: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
+        raise InputError(f"{_COLUMN}.main_bars: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
                          "（主鉄筋より外側や段の間にある鉄筋、同じ段への混在は未対応です）")
     pitches = {row.pitch for row in face_rows}
     if None in pitches or len(pitches) != 1:
-        raise InputError(f"{_COLUMN}.main_rows: {face}の主鉄筋の間隔が一つに定まりません"
+        raise InputError(f"{_COLUMN}.main_bars: {face}の主鉄筋の間隔が一つに定まりません"
                          "（1本や両端2本だけの行、行ごとに異なる間隔は未対応です）")
     (pitch,) = pitches
     return layers, pitch
@@ -77,9 +77,7 @@ def _shear(profile: Profile, pier: PierInput) -> Shear:
     here = f"{path}[{index}]"
     if row.start is not None or row.end is not None:
         raise InputError(f"{here}: 区間を指定した帯鉄筋は未対応です（柱全高で一様な1行が必要です）")
-    material = row.material or column.materials.transverse
-    if material is None:
-        raise InputError(f"{here}.material: 値が必要です（行と{_COLUMN}.materials.transverse が空欄）")
+    material = need(column.materials.transverse, f"{_COLUMN}.materials.transverse")
     return Shear(yield_strength=yield_strength(material), diameter=need(row.diameter, f"{here}.diameter_mm"),
                  legs=need(row.effective_legs, f"{here}.effective_legs"), pitch=need(row.pitch, f"{here}.pitch_mm"))
 
@@ -91,7 +89,6 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     assert section is not None and concrete is not None  # an elastic member has both
     width, height = _mm(section.width), _mm(section.depth)
     span = put(LENGTH_MM, (d(control.y) - d(frame.node(NodeRole.FOOTING_TOP).y)) * 1000)
-    check_detail_positions(layout)
     rows = table(layout.bars, profile.face)
     if len(rows) > MAX_ROWS:
         raise InputError(f"{_COLUMN}: {profile.face}方向の表が{len(rows)}行です（JRSNAP は{MAX_ROWS}行まで）")
@@ -100,9 +97,8 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
         raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が1.25未満で、"
                          "M-θ 自動算定（低せん断スパン部材は 1.25≦La/d＜2）の対象外です")
     layers, pitch = _main(profile, layout, rows)
-    grades = sorted({bar.material for bar in layout.bars})
-    if len(grades) != 1:
-        raise InputError(f"{_COLUMN}: 主鉄筋の材質が1種類ではありません（{'・'.join(grades)}）")
+    # one steel for the member (decision 68)
+    grade = need(pier.rebar.column.materials.main, f"{_COLUMN}.materials.main")
     conditions = getattr(pier.jrsnap, profile.jrsnap)
     key = f"jrsnap_{profile.jrsnap}"
     factors = [need(getattr(conditions, name), f"{key}.{name}")
@@ -112,6 +108,6 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
         fck=concrete.strength,
         ec=put(EC_KN_MM2, d(concrete.modulus) * Decimal(10)),  # mantissa × 10^7 kN/m2 = × 10 kN/mm2
         aggregate_max=need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),  # the column concrete's
-        yield_strength=yield_strength(grades[0]), main_layers=layers, main_pitch=pitch,
+        yield_strength=yield_strength(grade), main_layers=layers, main_pitch=pitch,
         rows=tuple(RebarRow(row.center, row.diameter, row.count) for row in rows), shear=_shear(profile, pier),
         safety=(*SAFETY_BEFORE, factors[0], factors[1], SAFETY_GBS, SAFETY_K, factors[2], SAFETY_GBVO))

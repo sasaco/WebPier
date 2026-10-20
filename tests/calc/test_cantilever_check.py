@@ -7,16 +7,16 @@ import re
 
 import pytest
 
-from cantilever_support import SAMPLE, D, document, q, result_of, value
+from cantilever_support import SAMPLE, D, q, result_of, value
 from webpier.calc.cantilever import Quantity
 from webpier.calc.cantilever.check import (GAMMA1_MAIN, GAMMA1_STIRRUP, SA_RATIO, SB_RATIO, SECTIONS,
                                            calculate_cantilever_section)
 from webpier.calc.column_check import SAFETY_FACTORS, JR_EAST_SAFETY_FACTORS
 from webpier.core.errors import InputError
-from webpier.inputs import parse_input
 
 BEAM = "鉄筋/梁"
 CHECK = "片持ち梁の照査"
+F = f"{BEAM}/faces/上"
 
 
 @pytest.fixture(scope="module")
@@ -99,58 +99,52 @@ def test_jr_east_takes_its_own_safety_factors():
 
 
 def test_an_automatic_cover_from_the_pure_cover_and_the_stirrup():
-    changes = {f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/main_rows/0/cover_mode": "自動", f"{BEAM}/main_rows/0/center_mm": None,
-               f"{BEAM}/main_rows/1/cover_mode": "自動", f"{BEAM}/main_rows/1/center_mm": None,
-               f"{BEAM}/main_rows/1/clear_gap_mm": 32}
+    changes = {f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/faces/上/cover_mode": "自動", f"{BEAM}/faces/上/center_mm": None}
     section = section_of(**changes)
     assert section.upper.cover.value == 108.0  # 70 + 22 + 32/2
-    assert section.upper.layer_spacing.value == 64.0  # 108 + 32 + 32 = 172
+    assert section.upper.layer_spacing.value == 64.0  # 108 + 32 + the clear gap 32 = 172
 
 
-def test_without_side_rows_the_spacing_is_measured_from_the_cover():
-    section = section_of(**{f"{BEAM}/side_rows": []})
+def test_the_side_bars_set_the_edge_of_the_main_bars():
+    section = section_of(**{f"{BEAM}/side_bars": None})
     assert section.side is None and section.side_steel is None
-    assert value(section.upper.spacing) == q((D(2700) - 2 * D(108)) / 16, 1)
-    automatic = section_of(**{f"{BEAM}/side_rows/0/cover_mode": "自動", f"{BEAM}/side_rows/0/center_mm": None})
-    assert value(automatic.upper.spacing) == q((D(2700) - 2 * D(108)) / 16, 1)
-    one = section_of(**{f"{BEAM}/side_rows/0/per_face_count": 1})
+    assert value(section.upper.spacing) == q((D(2700) - 2 * D(108)) / 16, 1)  # from the cover without side bars
+    automatic = {f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動", f"{BEAM}/side_bars/center_mm": None}
+    inside = section_of(**automatic)  # 70 + the stirrup 22 + 22/2 = 103 (decision 68)
+    assert value(inside.upper.spacing) == q((D(2700) - 2 * D(103)) / 16, 1)
+    outside = section_of(**automatic, **{f"{BEAM}/side_bars/stirrup_position": "外側"})  # 70 + 22/2 = 81
+    assert value(outside.upper.spacing) == q((D(2700) - 2 * D(81)) / 16, 1)
+    one = section_of(**{f"{BEAM}/side_bars/per_face_count": 1})
     assert one.side.count == 1 and one.side.spacing is None
 
 
-def test_a_row_material_overrides_the_shared_one():
-    section = section_of(**{f"{BEAM}/main_rows/0/material": "SD345", f"{BEAM}/main_rows/1/material": "SD345",
-                            f"{BEAM}/main_rows/2/material": "SD345", f"{BEAM}/side_rows/0/material": "SD295",
-                            f"{BEAM}/band_rows/0/material": "SD345"})
-    assert (section.main_steel.grade, section.side_steel.grade, section.stirrup_steel.grade) == ("SD345", "SD295", "SD345")
+def test_the_steels_are_the_members():
+    section = section_of(**{f"{BEAM}/materials/main": "SD345", f"{BEAM}/materials/transverse": "SD295"})
+    assert (section.main_steel.grade, section.side_steel.grade, section.stirrup_steel.grade) == ("SD345", "SD345", "SD295")
 
 
 @pytest.mark.parametrize("changes,message", [
-    ({f"{BEAM}/main_rows/1/layer": 3}, "鉄筋.梁.main_rows: 面「上」の段は 1 から順に1行ずつ必要です（1・3）"),
-    ({f"{BEAM}/main_rows/1/layer": None}, "鉄筋.梁.main_rows[1].layer: 値が必要です"),
-    ({f"{BEAM}/main_rows/1/diameter_mm": 29}, "鉄筋.梁.main_rows: 面「上」の主鉄筋の径が1種類ではありません"),
-    ({f"{BEAM}/main_rows/0/diameter_mm": None}, "鉄筋.梁.main_rows[0].diameter_mm: 値が必要です"),
-    ({f"{BEAM}/main_rows/1/material": "SD345"}, "鉄筋.梁.main_rows: 面「上」の主鉄筋の材質が1種類ではありません"),
-    ({f"{BEAM}/materials/main": None, f"{BEAM}/side_rows/0/material": "SD390"},
-     "鉄筋.梁.main_rows: 面「上」の主鉄筋の材質が必要です（行と鉄筋.梁.materials.main が空欄）"),
-    ({f"{BEAM}/main_rows/0/count": None}, "鉄筋.梁.main_rows[0].count: 値が必要です"),
-    ({f"{BEAM}/main_rows/0/cover_mode": None}, "鉄筋.梁.main_rows[0].cover_mode: 値が必要です"),
-    ({f"{BEAM}/main_rows/0/center_mm": None}, "鉄筋.梁.main_rows[0].center_mm: 値が必要です"),
-    ({f"{BEAM}/main_rows/0/cover_mode": "自動", f"{BEAM}/main_rows/0/center_mm": None},
-     "鉄筋.梁.pure_cover_mm: 値が必要です"),
-    ({f"{BEAM}/main_rows/1/cover_mode": "自動", f"{BEAM}/main_rows/1/center_mm": None},
-     "鉄筋.梁.main_rows[1].clear_gap_mm: 値が必要です"),
-    ({f"{BEAM}/main_rows/0/count": 1}, "鉄筋.梁.main_rows: 面「上」の1段目は2本以上が必要です"),
-    ({f"{BEAM}/main_rows/2/material": "SD345"}, "鉄筋.梁.main_rows: 主鉄筋の材質が1種類ではありません（SD345・SD390）"),
-    ({f"{BEAM}/side_rows/0/material": None, f"{BEAM}/materials/main": None, f"{BEAM}/main_rows/0/material": "SD390",
-      f"{BEAM}/main_rows/1/material": "SD390", f"{BEAM}/main_rows/2/material": "SD390"},
-     "鉄筋.梁.side_rows[0].material: 値が必要です（行と鉄筋.梁.materials.main が空欄）"),
-    ({f"{BEAM}/side_rows/0/columns": 2}, "鉄筋.梁.side_rows[0].columns: 側面筋は1列だけ表せます（2列）"),
-    ({f"{BEAM}/side_rows/0/per_face_count": None}, "鉄筋.梁.side_rows[0].per_face_count: 値が必要です"),
-    ({f"{BEAM}/side_rows/0/start_mm": None}, "鉄筋.梁.side_rows[0].start_mm: 値が必要です"),
-    ({f"{BEAM}/band_rows/0/material": None, f"{BEAM}/materials/transverse": None},
-     "鉄筋.梁.band_rows[0].material: 値が必要です（行と鉄筋.梁.materials.transverse が空欄）"),
-    ({f"{BEAM}/band_rows/0/legs_mode": "自動"}, "鉄筋.梁.band_rows[0].legs_mode: 有効本数は「指定」で入力してください"),
-    ({f"{BEAM}/band_rows/0/effective_legs": None}, "鉄筋.梁.band_rows[0].effective_legs: 値が必要です"),
+    ({f"{F}/diameter_mm": None}, "鉄筋.梁.faces.上.diameter_mm: 値が必要です"),
+    ({f"{BEAM}/materials/main": None}, "鉄筋.梁.materials.main: 値が必要です"),
+    ({f"{BEAM}/materials/transverse": None}, "鉄筋.梁.materials.transverse: 値が必要です"),
+    ({f"{F}/count": None}, "鉄筋.梁.faces.上.count: 値が必要です"),
+    ({f"{F}/count": 1}, "鉄筋.梁.faces.上.count: 2本以上が必要です"),
+    ({f"{F}/cover_mode": None}, "鉄筋.梁.faces.上.cover_mode: 値が必要です"),
+    ({f"{F}/center_mm": None}, "鉄筋.梁.faces.上.center_mm: 値が必要です"),
+    ({f"{F}/cover_mode": "自動", f"{F}/center_mm": None}, "鉄筋.梁.pure_cover_mm: 値が必要です"),
+    ({f"{F}/inner_layers/0/count": None}, "鉄筋.梁.faces.上.inner_layers[0].count: 値が必要です"),
+    ({f"{F}/inner_layers/0/clear_gap_mm": None}, "鉄筋.梁.faces.上.inner_layers[0].clear_gap_mm: 値が必要です"),
+    ({f"{F}/inner_layers": [{"count": 8, "clear_gap_mm": 32}, {"count": 8, "clear_gap_mm": 32}]},
+     "鉄筋.梁.faces.上.inner_layers: 段の本数は、最後の段を除いて1段目と同じ"),  # Capacita would read 17 + 16
+    ({f"{F}/inner_layers": [{"count": 18, "clear_gap_mm": 32}]}, "鉄筋.梁.faces.上.inner_layers: 段の本数は"),
+    ({f"{F}/inner_layers": [{"count": 17, "clear_gap_mm": 32}, {"count": 8, "clear_gap_mm": 40}]},
+     "鉄筋.梁.faces.上.inner_layers: 段のあきが一定ではないため表せません"),
+    ({f"{BEAM}/side_bars/cover_mode": "自動", f"{BEAM}/side_bars/center_mm": None}, "鉄筋.梁.pure_cover_mm: 値が必要です"),
+    ({f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動", f"{BEAM}/side_bars/center_mm": None,
+      f"{BEAM}/side_bars/stirrup_position": None}, "鉄筋.梁.side_bars.stirrup_position: 値が必要です"),
+    ({f"{BEAM}/side_bars/per_face_count": None}, "鉄筋.梁.side_bars.per_face_count: 値が必要です"),
+    ({f"{BEAM}/side_bars/start_mm": None}, "鉄筋.梁.side_bars.start_mm: 値が必要です"),
+    ({f"{BEAM}/stirrups/effective_legs": None}, "鉄筋.梁.stirrups.effective_legs: 値が必要です"),
     ({f"{CHECK}/鋼材の腐食に対する環境条件/側面": None}, "片持ち梁の照査.鋼材の腐食に対する環境条件.側面: 値が必要です"),
     ({f"{CHECK}/外観の照査": None}, "片持ち梁の照査.外観の照査: 値が必要です"),
     ({"柱の断面照査/適用基準の機関": None}, "柱の断面照査.適用基準の機関: 値が必要です"),
@@ -162,37 +156,6 @@ def test_a_row_material_overrides_the_shared_one():
 def test_what_the_wdj_cannot_hold_is_an_input_error(changes, message):
     with pytest.raises(InputError, match=re.escape(message)):
         section_of(**changes)
-
-
-def test_a_face_without_a_row_is_an_input_error():
-    rows = document()["鉄筋"]["梁"]["main_rows"]
-    with pytest.raises(InputError, match=re.escape("鉄筋.梁.main_rows: 面「下」の主鉄筋の行が必要です")):
-        section_of(**{f"{BEAM}/main_rows": rows[:2]})
-
-
-def test_the_layers_must_be_equally_spaced():
-    rows = document()["鉄筋"]["梁"]["main_rows"]
-    third = dict(rows[1], layer=3, center_mm=300)
-    with pytest.raises(InputError, match=re.escape("鉄筋.梁.main_rows: 面「上」の段の間隔が一定ではないため表せません")):
-        pier = parse_input(document(**{f"{BEAM}/main_rows": [rows[0], rows[1], third, rows[2]]}))
-        _, _, result = result_of(pier)
-        calculate_cantilever_section(pier, result)
-
-
-@pytest.mark.parametrize("rows,message", [
-    ([], "鉄筋.梁.band_rows: スターラップの行がちょうど1行必要です（0行）"),
-    (2, "鉄筋.梁.band_rows: スターラップの行がちょうど1行必要です（2行）"),
-])
-def test_exactly_one_stirrup_row(rows, message):
-    band = document()["鉄筋"]["梁"]["band_rows"][0]
-    with pytest.raises(InputError, match=re.escape(message)):
-        section_of(**{f"{BEAM}/band_rows": rows if isinstance(rows, list) else [band, band]})
-
-
-def test_at_most_one_side_row():
-    side = document()["鉄筋"]["梁"]["side_rows"][0]
-    with pytest.raises(InputError, match=re.escape("鉄筋.梁.side_rows: 側面筋は1行だけ表せます（2行）")):
-        section_of(**{f"{BEAM}/side_rows": [side, side]})
 
 
 def test_the_beam_aggregate_size_is_the_beam_concretes(current):
