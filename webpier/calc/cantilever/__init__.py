@@ -12,6 +12,7 @@ case of either side for each check and ε'csd (crack). The 0910 check is ``check
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from ...core.errors import InputError
 from ...inputs import PierInput
@@ -69,20 +70,29 @@ class CantileverResult:
         return next((item for item in self.selections if item.row == row and item.quantity == quantity), None)
 
 
-def calculate_cantilever(pier: PierInput, reaction: ReactionResult) -> CantileverBasis:
-    dead = reaction.dead
-    girders = numbered(dead)
+def cantilever_sides(pier: PierInput, dead: Any) -> dict[Side, Geometry]:
+    """The cantilevers that carry a bearing, left first (*dead*: 0600's dead loads, or those of a load model)."""
     sides = {side: geometry(pier, dead, side) for side in Side}
     sides = {side: item for side, item in sides.items() if item.bearings}
     if not sides:
         raise InputError("上部工反力: はりの張出し（|支承位置| > W6/2）に支承がないため、片持ち梁の照査ができません")
-    loadings = train_loadings(pier, reaction.train, girders)
-    s = pier.substructure
-    beam = pier.rebar.beam
+    return sides
+
+
+def beam_cracking_moment(pier: PierInput) -> CrackingMoment:
+    s, beam = pier.substructure, pier.rebar.beam
     if beam.aggregate_max is None:
         raise InputError("鉄筋.梁.aggregate_max_mm: 値が必要です")
-    moment = cracking_moment(put(MM, d(s.b[1]) * 1000), put(MM, (d(s.h[2]) + d(s.h[3])) * 1000),
-                             concrete(pier.materials.beam, "鉄筋.梁.concrete_strength_mpa"), beam.aggregate_max)
+    return cracking_moment(put(MM, d(s.b[1]) * 1000), put(MM, (d(s.h[2]) + d(s.h[3])) * 1000),
+                           concrete(pier.materials.beam, "鉄筋.梁.concrete_strength_mpa"), beam.aggregate_max)
+
+
+def calculate_cantilever(pier: PierInput, reaction: ReactionResult) -> CantileverBasis:
+    dead = reaction.dead
+    girders = numbered(dead)
+    sides = cantilever_sides(pier, dead)
+    loadings = train_loadings(pier, reaction.train, girders)
+    moment = beam_cracking_moment(pier)
     return CantileverBasis(girders, sides, loadings, seismic_train(reaction.train, girders),
                            lateral_torques(loadings, reaction.transverse, girders),
                            wind_torques(reaction.transverse, girders),
@@ -109,5 +119,5 @@ def complete_cantilever(pier: PierInput, reaction: ReactionResult, basis: Cantil
 
 
 __all__ = ["COLUMNS", "DEFINITIONS", "CantileverBasis", "CantileverResult", "Cracking", "LimitState", "MaxResponse",
-           "Quantity", "ResponseError", "Selection", "Side", "SideResult", "calculate_cantilever",
-           "complete_cantilever", "label", "read_max_response"]
+           "Quantity", "ResponseError", "Selection", "Side", "SideResult", "beam_cracking_moment", "calculate_cantilever",
+           "cantilever_sides", "complete_cantilever", "label", "read_max_response"]

@@ -160,11 +160,15 @@ def seismic_train(train: TrainResult, girders: dict[Girder, GirderBearings]) -> 
     return found
 
 
+def torque_verticals(girder: GirderBearings, moment: Printed) -> tuple[TorqueVertical, ...]:
+    """M·|xi| / Σxi² on each bearing of *girder*, in its order (a magnitude)."""
+    return tuple(TorqueVertical(bearing, put(FORCE, abs(d(moment) * d(bearing.position)) / d(girder.sum_squares)))
+                 for bearing in girder.bearings)
+
+
 def torque(girder: GirderBearings, force: Printed, height: Printed) -> Torque:
     moment = put(MOMENT, d(force) * d(height))
-    verticals = tuple(TorqueVertical(bearing, put(FORCE, abs(d(moment) * d(bearing.position)) / d(girder.sum_squares)))
-                      for bearing in girder.bearings)
-    return Torque(girder.girder, force, height, moment, girder.sum_squares, verticals)
+    return Torque(girder.girder, force, height, moment, girder.sum_squares, torque_verticals(girder, moment))
 
 
 def _torque_of(girder: GirderBearings, action: TransverseForce) -> Torque:

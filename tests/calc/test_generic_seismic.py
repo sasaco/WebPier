@@ -42,6 +42,7 @@ def test_the_longitudinal_cases_and_their_kinds():
         (4, "LE", A.DOWNWARD, I.FIXED), (5, "EQ1", A.TOWARD_ORIGIN, I.INCREMENTAL),
         (6, "EQL", A.TOWARD_ORIGIN, I.LIMITED), (7, "EQ2", A.TOWARD_ORIGIN, I.INCREMENTAL)]
     assert result.girder_weights is None and result.earthquake == -1
+    assert [c.case for c in result.basic_cases] == [c.id for c in result.basic_cases]  # the NDU names them by id
     # The application's cases are those of the train path on the same frame.
     old = train(Direction.LONGITUDINAL)
     for case, kind in (("D1", SeismicCase.D1), ("D2", SeismicCase.D2), ("WP_NORMAL", SeismicCase.BUOYANCY),
