@@ -15,10 +15,10 @@ direct-foundation rotational spring, p.155; GBVO = 1.3 added by 5.2).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Hashable, Mapping
+from dataclasses import dataclass, replace
 from decimal import Decimal
-from enum import Enum
+from typing import Any
 
 from ...calc.frame import NodeRole, Region
 from ...calc.seismic_longitudinal import EARTHQUAKE as TOWARD_ORIGIN
@@ -64,10 +64,11 @@ class Profile:
     earthquake_text: str  # shown beside the target displacement in the editor
     jrsnap: str  # attribute of PierInput.jrsnap (input key jrsnap_<jrsnap>)
     plan: tuple[str, str]  # FoundationResult attributes of FootInfo B (in the plane) and L
-    case_titles: Mapping[Enum, str]
-    seat_labels: Mapping[Enum, str]  # point loads at the bearing seat
-    footing_labels: Mapping[Enum, str]  # point loads at the footing centroid
-    member_labels: Mapping[Enum, str]
+    # by basic case: the train path's enums, a load model's ids (generic_profile)
+    case_titles: Mapping[Hashable, str]
+    seat_labels: Mapping[Hashable, str]  # point loads at the bearing seat
+    footing_labels: Mapping[Hashable, str]  # point loads at the footing centroid
+    member_labels: Mapping[Hashable, str]
 
 
 _L = LongitudinalCase
@@ -98,3 +99,22 @@ TRANSVERSE = Profile(
     footing_labels={_T.D1: "フーチング自重", _T.D2: "上載土", _T.BUOYANCY: "浮力", _T.SELF_INERTIA: "フーチング慣性力"},
     member_labels={_T.D1: "柱自重", _T.SELF_INERTIA: "自重慣性力"},
 )
+
+
+# The labels of the application's cases with a load model (decision 70), as the train path labels them.
+_GENERIC_SEAT = {"D1": "上部工反力", "D2": "上部工反力"}
+_GENERIC_FOOTING = {"D1": "フーチング自重", "D2": "上載土", "WP_NORMAL": "浮力", "EQ2": "フーチング慣性力"}
+_GENERIC_MEMBER = {"D1": "柱自重", "EQ2": "自重慣性力"}
+
+
+def generic_profile(base: Profile, seismic: Any) -> Profile:
+    """*base* (LONGITUDINAL or TRANSVERSE) with the cases of a generic 0710 / 0720 (decision 70): titled and ordered
+    as the load model declares them, its cases labelled by their names at the bearing seat."""
+    cases = [case.id for case in seismic.basic_cases]
+    application = set(_GENERIC_FOOTING) | set(_GENERIC_SEAT)
+    return replace(
+        base, case_titles={case.id: case.name for case in seismic.basic_cases},
+        seat_labels={case.id: _GENERIC_SEAT.get(case.id, case.name) for case in seismic.basic_cases
+                     if case.id in _GENERIC_SEAT or case.id not in application},
+        footing_labels={case: label for case, label in _GENERIC_FOOTING.items() if case in cases},
+        member_labels={case: label for case, label in _GENERIC_MEMBER.items() if case in cases})

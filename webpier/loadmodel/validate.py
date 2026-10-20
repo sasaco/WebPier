@@ -11,7 +11,8 @@ calculation and the files for the other programs need:
 - a bearing is one of the input, not an empty slot;
 - every value is at its printed digits (forces 2 decimals, heights 3, factors up to 3, wind pressures 1);
 - the sign −1 reverses a whole case in FrameWeb (Define −n), so it is only for a case without vertical forces;
-- a seismic combination loads seismic cases only, and the cases of one direction are at most 15 (the NDU);
+- a seismic combination loads seismic cases only, and the cases of one direction are at most 15 (the NDU), whose
+  names are the NDU's titles: Shift-JIS, 40 bytes at most;
 - the sections go to the stages that print them, and the provenance can be written as JSON.
 """
 
@@ -34,6 +35,7 @@ HEIGHT_DIGITS = 3
 FACTOR_DIGITS = 3
 PRESSURE_DIGITS = 1
 NDU_CASES = 15  # the basic cases an NDU can hold (export.jrsnap.validate)
+NDU_TITLE_BYTES = 40  # a title of the NDU, CP932 (export.jrsnap.validate)
 
 FRAME_CASES = frozenset({D1, D2, WP_HIGH, WP_NORMAL, WP_LOW})
 SEISMIC_CASES = frozenset({D1, D2, WP_NORMAL, EQ2})
@@ -93,6 +95,12 @@ def _case(index: int, case: BasicCase, ids: set[str], bearings: frozenset[Bearin
     if case.seismic is not None:
         if not isinstance(case.seismic, Seismic):
             raise _error(where, "seismic は Seismic か None が必要です")
+        try:
+            encoded = case.name.encode("cp932")
+        except UnicodeEncodeError:
+            encoded = b"x" * (NDU_TITLE_BYTES + 1)
+        if len(encoded) > NDU_TITLE_BYTES:
+            raise _error(where, f"地震時のケースの名前は NDU の題名なので、Shift-JIS で{NDU_TITLE_BYTES}バイトまでです")
         if not isinstance(case.seismic.increment, Increment):
             raise _error(where, "seismic.increment は Increment が必要です")
         if not isinstance(case.seismic.direction, SeismicDirection):

@@ -252,3 +252,11 @@ def test_the_provenance_may_nest_json_values():
     value = result(provenance={"files": [{"name": "a", "size": 1.5, "ok": True, "note": None}], "pair": ("a", 1)})
     assert validate(value, CONTEXT) is value
     fails(result(provenance={"size": float("nan")}), "アドイン:provenance: JSON にできる辞書が必要です")
+
+
+@pytest.mark.parametrize("name", ["上部工の慣性力" * 3, "慣性力 "])
+def test_a_seismic_case_name_is_an_ndu_title(name):
+    # 21 full-width characters are 42 bytes; U+2028 has no Shift-JIS code.
+    fails(with_case(result(), 2, name=name),
+          "アドイン:EQ1: 地震時のケースの名前は NDU の題名なので、Shift-JIS で40バイトまでです")
+    assert validate(with_case(result(), 0, name=name), CONTEXT)  # a frame case is not written to the NDU

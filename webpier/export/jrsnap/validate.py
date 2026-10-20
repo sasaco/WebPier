@@ -192,9 +192,10 @@ class _Validator:
         self.node = Num(1, self.nn, integer=True)
         self.nr = int(_number(f.row("SectJikuNum1", 6)[0], Num(1, MAX_ROWS, integer=True), "SectJikuNum1 第1欄"))
         self.nc = f.count("LoadNum", 1, COMBINATION_SLOTS)
-        # Without snow there is no 雪荷重 case and the cases after it move up (decision 69).
+        # Without snow there is no 雪荷重 case and the cases after it move up (decision 69). With a load model the
+        # cases are those it declares, by their names in its order (decision 70; generic_profile): none is SNOW.
         titles = list(self.profile.case_titles.values())
-        snowless = [title for case, title in self.profile.case_titles.items() if case.name != "SNOW"]
+        snowless = [title for case, title in self.profile.case_titles.items() if getattr(case, "name", None) != "SNOW"]
         if self.nc not in (len(titles), len(snowless)):
             raise _error(f"{self.profile.data_name}の基本ケースは{len(titles)}件（雪荷重がなければ{len(snowless)}件）"
                          f"が必要です（{self.nc}件）")
