@@ -35,14 +35,20 @@ file declare the same files and share one analysis: a generation runs it once an
 54). Such a stage is ``opt_in``: ``all`` leaves it out unless its switch is given (``--frame-analysis``,
 ``--nonlinear-analysis``), and so is every stage that reads one, with the same switch; chosen directly, it is
 calculated with its dependencies.
+
+With a load model's add-in (decision 70) the registry is ``stages_for(source)``: 0600 has the dead loads only, 0610 /
+0620 / 0710 / 0720 / 0900 are calculated from the load model's result (calc.generic) and 0711 / 0721 write the Aggre-SE
+project of their NDU; every other stage is the same StageSpec, reading the generic results as it reads the train
+path's. Its ``load_model`` tells the generation to read the input without the load model's items and to record the
+add-in in every artifact.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass, field, replace
+from typing import Any, Protocol
 
 from ..calc.cantilever import calculate_cantilever, complete_cantilever, read_max_response
 from ..calc.cantilever.check import calculate_cantilever_section
@@ -56,8 +62,12 @@ from ..calc.foundation import calculate_foundation
 from ..calc.foundation_check import LONGITUDINAL as FOUNDATION_LONGITUDINAL, TRANSVERSE as FOUNDATION_TRANSVERSE
 from ..calc.foundation_check import Direction as FoundationDirection, check as check_foundation
 from ..calc.foundation_check import prepare as prepare_foundation_check
+from ..calc.frame import Direction as FrameDirection
+from ..calc.generic.cantilever import calculate_generic_cantilever, complete_generic_cantilever
+from ..calc.generic.frame import calculate_generic_frame
+from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
-from ..calc.reaction import calculate_reaction
+from ..calc.reaction import calculate_dead_reaction, calculate_reaction
 from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
 from ..calc.seismic_transverse import calculate_seismic_transverse
 from ..calc.transverse import calculate_transverse
@@ -66,11 +76,11 @@ from ..core.integrity import dump_json
 from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
 from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wdj, point_index, write_footing_wdj,
                                write_wdj)
-from ..export.frameweb import build_frameweb, build_frameweb_transverse
+from ..export.frameweb import build_frameweb, build_frameweb_generic, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
-from ..export.jrsnap.profile import TARGET_VERSION
+from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
 from ..inputs import PierInput
 from ..reporting.stages.cantilever import render_cantilever
 from ..reporting.stages.cantilever_check import render_cantilever_check
@@ -84,6 +94,10 @@ from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.foundation_check import LONGITUDINAL as FOUNDATION_CHAPTER_8
 from ..reporting.stages.foundation_check import TRANSVERSE as FOUNDATION_CHAPTER_9
 from ..reporting.stages.foundation_check import Chapter as FoundationChapter, render_foundation_check
+from ..reporting.stages.generic.cantilever import render_generic_cantilever
+from ..reporting.stages.generic.frame import render_generic_frame
+from ..reporting.stages.generic.reaction import render_dead_reaction
+from ..reporting.stages.generic.seismic import render_generic_seismic
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.reaction import render_reaction
 from ..reporting.stages.seismic_check import render_seismic_check
@@ -257,9 +271,18 @@ class StageSpec:
         return self.render is not None
 
 
+class LoadModelSource(Protocol):
+    """A load model bound to the input being calculated (pipeline.addin.BoundAddin, decision 70)."""
+
+    def result(self, pier: PierInput) -> Any: ...
+
+    def record(self, pier: PierInput) -> dict[str, Any]: ...
+
+
 @dataclass(frozen=True)
 class Registry:
     stages: tuple[StageSpec, ...]
+    load_model: LoadModelSource | None = None  # stages_for: the input is read without the load model's items
 
     def __post_init__(self) -> None:
         if not self.stages:
@@ -514,15 +537,17 @@ def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter:
                          pier, getattr(results["0800"], direction)))
 
 
+def _max_responses(files: Mapping[str, bytes], *stages: str) -> list[Any]:
+    """The 最大応答震度 of the summary workbook of each seismic check of *stages* (decision 59)."""
+    return [read_max_response(files[seismic_file(stage_id, "xlsx")], dict(_aggrese_files(stage_id).files)["xlsx"])
+            for stage_id in stages]
+
+
 def _cantilever(stem: str, longitudinal: str, transverse: str) -> StageSpec:
     """0900: the 応答値 of the cantilever beam from 0600, finished with the 最大応答震度 of the seismic checks of
     *longitudinal* (0711) and *transverse* (0721) (decision 59)."""
     def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        responses = []
-        for stage_id in (longitudinal, transverse):
-            name = dict(_aggrese_files(stage_id).files)["xlsx"]
-            responses.append(read_max_response(files[seismic_file(stage_id, "xlsx")], name))
-        return complete_cantilever(pier, results["0600"], basis, *responses)
+        return complete_cantilever(pier, results["0600"], basis, *_max_responses(files, longitudinal, transverse))
 
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_cantilever(pier, results["0600"]),
@@ -598,3 +623,83 @@ STAGES = Registry((
     _cantilever("0900_片持ち梁", "0711", "0721"),
     _cantilever_check("0910_片持ち梁照査", "片持ち梁"),
 ))
+
+# --- a load model (decision 70) ------------------------------------------------------------------------------------
+
+
+def _generic_ndu(stage_id: str, base: NduProfile) -> Callable[[Results, PierInput], NduModel]:
+    def model(results: Results, pier: PierInput) -> NduModel:
+        return _ndu_model(stage_id, generic_profile(base, results[stage_id]), results, pier)
+    return model
+
+
+def _generic_seismic_stage(stage_id: str, stem: str, frame: str, base: NduProfile, file_name: str,
+                           direction: FrameDirection, source: LoadModelSource) -> StageSpec:
+    ndu = _generic_ndu(stage_id, base)
+    return StageSpec(stage_id, stem, ("0500", "0600", frame),
+                     lambda pier, results: calculate_generic_seismic(pier, results["0500"], results["0600"],
+                                                                     results[frame], source.result(pier), direction,
+                                                                     stage_id),
+                     lambda results, pier, path, pages: render_generic_seismic(results[stage_id], pier, path, pages),
+                     (Export("jrsnap", file_name, lambda results, pier: write_ndu(ndu(results, pier)), metadata=_NDU),),
+                     jrsnap_figures=JrsnapFigures("jrsnap", lambda results, pier: diagram_combinations(
+                         ndu(results, pier))))
+
+
+def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) -> StageSpec:
+    """0711 / 0721 with the Aggre-SE project of the generic NDU of *source_stage*."""
+    ndu = _generic_ndu(source_stage, base)
+    analysis = stage.nonlinear_analysis
+    assert analysis is not None and analysis.project is not None
+
+    def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
+        project = build_project(ndu(results, pier), pier)
+        return lambda folder, names: write_project(project, databases(folder, names, project.cases))
+
+    return replace(stage, nonlinear_analysis=replace(analysis, project=replace(analysis.project, build=build)))
+
+
+def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: LoadModelSource) -> StageSpec:
+    def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
+        return complete_generic_cantilever(pier, results["0600"], basis,
+                                           *_max_responses(files, longitudinal, transverse))
+
+    return StageSpec("0900", stem, ("0600", longitudinal, transverse),
+                     lambda pier, results: calculate_generic_cantilever(pier, results["0600"], source.result(pier)),
+                     lambda results, pier, path, pages: render_generic_cantilever(results["0900"], pier, path),
+                     opt_in=NONLINEAR_ANALYSIS, complete=complete)
+
+
+def stages_for(source: LoadModelSource) -> Registry:
+    """The stages with the load model *source* (decision 70): 0600 the dead loads only, 0610 / 0620 / 0710 / 0720 /
+    0900 from its result, 0711 / 0721 with the project of their generic NDU; every other stage is shared, reading the
+    generic results as it reads the train path's."""
+    generic = {
+        "0600": StageSpec("0600", STAGES.get("0600").stem, (),
+                          lambda pier, results: calculate_dead_reaction(pier),
+                          lambda results, pier, path, pages: render_dead_reaction(results["0600"], pier, path)),
+        "0610": StageSpec("0610", STAGES.get("0610").stem, ("0500", "0600"),
+                          lambda pier, results: calculate_generic_frame(pier, results["0500"], results["0600"],
+                                                                        source.result(pier), FrameDirection.LONGITUDINAL,
+                                                                        "0610"),
+                          lambda results, pier, path, pages: render_generic_frame(results["0610"], results["0600"],
+                                                                                  pier, path, pages),
+                          (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb_generic)),),
+                          load_diagram="frameweb"),
+        "0620": StageSpec("0620", STAGES.get("0620").stem, ("0500", "0600"),
+                          lambda pier, results: calculate_generic_frame(pier, results["0500"], results["0600"],
+                                                                        source.result(pier), FrameDirection.TRANSVERSE,
+                                                                        "0620"),
+                          lambda results, pier, path, pages: render_generic_frame(results["0620"], results["0600"],
+                                                                                  pier, path, pages),
+                          (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_generic)),),
+                          load_diagram="frameweb"),
+        "0710": _generic_seismic_stage("0710", STAGES.get("0710").stem, "0610", NDU_LONGITUDINAL, "線路方向.ndu",
+                                       FrameDirection.LONGITUDINAL, source),
+        "0711": _generic_nonlinear(STAGES.get("0711"), "0710", NDU_LONGITUDINAL),
+        "0720": _generic_seismic_stage("0720", STAGES.get("0720").stem, "0620", NDU_TRANSVERSE, "線路直角方向.ndu",
+                                       FrameDirection.TRANSVERSE, source),
+        "0721": _generic_nonlinear(STAGES.get("0721"), "0720", NDU_TRANSVERSE),
+        "0900": _generic_cantilever(STAGES.get("0900").stem, "0711", "0721", source),
+    }
+    return Registry(tuple(generic.get(stage.id, stage) for stage in STAGES.stages), load_model=source)

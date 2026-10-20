@@ -1,7 +1,8 @@
 """Calculation results as deterministic JSON.
 
-A ``Printed`` becomes its printed number, an enum its value, a tuple a list, a set a list sorted by its JSON,
-and a mapping key a string. Anything else is a programming error: the result JSON never guesses.
+A ``Printed`` becomes its printed number, a Decimal (a load model's value, decision 70) its number, an enum its
+value, a tuple a list, a set a list sorted by its JSON, and a mapping key a string. Anything else is a programming
+error: the result JSON never guesses.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import json
 import math
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
+from decimal import Decimal
 from typing import Any
 
 from ..core.printed import Printed
@@ -35,6 +37,8 @@ def to_json(value: Any) -> Any:
         return to_json(value.value)
     if value is None or isinstance(value, (str, bool, int)):
         return value
+    if isinstance(value, Decimal):
+        return to_json(float(value))
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError(f"有限でない数値はJSONにできません: {value!r}")
@@ -58,8 +62,10 @@ def to_json(value: Any) -> Any:
 
 
 def result_document(stage: str, result: Any, *, input_file: str, input_sha256: str,
-                    implementation_sha256: str) -> dict[str, Any]:
-    """The result JSON of one stage, bound to the input bytes and the implementation that produced it."""
+                    implementation_sha256: str, addin: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """The result JSON of one stage, bound to the input bytes and the implementation that produced it, and with a
+    load model to the add-in as it declared itself and the provenance it returned (decision 70)."""
     return {"schema_version": SCHEMA_VERSION, "stage": stage,
             "input": {"file": input_file, "sha256": input_sha256},
-            "implementation_sha256": implementation_sha256, "result": to_json(result)}
+            "implementation_sha256": implementation_sha256, **({} if addin is None else {"addin": dict(addin)}),
+            "result": to_json(result)}

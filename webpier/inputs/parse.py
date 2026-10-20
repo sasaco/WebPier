@@ -284,6 +284,17 @@ TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下�
             CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse")
 
 
+SPAN_LOAD_MODEL_KEYS = ("衝撃係数_単線終局", "曲線半径", "列車速度", "遠心作用方向")
+
+
+def load_model_item(pattern: str) -> bool:
+    """Whether the field *pattern* (fields.FIELDS) belongs to the load model: not read with one (decision 70)."""
+    parts = pattern.split(".")
+    if parts[0] == "上部構造":
+        return parts[1] == "列車" or parts[-1] in SPAN_LOAD_MODEL_KEYS
+    return parts[0] == "上部工反力" and (parts[-1] in SNOW_KEYS or "列車分担" in parts)
+
+
 def parse_input(data: Any, *, load_model: bool = False) -> PierInput:
     """Validate the whole input once; never mutate *data*. With *load_model* the items of the load model are not read
     (decision 70)."""

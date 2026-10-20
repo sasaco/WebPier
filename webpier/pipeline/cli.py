@@ -3,10 +3,11 @@
 ``--frame-analysis`` adds the opt-in stages of the FEMPython frame analysis (0611, 0621, decision 46) and
 ``--nonlinear-analysis`` those of the JRSNAP static nonlinear analysis (0711, 0721, decision 47; with Aggre-SE's
 耐震性能照査 as their report, decision 56) to ``--stage all``;
-such a stage chosen directly with ``--stage`` needs no flag.
+such a stage chosen directly with ``--stage`` needs no flag. ``--addin <folder>`` calculates with the load model of the
+add-in (decision 70, pipeline.addin); without it, with the train's.
 
 Exit codes: 0 published; 2 the input, a destination or the environment prevents the generation
-(``InputError``, ``GenerationError``, ``OSError``) and nothing was published; 3 publication failed and not
+(``InputError``, ``AddinError``, ``GenerationError``, ``OSError``) and nothing was published; 3 publication failed and not
 every old file could be restored (``RecoveryError``; the message names the retained backups). Any other
 exception is a bug and ends with its traceback.
 """
@@ -18,6 +19,7 @@ import sys
 from pathlib import Path
 
 from ..core.errors import InputError
+from .addin import AddinError
 from .generate import GenerationError, GenerationOptions, generate
 from .publication import RecoveryError
 from .stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Registry, flag
@@ -43,6 +45,7 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
                              "JRSNAP で静的非線形解析し、解析用データと解析結果を解析入力の出力先のフォルダーに書き、"
                              "Aggre-SE で耐震性能照査した帳票を計算書にし、そのピックアップ（PIK）と総括表（xlsx）を解析入力の出力先に書く")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
+    result.add_argument("--addin", type=Path, help="荷重モデルのアドインのフォルダー（なければ列車荷重）")
     return result
 
 
@@ -68,13 +71,13 @@ def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
     options = GenerationOptions(
         arguments.input, arguments.output_dir, post_dir(arguments.output_dir, arguments.post_dir),
         stage=arguments.stage, overwrite=arguments.overwrite, frame_analysis=arguments.frame_analysis,
-        nonlinear_analysis=arguments.nonlinear_analysis)
+        nonlinear_analysis=arguments.nonlinear_analysis, addin=arguments.addin)
     try:
         generation = generate(options, registry=registry)
     except RecoveryError as exc:
         print(f"復旧が必要です: {exc}", file=sys.stderr)
         return EXIT_RECOVERY
-    except (InputError, GenerationError, OSError) as exc:
+    except (InputError, AddinError, GenerationError, OSError) as exc:
         print(f"エラー: {exc}", file=sys.stderr)
         return EXIT_ERROR
     for artifact in generation.artifacts:

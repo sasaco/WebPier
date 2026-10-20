@@ -3,6 +3,7 @@
 import enum
 import json
 from dataclasses import dataclass
+from decimal import Decimal
 
 import pytest
 
@@ -104,3 +105,13 @@ def test_every_stage_result_serializes_to_strict_json_and_back():
         decoded = load_json(encoded)
         assert decoded == to_json(results[stage.id])
         assert isinstance(decoded, dict) and decoded
+
+
+def test_a_decimal_of_a_load_model_is_its_number_and_the_addin_is_recorded():
+    # decision 70: the load model's values are Decimal; the add-in is recorded only when there is one
+    assert to_json({"vertical": Decimal("300.00"), "height": Decimal("-1.500")}) == {"vertical": 300.0, "height": -1.5}
+    plain = result_document("0600", None, input_file="input.json", input_sha256="a", implementation_sha256="b")
+    assert "addin" not in plain
+    added = result_document("0600", None, input_file="input.json", input_sha256="a", implementation_sha256="b",
+                            addin={"name": "x"})
+    assert list(added) == ["schema_version", "stage", "input", "implementation_sha256", "addin", "result"]

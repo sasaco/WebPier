@@ -52,12 +52,13 @@ from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
 from . import aggrese, capacita, fempython, jrsnap
+from .addin import load_addin
 from .fempython import ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry, SectionCheck, SeismicCheck, StageSpec, seismic_file)
+                     Project, Registry, SectionCheck, SeismicCheck, StageSpec, seismic_file, stages_for)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -75,6 +76,7 @@ class GenerationOptions:
     overwrite: bool = False
     frame_analysis: bool = False  # add the opt-in stages to all: FEMPython analyzes the frames (decision 46)
     nonlinear_analysis: bool = False  # add the opt-in stages to all: JRSNAP analyzes the NDU (decision 47)
+    addin: Path | None = None  # the folder of a load model's add-in (decision 70); none: the train's
 
     @property
     def switches(self) -> frozenset[str]:
@@ -233,8 +235,10 @@ class Candidate:
 
     def __init__(self, options: GenerationOptions, stages: tuple[str, ...], results: Mapping[str, Any],
                  artifacts: list[Artifact], staging: ArtifactStaging, input_sha256: str,
-                 identity: Mapping[Path, str], baseline: Mapping[Path, str | None]) -> None:
+                 identity: Mapping[Path, str], baseline: Mapping[Path, str | None],
+                 addin: Mapping[str, Any] | None = None) -> None:
         self.options = options
+        self.addin = addin  # the add-in's provenance of a load model (decision 70), as every artifact records it
         self.stages = stages
         self.results = results
         self.artifacts = tuple(artifacts)
@@ -577,10 +581,19 @@ class _Inputs:
     writers: dict[str, Callable[[str, Sequence[str]], bytes]]
 
 
+def with_addin(options: GenerationOptions, registry: Registry = STAGES) -> Registry:
+    """*registry* with the load model of ``options.addin`` read once (decision 70): its stages (``stages_for``) bound to
+    the input; *registry* as it is without an add-in or when it has a load model already. ``AddinError`` when the
+    add-in cannot be read."""
+    if options.addin is None or registry.load_model is not None:
+        return registry
+    return stages_for(load_addin(options.addin).bind(options.input_path))
+
+
 def _inputs(options: GenerationOptions, registry: Registry, selected: tuple[str, ...],
             posts: list[_PostFile]) -> _Inputs:
     data = Path(options.input_path).read_bytes()
-    pier = parse_input(load_json(data))
+    pier = parse_input(load_json(data), load_model=registry.load_model is not None)
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
@@ -598,6 +611,7 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
     the calculations of the selected stages and their dependencies, every export and the Aggre-SE projects' input.
     Nothing is written and no runner is looked up or called; a result a runner's files finish (decisions 54, 59, 60)
     is checked only by a generation. Returns the selected stages."""
+    registry = with_addin(options, registry)
     selected = _select(options, registry)
     _inputs(options, registry, selected, _plan(options, registry, selected)[1])
     return selected
@@ -606,6 +620,7 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
 @contextmanager
 def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
+    registry = with_addin(options, registry)
     selected = _select(options, registry)
     artifacts, posts = _plan(options, registry, selected)
     destinations = [artifact.path for artifact in artifacts]
@@ -620,8 +635,10 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     pier, results, built = found.pier, found.results, found.built
     analyses, nonlinear, writers = found.analyses, found.nonlinear, found.writers
     input_sha256 = sha256(found.data)
+    # The add-in as it declared itself and the provenance it returned, copied into every artifact (decision 70).
+    addin = None if registry.load_model is None else registry.load_model.record(pier)
     common = {"input": {"file": Path(options.input_path).name, "sha256": input_sha256},
-              "implementation_sha256": _implementation_sha256(identity)}
+              "implementation_sha256": _implementation_sha256(identity), **({} if addin is None else {"addin": addin})}
     with ArtifactStaging(destinations) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
         for post in posts:
@@ -703,7 +720,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             # A stage whose report is Aggre-SE's has no result of its own (decision 56).
             document = result_document(stage_id, results.get(stage_id), input_file=common["input"]["file"],
                                        input_sha256=input_sha256,
-                                       implementation_sha256=common["implementation_sha256"])
+                                       implementation_sha256=common["implementation_sha256"], addin=addin)
             if stage_id in inspected:  # that the check ran, not its judgement (ADR-0008)
                 document["section_check"] = {
                     "engine": capacita.ENGINE, "engine_version": inspected[stage_id].engine_version,
@@ -734,7 +751,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                      else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)
-        candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline)
+        candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline, addin)
         try:
             yield candidate
         finally:
