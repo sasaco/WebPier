@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from webpier.gui import app as gui
-from webpier.gui import beam_cards, column_cards, rebar_page
+from webpier.gui import beam_cards, column_cards, footing_cards, rebar_page
 
 COLUMN = ("鉄筋", "柱")
 RAIL = (*COLUMN, "main_bars", "線路")
@@ -126,20 +126,6 @@ def test_the_hoop_group(editor):
     assert len(editor.document.data["鉄筋"]["柱"]["column_hoops"]["direction_rows"]) == 3
 
 
-def test_the_footing_shows_its_tables_and_outline(editor):
-    groups, layers = ("main",), ("鉄筋", "フーチング", "faces", "下", "線路", "inner_layers")
-    assert page(editor).select_member("フーチング")
-    assert tuple(page(editor).group_buttons) == groups
-    assert page(editor).section.canvas.find_withtag("section-outline")
-    assert not page(editor).section.canvas.find_withtag("rebar")
-    assert page(editor).section.notice.cget("text") == rebar_page.OUTLINE_ONLY
-    for group in groups:
-        assert page(editor).select_group(group)
-    assert page(editor).add_row(layers)
-    page(editor).select_direction("直角")
-    assert page(editor).section.canvas.find_withtag("section-outline")
-
-
 def test_the_member_is_kept_when_the_page_is_reopened(editor):
     page(editor).select_member("梁")
     editor.select("上部構造")
@@ -173,12 +159,6 @@ def test_the_beam_side_bars_are_removed_and_added(editor):
     assert ("鉄筋", "梁", "side_bars", "diameter_mm") not in editor.bindings.items
     assert page(editor).set_side_bars(True)
     assert cell(editor, "鉄筋", "梁", "side_bars", "diameter_mm").get() == ""
-
-
-def test_the_footing_faces_name_the_direction_outside(editor):
-    assert page(editor).select_member("フーチング")
-    assert cell(editor, "鉄筋", "フーチング", "faces", "下", "outer_direction").get() == "線路"
-    assert ("鉄筋", "フーチング", "stirrups", "直角", "density_per_m") in editor.bindings.items
 
 
 def test_a_table_change_without_its_bars_is_a_warning(editor):
@@ -310,7 +290,7 @@ def buttons(widget, text):
 
 def test_the_beam_is_entered_on_cards_without_the_outline(beam):
     view = page(beam)
-    assert tuple(view.group_buttons) == ("main", "check") and view.section is None
+    assert tuple(view.group_buttons) == ("main", "check")
     assert (*UPPER, "bar_type") in beam.bindings.items and (*LOWER, "bar_type") not in beam.bindings.items
     assert view.status.get() == "" and len(view.layout.bars) == 77
 
@@ -366,12 +346,12 @@ def test_the_wheel_scrolls_the_cards(beam, monkeypatch):
     assert not view.wheel(over(beam, monkeypatch, None))  # outside the editor
 
 
-def test_the_wheel_leaves_a_table_to_scroll_itself(editor, monkeypatch):
-    assert page(editor).select_member("フーチング")
-    view = page(editor)
-    sheet = view.tables[("鉄筋", "フーチング", "faces", "上", "線路", "inner_layers")]
+def test_the_wheel_leaves_a_table_to_scroll_itself(beam, monkeypatch):
+    assert page(beam).select_group("check")
+    view = page(beam)
+    sheet = cell(beam, "片持ち梁の照査", "外観の照査").sheet  # the conditions are a table (Form.properties)
     before = view.inputs_canvas.yview()
-    assert not view.wheel(over(editor, monkeypatch, sheet.winfo_children()[0]))
+    assert not view.wheel(over(beam, monkeypatch, sheet.winfo_children()[0]))
     assert view.inputs_canvas.yview() == before
 
 
@@ -415,3 +395,127 @@ def test_the_beam_check_group_holds_only_the_conditions(beam):
     assert page(beam).select_group("check")
     assert (*BEAM, "aggregate_max_mm") not in beam.bindings.items
     assert ("片持ち梁の照査", "外観の照査") in beam.bindings.items
+
+
+FOOTING = ("鉄筋", "フーチング")
+F_LOWER, F_UPPER = (*FOOTING, "faces", "下"), (*FOOTING, "faces", "上")
+
+
+@pytest.fixture
+def footing(editor):
+    """The footing page with 純かぶり 70, on the lower face 線路 D25@125 and 直角 D29@125 (自動, 線路 outside), the
+    upper face blank, and the stirrups D16 @250: 線路 at 130 across the width, 直角 2 per 1 m."""
+    data = editor.document.data["鉄筋"]["フーチング"]
+    data["pure_cover_mm"] = 70
+    data["faces"]["下"]["線路"].update(diameter_mm=25, pitch_mm=125)
+    data["faces"]["下"]["直角"].update(diameter_mm=29, pitch_mm=125)
+    data["stirrups"]["線路"].update(diameter_mm=16, pitch_mm=250, distribution_mode="間隔", width_pitch_mm=130)
+    data["stirrups"]["直角"].update(diameter_mm=16, pitch_mm=250, distribution_mode="密度", density_per_m=2)
+    assert page(editor).select_member("フーチング")
+    editor.root.update()
+    return editor
+
+
+def titles(widget):
+    """The titles of the cards under *widget*."""
+    found = [widget.cget("text")] if widget.winfo_class() == "TLabelframe" else []
+    for child in widget.winfo_children():
+        found += titles(child)
+    return found
+
+
+def test_the_footing_is_entered_on_cards(footing):
+    view = page(footing)
+    assert tuple(view.group_buttons) == ("main",)
+    assert (*F_LOWER, "outer_direction") in footing.bindings.items
+    assert (*F_UPPER, "outer_direction") not in footing.bindings.items  # kept in the data, not shown
+    assert view.readouts[("下", "線路", 1)].get() == "82.5"  # 70 + 25 / 2
+    assert view.readouts[("下", "直角", 1)].get() == "109.5"  # 70 + 25 + 29 / 2
+    assert view.readouts[("per_m", "下", "線路", 1)].get() == "8"
+    assert view.readouts[("上", "線路", 1)].get() == "—" and view.status.get() == ""  # the upper face is not read
+    assert "線路方向　1段目は外側" in titles(view.inputs) and "直角方向　1段目は内側" in titles(view.inputs)
+    enter(footing, (*FOOTING, "concrete_strength_mpa"), "30")
+    assert footing.document.data["鉄筋"]["フーチング"]["faces"]["上"]["outer_direction"] == "線路"
+
+
+def test_the_direction_outside_is_chosen_on_the_lower_face(footing):
+    press(footing, (*F_LOWER, "outer_direction"), "直角")
+    view = page(footing)
+    assert view.readouts[("下", "直角", 1)].get() == "84.5"  # 70 + 29 / 2
+    assert view.readouts[("下", "線路", 1)].get() == "111.5"  # 70 + 29 + 25 / 2
+    assert "直角方向　1段目は外側" in titles(view.inputs)
+
+
+def test_a_footing_layer_inside_and_its_crossing(footing):
+    rows = footing.document.data["鉄筋"]["フーチング"]["faces"]["下"]["線路"]["inner_layers"]
+    add = buttons(page(footing).inputs, "＋ 2段目を追加")[2]  # 上面 線路, 上面 直角, 下面 線路, 下面 直角
+    add.invoke()
+    footing.root.update()
+    assert rows == [{"pitch_mm": None, "clear_gap_mm": None}]
+    assert page(footing).status.get() == "下面：鉄筋.フーチング.faces.下.線路.inner_layers[0].pitch_mm: 値が必要です"
+    layer = (*F_LOWER, "線路", "inner_layers", 0)
+    enter(footing, (*layer, "pitch_mm"), "125")
+    enter(footing, (*layer, "clear_gap_mm"), "25")
+    view = page(footing)
+    assert view.readouts[("下", "線路", 2)].get() == "芯かぶり 132.5・1 m 当たり 8 本・ほかの段と交差"  # 82.5 + 25 + 25
+    assert view.readouts[("per_m", "下", "直角", 1)].get() == "8・ほかの段と交差"  # |132.5 − 109.5| < 27
+    assert view.status.get() == "警告：下面で段が 1 か所で交差しています。配筋略図で確かめてください（計算は止めません）。"
+    assert footing_cards.readout(view, ("下", "線路", 3)) == "—"
+    (remove,) = buttons(view.inputs, "×")
+    remove.invoke()
+    footing.root.update()
+    assert rows == []
+
+
+def test_a_blank_the_lower_face_needs_is_named(footing):
+    enter(footing, (*F_LOWER, "線路", "diameter_mm"), "")
+    assert page(footing).status.get() == "下面：鉄筋.フーチング.faces.下.線路.diameter_mm: 値が必要です"
+    assert page(footing).readouts[("下", "直角", 1)].get() == "—"
+
+
+def test_what_the_footing_reader_refuses_is_named(footing):
+    footing.document.data["鉄筋"]["フーチング"]["materials"]["main"] = "SD999"
+    page(footing).refresh()
+    assert page(footing).status.get().startswith("鉄筋.フーチング.materials.main:")
+    assert page(footing).readouts[("下", "線路", 1)].get() == "—"
+
+
+def test_the_stirrups_across_the_width(footing):
+    view = page(footing)
+    assert view.readouts[("stirrup", "線路")].get() == "1 m 当たり 7.69 本"  # 1000／130
+    assert view.readouts[("stirrup", "直角")].get() == "間隔 500.0 mm 相当"  # 1000／2
+    assert (*FOOTING, "stirrups", "線路", "width_pitch_mm") in footing.bindings.items
+    press(footing, (*FOOTING, "stirrups", "線路", "distribution_mode"), "密度")
+    assert (*FOOTING, "stirrups", "線路", "density_per_m") in footing.bindings.items
+    assert (*FOOTING, "stirrups", "線路", "width_pitch_mm") not in footing.bindings.items
+    assert page(footing).readouts[("stirrup", "線路")].get() == "—"  # no bars per 1 m yet
+
+
+def test_a_stirrup_without_its_mode_has_no_width_input(footing):
+    footing.document.data["鉄筋"]["フーチング"]["stirrups"]["直角"]["distribution_mode"] = None
+    page(footing)._rebuild()
+    stirrups = (*FOOTING, "stirrups", "直角")
+    assert (*stirrups, "density_per_m") not in footing.bindings.items
+    assert (*stirrups, "width_pitch_mm") not in footing.bindings.items
+    assert ("stirrup", "直角") not in page(footing).readouts
+
+
+def test_the_footing_helps(footing):
+    found = helps(page(footing).inputs)
+    assert len(found) == 2  # 純かぶりと芯かぶり, スターラップ
+    for button in found:
+        button.invoke()
+    assert all(any(child.winfo_class() == "Toplevel" for child in button.winfo_children()) for button in found)
+
+
+def test_the_footing_sizes(footing):
+    assert tuple(cell(footing, *F_LOWER, "線路", "diameter_mm").widget.cget("values"))[1:] == tuple(
+        f"D{size}" for size in footing_cards.MAIN_SIZES) == ("D13", "D16", "D19", "D22", "D25", "D29", "D32", "D35")
+    assert tuple(cell(footing, *FOOTING, "stirrups", "線路", "diameter_mm").widget.cget("values"))[-1] == "D25"
+
+
+def test_a_given_footing_cover_is_entered(footing):
+    press(footing, (*F_LOWER, "直角", "cover_mode"), "指定")
+    assert (*F_LOWER, "直角", "center_mm") in footing.bindings.items
+    assert ("下", "直角", 1) not in page(footing).readouts
+    assert page(footing).status.get() == "下面：鉄筋.フーチング.faces.下.直角.center_mm: 値が必要です"

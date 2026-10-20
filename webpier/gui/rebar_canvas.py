@@ -31,7 +31,8 @@ class Circle:
     ring: str | None = None  # a ring around the bar (changed in the table, picked); None: none
 
 
-def _mm(data: Any, group: str, key: str) -> float:
+def dimension_mm(data: Any, group: str, key: str) -> float:
+    """下部構造.寸法.{group}.{key} in mm, read through the field table (an EditorError naming it when blank)."""
     try:
         value = read(Reader(data).at("下部構造", "寸法", group, key))
     except InputError as exc:
@@ -43,11 +44,11 @@ def outline(member: str, data: Any, direction: str = "線路") -> list[Point]:
     """The section polygon of the column (W6 × B6) or the footing (in *direction*) in mm (x to the right, y down from
     the top face). The beam's 配筋略図 is its b × h rectangle, drawn by beam_window."""
     if member == "柱":
-        width, height = _mm(data, "正面", "W6"), _mm(data, "側面", "B6")
+        width, height = dimension_mm(data, "正面", "W6"), dimension_mm(data, "側面", "B6")
         return [(0, 0), (width, 0), (width, height), (0, height)]
     group, prefix = ("側面", "B") if direction == "線路" else ("正面", "W")
-    first, top, last = (_mm(data, group, f"{prefix}{index}") for index in (7, 8, 9))
-    taper, depth = _mm(data, "高さ", "H5"), _mm(data, "高さ", "H6")
+    first, top, last = (dimension_mm(data, group, f"{prefix}{index}") for index in (7, 8, 9))
+    taper, depth = dimension_mm(data, "高さ", "H5"), dimension_mm(data, "高さ", "H6")
     width = first + top + last
     return [(first, 0), (first + top, 0), (width, taper), (width, taper + depth), (0, taper + depth), (0, taper)]
 

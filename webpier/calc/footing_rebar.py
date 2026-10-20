@@ -13,7 +13,12 @@ and its stirrups; the upper bars are not read (the sample 12_フーチング.pdf
   split must come back to the number of layers. The effective depth of the 0800 effective width is measured to the
   centroid of the bars (owner, decision 68).
 - The stirrups per 1 m of width: the density, or 1000／width_pitch_mm printed to 2 decimals; their pitch along the
-  overhang.
+  overhang. stirrup_width gives that number and the spacing across the width it stands for (1000／number).
+- face_layout gives the layers of both directions on a face (the editor's readouts and its 配筋略図): each layer's
+  bar, pitch, bars per 1 m and centre from the face, by the rule above, nearest the face first. The upper face is not
+  read by 0800 to 0820 but lies by the same rule, measured from the upper face, and a layer inside need not keep the
+  gap of the others there. Layers of the two directions closer than the mean of their bars cross; a crossing is a
+  warning the editor shows, not an input error.
 
 The grades are the member's (materials.main, materials.transverse); f'ck is the footing concrete's
 (鉄筋.フーチング.concrete_strength_mpa). Anything blank or not representable is an input error naming its path. The
@@ -59,6 +64,25 @@ class MainBars:
 
 
 @dataclass(frozen=True)
+class PlacedLayer:
+    """A layer of one direction on a face of the footing, per 1 m of width."""
+
+    direction: str  # LONGITUDINAL or TRANSVERSE
+    layer: int  # 1 = layer 1 of the direction
+    diameter: Printed  # mm
+    pitch: Printed  # mm
+    per_metre: Printed  # COUNT, 1000／pitch
+    center: Printed  # mm, from the face
+
+
+@dataclass(frozen=True)
+class FaceLayout:
+    face: str  # choices.BEAM_FACES
+    layers: tuple[PlacedLayer, ...]  # nearest the face first (by centre; the direction outside first at a tie)
+    crossings: tuple[tuple[int, int], ...]  # pairs of indices into layers, i < j, closer than the mean of their bars
+
+
+@dataclass(frozen=True)
 class Stirrups:
     """The shear reinforcement of the overhang in one direction, per 1 m of width."""
 
@@ -86,31 +110,52 @@ def _per_metre(spacing: Printed) -> Printed:
     return put(COUNT, _METRE_MM / d(spacing))
 
 
-def _first_cover(footing: FootingBars, direction: str, here: str) -> Printed:
-    face = footing.faces[_LOWER]
-    bars = face.bars[direction]
+def _first_cover(footing: FootingBars, face: str, direction: str, here: str) -> Printed:
+    on_face = footing.faces[face]
+    bars = on_face.bars[direction]
     if _need(bars.cover_mode, f"{here}.cover_mode") == choices.COVER_SPECIFIED:
         return _need(bars.center, f"{here}.center_mm")
     pure = _need(footing.pure_cover, f"{_FOOTING}.pure_cover_mm")
     diameter = _need(bars.diameter, f"{here}.diameter_mm")
-    outer = _need(face.outer_direction, f"{_FOOTING}.faces.{_LOWER}.outer_direction")
+    outer = _need(on_face.outer_direction, f"{_FOOTING}.faces.{face}.outer_direction")
     if outer == direction:
         return put(LENGTH_MM, d(pure) + d(diameter) / 2)
-    outside = _need(face.bars[outer].diameter, f"{_FOOTING}.faces.{_LOWER}.{outer}.diameter_mm")
+    outside = _need(on_face.bars[outer].diameter, f"{_FOOTING}.faces.{face}.{outer}.diameter_mm")
     return put(LENGTH_MM, d(pure) + d(outside) + d(diameter) / 2)
+
+
+def _layers(footing: FootingBars, face: str, direction: str) -> tuple[PlacedLayer, ...]:
+    """The layers of *direction* on *face*, layer 1 first; each inside lies its bar and its own gap further in."""
+    here = f"{_FOOTING}.faces.{face}.{direction}"
+    bars = footing.faces[face].bars[direction]
+    diameter = _need(bars.diameter, f"{here}.diameter_mm")
+    pitch = _need(bars.pitch, f"{here}.pitch_mm")
+    center = _first_cover(footing, face, direction, here)
+    layers = [PlacedLayer(direction, 1, diameter, pitch, _per_metre(pitch), center)]
+    for index, layer in enumerate(bars.inner_layers):
+        inner = f"{here}.inner_layers[{index}]"
+        pitch = _need(layer.pitch, f"{inner}.pitch_mm")
+        center = put(LENGTH_MM, d(center) + d(diameter) + d(_need(layer.clear_gap, f"{inner}.clear_gap_mm")))
+        layers.append(PlacedLayer(direction, index + 2, diameter, pitch, _per_metre(pitch), center))
+    return tuple(layers)
+
+
+def face_layout(footing: FootingBars, face: str) -> FaceLayout:
+    """The layers of both directions on *face* (choices.BEAM_FACES), nearest the face first, and their crossings."""
+    outer = _need(footing.faces[face].outer_direction, f"{_FOOTING}.faces.{face}.outer_direction")
+    other = next(direction for direction in choices.REBAR_DIRECTIONS if direction != outer)
+    layers = sorted((*_layers(footing, face, outer), *_layers(footing, face, other)), key=lambda layer: d(layer.center))
+    crossings = tuple((i, j) for i, a in enumerate(layers) for j in range(i + 1, len(layers))
+                      if abs(d(a.center) - d(layers[j].center)) < (d(a.diameter) + d(layers[j].diameter)) / 2)
+    return FaceLayout(face=face, layers=tuple(layers), crossings=crossings)
 
 
 def _main(footing: FootingBars, direction: str) -> MainBars:
     here = f"{_FOOTING}.faces.{_LOWER}.{direction}"
-    bars = footing.faces[_LOWER].bars[direction]
-    diameter = _need(bars.diameter, f"{here}.diameter_mm")
-    pitch = _need(bars.pitch, f"{here}.pitch_mm")
-    cover = _first_cover(footing, direction, here)
-    counts, gaps = [_per_metre(pitch)], set()
-    for index, layer in enumerate(bars.inner_layers):
-        inner = f"{here}.inner_layers[{index}]"
-        counts.append(_per_metre(_need(layer.pitch, f"{inner}.pitch_mm")))
-        gaps.add(_need(layer.clear_gap, f"{inner}.clear_gap_mm"))
+    layers = _layers(footing, _LOWER, direction)
+    diameter, pitch, cover = layers[0].diameter, layers[0].pitch, layers[0].center
+    counts = [layer.per_metre for layer in layers]
+    gaps = {layer.clear_gap for layer in footing.faces[_LOWER].bars[direction].inner_layers}  # read by _layers
     if len(gaps) > 1:
         raise InputError(f"{here}.inner_layers: 段のあきが一定ではないため表せません")
     first, total = d(counts[0]), sum(d(count) for count in counts)
@@ -128,15 +173,23 @@ def _main(footing: FootingBars, direction: str) -> MainBars:
                     centroid=centroid, grade=grade)
 
 
+def stirrup_width(footing: FootingBars, direction: str) -> tuple[Printed, Printed]:
+    """The stirrups of *direction* across the width: the legs per 1 m, and the spacing they stand for (1000／legs)."""
+    here = f"{_FOOTING}.stirrups.{direction}"
+    row = footing.stirrups[direction]
+    if _need(row.width_mode, f"{here}.distribution_mode") == choices.WIDTH_DENSITY:
+        legs = put(COUNT, d(_need(row.density, f"{here}.density_per_m")))
+    else:
+        legs = _per_metre(_need(row.width_pitch, f"{here}.width_pitch_mm"))
+    return legs, put(LENGTH_MM, _METRE_MM / d(legs))
+
+
 def _stirrups(footing: FootingBars, direction: str) -> Stirrups:
     here = f"{_FOOTING}.stirrups.{direction}"
     row = footing.stirrups[direction]
     diameter = _need(row.diameter, f"{here}.diameter_mm")
     pitch = _need(row.pitch, f"{here}.pitch_mm")
-    if _need(row.width_mode, f"{here}.distribution_mode") == choices.WIDTH_DENSITY:
-        legs = put(COUNT, d(_need(row.density, f"{here}.density_per_m")))
-    else:
-        legs = _per_metre(_need(row.width_pitch, f"{here}.width_pitch_mm"))
+    legs = stirrup_width(footing, direction)[0]
     grade = _need(footing.materials.transverse, f"{_FOOTING}.materials.transverse")
     return Stirrups(diameter=diameter, legs=legs, pitch=pitch, grade=grade)
 

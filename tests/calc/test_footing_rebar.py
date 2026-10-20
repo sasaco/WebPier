@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from webpier.calc.footing_rebar import LONGITUDINAL, TRANSVERSE, footing_reinforcement
+from webpier.calc.footing_rebar import LONGITUDINAL, TRANSVERSE, face_layout, footing_reinforcement, stirrup_width
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import parse_input
@@ -174,3 +174,68 @@ def test_across_the_track_the_errors_name_that_directions_bars():
     # inside, the automatic cover needs the size of the direction outside
     fails(f"{FOOTING}.faces.下.線路.diameter_mm: 値が必要です", TRANSVERSE,
           **{f"{AT}/pure_cover_mm": 87.5, f"{LOWER}/直角/cover_mode": "自動", f"{RAIL}/diameter_mm": None})
+
+
+def placed(**changes):
+    return parse_input(document(**changes)).rebar.footing
+
+
+def centers(layout):
+    return [(layer.direction, layer.layer, layer.center.value) for layer in layout.layers]
+
+
+AUTOMATIC = {f"{AT}/pure_cover_mm": 70, f"{RAIL}/cover_mode": "自動", f"{RAIL}/center_mm": None,
+             f"{LOWER}/直角/cover_mode": "自動", f"{LOWER}/直角/center_mm": None}
+
+
+def test_the_lower_face_of_the_sample_is_laid_out_nearest_the_face_first():
+    layout = face_layout(placed(), "下")
+    assert layout.face == "下" and centers(layout) == [("線路", 1, 100.0), ("直角", 1, 127.0)]
+    assert [(layer.diameter.value, layer.pitch.value, layer.per_metre) for layer in layout.layers] == [
+        (25, 125, Printed(8, 2, "本")), (29, 125, Printed(8, 2, "本"))]
+    assert layout.crossings == ()  # |127 − 100| = 27 = (25 + 29) / 2: touching, not crossing
+
+
+def test_an_automatic_cover_on_either_face_starts_from_the_direction_outside():
+    # 70 + 25 / 2 = 82.5 outside; 70 + 25 + 29 / 2 = 109.5 inside it
+    assert centers(face_layout(placed(**AUTOMATIC), "下")) == [("線路", 1, 82.5), ("直角", 1, 109.5)]
+    # 直角 outside: 70 + 29 / 2 = 84.5; 70 + 29 + 25 / 2 = 111.5
+    swapped = face_layout(placed(**AUTOMATIC, **{f"{LOWER}/outer_direction": "直角"}), "下")
+    assert centers(swapped) == [("直角", 1, 84.5), ("線路", 1, 111.5)]
+    upper = f"{AT}/faces/上"
+    filled = {f"{AT}/pure_cover_mm": 70, f"{upper}/線路/diameter_mm": 25, f"{upper}/線路/pitch_mm": 125,
+              f"{upper}/直角/diameter_mm": 29, f"{upper}/直角/pitch_mm": 125}
+    assert centers(face_layout(placed(**filled), "上")) == [("線路", 1, 82.5), ("直角", 1, 109.5)]  # from the upper face
+
+
+@pytest.mark.parametrize("gap,center,crossings", [(25, 132.5, ((1, 2),)), (29, 136.5, ())])
+def test_a_layer_inside_crossing_the_other_direction_is_found(gap, center, crossings):
+    # 82.5 + 25 + gap; against 直角 at 109.5 the bars cross when closer than (25 + 29) / 2 = 27
+    layout = face_layout(placed(**AUTOMATIC, **{f"{RAIL}/inner_layers": [{"pitch_mm": 125, "clear_gap_mm": gap}]}),
+                         "下")
+    assert centers(layout) == [("線路", 1, 82.5), ("直角", 1, 109.5), ("線路", 2, center)]
+    assert layout.crossings == crossings
+
+
+def test_a_layer_inside_has_its_own_pitch():
+    layout = face_layout(placed(**{f"{RAIL}/inner_layers": [{"pitch_mm": 130, "clear_gap_mm": 25}]}), "下")
+    assert layout.layers[-1].per_metre == Printed(7.69, 2, "本")  # 1000／130 = 7.692…
+
+
+def test_at_the_same_centre_the_direction_outside_comes_first():
+    layout = face_layout(placed(**{f"{LOWER}/outer_direction": "直角", f"{LOWER}/直角/center_mm": 100}), "下")
+    assert centers(layout) == [("直角", 1, 100.0), ("線路", 1, 100.0)] and layout.crossings == ((0, 1),)
+
+
+def test_a_blank_on_the_upper_face_names_its_path():
+    with pytest.raises(InputError, match=re.escape(f"{FOOTING}.faces.上.線路.diameter_mm: 値が必要です")):
+        face_layout(placed(), "上")
+
+
+@pytest.mark.parametrize("changes,width", [({}, (2.0, 500.0)), ({"distribution_mode": "間隔", "density_per_m": None,
+                                                                 "width_pitch_mm": 130}, (7.69, 130.0))])
+def test_the_stirrups_across_the_width_and_their_spacing(changes, width):
+    # 1000／2 = 500; 1000／130 = 7.69 per metre, and 1000／7.69 = 130.04 → 130.0
+    footing = placed(**{f"{AT}/stirrups/線路/{key}": value for key, value in changes.items()})
+    legs, spacing = stirrup_width(footing, LONGITUDINAL)
+    assert (legs, spacing) == (Printed(width[0], 2, "本"), Printed(width[1], 1, "mm"))

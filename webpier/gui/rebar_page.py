@@ -1,12 +1,11 @@
-"""The 鉄筋 page: each member's reinforcement through the field table, the column's section and 方向別の鉄筋配置表 in
-a modeless window (column_window) and the beam's 配筋略図 in another (beam_window), the 柱の断面照査 conditions
-(decision 48) and the 片持ち梁の照査 conditions (decision 59).
+"""The 鉄筋 page: each member's reinforcement on cards (column_cards, beam_cards, footing_cards; decision 68), the
+column's section and 方向別の鉄筋配置表 in a modeless window (column_window) and the beam's and the footing's 配筋略図
+in others (beam_window, footing_window), the 柱の断面照査 conditions (decision 48) and the 片持ち梁の照査 conditions
+(decision 59).
 
-The column and the beam are entered on cards (column_cards, beam_cards; decision 68); the footing is still a
-provisional page where its values are listed by their paths, its layers inside layer 1 in small tables. The column's
-and the beam's layouts, every layout error, the beam's overlapping bars and the column's table changes whose generated
-bars are gone (warnings: the calculation goes on) come from calc.column_rebar and calc.beam_rebar via rebar_edit;
-nothing here checks the reinforcement itself.
+The layouts, every layout error and the warnings (the column's table changes whose generated bars are gone, the beam's
+overlapping bars, the footing's crossing layers: the calculation goes on) come from calc.column_rebar,
+calc.beam_rebar and calc.footing_rebar via rebar_edit; nothing here checks the reinforcement itself.
 """
 
 from __future__ import annotations
@@ -15,16 +14,17 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any
 
+from tksheet import Sheet
+
 from ..calc.beam_rebar import BeamLayout
 from ..calc.column_rebar import ColumnLayout
-from ..inputs import choices
-from . import beam_cards, column_cards, rebar_edit
+from . import beam_cards, column_cards, footing_cards, rebar_edit
 from .beam_window import BeamWindow
 from .column_window import ColumnWindow
 from .document import EditorError
+from .footing_window import FootingWindow
 from .form import Form
-from .grid import make_sheet
-from .rebar_canvas import SectionView, outline
+from .rebar_edit import FootingPreview
 
 if TYPE_CHECKING:
     from .app import InputEditor
@@ -32,14 +32,7 @@ if TYPE_CHECKING:
 GROUPS = {"柱": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("check", "断面照査の条件")),
           "梁": (("main", "配筋"), ("check", "断面照査の条件")),
           "フーチング": (("main", "配筋"),)}
-COMMON = ((("materials", "main"), "主鉄筋の材質"), (("materials", "transverse"), "帯鉄筋・スターラップの材質"),
-          (("concrete_strength_mpa",), "コンクリート強度"), (("aggregate_max_mm",), "粗骨材の最大寸法 Dmax"),
-          (("pure_cover_mm",), "純かぶり"))
-FOOTING_FIRST = ((("diameter_mm",), "径"), (("pitch_mm",), "ピッチ"), (("cover_mode",), "芯かぶりの決め方"),
-                 (("center_mm",), "芯かぶり（指定）"))
-FOOTING_STIRRUPS = ((("diameter_mm",), "径"), (("pitch_mm",), "間隔"), (("distribution_mode",), "幅方向の指定"),
-                    (("width_pitch_mm",), "幅方向の間隔"), (("density_per_m",), "幅方向の 1 m 当たり本数"))
-LAYER_LABELS = {"per_face_count": "本数（1つの面）", "pitch_mm": "ピッチ\nmm", "clear_gap_mm": "前の段との\nあき mm"}
+WINDOWS = {"柱": ColumnWindow, "梁": BeamWindow, "フーチング": FootingWindow}  # the member's window (toggle_window)
 CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
 CHECK_LABELS = (("鋼材の腐食に対する環境条件", "鋼材の腐食に対する環境条件"), ("外観の照査", "外観の照査"),
                 ("ε'csd", "ε'csd（収縮・クリープによるひび割れ幅の増加）"), ("適用基準の機関", "適用基準の機関"),
@@ -60,7 +53,6 @@ CANTILEVER_LABELS = (
 )
 CANTILEVER_NOTE = ("片持ち梁の照査（0900・0910）の条件です。左右の張出しで共通です。"
                    "等価繰返し回数は外部プログラム（N-EQUIVALENT）の値を入力します。")
-OUTLINE_ONLY = "配筋位置を計算する段階がまだないため、断面の外形だけを表示します。"
 
 
 class RebarPage:
@@ -71,11 +63,7 @@ class RebarPage:
         state = editor.rebar_state
         self.member: str = state.setdefault("member", "柱")
         self.group: str = state.setdefault("group", "main")
-        self.direction: str = state.setdefault("direction", "線路")
-        self.selected: tuple | None = state.get("selected")  # (list path, row) of a table, or ("layer", key)
-        self.layout: ColumnLayout | BeamLayout | None = None
-        self.section: SectionView | None = None  # the outline of the footing
-        self.direction_sheet: Any = None
+        self.layout: ColumnLayout | BeamLayout | FootingPreview | None = None
         self.frame = ttk.Frame(parent)
         self.frame.pack(fill="both", expand=True)
         bar = ttk.Frame(self.frame)
@@ -92,21 +80,10 @@ class RebarPage:
             self.group_buttons[name] = button
         if self.group not in self.group_buttons:
             self.group = state["group"] = "main"
-        column, footing = self.member == "柱", self.member == "フーチング"
-        if column:
-            ttk.Button(bar, text="断面図・配置表", command=self.toggle_window).pack(side="right")
-        elif not footing:
-            ttk.Button(bar, text="配筋略図", command=self.toggle_window).pack(side="right")
-        if not footing:
-            left = ttk.Frame(self.frame)
-            left.pack(fill="both", expand=True)
-        else:
-            split = ttk.Panedwindow(self.frame, orient="horizontal")
-            split.pack(fill="both", expand=True)
-            left = ttk.Frame(split)
-            right = ttk.Frame(split, padding=(8, 0, 0, 0))
-            split.add(left, weight=3)
-            split.add(right, weight=2)
+        column = self.member == "柱"
+        ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
+        left = ttk.Frame(self.frame)
+        left.pack(fill="both", expand=True)
         self.inputs_canvas = tk.Canvas(left, highlightthickness=0, background="white", height=480)
         scroll = ttk.Scrollbar(left, orient="vertical", command=self.inputs_canvas.yview)
         self.inputs_canvas.configure(yscrollcommand=scroll.set)
@@ -116,70 +93,21 @@ class RebarPage:
         self.inputs_canvas.create_window((0, 0), window=self.inputs, anchor="nw")
         self.inputs.bind("<Configure>", lambda event: self.inputs_canvas.configure(
             scrollregion=self.inputs_canvas.bbox("all")))
-        self.status = tk.StringVar(master=self.frame)  # the column's or the beam's layout error or warning
-        if not footing:
-            line = ttk.Frame(self.inputs)
-            line.pack(fill="x", pady=(0, 6))
-            ttk.Label(line, textvariable=self.status, foreground="#8e1d1d", wraplength=900).pack(side="left")
+        self.status = tk.StringVar(master=self.frame)  # the member's layout errors and warnings
+        line = ttk.Frame(self.inputs)
+        line.pack(fill="x", pady=(0, 6))
+        ttk.Label(line, textvariable=self.status, foreground="#8e1d1d", wraplength=900, justify="left").pack(
+            side="left")
         if column:
             self.fix_corner = ttk.Button(line, command=self.match_corner_sizes)  # packed when the sizes differ
         self.form = Form(editor, self.inputs)
-        self.tables: dict[tuple, Any] = {}
-        self.readouts: dict[tuple[str, int], tk.StringVar] = {}
+        self.readouts: dict[tuple, tk.StringVar] = {}
         self._build_inputs()
-        if footing:
-            title = ttk.Frame(right)
-            title.pack(fill="x")
-            ttk.Label(title, text="断面図", style="Symbol.TLabel").pack(side="left")
-            self.direction_choice = ttk.Combobox(title, values=choices.REBAR_DIRECTIONS, state="readonly", width=7)
-            self.direction_choice.set(self.direction)
-            self.direction_choice.pack(side="right")
-            self.direction_choice.bind("<<ComboboxSelected>>",
-                                       lambda event: self.select_direction(self.direction_choice.get()))
-            self.section = SectionView(right)
-            self.section.pack(fill="both", expand=True)
-            ttk.Label(right, text="方向別の鉄筋配置表（基準面からの芯位置）", style="Symbol.TLabel").pack(anchor="w",
-                                                                                         pady=(6, 0))
-            self.direction_sheet = make_sheet(right, ["芯位置 mm", "径 mm", "本数", "材質"], [], [90, 60, 55, 80],
-                                              max_height=150)
-            self.direction_sheet.pack(fill="x")
         self.refresh()
 
     # inputs -------------------------------------------------------------------------------------------------
 
-    def _path(self, *keys: Any) -> tuple:
-        return ("鉄筋", self.member, *keys)
-
-    def _values(self, parent: tk.Misc, prefix: tuple, specs) -> None:
-        self.form.properties(parent, [((*prefix, *tail), label) for tail, label in specs])
-
-    def _group(self, title: str) -> ttk.LabelFrame:
-        group = ttk.LabelFrame(self.inputs, text=title, style="Sheet.TLabelframe", padding=4)
-        group.pack(fill="x", pady=(0, 6))
-        return group
-
-    def _rows_table(self, parent: tk.Misc, path: tuple, keys: tuple[str, ...], labels: tuple[str, ...]) -> None:
-        rows = rebar_edit.items(self.editor.document.data, path)
-        cells = [[(*path, index, key) for key in keys] for index in range(len(rows))]
-        sheet = self.form.table(parent, list(labels), cells, [78] * len(keys), pack=False, max_height=200,
-                                index_width=34)
-        sheet.pack(fill="x", expand=True)
-        sheet.bind("<<SheetSelect>>", lambda event: self._row_selected(path, sheet), add="+")
-        self.tables[path] = sheet
-        line = ttk.Frame(parent)
-        line.pack(fill="x")
-        ttk.Button(line, text="行を追加", command=lambda: self.add_row(path)).pack(side="left", padx=2)
-        ttk.Button(line, text="選択行を削除", command=lambda: self.delete_row(path)).pack(side="left", padx=2)
-
-    def _layers(self, parent: tk.Misc, prefix: tuple, keys: tuple[str, ...]) -> None:
-        ttk.Label(parent, text="2段目以降（径と並べ方は1段目と同じ）", style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
-        self._rows_table(parent, (*prefix, "inner_layers"), keys, tuple(LAYER_LABELS[key] for key in keys))
-
     def _build_inputs(self) -> None:
-        if self.member == "フーチング":  # the column's and the beam's are on their cards (column_cards, beam_cards)
-            self._values(self.inputs, self._path(), COMMON)
-            ttk.Label(self.inputs, text="純かぶり：コンクリート面から最も外側の鉄筋の外面まで。空欄は未入力です。",
-                      style="Muted.TLabel").pack(anchor="w", pady=(2, 8))
         if self.group == "check" and self.member == "梁":
             self.form.properties(self.inputs,
                                  [((CANTILEVER_CHECK, *tail), label) for tail, label in CANTILEVER_LABELS])
@@ -195,23 +123,12 @@ class RebarPage:
         elif self.member == "梁":
             beam_cards.main(self)
         else:
-            for face in choices.BEAM_FACES:
-                group = self._group(f"{face}面の主鉄筋")
-                self.form.properties(group, [(self._path("faces", face, "outer_direction"), f"{face}で外側になる方向")])
-                for direction in choices.REBAR_DIRECTIONS:
-                    ttk.Label(group, text=f"{direction}方向", style="Symbol.TLabel").pack(anchor="w", pady=(6, 0))
-                    prefix = self._path("faces", face, direction)
-                    self._values(group, prefix, FOOTING_FIRST)
-                    self._layers(group, prefix, ("pitch_mm", "clear_gap_mm"))
-            for direction in choices.REBAR_DIRECTIONS:
-                self._values(self._group(f"{direction}方向のスターラップ"), self._path("stirrups", direction),
-                             FOOTING_STIRRUPS)
+            footing_cards.main(self)
 
     # actions ------------------------------------------------------------------------------------------------
 
     def _save_state(self) -> None:
-        self.editor.rebar_state.update(member=self.member, group=self.group, direction=self.direction,
-                                       selected=self.selected)
+        self.editor.rebar_state.update(member=self.member, group=self.group)
 
     def _rebuild(self) -> None:
         self._save_state()
@@ -221,20 +138,16 @@ class RebarPage:
         if member not in rebar_edit.MEMBERS or not self.ready_to_leave() or not self.editor.ready_to_restructure():
             self.member_choice.set(self.member)
             return False
-        self.member, self.group, self.selected = member, "main", None
+        self.member, self.group = member, "main"
         self._rebuild()
         return True
 
     def select_group(self, group: str) -> bool:
         if not self.ready_to_leave() or not self.editor.ready_to_restructure():
             return False
-        self.group, self.selected = group, None
+        self.group = group
         self._rebuild()
         return True
-
-    def select_direction(self, direction: str) -> None:
-        self.direction = self.editor.rebar_state["direction"] = direction
-        self.refresh()
 
     def _restructure(self, change: Any, title: str) -> bool:
         if not self.editor.ready_to_restructure():
@@ -249,24 +162,9 @@ class RebarPage:
         self._rebuild()
         return True
 
-    def _row_selected(self, path: tuple, sheet: Any) -> None:
-        current = sheet.get_currently_selected()
-        if current:
-            self.selected = (path, current.row)
-            self.editor.rebar_state["selected"] = self.selected
-
     def add_row(self, path: tuple) -> bool:
-        def add() -> None:
-            self.selected = (path, rebar_edit.add_row(self.editor.document.data, path))
-        return self._restructure(add, "行を追加できません")
-
-    def delete_row(self, path: tuple) -> bool:
-        if self.selected is None or self.selected[0] != path:
-            return False
-        index = self.selected[1]
-        self.selected = None
-        return self._restructure(lambda: rebar_edit.delete_row(self.editor.document.data, path, index),
-                                 "行を削除できません")
+        """A blank item at the end of the list at *path* (a card's ＋)."""
+        return self._restructure(lambda: rebar_edit.add_row(self.editor.document.data, path), "行を追加できません")
 
     def add_hoop(self, direction: str) -> bool:
         """A new range of the hoops of *direction* (its other values blank)."""
@@ -305,9 +203,9 @@ class RebarPage:
 
     # the member's window ------------------------------------------------------------------------------------
 
-    def window(self) -> ColumnWindow | BeamWindow | None:
-        """The open window of the member (the column's section and tables, the beam's 配筋略図), kept by the editor
-        while the page is rebuilt."""
+    def window(self) -> ColumnWindow | BeamWindow | FootingWindow | None:
+        """The open window of the member (the column's section and tables, the beam's or the footing's 配筋略図), kept
+        by the editor while the page is rebuilt."""
         window = self.editor.rebar_state.get("window")
         return window if window is not None and window.window.winfo_exists() else None
 
@@ -317,7 +215,7 @@ class RebarPage:
         if window is not None:
             window.close()
             return False
-        kind = ColumnWindow if self.member == "柱" else BeamWindow
+        kind = WINDOWS[self.member]
         self.editor.rebar_state["window"] = kind(self.editor, self._window_closed)
         return True
 
@@ -378,30 +276,39 @@ class RebarPage:
             if (window := self.window()) is not None:
                 window.refresh()
             return
+        self.layout = None
+        problems = []
         try:
-            polygon = outline(self.member, data, self.direction)
+            self.layout = rebar_edit.footing_preview(data)
         except EditorError as exc:
-            self.section.show([], notice=str(exc))
-            self._table([])
-            return
-        self.section.show(polygon, caption=f"{self.member}（{self.direction}方向）", notice=OUTLINE_ONLY)
-        self._table([])
-
-    def _table(self, rows: list[list[str]]) -> None:
-        self.direction_sheet.set_sheet_data(rows, reset_col_positions=False, redraw=True)
-        self.direction_sheet.readonly_cells(cells=[(r, c) for r in range(len(rows)) for c in range(4)])
+            problems.append(str(exc))
+        if self.layout is not None:
+            lower = footing_cards.LOWER  # the upper face is not read by the calculation: only its readouts say —
+            if lower in self.layout.problems:
+                problems.append(f"{lower}面：{self.layout.problems[lower]}")
+            for face, layout in self.layout.faces.items():
+                if layout is not None and layout.crossings:
+                    problems.append(f"警告：{face}面で段が {len(layout.crossings)} か所で交差しています。配筋略図で"
+                                    "確かめてください（計算は止めません）。")
+        self.status.set("\n".join(problems))
+        for key, variable in self.readouts.items():
+            variable.set(footing_cards.readout(self, key))
+        if (window := self.window()) is not None:
+            window.refresh()
 
     # the editor's page interface ------------------------------------------------------------------------------
 
     def wheel(self, event: Any) -> bool:
-        """The mouse wheel over the inputs scrolls them, but not over a table (it scrolls itself); whether it did."""
+        """The mouse wheel over the inputs scrolls them, but not over a table (a tksheet Sheet scrolls itself); whether
+        it did."""
         widget = self.editor.root.winfo_containing(event.x_root, event.y_root)
         name = "" if widget is None else str(widget)
-
-        def within(parent: Any) -> bool:
-            return name == str(parent) or name.startswith(f"{parent}.")
-        if not within(self.inputs_canvas) or any(within(sheet) for sheet in self.tables.values()):
+        if not (name == str(self.inputs_canvas) or name.startswith(f"{self.inputs_canvas}.")):
             return False
+        while widget is not None:
+            if isinstance(widget, Sheet):
+                return False
+            widget = widget.master
         self.inputs_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
         return True
 

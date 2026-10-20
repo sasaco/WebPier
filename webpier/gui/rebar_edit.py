@@ -12,9 +12,11 @@ from typing import Any
 
 from ..calc.beam_rebar import BeamLayout, beam_layout, beam_section
 from ..calc.column_rebar import ColumnLayout, LayerKey, section_layout
+from ..calc.footing_rebar import FaceLayout, face_layout, stirrup_width
 from ..core.errors import InputError
 from ..core.printed import Printed
 from ..core.reader import Reader
+from ..inputs import choices
 from ..inputs.fields import FIELDS, path_text, pattern, read
 from ..inputs.rebar import parse_rebar
 from .document import EditorError
@@ -176,9 +178,41 @@ def beam_preview(data: Any) -> BeamLayout:
         raise _editor_error(exc) from None
 
 
+@dataclass(frozen=True)
+class FootingPreview:
+    faces: dict[str, FaceLayout | None]  # by face (choices.BEAM_FACES); None: the layers cannot be placed
+    problems: dict[str, str]  # by face: the input error of a face whose layers cannot be placed
+    stirrups: dict[str, tuple[Printed, Printed] | None]  # by direction: stirrup_width; None: it cannot be read
+
+
+def footing_preview(data: Any) -> FootingPreview:
+    """The footing's layers on each face and its stirrups across the width, from the same reader and calculation as
+    0800 to 0820 (calc.footing_rebar). A face or a direction that cannot be read has its input error kept or None, so
+    the others are still shown."""
+    try:
+        footing = parse_rebar(Reader(data)).footing
+    except InputError as exc:
+        raise _editor_error(exc) from None
+    faces: dict[str, FaceLayout | None] = {}
+    problems: dict[str, str] = {}
+    for face in choices.BEAM_FACES:
+        try:
+            faces[face] = face_layout(footing, face)
+        except InputError as exc:
+            faces[face], problems[face] = None, str(exc)
+    stirrups: dict[str, tuple[Printed, Printed] | None] = {}
+    for direction in choices.REBAR_DIRECTIONS:
+        try:
+            stirrups[direction] = stirrup_width(footing, direction)
+        except InputError:
+            stirrups[direction] = None
+    return FootingPreview(faces=faces, problems=problems, stirrups=stirrups)
+
+
 def warnings(data: Any) -> list[str]:
-    """What the input check names besides the input errors: the column's table changes whose generated bars are gone
-    and the beam's overlapping bars, column first. Neither stops the calculation. A member whose layout cannot be made
+    """What the input check names besides the input errors: the column's table changes whose generated bars are gone,
+    the beam's overlapping bars and the footing's crossing layers on each face, in that order. None stops the
+    calculation. A member whose layout cannot be made
     has no warning here: the calculation reports it as an input error and the 鉄筋 page shows it (the input check parses
     the form only)."""
     found = []
@@ -196,4 +230,12 @@ def warnings(data: Any) -> list[str]:
     if overlaps:
         found.append(f"梁：鉄筋が {len(overlaps)} か所で重なっています。05 鉄筋の梁の配筋略図で赤い鉄筋を確かめてください"
                      "（計算は止めません）。")
+    try:
+        faces = footing_preview(data).faces
+    except EditorError:
+        faces = {}
+    for face, layout in faces.items():
+        if layout is not None and layout.crossings:
+            found.append(f"フーチング：{face}面で段が {len(layout.crossings)} か所で交差しています。05 鉄筋のフーチングの"
+                         "配筋略図で確かめてください（計算は止めません）。")
     return found

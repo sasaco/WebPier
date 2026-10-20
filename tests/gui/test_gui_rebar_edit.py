@@ -152,3 +152,40 @@ def test_a_member_without_its_layout_has_no_warning(group, key, left):
     document["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108
     document["下部構造"]["寸法"][group][key] = None  # an input error of the calculation, not a warning
     assert rebar_edit.warnings(document) == left
+
+
+
+def automatic_footing():
+    """current.json with the footing's lower face filled: 純かぶり 70, 線路 D25@125 outside, 直角 D29@125, and the
+    stirrups of 線路 at 130 across the width; the upper face and the stirrups of 直角 blank."""
+    document = data()
+    footing = document["鉄筋"]["フーチング"]
+    footing["pure_cover_mm"] = 70
+    footing["faces"]["下"]["線路"].update(diameter_mm=25, pitch_mm=125)
+    footing["faces"]["下"]["直角"].update(diameter_mm=29, pitch_mm=125)
+    footing["stirrups"]["線路"].update(distribution_mode="間隔", width_pitch_mm=130)
+    return document
+
+
+def test_the_footing_preview_keeps_each_face_and_direction():
+    preview = rebar_edit.footing_preview(automatic_footing())
+    assert [layer.center.value for layer in preview.faces["下"].layers] == [82.5, 109.5]
+    assert preview.faces["上"] is None and set(preview.problems) == {"上"}
+    assert preview.problems["上"] == "鉄筋.フーチング.faces.上.線路.diameter_mm: 値が必要です"
+    legs, spacing = preview.stirrups["線路"]
+    assert (legs.value, spacing.value) == (7.69, 130.0) and preview.stirrups["直角"] is None
+
+
+def test_what_the_footing_reader_refuses_is_an_editor_error():
+    document = data()
+    document["鉄筋"]["フーチング"]["materials"]["main"] = "SD999"
+    with pytest.raises(EditorError, match="鉄筋.フーチング.materials.main"):
+        rebar_edit.footing_preview(document)
+    assert rebar_edit.warnings(document) == []  # an input error, not a warning
+
+
+def test_crossing_footing_layers_are_a_warning():
+    document = automatic_footing()
+    document["鉄筋"]["フーチング"]["faces"]["下"]["線路"]["inner_layers"] = [{"pitch_mm": 125, "clear_gap_mm": 25}]
+    assert rebar_edit.warnings(document) == [
+        "フーチング：下面で段が 1 か所で交差しています。05 鉄筋のフーチングの配筋略図で確かめてください（計算は止めません）。"]

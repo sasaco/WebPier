@@ -38,7 +38,7 @@ HINTS = {
     "上部構造": "起点側と終点側を並べて入力します。支承と列車の条件は下に続きます。",
     "上部工反力": "支点・支承の並びに沿って、支承位置、死荷重、雪荷重、列車分担を入力します。",
     "地盤データ": "上から順に1層ずつ入力します。行を選ぶと、その層を複製・移動・削除できます。",
-    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁の配筋略図は「配筋略図」で開きます。",
+    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁とフーチングの配筋略図は「配筋略図」で開きます。",
     CALCULATION: "入力を保存して全帳票を作り直し、PDFで確認します。",
 }
 
@@ -60,7 +60,7 @@ class InputEditor:
         self.b7_button: ttk.Button | None = None
         self.soil_sheet: Sheet | None = None
         self.view: Any = None  # the rebar or calculation page object
-        self.rebar_state: dict[str, Any] = {}  # member, group, direction and selection of the rebar page
+        self.rebar_state: dict[str, Any] = {}  # member and group of the rebar page, and its open window
         self.calculation = calculation  # the CalculationController, created by the calculation page when needed
         self.calculation_status = ""
         self.calculation_log = ""
