@@ -68,26 +68,31 @@ def _blank(value: Printed | None) -> CellSpec:
     return CellSpec("", align="center") if value is None else CellSpec(printed(value), align="right")
 
 
-def _title(action: Action) -> tuple[str, str | None]:
-    """The heading of an action's table: the numbered item and, for a loading or a wind, its sub-item."""
+def _title(action: Action, snow: bool) -> tuple[str, str | None]:
+    """The heading of an action's table: the numbered item and, for a loading or a wind, its sub-item. Without snow,
+    3) 雪荷重S is not printed and the items after it move up (decision 69)."""
     key = action.key
+
+    def n(number: int) -> int:
+        return number if snow or number < 3 else number - 1
+
     if key.kind in ("D1", "D2"):
         return ("1) 固定死荷重D1" if key.kind == "D1" else "2) 付加死荷重D2"), None
     if key.kind == "S":
         return "3) 雪荷重S", SNOW_TITLES[Snow[key.variant]]
     if key.kind == "L":
-        return "4) 列車荷重L", ("(d) 地震時列車荷重" if key.variant == "地震時"
+        return f"{n(4)}) 列車荷重L", ("(d) 地震時列車荷重" if key.variant == "地震時"
                                  else f"{LOADING_LETTERS[key.variant]} {action.title.split(' ', 1)[1]}")
     if key.kind == "I":
         group, loading = key.variant.split(":")
-        return "5) 衝撃荷重I", f"{'(a) 安全性(破壊)' if group == 'ULTIMATE' else '(b) 使用性'}　{LOADING_LETTERS[loading][1]}) " \
+        return f"{n(5)}) 衝撃荷重I", f"{'(a) 安全性(破壊)' if group == 'ULTIMATE' else '(b) 使用性'}　{LOADING_LETTERS[loading][1]}) " \
             f"{action.title.rsplit(' ', 1)[1]}"
     if key.kind == "LF":
-        return "6) 車両横荷重LF", f"{LOADING_LETTERS[key.variant]} {action.title.split(' ', 1)[1]}"
+        return f"{n(6)}) 車両横荷重LF", f"{LOADING_LETTERS[key.variant]} {action.title.split(' ', 1)[1]}"
     if key.kind == "W":
-        return "7) 風荷重W", f"({'ab'[key.variant == 'WITHOUT_TRAIN']}) {action.title.split(' ', 1)[1]}"
+        return f"{n(7)}) 風荷重W", f"({'ab'[key.variant == 'WITHOUT_TRAIN']}) {action.title.split(' ', 1)[1]}"
     if key.kind == "EQ":
-        return "8) 地震時直角方向EQ", None
+        return f"{n(8)}) 地震時直角方向EQ", None
     return action.title, None
 
 
@@ -99,9 +104,10 @@ def section(m: Manuscript, side: Side, side_name: str, result: SideResult, whole
     m.table(f"{key}.weight.table", _self_weight_table(result), SUBSECTION)
     m.heading(f"{key}.actions.heading", f"(4) 荷重設計の集計（{side_name}）", SUBSECTION)
     previous_title = None
-    bearing_number = 9
+    snow = any(action.key.kind == "S" for action in result.actions)
+    bearing_number = 9 if snow else 8
     for action in result.actions:
-        title, subtitle = _title(action)
+        title, subtitle = _title(action, snow)
         action_key = f"{key}.actions.{action.key.kind}.{action.key.variant}".rstrip(".")
         if action.key.kind == "LRB":
             case = next(case for case in whole.bearing_cases

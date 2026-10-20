@@ -248,4 +248,13 @@ def test_blank_snow_loads_are_no_snow():
 
     blank, zero = snow(None), snow(0.0)
     assert seismic(blank) == seismic(zero)
-    assert all(load.n.value == 0 for load in seismic(blank).basic(C.SNOW).points)
+    # decision 69: no snow case; the cases after it move up and both combinations take the rest
+    result = seismic(blank)
+    assert result.snow is None
+    assert [(a.number, a.case) for a in result.basic_cases] == [
+        (1, C.D1), (2, C.D2), (3, C.BUOYANCY), (4, C.TRAIN_UP), (5, C.TRAIN_DOWN), (6, C.GIRDER_INERTIA),
+        (7, C.TRAIN_INERTIA), (8, C.SELF_INERTIA)]
+    assert [[result.basic(case).number for case in c.cases] for c in result.combinations] == [
+        [1, 2, 3, 4, 6, 7, 8], [1, 2, 3, 5, 6, 7, 8]]
+    with pytest.raises(KeyError):
+        result.basic(C.SNOW)

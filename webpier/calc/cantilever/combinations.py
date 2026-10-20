@@ -180,7 +180,7 @@ def evaluate(pier: PierInput, actions: Mapping[ActionKey, Action], definition: C
         parts.append(_scaled("D1", _factor_text(definition.d1), definition.d1, actions[D1]))
     if definition.d2 is not None:
         parts.append(_scaled("D2", _factor_text(definition.d2), definition.d2, actions[D2]))
-    if definition.snow is not None:
+    if definition.snow is not None and ActionKey.snow(definition.snow) in actions:  # no snow action: decision 69
         parts.append(_scaled("S", f"1.0{definition.snow.name}", ONE, actions[ActionKey.snow(definition.snow)]))
     if (term := definition.train) is not None:
         factor = train_factor(pier, term)

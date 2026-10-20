@@ -239,21 +239,41 @@ def test_a_horizontal_line_load_is_a_local_y_load(n, expected):
 def test_zero_loads_have_no_rows_but_an_empty_case_keeps_one():
     built = model("longitudinal")
     assert all(load.h.value or load.n.value or load.m.value for case in built.cases for load in case.joint_loads)
+    # Decision 62: a case without load keeps one zero row where it acts, so JRSNAP's 荷重図 draws (and titles) every
+    # case. No input makes one now (no snow makes no snow case, decision 69; JRSNAP needs 0 < hw2): the buoyancy
+    # is zeroed by hand.
+    p, foundation, embedment, layout, seismic = results("longitudinal")
+    buoyancy = seismic.basic_cases[2]
+    empty = replace(buoyancy, points=tuple(replace(point, n=Printed(0.0, 2, "kN"), m=Printed(0.0, 2, "kN m"))
+                                           for point in buoyancy.points))
+    seismic = replace(seismic, basic_cases=(*seismic.basic_cases[:2], empty, *seismic.basic_cases[3:]))
+    dry = build_ndu(LONGITUDINAL, p, foundation, embedment, layout, seismic)
+    (zero,) = dry.cases[2].joint_loads
+    assert dry.cases[2].title == "浮力" and dry.cases[2].member_loads == ()
+    assert (zero.node, zero.h.value, zero.n.value, zero.m.value) == (built.cases[2].joint_loads[0].node, 0, 0, 0)
+    assert all(load.h.value or load.n.value or load.m.value
+               for case in dry.cases if case.number != 3 for load in case.joint_loads)
+    validate_ndu(write_ndu(dry), LONGITUDINAL)
+
+
+def test_without_snow_there_is_no_snow_case():
+    # Decision 69: every snow load blank makes no 雪荷重 case; the cases after it move up
     p_document = document()
     for slot in p_document["上部工反力"]["起点側"]["B支点"] + p_document["上部工反力"]["終点側"]["C支点"]:
         if slot is not None:
             for key in ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率"):
-                slot[key] = 0.0
+                slot[key] = None
     for end in (p_document["上部工反力"]["起点側"]["A支点"], p_document["上部工反力"]["終点側"]["D支点"]):
         for key in ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率"):
-            end[key] = 0.0
-    snowless = model("longitudinal", data=p_document)
-    # Decision 62: no snow keeps one zero row at the bearing seat, so JRSNAP's 荷重図 draws (and titles) every case
-    (zero,) = snowless.cases[3].joint_loads
-    assert snowless.cases[3].title == "雪荷重" and snowless.cases[3].member_loads == ()
-    assert (zero.node, zero.h.value, zero.n.value, zero.m.value, zero.label) == (1, 0, 0, 0, "雪荷重")
-    assert all(load.h.value or load.n.value or load.m.value
-               for case in snowless.cases if case.number != 4 for load in case.joint_loads)
+            end[key] = None
+    snowless, full = model("longitudinal", data=p_document), model("longitudinal")
+    titles = [case.title for case in full.cases]
+    assert titles[3] == "雪荷重"
+    assert [(case.number, case.title) for case in snowless.cases] == list(
+        enumerate(titles[:3] + titles[4:], 1))
+    # D1, D2, buoyancy and the train do not change (the girder inertia does: it carries the 2-year snow)
+    assert [case.joint_loads for case in snowless.cases[:4]] == [full.cases[n].joint_loads for n in (0, 1, 2, 4)]
+    assert [c.coefficients for c in snowless.combinations] == [(1,) * 7]
     validate_ndu(write_ndu(snowless), LONGITUDINAL)
 
 

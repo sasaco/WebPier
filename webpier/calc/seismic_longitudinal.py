@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from typing import Any
 
 from ..core.errors import InputError
 from ..core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Precision, Printed
@@ -147,6 +148,7 @@ class MemberLoad:
 
 @dataclass(frozen=True)
 class SeismicAction:
+    number: int  # 10-12 Case: the position among the cases made (decision 69)
     case: SeismicCase
     direction: ActionDirection
     increment: Increment
@@ -173,16 +175,24 @@ class SeismicLongitudinalResult:
     fixed: FixedDead  # 0610 D1
     additional: AdditionalDead  # 0610 D2
     buoyancy: Row  # 0610 buoyancy at the normal water level
-    snow: TopTable  # 0610 2-year snow
+    snow: TopTable | None  # 0610 2-year snow; None without snow (decision 69)
     train: TopTable  # 10-8 (1): seismic train, one track
     girder_inertia: Inertia  # 10-8 (2) 1.0 EQ (桁荷重)
     train_inertia: Inertia  # 10-8 (2) 1.0 EQ (列車荷重)
     self_weight: SelfWeightInertia  # 10-8 (3)
-    basic_cases: tuple[SeismicAction, ...]  # 10-9 to 10-12
+    basic_cases: tuple[SeismicAction, ...]  # 10-9 to 10-12 (without snow, 7: decision 69)
     combinations: tuple[SeismicCombination, ...]  # 10-12
 
     def basic(self, case: SeismicCase) -> SeismicAction:
-        return self.basic_cases[case.value - 1]
+        return made(self.basic_cases, case)
+
+
+def made(basic_cases: tuple[Any, ...], case: Enum) -> Any:
+    """The action of *case* among the basic cases made; ``KeyError`` when it is not made (snow, decision 69)."""
+    for action in basic_cases:
+        if action.case is case:
+            return action
+    raise KeyError(case)
 
 
 def _row(item: Item, n: Printed, arm: Printed) -> Row:
@@ -255,27 +265,29 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
     train_inertia = Inertia(kh=put(KH, ADHESION), forces=reaction.longitudinal.seismic_train)
     self_weight = self_weight_inertia(pier, reaction)
 
+    vertical = {case: longitudinal.basic(basic) for case, basic in _FROM_0610.items()
+                if case is not SeismicCase.SNOW or longitudinal.snow is not None}  # decision 69
     points: dict[SeismicCase, tuple[PointLoad, ...]] = {
-        case: tuple(_on_frame(frame, p) for p in longitudinal.basic(basic).points)
-        for case, basic in _FROM_0610.items()}
+        case: tuple(_on_frame(frame, p) for p in action.points) for case, action in vertical.items()}
     lines: dict[SeismicCase, tuple[LineLoad, ...]] = {
-        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in longitudinal.basic(basic).line_loads)
-        for case, basic in _FROM_0610.items()}
+        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in action.line_loads)
+        for case, action in vertical.items()}
     points[SeismicCase.TRAIN] = (bearing_point(frame, train.n, train.m),)
     points[SeismicCase.GIRDER_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(girder.forces.total)),)
     points[SeismicCase.TRAIN_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(train_inertia.forces.total)),)
     points[SeismicCase.SELF_INERTIA] = (
         point_load(frame, NodeRole.FOOTING_CENTROID, h=toward(self_weight.footing.force)),)
     basic_cases = tuple(
-        SeismicAction(case=case, direction=_KINDS[case][0], increment=_KINDS[case][1], points=points[case],
-                      line_loads=lines.get(case, ()),
+        SeismicAction(number=number, case=case, direction=_KINDS[case][0], increment=_KINDS[case][1],
+                      points=points[case], line_loads=lines.get(case, ()),
                       member_loads=self_weight_loads(frame, self_weight) if case is SeismicCase.SELF_INERTIA else ())
-        for case in SeismicCase)
+        for number, case in enumerate((case for case in SeismicCase if case in points), 1))
     combination = SeismicCombination(number=1, alpha_f=ALPHA_F, rho_m=RHO_M, direction=ActionDirection.TOWARD_ORIGIN,
-                                     cases=tuple(SeismicCase), ground_resistance_type=GROUND_RESISTANCE_TYPE)
+                                     cases=tuple(action.case for action in basic_cases),
+                                     ground_resistance_type=GROUND_RESISTANCE_TYPE)
     return SeismicLongitudinalResult(
         frame=frame, fixed=longitudinal.fixed, additional=longitudinal.additional,
-        buoyancy=longitudinal.buoyancy[1], snow=longitudinal.snow[0], train=train,
+        buoyancy=longitudinal.buoyancy[1], snow=longitudinal.snow[0] if longitudinal.snow else None, train=train,
         girder_inertia=girder, train_inertia=train_inertia, self_weight=self_weight,
         basic_cases=basic_cases, combinations=(combination,))
 
@@ -283,5 +295,5 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
 __all__ = [
     "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity", "MemberLoad", "SeismicAction",
     "SeismicCase", "SeismicCombination", "SeismicLongitudinalResult", "SelfWeightInertia",
-    "calculate_seismic_longitudinal", "self_weight_inertia", "self_weight_loads", "toward",
+    "calculate_seismic_longitudinal", "made", "self_weight_inertia", "self_weight_loads", "toward",
 ]

@@ -122,7 +122,7 @@ def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.paragraph("basic.caption", "基本Case", keep=True)
     rows: list[tuple[Any, ...]] = [("Case", "記号", "作用方向", "荷重種別", "荷　重　名　称")]
     for action in result.basic_cases:
-        rows.append((str(action.case.value), Span(case_symbol(action.case)), Span(ARROWS[action.direction]),
+        rows.append((str(action.number), Span(case_symbol(action.case)), Span(ARROWS[action.direction]),
                      Span(INCREMENTS[action.increment]), case_name(result, action.case)))
     m.table("basic", TableSpec((39.6, 48, 55.2, 63.6, 225.6), tuple(rows), (14.28,) * len(rows),
                                numeric=frozenset({0})))
@@ -131,7 +131,8 @@ def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
              "地盤抵抗TYPE")]
     for combination in result.combinations:
         rows.append((str(combination.number), Span(f"{value(combination.alpha_f)}／{value(combination.rho_m)}"),
-                     Span(ARROWS[combination.direction]), " + ".join(str(case.value) for case in combination.cases),
+                     Span(ARROWS[combination.direction]),
+                     " + ".join(str(result.basic(case).number) for case in combination.cases),
                      str(combination.ground_resistance_type)))
     m.table("combination", TableSpec((39.6, 55.2, 55.2, 211.2, 70.8), tuple(rows), (14.28,) * len(rows),
                                      numeric=frozenset({0, 4})))

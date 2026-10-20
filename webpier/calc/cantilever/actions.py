@@ -122,14 +122,16 @@ def _vertical(key: ActionKey, title: str, geometry: Geometry, label: str, load, 
     return _action(key, title, rows)
 
 
-def _dead(geometry: Geometry) -> list[Action]:
+def _dead(geometry: Geometry, snow: bool) -> list[Action]:
+    """D1, D2 and, with snow on the pier, the three snow loads (decision 69: without, no snow action)."""
+
     def of(field: str):
         return lambda bearing: getattr(bearing.bearing.loads.bearing, field)
 
     return [_vertical(D1, "固定死荷重D1", geometry, REACTION, of("d1"), self_weight=True),
             _vertical(D2, "付加死荷重D2", geometry, REACTION, of("d2")),
-            *(_vertical(ActionKey.snow(snow), f"雪荷重S ({label})", geometry, REACTION, of(snow.value))
-              for snow, label in ((Snow.S2, "2年確率"), (Snow.S10, "10年確率"), (Snow.S30, "30年確率")))]
+            *(_vertical(ActionKey.snow(kind), f"雪荷重S ({label})", geometry, REACTION, of(kind.value))
+              for kind, label in ((Snow.S2, "2年確率"), (Snow.S10, "10年確率"), (Snow.S30, "30年確率")) if snow)]
 
 
 def _train(geometry: Geometry, loadings: tuple[LoadingResult, ...],
@@ -189,9 +191,9 @@ def _bearing_actions(cases: tuple[BearingCase, ...]) -> list[Action]:
 def actions(geometry: Geometry, loadings: tuple[LoadingResult, ...], seismic_train: dict[Girder, tuple[SeismicTrainLoad, ...]],
             lateral: dict[Loading, dict[Girder, Torque]], wind: dict[Wind, dict[Girder, Torque]],
             seismic_girder: dict[Girder, Torque], seismic_train_torque: dict[Girder, Torque],
-            bearing_cases: tuple[BearingCase, ...]) -> tuple[Action, ...]:
-    """Every action table of the cantilever, in report order."""
-    return (*_dead(geometry), *_train(geometry, loadings, seismic_train), *_impact(geometry, loadings),
+            bearing_cases: tuple[BearingCase, ...], *, snow: bool = True) -> tuple[Action, ...]:
+    """Every action table of the cantilever, in report order; the snow loads only with snow on the pier."""
+    return (*_dead(geometry, snow), *_train(geometry, loadings, seismic_train), *_impact(geometry, loadings),
             *(_torque_action(ActionKey.lateral(loading), f"車両横荷重LF {loading.value}の場合", geometry, REACTION,
                              lateral[loading]) for loading in Loading),
             *(_torque_action(ActionKey.wind(kind), f"風荷重W {kind.value}", geometry, REACTION, wind[kind])

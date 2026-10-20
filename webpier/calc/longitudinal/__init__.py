@@ -32,18 +32,21 @@ class LongitudinalResult:
     fixed: FixedDead  # 8-3 D1
     additional: AdditionalDead  # 8-3 D2
     buoyancy: tuple[Row, Row, Row]  # 8-3: high, normal, low water
-    snow: tuple[TopTable, TopTable, TopTable]  # 8-4: 2, 10, 30 year
+    snow: tuple[TopTable, TopTable, TopTable] | None  # 8-4: 2, 10, 30 year; None without snow (decision 69)
     train: Trains  # 8-4
     impact: Impacts  # 8-5 (girder coefficients, decision 26)
     horizontal: tuple[HorizontalRow, ...]  # 8-5: bearing horizontal forces of the 0600 cases
-    basic_cases: tuple[BasicAction, ...]  # 8-6 to 8-9: the 20 basic cases
+    basic_cases: tuple[BasicAction, ...]  # 8-6 to 8-9: the 20 basic cases (17 without snow)
     define_cases: tuple[DefineCase, ...]  # 8-9
     factors: CombinationFactors
     combinations: tuple[Combination, ...]  # 8-10, with the resolved actions
     extractions: tuple[Extraction, ...]  # 8-11
 
     def basic(self, case: BasicCase) -> BasicAction:
-        return self.basic_cases[case.value - 1]
+        for action in self.basic_cases:
+            if action.case is case:
+                return action
+        raise KeyError(case)
 
 
 def calculate_longitudinal(pier: PierInput, foundation: FoundationResult,
@@ -54,7 +57,7 @@ def calculate_longitudinal(pier: PierInput, foundation: FoundationResult,
     return LongitudinalResult(
         frame=frame, fixed=actions.fixed, additional=actions.additional, buoyancy=actions.buoyancy,
         snow=actions.snow, train=actions.train, impact=actions.impact, horizontal=actions.horizontal,
-        basic_cases=actions.basic_cases, define_cases=define_cases(), factors=factors,
+        basic_cases=actions.basic_cases, define_cases=define_cases(actions.basic_cases), factors=factors,
         combinations=resolve_combinations(frame, actions.basic_cases, actions.impact, factors),
         extractions=extractions(),
     )

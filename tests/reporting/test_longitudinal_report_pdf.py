@@ -76,7 +76,9 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     rows = table_checks(path)
     kinds = Counter(check.kind for check in rows)
     # D1, D2, 3 snow, 2 train tables (2 or 3 rows each) and 4 impact tables of 2 rows; 11 totals; 8 horizontal.
-    assert kinds["total"] == 11 and kinds["horizontal"] == 8 and kinds["row"] >= 23
+    # Without snow, no snow table (decision 69).
+    snow = 3 if chain(case)[2].snow is not None else 0
+    assert kinds["total"] == 8 + snow and kinds["horizontal"] == 8 and kinds["row"] >= 17 + 2 * snow
     assert [check for check in rows if not check.ok] == []
 
 

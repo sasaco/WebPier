@@ -246,6 +246,25 @@ def test_an_input_without_a_right_cantilever_prints_the_left_side_only():
     build_cantilever(result, reaction, pier)
 
 
+def test_without_snow_there_is_no_snow_table_and_the_items_after_it_move_up(tmp_path: Path):
+    # Decision 69: every snow load blank makes no 雪荷重S table and no S part in the cases
+    keys = ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率")
+    changes = {f"上部工反力/{side}/{far}/{key}": None for side, far in (("起点側", "A支点"), ("終点側", "D支点"))
+               for key in keys}
+    changes |= {f"上部工反力/起点側/B支点/{index}/{key}": None for index in range(4) for key in keys}
+    changes |= {f"上部工反力/終点側/C支点/{index}/{key}": None for index in range(2) for key in keys}
+    pier, reaction, result = result_of(**changes)
+    texts = records(pier, reaction, result)
+    assert not any(".actions.S." in key for key in texts)
+    assert texts["0900/left.actions.L.ORIGIN_MAX.item"] == "3) 列車荷重L"
+    assert texts["0900/left.actions.EQ.線路直角方向.item"] == "7) 地震時直角方向EQ"
+    assert texts["0900/left.actions.LRB.SAFETY_LR10_B10.heading"].startswith("8) 1.0 LR + 1.23B[")
+    assert texts["0900/left.actions.LRB.地震時.heading"] == "12) 地震時線路方向"
+    assert "1.0S" not in texts["0900/left.combinations.bending.1"]
+    path = render_cantilever(result, reaction, pier, tmp_path / "0900_片持ち梁.pdf")
+    assert [check for check in formula_checks(path) if not check.ok] == []
+
+
 # --- the PDF --------------------------------------------------------------------------------------------------------
 
 

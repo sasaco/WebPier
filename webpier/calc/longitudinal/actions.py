@@ -125,7 +125,7 @@ class HorizontalRow:
 
 
 class BasicCase(Enum):
-    """The 20 basic cases of 8-9, by number."""
+    """The 20 basic cases of 8-9, by their number with snow (without snow, 17: decision 69)."""
 
     D1 = 1
     D2 = 2
@@ -162,6 +162,8 @@ HORIZONTAL_CASES = {
 }
 
 
+SNOW_CASES = (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)
+
 _N = Nature
 _RAIL, _RAIL_BRAKING = frozenset({_N.LONG_RAIL}), frozenset({_N.LONG_RAIL, _N.BRAKING})
 # What each basic case carries; its spring set follows from it (decision 36, load_nature).
@@ -182,6 +184,7 @@ NATURES: dict[BasicCase, frozenset[Nature]] = {
 
 @dataclass(frozen=True)
 class BasicAction:
+    number: int  # 8-9 No: the position among the cases made (decision 69)
     case: BasicCase
     spring: SpringTerm
     points: tuple[PointLoad, ...]
@@ -197,10 +200,10 @@ class Actions:
     fixed: FixedDead
     additional: AdditionalDead
     buoyancy: tuple[Row, Row, Row]  # high, normal, low water
-    snow: tuple[TopTable, TopTable, TopTable]  # 2, 10, 30 year
+    snow: tuple[TopTable, TopTable, TopTable] | None  # 2, 10, 30 year; None without snow (decision 69)
     train: Trains
     impact: Impacts
-    horizontal: tuple[HorizontalRow, ...]  # in LongitudinalCase order = basic cases 13-20
+    horizontal: tuple[HorizontalRow, ...]  # in LongitudinalCase order = basic cases 13-20 (with snow)
     basic_cases: tuple[BasicAction, ...]
 
 
@@ -261,7 +264,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     additional = AdditionalDead(table=_table(loads("d2")), soil=_body(Item.OVERBURDEN, weights.overburden))
     buoyancy = tuple(_body(Item.WATER, water.body)
                      for water in (weights.buoyancy_high, weights.buoyancy_normal, weights.buoyancy_low))
-    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30"))
+    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
     single = _table(_bearings(train.loading.rb, train.loading.rc, arms))
     double = _table(_bearings(put(FORCE, d(train.loading.rb) * d(dead.origin.track_total)),
                               put(FORCE, d(train.loading.rc) * d(dead.end.track_total)), arms))
@@ -294,25 +297,26 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
         BasicCase.BUOYANCY_HIGH: (footing(buoyancy[0]),),
         BasicCase.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
         BasicCase.BUOYANCY_LOW: (footing(buoyancy[2]),),
-        BasicCase.SNOW2: (top(snow[0].n, snow[0].m),),
-        BasicCase.SNOW10: (top(snow[1].n, snow[1].m),),
-        BasicCase.SNOW30: (top(snow[2].n, snow[2].m),),
         BasicCase.TRAIN_SINGLE: (top(single.n, single.m),),
         BasicCase.TRAIN_DOUBLE: (top(double.n, double.m),),
         BasicCase.IMPACT_SINGLE: (top(impact.ultimate_single.n, impact.ultimate_single.m),),
         BasicCase.IMPACT_DOUBLE: (top(impact.ultimate_double.n, impact.ultimate_double.m),),
     }
+    if snow is not None:
+        for case, table in zip(SNOW_CASES, snow, strict=True):
+            points[case] = (top(table.n, table.m),)
     for basic, forces in bearing_cases.items():
         points[basic] = (bearing_point(frame, FORCE(0), h=forces.total),)
+    # Decision 69: without snow the snow cases are not made, and the cases after them move up.
     basic_cases = tuple(
-        BasicAction(case=case, spring=spring_term(NATURES[case]),
+        BasicAction(number=number, case=case, spring=spring_term(NATURES[case]),
                     points=points[case],
                     line_loads=(column_line_load(frame, n=q),) if case is BasicCase.D1 else ())
-        for case in BasicCase)
+        for number, case in enumerate((case for case in BasicCase if case in points), 1))
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]
                    train=Trains(single, double), impact=impact, horizontal=horizontal, basic_cases=basic_cases)
 
 
 __all__ = ["Actions", "AdditionalDead", "BasicAction", "BasicCase", "FixedDead", "HorizontalRow", "ImpactRow",
-           "ImpactTable", "Impacts", "Item", "NATURES", "Row", "SpringTerm", "TopTable", "Trains", "bearing_point",
-           "calculate_actions"]
+           "ImpactTable", "Impacts", "Item", "NATURES", "Row", "SNOW_CASES", "SpringTerm", "TopTable", "Trains",
+           "bearing_point", "calculate_actions"]

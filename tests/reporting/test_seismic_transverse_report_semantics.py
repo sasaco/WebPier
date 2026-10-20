@@ -61,7 +61,10 @@ def expected(case: str) -> dict[str, str]:
     out.update({"0720/" + k: v for k, v in material("section.material.column", "柱", frame.materials.column).items()})
     add("actions.heading", "11.2作用の計算")
     add("actions.note", "下記以外の作用については，§9.線路直角方向の計算（地震時以外）と同様とする．")
-    add("train.heading", "(5)列車荷重")
+    def item(number: int) -> str:  # decision 69: the items follow those of 9.2, without (4) 雪荷重 when no snow
+        return f"({number if result.snow is not None else number - 1})"
+
+    add("train.heading", f"{item(5)}列車荷重")
     add("train.note", "鉛直力は0600の地震時列車荷重による反力に支承の分担率を乗じた値とする（上り線L2，下り線L1）．")
     for track, label in ((Track.UP, "上り"), (Track.DOWN, "下り")):
         table = result.train(track)
@@ -69,17 +72,17 @@ def expected(case: str) -> dict[str, str]:
         add(f"train.{track.value}", "反力(kN)分担率鉛直力(kN)アーム(m)モーメント(kN・m)" + "".join(
             bearing(r.item, r.slot) + "".join(t(v) for v in (r.reaction, r.share, r.n, r.arm, r.m)) for r in table.rows)
             + f"合計{t(table.n)}{t(table.m)}")
-    for key, heading, inertia in (("girder", "(6)地震時桁荷重慣性力", result.girder_inertia),
-                                  ("train_inertia", "(7)地震時列車荷重慣性力", result.train_inertia)):
+    for key, heading, inertia in (("girder", f"{item(6)}地震時桁荷重慣性力", result.girder_inertia),
+                                  ("train_inertia", f"{item(7)}地震時列車荷重慣性力", result.train_inertia)):
         add(f"{key}.heading", heading)
         add(f"{key}.h", f"水平力H={t(inertia.rows[0].h)}+{t(inertia.rows[1].h)}={t(inertia.h)}kN")
         add(f"{key}.table", "水平力(kN)高さ(m)モーメント(kN・m)" + "".join(
             ("起点側桁" if r.item is Item.ORIGIN else "終点側桁") + t(r.h) + t(r.y) + t(r.m) for r in inertia.rows)
             + f"合計{t(inertia.h)}{t(inertia.m)}")
-    add("inertia.source", f"(6)，(7)は0600の支承の水平力（桁荷重Kh={t(result.girder_inertia.kh)}，列車荷重Kh="
+    add("inertia.source", f"{item(6)}，{item(7)}は0600の支承の水平力（桁荷重Kh={t(result.girder_inertia.kh)}，列車荷重Kh="
                           f"{t(result.train_inertia.kh)}）をそのまま用い，支承位置からの高さyでM=H×yとする．")
     inertia = result.self_weight
-    add("inertia.heading", "(8)自重による地震時慣性力")
+    add("inertia.heading", f"{item(8)}自重による地震時慣性力")
     add("inertia.kh", f"設計水平震度Kh={t(inertia.kh)}")
     add("inertia.body", "・橋脚く体に作用する水平力")
     for key, label, name, value in (("beam_top", "はり", "w1", inertia.beam_top),
@@ -99,12 +102,13 @@ def expected(case: str) -> dict[str, str]:
     arrows = {"downward": "↓", "upward": "↑", "toward_w9": "→"}
     kinds = {"fixed": "固定", "incremental": "増分", "limited_incremental": "限定増分"}
     add("basic", "Case記号作用方向荷重種別荷　重　名　称" + "".join(
-        f"{a.case.value}{SYMBOLS[i]}{arrows[a.direction.value]}{kinds[a.increment.value]}{names(result)[i]}"
-        for i, a in enumerate(result.basic_cases)))
+        f"{a.number}{SYMBOLS[a.case.value - 1]}{arrows[a.direction.value]}{kinds[a.increment.value]}"
+        f"{names(result)[a.case.value - 1]}"
+        for a in result.basic_cases))
     add("combination.caption", "組合せCase")
     add("combination", "Case列車αf／ρm作用方向荷重補正係数＋基本Case地盤抵抗TYPE" + "".join(
         f"{c.number}{'上り' if c.track is Track.UP else '下り'}{t(c.alpha_f)}／{t(c.rho_m)}→"
-        + "+".join(str(case.value) for case in c.cases) + str(c.ground_resistance_type) for c in result.combinations))
+        + "+".join(str(result.basic(case).number) for case in c.cases) + str(c.ground_resistance_type) for c in result.combinations))
     add("combination.note", "上り線・下り線の列車荷重をそれぞれ組み合わせる．")
     return out
 

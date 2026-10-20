@@ -79,7 +79,7 @@ def _term(number: int, component: Component, define: DefineCase | None) -> cases
             or any(_load(a.source) != loads[a.case] for a in alternatives)):
         raise ValueError(f"combination {number}: the alternatives of Define {component.define.value} are not its basic "
                          "cases in its signs with one factor and one action each")
-    return cases.Term(define=component.define.value, basis=first.basis, factor=first.factor,
+    return cases.Term(define=define.number, basis=first.basis, factor=first.factor,
                       loads=tuple(loads[case] for case in define.cases))
 
 

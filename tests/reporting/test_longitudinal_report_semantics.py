@@ -155,6 +155,9 @@ def expected(case: str) -> dict[str, str]:
         if value is not None:
             out["0610/" + key] = value
 
+    def item(number: int) -> str:  # decision 69: without snow (4) 雪荷重 is not printed and the items move up
+        return f"({number if result.snow is not None else number - 1})"
+
     add("title", "§8.線路方向の計算（地震時以外）")
     add("model.heading", "8.1検討モデル")
     add("model.figure.heading", "(1)骨組図")
@@ -226,14 +229,16 @@ def expected(case: str) -> dict[str, str]:
         add(f"buoyancy.{key}", f"{label}ω{suffix}={t(water.body.unit_weight)}×{t(water.body.volume)}={t(row.n)}kN")
         if row.arm.value:
             add(f"buoyancy.{key}.moment", f"MP={t(row.n)}×{paren(row.arm)}={t(row.m)}kN・m")
-    add("snow.heading", "(4)雪荷重")
-    for index, (key, label, case_) in enumerate((("2", "1)2年確率", BasicCase.SNOW2), ("10", "2)10年確率", BasicCase.SNOW10),
-                                                 ("30", "3)30年確率", BasicCase.SNOW30))):
-        add(f"snow.{key}.heading", label)
-        snow = result.snow[index]
-        add(f"snow.{key}", top(snow.rows, snow.n, snow.m))
-        add(f"snow.{key}.seat", seat(frame, snow.n, snow.m, result.basic(case_).points[0]))
-    add("train.heading", "(5)列車荷重")
+    if result.snow is not None:
+        add("snow.heading", "(4)雪荷重")
+        for index, (key, label, case_) in enumerate((("2", "1)2年確率", BasicCase.SNOW2),
+                                                     ("10", "2)10年確率", BasicCase.SNOW10),
+                                                     ("30", "3)30年確率", BasicCase.SNOW30))):
+            add(f"snow.{key}.heading", label)
+            snow = result.snow[index]
+            add(f"snow.{key}", top(snow.rows, snow.n, snow.m))
+            add(f"snow.{key}.seat", seat(frame, snow.n, snow.m, result.basic(case_).points[0]))
+    add("train.heading", f"{item(5)}列車荷重")
     add("train.single.heading", "1)単線載荷")
     single, double = result.train.single, result.train.double
     add("train.single", top(single.rows, single.n, single.m))
@@ -244,7 +249,7 @@ def expected(case: str) -> dict[str, str]:
     add("train.double.end", f"RC={t(single.row(Item.END).n)}×{t(reaction.dead.end.track_total)}={t(double.row(Item.END).n)}kN")
     add("train.double", top(double.rows, double.n, double.m))
     add("train.double.seat", seat(frame, double.n, double.m, result.basic(BasicCase.TRAIN_DOUBLE).points[0]))
-    add("impact.heading", "(6)衝撃荷重")
+    add("impact.heading", f"{item(6)}衝撃荷重")
     add("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
     impact = result.impact
     for key, label, table, train, case_ in (
@@ -264,7 +269,7 @@ def expected(case: str) -> dict[str, str]:
             point = next(c.source.points[0] for combo in result.combinations for c in combo.components
                          if c.case is wanted and c.basis.value == "service_impact")
         add(f"impact.{key}.seat", seat(frame, table.n, table.m, point))
-    add("horizontal.heading", "(7)水平荷重")
+    add("horizontal.heading", f"{item(7)}水平荷重")
     add("horizontal.summary.heading", "1)支承に働く水平荷重のまとめ")
     groups = {"使用性": "使用性", "安全性": "安全性（破壊）", "復旧性": "復旧性"}
     rows, previous = "荷　重　種　別起点桁(kN)終点桁(kN)合計(kN)", ""
@@ -278,15 +283,15 @@ def expected(case: str) -> dict[str, str]:
     add("basic.heading", "(1)基本ケース")
     names = [(n, q) for n, q, _ in BASIC] + [(n, f"{r}　{full}") for n, r, full, _, _ in horizontal_names(result, reaction)]
     add("basic", "No荷重名称区分バネ" + "".join(
-        f"{a.case.value}{names[i][0]}{names[i][1]}{1 if a.spring is SpringTerm.LONG else 2}"
-        for i, a in enumerate(result.basic_cases)))
+        f"{a.number}{names[a.case.value - 1][0]}{names[a.case.value - 1][1]}{1 if a.spring is SpringTerm.LONG else 2}"
+        for a in result.basic_cases))
     add("basic.note", "バネ1は長期，2は短期のフーチング底面のばねを用いる．")
     add("define.heading", "(2)Defineケース")
     symbols = [sym for _, _, sym in BASIC] + [sym for _, _, _, sym, _ in horizontal_names(result, reaction)]
     qualifiers = [q for _, q, _ in BASIC] + [r for _, r, _, _, _ in horizontal_names(result, reaction)]
     add("define", "NoC1C2C3記号荷重名称区分" + "".join(
-        f"{d.number}{d.case.value}{-d.number if -1 in d.signs else ''}{symbols[i]}{names[i][0]}{qualifiers[i]}"
-        for i, d in enumerate(result.define_cases)))
+        f"{d.number}{result.basic(d.case).number}{-d.number if -1 in d.signs else ''}{symbols[d.case.value - 1]}"
+        f"{names[d.case.value - 1][0]}{qualifiers[d.case.value - 1]}" for d in result.define_cases))
     add("define.note", "C2は水平荷重を逆向きにも作用させることを示す．")
     add("factors.heading", "(3)組合せケースと荷重係数")
     f, train = result.factors, pier.train
@@ -295,7 +300,7 @@ def expected(case: str) -> dict[str, str]:
     add("factors.service", f"使用性ρ={t(train.factor_service)}≒{t(f.service)}")
     add("factors.service_impact", f"使用性の衝撃0.75ρ=0.75×{t(train.factor_service)}={t(f.service_impact)}")
     add("combination", combination_text(result, symbols, names))
-    add("combination.note", "組合せ5，7，15，16の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2(6)3)，4)の値に"
+    add("combination.note", f"組合せ5，7，15，16の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2{item(6)}3)，4)の値に"
                             f"ρ={t(f.service)}を乗じる．")
     add("extraction.heading", "(4)抽出ケース")
     width = max(len(e.combinations) for e in result.extractions)
@@ -311,10 +316,10 @@ def combination_text(result, symbols, names) -> str:
               "列車最大制動最大ﾛﾝｸﾞ最大雪最大縁応力度永久荷重変動荷重列車最大雪最大列車最大制動最大ﾛﾝｸﾞ最大雪最大"
               + "".join(str(c.number) for c in result.combinations))
     body = ""
-    for action in result.basic_cases:
+    for row, action in enumerate(result.basic_cases):  # the coefficients by the cases made (decision 69)
         index = action.case.value - 1
-        body += f"{action.case.value}{symbols[index]}{names[index][0]}" + "".join(
-            t(c.coefficients[index]) if c.coefficients[index] is not None else "－" for c in result.combinations)
+        body += f"{action.number}{symbols[index]}{names[index][0]}" + "".join(
+            t(c.coefficients[row]) if c.coefficients[row] is not None else "－" for c in result.combinations)
     return header + body
 
 

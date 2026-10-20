@@ -113,7 +113,7 @@ class Combination:
     number: int
     check: Check
     usage: Usage
-    coefficients: tuple[Printed | None, ...]  # by basic case 1-20; None prints '－'
+    coefficients: tuple[Printed | None, ...]  # by basic case, in the order made (decision 69); None prints '－'
     components: tuple[ResolvedAction, ...]  # the cases with a coefficient, in case order
 
     @property
@@ -179,9 +179,10 @@ def combination_factors(pier: PierInput) -> CombinationFactors:
         service=put(FACTOR, d(t.factor_service)), service_impact=put(FACTOR, d(t.factor_service) * SERVICE_IMPACT))
 
 
-def define_cases() -> tuple[DefineCase, ...]:
-    return tuple(DefineCase(number=case.value, case=case, signs=(1, -1) if case.value >= 13 else (1,))
-                 for case in BasicCase)
+def define_cases(basic_cases: tuple[BasicAction, ...]) -> tuple[DefineCase, ...]:
+    """One Define per basic case, with its number; the horizontal ones in both directions."""
+    return tuple(DefineCase(number=basic.number, case=basic.case, signs=(1, -1) if basic.horizontal else (1,))
+                 for basic in basic_cases)
 
 
 def extractions() -> tuple[Extraction, ...]:
@@ -222,7 +223,9 @@ def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], imp
     combinations = []
     for check, row in _TABLE.items():
         usage = Usage.SERVICE if check in _SERVICE_CHECKS else Usage.ULTIMATE
-        coefficients = tuple(None if symbol == "-" else symbols[symbol] for symbol in row.split())
+        printed = dict(zip(BasicCase, row.split(), strict=True))  # the cases not made have no column (decision 69)
+        coefficients = tuple(None if printed[basic.case] == "-" else symbols[printed[basic.case]]
+                             for basic in basic_cases)
         components = tuple(
             _resolve(basic, nominal, usage, service_impacts, frame, factors)
             for basic, nominal in zip(basic_cases, coefficients, strict=True) if nominal is not None)

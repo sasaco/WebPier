@@ -41,7 +41,7 @@ from .materials import calculate_materials
 from .reaction import ReactionResult
 from .reaction.transverse import SEISMIC_KH_GIRDER, SEISMIC_KH_TRAIN, TransverseForce
 from .seismic_longitudinal import (
-    ALPHA_F, GROUND_RESISTANCE_TYPE, KH, RHO_M, ActionDirection, Increment, MemberLoad, SelfWeightInertia,
+    ALPHA_F, GROUND_RESISTANCE_TYPE, KH, RHO_M, ActionDirection, Increment, MemberLoad, SelfWeightInertia, made,
     self_weight_inertia, self_weight_loads, toward,
 )
 from .transverse import (
@@ -96,6 +96,7 @@ class HorizontalInertia:
 
 @dataclass(frozen=True)
 class SeismicAction:
+    number: int  # 11-13 Case: the position among the cases made (decision 69)
     case: SeismicCase
     direction: ActionDirection
     increment: Increment
@@ -127,7 +128,7 @@ class SeismicTransverseResult:
     fixed: FixedDead  # 0620 D1
     additional: AdditionalDead  # 0620 D2
     buoyancy: Row  # 0620 buoyancy at the normal water level
-    snow: TopTable  # 0620 2-year snow
+    snow: TopTable | None  # 0620 2-year snow; None without snow (decision 69)
     train_up: TrainTable  # 11-8 (5) 上り線載荷 (L2)
     train_down: TrainTable  # 11-8 (5) 下り線載荷 (L1)
     girder_inertia: HorizontalInertia  # 11-8 (6)
@@ -137,7 +138,7 @@ class SeismicTransverseResult:
     combinations: tuple[SeismicCombination, ...]  # 11-13: up, then down
 
     def basic(self, case: SeismicCase) -> SeismicAction:
-        return self.basic_cases[case.value - 1]
+        return made(self.basic_cases, case)
 
     def train(self, track: Track) -> TrainTable:
         return {Track.UP: self.train_up, Track.DOWN: self.train_down}[track]
@@ -173,11 +174,13 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, 
     train_inertia = _inertia(SEISMIC_KH_TRAIN, sides[0].seismic_train, sides[1].seismic_train)
     self_weight = self_weight_inertia(pier, reaction)
 
+    vertical = {case: transverse.basic(basic) for case, basic in _FROM_0620.items()
+                if case is not SeismicCase.SNOW or transverse.snow is not None}  # decision 69
     points: dict[SeismicCase, tuple[PointLoad, ...]] = {
-        case: tuple(_on_frame(frame, p) for p in transverse.basic(basic).points) for case, basic in _FROM_0620.items()}
+        case: tuple(_on_frame(frame, p) for p in action.points) for case, action in vertical.items()}
     lines: dict[SeismicCase, tuple[LineLoad, ...]] = {
-        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in transverse.basic(basic).line_loads)
-        for case, basic in _FROM_0620.items()}
+        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in action.line_loads)
+        for case, action in vertical.items()}
     for case, track in TRAIN_CASES.items():
         points[case] = (bearing_point(frame, trains[track].n, trains[track].m),)
     points[SeismicCase.GIRDER_INERTIA] = (_seat(frame, girder),)
@@ -185,20 +188,20 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, 
     points[SeismicCase.SELF_INERTIA] = (
         point_load(frame, NodeRole.FOOTING_CENTROID, h=toward(self_weight.footing.force, EARTHQUAKE)),)
     basic_cases = tuple(
-        SeismicAction(case=case, direction=_KINDS[case][0], increment=_KINDS[case][1], points=points[case],
-                      line_loads=lines.get(case, ()),
+        SeismicAction(number=number, case=case, direction=_KINDS[case][0], increment=_KINDS[case][1],
+                      points=points[case], line_loads=lines.get(case, ()),
                       member_loads=(self_weight_loads(frame, self_weight, EARTHQUAKE)
                                     if case is SeismicCase.SELF_INERTIA else ()))
-        for case in SeismicCase)
+        for number, case in enumerate((case for case in SeismicCase if case in points), 1))
     combinations = tuple(
         SeismicCombination(number=number, track=track, alpha_f=ALPHA_F, rho_m=RHO_M,
                            direction=ActionDirection.TOWARD_W9,
-                           cases=tuple(c for c in SeismicCase if TRAIN_CASES.get(c, track) is track),
+                           cases=tuple(a.case for a in basic_cases if TRAIN_CASES.get(a.case, track) is track),
                            ground_resistance_type=GROUND_RESISTANCE_TYPE)
         for number, track in enumerate(TRAIN_CASES.values(), 1))
     return SeismicTransverseResult(
         frame=frame, fixed=transverse.fixed, additional=transverse.additional, buoyancy=transverse.buoyancy[1],
-        snow=transverse.snow[0], train_up=trains[Track.UP], train_down=trains[Track.DOWN],
+        snow=transverse.snow[0] if transverse.snow else None, train_up=trains[Track.UP], train_down=trains[Track.DOWN],
         girder_inertia=girder, train_inertia=train_inertia, self_weight=self_weight,
         basic_cases=basic_cases, combinations=combinations)
 

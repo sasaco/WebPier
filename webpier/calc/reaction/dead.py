@@ -47,10 +47,19 @@ class GirderDead:
     track_total: Printed  # Σ double shares: the number of loaded tracks (07 7-3 "2.000")
 
 
+SNOW_FIELDS = ("snow2", "snow10", "snow30")
+
+
 @dataclass(frozen=True)
 class DeadResult:
     origin: GirderDead
     end: GirderDead
+
+    @property
+    def snow(self) -> bool:
+        """Whether a bearing on this pier carries snow (decision 69): without, no snow case is made from 0610 on."""
+        return any(getattr(item.bearing, field).value for girder in (self.origin, self.end)
+                   for item in girder.bearings for field in SNOW_FIELDS)
 
 
 def _far(end: EndReaction) -> SupportLoads:
@@ -65,7 +74,7 @@ def _girder(far: EndReaction, slots: tuple[Bearing | None, ...]) -> GirderDead:
     def summed(field: str) -> Printed:
         return put(FORCE, total(getattr(item.bearing, field) for item in bearings))
 
-    pier = SupportLoads(*(summed(field) for field in ("d1", "d2", "snow2", "snow10", "snow30")))
+    pier = SupportLoads(*(summed(field) for field in ("d1", "d2", *SNOW_FIELDS)))
     return GirderDead(far=_far(far), pier=pier, bearings=bearings,
                       track_total=put(SHARE, total(item.double for item in bearings)))
 

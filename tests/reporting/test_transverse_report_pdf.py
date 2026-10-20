@@ -57,10 +57,10 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
     kinds = Counter(check.kind for check in rows)
-    # D1, D2, 3 snow, 3 train, 6 impact tables, 2 wind tables (+3 centrifugal on a curve)
+    # D1, D2, 3 snow, 3 train, 6 impact tables, 2 wind tables (+3 centrifugal on a curve, −3 snow without: decision 69)
     pier, _, result, _ = transverse_chain(case)
-    assert kinds["total"] == 16 + (3 if result.centrifugal is not None else 0)
-    assert kinds["row"] >= 80
+    assert kinds["total"] == 13 + (3 if result.centrifugal is not None else 0) + (3 if result.snow is not None else 0)
+    assert kinds["row"] >= 80 - (0 if result.snow is not None else 18)  # 6 bearing rows in each snow table
     assert [check for check in rows if not check.ok] == []
 
 

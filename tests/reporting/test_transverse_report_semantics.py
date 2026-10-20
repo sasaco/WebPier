@@ -69,6 +69,9 @@ def expected(case: str) -> dict[str, str]:
         if value is not None:
             out["0620/" + key] = value
 
+    def item(number: int) -> str:  # decision 69: without snow (4) 雪荷重 is not printed and the items move up
+        return f"({number if result.snow is not None else number - 1})"
+
     add("title", "§9.線路直角方向の計算（地震時以外）")
     add("model.heading", "9.1検討モデル")
     add("model.figure.heading", "(1)骨組図")
@@ -130,13 +133,16 @@ def expected(case: str) -> dict[str, str]:
         add(f"buoyancy.{key}", f"{label}ω{suffix}={t(water.body.unit_weight)}×{t(water.body.volume)}={t(row.n)}kN")
         if row.arm.value:
             add(f"buoyancy.{key}.moment", f"MP={t(row.n)}×{paren(row.arm)}={t(row.m)}kN・m")
-    add("snow.heading", "(4)雪荷重")
-    for index, (key, label, case_) in enumerate((("2", "1)2年確率", BasicCase.SNOW2), ("10", "2)10年確率", BasicCase.SNOW10),
-                                                 ("30", "3)30年確率", BasicCase.SNOW30))):
-        add(f"snow.{key}.heading", label)
-        add(f"snow.{key}", top(result.snow[index]))
-        add(f"snow.{key}.seat", seat(frame, result.snow[index].n, result.snow[index].m, result.basic(case_).points[0]))
-    add("train.heading", "(5)列車荷重")
+    if result.snow is not None:
+        add("snow.heading", "(4)雪荷重")
+        for index, (key, label, case_) in enumerate((("2", "1)2年確率", BasicCase.SNOW2),
+                                                     ("10", "2)10年確率", BasicCase.SNOW10),
+                                                     ("30", "3)30年確率", BasicCase.SNOW30))):
+            add(f"snow.{key}.heading", label)
+            add(f"snow.{key}", top(result.snow[index]))
+            add(f"snow.{key}.seat", seat(frame, result.snow[index].n, result.snow[index].m,
+                                         result.basic(case_).points[0]))
+    add("train.heading", f"{item(5)}列車荷重")
     add("train.note", "鉛直力は0600の1線分の反力に支承の分担率を乗じた値とする（上り線L2，下り線L1）．")
     names = {Track.UP: "上り線載荷", Track.DOWN: "下り線載荷", Track.DOUBLE: "複線載荷"}
     trains = {Track.UP: BasicCase.TRAIN_UP, Track.DOWN: BasicCase.TRAIN_DOWN, Track.DOUBLE: BasicCase.TRAIN_DOUBLE}
@@ -146,7 +152,7 @@ def expected(case: str) -> dict[str, str]:
         add(f"train.{track.value}", products("反力(kN)分担率", [(r, (r.reaction, r.share, r.n, r.arm, r.m))
                                                              for r in table.rows], table))
         add(f"train.{track.value}.seat", seat(frame, table.n, table.m, result.basic(case_).points[0]))
-    add("impact.heading", "(6)衝撃荷重")
+    add("impact.heading", f"{item(6)}衝撃荷重")
     add("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
     impacts = {Track.UP: BasicCase.IMPACT_UP, Track.DOWN: BasicCase.IMPACT_DOWN, Track.DOUBLE: BasicCase.IMPACT_DOUBLE}
     for usage, label, impact_set in (("ultimate", "安全性・復旧性", result.impact.ultimate),
@@ -163,11 +169,11 @@ def expected(case: str) -> dict[str, str]:
                               for a in comp.alternatives if a.case is case_ and a.basis.value == "service_impact"))
                 add(key + ".seat", seat(frame, table.n, table.m, point))
     lateral = result.lateral
-    add("lateral.heading", "(7)車両横荷重")
+    add("lateral.heading", f"{item(7)}車両横荷重")
     add("lateral.h", f"水平力H={t(lateral.origin.h)}+{t(lateral.end.h)}={t(lateral.h)}kN")
     add("lateral.m", f"モーメントM={t(lateral.origin.h)}×{t(lateral.origin.y)}+{t(lateral.end.h)}×{t(lateral.end.y)}"
                      f"={t(lateral.m)}kN・m")
-    add("wind.heading", "(8)風荷重")
+    add("wind.heading", f"{item(8)}風荷重")
     ground = result.wind_with_train.pier
     add("wind.ground.heading", "・く体の受風範囲（地表面はフーチング天端から起点側・終点側の土かぶりの小さい方だけ上）")
     add("wind.ground", f"地表面の高さz={t(frame.node(NodeRole.FOOTING_TOP).y)}+min({t(s.df1)},{t(s.df2)})={t(ground.ground)}m")
@@ -193,8 +199,8 @@ def expected(case: str) -> dict[str, str]:
                     seen.add(name)
                     add(f"{k}.{name}", f"{PARTS[g.region]}H{name[1:]}={t(wind.pressure)}×{t(width)}={t(load)}kN/m")
     if result.centrifugal is not None:
-        add("centrifugal.heading", "(9)遠心荷重")
-        add("centrifugal.note", "水平力は列車荷重（9.2(5)）に0600の遠心荷重係数αを乗じ，支承位置から遠心荷重の作用高さyに作用させる．")
+        add("centrifugal.heading", f"{item(9)}遠心荷重")
+        add("centrifugal.note", f"水平力は列車荷重（9.2{item(5)}）に0600の遠心荷重係数αを乗じ，支承位置から遠心荷重の作用高さyに作用させる．")
         for track in Track:
             table = result.centrifugal.table(track)
             add(f"centrifugal.{track.value}.heading", "・" + names[track])
@@ -206,7 +212,7 @@ def expected(case: str) -> dict[str, str]:
     add("combination.heading", "9.4設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
     add("basic", "No荷重名称区分バネ" + "".join(
-        f"{a.case.value}{BASIC[a.case.value][0]}{BASIC[a.case.value][1]}{1 if a.spring is SpringTerm.LONG else 2}"
+        f"{a.number}{BASIC[a.case.value][0]}{BASIC[a.case.value][1]}{1 if a.spring is SpringTerm.LONG else 2}"
         for a in result.basic_cases))
     add("basic.note", "バネ1は長期，2は短期のフーチング底面のばねを用いる．")
     add("define.heading", "(2)Defineケース")
@@ -215,8 +221,8 @@ def expected(case: str) -> dict[str, str]:
     define = "No" + "".join(f"C{i}" for i in range(1, width + 1)) + "記号荷重名称区分"
     for d in result.define_cases:
         name, qualifier, symbol = BASIC[d.cases[0].value]
-        define += f"{d.number}" + "".join(str(sign * c.value) for sign in d.signs for c in d.cases)
-        define += symbol + name + qualifiers.get(d.number, qualifier)
+        define += f"{d.number}" + "".join(str(sign * result.basic(c).number) for sign in d.signs for c in d.cases)
+        define += symbol + name + qualifiers.get(d.define.value, qualifier)
     add("define", define)
     add("define.note", "C1・C2は同じDefineで選ぶ基本ケース（単線は上り・下りのいずれか），負の番号は逆向きに作用させることを示す．")
     f = result.factors

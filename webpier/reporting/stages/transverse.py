@@ -209,15 +209,24 @@ def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pie
         m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
                    terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
         _footing_moment(m, f"buoyancy.{key}.moment", row)
-    m.heading("snow.heading", "(4) 雪荷重", 2)
-    for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2), ("10", "2) 10年確率", BasicCase.SNOW10),
-                                                ("30", "3) 30年確率", BasicCase.SNOW30))):
-        m.heading(f"snow.{key}.heading", label, 3)
-        _bearing_table(m, f"snow.{key}", result, result.snow[index], case)
+    if result.snow is not None:
+        m.heading("snow.heading", "(4) 雪荷重", 2)
+        for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2),
+                                                    ("10", "2) 10年確率", BasicCase.SNOW10),
+                                                    ("30", "3) 30年確率", BasicCase.SNOW30))):
+            m.heading(f"snow.{key}.heading", label, 3)
+            _bearing_table(m, f"snow.{key}", result, result.snow[index], case)
+
+
+def action_item(snow: bool, number: int) -> str:
+    """9.2 (number) as numbered with snow: without snow, (4) 雪荷重 is not printed and the items after it move up
+    (decision 69). 0720 numbers its items after those of 9.2 the same way."""
+    return f"({number if snow or number < 4 else number - 1})"
 
 
 def _train_impact(m: Manuscript, result: TransverseResult) -> None:
-    m.heading("train.heading", "(5) 列車荷重", 2)
+    snow = result.snow is not None
+    m.heading("train.heading", f"{action_item(snow, 5)} 列車荷重", 2)
     m.paragraph("train.note", "鉛直力は 0600 の 1 線分の反力に支承の分担率を乗じた値とする（上り線 L2，下り線 L1）．")
     cases = {Track.UP: BasicCase.TRAIN_UP, Track.DOWN: BasicCase.TRAIN_DOWN, Track.DOUBLE: BasicCase.TRAIN_DOUBLE}
     for track, case in cases.items():
@@ -225,7 +234,7 @@ def _train_impact(m: Manuscript, result: TransverseResult) -> None:
         m.paragraph(f"train.{track.value}.heading", "・" + TRACKS[track], keep=True)
         m.table(f"train.{track.value}", _train_table(table))
         seat_moment(m, f"train.{track.value}.seat", result.frame, table.n, table.m, result.basic(case).points[0])
-    m.heading("impact.heading", "(6) 衝撃荷重", 2)
+    m.heading("impact.heading", f"{action_item(snow, 6)} 衝撃荷重", 2)
     m.paragraph("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
     impacts = {Track.UP: BasicCase.IMPACT_UP, Track.DOWN: BasicCase.IMPACT_DOWN, Track.DOUBLE: BasicCase.IMPACT_DOUBLE}
     for usage, label, impact_set in (("ultimate", "安全性・復旧性", result.impact.ultimate),
@@ -299,16 +308,17 @@ def _wind_ground(m: Manuscript, result: TransverseResult, pier: PierInput) -> No
 
 
 def _horizontal(m: Manuscript, result: TransverseResult, pier: PierInput) -> None:
-    m.heading("lateral.heading", "(7) 車両横荷重", 2)
+    snow = result.snow is not None
+    m.heading("lateral.heading", f"{action_item(snow, 7)} 車両横荷重", 2)
     lateral = result.lateral
     _horizontal_lines(m, "lateral", (lateral.origin, lateral.end), lateral.h, lateral.m)
-    m.heading("wind.heading", "(8) 風荷重", 2)
+    m.heading("wind.heading", f"{action_item(snow, 8)} 風荷重", 2)
     _wind_ground(m, result, pier)
     _wind(m, "wind.with_train", "1) 列車荷重がある場合", result.wind_with_train)
     _wind(m, "wind.without_train", "2) 列車荷重がない場合", result.wind_without_train)
     if result.centrifugal is not None:
-        m.heading("centrifugal.heading", "(9) 遠心荷重", 2)
-        m.paragraph("centrifugal.note", "水平力は列車荷重（9.2 (5)）に 0600 の遠心荷重係数 α を乗じ，"
+        m.heading("centrifugal.heading", f"{action_item(snow, 9)} 遠心荷重", 2)
+        m.paragraph("centrifugal.note", f"水平力は列車荷重（9.2 {action_item(snow, 5)}）に 0600 の遠心荷重係数 α を乗じ，"
                                         "支承位置から遠心荷重の作用高さ y に作用させる．")
         for track in Track:
             table: CentrifugalTable = result.centrifugal.table(track)
@@ -329,7 +339,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
     rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "バネ")]
     for action in result.basic_cases:
         name, qualifier, _ = _BASIC[action.case]
-        rows.append((str(action.case.value), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
+        rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
     m.table("basic", TableSpec((28.8, 108, 236.4, 39.6), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, 3})))
     m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
     m.heading("define.heading", "(2) Defineケース", 2)
@@ -337,7 +347,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
     rows = [("No", *(f"C{index}" for index in range(1, width + 1)), "記号", "荷重名称", "区分")]
     labels = []
     for define in result.define_cases:
-        entries = [str(sign * case.value) for sign in define.signs for case in define.cases]
+        entries = [str(sign * result.basic(case).number) for sign in define.signs for case in define.cases]
         name, qualifier, _ = _BASIC[define.cases[0]]
         qualifier = _DEFINE_QUALIFIERS.get(define.define, qualifier)
         labels.append((symbol(define.cases[0]), name, qualifier))

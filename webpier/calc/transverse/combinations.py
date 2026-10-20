@@ -104,13 +104,10 @@ class Check(Enum):
 
 @dataclass(frozen=True)
 class DefineCase:
+    number: int  # 9-13 No: the position among the Define cases made (decision 69)
     define: Define
     cases: tuple[BasicCase, ...]  # alternatives: up and down for Define 9 and 11
     signs: tuple[int, ...]  # (1,) or both directions (1, −1) for Define 13-15
-
-    @property
-    def number(self) -> int:
-        return self.define.value
 
 
 @dataclass(frozen=True)
@@ -142,7 +139,7 @@ class Combination:
     number: int
     check: Check
     usage: Usage
-    coefficients: tuple[Printed | None, ...]  # by Define case 1-15 (1-17 on a curve); None prints '－'
+    coefficients: tuple[Printed | None, ...]  # by Define case, in the order made; None prints '－'
     components: tuple[Component, ...]  # the Define cases with a coefficient, in order
 
     def variants(self) -> tuple[tuple[ResolvedAction, ...], ...]:
@@ -183,10 +180,15 @@ _SERVICE_CHECKS = frozenset({Check.CRACK_PERMANENT_VARIABLE, Check.CRACK_PERMANE
                              Check.SUPPORT_SHORT_TERM_HIGH_WATER})
 
 
-def define_cases(centrifugal: bool) -> tuple[DefineCase, ...]:
-    return tuple(DefineCase(define=define, cases=_DEFINE_CASES.get(define, (BasicCase(define.value),)),
+def define_cases(basic_cases: tuple[BasicAction, ...]) -> tuple[DefineCase, ...]:
+    """The Define cases whose basic cases are made (centrifugal on a curve, snow with snow: decisions 33, 69),
+    numbered in order."""
+    made = {basic.case for basic in basic_cases}
+    cases = {define: _DEFINE_CASES.get(define, (BasicCase(define.value),)) for define in Define}
+    defines = [define for define in Define if set(cases[define]) <= made]
+    return tuple(DefineCase(number=number, define=define, cases=cases[define],
                             signs=(1, -1) if define in _REVERSIBLE else (1,))
-                 for define in Define if centrifugal or define not in _CENTRIFUGAL)
+                 for number, define in enumerate(defines, 1))
 
 
 def _scaled_point(point: PointLoad, factor: Decimal, sign: Decimal) -> PointLoad:
@@ -222,15 +224,16 @@ def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], def
     symbols: Mapping[str, Printed] = {
         "1": factors.one, "D1": factors.d1_safety, "D2": factors.d2_safety, "W": WIND_SAFETY, "U": factors.ultimate,
         "X": factors.maximum, "S": factors.service, "SI": factors.service_impact}
+    made = {basic.case: basic for basic in basic_cases}
     combinations = []
     for check, row in _TABLE.items():
         usage = Usage.SERVICE if check in _SERVICE_CHECKS else Usage.ULTIMATE
-        printed = row.split()
-        printed += [printed[_CENTRIFUGAL[d.define].value - 1] for d in defines if d.define in _CENTRIFUGAL]
-        coefficients = tuple(None if symbol == "-" else symbols[symbol] for symbol in printed)
+        printed = dict(zip(Define, row.split(), strict=False))  # Define 1-15; the cases not made have no column (decision 69)
+        printed |= {centrifugal: printed[train] for centrifugal, train in _CENTRIFUGAL.items()}
+        coefficients = tuple(None if printed[d.define] == "-" else symbols[printed[d.define]] for d in defines)
         components = tuple(
             Component(define=define.define, nominal=nominal, alternatives=tuple(
-                _resolve(basic_cases[case.value - 1], sign, nominal, usage, service, frame, factors)
+                _resolve(made[case], sign, nominal, usage, service, frame, factors)
                 for case in define.cases for sign in define.signs))
             for define, nominal in zip(defines, coefficients, strict=True) if nominal is not None)
         combinations.append(Combination(number=check.value, check=check, usage=usage, coefficients=coefficients,

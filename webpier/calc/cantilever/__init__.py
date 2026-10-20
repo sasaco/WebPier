@@ -98,7 +98,7 @@ def complete_cantilever(pier: PierInput, reaction: ReactionResult, basis: Cantil
     sides = {}
     for side, item in basis.sides.items():
         tables = actions(item, basis.loadings, basis.seismic_train, basis.lateral, basis.wind, seismic_girder,
-                         basis.seismic_train_torque, cases)
+                         basis.seismic_train_torque, cases, snow=reaction.dead.snow)
         sides[side] = SideResult(item, tables, evaluate_all(pier, tables, labels))
     selections = adopt({side: result.cases for side, result in sides.items()})
     permanent = next(item for item in selections if item.row == 1 and item.quantity is Quantity.BENDING)

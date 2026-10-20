@@ -39,7 +39,7 @@ from .frame_report import (
 )
 from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
 from .seismic_longitudinal import INCREMENTS
-from .transverse import _train_table, horizontal_table
+from .transverse import _train_table, action_item, horizontal_table
 
 PREFIX = "0720/"
 ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before (decision 50)
@@ -102,21 +102,23 @@ def _inertia(m: Manuscript, key: str, heading: str, inertia: HorizontalInertia) 
 
 
 def _actions(m: Manuscript, result: SeismicTransverseResult) -> None:
+    snow = result.snow is not None  # the items follow those of 9.2 (decision 69)
     m.heading(ACTIONS, "11.2 作用の計算", 1)
     m.paragraph("actions.note", "下記以外の作用については，§9. 線路直角方向の計算（地震時以外）と同様とする．")
-    m.heading("train.heading", "(5) 列車荷重", 2)
+    m.heading("train.heading", f"{action_item(snow, 5)} 列車荷重", 2)
     m.paragraph("train.note", "鉛直力は 0600 の地震時列車荷重による反力に支承の分担率を乗じた値とする（上り線 L2，下り線 L1）．")
     for track, case in ((Track.UP, SeismicCase.TRAIN_UP), (Track.DOWN, SeismicCase.TRAIN_DOWN)):
         table = result.train(track)
         m.paragraph(f"train.{track.value}.heading", f"・{TRACK_NAMES[track]}線載荷", keep=True)
         m.table(f"train.{track.value}", _train_table(table))
         seat_moment(m, f"train.{track.value}.seat", result.frame, table.n, table.m, result.basic(case).points[0])
-    _inertia(m, "girder", "(6) 地震時桁荷重慣性力", result.girder_inertia)
-    _inertia(m, "train_inertia", "(7) 地震時列車荷重慣性力", result.train_inertia)
-    m.paragraph("inertia.source", f"(6)，(7) は 0600 の支承の水平力（桁荷重 Kh = {value(result.girder_inertia.kh)}，"
+    _inertia(m, "girder", f"{action_item(snow, 6)} 地震時桁荷重慣性力", result.girder_inertia)
+    _inertia(m, "train_inertia", f"{action_item(snow, 7)} 地震時列車荷重慣性力", result.train_inertia)
+    m.paragraph("inertia.source", f"{action_item(snow, 6)}，{action_item(snow, 7)} は 0600 の支承の水平力"
+                                  f"（桁荷重 Kh = {value(result.girder_inertia.kh)}，"
                                   f"列車荷重 Kh = {value(result.train_inertia.kh)}）をそのまま用い，"
                                   "支承位置からの高さ y で M = H × y とする．")
-    self_weight_inertia(m, result.self_weight, "(8) 自重による地震時慣性力", "§6")
+    self_weight_inertia(m, result.self_weight, f"{action_item(snow, 8)} 自重による地震時慣性力", "§6")
 
 
 def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
@@ -124,7 +126,7 @@ def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
     m.paragraph("basic.caption", "基本Case", keep=True)
     rows: list[tuple[Any, ...]] = [("Case", "記号", "作用方向", "荷重種別", "荷　重　名　称")]
     for action in result.basic_cases:
-        rows.append((str(action.case.value), Span(case_symbol(action.case)), Span(ARROWS[action.direction]),
+        rows.append((str(action.number), Span(case_symbol(action.case)), Span(ARROWS[action.direction]),
                      Span(INCREMENTS[action.increment]), case_name(result, action.case)))
     m.table("basic", TableSpec((39.6, 48, 55.2, 63.6, 225.6), tuple(rows), (14.28,) * len(rows),
                                numeric=frozenset({0})))
@@ -134,7 +136,8 @@ def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
     for combination in result.combinations:
         rows.append((str(combination.number), Span(TRACK_NAMES[combination.track]),
                      Span(f"{value(combination.alpha_f)}／{value(combination.rho_m)}"), Span(ARROWS[combination.direction]),
-                     " + ".join(str(case.value) for case in combination.cases), str(combination.ground_resistance_type)))
+                     " + ".join(str(result.basic(case).number) for case in combination.cases),
+                     str(combination.ground_resistance_type)))
     m.table("combination", TableSpec((39.6, 39.6, 55.2, 55.2, 171.6, 70.8), tuple(rows), (14.28,) * len(rows),
                                      numeric=frozenset({0, 5})))
     m.paragraph("combination.note", "上り線・下り線の列車荷重をそれぞれ組み合わせる．")

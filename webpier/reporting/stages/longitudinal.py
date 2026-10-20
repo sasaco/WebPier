@@ -213,14 +213,21 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
         _footing_moment(m, f"buoyancy.{key}.moment", sub("M", "P"), row.n, row.arm, row.m)
 
 
+def _item(result: LongitudinalResult, number: int) -> str:
+    """8.2 (number) as numbered with snow: without snow, (4) 雪荷重 is not printed and the items after it move up
+    (decision 69)."""
+    return f"({number if result.snow is not None or number < 4 else number - 1})"
+
+
 def _snow_train(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
-    m.heading("snow.heading", "(4) 雪荷重", 2)
-    for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2),
-                                                ("10", "2) 10年確率", BasicCase.SNOW10),
-                                                ("30", "3) 30年確率", BasicCase.SNOW30))):
-        m.heading(f"snow.{key}.heading", label, 3)
-        _table_with_seat(m, f"snow.{key}", result, result.snow[index], case)
-    m.heading("train.heading", "(5) 列車荷重", 2)
+    if result.snow is not None:
+        m.heading("snow.heading", "(4) 雪荷重", 2)
+        for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2),
+                                                    ("10", "2) 10年確率", BasicCase.SNOW10),
+                                                    ("30", "3) 30年確率", BasicCase.SNOW30))):
+            m.heading(f"snow.{key}.heading", label, 3)
+            _table_with_seat(m, f"snow.{key}", result, result.snow[index], case)
+    m.heading("train.heading", f"{_item(result, 5)} 列車荷重", 2)
     m.heading("train.single.heading", "1) 単線載荷", 3)
     _table_with_seat(m, "train.single", result, result.train.single, BasicCase.TRAIN_SINGLE)
     m.heading("train.double.heading", "2) 複線載荷", 3)
@@ -246,7 +253,7 @@ def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
 
 
 def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
-    m.heading("impact.heading", "(6) 衝撃荷重", 2)
+    m.heading("impact.heading", f"{_item(result, 6)} 衝撃荷重", 2)
     m.paragraph("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
     impact = result.impact
     for key, label, table, train, case in (
@@ -260,7 +267,7 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
         m.table(f"impact.{key}", _impact_table(table, train.n))
         point = result.basic(case).points[0] if case is not None else _service_point(result, key)
         seat_moment(m, f"impact.{key}.seat", result.frame, table.n, table.m, point)
-    m.heading("horizontal.heading", "(7) 水平荷重", 2)
+    m.heading("horizontal.heading", f"{_item(result, 7)} 水平荷重", 2)
     m.heading("horizontal.summary.heading", "1) 支承に働く水平荷重のまとめ", 3)
     rows: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")]
     groups = {"使用性": 2, "安全性": 4, "復旧性": 2}
@@ -291,7 +298,7 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
     rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "バネ")]
     for action in result.basic_cases:
         name, _, qualifier, _ = basic_name(result, reaction, action.case)
-        rows.append((str(action.case.value), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
+        rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
     m.table("basic", TableSpec((28.8, 108, 236.4, 39.6), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, 3})))
     m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
     m.heading("define.heading", "(2) Defineケース", 2)
@@ -299,7 +306,7 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
     for define in result.define_cases:
         name, requirement, qualifier, symbol = basic_name(result, reaction, define.case)
         second = str(-define.number) if -1 in define.signs else ""
-        rows.append((str(define.number), str(define.case.value), second, "", Span(symbol), name,
+        rows.append((str(define.number), str(result.basic(define.case).number), second, "", Span(symbol), name,
                      requirement or qualifier))
     m.table("define", TableSpec((28.8, 32.4, 36, 28.8, 80.4, 96, 136.8), tuple(rows), (14.28,) * len(rows),
                                 numeric=frozenset({0, 1, 2})))
@@ -311,7 +318,8 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
     services = [str(c.number) for c in result.combinations
                 if any(component.basis is Basis.SERVICE_IMPACT for component in c.components)]
     m.paragraph("combination.note",
-                f"組合せ {'，'.join(services)} の衝撃荷重には，使用性の衝撃係数（3/4 を含む）による 8.2 (6) 3)，4) の値に"
+                f"組合せ {'，'.join(services)} の衝撃荷重には，使用性の衝撃係数（3/4 を含む）による 8.2 {_item(result, 6)}"
+                " 3)，4) の値に"
                 f" ρ = {value(factors.service)} を乗じる．")
     m.heading("extraction.heading", "(4) 抽出ケース", 2)
     extraction_table(m, result.extractions)
@@ -320,10 +328,10 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
 def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> TableSpec:
     """Basic cases as rows and the 16 combinations as columns, the coefficients as printed (8-10)."""
     rows = []
-    for action in result.basic_cases:
+    for index, action in enumerate(result.basic_cases):
         name, _, _, symbol = basic_name(result, reaction, action.case)
-        rows.append((str(action.case.value), symbol, name,
-                     [combination.coefficients[action.case.value - 1] for combination in result.combinations]))
+        rows.append((str(action.number), symbol, name,
+                     [combination.coefficients[index] for combination in result.combinations]))
     return coefficient_table([_CHECKS[c.check] for c in result.combinations],
                              [c.number for c in result.combinations], rows)
 

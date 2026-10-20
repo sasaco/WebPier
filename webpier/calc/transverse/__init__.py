@@ -36,28 +36,31 @@ class TransverseResult:
     fixed: FixedDead  # 9-3 D1
     additional: AdditionalDead  # 9-3 D2
     buoyancy: tuple[Row, Row, Row]  # 9-4: high, normal, low water
-    snow: tuple[TopTable, TopTable, TopTable]  # 9-4: 2, 10, 30 year
+    snow: tuple[TopTable, TopTable, TopTable] | None  # 9-4: 2, 10, 30 year; None without snow (decision 69)
     train: Trains  # 9-5: up, down, double
     impact: Impacts  # 9-6 (girder coefficients, decision 26), and the serviceability tables
     lateral: Lateral  # 9-7
     wind_with_train: Wind  # 9-7
     wind_without_train: Wind  # 9-8
     centrifugal: Centrifugals | None  # on a curve only (decision 33); None on a straight track
-    basic_cases: tuple[BasicAction, ...]  # 9-9 to 9-13: the 17 basic cases (+ 3 centrifugal on a curve)
-    define_cases: tuple[DefineCase, ...]  # 9-13: the 15 Define cases (+ 2 centrifugal on a curve)
+    basic_cases: tuple[BasicAction, ...]  # 9-9 to 9-13: the 17 basic cases (+ 3 centrifugal on a curve, − 3 snow)
+    define_cases: tuple[DefineCase, ...]  # 9-13: the 15 Define cases (+ 2 centrifugal on a curve, − 3 snow)
     factors: CombinationFactors
     combinations: tuple[Combination, ...]  # 9-14, with the resolved actions
     extractions: tuple[Extraction, ...]  # 9-15 (the same groups as 8-11)
 
     def basic(self, case: BasicCase) -> BasicAction:
-        return self.basic_cases[case.value - 1]
+        for action in self.basic_cases:
+            if action.case is case:
+                return action
+        raise KeyError(case)
 
 
 def calculate_transverse(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult) -> TransverseResult:
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.TRANSVERSE)
     actions = calculate_actions(pier, frame, reaction)
     factors = combination_factors(pier)
-    defines = define_cases(actions.centrifugal is not None)
+    defines = define_cases(actions.basic_cases)
     return TransverseResult(
         frame=frame, fixed=actions.fixed, additional=actions.additional, buoyancy=actions.buoyancy,
         snow=actions.snow, train=actions.train, impact=actions.impact, lateral=actions.lateral,

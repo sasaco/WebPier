@@ -192,8 +192,13 @@ class _Validator:
         self.node = Num(1, self.nn, integer=True)
         self.nr = int(_number(f.row("SectJikuNum1", 6)[0], Num(1, MAX_ROWS, integer=True), "SectJikuNum1 第1欄"))
         self.nc = f.count("LoadNum", 1, COMBINATION_SLOTS)
-        if self.nc != len(self.profile.case_titles):
-            raise _error(f"{self.profile.data_name}の基本ケースは{len(self.profile.case_titles)}件が必要です（{self.nc}件）")
+        # Without snow there is no 雪荷重 case and the cases after it move up (decision 69).
+        titles = list(self.profile.case_titles.values())
+        snowless = [title for case, title in self.profile.case_titles.items() if case.name != "SNOW"]
+        if self.nc not in (len(titles), len(snowless)):
+            raise _error(f"{self.profile.data_name}の基本ケースは{len(titles)}件（雪荷重がなければ{len(snowless)}件）"
+                         f"が必要です（{self.nc}件）")
+        self.titles = titles if self.nc == len(titles) else snowless
         self.rows = {family: [f.count(f"{family}LoadRow{case}", 0, MAX_LOADS) for case in range(1, self.nc + 1)]
                      for family in ("M", "J")}
         self.nk = f.count("SNAPConbNum", 1, MAX_COMBINATIONS)
@@ -385,7 +390,10 @@ class _Validator:
         element, kinds = Num(1, self.ne, integer=True), Num(0, 4, integer=True)
         member = joint = 0
         for case in range(1, self.nc + 1):
-            f.fields(f"LoadTitle{case}", Text())
+            (title,) = f.fields(f"LoadTitle{case}", Text())
+            if title != self.titles[case - 1]:
+                raise _error(f"LoadTitle{case}: {self.profile.data_name}の基本ケース{case}は「{self.titles[case - 1]}」が"
+                             f"必要です（{title}）")
             f.fields(f"LoadCase{case}", 1, 1, 0)
             f.fields(f"LoadAlph{case}", 1)
             increments = set()

@@ -76,7 +76,7 @@ def test_the_written_bytes_pass(valid):
 
 
 def test_bytes_of_the_other_direction_are_rejected(valid):
-    with pytest.raises(InputError, match=re.escape("線路直角方向の基本ケースは9件が必要です（8件）")):
+    with pytest.raises(InputError, match=re.escape("DataName 第1欄: '線路直角方向' が必要です")):
         validate_ndu(valid, TRANSVERSE)
 
 
@@ -113,7 +113,8 @@ CASES = {
     "target": (field("DataInfo", 19, "0.3"), "DataInfo 第19欄: 範囲外です"),
     "zero target": (field("DataInfo", 19, "0"), "DataInfo 第19欄: 範囲外です"),
     "control node": (field("DataInfo", 4, "8"), "DataInfo 第4欄: 範囲外です"),
-    "load count": (setting("LoadNum", "9"), "線路方向の基本ケースは8件が必要です（9件）"),
+    "load count": (setting("LoadNum", "9"), "線路方向の基本ケースは8件（雪荷重がなければ7件）が必要です（9件）"),
+    "case title": (setting("LoadTitle4", "浮力"), "LoadTitle4: 線路方向の基本ケース4は「雪荷重」が必要です（浮力）"),
     "members and elements": (setting("MemberNum", "5"), "MemberNum と ElementNum は同じ数"),
     "same position": (field("JointXY2", 2, "-7.6"), "同じ位置の節点があります"),
     "element order": (both(field("ElementInfo1", 5, "2"), field("ElementInfo1", 6, "1"),

@@ -231,7 +231,7 @@ class Wind:
 
 
 class BasicCase(Enum):
-    """The 17 basic cases of 9-13, by number."""
+    """The 17 basic cases of 9-13, by their number with snow (without snow, 14: decision 69)."""
 
     D1 = 1
     D2 = 2
@@ -262,11 +262,13 @@ TRACKS = {**CENTRIFUGAL_CASES, BasicCase.TRAIN_UP: Track.UP, BasicCase.TRAIN_DOW
 IMPACT_CASES = frozenset({BasicCase.IMPACT_UP, BasicCase.IMPACT_DOWN, BasicCase.IMPACT_DOUBLE})
 HORIZONTAL = frozenset({BasicCase.LATERAL, BasicCase.WIND_WITH_TRAIN, BasicCase.WIND_WITHOUT_TRAIN,
                         *CENTRIFUGAL_CASES})
+SNOW_CASES = (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)
 LONG_TERM = frozenset(BasicCase(n) for n in range(1, 9))  # 9-13 バネ 1 (long term); 2 for the train and after
 
 
 @dataclass(frozen=True)
 class BasicAction:
+    number: int  # 9-13 No: the position among the cases made (decision 69)
     case: BasicCase
     spring: SpringTerm  # 9-13 バネ: 1 long term (cases 1-8), 2 short term (9-17)
     points: tuple[PointLoad, ...]
@@ -287,7 +289,7 @@ class Actions:
     fixed: FixedDead
     additional: AdditionalDead
     buoyancy: tuple[Row, Row, Row]  # high, normal, low water
-    snow: tuple[TopTable, TopTable, TopTable]  # 2, 10, 30 year
+    snow: tuple[TopTable, TopTable, TopTable] | None  # 2, 10, 30 year; None without snow (decision 69)
     train: Trains
     impact: Impacts
     lateral: Lateral
@@ -381,7 +383,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     additional = AdditionalDead(table=_table(loads("d2")), soil=_body(Item.OVERBURDEN, weights.overburden))
     buoyancy = tuple(_body(Item.WATER, water.body)
                      for water in (weights.buoyancy_high, weights.buoyancy_normal, weights.buoyancy_low))
-    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30"))
+    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
     reactions = {Item.ORIGIN: train.loading.rb, Item.END: train.loading.rc}
     trains = Trains(*(train_table(track, girders, reactions) for track in Track))
     impact = Impacts(ultimate=_impacts(trains, train.ultimate), service=_impacts(trains, train.service))
@@ -419,13 +421,13 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
         c.BUOYANCY_HIGH: (footing(buoyancy[0]),),
         c.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
         c.BUOYANCY_LOW: (footing(buoyancy[2]),),
-        c.SNOW2: (top(snow[0].n, snow[0].m),),
-        c.SNOW10: (top(snow[1].n, snow[1].m),),
-        c.SNOW30: (top(snow[2].n, snow[2].m),),
         c.LATERAL: (seat(lateral.h, lateral.m),),
         c.WIND_WITH_TRAIN: (seat(with_train.h, with_train.m),),
         c.WIND_WITHOUT_TRAIN: (seat(without_train.h, without_train.m),),
     }
+    if snow is not None:  # decision 69: without snow the snow cases are not made
+        for case, table in zip(SNOW_CASES, snow, strict=True):
+            points[case] = (top(table.n, table.m),)
     for case, track in TRACKS.items():
         if case not in CENTRIFUGAL_CASES:
             loaded: TrainTable | ImpactTable = (impact.ultimate.table(track) if case in IMPACT_CASES
@@ -439,16 +441,16 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     members = {c.WIND_WITH_TRAIN: with_train.pier.member_loads,
                c.WIND_WITHOUT_TRAIN: without_train.pier.member_loads}
     basic_cases = tuple(
-        BasicAction(case=case, spring=SpringTerm.LONG if case in LONG_TERM else SpringTerm.SHORT, points=points[case],
-                    line_loads=(column_line_load(frame, n=q),) if case is c.D1 else (),
+        BasicAction(number=number, case=case, spring=SpringTerm.LONG if case in LONG_TERM else SpringTerm.SHORT,
+                    points=points[case], line_loads=(column_line_load(frame, n=q),) if case is c.D1 else (),
                     member_loads=members.get(case, ()))
-        for case in BasicCase if case in points)
+        for number, case in enumerate((case for case in BasicCase if case in points), 1))
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]
                    train=trains, impact=impact, lateral=lateral, wind_with_train=with_train,
                    wind_without_train=without_train, centrifugal=centrifugal, basic_cases=basic_cases)
 
 
-__all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
+__all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "SNOW_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
            "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "FixedDead",
            "HorizontalRow", "ImpactRow", "ImpactSet", "ImpactTable", "Impacts", "Item", "Lateral", "Row", "TopTable",
            "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions", "train_table"]

@@ -108,12 +108,13 @@ def expected(case: str) -> dict[str, str]:
     arrows = {"downward": "↓", "upward": "↑", "toward_origin": "←"}
     kinds = {"fixed": "固定", "incremental": "増分", "limited_incremental": "限定増分"}
     add("basic", "Case記号作用方向荷重種別荷　重　名　称" + "".join(
-        f"{a.case.value}{SYMBOLS[i]}{arrows[a.direction.value]}{kinds[a.increment.value]}{names(result)[i]}"
-        for i, a in enumerate(result.basic_cases)))
+        f"{a.number}{SYMBOLS[a.case.value - 1]}{arrows[a.direction.value]}{kinds[a.increment.value]}"
+        f"{names(result)[a.case.value - 1]}"
+        for a in result.basic_cases))
     add("combination.caption", "組合せCase")
     add("combination", "Caseαf／ρm作用方向荷重補正係数＋基本Case地盤抵抗TYPE" + "".join(
         f"{c.number}{t(c.alpha_f)}／{t(c.rho_m)}{arrows[c.direction.value]}"
-        + "+".join(str(case.value) for case in c.cases) + str(c.ground_resistance_type) for c in result.combinations))
+        + "+".join(str(result.basic(case).number) for case in c.cases) + str(c.ground_resistance_type) for c in result.combinations))
     return out
 
 

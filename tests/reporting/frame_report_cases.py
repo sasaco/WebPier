@@ -4,7 +4,8 @@ Each variant changes the shape of the frame the reports draw and print:
 ``pedestal`` has a 桁受け (H1 > 0) off the column axis, so the bearings sit on
 its top; ``asymmetric`` has an asymmetric footing with a haunch, so the rigid
 member from the footing top to its centroid is inclined; ``merged`` has no beam
-prism and no haunch (H2 = H3 = 0), so three node roles share one node.
+prism and no haunch (H2 = H3 = 0), so three node roles share one node; ``no_snow`` has every snow load blank, so
+the snow cases are not made and the cases and items after them move up (decision 69).
 """
 
 from __future__ import annotations
@@ -31,11 +32,24 @@ def _dims(**sizes: float) -> dict[str, float]:
     return {_DIMS[key[0]] + key: size for key, size in sizes.items()}
 
 
+def _no_snow() -> dict[str, object]:
+    """Every snow load blank: no snow case is made (decision 69)."""
+    keys = ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率")
+    changes: dict[str, object] = {}
+    for side, far, slots in (("起点側", "A支点", "B支点"), ("終点側", "D支点", "C支点")):
+        reactions = CURRENT["上部工反力"][side]
+        changes |= {f"上部工反力/{side}/{far}/{key}": None for key in keys}
+        changes |= {f"上部工反力/{side}/{slots}/{index}/{key}": None for index, slot in enumerate(reactions[slots])
+                    if slot is not None for key in keys}
+    return changes
+
+
 CASES: dict[str, dict[str, object]] = {
     "current": {},
     "pedestal": _dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3),
     "asymmetric": _dims(B7=2.5, B9=1.8, H5=0.5, H6=2.2, B8=3.0, W8=5.0),
     "merged": _dims(H2=0.0, H3=0.0),
+    "no_snow": _no_snow(),
 }
 
 
@@ -77,6 +91,7 @@ TRANSVERSE_CASES: dict[str, dict[str, object]] = {
     "asymmetric": _dims(W7=2.75, W9=1.75, H5=0.5, H6=2.2, W8=5.0),
     "haunch_ground": {"下部構造/土かぶり/起点側_df1": 5.2, "下部構造/土かぶり/終点側_df2": 5.4},
     "merged": CASES["merged"],
+    "no_snow": CASES["no_snow"],
 }
 
 
