@@ -1,4 +1,7 @@
-"""Layers depend only downwards (ADR-0004): core ← inputs ← calc ← reporting/export ← pipeline ← gui."""
+"""Layers depend only downwards (ADR-0004): core ← inputs ← loadmodel ← calc ← reporting/export ← pipeline ← gui.
+
+loadmodel is the contract a load model is written against (decision 70): a load model imports it only, so it reaches
+neither the calculation nor the input."""
 
 import ast
 from pathlib import Path
@@ -10,21 +13,24 @@ PACKAGE = Path(__file__).parents[1] / "webpier"
 ALLOWED = {
     "core": set(),
     "inputs": {"core"},
-    "calc": {"core", "inputs"},
-    "reporting": {"core", "inputs", "calc"},
-    "export": {"core", "inputs", "calc"},
-    "pipeline": {"core", "inputs", "calc", "reporting", "export"},
-    "gui": {"core", "inputs", "calc", "reporting", "export", "pipeline"},
+    "loadmodel": {"core"},
+    "calc": {"core", "inputs", "loadmodel"},
+    "reporting": {"core", "inputs", "loadmodel", "calc"},
+    "export": {"core", "inputs", "loadmodel", "calc"},
+    "pipeline": {"core", "inputs", "loadmodel", "calc", "reporting", "export"},
+    "gui": {"core", "inputs", "loadmodel", "calc", "reporting", "export", "pipeline"},
 }
-# Third-party packages a layer must not touch, so calculation never depends on drawing or Tk.
+# Third-party packages a layer must not touch, so calculation never depends on drawing or Tk. A module is imported
+# by name only in pipeline (importlib), which reads a load model's add-in (decision 70).
 FORBIDDEN_EXTERNAL = {
-    "core": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
-    "inputs": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
-    "calc": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf"},
-    "export": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pypdf"},
-    "reporting": {"tkinter", "tksheet"},
+    "core": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
+    "inputs": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
+    "loadmodel": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
+    "calc": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
+    "export": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pypdf", "importlib"},
+    "reporting": {"tkinter", "tksheet", "importlib"},
     "pipeline": {"tkinter", "tksheet"},
-    "gui": set(),
+    "gui": {"importlib"},
 }
 
 

@@ -24,6 +24,7 @@ from enum import Enum
 
 from ...core.printed import FORCE, LINE_LOAD, MOMENT, Precision, Printed
 from ...inputs import PierInput
+from ...loadmodel import ExtractionGroup  # the 8 extraction groups of 8-11, the contract's (decision 70)
 from .._exact import d, put
 from ..frame import Frame, LineLoad, PointLoad
 from .actions import BasicAction, BasicCase, ImpactTable, Impacts, bearing_point
@@ -58,19 +59,6 @@ class Check(Enum):
     SUPPORT_LONG_TERM = 14
     SUPPORT_SHORT_TERM_LOW_WATER = 15
     SUPPORT_SHORT_TERM_HIGH_WATER = 16
-
-
-class ExtractionGroup(Enum):
-    """The 8 extraction groups of 8-11."""
-
-    FAILURE = 1
-    PERMANENT_VARIABLE = 2
-    PERMANENT = 3
-    VARIABLE = 4
-    DAMAGE = 5
-    STABILITY = 6
-    SUPPORT_LONG_TERM = 7
-    SUPPORT_SHORT_TERM = 8
 
 
 class Basis(Enum):

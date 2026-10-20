@@ -15,7 +15,7 @@ if (-not $ProjectRoot) {
     $ProjectRoot = Split-Path -Parent $taskScriptDir
 }
 $taskLog = $null
-$taskTargets = [ordered]@{ core = 100; inputs = 100; calc = 100; export = 100; pipeline = 100; reporting = 95; gui = 85 }
+$taskTargets = [ordered]@{ core = 100; inputs = 100; loadmodel = 100; calc = 100; export = 100; pipeline = 100; reporting = 95; gui = 85 }
 $taskPreviousCoverageFile = $env:COVERAGE_FILE
 try {
     $ErrorActionPreference = 'Stop'

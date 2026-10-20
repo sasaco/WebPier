@@ -10,10 +10,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-
-class SpringTerm(Enum):
-    LONG = "long_term"  # バネ 1 of 8-9
-    SHORT = "short_term"  # バネ 2
+from ..loadmodel import SpringTerm  # the contract's (decision 70)
 
 
 class Nature(Enum):
@@ -37,3 +34,6 @@ def spring_term(natures: frozenset[Nature]) -> SpringTerm:
     if not natures:
         raise ValueError("a load case needs the nature of its loads")
     return SpringTerm.LONG if natures <= LONG_TERM_NATURES else SpringTerm.SHORT
+
+
+__all__ = ["LONG_TERM_NATURES", "Nature", "SpringTerm", "spring_term"]
