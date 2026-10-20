@@ -68,3 +68,44 @@ def test_a_blank_the_layout_needs_is_reported_with_its_path():
     document["下部構造"]["寸法"]["正面"]["W6"] = None
     with pytest.raises(EditorError, match="下部構造.寸法.正面.W6: 値が必要です"):
         rebar_edit.column_preview(document)
+
+
+def test_the_table_lines_group_the_generated_rows():
+    layout = rebar_edit.column_preview(data())
+    rail = rebar_edit.table_lines(layout, "線路")
+    assert len(rail) == 11 and rail[0].source == (108.0, 32.0) and rail[0].count == 29
+    assert rail[0].layers == (("線路", 1),) and not rail[0].changed
+    cross = rebar_edit.table_lines(layout, "直角")
+    assert cross[0].source == (102.0, 19.0) and cross[0].count == 9 and len(cross) == 31
+
+
+def test_a_table_change_is_written_undone_and_removed():
+    document = data()
+    source = (102.0, 19.0)  # the 直角 D19 bars at 102 from the left face
+    rebar_edit.change_table(document, "直角", source, "center_mm", 110.0)
+    rows = document["鉄筋"]["柱"]["table_overrides"]["直角"]
+    assert rows == [{"source_center_mm": 102.0, "source_diameter_mm": 19.0, "center_mm": 110.0, "diameter_mm": None}]
+    line = rebar_edit.table_lines(rebar_edit.column_preview(document), "直角")[1]
+    assert (line.source, line.center, line.count, line.changed) == (source, 110.0, 9, True)
+    rebar_edit.change_table(document, "直角", source, "diameter_mm", 22.0)
+    assert rows[0]["diameter_mm"] == 22.0 and len(rows) == 1
+    rebar_edit.change_table(document, "直角", source, "center_mm", 102.0)  # back to the generated centre
+    assert rows[0]["center_mm"] is None
+    rebar_edit.change_table(document, "直角", source, "diameter_mm", None)  # blank: nothing changed any more
+    assert rows == []
+    rebar_edit.change_table(document, "直角", source, "center_mm", 110.0)
+    other = (350.0, 32.0)
+    rebar_edit.change_table(document, "直角", other, "diameter_mm", 29.0)  # another row, before the undone one
+    rows.insert(0, rows.pop())
+    assert rebar_edit.undo_change(document, "直角", source) and rows == [
+        {"source_center_mm": 350.0, "source_diameter_mm": 32.0, "center_mm": None, "diameter_mm": 29.0}]
+    assert not rebar_edit.undo_change(document, "直角", source)
+
+
+def test_changes_without_their_bars_are_removed():
+    document = data()
+    changes = document["鉄筋"]["柱"]["table_overrides"]
+    changes["線路"] = [{"source_center_mm": 999.0, "source_diameter_mm": 32.0, "center_mm": 110.0, "diameter_mm": None}]
+    changes["直角"] = [{"source_center_mm": 102.0, "source_diameter_mm": 19.0, "center_mm": 110.0, "diameter_mm": None}]
+    assert rebar_edit.remove_unmatched(document, rebar_edit.column_preview(document)) == 1
+    assert changes["線路"] == [] and len(changes["直角"]) == 1

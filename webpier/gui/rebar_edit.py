@@ -7,9 +7,10 @@ object has every field of the field table under it blank (null), and its lists e
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
-from ..calc.column_rebar import ColumnLayout, section_layout
+from ..calc.column_rebar import ColumnLayout, LayerKey, section_layout
 from ..core.errors import InputError
 from ..core.printed import Printed
 from ..core.reader import Reader
@@ -22,6 +23,7 @@ COLUMN = "柱"
 W6 = ("下部構造", "寸法", "正面", "W6")
 B6 = ("下部構造", "寸法", "側面", "B6")
 SIDE_BARS = ("鉄筋", "梁", "side_bars")
+OVERRIDES = ("鉄筋", "柱", "table_overrides")
 JsonPath = tuple[str | int, ...]
 
 
@@ -70,6 +72,72 @@ def delete_row(data: Any, path: JsonPath, index: int) -> bool:
 def set_side_bars(data: Any, present: bool) -> None:
     """The beam's side bars: a blank set, or none (null)."""
     items(data, SIDE_BARS[:-1])[SIDE_BARS[-1]] = blank(SIDE_BARS) if present else None
+
+
+@dataclass(frozen=True)
+class TableLine:
+    """A row of the 方向別の鉄筋配置表 as the editor shows it: the bars generated at one centre with one size."""
+
+    source: tuple[float, float]  # the generated centre from the reference face and size, mm: the key of a change
+    center: float  # in use
+    diameter: float  # in use
+    count: int
+    layers: tuple[LayerKey, ...]
+    changed: bool
+
+
+def table_lines(layout: ColumnLayout, direction: str) -> list[TableLine]:
+    """The rows of the 方向別の鉄筋配置表 of *direction* (centres from the upper face for 線路, the left face for 直角),
+    by the generated centre and size; a changed row shows the values in use."""
+    axis = 1 if direction == "線路" else 0  # the coordinate of the bar's origin and of the bar
+    groups: dict[tuple[float, float], list] = {}
+    for generated, bar in zip(layout.generated, _in_generated_order(layout)):
+        key = (generated.origin[axis].value, generated.diameter.value)
+        groups.setdefault(key, []).append(bar)
+    lines = []
+    for source, bars in groups.items():
+        center = (bars[0].y if axis else bars[0].x).value
+        diameter = bars[0].diameter.value
+        layers = tuple(sorted({key for bar in bars for key in bar.rows}))
+        lines.append(TableLine(source, center, diameter, len(bars), layers, (center, diameter) != source))
+    return sorted(lines, key=lambda line: (line.center, line.diameter))
+
+
+def _in_generated_order(layout: ColumnLayout) -> list:
+    """The bars in use, in the order of the generated bars they come from (by origin)."""
+    by_origin = {bar.origin: bar for bar in layout.bars}
+    return [by_origin[bar.origin] for bar in layout.generated]
+
+
+def change_table(data: Any, direction: str, source: tuple[float, float], key: str, value: float | None) -> None:
+    """Change the row of the 方向別の鉄筋配置表 generated at *source* (centre, size): its *key* (center_mm or
+    diameter_mm) becomes *value*. The generated value or a blank undoes that part; a change of nothing is removed."""
+    rows = items(data, (*OVERRIDES, direction))
+    row = next((row for row in rows if (row["source_center_mm"], row["source_diameter_mm"]) == source), None)
+    if row is None:
+        row = blank((*OVERRIDES, direction, len(rows))) | {"source_center_mm": source[0],
+                                                           "source_diameter_mm": source[1]}
+        rows.append(row)
+    row[key] = None if value == (source[0] if key == "center_mm" else source[1]) else value
+    if row["center_mm"] is None and row["diameter_mm"] is None:
+        rows.remove(row)
+
+
+def undo_change(data: Any, direction: str, source: tuple[float, float]) -> bool:
+    """戻す: remove the change of the row generated at *source*."""
+    rows = items(data, (*OVERRIDES, direction))
+    for row in rows:
+        if (row["source_center_mm"], row["source_diameter_mm"]) == source:
+            rows.remove(row)
+            return True
+    return False
+
+
+def remove_unmatched(data: Any, layout: ColumnLayout) -> int:
+    """Remove the changes whose generated bars are gone (ColumnLayout.unmatched); their number."""
+    for direction, index in sorted(layout.unmatched, reverse=True):
+        del items(data, (*OVERRIDES, direction))[index]
+    return len(layout.unmatched)
 
 
 def _editor_error(exc: InputError) -> EditorError:

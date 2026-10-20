@@ -1,6 +1,6 @@
-"""Table cells bound to input paths; every edit is entered at once (decision 17).
+"""Table cells and card widgets bound to input paths; every edit is entered at once (decision 17).
 
-A cell typed into, pasted into, cleared or restored by undo is converted by its field (entry.py): the rounded
+A cell or widget typed into, pasted into, cleared or restored by undo is converted by its field (entry.py): the rounded
 value is written into the document and shown in the cell. Text that cannot be entered stays in the cell, marked,
 and the document keeps its previous value; the editor refuses to save until it is corrected. Cells whose value is
 needed but blank or invalid are marked too, with the reason available for the status line.
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from tksheet import Sheet
 
@@ -23,10 +23,22 @@ from .grid import DISABLED, EDITABLE, MISSING as MISSING_COLOR, REFUSED, SheetCe
 ABSENT = "（項目なし）"
 
 
+class Cell(Protocol):
+    """Where a bound input shows its text: a table cell (grid.SheetCell) or a widget of a card (gui.cards)."""
+
+    def get(self) -> str: ...
+
+    def show(self, text: str) -> None: ...
+
+    def color(self, background: str) -> None: ...
+
+    def focus(self) -> None: ...
+
+
 @dataclass
 class Bound:
     path: JsonPath
-    cell: SheetCell
+    cell: Cell
     spec: Field
     shown: str  # the text the cell had when it was last entered or displayed
     write: Callable[[Any], None]
@@ -39,11 +51,13 @@ class Bindings:
         self.items: dict[JsonPath, Bound] = {}
         self.refused: dict[JsonPath, str] = {}
         self.sheets: list[Sheet] = []
+        self.widgets: list[Bound] = []  # bound widgets: they report their own edits (entered)
 
     def clear(self) -> None:
         self.items.clear()
         self.refused.clear()
         self.sheets.clear()
+        self.widgets.clear()
 
     def value(self, path: JsonPath) -> Any:
         return lookup(self._data(), path)
@@ -75,8 +89,28 @@ class Bindings:
         self.sheets.append(sheet)
         sheet.bind("<<SheetModified>>", lambda event: self.modified(sheet), add="+")
 
+    def bind_cell(self, cell: Cell, path: JsonPath, *, write: Callable[[Any], None] | None = None) -> Bound:
+        """A widget bound to *path*: it shows the value, and calls entered() when its text is committed (it loses
+        the focus, Return, a choice); the text is entered like a table cell's."""
+        spec = field(path)
+        value = self.value(path)
+        text = "" if value is MISSING else display(spec, value)
+        cell.show(text)
+        bound = Bound(path, cell, spec, text, write or (lambda new, path=path: put(self._data(), path, new)))
+        self.items[path] = bound
+        self.widgets.append(bound)
+        self._paint(bound)
+        return bound
+
+    def entered(self, bound: Bound) -> None:
+        """The widget of *bound* committed its text."""
+        if bound.cell.get() != bound.shown:
+            self._enter(bound, bound.cell.get())
+            self.paint()
+            self._changed()
+
     def modified(self, sheet: Sheet) -> None:
-        for bound in [bound for bound in self.items.values() if bound.cell.sheet is sheet]:
+        for bound in [bound for bound in self.items.values() if getattr(bound.cell, "sheet", None) is sheet]:
             text = bound.cell.get()
             if text != bound.shown:
                 self._enter(bound, text)
@@ -138,10 +172,13 @@ class Bindings:
         for sheet in self.sheets:
             if sheet.winfo_exists():
                 commit_editor(sheet)
+        for bound in list(self.widgets):
+            self.entered(bound)
 
     @property
     def pending(self) -> bool:
-        return any(sheet.winfo_exists() and pending_dirty(sheet) for sheet in self.sheets)
+        return (any(sheet.winfo_exists() and pending_dirty(sheet) for sheet in self.sheets)
+                or any(bound.cell.get() != bound.shown for bound in self.widgets))
 
     def first_refusal(self) -> str | None:
         for path, message in self.refused.items():

@@ -26,6 +26,8 @@ class Circle:
     y: float  # mm from the top face
     diameter: float
     selected: bool = False
+    fill: str | None = None  # the bar's colour (by its direction, or shared); None: the plain colour
+    ring: str | None = None  # a ring around the bar (changed in the table, picked); None: none
 
 
 def _mm(data: Any, group: str, key: str) -> float:
@@ -105,8 +107,11 @@ class SectionView(ttk.Frame):
             radius = max(2.5, circle.diameter * scale / 2)
             tags = ("rebar", f"bar:{index}", *(("selected",) if circle.selected else ()))
             canvas.create_oval(x - radius, y - radius, x + radius, y + radius,
-                               fill="#1674bf" if circle.selected else "#526981",
+                               fill="#1674bf" if circle.selected else circle.fill or "#526981",
                                outline="white" if radius >= 4 else "", tags=tags)
+            if circle.ring is not None:
+                canvas.create_oval(x - radius - 2, y - radius - 2, x + radius + 2, y + radius + 2, outline=circle.ring,
+                                   width=2, tags=("ring",))
         canvas.create_text(width / 2, 10, text=caption, fill="#64748b", font=("Yu Gothic UI", 8), tags=("caption",))
         canvas.create_text(width / 2, height - 12, text=f"{span_x:g} mm × {span_y:g} mm", fill="#526981",
                            font=("Yu Gothic UI", 9), tags=("size",))

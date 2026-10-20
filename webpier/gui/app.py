@@ -38,7 +38,7 @@ HINTS = {
     "上部構造": "起点側と終点側を並べて入力します。支承と列車の条件は下に続きます。",
     "上部工反力": "支点・支承の並びに沿って、支承位置、死荷重、雪荷重、列車分担を入力します。",
     "地盤データ": "上から順に1層ずつ入力します。行を選ぶと、その層を複製・移動・削除できます。",
-    REBAR: "基本配筋を入力し、柱は断面図で配置を確認します。",
+    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」で開きます。",
     CALCULATION: "入力を保存して全帳票を作り直し、PDFで確認します。",
 }
 
@@ -231,7 +231,7 @@ class InputEditor:
         if selected:
             for path, bound in self.bindings.items.items():
                 cell = bound.cell
-                if cell.sheet is sheet and (cell.row, cell.column) == (selected.row, selected.column):
+                if getattr(cell, "sheet", None) is sheet and (cell.row, cell.column) == (selected.row, selected.column):
                     found = self.bindings.message(path)
                     message = f"{path_text(path)}: {found}" if found else ""
                     break
