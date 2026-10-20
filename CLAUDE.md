@@ -27,6 +27,8 @@ uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis
 
 # headless runner（structural-mcp が起動する。決定61、webpier/pipeline/headless.py）：stdout は protocol v1 の envelope 1つ。runner は環境変数だけ（.env を読まない）
 .venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --stage 0612   # validate / contract / schema も
+# 荷重モデルのアドイン（決定70、ADR-0010）：CLI・headless の全コマンドに --addin <フォルダー>。付けなければ列車荷重（成果物は変わらない）。失敗は ADDIN_ERROR
+.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --addin tests\fixtures\addin\minimal
 
 # 入力エディタ（Tkinter/tksheet。edit_input.py も同じ。VS CodeのF5でも起動）
 uv run --project "." --locked python -m webpier.gui
@@ -52,14 +54,15 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 ### 層別パッケージ（ADR-0004）
 `webpier/` の下に層を分け、依存は下向きだけにする。`tests/test_layer_boundaries.py` が強制する。
 
-`core ← inputs ← calc ← reporting / export ← pipeline ← gui`
+`core ← inputs ← loadmodel ← calc ← reporting / export ← pipeline ← gui`
 
 - `core`: 印字桁つきの値 `Printed`、厳密なJSON読込み、エラー、ハッシュ。
-- `inputs`: schema 2 の解析と検証。`fields.py` の項目表（桁・単位・符号・選択肢・予約項目）をparserとエディタが共用する。選択肢は `choices.py`。
+- `inputs`: schema 2 の解析と検証。`fields.py` の項目表（桁・単位・符号・選択肢・予約項目）をparserとエディタが共用する。選択肢は `choices.py`。`parse_input(load_model=True)` は荷重モデルの項目を読まない（決定70）。
+- `loadmodel`: 荷重モデルの約束（決定70、ADR-0010）。アドインが import してよいのはここだけで、core にだけ依存する。結果はアプリが `validate` で検査する（違反は `アドイン:` の入力エラー）。
 - `calc`: 段階の計算。結果は `Printed` を持つ frozen dataclass で、描画に依存しない。
 - `reporting`: GridLayoutPdf で組む帳票（`reporting/stages/`）。工学計算をここに置かない。
 - `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）、`aggrese`（Aggre-SE のプロジェクトXML。Aggre-SE が保存する書式どおりで、宣言は utf-16・中身は Shift-JIS）。
-- `pipeline`: 段階の登録表、生成、公開、CLI。
+- `pipeline`: 段階の登録表、生成、公開、CLI。アドインの読み込み（`addin.py`、importlib はここだけ）と、荷重モデルの段階の表 `stages_for`（0600・0610・0620・0710・0711・0720・0721・0900 を汎用のものに替え、残りは共有）。
 - `gui`: 入力エディタ。「計算・印刷」は pipeline を子プロセス（`python -m webpier`）で実行し、付帯JSONで結果を確かめる。
 
 ### 段階の登録表と一括公開

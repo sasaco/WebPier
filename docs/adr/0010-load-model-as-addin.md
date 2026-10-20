@@ -31,4 +31,5 @@ LRT の P7橋脚では、列車荷重のかわりに車荷重が載り、その�
 - アドインの入力とその来歴は、アドインの責任になる。アプリは、アドインが申告した名前・版・来歴を、解釈せずに成果物の来歴に写す。
 - 抽出ケースの区分に組合せがなければ、断面力0のケースとして通る。ゼロ割りになる照査（基礎の照査など）は、その区分を名指しした入力エラーにする。
 - 列車を前提にした箇所を作り直す改修が大きい（20個の `BasicCase`、決定69の分岐、NDU の検証器のケースの名前と並び、計算書の基本ケースの表）。
-- 細目は `.claude/docs/plans/refactoring-decisions.md` の決定70。
+- 片持ち梁の組合せは Capacita の断面力の表の8行に割り当てる（5区分ではない）。0720 の制御節点の重みは、増分の地震時ケースの直角方向の支承作用を起点側・終点側ごとに合計したもの（owner 2026-10-20）。
+- 細目は `.claude/docs/plans/refactoring-decisions.md` の決定70。差し込み口と約束（①）は `webpier/loadmodel/`・`webpier/calc/generic/`・`webpier/reporting/stages/generic/`・`webpier/pipeline/addin.py`、使い方は README の「荷重モデルのアドイン」。

@@ -156,9 +156,28 @@ structural-mcp（MCP の `webpier_get_input_schema`・`webpier_get_contract`・`
 
 - stdout は JSON 1つ（protocol v1 の envelope、`engine: "webpier"`）。`run` は `--output-dir` の下に `output/`・`post/` を CLI と同じ配置・同じバイトで書き、`artifacts` に全ファイルの相対パス・SHA-256・サイズを返します（JRSNAP の結果フォルダーは中のファイルを1つずつ）。
 - runner は**環境変数だけ**から読みます（`.env` は読みません）。選んだ段階が要る runner がなければ何も書かずに `RUNNER_UNAVAILABLE` で終わります。
-- 終了コードは CLI と同じ（0・2・3）。失敗の種類は `errors[0].code`（`INVALID_ARGUMENT`・`INPUT_ERROR`（入力のパス付き）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`・`GENERATION_FAILED`・`IO_ERROR`・`RECOVERY_REQUIRED`）。
+- 終了コードは CLI と同じ（0・2・3）。失敗の種類は `errors[0].code`（`INVALID_ARGUMENT`・`INPUT_ERROR`（入力のパス付き）・`ADDIN_ERROR`（下の「荷重モデルのアドイン」）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`・`GENERATION_FAILED`・`IO_ERROR`・`RECOVERY_REQUIRED`）。
 - `engineeringStatus` は段階ごと（0612・0622 は ok／not_ok、ほかは not_evaluated）と全体（not_ok が1つでもあれば not_ok、判定した段階がすべて ok なら ok）。実行の成否（`ok`）とは別です。
 - `validate` は runner を呼ばずに決まる範囲（解析・計算・外部出力・Aggre-SE のプロジェクトの入力）を確かめます。`contract` は段階・依存・必要な runner・公開するファイル、`schema` は入力の JSON Schema（項目表から。必須と項目間の規則は `validate` が正）。
+
+### 荷重モデルのアドイン（`--addin`、決定70、ADR-0010）
+
+死荷重以外の支承作用と作用の組合せは、荷重モデルとして差し替えられます（CONTEXT.md の 荷重モデル・支承作用）。案件の荷重モデルは案件の repo に置くアドインで、`--addin <フォルダー>` で読み込みます。付けなければ、いままでどおり列車荷重で計算します（成果物は1バイトも変わりません）。
+
+```powershell
+uv run --project "." --locked python -m webpier --addin <アドインのフォルダー> --overwrite
+.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --stage all --addin <アドインのフォルダー>
+.venv\Scripts\python.exe -X utf8 .\run_headless.py contract --addin <アドインのフォルダー>   # validate・schema も
+```
+
+- アドインのフォルダーには `webpier-addin.toml`（`name`・`version`・`contract`（約束の版、いまは 1）・`entry = "モジュール:関数"`）と、そのモジュール（`<モジュール>.py` かパッケージ）を置きます。関数は引数なしで、`calculate(context) -> LoadModelResult` を持つものを返します。アドインが import してよいのは `webpier.loadmodel` だけです。見本は `tests/fixtures/addin/minimal/`。
+- 約束（`webpier/loadmodel/`）：基本ケースごと・支承ごと（起点側・終点側 × 支承の枠 1〜10）の支承作用（鉛直力、線路方向・直角方向の水平力とその作用高さ。力は小数2桁、高さは3桁の Decimal）、基本ケースのばね（長期・短期）と地震時の固定・増分・限定増分と向き、骨組（0610・0620）の組合せと8つの抽出ケースへの割り当て、地震時（0710・0720）の組合せ、片持ち梁（0900）の組合せと Capacita の力の表の8行への割り当て（係数に最大応答震度 `MaxResponse` も可）、計算書に差し込む根拠の節（段落と文字の表）、来歴の辞書。組合せからは、アプリの基本ケース `D1`・`D2`・`WP_HIGH`・`WP_NORMAL`・`WP_LOW`（骨組）、`PIER_WIND_<n>`（0620 の躯体の風、`pier_wind_pressures` の n 番目の風圧）、`EQ2`（地震時の橋脚自重の慣性力）を id で参照します。
+- アプリは結果を受け取るときに検査し（`loadmodel.validate`）、違反は `アドイン:<場所>` の入力エラーにします（id の一意、参照先、空き支承枠、印字桁、符号 −1 は鉛直力0のケースだけ、地震時のケースは NDU の15まで、ほか）。
+- 0600 は死荷重・自重だけ、0610・0620・0710・0720・0900 は荷重モデルの結果から作り、それ以外の段階は同じものを使います（`pipeline.stages.stages_for`）。支承作用は M = N × アーム ＋ H × y で支承位置に集めた橋脚天端の等価作用にします。組合せのない抽出ケースは荷重0のケース（`ZERO`、FrameWeb には ty = 0 の1行）で断面力0として通し、計算書に「該当する組合せなし（断面力0）」と印字します。Vd＝0 で割る照査（基礎の照査、フーチング）は抽出ケースの名前を入れた入力エラーです。0720 の制御節点の重みは、増分の地震時ケースの直角方向の支承作用を起点側・終点側ごとに合計したものです。
+- アドインをつないだとき、入力の荷重モデルの項目（`列車`、各側の `衝撃係数_単線終局`・`曲線半径`・`列車速度`・`遠心作用方向`、支点・支承の雪荷重と `列車分担`）は読みません（検査も印字もしない。あってもなくてもよい）。入力エディタはアドインに対応しません（エディタの「計算・印刷」は列車荷重で計算します）。
+- 来歴：アドインが宣言した名前・版・約束の版と、アドインが返した来歴の辞書を、解釈せずに全結果 JSON・全付帯 JSON と runner の `summary.addin` に `addin` として写します。アドインのファイルのハッシュは取らず、アドインの入力も読みません（アドインの責任）。
+- 失敗：宣言がない・約束の版が違う・import や `calculate` が例外を出すと `ADDIN_ERROR`（終了コード 2）。アドインが自分の入力の誤りを `LoadModelInputError` で知らせると `INPUT_ERROR` です。
+- `schema --addin` は荷重モデルの項目に `x-webpier-load-model: true` を付け、どの値でもよいとします。
 
 ## 入力エディタ
 
@@ -234,14 +253,16 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 webpier/
   core/       Printed（印字桁つきの値）、厳密なJSON読込み、エラー、ハッシュ
   inputs/     schema 2 の解析と検証。項目表 fields.py、選択肢 choices.py
-  calc/       段階の計算（foundation, reaction, longitudinal, transverse, seismic_*）と共通の骨組・移動荷重
+  loadmodel/  荷重モデルの約束（アドインが import してよい唯一のパッケージ）と結果の検査（決定70）
+  calc/       段階の計算（foundation, reaction, longitudinal, transverse, seismic_*）と共通の骨組・移動荷重。
+              generic/ は荷重モデルの 0610・0620・0710・0720・0900、bearing_actions は支承作用から橋脚天端の等価作用
   reporting/  GridLayoutPdf による計算書（stages/ に段階ごとの組版）
   export/     frameweb/（FEMPython・FrameWebforCS）、jrsnap/（JRSNAP 5.2-L03 NDU）、aggrese/（Aggre-SE のプロジェクトXML）
   pipeline/   段階の登録表、生成、公開、CLI（python -m webpier）
   gui/        入力エディタ（python -m webpier.gui）
 ```
 
-依存は `core ← inputs ← calc ← reporting / export ← pipeline ← gui` の向きだけです。`tests/test_layer_boundaries.py` が強制し、calc・inputs・core は描画や Tk のライブラリも import しません。計算は帳票に依存しません。
+依存は `core ← inputs ← loadmodel ← calc ← reporting / export ← pipeline ← gui` の向きだけです（loadmodel は core だけに依存し、モジュールを名前で import する importlib は pipeline だけが使います）。`tests/test_layer_boundaries.py` が強制し、calc・inputs・core は描画や Tk のライブラリも import しません。計算は帳票に依存しません。
 
 ### 段階の登録表
 
