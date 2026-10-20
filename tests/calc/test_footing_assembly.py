@@ -189,3 +189,13 @@ def test_both_directions_are_prepared_before_the_analyses_and_completed_after_th
     result = footing.complete_footing(bases, (reactions("0800_longitudinal", bases.longitudinal), STEPS),
                                       (reactions("0800_transverse", bases.transverse), STEPS))
     assert result == footing.FootingResult(completed("0800_longitudinal"), completed("0800_transverse"))
+
+
+def test_a_vertical_force_of_zero_names_the_extraction_case():
+    # Decision 70: the zero case of an extraction group without a combination.
+    basis, _ = prepared("0800_longitudinal")
+    given = reactions("0800_longitudinal", basis)
+    extreme = fc.SupportReaction(13, 0.0, 0.0, 0.0)
+    given[(basis.pickups["short_term"], "fy")] = (extreme, extreme)
+    with pytest.raises(InputError, match="フーチングの応答値（使用性 短期）: 抽出ケース「永久＋変動」の鉛直力 Vd が0です"):
+        footing.complete(basis, given, STEPS)

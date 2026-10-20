@@ -206,3 +206,11 @@ def test_pick_takes_the_larger_moment_then_the_larger_horizontal_force_among_equ
     assert fc.pick({(2, "fy"): (minus, minus), (2, "mz"): (plus, minus)}, 2, fc.Focus.VERTICAL) is plus
     assert fc.pick({(2, "fy"): (minus, minus), (2, "fx"): (plus, minus), (2, "mz"): (heavier, minus)}, 2,
                    fc.Focus.VERTICAL) is heavier
+
+
+def test_a_vertical_force_of_zero_names_the_extraction_case():
+    # Decision 70: an extraction group without a combination is the zero case; its Vd = 0 cannot be divided by.
+    basis = prepared()
+    with pytest.raises(InputError, match=re.escape(
+            "基礎の照査（長期支持）: 抽出ケース「長期支持性能」の鉛直力 Vd が0です（該当する組合せがなく、断面力0のケースです）")):
+        fc.check(basis, uniform(basis, reaction(1, 0.0, -0.0, 0.0)))

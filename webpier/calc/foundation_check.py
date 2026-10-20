@@ -41,7 +41,7 @@ from ._exact import d, put
 from .embedment import CoverWeight, EmbedmentResult, calculate_embedment, cover_weight
 from .foundation import FoundationResult
 from .frame import Frame, NodeRole
-from .longitudinal.combinations import Extraction, ExtractionGroup
+from .longitudinal.combinations import EXTRACTION_NAMES, Extraction, ExtractionGroup
 
 ECCENTRICITY = Precision(3, "m")
 ANGLE = Precision(3, "度")
@@ -314,10 +314,14 @@ class Capacity:
 
 
 def bearing_capacity(basis: Basis, factors: Factors, cover: CoverWeight, vd: Printed, hd: Printed, md: Printed,
-                     name: str = "基礎の照査") -> Capacity:
+                     name: str = "基礎の照査", extraction: ExtractionGroup | None = None) -> Capacity:
     """The capacity of the actions *vd*, *hd*, *md* with the 地盤抵抗係数 of *factors* and the cover soil *cover*
     (8-30 and 安定計算.xls); the footing's columns use it too (decision 60). Actions outside the equations (Vd upward,
-    ex outside the footing) are input errors naming *name*."""
+    ex outside the footing) are input errors naming *name*; Vd = 0 of the actions of *extraction* names it: a load model
+    may leave an extraction group without a combination, the zero case (decision 70)."""
+    if vd.value == 0 and extraction is not None:
+        raise InputError(f"{name}: 抽出ケース「{EXTRACTION_NAMES[extraction]}」の鉛直力 Vd が0です（該当する組合せがなく、"
+                         "断面力0のケースです）")
     if vd.value <= 0:
         raise InputError(f"{name}: フーチング底面の鉛直力 Vd が上向きです（{vd.value} kN）")
     b, l = d(basis.b), d(basis.l)
@@ -347,7 +351,7 @@ def _column(basis: Basis, spec: ColumnSpec, reaction: SupportReaction) -> Column
     factors = FACTORS[spec.requirement]
     vd, hd, md = FORCE(-reaction.fy), FORCE(abs(reaction.fx)), MOMENT(abs(reaction.mz))
     cover = basis.normal if spec.requirement is Requirement.LONG_TERM else basis.high
-    capacity = bearing_capacity(basis, factors, cover, vd, hd, md, f"基礎の照査（{spec.name}）")
+    capacity = bearing_capacity(basis, factors, cover, vd, hd, md, f"基礎の照査（{spec.name}）", spec.group)
     b, l = d(basis.b), d(basis.l)
     ex, b_eff, area, delta = capacity.ex, capacity.b_effective, capacity.area_effective, capacity.delta
     triangular = d(ex) * 6 > b

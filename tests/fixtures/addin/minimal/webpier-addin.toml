@@ -1,0 +1,4 @@
+name = "minimal"
+version = "1.0.0"
+contract = 1
+entry = "minimal_load_model:load_model"

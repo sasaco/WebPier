@@ -471,7 +471,7 @@ def complete(basis: FootingBasis, reactions: Reactions, steps: Sequence[Foundati
             vd, hd, md = FORCE(-reaction.fy), FORCE(abs(reaction.fx)), MOMENT(abs(reaction.mz))
         label = spec.limit + (f" {spec.detail}" if spec.detail else "")
         capacity = bearing_capacity(basis.check, spec.factors, getattr(basis.check, spec.water), vd, hd, md,
-                                    f"フーチングの応答値（{label}）")
+                                    f"フーチングの応答値（{label}）", spec.group)
         alpha_b = shape_alpha(capacity.b_effective, basis.check.l)
         dist = distribution(vd, md, capacity.ex, basis.check.b, basis.check.l, capacity.qd_unlimited, capacity.mmd)
         sides = []

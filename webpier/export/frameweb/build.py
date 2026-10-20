@@ -18,7 +18,8 @@ FrameWebforJS (the browser) mirrors this file once more and shows it upside down
   (gy = n, gx = h), then a load on part of
   a member varying linearly (gx = h: the 0620 wind on the pier body) from L1 = its start after the member start
   to L2 = the margin before the member end, P1 at its start and P2 at its end. A load without intensity has no
-  row, and a load case without loads has no rows at all (FrameWeb skips it, as Example2 case 5).
+  row, and a load case without loads has no rows at all (FrameWeb skips it, as Example2 case 5). The zero case of
+  a load model (decision 70) is the one node row ty = 0 at its point, which FEMPython keeps (its pickup is 0).
 - ``define`` / ``combine`` / ``pickup`` as in ``cases``.
 
 A whole number is written as an integer (Example2 writes 0, 26500000, 1); nothing is rounded. The margin L2 is
@@ -98,6 +99,9 @@ def _load(case: LoadCase, members: dict[int, Member]) -> dict[str, Any]:
     result: dict[str, Any] = {"fix_node": case.spring, "element": SECTION_TYPE, "symbol": case.symbol,
                               "LL_pitch": LL_PITCH, "rate": RATE, "name": case.name}
     nodes = []
+    if case.zero:
+        nodes.append({"n": str(case.points[0].node), "tx": None, "ty": 0, "tz": None, "rx": None, "ry": None,
+                      "rz": None, "row": 1})
     for point in case.points:
         tx, ty, rz = point.h.value, point.n.value, point.m.value
         if tx or ty or rz:

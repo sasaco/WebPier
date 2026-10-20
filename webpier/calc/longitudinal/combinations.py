@@ -66,6 +66,15 @@ class Basis(Enum):
     SERVICE_IMPACT = "service_impact"  # the serviceability impact instead of the basic I
 
 
+# The names of the extraction groups, as 8-11 prints them and FrameWeb names its pickups.
+EXTRACTION_NAMES = {
+    ExtractionGroup.FAILURE: "安全性（破壊）", ExtractionGroup.PERMANENT_VARIABLE: "永久＋変動",
+    ExtractionGroup.PERMANENT: "永久作用", ExtractionGroup.VARIABLE: "変動作用", ExtractionGroup.DAMAGE: "復旧性（損傷）",
+    ExtractionGroup.STABILITY: "安全性（安定）", ExtractionGroup.SUPPORT_LONG_TERM: "長期支持性能",
+    ExtractionGroup.SUPPORT_SHORT_TERM: "短期支持性能",
+}
+
+
 @dataclass(frozen=True)
 class CombinationFactors:
     one: Printed  # 1.0

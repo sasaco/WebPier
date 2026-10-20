@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...calc.longitudinal import BasicCase, Basis, LongitudinalResult, SpringTerm
+from ...calc.longitudinal.combinations import EXTRACTION_NAMES
 from .build import frameweb_document
 from .cases import frameweb_cases
 from .profile import LONG_TERM, SHORT_TERM, Label, Profile
@@ -50,9 +51,7 @@ LONGITUDINAL = Profile(
         "破壊 列車最大", "破壊 制動最大", "破壊 ﾛﾝｸﾞ最大", "破壊 雪最大", "ひび割れ 縁応力度", "ひび割れ 永久荷重",
         "ひび割れ 変動荷重", "損傷 列車最大", "損傷 雪最大", "地盤の安定 列車最大", "地盤の安定 制動最大",
         "地盤の安定 ﾛﾝｸﾞ最大", "地盤の安定 雪最大", "長期支持", "短期支持 低水位", "短期支持 高水位"), 1)),
-    extractions=dict(enumerate((
-        "安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）", "長期支持性能",
-        "短期支持性能"), 1)),
+    extractions={group.value: name for group, name in EXTRACTION_NAMES.items()},
     springs={SpringTerm.LONG: LONG_TERM, SpringTerm.SHORT: SHORT_TERM},
     basic=Basis.BASIC,
 )

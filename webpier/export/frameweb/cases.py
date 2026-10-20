@@ -145,6 +145,7 @@ class LoadCase:
     points: tuple[PointLoad, ...]
     line_loads: tuple[LineLoad, ...]
     member_loads: tuple[MemberLoad, ...] = ()
+    zero: bool = False  # the zero case of a load model (decision 70): one node row ty = 0 at its first point
 
 
 @dataclass(frozen=True)

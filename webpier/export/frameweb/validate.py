@@ -1,7 +1,8 @@
 """The native rules of the FrameWeb input that WebPier writes (2D frame, static load cases).
 
 The rules are those of the format of the Example2 FrameWeb file and of FrameWeb's behaviour (README FrameWeb): a spring value 1 means a fixed support and 0 a free one, so springs are positive and not 1;
-member rows without a load are rejected (unsupported mark); member load intensities are projected to 0.01; a
+member rows without a load are rejected (unsupported mark), and a node row of zeros too but for the one row ty = 0
+of a load model's zero case, which FEMPython keeps (decision 70); member load intensities are projected to 0.01; a
 load case without rows is skipped, so a Combine with only such cases is dropped and its Pickup fails, and a
 Define that has both empty and loaded candidates changes its envelope; the Combine grid shows 50 Define
 columns; the symbol "LL" makes a case a moving load.
@@ -180,7 +181,8 @@ def _node_rows(rows: object, nodes: Mapping[int, Any], path: str) -> None:
         _named(row["n"], nodes, f"{where}.n")
         _null(row, ("tz", "rx", "ry"), where)
         values = [_number(row[key], f"{where}.{key}") for key in ("tx", "ty", "rz") if row[key] is not None]
-        if not values or 0 in values:
+        zero = len(rows) == 1 and row["ty"] == 0 and row["tx"] is None and row["rz"] is None  # type: ignore[arg-type]
+        if not zero and (not values or 0 in values):  # the one row ty = 0 is a load model's zero case (decision 70)
             _fail(where, "0 の成分は null、成分のない行は書きません")
 
 

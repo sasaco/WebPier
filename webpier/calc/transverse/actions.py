@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from typing import Any
 
 from ...core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Printed
 from ...inputs import PierInput
@@ -37,7 +38,7 @@ from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, poin
 from ..longitudinal.actions import SpringTerm, bearing_point
 from ..reaction import ReactionResult
 from ..reaction.dead import BearingLoads
-from ..reaction.self_weight import Body
+from ..reaction.self_weight import Body, SelfWeightResult
 from ..reaction.train import GirderImpact, GroupTrain
 from ..reaction.transverse import WIND_WITH_TRAIN, WIND_WITHOUT_TRAIN, TransverseForce, TransverseSide
 from .wind import MemberLoad, PierWind, pier_wind
@@ -364,26 +365,67 @@ def _centrifugal(train: TrainTable, sides: tuple[TransverseSide, TransverseSide]
                             m=put(MOMENT, total(r.m for r in rows)))
 
 
-def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
+@dataclass(frozen=True)
+class DeadActions:
+    """The cases of the application on the transverse frame: D1, D2 and the buoyancy (decision 70)."""
+
+    fixed: FixedDead
+    additional: AdditionalDead
+    buoyancy: tuple[Row, Row, Row]  # high, normal, low water
+    points: dict[BasicCase, tuple[PointLoad, ...]]  # D1, D2, BUOYANCY_HIGH, BUOYANCY_NORMAL, BUOYANCY_LOW
+    column: LineLoad  # the D1 column line load
+
+
+def _loads(dead: Any, field: str) -> list[Row]:
+    return [_row(item, b.slot, getattr(b.bearing, field), b.bearing.position)
+            for item, bearings in ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
+            for b in bearings]
+
+
+def dead_actions(pier: PierInput, frame: Frame, dead: Any, weights: SelfWeightResult) -> DeadActions:
+    """D1, D2 and the buoyancy from the dead loads of each bearing (*dead*: the DeadResult of 0600, or the
+    DeadLoadsResult of a load model's 0600) and the pier parts."""
     s = pier.substructure
-    dead, weights, train, transverse = reaction.dead, reaction.self_weight, reaction.train, reaction.transverse
-    girders: Girders = ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
-
-    def loads(field: str) -> list[Row]:
-        return [_row(item, b.slot, getattr(b.bearing, field), b.bearing.position)
-                for item, bearings in girders for b in bearings]
-
     parts = ([_body(Item.PEDESTAL, weights.pedestal)] if s.h[1].value > 0 else []) + [_body(Item.BEAM, weights.beam)]
-    bearings_d1 = loads("d1")
+    bearings_d1 = _loads(dead, "d1")
     table = _table(bearings_d1 + parts)
     q = put(LINE_LOAD, d(s.w[6]) * d(s.b[6]) * d(s.unit_weight_body))
     overlap = LENGTH.total((s.h[2], s.h[3]))
     fixed = FixedDead(table=table, column_q=q, overlap=overlap, n=put(FORCE, d(table.n) - d(q) * d(overlap)),
                       m=table.m, footing=_body(Item.FOOTING, weights.footing))
-    additional = AdditionalDead(table=_table(loads("d2")), soil=_body(Item.OVERBURDEN, weights.overburden))
+    additional = AdditionalDead(table=_table(_loads(dead, "d2")), soil=_body(Item.OVERBURDEN, weights.overburden))
     buoyancy = tuple(_body(Item.WATER, water.body)
                      for water in (weights.buoyancy_high, weights.buoyancy_normal, weights.buoyancy_low))
-    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
+
+    def top(n: Printed, m: Printed) -> PointLoad:
+        return bearing_point(frame, n, m)
+
+    def footing(row: Row) -> PointLoad:
+        return point_load(frame, NodeRole.FOOTING_CENTROID, n=row.n, m=row.m)
+
+    if frame.bearing_seat.number == frame.node(NodeRole.CAP_TOP).number:
+        d1: tuple[PointLoad, ...] = (point_load(frame, NodeRole.CAP_TOP, n=fixed.n, m=fixed.m),)
+    else:  # the bearings on the pedestal; the pier parts, less the column-line overlap, at the beam top
+        d1 = (top(put(FORCE, total(r.n for r in bearings_d1)), put(MOMENT, total(r.m for r in bearings_d1))),
+              point_load(frame, NodeRole.CAP_TOP, n=put(FORCE, total(r.n for r in parts) - d(q) * d(overlap)),
+                         m=put(MOMENT, total(r.m for r in parts))))
+    c = BasicCase
+    points: dict[BasicCase, tuple[PointLoad, ...]] = {
+        c.D1: (*d1, footing(fixed.footing)),
+        c.D2: (top(additional.table.n, additional.table.m), footing(additional.soil)),
+        c.BUOYANCY_HIGH: (footing(buoyancy[0]),),
+        c.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
+        c.BUOYANCY_LOW: (footing(buoyancy[2]),),
+    }
+    return DeadActions(fixed, additional, buoyancy, points, column_line_load(frame, n=q))  # type: ignore[arg-type]
+
+
+def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
+    dead, weights, train, transverse = reaction.dead, reaction.self_weight, reaction.train, reaction.transverse
+    girders: Girders = ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
+    app = dead_actions(pier, frame, dead, weights)
+    fixed, additional, buoyancy = app.fixed, app.additional, app.buoyancy
+    snow = tuple(_table(_loads(dead, field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
     reactions = {Item.ORIGIN: train.loading.rb, Item.END: train.loading.rc}
     trains = Trains(*(train_table(track, girders, reactions) for track in Track))
     impact = Impacts(ultimate=_impacts(trains, train.ultimate), service=_impacts(trains, train.service))
@@ -402,25 +444,12 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     def top(n: Printed, m: Printed) -> PointLoad:
         return bearing_point(frame, n, m)
 
-    def footing(row: Row) -> PointLoad:
-        return point_load(frame, NodeRole.FOOTING_CENTROID, n=row.n, m=row.m)
-
     def seat(h: Printed, m: Printed) -> PointLoad:
         return bearing_point(frame, FORCE(0), m, h)
 
-    if frame.bearing_seat.number == frame.node(NodeRole.CAP_TOP).number:
-        d1: tuple[PointLoad, ...] = (point_load(frame, NodeRole.CAP_TOP, n=fixed.n, m=fixed.m),)
-    else:  # the bearings on the pedestal; the pier parts, less the column-line overlap, at the beam top
-        d1 = (top(put(FORCE, total(r.n for r in bearings_d1)), put(MOMENT, total(r.m for r in bearings_d1))),
-              point_load(frame, NodeRole.CAP_TOP, n=put(FORCE, total(r.n for r in parts) - d(q) * d(overlap)),
-                         m=put(MOMENT, total(r.m for r in parts))))
     c = BasicCase
     points: dict[BasicCase, tuple[PointLoad, ...]] = {
-        c.D1: (*d1, footing(fixed.footing)),
-        c.D2: (top(additional.table.n, additional.table.m), footing(additional.soil)),
-        c.BUOYANCY_HIGH: (footing(buoyancy[0]),),
-        c.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
-        c.BUOYANCY_LOW: (footing(buoyancy[2]),),
+        **app.points,
         c.LATERAL: (seat(lateral.h, lateral.m),),
         c.WIND_WITH_TRAIN: (seat(with_train.h, with_train.m),),
         c.WIND_WITHOUT_TRAIN: (seat(without_train.h, without_train.m),),
@@ -442,7 +471,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
                c.WIND_WITHOUT_TRAIN: without_train.pier.member_loads}
     basic_cases = tuple(
         BasicAction(number=number, case=case, spring=SpringTerm.LONG if case in LONG_TERM else SpringTerm.SHORT,
-                    points=points[case], line_loads=(column_line_load(frame, n=q),) if case is c.D1 else (),
+                    points=points[case], line_loads=(app.column,) if case is c.D1 else (),
                     member_loads=members.get(case, ()))
         for number, case in enumerate((case for case in BasicCase if case in points), 1))
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]
@@ -451,6 +480,6 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 
 
 __all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "SNOW_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
-           "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "FixedDead",
+           "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "DeadActions", "FixedDead", "dead_actions",
            "HorizontalRow", "ImpactRow", "ImpactSet", "ImpactTable", "Impacts", "Item", "Lateral", "Row", "TopTable",
            "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions", "train_table"]
