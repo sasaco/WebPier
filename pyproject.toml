@@ -19,7 +19,7 @@ dev = ["pytest>=8,<10", "coverage>=7.10,<8", "hypothesis>=6.100,<7"]
 package = false
 
 [tool.uv.sources]
-gridlayoutpdf = { url = "https://github.com/sasaco/grid_layout_pdf/releases/download/v0.1.0/gridlayoutpdf-0.1.0-py3-none-any.whl" }
+gridlayoutpdf = { path = "C:/Users/sasai/Documents/GridLayoutPdf" }
 
 [tool.coverage.run]
 branch = true
