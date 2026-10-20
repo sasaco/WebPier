@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 
 from foundation_report_cases import CASES, case, text
+from webpier.calc.embedment import surface_layer_thickness
 from webpier.core.printed import Printed
 
 REFERENCE = Path(__file__).parents[1] / "fixtures" / "reporting" / "semantic" / "0500.json"
@@ -72,26 +73,30 @@ def expected_records(result, pier, embedment) -> dict[str, str]:
 
     for key in ("title", "soil.heading", "soil.introduction", "soil.caption", "soil.header"):
         fixed(key)
+    surface = surface_layer_thickness(pier, result.surface_thickness)  # decision 64: the rest of Df when blank
     for index, layer in enumerate(pier.soil.layers):
-        thickness = result.surface_thickness if index == 0 else layer.thickness
+        thickness = surface if index == 0 else layer.thickness
         out[f"0500/soil.row.{index}"] = "".join((
             layer.name, text(thickness), layer.soil_type, text(layer.n_value), text(layer.unit_weight_wet),
             text(layer.unit_weight_submerged), text(layer.friction_angle), text(layer.compressive_strength),
             text(layer.deformation_modulus, thousands=True)))
     sub = pier.substructure
-    out["0500/soil.surface"] = (f"表層の層厚={text(sub.h[6])}+{text(sub.h[5])}"
+    label = "表層の層厚" if surface == result.surface_thickness else "Df"
+    out["0500/soil.surface"] = (f"{label}={text(sub.h[6])}+{text(sub.h[5])}"
                                 f"+min({text(sub.df1)},{text(sub.df2)})={text(result.surface_thickness)}m")
     if embedment is not None:
-        e = embedment
+        e, single = embedment, embedment.single
+        assert single is not None  # the variants have one layer within Df
         out["0500/embedment.heading"] = "有効根入れ深さと表層の平均有効単位重量"
         out["0500/embedment.formula"] = "γ2=((Df−hw2)×γwet+hw2×γsub)/Df"
-        out["0500/embedment.gamma2"] = (f"γ2=(({text(e.depth)}−{text(e.water)})×{text(e.unit_weight_wet)}"
-                                        f"+{text(e.water)}×{text(e.unit_weight_submerged)})/{text(e.depth)}"
+        out["0500/embedment.gamma2"] = (f"γ2=(({text(e.depth)}−{text(e.water)})×{text(single.unit_weight_wet)}"
+                                        f"+{text(e.water)}×{text(single.unit_weight_submerged)})/{text(e.depth)}"
                                         f"={text(e.unit_weight)}kN/m3")
         out["0500/embedment.definition.Df"] = f"ここに、Df：有効根入れ深さ（表層厚）(={text(e.depth)}m)"
         out["0500/embedment.definition.hw2"] = f"hw2：基礎底面からの平水位(={text(e.water)}m)"
-        out["0500/embedment.definition.wet"] = f"γwet：表層の湿潤単位体積重量(={text(e.unit_weight_wet)}kN/m3)"
-        out["0500/embedment.definition.sub"] = f"γsub：表層の水中単位体積重量(={text(e.unit_weight_submerged)}kN/m3)"
+        out["0500/embedment.definition.wet"] = f"γwet：表層の湿潤単位体積重量(={text(single.unit_weight_wet)}kN/m3)"
+        out["0500/embedment.definition.sub"] = (f"γsub：表層の水中単位体積重量"
+                                                f"(={text(single.unit_weight_submerged)}kN/m3)")
     fixed("bearing.heading")
     for key, label in (("normal", "地震時を除く"), ("seismic", "地震時")):
         out["0500/bearing." + key] = f"Nγ={text(result.n_gamma)},Nq={text(result.n_q)}{label}"
@@ -199,7 +204,8 @@ def test_the_report_reads_the_result_not_the_input():
                        exponent_text="-1",
                        long_term=replace(result.long_term, kv=Printed(111.0, 0, "kN/m3"),
                                          Kr_transverse=Printed(7654321.0, 0, "kN m/rad")))
-    gamma = replace(embedment, unit_weight=Printed(99.9, 1, "kN/m3"), water=Printed(1.111, 3, "m"))
+    gamma = replace(embedment, normal=replace(embedment.normal, unit_weight=Printed(99.9, 1, "kN/m3")),
+                    water=Printed(1.111, 3, "m"))
     actual = actual_records(sentinel, pier, gamma)
     assert actual["0500/kv.width"].endswith("=1.234m")
     assert actual["0500/bearing.normal"].startswith("Nγ=12.34,")

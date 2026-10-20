@@ -407,9 +407,14 @@ REGION_NAMES = {
 def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
     """Nodes and their roles; with *springs* the footing bottom is named as the spring node (0610, 0620)."""
     rows = [("節点番号", "X座標 (m)", "Y座標 (m)", "位置")]
+    girders = {NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END}
     for node in frame.nodes:
         names = "・".join(name + ("（ばね）" if springs and role is NodeRole.FOOTING_BOTTOM else "")
                          for role, name in _ROLE_NAMES.items() if role in node.roles)
+        if NodeRole.CONTROL in node.roles and not girders <= node.roles:
+            # decision 65: girders at different heights; the control node is named (with both girders it is the
+            # common girder level, Example2 node 1)
+            names = "・".join(filter(None, (names, "制御節点")))
         rows.append((str(node.number), value(node.x), value(node.y), names))
     return TableSpec((60, 84, 84, 204), tuple(rows), (BODY_LEADING,) * len(rows), numeric=frozenset({0, 1, 2}))
 
@@ -556,8 +561,19 @@ def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str)
     m.equation("inertia.footing", "", "H",
                terms(value(footing.volume), "×", "(", value(footing.unit_weight), "−", value(footing.displaced), ")",
                      "×", value(footing.kh)), footing.force)
+    soil = footing.soil
+    if len(soil.parts) == 1:
+        m.definitions("inertia.footing.note", Definition("V", f"フーチングの体積（{chapter}）"),
+                      Definition("γ'", f"排除した土（{soil.parts[0][0].name}）の湿潤単位体積重量"))
+        return
+    # Decision 64: the layers within the footing height H5 + H6, averaged by their thickness.
     m.definitions("inertia.footing.note", Definition("V", f"フーチングの体積（{chapter}）"),
-                  Definition("γ'", "排除した土（表層）の湿潤単位体積重量"))
+                  Definition("γ'", "排除した土の湿潤単位体積重量（フーチング高さの範囲の層の厚さによる平均）"))
+    parts: list = []
+    for layer, part in soil.parts:
+        parts += [*(("+",) if parts else ()), value(part), "×", value(layer.unit_weight_wet)]
+    m.equation("inertia.footing.displaced", "", "γ'", terms("(", *parts, ")", "/", value(soil.height)),
+               footing.displaced)
 
 
 # --- combinations (8.4 / 9.4) -----------------------------------------------------------------------------

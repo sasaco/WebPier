@@ -178,7 +178,7 @@ def test_bearing_side_signs_of_the_train_moment():
 
 def test_footing_lighter_than_the_displaced_soil_stops_0710():
     # Decision 32: γ < γ' would give a footing inertia against the earthquake.
-    with pytest.raises(InputError, match=r"下部構造\.単位体積重量\.フーチング.*地盤データ\.層\.0\.単位体積重量\.湿潤"):
+    with pytest.raises(InputError, match=r"下部構造\.単位体積重量\.フーチング.*地盤データ\.層\[0\]\.単位体積重量\.湿潤"):
         seismic(pier(**{WEIGHTS + "フーチング": 17.9}))
 
 

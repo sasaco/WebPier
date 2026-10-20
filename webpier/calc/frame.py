@@ -20,9 +20,9 @@ bearing loads act at its top (decision 29), so the frame carries H × H1.
 0710 cuts a 0.010 m micro member from the bottom of the column (CONTEXT.md
 柱下端の微小部材) and makes the rest rigid; ``column_base_micro_member`` and
 ``elastic_regions`` express that. 0720 adds the girder level of each side,
-h1 + h2 above the bearing seat (Example2 11-1 node 1, 2.750), joined to the
-seat by rigid members and numbered first (``girder_levels``). No drawing data
-is kept here.
+h1 + h2 above the bearing seat (Example2 11-1 node 1, 2.750), and the control
+node between them (decision 65), joined to the seat by rigid members and
+numbered first (``girder_levels``). No drawing data is kept here.
 """
 
 from __future__ import annotations
@@ -59,6 +59,7 @@ class NodeRole(Enum):
     PEDESTAL_TOP = "pedestal_top"
     GIRDER_ORIGIN = "girder_origin"  # h1 + h2 of the origin girder above the bearing seat (0720)
     GIRDER_END = "girder_end"  # h1 + h2 of the end girder above the bearing seat (0720)
+    CONTROL = "control"  # the girder levels weighted by the girder inertia forces (0720, decision 65)
 
 
 class Region(Enum):
@@ -199,16 +200,31 @@ def _springs(springs: SpringSet, direction: Direction) -> Springs:
     return Springs(kv=springs.Kv, ks=springs.Ks, kr=kr)
 
 
-def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, int, Region]]
-                   ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
-    """The girder levels above the bearing seat, numbered first from the top (Example2 11-1, 11-2).
+def control_level(heights: tuple[Printed, Printed], forces: tuple[Printed, Printed]) -> Printed:
+    """The control node above the bearing seat (decision 65): h1 + h2 of the two girders weighted by their
+    seismic inertia forces, Σ Hi × (h1 + h2)i / Σ Hi; the common height when both are the same."""
+    if heights[0] == heights[1]:
+        return heights[0]
+    weight = d(forces[0]) + d(forces[1])
+    if weight <= 0:
+        raise InputError("上部工反力: 桁の地震時慣性力の合計が0以下で、制御節点の高さ（慣性力による重み付け）が求まりません")
+    return put(LENGTH, (d(forces[0]) * d(heights[0]) + d(forces[1]) * d(heights[1])) / weight)
 
-    Sides at the same height share a node; a level at the seat (h1 + h2 = 0) is the seat itself.
+
+def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, int, Region]],
+                   forces: tuple[Printed, Printed]) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+    """The girder levels above the bearing seat, numbered first from the top (Example2 11-1, 11-2), and the
+    control node at the level weighted by the girder inertia *forces* (origin, end; decision 65).
+
+    Levels at the same height share a node; a level at the seat (h1 + h2 = 0) is the seat itself.
     """
     seat = next((node for node in nodes if NodeRole.PEDESTAL_TOP in node.roles), nodes[0])
     levels: dict[Printed, set[NodeRole]] = {}
-    for role, span in ((NodeRole.GIRDER_ORIGIN, pier.spans.origin), (NodeRole.GIRDER_END, pier.spans.end)):
-        levels.setdefault(LENGTH.total((seat.y, span.heights[1], span.heights[2])), set()).add(role)
+    heights = tuple(LENGTH.total((span.heights[1], span.heights[2])) for span in (pier.spans.origin, pier.spans.end))
+    for role, height in zip((NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END), heights):
+        levels.setdefault(LENGTH.total((seat.y, height)), set()).add(role)
+    control = control_level(heights, forces)  # type: ignore[arg-type]  # two sides
+    levels.setdefault(LENGTH.total((seat.y, control)), set()).add(NodeRole.CONTROL)
     above = sorted((y for y in levels if y != seat.y), key=lambda y: y.value, reverse=True)
     shift = len(above)
     added = [Node(number, seat.x, y, frozenset(levels[y])) for number, y in enumerate(above, 1)]
@@ -220,9 +236,25 @@ def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, in
     return added + moved, chain + [(start + shift, end + shift, region) for start, end, region in links]
 
 
+def _numbered_from_the_upper_left(nodes: list[Node], links: list[tuple[int, int, Region]]
+                                  ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+    """Nodes numbered from the top, left to right at one height, and members in the order of their ends
+    (JRSNAP 5.2-L03 操作説明書 2.1.6: a vertical element has the smaller number at its top, a horizontal one at its
+    left). The pedestal top and its arm (decision 29) and the girder levels are where the order needs it; a member
+    keeps its direction (start → end), which the loads are written for."""
+    order = sorted(nodes, key=lambda node: (-node.y.value, node.x.value))
+    new = {node.number: number for number, node in enumerate(order, 1)}
+    renumbered = [(new[start], new[end], region) for start, end, region in links]
+    renumbered.sort(key=lambda link: (min(link[:2]), max(link[:2])))
+    return [Node(new[node.number], node.x, node.y, node.roles) for node in order], renumbered
+
+
 def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: FoundationResult,
                 materials: MaterialsResult, direction: Direction, *, column_base_micro_member: bool = False,
-                elastic_regions: Collection[Region] = BODY_REGIONS, girder_levels: bool = False) -> Frame:
+                elastic_regions: Collection[Region] = BODY_REGIONS,
+                girder_levels: tuple[Printed, Printed] | None = None) -> Frame:
+    """*girder_levels*: the girder inertia forces (origin, end) of 0720, which add the girder levels and the
+    control node; None for the other frames."""
     unknown = set(elastic_regions) - BODY_REGIONS
     if unknown:
         raise ValueError(f"elastic regions need a section: {sorted(region.name for region in unknown)}")
@@ -279,8 +311,9 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
         previous = len(nodes)
         if start:
             links.append((start, previous, region))  # type: ignore[arg-type]  # only the beam top has no region
-    if girder_levels:
-        nodes, links = _girder_levels(pier, nodes, links)
+    if girder_levels is not None:
+        nodes, links = _girder_levels(pier, nodes, links, girder_levels)
+    nodes, links = _numbered_from_the_upper_left(nodes, links)
 
     by_number = {node.number: node for node in nodes}
     members = []

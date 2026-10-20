@@ -36,7 +36,7 @@ def test_pedestal_adds_its_row_at_the_beam_top():
     # N = (5740 + 1860 + 51.45 + 1503.27) − 297.68 × 2.700 = 9154.72 − 803.736 = 8350.984
     assert fixed.n.value == 8350.98
     assert fixed.m.value == -628.01  # −1865.50 + 1255.50 − 18.01 + 0.00 (about the column axis)
-    assert result.basic(BasicCase.D1).line_loads[0].members == (1, 2, 3)  # not on the pedestal stub
+    assert result.basic(BasicCase.D1).line_loads[0].members == (3, 4, 5)  # not on the pedestal stub (1) or arm (2)
 
 
 def anchored(action):
@@ -44,33 +44,33 @@ def anchored(action):
 
 
 def test_bearing_loads_act_at_the_pedestal_top():
-    # Decision 29. The pedestal top (node 8) is 0.300 above the beam top and −0.350 from the column axis, so a
-    # bearing at x = ∓f carries M about node 8 of Σ N·(x + 0.350) = Σ M − Σ N × (−0.350).
+    # Decision 29. The pedestal top (node 1, numbered from the upper left) is 0.300 above the beam top and −0.350 from the column axis, so a
+    # bearing at x = ∓f carries M about node 1 of Σ N·(x + 0.350) = Σ M − Σ N × (−0.350).
     result = longitudinal(pier(**PEDESTAL))
     seat, cap, footing = NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP, NodeRole.FOOTING_CENTROID
-    assert result.frame.node(seat).number == 8
+    assert result.frame.node(seat).number == 1
     # D1: bearings 5740 + 1860 = 7600.00; M = −610.00 − 7600.00 × (−0.350) = 2050.00 at the seat.
     # Pier parts at the beam top: 51.45 + 1503.27 − 297.68 × 2.700 = 750.984 -> 750.98; M = −18.01 + 0.00.
-    assert anchored(result.basic(BasicCase.D1)) == [(seat, 8, 7600.0, 0.0, 2050.0), (cap, 1, 750.98, 0.0, -18.01),
-                                                    (footing, 5, 4167.45, 0.0, 0.0)]
+    assert anchored(result.basic(BasicCase.D1)) == [(seat, 1, 7600.0, 0.0, 2050.0), (cap, 3, 750.98, 0.0, -18.01),
+                                                    (footing, 7, 4167.45, 0.0, 0.0)]
     # D2: 780.00, M = 6.50 + 780.00 × 0.350 = 279.50.
-    assert anchored(result.basic(BasicCase.D2))[0] == (seat, 8, 780.0, 0.0, 279.5)
+    assert anchored(result.basic(BasicCase.D2))[0] == (seat, 1, 780.0, 0.0, 279.5)
     # Snow 2: 710.00, 19.25 + 248.50 = 267.75; train single 567.39, 110.52 + 198.5865 = 309.1065 -> 309.11.
-    assert anchored(result.basic(BasicCase.SNOW2)) == [(seat, 8, 710.0, 0.0, 267.75)]
-    assert anchored(result.basic(BasicCase.TRAIN_SINGLE)) == [(seat, 8, 567.39, 0.0, 309.11)]
+    assert anchored(result.basic(BasicCase.SNOW2)) == [(seat, 1, 710.0, 0.0, 267.75)]
+    assert anchored(result.basic(BasicCase.TRAIN_SINGLE)) == [(seat, 1, 567.39, 0.0, 309.11)]
     # 227.79 × 0.350 = 79.7265; 87.00 + 79.7265 = 166.7265 -> 166.73.
-    assert anchored(result.basic(BasicCase.IMPACT_SINGLE)) == [(seat, 8, 227.79, 0.0, 166.73)]
+    assert anchored(result.basic(BasicCase.IMPACT_SINGLE)) == [(seat, 1, 227.79, 0.0, 166.73)]
     # The horizontal bearing force acts at the seat: the frame carries H × H1 (0.300).
-    assert anchored(result.basic(BasicCase.SAFETY_LR10_B)) == [(seat, 8, 0.0, 473.43, 0.0)]
+    assert anchored(result.basic(BasicCase.SAFETY_LR10_B)) == [(seat, 1, 0.0, 473.43, 0.0)]
     # A resolved combination keeps the anchors.
-    assert [p.node for p in result.combinations[0].component(BasicCase.D1).points] == [8, 1, 5]
+    assert [p.node for p in result.combinations[0].component(BasicCase.D1).points] == [1, 3, 7]
 
 
 def test_a_centred_pedestal_moves_the_loads_without_moments():
     result = longitudinal(pier(**dims(B2=0.85, B3=1.0, W2=1.0, W3=7.0, H1=0.3)))
-    assert result.frame.bearing_seat.number == 7
+    assert result.frame.bearing_seat.number == 1
     d1 = anchored(result.basic(BasicCase.D1))
-    assert d1[0] == (NodeRole.PEDESTAL_TOP, 7, 7600.0, 0.0, -610.0)  # 0.000 offset: the moment is unchanged
+    assert d1[0] == (NodeRole.PEDESTAL_TOP, 1, 7600.0, 0.0, -610.0)  # 0.000 offset: the moment is unchanged
 
 
 ASYMMETRIC = dims(B7=2.5, B9=1.8, H5=0.5, H6=2.2, B8=3.0, W8=5.0) | {"下部構造/土かぶり/終点側_df2": 1.5}

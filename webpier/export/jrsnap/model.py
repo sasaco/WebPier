@@ -65,6 +65,7 @@ class SectionData:
     width: Printed  # b, normal to the plane, mm
     height: Printed  # h, in the plane, mm
     shear_span: Printed  # La, control node to the footing top, mm
+    shear_failure: bool  # 破壊形態 せん断: a low-shear-span member, La/d < 2 (decision 66)
     fck: Printed
     ec: Printed  # kN/mm2
     aggregate_max: Printed

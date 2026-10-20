@@ -10,6 +10,7 @@ import pytest
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import BrakingRule, parse_input
+from webpier.inputs.fields import SNOW_KEYS
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 
@@ -72,7 +73,7 @@ def test_ten_bearing_slots_are_required():
     (("下部構造", "寸法", "側面"), "B9"),
     (("上部構造", "起点側"), "支承位置_f"),
     (("上部工反力", "起点側", "A支点"), "固定死荷重_D1"),
-    (("上部工反力", "終点側", "D支点"), "雪荷重_2年確率"),
+    (("上部工反力", "終点側", "D支点"), "付加死荷重_D2"),
     (("下部構造", "土かぶり"), "終点側_df2"),
     (("下部構造", "寸法", "高さ"), "H5"),
 ])
@@ -83,6 +84,34 @@ def test_retired_fallbacks_are_now_input_errors(path, key):
         node = node[part]
     node[key] = None
     fails(document, f"{'.'.join(path)}.{key}: 値が必要です")
+
+
+def test_a_blank_snow_load_is_no_snow():
+    # decision 62: blank is 0 kN at the girder ends and at the bearings; the other values stay required
+    document = data()
+    for side, end, support in (("起点側", "A支点", "B支点"), ("終点側", "D支点", "C支点")):
+        reactions = document["上部工反力"][side]
+        reactions[end] |= dict.fromkeys(SNOW_KEYS)
+        for slot in reactions[support]:
+            if slot is not None:
+                slot |= dict.fromkeys(SNOW_KEYS)
+    pier = parse_input(document)
+    ends = (pier.reactions.a, pier.reactions.d)
+    bearings = [b for b in (*pier.reactions.b, *pier.reactions.c) if b is not None]
+    assert bearings and all(
+        (item.snow2, item.snow10, item.snow30) == (Printed(0, 2, "kN"),) * 3 for item in (*ends, *bearings))
+
+
+def test_surface_thickness_may_be_entered_and_middle_layers_need_theirs():
+    # decision 64: 表層 may have a 層厚 (blank or absent: the rest of Df); a layer above 支持層 needs its 層厚
+    document = data()
+    document["地盤データ"]["層"][0]["層厚"] = 1.25
+    assert parse_input(document).soil.surface.thickness == Printed(1.25, 3, "m")
+    document["地盤データ"]["層"][0]["層厚"] = None
+    assert parse_input(document).soil.surface.thickness is None
+    middle = deepcopy(document["地盤データ"]["層"][0]) | {"層番": "ローム", "層厚": None}
+    document["地盤データ"]["層"].insert(1, middle)
+    fails(document, "地盤データ.層[1].層厚: 値が必要です")
 
 
 def test_top_layer_wet_unit_weight_is_required():
@@ -138,7 +167,6 @@ def test_reserved_pile_and_skew_fields_are_validated_but_kept():
     (("下部構造", "寸法", "側面"), "B10"),
     (("上部構造", "列車"), "単位"),
     ((), "schema_version_typo"),
-    (("地盤データ", "層", 0), "層厚"),       # derived: H6+H5+min(df1,df2)
 ])
 def test_unknown_or_derived_keys_are_rejected(path, key):
     document = data()

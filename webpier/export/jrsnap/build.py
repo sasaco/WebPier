@@ -1,6 +1,7 @@
 """The NDU model of a 0710 or 0720 result, by its profile (CONTEXT.md JRSNAP入力モデル).
 
-- Joints: the frame nodes, y turned downward from the footing top (the origin, JointOrg).
+- Joints: the frame nodes, y turned downward from the footing top (the origin, JointOrg), numbered from the top,
+  left to right at one height (JRSNAP 2.1.6).
 - Elements: one per frame member, i at the upper (or left) end; the micro member is the automatic M-θ element,
   every other member a rigid region. An inclined rigid member (the offset of an asymmetric footing) is a vertical
   and a horizontal element through a new joint; an inclined elastic member is not supported.
@@ -19,6 +20,7 @@ Values come from the results as they are printed; nothing is recalculated.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from ...calc._exact import d, put
@@ -91,10 +93,7 @@ def _analysis(pier: PierInput, profile: Profile) -> Analysis:
 
 
 def _control(frame: Frame, profile: Profile) -> Node:
-    for node in frame.nodes:
-        if profile.control <= node.roles:
-            return node
-    raise InputError("上部構造: 起点側と終点側の桁の高さ h1+h2 が異なり、制御節点と La が一つに定まりません（未対応）")
+    return next(node for node in frame.nodes if profile.control <= node.roles)
 
 
 def _footing(pier: PierInput, foundation: FoundationResult, embedment: EmbedmentResult, profile: Profile,
@@ -104,8 +103,9 @@ def _footing(pier: PierInput, foundation: FoundationResult, embedment: Embedment
     if support.soil_type not in SANDY_SOILS:
         raise InputError(f"{path}.土質区分: JRSNAP の直接基礎（砂質土系）は{'・'.join(SANDY_SOILS)}だけに対応します"
                          f"（入力 {support.soil_type}）")
-    if support.compressive_strength is None or support.compressive_strength.value != 0:
-        raise InputError(f"{path}.一軸圧縮強度_qu: qu = 0 が必要です（砂質土系の直接基礎は c = 0）")
+    # decision 63: a blank qu is 0
+    if support.compressive_strength is not None and support.compressive_strength.value != 0:
+        raise InputError(f"{path}.一軸圧縮強度_qu: qu = 0 または空欄が必要です（砂質土系の直接基礎は c = 0）")
     if support.unit_weight_submerged is None:
         raise InputError(f"{path}.単位体積重量.水中: 値が必要です（γ1）")
     b, l = (getattr(foundation, name) for name in profile.plan)
@@ -132,6 +132,12 @@ def _case(number: int, action: Any, profile: Profile, elements: _Elements) -> Lo
         if point.n.value or point.h.value or point.m.value:
             labels = profile.footing_labels if point.anchor is NodeRole.FOOTING_CENTROID else profile.seat_labels
             joints.append(JointLoad(point.node, point.h, point.n, point.m, labels[action.case]))
+    if not members and not joints and action.points:
+        # Decision 62: a case with no load (no snow) keeps one zero row where it acts. JRSNAP's 荷重図 leaves out a
+        # case without rows and gives the next page its title (P7, 2026-10-20); its own NDT writes zeros the same way.
+        point = action.points[0]
+        labels = profile.footing_labels if point.anchor is NodeRole.FOOTING_CENTROID else profile.seat_labels
+        joints.append(JointLoad(point.node, point.h, point.n, point.m, labels[action.case]))
     return LoadCase(number=number, title=profile.case_titles[action.case], increment=INCREMENTS[action.increment],
                     member_loads=tuple(members), joint_loads=tuple(joints))
 
@@ -155,7 +161,25 @@ def build_ndu(profile: Profile, pier: PierInput, foundation: FoundationResult, e
     combinations = tuple(Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
                                      coefficients=tuple(int(case in c.cases) for case in order))
                          for c in seismic.combinations)
-    return NduModel(profile=profile, analysis=_analysis(pier, profile), control=control.number, origin=top.number,
-                    joints=tuple(joints.values()), elements=tuple(elements.elements), section=section, springs=springs,
-                    footing=_footing(pier, foundation, embedment, profile, support.node), cases=cases,
-                    combinations=combinations)
+    return _from_the_upper_left(NduModel(
+        profile=profile, analysis=_analysis(pier, profile), control=control.number, origin=top.number,
+        joints=tuple(joints.values()), elements=tuple(elements.elements), section=section, springs=springs,
+        footing=_footing(pier, foundation, embedment, profile, support.node), cases=cases, combinations=combinations))
+
+
+def _from_the_upper_left(model: NduModel) -> NduModel:
+    """Joints numbered from the top, left to right at one height (JRSNAP 5.2-L03 操作説明書 2.1.6): the frame is
+    numbered so already, and the corner joint of an inclined rigid member takes its place among them. An element
+    keeps i at its upper (or left) end, which is then the smaller number."""
+    order = sorted(model.joints, key=lambda joint: (joint.y.value, joint.x.value))
+    new = {joint.number: number for number, joint in enumerate(order, 1)}
+    if all(old == number for old, number in new.items()):
+        return model
+    return replace(
+        model, control=new[model.control], origin=new[model.origin],
+        joints=tuple(replace(joint, number=new[joint.number]) for joint in order),
+        elements=tuple(replace(e, i=new[e.i], j=new[e.j]) for e in model.elements),
+        springs=tuple(replace(spring, node=new[spring.node]) for spring in model.springs),  # type: ignore[arg-type]
+        footing=replace(model.footing, node=new[model.footing.node]),
+        cases=tuple(replace(case, joint_loads=tuple(replace(load, node=new[load.node]) for load in case.joint_loads))
+                    for case in model.cases))

@@ -3,7 +3,8 @@
 The model is the transverse frame with the 0.010 m column-base micro member
 (CONTEXT.md 柱下端の微小部材), the only member with a section (11-5), and the
 girder level h1 + h2 of each side above the bearing seat (11-1 node 1, 2.750),
-joined to the seat by a rigid member and loaded with nothing. The frame keeps
+joined to the seat by a rigid member and loaded with nothing, with the control
+node at the levels weighted by the girder inertia forces (decision 65). The frame keeps
 the 0500 springs; no nonlinear constitutive data is made here.
 
 The actions (11-8) are the 0620 D1, D2, buoyancy at the normal water level and
@@ -160,13 +161,14 @@ def _seat(frame: Frame, inertia: HorizontalInertia) -> PointLoad:
 
 def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult,
                                  transverse: TransverseResult) -> SeismicTransverseResult:
+    sides = reaction.transverse.origin, reaction.transverse.end
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.TRANSVERSE,
-                        column_base_micro_member=True, elastic_regions={Region.COLUMN_BASE}, girder_levels=True)
+                        column_base_micro_member=True, elastic_regions={Region.COLUMN_BASE},
+                        girder_levels=(sides[0].seismic_girder.force, sides[1].seismic_girder.force))
     dead, seismic = reaction.dead, reaction.train.seismic
     girders = ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
     reactions = {Item.ORIGIN: seismic.origin, Item.END: seismic.end}
     trains = {track: train_table(track, girders, reactions) for track in TRAIN_CASES.values()}
-    sides = reaction.transverse.origin, reaction.transverse.end
     girder = _inertia(SEISMIC_KH_GIRDER, sides[0].seismic_girder, sides[1].seismic_girder)
     train_inertia = _inertia(SEISMIC_KH_TRAIN, sides[0].seismic_train, sides[1].seismic_train)
     self_weight = self_weight_inertia(pier, reaction)

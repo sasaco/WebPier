@@ -91,3 +91,28 @@ def test_duplicated_unit_keys_are_refused(monkeypatch):
     monkeypatch.setattr(report, "content", lambda *args: (*units, units[0]))
     with pytest.raises(ValueError, match="重複したキー"):
         build_foundation_check(result("0612"), chapter("0612"))
+
+
+def test_a_cover_of_several_layers_prints_each_part_of_gamma_e2(tmp_path, monkeypatch):
+    # decision 64: 表層 1.050 (18.0 / 9.0), ローム 1.000 (17.0 / 7.0), 支持層 2.650 (19.0 / 10.0); hw2 2.700:
+    # (1.050 × 18.0 + 0.950 × 17.0 + 0.050 × 7.0 + 2.650 × 10.0) / 4.700 = 13.170… → 13.2
+    from copy import deepcopy
+
+    import foundation_check_cases as cases
+
+    original = cases.parse_input
+
+    def layered(data):
+        data = deepcopy(data)
+        layers = data["地盤データ"]["層"]
+        layers[0]["層厚"] = 1.05
+        layers.insert(1, deepcopy(layers[0]) | {"層番": "ローム", "層厚": 1.0, "土質区分": "粘性土",
+                                               "単位体積重量": {"湿潤": 17.0, "水中": 7.0}})
+        return original(data)
+
+    monkeypatch.setattr(cases, "parse_input", layered)
+    check = result("0612")
+    assert check.basis.normal.unit_weight.value == 13.2
+    text = printed("0612", check).replace(" ", "")
+    assert "(1.050×18.0+0.950×17.0+0.050×7.0+2.650×10.0)/4.700" in text
+    render_foundation_check(check, tmp_path / "layers.pdf", chapter("0612"))

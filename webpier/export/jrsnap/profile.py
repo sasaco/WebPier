@@ -43,6 +43,10 @@ SANDY_SOILS = ("砂質土", "砂礫")
 ROTATION_KR2, ROTATION_KR3 = 2, 20  # FootInfo: KR2 and the reciprocal of the final slope ratio
 SECTION_TITLE = "柱"
 NONLINEAR_TITLE = "柱下端Mθ"  # at most 20 bytes (manual p.143)
+# Decision 66: La/d below 2 is a low-shear-span member, given to JRSNAP with the 破壊形態 せん断 (manual table 2-67,
+# note ⑧ p.143, AP card S); its M-θ with the shear deformation applies from 1.25 (manual 付録4).
+SHEAR_SPAN_RATIO_BENDING = Decimal(2)
+MIN_SHEAR_SPAN_RATIO = Decimal("1.25")
 
 REGION_TITLES = {
     Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端",
@@ -82,7 +86,7 @@ LONGITUDINAL = Profile(
 
 _T = TransverseCase
 TRANSVERSE = Profile(
-    data_name="線路直角方向", face="直角", control=frozenset({NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END}),
+    data_name="線路直角方向", face="直角", control=frozenset({NodeRole.CONTROL}),  # decision 65
     earthquake=TOWARD_W9, earthquake_text="+x（→）",
     jrsnap="transverse", plan=("l", "b"),
     case_titles={_T.D1: "固定死荷重", _T.D2: "付加死荷重", _T.BUOYANCY: "浮力", _T.SNOW: "雪荷重",

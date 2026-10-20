@@ -142,10 +142,12 @@ def test_the_table_drives_the_editor(editor, monkeypatch):
 
 def test_derived_values_have_no_cells(editor):
     paths = {path for page in gui.INPUT_PAGES if editor.select(page) for path in editor.bindings.items}
-    assert ("地盤データ", "層", 0, "層厚") not in paths
     assert not any("排除した土" in path for path in paths)
+    # decision 64: 表層 may have a thickness; the key is absent in the current input, so the cell is blank
+    assert ("地盤データ", "層", 0, "層厚") in paths
     editor.select("地盤データ")
-    assert editor.soil_sheet.get_cell_data(0, 1) == "（計算値）"
+    assert editor.soil_sheet.get_cell_data(0, 1) == ""
+    assert not editor.bindings.message(("地盤データ", "層", 0, "層厚"))
 
 
 def test_b7_button_writes_b9(editor):
@@ -194,7 +196,7 @@ def test_empty_bearing_slots_are_valid_and_partial_ones_mark_the_blanks(editor):
     assert color(editor, *slot, "固定死荷重_D1") == grid.MISSING
     assert editor.bindings.message((*slot, "列車分担", "L2")) == "値が必要です"
     assert color(editor, *slot, "列車分担", "L3") == grid.DISABLED
-    assert len(editor.bindings.problems()) == 7
+    assert len(editor.bindings.problems()) == 4  # D1, D2, L1, L2: a blank snow load is 0 (decision 62)
     type_in(editor, (*slot, "支承位置"), "")
     assert editor.document.data["上部工反力"]["起点側"]["B支点"][4] is None
     assert not editor.bindings.problems()
@@ -262,7 +264,7 @@ def test_soil_layers_can_be_added_moved_and_deleted(editor, quiet):
     assert gui.pages.soil_change(form, "duplicate") and len(layers) == 4
     editor.soil_selected = 1
     assert gui.pages.soil_change(form, "up")
-    assert "層厚" not in layers[0] and layers[1]["層厚"] is None  # 表層 thickness is calculated
+    assert layers[0]["層厚"] is None and layers[1]["層厚"] is None  # a blank 表層 is the rest of Df
     assert not gui.pages.soil_change(form, "up")
     editor.soil_selected = 3
     assert not gui.pages.soil_change(form, "down")

@@ -133,15 +133,20 @@ LOAD_KEYS = ("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)
 SIDES = ("起点側", "終点側")
 
 
+def _load(key: str) -> Field:
+    # decision 62: a blank snow load is no snow (0), not a missing value
+    return number(LOAD, "any", nullable=key in SNOW_KEYS)
+
+
 def _reactions() -> dict[str, Field]:
     table = {}
     for side, end, bearings in (("起点側", "A支点", "B支点"), ("終点側", "D支点", "C支点")):
         for key in LOAD_KEYS:
-            table[f"上部工反力.{side}.{end}.{key}"] = number(LOAD, "any")
+            table[f"上部工反力.{side}.{end}.{key}"] = _load(key)
         slot = f"上部工反力.{side}.{bearings}[*]"
         table[f"{slot}.支承位置"] = number(LENGTH, "any")
         for key in LOAD_KEYS:
-            table[f"{slot}.{key}"] = number(LOAD, "any")
+            table[f"{slot}.{key}"] = _load(key)
         for track in ("L1", "L2"):
             table[f"{slot}.列車分担.{track}"] = number(RATIO, "any")
         for track in ("L3", "L4"):  # decision 23: two tracks only

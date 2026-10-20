@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from foundation_report_cases import CASES, case
+from foundation_report_cases import CASES, CURRENT, case
 from pdf_handcheck import formula_checks, tokens_text
+from webpier.calc.embedment import applicable_embedment
+from webpier.calc.foundation import calculate_foundation
 from webpier.core.printed import Printed
+from webpier.inputs import parse_input
 from webpier.reporting.stages.foundation import render_foundation
 
 # surface 1, Bv 1, Av 1, kv 2, Kv 2, ks 2, Ks 2, Iv 2, Kr 4; and γ2 where it applies (decision 40)
@@ -78,7 +82,8 @@ def test_a_value_that_does_not_follow_from_the_printed_factors_is_found(tmp_path
 
 def test_a_gamma2_that_does_not_follow_from_the_printed_values_is_found(tmp_path: Path):
     result, pier, embedment = case("current")
-    checks = formula_checks(render(tmp_path, result, pier, replace(embedment, unit_weight=Printed(12.2, 1, "kN/m3"))))
+    wrong = replace(embedment, normal=replace(embedment.normal, unit_weight=Printed(12.2, 1, "kN/m3")))
+    checks = formula_checks(render(tmp_path, result, pier, wrong))
     assert {check.expression for check in checks if not check.ok} == {"((4.700-2.700)*18.0+2.700*8.0)/4.700"}
 
 
@@ -130,3 +135,19 @@ def test_figure_strokes_are_not_read_as_fraction_bars_or_radicals(tmp_path: Path
     assert "H" in texts and not any("/" in text or "√" in text for text in texts)
     assert any(text.startswith("Hw3") for text in texts)
     assert [check.ok for check in formula_checks(path)] == [True]
+
+
+def test_a_cover_of_several_layers_prints_each_part_and_reproduces_gamma2(tmp_path: Path):
+    # decision 64: 表層 1.050 (18.0 / 8.0), ローム 1.000 (17.0 / 7.0), 支持層 the rest 2.650 (19.0 / 10.0), hw2 2.700:
+    # (1.050 × 18.0 + 0.950 × 17.0 + 0.050 × 7.0 + 2.650 × 10.0) / 4.700 = 13.170… → 13.2
+    data = deepcopy(CURRENT)
+    layers = data["地盤データ"]["層"]
+    layers[0]["層厚"] = 1.05
+    layers.insert(1, deepcopy(layers[0]) | {"層番": "ローム", "層厚": 1.0, "土質区分": "粘性土", "N値": 4,
+                                           "単位体積重量": {"湿潤": 17.0, "水中": 7.0}})
+    pier = parse_input(data)
+    result = calculate_foundation(pier)
+    checks = formula_checks(render(tmp_path, result, pier, applicable_embedment(pier, result)))
+    gamma = next(check for check in checks if check.printed == "13.2")
+    assert (gamma.expression, gamma.ok) == ("(1.050*18.0+0.950*17.0+0.050*7.0+2.650*10.0)/4.700", True)
+    assert [check for check in checks if not check.ok] == []

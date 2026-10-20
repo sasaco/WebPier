@@ -17,9 +17,9 @@ from gridlayoutpdf import (
     Root, Row, Script, TermStop, as_math,
 )
 
-from ...calc.embedment import EmbedmentResult
+from ...calc.embedment import EmbedmentResult, surface_layer_thickness
 from ...calc.foundation import SOIL_EQUATIONS, FoundationResult
-from ...core.printed import Printed
+from ...core.printed import LENGTH, Printed
 from ...inputs import PierInput
 from ..document import heading, indent_to, is_blank, math_line, paragraph, report, spacer
 from ..equations import TERM_GAP, Definition, definitions, equation_group, script, terms
@@ -167,16 +167,19 @@ def content(result: FoundationResult, pier: PierInput, embedment: EmbedmentResul
                         ("内部摩擦角", "φd(°)"),
                         ("一軸圧縮強度", Row("qu(kN/m", power("", "2"), ")", gap=0)),
                         ("変形係数", Row("Ed(kN/m", power("", "2"), ")", gap=0))), "soil_header", 76.92)
+    surface = surface_layer_thickness(pier, result.surface_thickness)
     for index, layer in enumerate(pier.soil.layers):
-        # 表層の層厚 is not entered: it is the derived embedment of the footing base.
-        thickness = result.surface_thickness if index == 0 else layer.thickness
+        # A blank 表層の層厚 is derived: the rest of Df below the layers above 支持層 (decision 64).
+        thickness = surface if index == 0 else layer.thickness
         add(f"soil.row.{index}", (layer.name, _optional(thickness), layer.soil_type, _optional(layer.n_value),
                                   _optional(layer.unit_weight_wet), _optional(layer.unit_weight_submerged),
                                   _optional(layer.friction_angle), _optional(layer.compressive_strength),
                                   _optional(layer.deformation_modulus, thousands=True)), "soil_row", 76.92)
     sub_ = pier.substructure
-    # The names of the input sheet (H6, H5, df1, df2) are not defined in the report: values only.
-    equation("soil.surface", Literal("表層の層厚"),
+    # The names of the input sheet (H6, H5, df1, df2) are not defined in the report: values only. With 表層
+    # alone above the footing base its thickness is Df; otherwise the line is Df itself (decision 64).
+    alone = pier.soil.surface.thickness is None and surface == result.surface_thickness
+    equation("soil.surface", Literal("表層の層厚") if alone else sub("D", "f"),
              terms(printed(sub_.h[6]), "+", printed(sub_.h[5]), "+",
                    Row("min(", printed(sub_.df1), ", ", printed(sub_.df2), ")", gap=0)),
              printed(result.surface_thickness), unit(result.surface_thickness.unit), left=123)
@@ -287,22 +290,50 @@ def _embedment(e: EmbedmentResult, add: Any, equation: Any, definition: Any) -> 
     """γ2 of the cover, the FootInfo value of the JRSNAP direct foundation (Example2 08 p.8-28)."""
     depth, water, gamma2 = sub("D", "f"), sub("h", "w2"), sub("γ", "2")
     wet, submerged = sub("γ", "wet"), sub("γ", "sub")
+    single = e.single
+    if single is None:
+        _embedment_layers(e, add, equation, definition)
+        return
     add("embedment.heading", "有効根入れ深さと表層の平均有効単位重量", "paragraph", 123, space=True)
     equation("embedment.formula", gamma2,
              terms("(", "(", depth, "−", water, ")", "×", wet, "+", water, "×", submerged, ")", "/", depth),
              symbolic=True)
     equation("embedment.gamma2", gamma2,
-             terms("(", "(", printed(e.depth), "−", printed(e.water), ")", "×", printed(e.unit_weight_wet), "+",
-                   printed(e.water), "×", printed(e.unit_weight_submerged), ")", "/", printed(e.depth)),
+             terms("(", "(", printed(e.depth), "−", printed(e.water), ")", "×", printed(single.unit_weight_wet), "+",
+                   printed(e.water), "×", printed(single.unit_weight_submerged), ")", "/", printed(e.depth)),
              printed(e.unit_weight), unit(e.unit_weight.unit))
     definition("embedment.definition.Df", depth, "有効根入れ深さ（表層厚）", first=True,
                value=printed(e.depth), unit_text=unit(e.depth.unit))
     definition("embedment.definition.hw2", water, "基礎底面からの平水位", value=printed(e.water),
                unit_text=unit(e.water.unit))
-    for key, symbol, label, value in (("wet", wet, "湿潤", e.unit_weight_wet),
-                                      ("sub", submerged, "水中", e.unit_weight_submerged)):
-        definition("embedment.definition." + key, symbol, f"表層の{label}単位体積重量", value=printed(value),
+    for key, symbol, label, value in (("wet", wet, "湿潤", single.unit_weight_wet),
+                                      ("sub", submerged, "水中", single.unit_weight_submerged)):
+        definition("embedment.definition." + key, symbol, f"{single.name}の{label}単位体積重量", value=printed(value),
                    unit_text=unit(value.unit))
+
+
+def _embedment_layers(e: EmbedmentResult, add: Any, equation: Any, definition: Any) -> None:
+    """γ2 of a cover of several layers (decision 64): each layer's part above and below hw2, from the ground."""
+    depth, water, gamma2 = sub("D", "f"), sub("h", "w2"), sub("γ", "2")
+    thickness, weight = sub("h", "i"), sub("γ", "i")
+    add("embedment.heading", "有効根入れ深さと Df 区間の平均有効単位重量", "paragraph", 123, space=True)
+    for layer in e.layers:
+        add(f"embedment.layer.{layer.index}",
+            f"・{layer.name}：厚さ {printed(layer.thickness)} m（基礎底面から {printed(layer.bottom)}〜"
+            f"{printed(LENGTH.total((layer.bottom, layer.thickness)))} m）、γwet {printed(layer.unit_weight_wet)}・"
+            f"γsub {printed(layer.unit_weight_submerged)} kN/m3", "paragraph", _LEFT)
+    equation("embedment.formula", gamma2, terms("Σ", "(", thickness, "×", weight, ")", "/", depth), symbolic=True)
+    parts: list = []
+    for segment in e.normal.segments:
+        parts += [*(("+",) if parts else ()), printed(segment.thickness), "×", printed(segment.unit_weight)]
+    equation("embedment.gamma2", gamma2, terms("(", *parts, ")", "/", printed(e.depth)),
+             printed(e.unit_weight), unit(e.unit_weight.unit))
+    definition("embedment.definition.Df", depth, "有効根入れ深さ", first=True,
+               value=printed(e.depth), unit_text=unit(e.depth.unit))
+    definition("embedment.definition.hw2", water, "基礎底面からの平水位", value=printed(e.water),
+               unit_text=unit(e.water.unit))
+    definition("embedment.definition.hi", thickness, "各層の平水位より上・下の部分の厚さ (m)")
+    definition("embedment.definition.gi", weight, "その部分の単位体積重量（平水位より上は湿潤、下は水中）")
 
 
 def semantic_records(result: FoundationResult, pier: PierInput,

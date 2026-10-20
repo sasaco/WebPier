@@ -20,6 +20,9 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - WebPier の NDU は直接基礎の照査のデータを持たない（`ChokuKisoNum=0`）ので、解析で `_Output_Chokukiso.csv` はできず、Aggre-SE は DB1 から求める（決定49 の既知の差。スキル `webpier-aggrese`）。
 - 実アプリでの受入：`scripts/accept_jrsnap_ndu.py`（記録 `tests/fixtures/acceptance/jrsnap_v52/`）。補助に `.claude/skills/jrsnap-input-open-save/scripts/save-ndu.ps1`・`roundtrip.cs` を使い、記録がその SHA を持ち、`.gitattributes` が LF に固定している。**このフォルダーは動かさない**（同じ道具の正は `structural-jrsnap-input` の scripts。WebPier の複製はスキルではなく受入の補助として残している）。
 - 見本 `Example橋脚2` の NDU と PDF の照合の記録は `references/example-pier2-seismic-verification.md`。
+- 節点は上から・同じ高さでは左から番号を振る（操作説明書 2.1.6、決定67）。`calc/frame` が振り、角の節点を足す NDU の書出しがもう一度振り直す。末尾に足した節点（桁受けなど）があると、JRSNAP は警告なしに読み込み、解析が1回目の変位増分で収斂せず降伏震度 0.0 前後の破綻した結果になる（P7、2026-10-20）。
+- 直角方向の制御節点は `NodeRole.CONTROL`（決定65）：両側の桁の高さが同じならその桁の節点、違えば桁の地震時慣性力で重み付けした高さの節点を `calc/frame._girder_levels` が置く。La はそこからフーチング天端。
+- La/d＜2 は `NonLinInfo1` の第4欄（破壊形態）を 2（せん断、NDT の AP カードの `S`）にする（決定66、`section.py`・`records.py`、検証器も La/d との組を確かめる）。1.25 未満は入力エラー。見本は Batch の `JRSNAP_Ver5.2-L03/05_参考(V52)：T形両端固定` の地中梁（`NonLinInfo7=1,3,1,2,…`、La/d≈1.4）。P7（La/d 1.73）で実アプリが解析し、Aggre-SE の損傷レベルの制限値が降伏にそろった（θ1＝0.001143）ことを確かめた（2026-10-20）。受入の記録（scripts/accept_*）はまだない。
 
 ## 0711・0721 の静的非線形解析（決定47）
 
@@ -47,6 +50,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - WebPier は NDU のモデル（`export/jrsnap/model.NduModel` の `cases` と `combinations[].coefficients`）から、基本ケースごとに「そのケースを使う、番号がいちばん小さい組合せ」を決める（0710 は全ケース 1、0720 は CASE-6 だけ 2。0720 では組合せ1の NDT は CASE-6（下り線）が0、組合せ2の NDT は CASE-5（上り線）が0）。その組合せを `--load-diagram` に渡し、返ったページから（`summary.loadDiagram[].pages` のページとケースの対応で）1ページずつ取り出す。
 - 実装の場所：「基本ケース → 組合せ」は `webpier/export/jrsnap/diagrams.py` の `diagram_combinations`（登録表の `StageSpec.jrsnap_figures` が使う）、runner の呼び出しとページの取り出しは `webpier/pipeline/jrsnap.py` の `draw_figures`、計算書への差し込みは `webpier/reporting/stages/insertion.py`（`Insertion(LOAD_DIAGRAM, <10.3・11.3 の見出し>)`）。NDU の付帯JSONの `jrsnap_figures.load_diagram` に `[{case, combination}, …]` を記録する。
 - いまの WebPier の NDT はどのケースも1部材に要素荷重が1つなので、`AutoRowFlg` の 0 と 1 で図はピクセル単位まで同じ。0710 の CASE-1 で、節点4〜6付近の「297.680」と「4167.450」の文字が重なるのは、種別4（柱自重）の既定の配置で、`AutoRowFlg` では直らず、JRSNAP の描画として受け入れた。
+- 荷重の行が1つもないケース（雪荷重の空欄、決定62）は、JRSNAP の荷重図がページを省いたうえ次のページに前の題名を付ける。WebPier は値0の節点荷重を1行書いて避ける（2026-10-20、P7 で本物の runner により全ケースの題名と中身が合うことを確認）。
 - いまの WebPier の NDT では `NDT_REJECTED`（要素荷重の2つの値がともに0の行）は起きない（JRSNAP が0にするのは、いまは節点荷重だけ）。
 - 受入：`scripts/accept_jrsnap_figures.py`（本物の runner、5.2-L03。記録 `tests/fixtures/acceptance/jrsnap_figures/record.json`、テスト `tests/acceptance/test_jrsnap_figures_acceptance.py`）。0710 は8ページ・0720 は9ページが CASE の順、A4縦・色の画素0・ページ番号なし、0720 の CASE-5・CASE-6 の両方に 480（`480.000`）を確かめた（2026-10-18）。生成する NDU か「基本ケース → 組合せ」が変わると `tests/acceptance` が失敗するので、`--overwrite` を付けてやり直す。
 - 計算書の確かめ方（本物の runner で `--stage 0710`・`0720` を作り直した後）：`uv run --no-project --with pypdfium2 --with pillow python -X utf8 …` でページごとの文字を取り出し、並びを見る。2026-10-18 の `pre/input.json` では、0710 は17ページ（1〜2 10.1、3〜7 データ確認図、8 10.2 の末尾に「10.3 荷重図」、9〜16 CASE-1〜8、17 「10.4 作用の組合せ」）、0720 は19ページ（8〜9 11.2 で9の末尾に「11.3 荷重図」、10〜18 CASE-1〜9、19 「11.4」）。組合せ2から取った 0720 の CASE-6 だけ、ヘッダーの名前が組合せ2の NDT（`『線路直角方向(Case2_…)』`）になる。見出しのページと 10.4・11.4 の改ページは、150dpi の PNG にして目でも確かめる。

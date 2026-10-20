@@ -165,14 +165,16 @@ def test_asymmetric_footing_puts_the_column_axis_off_the_footing_centre():
 def test_pedestal_with_offset():
     # Pedestal centre from the column axis (2·B2 + B3 − B1 − B4 + B5)/2 = (1.0 + 1.0 − 2.7)/2 = −0.350.
     result = frame(dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3))
+    # Numbered from the upper left (JRSNAP 2.1.6): the pedestal top 1, then at the beam top the pedestal base
+    # (left, x = −0.350) 2 and the beam top 3; the members in the order of their ends: stub 1, arm 2, beam 3 …
     base, top = result.node(NodeRole.PEDESTAL_BASE), result.node(NodeRole.PEDESTAL_TOP)
-    assert (base.number, top.number) == (7, 8)
+    assert (base.number, top.number, result.node(NodeRole.CAP_TOP).number) == (2, 1, 3)
     assert (base.x.value, base.y.value) == (-0.35, 10.3)
     assert (top.x.value, top.y.value) == (-0.35, 10.6)
-    arm, stub = result.members[-2:]
-    assert (arm.region, arm.rigid, arm.start, arm.end) == (Region.PEDESTAL_ARM, True, 1, 7)
+    stub, arm = result.members[:2]
+    assert (arm.region, arm.rigid, arm.start, arm.end) == (Region.PEDESTAL_ARM, True, 3, 2)
     assert (arm.offset.value, arm.height.value) == (-0.35, 0.0)
-    assert (stub.region, stub.rigid, stub.start, stub.end, stub.height.value) == (Region.PEDESTAL, False, 7, 8, 0.3)
+    assert (stub.region, stub.rigid, stub.start, stub.end, stub.height.value) == (Region.PEDESTAL, False, 2, 1, 0.3)
     section = result.pedestal_section
     assert (section.width.value, section.depth.value) == (7.0, 1.0)
     assert section.area.value == 7.0
@@ -181,7 +183,7 @@ def test_pedestal_with_offset():
     transverse = frame(dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3), Direction.TRANSVERSE).pedestal_section
     assert (transverse.width.value, transverse.depth.value) == (1.0, 7.0)
     assert Decimal(repr(transverse.inertia.value)) == q(D(1.0) * D(7.0) ** 3 / 12, 5)  # 28.58333
-    assert [m.number for m in result.column_line] == [1, 2, 3]  # the pedestal is not on the column line
+    assert [m.number for m in result.column_line] == [3, 4, 5]  # the pedestal is not on the column line
     # Decision 29: the bearings sit on the pedestal top.
     assert result.bearing_seat is top
     assert result.bearing_offset.value == -0.35  # pedestal top from the beam-top node
@@ -191,10 +193,10 @@ def test_centred_pedestal_shares_the_cap_top_node():
     # 2·B2 + B3 = B1: centred, so no arm.
     result = frame(dims(B2=0.85, B3=1.0, W2=1.0, W3=7.0, H1=0.3))
     assert result.node(NodeRole.PEDESTAL_BASE) is result.node(NodeRole.CAP_TOP)
-    assert result.members[-1].region is Region.PEDESTAL
+    assert result.members[0].region is Region.PEDESTAL  # the pedestal top is node 1, the beam top 2
     assert Region.PEDESTAL_ARM not in {m.region for m in result.members}
-    assert (result.members[-1].start, result.members[-1].end) == (1, 7)
-    assert result.bearing_seat.number == 7 and result.bearing_offset.value == 0.0
+    assert (result.members[0].start, result.members[0].end) == (2, 1)
+    assert result.bearing_seat.number == 1 and result.bearing_offset.value == 0.0
 
 
 def test_no_pedestal_without_h1():

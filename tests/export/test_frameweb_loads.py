@@ -108,24 +108,25 @@ def test_every_load_is_the_printed_action(current, result):
 
 
 def test_pedestal_loads_act_at_the_pedestal_top():
-    # Decision 29: the bearing loads at the pedestal top (node 8); the pier parts at the beam top (node 1).
+    # Decision 29: the bearing loads at the pedestal top (node 1); the pier parts at the beam top (node 3).
+    # Nodes numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; the footing centroid 7.
     result = longitudinal(**PEDESTAL)
     document = build_frameweb(result)
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
-    assert node_rows(document["load"]["1"]) == [(seat, None, 7600, 2050), ("1", None, 750.98, -18.01),
-                                                ("5", None, 4167.45, None)]
+    assert node_rows(document["load"]["1"]) == [(seat, None, 7600, 2050), ("3", None, 750.98, -18.01),
+                                                ("7", None, 4167.45, None)]
     assert node_rows(document["load"]["15"]) == [(seat, 473.43, None, None)]
     # The serviceability impact moves to the seat as well: M − N × (−0.350).
     single = result.impact.service_single
     (row,) = node_rows(document["load"]["21"])
     assert row[:3] == (seat, None, single.n.value)
     assert row[3] == result.combinations[6].component(BasicCase.IMPACT_SINGLE).source.points[0].m.value
-    assert [r["m1"] for r in document["load"]["1"]["load_member"]] == ["1", "2", "3"]  # not on the pedestal
+    assert [r["m1"] for r in document["load"]["1"]["load_member"]] == ["3", "4", "5"]  # not on the pedestal (1, 2)
 
 
 def test_centred_pedestal_moments_are_unchanged():
     document = build_frameweb(longitudinal(**CENTRED_PEDESTAL))
-    assert node_rows(document["load"]["2"])[0] == ("7", None, 780, 6.5)
+    assert node_rows(document["load"]["2"])[0] == ("1", None, 780, 6.5)  # the pedestal top is node 1
 
 
 def test_asymmetric_footing_loads_keep_their_levers():

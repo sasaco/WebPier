@@ -99,10 +99,11 @@ def _pressure(m: Manuscript, basis: Basis) -> None:
 
 
 def _cover(m: Manuscript, key: str, label: str, basis: Basis, cover: CoverWeight) -> None:
-    e = basis.embedment
-    m.equation(key, label, "γe2", terms("(", operand(cover.wet_segment), "×", value(e.unit_weight_wet), "+",
-                                         operand(cover.submerged_segment), "×", value(e.unit_weight_submerged), ")",
-                                         "/", value(basis.depth)), cover.unit_weight)
+    # Each part of a layer above and below the water (decision 64); one layer prints its wet and submerged part.
+    parts: list = []
+    for segment in cover.segments:
+        parts += [*(("+",) if parts else ()), operand(segment.thickness), "×", value(segment.unit_weight)]
+    m.equation(key, label, "γe2", terms("(", *parts, ")", "/", value(basis.depth)), cover.unit_weight)
 
 
 def _capacity(m: Manuscript, basis: Basis) -> None:

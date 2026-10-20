@@ -3,7 +3,8 @@
 JRSNAP derives the M-θ curve of the micro member from a rectangular RC section (SectInfo / SectConc /
 SectJiku / SectRein / SectSher / SectSafe). WebPier gives it:
 
-- b × h of the micro member (normal to / in the plane), La from the control node down to the footing top;
+- b × h of the micro member (normal to / in the plane), La from the control node down to the footing top, and
+  the 破壊形態 of the M-θ: 曲げ for La/d ≧ 2, せん断 for 1.25 ≦ La/d < 2 (decision 66);
 - f'ck and Ec of the column concrete (calc.materials), Dmax of the column concrete (鉄筋.柱.aggregate_max_mm)
   and the three γb of the input conditions;
 - the 方向別の鉄筋配置表 of the bending direction (calc.column_rebar), centres from the upper face;
@@ -28,10 +29,11 @@ from ...core.printed import Precision, Printed
 from ...inputs import PierInput
 from ...inputs.rebar import LENGTH_MM
 from .model import RebarRow, SectionData, Shear
-from .profile import SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile
+from .profile import (
+    MIN_SHEAR_SPAN_RATIO, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, SHEAR_SPAN_RATIO_BENDING, Profile,
+)
 
 EC_KN_MM2 = Precision(1, "kN/mm2")
-MIN_SHEAR_SPAN_RATIO = 2  # La/d below 2 is a shear-type member; the bending profile does not apply (manual p.143)
 MAX_ROWS = 100
 _COLUMN = "鉄筋.柱"
 
@@ -95,8 +97,8 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
         raise InputError(f"{_COLUMN}: {profile.face}方向の表が{len(rows)}行です（JRSNAP は{MAX_ROWS}行まで）")
     depth = d(height) - d(rows[0].center)
     if d(span) < MIN_SHEAR_SPAN_RATIO * depth:
-        raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が2未満で、"
-                         "曲げ破壊型の M-θ 自動算定の対象外です")
+        raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が1.25未満で、"
+                         "M-θ 自動算定（低せん断スパン部材は 1.25≦La/d＜2）の対象外です")
     layers, pitch = _main(profile, layout, rows)
     grades = sorted({bar.material for bar in layout.bars})
     if len(grades) != 1:
@@ -106,7 +108,8 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     factors = [need(getattr(conditions, name), f"{key}.{name}")
                for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd")]
     return SectionData(
-        width=width, height=height, shear_span=span, fck=concrete.strength,
+        width=width, height=height, shear_span=span, shear_failure=d(span) < SHEAR_SPAN_RATIO_BENDING * depth,
+        fck=concrete.strength,
         ec=put(EC_KN_MM2, d(concrete.modulus) * Decimal(10)),  # mantissa × 10^7 kN/m2 = × 10 kN/mm2
         aggregate_max=need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),  # the column concrete's
         yield_strength=yield_strength(grades[0]), main_layers=layers, main_pitch=pitch,

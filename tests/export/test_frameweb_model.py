@@ -82,8 +82,11 @@ def test_pedestal_adds_an_arm_and_its_own_section():
     base = frame.node(NodeRole.PEDESTAL_BASE)
     assert document["node"][str(base.number)] == {"x": -0.35, "y": -10.3, "z": None}
     assert document["node"][str(seat.number)] == {"x": -0.35, "y": -10.6, "z": None}
-    arm, pedestal = document["member"]["6"], document["member"]["7"]
-    assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (1, base.number, base.number, seat.number)
+    # numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; members in the order of their ends: pedestal 1, arm 2
+    arm, pedestal = document["member"]["2"], document["member"]["1"]
+    cap = frame.node(NodeRole.CAP_TOP)
+    assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (cap.number, base.number, base.number, seat.number)
+    assert (seat.number, base.number, cap.number) == (1, 2, 3)
     elements = document["element"]["1"]
     assert elements[str(arm["e"])]["n"] == "剛域"
     section = frame.pedestal_section
@@ -95,8 +98,8 @@ def test_pedestal_adds_an_arm_and_its_own_section():
 def test_centred_pedestal_rises_from_the_beam_top():
     document = build_frameweb(longitudinal(**CENTRED_PEDESTAL))
     assert len(document["member"]) == 6  # no arm: the pedestal base is the beam-top node
-    assert document["member"]["6"]["ni"] == 1
-    assert document["node"]["7"] == {"x": 0, "y": -10.6, "z": None}
+    assert (document["member"]["1"]["ni"], document["member"]["1"]["nj"]) == (2, 1)  # the beam top 2 → the top 1
+    assert document["node"]["1"] == {"x": 0, "y": -10.6, "z": None}
 
 
 def test_asymmetric_footing_makes_an_inclined_rigid_member():

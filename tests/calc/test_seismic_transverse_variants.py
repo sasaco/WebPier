@@ -4,13 +4,15 @@ from decimal import Decimal
 
 import pytest
 
-from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, pier, q, value
+from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, document, pier, q, value
 from seismic_transverse_support import chain, points, seismic
 from transverse_support import dims
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.seismic_transverse import SeismicCase
 from webpier.calc.transverse import BasicCase, Item, Track
 from webpier.core.errors import InputError
+from webpier.inputs import parse_input
+from webpier.inputs.fields import SNOW_KEYS
 
 C = SeismicCase
 WEIGHTS = "下部構造/単位体積重量/"
@@ -94,31 +96,38 @@ def test_train_inertia_by_hand_with_other_girder_lengths_and_heights():
 
 
 def test_girders_at_two_levels_get_a_node_each():
-    # Origin h1 + h2 = 0.150 + 2.800 = 2.950, end 0.100 + 2.650 = 2.750: node 1 at the origin girder, node 2 at
-    # the end girder, node 3 the beam top; the loads stay at the bearing seat.
+    # Origin h1 + h2 = 0.150 + 2.800 = 2.950, end 0.100 + 2.650 = 2.750: node 1 at the origin girder, node 3 at
+    # the end girder, node 4 the beam top; the loads stay at the bearing seat. Node 2 is the control node
+    # (decision 65), weighted by the girder inertia forces 6720.00 and 2370.00 kN:
+    # (6720 × 2.950 + 2370 × 2.750) / 9090 = 2.89786… → 2.898 above the seat, 10.300 + 2.898 = 13.198.
     result = seismic(pier(**{"上部構造/起点側/高さ/h2": 2.8}))
     frame = result.frame
     origin, end, top = frame.node(NodeRole.GIRDER_ORIGIN), frame.node(NodeRole.GIRDER_END), frame.node(NodeRole.CAP_TOP)
-    assert [(n.number, n.y.value) for n in (origin, end, top)] == [(1, 13.25), (2, 13.05), (3, 10.3)]
+    assert [(n.number, n.y.value) for n in (origin, end, top)] == [(1, 13.25), (3, 13.05), (4, 10.3)]
+    control = frame.node(NodeRole.CONTROL)
+    assert (control.number, control.y.value, control.roles) == (2, 13.198, frozenset({NodeRole.CONTROL}))
     girders = [m for m in frame.members if m.region is Region.GIRDER]
     assert [(m.number, m.start, m.end, m.height.value, m.rigid) for m in girders] == [
-        (1, 1, 2, 0.2, True), (2, 2, 3, 2.75, True)]
-    assert set(points(result.basic(C.TRAIN_UP))) == {3}
-    assert frame.support.node == 9
+        (1, 1, 2, 0.052, True), (2, 2, 3, 0.148, True), (3, 3, 4, 2.75, True)]
+    assert set(points(result.basic(C.TRAIN_UP))) == {4}
+    assert frame.support.node == 10
 
 
 def test_the_end_girder_may_be_the_higher_one():
     frame = seismic(pier(**{"上部構造/終点側/高さ/h1": 0.3})).frame  # end 0.300 + 2.650 = 2.950
-    assert (frame.node(NodeRole.GIRDER_END).number, frame.node(NodeRole.GIRDER_ORIGIN).number) == (1, 2)
+    assert [frame.node(role).number for role in (NodeRole.GIRDER_END, NodeRole.CONTROL, NodeRole.GIRDER_ORIGIN)] == [
+        1, 2, 3]
 
 
 def test_a_girder_level_at_the_seat_adds_no_node():
-    # h1 + h2 = 0 on the end side: that level is the bearing seat itself (no zero-length member).
+    # h1 + h2 = 0 on the end side: that level is the bearing seat itself (no zero-length member). The control
+    # node is at 6720 × 2.750 / 9090 = 2.03300 → 2.033 above it (decision 65).
     frame = seismic(pier(**{"上部構造/終点側/高さ/h1": 0.0, "上部構造/終点側/高さ/h2": 0.0})).frame
     top = frame.node(NodeRole.CAP_TOP)
-    assert frame.node(NodeRole.GIRDER_END) is top and top.number == 2
-    assert [m.region for m in frame.members][:2] == [Region.GIRDER, Region.BEAM]
-    assert len(frame.nodes) == 8
+    assert frame.node(NodeRole.GIRDER_END) is top and top.number == 3
+    assert (frame.node(NodeRole.CONTROL).number, frame.node(NodeRole.CONTROL).y.value) == (2, 12.333)
+    assert [m.region for m in frame.members][:3] == [Region.GIRDER, Region.GIRDER, Region.BEAM]
+    assert len(frame.nodes) == 9
 
 
 def test_both_girder_levels_at_the_seat_add_no_member():
@@ -210,7 +219,7 @@ def test_self_weight_inertia_with_unround_sizes():
 
 def test_footing_lighter_than_the_displaced_soil_stops_0720():
     # Decision 32 (as 0710): γ < γ' would give a footing inertia against the earthquake.
-    with pytest.raises(InputError, match=r"下部構造\.単位体積重量\.フーチング.*地盤データ\.層\.0\.単位体積重量\.湿潤"):
+    with pytest.raises(InputError, match=r"下部構造\.単位体積重量\.フーチング.*地盤データ\.層\[0\]\.単位体積重量\.湿潤"):
         seismic(pier(**{WEIGHTS + "フーチング": 17.9}))
 
 
@@ -224,3 +233,19 @@ def test_bearing_rows_follow_the_entered_slots():
     result = seismic()
     assert [(row.item, row.slot) for row in result.train(Track.DOWN).rows] == [
         (Item.ORIGIN, 0), (Item.ORIGIN, 1), (Item.ORIGIN, 2), (Item.ORIGIN, 3), (Item.END, 0), (Item.END, 1)]
+
+
+def test_blank_snow_loads_are_no_snow():
+    # decision 62: every snow load blank gives the same 0600 → 0620 → 0720 as every snow load 0.00
+    def snow(value):
+        data = document()
+        for side in data["上部工反力"].values():
+            for support in side.values():
+                for item in support if isinstance(support, list) else [support]:
+                    if item is not None:
+                        item |= dict.fromkeys(SNOW_KEYS, value)
+        return parse_input(data)
+
+    blank, zero = snow(None), snow(0.0)
+    assert seismic(blank) == seismic(zero)
+    assert all(load.n.value == 0 for load in seismic(blank).basic(C.SNOW).points)

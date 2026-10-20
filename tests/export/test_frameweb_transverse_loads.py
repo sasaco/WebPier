@@ -143,25 +143,25 @@ def test_no_pier_wind_with_the_ground_above_the_pier():
 
 
 def test_pedestal_loads_act_at_the_pedestal_top():
-    # Decision 29: the bearing loads at the pedestal top (node 8), the pier parts at the beam top (node 1), with
-    # M moved to the seat as M − N × (−0.500). Decision 35: the pedestal (member 7, from its base) takes the wind
-    # over B3 = 1.000.
+    # Decision 29: the bearing loads at the pedestal top (node 1), the pier parts at the beam top (node 3), with
+    # M moved to the seat as M − N × (−0.500). Decision 35: the pedestal (member 1, from its base) takes the wind
+    # over B3 = 1.000. Nodes numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; the footing centroid 7.
     result = transverse(**T_PEDESTAL)
     document = build_frameweb_transverse(result)
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
-    assert node_rows(document["load"]["1"]) == [(seat, None, 7600, 3800), ("1", None, 750.98, -25.73),
-                                                ("5", None, 4167.45, None)]
+    assert node_rows(document["load"]["1"]) == [(seat, None, 7600, 3800), ("3", None, 750.98, -25.73),
+                                                ("7", None, 4167.45, None)]
     assert node_rows(document["load"]["9"]) == [(seat, None, 567.38, 1493.78)]
     assert node_rows(document["load"]["15"]) == [(seat, 111.69, None, 430.01)]
-    assert member_rows(document["load"]["16"])[0] == ("7", "gx", 0, 0, 1.5, 1.5)
-    assert [r[0] for r in member_rows(document["load"]["16"])] == ["7", "1", "2", "3"]
-    assert [r[0] for r in member_rows(document["load"]["1"])] == ["1", "2", "3"]  # not on the pedestal
+    assert member_rows(document["load"]["16"])[0] == ("1", "gx", 0, 0, 1.5, 1.5)
+    assert [r[0] for r in member_rows(document["load"]["16"])] == ["1", "3", "4", "5"]
+    assert [r[0] for r in member_rows(document["load"]["1"])] == ["3", "4", "5"]  # not on the pedestal (1, 2)
 
 
 def test_the_ground_inside_the_pedestal_loads_its_top():
     # Ground 10.450: the pedestal (10.300 -> 10.600) is loaded from 0.150 above its base to its top.
     document = build_frameweb_transverse(transverse(**T_PEDESTAL, **ground(7.75)))
-    assert member_rows(document["load"]["16"]) == [("7", "gx", 0.15, 0, 1.5, 1.5)]
+    assert member_rows(document["load"]["16"]) == [("1", "gx", 0.15, 0, 1.5, 1.5)]
 
 
 def test_asymmetric_footing_loads_keep_their_levers():
@@ -223,11 +223,11 @@ def test_a_partial_load_on_an_inclined_member_is_refused():
 
 def test_a_load_on_a_horizontal_member_measures_its_margin_along_x():
     result = transverse(**T_PEDESTAL)
-    arm = result.frame.members[5]  # beam top to the pedestal base, 0.500 long
+    arm = result.frame.members[1]  # beam top to the pedestal base, 0.500 long (member 2 from the upper left)
     assert (arm.height.value, arm.offset.value) == (0, -0.5)
     load = MemberLoad(arm.number, LENGTH(0.1), LENGTH(0.3), LINE_LOAD(1), LINE_LOAD(2))
     document = frameweb_document(result.frame, one_case((load,)))
-    assert member_rows(document["load"]["1"]) == [("6", "gx", 0.1, 0.2, 1, 2)]
+    assert member_rows(document["load"]["1"]) == [("2", "gx", 0.1, 0.2, 1, 2)]
 
 
 def test_a_changed_wind_is_written_as_the_calc_gives_it(result):

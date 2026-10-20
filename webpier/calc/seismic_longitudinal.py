@@ -13,7 +13,8 @@ The actions (10-8) are the 0610 D1, D2, buoyancy at the normal water level and
   train (× 0.20), as H at the bearing seat with M = 0 (decision 10, 29);
 - the pier self-weight inertia with Kh = 1.00: Hw = b × w × γ × Kh per metre
   for the beam top, the haunch bottom, the column (and the pedestal), and at
-  the footing centroid H = V × (γ − γ') × Kh, γ' the displaced soil (表層の湿潤).
+  the footing centroid H = V × (γ − γ') × Kh, γ' the displaced soil (the wet unit weight of the layers in
+  the footing height, decision 64; Example2 表層).
 
 The earthquake acts toward the origin side (← on 10-11/10-12), which is −x of
 the frame; the tables keep the printed magnitudes, the frame loads the sign.
@@ -30,6 +31,7 @@ from ..core.errors import InputError
 from ..core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Precision, Printed
 from ..inputs import PierInput
 from ._exact import d, put, total
+from .embedment import Displaced, displaced_soil
 from .foundation import FoundationResult
 from .frame import (
     Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, column_line_load, point_load,
@@ -118,7 +120,8 @@ class FootingInertia:
 
     volume: Printed  # 0600 footing volume
     unit_weight: Printed  # γ of the footing
-    displaced: Printed  # γ' of the displaced soil: wet unit weight of 表層
+    displaced: Printed  # γ' of the displaced soil: the wet unit weight of the layers in the footing height
+    soil: Displaced  # the layers of γ' (decision 64; Example2: 表層 alone)
     kh: Printed
     force: Printed
 
@@ -196,11 +199,12 @@ def self_weight_inertia(pier: PierInput, reaction: ReactionResult) -> SelfWeight
     s = pier.substructure
     b, w, gamma = s.b, s.w, s.unit_weight_body
     footing = reaction.self_weight.footing
-    displaced = pier.soil.surface.unit_weight_wet
-    assert displaced is not None  # required by parse_input
+    soil = displaced_soil(pier, reaction.self_weight.footing_height)
+    displaced = soil.unit_weight
     if s.unit_weight_footing.value < displaced.value:  # decision 32; γ = γ' gives H = 0, a valid zero load
+        source = "・".join(f"地盤データ.層[{layer.index}]" for layer, _ in soil.parts)
         raise InputError(f"下部構造.単位体積重量.フーチング（{s.unit_weight_footing.value} kN/m3）が "
-                         f"地盤データ.層.0.単位体積重量.湿潤（排除した土 γ' {displaced.value} kN/m3）より小さく、"
+                         f"{source}.単位体積重量.湿潤（排除した土 γ' {displaced.value} kN/m3）より小さく、"
                          "フーチングの慣性力 V×(γ−γ')×Kh が地震と逆向きになります")
     return SelfWeightInertia(
         kh=PIER_KH,
@@ -210,7 +214,7 @@ def self_weight_inertia(pier: PierInput, reaction: ReactionResult) -> SelfWeight
         column=_intensity(b[6], w[6], gamma),
         pedestal=_intensity(b[3], w[3], gamma) if s.h[1].value > 0 else None,
         footing=FootingInertia(
-            volume=footing.volume, unit_weight=s.unit_weight_footing, displaced=displaced, kh=PIER_KH,
+            volume=footing.volume, unit_weight=s.unit_weight_footing, displaced=displaced, soil=soil, kh=PIER_KH,
             force=put(FORCE, d(footing.volume) * (d(s.unit_weight_footing) - d(displaced)) * d(PIER_KH))),
     )
 

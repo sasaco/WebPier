@@ -135,6 +135,12 @@ CASES = {
                                 insert_after("SHABUZAI_JointXY7", "SHABUZAI_JointXY8=0,0,False")),
                            "要素でつながっていない節点があります"),
     "M-θ title": (field("NonLinInfo1", 10, "柱下端の非線形部材Mθ"), "20バイト以内"),
+    # 操作説明書 2.1.6: the joints from the upper left (swapping the y of two joints breaks the order)
+    "joint order": (both(field("JointXY1", 2, "-7.6"), field("JointXY2", 2, "-7.9")), "節点番号は上から"),
+    # decision 66: Example2 La/d = 7600/2592 ≧ 2 needs 曲げ (1); a shorter La a せん断 (2), never below 1.25
+    "failure mode": (field("NonLinInfo1", 4, "2"), "破壊形態は La/d ≧ 2 で曲げ（1）"),
+    "failure mode code": (field("NonLinInfo1", 4, "3"), "NonLinInfo1 第4欄: 範囲外です"),
+    "short shear span": (both(field("SectInfo1", 10, "3000"), field("NonLinInfo1", 4, "2")), "1.25 ≦ La/d < 2 でせん断（2）"),
     "unequal layers": (field("SectJikuNum1", 3, "2"), "SectJikuNum1: 上下面の主鉄筋の段数は同じ"),
     "too many layers": (setting("SectJikuNum1", "11,6,6,6,6,0"), "全行数の半分以下"),
     "rebar rows": (setting("SectJikuNum1", "12,1,1,1,1,0"), "レコードの順序・件数が不正です"),

@@ -19,6 +19,9 @@ GROUPS = (("ultimate", "(a) 安全性（破壊）および復旧性の照査に�
           ("fatigue", "(c) 安全性（疲労破壊）の照査に用いる列車荷重"))
 
 
+INLINE_AXLES = 8  # RB = P × (a1 + … + a8) / l still fits one line (406 pt); more wrap inside the group
+
+
 def loading_lines(m: Manuscript, key: str, loading: MovingLoadResult, pier: PierInput) -> None:
     """The loading figure, then RB = P Σa / l and RA = P × (axles) − RB in numbers, from the printed levers and
     axle counts (07 7-1)."""
@@ -32,7 +35,10 @@ def loading_lines(m: Manuscript, key: str, loading: MovingLoadResult, pier: Pier
         lhs, other = sub("R", pier_support), sub("R", far_support)
         name = f"{key}.{pier_support.lower()}"
         if count.value:
-            m.formula(name, lhs, None, (loading.axle_load, "×", "(", *join(levers), ")", "/", span), near, gap=girder is Girder.END)
+            # A long span carries more axles than one line holds (P7 終点側 61.390 m, 12 axles): the levers' group
+            # wraps. A short one stays one run, as the reference prints it.
+            m.formula(name, lhs, None, (loading.axle_load, "×", "(", *join(levers), ")", "/", span), near,
+                      gap=girder is Girder.END, open_groups=len(levers) > INLINE_AXLES)
             m.formula(f"{key}.{far_support.lower()}", other, None, (loading.axle_load, "×", count, "−", near), far)
         else:
             m.value(name, lhs, near, gap=girder is Girder.END)

@@ -1,8 +1,8 @@
 """The input sheets 下部構造・上部構造・地盤データ, laid out like the original input forms.
 
-Derived values are not inputs and have no cells: the surface layer thickness (H6+H5+min(df1,df2)) and the unit
-weight of the displaced soil are calculated and printed by 0500, and each bearing position f is entered on both
-sides. B9 is entered; "B7と同じ" writes B7 into it explicitly. The 耐震設計条件 (地域別・地盤区分) are on the
+Derived values are not inputs and have no cells: the unit weight of the displaced soil is calculated and printed
+by 0710 / 0720, and each bearing position f is entered on both sides. The 表層 thickness may stay blank: it is
+then the rest of Df (H6+H5+min(df1,df2)) below the other layers (decision 64). B9 is entered; "B7と同じ" writes B7 into it explicitly. The 耐震設計条件 (地域別・地盤区分) are on the
 地盤データ page: one for the pier, used only by the static nonlinear analysis (decision 49).
 """
 
@@ -12,7 +12,7 @@ import copy
 from tkinter import messagebox, ttk
 from typing import Any
 
-from ..inputs.choices import LAYER_SURFACE
+from ..inputs.choices import LAYER_SUPPORT, LAYER_SURFACE
 from . import bearings
 from .document import EditorError
 from .form import Form, unit_of
@@ -44,7 +44,8 @@ def substructure(form: Form) -> None:
         ("斜角", "θ", "斜角 θ（予約）"), ("斜角", "タイプ", "斜角のタイプ（予約）"))])
     form.figure(body, "skew", "タイプ1・2 / 原図・記号確認用")
 
-    body = form.section("03  単位体積重量", note="排除した土の単位体積重量は地盤データ表層の湿潤単位体積重量から計算します。杭は" + RESERVED)
+    body = form.section("03  単位体積重量", note="排除した土の単位体積重量は、地盤データのうちフーチング高さ（H5＋H6）の範囲にある層の"
+                        "湿潤単位体積重量を厚さで平均して計算します。杭は" + RESERVED)
     weights = (*SUB, "単位体積重量")
     form.properties(body, [((*weights, "梁・躯体"), "梁・躯体"), ((*weights, "フーチング"), "フーチング"),
                            ((*weights, "上載土"), "上載土"), ((*weights, "杭", "鉛直重量"), "杭：鉛直重量（予約）"),
@@ -116,7 +117,6 @@ GROUND_COLUMNS = (("層番", ("層番",)), ("層厚\n(m)", ("層厚",)), ("土�
                   ("単位体積重量\n湿潤", ("単位体積重量", "湿潤")), ("単位体積重量\n水中", ("単位体積重量", "水中")),
                   ("内部摩擦角\nφd (°)", ("内部摩擦角_φd",)), ("φd の上限値\n(°)", ("内部摩擦角の上限値",)),
                   ("一軸圧縮強度\nqu (kN/m²)", ("一軸圧縮強度_qu",)), ("変形係数\nEd (kN/m²)", ("変形係数_Ed",)))
-SURFACE_THICKNESS = "（計算値）"
 
 
 def _layers(form: Form) -> list:
@@ -129,16 +129,15 @@ def blank_layer() -> dict[str, Any]:
 
 
 def _thickness_keys(layers: list) -> None:
-    """表層's thickness is calculated, so only the layers below it have the key."""
-    for index, layer in enumerate(layers):
-        if index == 0:
-            layer.pop("層厚", None)
-        else:
-            layer.setdefault("層厚", None)
+    """Every layer has the key; a blank 表層 is the rest of Df (decision 64)."""
+    for layer in layers:
+        layer.setdefault("層厚", None)
 
 
 def ground(form: Form) -> None:
-    body = form.section("地層一覧", note=f"先頭は「{LAYER_SURFACE}」で、その層厚は H6＋H5＋min(df1,df2) から計算します。"
+    body = form.section("地層一覧", note=f"先頭は「{LAYER_SURFACE}」です。地表から順に並べ、「{LAYER_SUPPORT}」より上の層は層厚を"
+                        f"入力します。{LAYER_SUPPORT}の Df 内の厚さは Df（H6＋H5＋min(df1,df2)）から上の層厚の合計を引いた残りです。"
+                        f"{LAYER_SURFACE}の層厚が空欄のときは Df から下の層の層厚を引いて計算します（{LAYER_SUPPORT}は基礎底面から）。"
                         "湿潤・水中の単位体積重量は kN/m³。土質区分は一覧から選びます。")
     controls = ttk.Frame(body)
     controls.pack(fill="x", pady=(0, 12))
@@ -148,8 +147,7 @@ def ground(form: Form) -> None:
                           ("選択層を削除", lambda: soil_change(form, "delete"))):
         ttk.Button(controls, text=label, command=action).pack(side="left", padx=(0, 8))
     layers = _layers(form)
-    rows = [[SURFACE_THICKNESS if index == 0 and tail == ("層厚",) else ("地盤データ", "層", index, *tail)
-             for _, tail in GROUND_COLUMNS] for index in range(len(layers))]
+    rows = [[("地盤データ", "層", index, *tail) for _, tail in GROUND_COLUMNS] for index in range(len(layers))]
     sheet = form.table(body, [label for label, _ in GROUND_COLUMNS], rows,
                        [90, 75, 150, 60, 95, 95, 90, 90, 110, 110])
     editor = form.editor

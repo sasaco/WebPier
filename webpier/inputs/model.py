@@ -144,7 +144,7 @@ class SoilLayer:
 
 @dataclass(frozen=True)
 class Soil:
-    """The first layer is 表層; its thickness is derived, not entered."""
+    """The first layer is 表層; its thickness may be blank, the rest of Df (decision 64, calc.embedment)."""
 
     layers: tuple[SoilLayer, ...]
 

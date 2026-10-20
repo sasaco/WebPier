@@ -21,6 +21,7 @@ import pytest
 
 from jrsnap_support import D, PEDESTAL, PROFILES, ROW0, ROW1, document, example2, model, results
 from webpier.calc.column_rebar import column_layout
+from webpier.calc.frame import Region
 from webpier.calc.seismic_longitudinal import MemberLoad
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
@@ -195,7 +196,8 @@ def test_a_blank_aggregate_size_of_the_column_is_an_error(direction):
 
 def test_a_pedestal_adds_a_rigid_arm_and_a_reversed_member():
     built = model("longitudinal", **PEDESTAL)
-    arm, pedestal = built.elements[6], built.elements[7]
+    pedestal, arm = built.elements[0], built.elements[1]  # numbered from the upper left (JRSNAP 2.1.6)
+    assert (pedestal.i, pedestal.j, arm.i, arm.j) == (1, 2, 2, 3)  # the smaller number at the top or the left
     assert arm.title == "桁受け腕" and arm.length.value == 0.35  # horizontal, left to right
     left, right = (built.joints[n - 1] for n in (arm.i, arm.j))
     assert left.y == right.y and left.x.value < right.x.value
@@ -209,7 +211,7 @@ def test_a_pedestal_adds_a_rigid_arm_and_a_reversed_member():
 
 def test_a_reversed_member_swaps_its_end_values():
     p, foundation, embedment, layout, seismic = results("longitudinal", document(**PEDESTAL))
-    pedestal = seismic.frame.members[-1]
+    (pedestal,) = [member for member in seismic.frame.members if member.region is Region.PEDESTAL]
     case = seismic.basic_cases[7]
     tapered = replace(case, member_loads=(MemberLoad(pedestal.number, Printed(-1.0, 2, "kN/m"),
                                                      Printed(-2.0, 2, "kN/m")),))
@@ -234,7 +236,7 @@ def test_a_horizontal_line_load_is_a_local_y_load(n, expected):
     assert kinds[:2] == expected
 
 
-def test_zero_loads_have_no_rows():
+def test_zero_loads_have_no_rows_but_an_empty_case_keeps_one():
     built = model("longitudinal")
     assert all(load.h.value or load.n.value or load.m.value for case in built.cases for load in case.joint_loads)
     p_document = document()
@@ -246,7 +248,13 @@ def test_zero_loads_have_no_rows():
         for key in ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率"):
             end[key] = 0.0
     snowless = model("longitudinal", data=p_document)
-    assert snowless.cases[3].title == "雪荷重" and snowless.cases[3].joint_loads == ()
+    # Decision 62: no snow keeps one zero row at the bearing seat, so JRSNAP's 荷重図 draws (and titles) every case
+    (zero,) = snowless.cases[3].joint_loads
+    assert snowless.cases[3].title == "雪荷重" and snowless.cases[3].member_loads == ()
+    assert (zero.node, zero.h.value, zero.n.value, zero.m.value, zero.label) == (1, 0, 0, 0, "雪荷重")
+    assert all(load.h.value or load.n.value or load.m.value
+               for case in snowless.cases if case.number != 4 for load in case.joint_loads)
+    validate_ndu(write_ndu(snowless), LONGITUDINAL)
 
 
 ASYMMETRIC = {"下部構造/寸法/側面/B7": 2.5, "下部構造/寸法/側面/B9": 1.8}  # column axis (B7 − B9)/2 = 0.350 off
@@ -254,25 +262,25 @@ ASYMMETRIC = {"下部構造/寸法/側面/B7": 2.5, "下部構造/寸法/側面/
 
 def test_an_inclined_rigid_member_is_a_vertical_and_a_horizontal_rigid_element():
     # Decision 40: the rigid offset from the column axis to the footing centroid of an asymmetric footing.
+    # The corner joint takes its place from the upper left (JRSNAP 2.1.6): at the centroid level, right of it.
     built = model("longitudinal", **ASYMMETRIC)
-    top, centroid, base = (built.joints[n - 1] for n in (5, 6, 7))
-    assert abs(top.x.value) == 0.35 and (centroid.x.value, base.x.value) == (0, 0)
-    corner = built.joints[-1]
-    assert (corner.number, corner.x, corner.y) == (8, top.x, centroid.y)  # a new joint below the footing top
+    top, centroid, corner, base = (built.joints[n - 1] for n in (5, 6, 7, 8))
+    assert top.x.value == 0.35 and (centroid.x.value, base.x.value) == (0, 0)
+    assert (corner.number, corner.x, corner.y) == (7, top.x, centroid.y)  # a new joint below the footing top
     vertical, horizontal, lower = built.elements[4:7]
-    assert (vertical.i, vertical.j, vertical.length.value, vertical.nonlinear) == (5, 8, 1.35, False)
-    left, right = sorted((8, 6), key=lambda n: built.joints[n - 1].x.value)
-    assert (horizontal.i, horizontal.j, horizontal.length.value) == (left, right, 0.35)
+    assert (vertical.i, vertical.j, vertical.length.value, vertical.nonlinear) == (5, 7, 1.35, False)
+    assert (horizontal.i, horizontal.j, horizontal.length.value) == (6, 7, 0.35)  # left to right
     assert vertical.title == horizontal.title == "フーチング上"
-    assert (lower.number, lower.i, lower.j) == (7, 6, 7) and len(built.elements) == 7
+    assert (lower.number, lower.i, lower.j) == (7, 6, 8) and len(built.elements) == 7
+    assert built.origin == 5 and built.footing.node == 8 and {spring.node for spring in built.springs} == {8}
     summary = validate_ndu(write_ndu(built), LONGITUDINAL)
     assert (summary.joints, summary.elements) == (8, 7)
 
 
 def test_member_loads_follow_the_renumbered_elements():
     built = model("longitudinal", **ASYMMETRIC, **PEDESTAL)
-    pedestal = built.elements[-1]
-    assert pedestal.title == "桁受け" and pedestal.number == 9  # member 8 after the split footing member
+    (pedestal,) = [element for element in built.elements if element.title == "桁受け"]
+    assert pedestal.number == 1  # member 1 from the upper left; the split footing member comes later
     assert pedestal.number in {load.element for load in built.cases[7].member_loads}
 
 
@@ -286,23 +294,43 @@ def test_an_inclined_elastic_member_is_not_supported():
         build_ndu(PROFILES["longitudinal"], p, foundation, embedment, layout, broken)
 
 
-def test_girders_at_different_heights_have_no_single_control_node():
-    with pytest.raises(InputError, match=re.escape("上部構造: 起点側と終点側の桁の高さ h1+h2 が異なり")):
-        model("transverse", **{"上部構造/終点側/高さ/h1": 0.5})
+def test_girders_at_different_heights_put_the_control_node_at_their_weighted_level():
+    # decision 65: h1 + h2 = 0.15 + 2.60 = 2.750 (origin) and 0.50 + 2.65 = 3.150 (end), weighted by the 0600
+    # girder inertia forces 6720.00 and 2370.00 kN: (6720 × 2.750 + 2370 × 3.150) / 9090 = 2.85429… → 2.854;
+    # La = H2 + H3 + H4 + 2.854 = 7.600 + 2.854 = 10.454 m. Nodes from the top: end 3.150, control, origin 2.750.
+    transverse = model("transverse", **{"上部構造/終点側/高さ/h1": 0.5})
+    assert transverse.control == 2 and transverse.section.shear_span == Printed(10454, 1, "mm")
+    assert model("transverse").control == 1  # the same heights: the common girder level (Example2 node 1)
 
 
-def test_a_short_shear_span_is_outside_the_bending_profile():
-    with pytest.raises(InputError, match=re.escape("La/d = 3700/2592 が2未満")):
-        model("longitudinal", **{"下部構造/寸法/高さ/H4": 1.0})
+def test_a_short_shear_span_is_a_shear_type_member():
+    # decision 66: La = 2.000 + 0.700 + 1.000 = 3.700 m, d = 2700 − 108 = 2592: La/d = 1.43 → 破壊形態 せん断
+    short = model("longitudinal", **{"下部構造/寸法/高さ/H4": 1.0})
+    assert short.section.shear_span == Printed(3700, 1, "mm") and short.section.shear_failure
+    assert not model("longitudinal").section.shear_failure  # Example2: 7600 / 2592 = 2.93
+    data = write_ndu(short)
+    assert "NonLinInfo1=1,1,1,2,1,1,1,1,0,柱下端Mθ" in data.decode("cp932")
+    validate_ndu(data, LONGITUDINAL)
+
+
+def test_a_shear_span_below_one_and_a_quarter_depth_is_outside_the_m_theta():
+    # H4 = 0.500: La = 3200 < 1.25 × 2592 = 3240
+    with pytest.raises(InputError, match=re.escape("La/d = 3200/2592 が1.25未満")):
+        model("longitudinal", **{"下部構造/寸法/高さ/H4": 0.5})
 
 
 def test_the_support_must_be_sandy_with_no_cohesion():
     with pytest.raises(InputError, match=re.escape("地盤データ.層[1].土質区分: JRSNAP の直接基礎（砂質土系）")):
         model("longitudinal", **{"地盤データ/層/1/土質区分": "粘性土"})
-    with pytest.raises(InputError, match=re.escape("地盤データ.層[1].一軸圧縮強度_qu: qu = 0 が必要です")):
+    with pytest.raises(InputError, match=re.escape("地盤データ.層[1].一軸圧縮強度_qu: qu = 0 または空欄が必要です")):
         model("longitudinal", **{"地盤データ/層/1/一軸圧縮強度_qu": 50})
     with pytest.raises(InputError, match=re.escape("地盤データ.層[1].単位体積重量.水中: 値が必要です")):
         model("longitudinal", **{"地盤データ/層/1/単位体積重量/水中": None})
+
+
+def test_a_blank_qu_is_zero():
+    # decision 63: qu is not written to the NDU (c = 0 of 砂質土系), so blank and 0 give the same model
+    assert model("longitudinal", **{"地盤データ/層/1/一軸圧縮強度_qu": None}) == model("longitudinal")
 
 
 def test_two_layers_of_main_bars():

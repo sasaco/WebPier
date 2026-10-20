@@ -24,8 +24,8 @@ def test_typing_into_an_empty_slot_creates_the_bearing_with_blanks():
     assert slot["支承位置"] == 4.2 and slot["固定死荷重_D1"] is None
     assert slot["列車分担"] == {"L1": None, "L2": None, "L3": None, "L4": None}
     assert bearings.state(slot) == "partial"
-    assert bearings.missing(document, "起点側", 5) == [
-        ("上部工反力", "起点側", "B支点", 5, key) for key in ("固定死荷重_D1", "付加死荷重_D2", *bearings.SNOW_KEYS)] + [
+    assert bearings.missing(document, "起点側", 5) == [  # a blank snow load is 0, not missing (decision 62)
+        ("上部工反力", "起点側", "B支点", 5, key) for key in ("固定死荷重_D1", "付加死荷重_D2")] + [
         ("上部工反力", "起点側", "B支点", 5, "列車分担", "L1"), ("上部工反力", "起点側", "B支点", 5, "列車分担", "L2")]
     with pytest.raises(Exception, match=r"上部工反力.起点側.B支点\[5\].固定死荷重_D1: 値が必要です"):
         parse_input(document)
@@ -76,10 +76,24 @@ def test_end_totals_add_the_printed_values():
     assert bearings.same_as_bearings(document, "終点側")["固定死荷重_D1"] == 0.3
 
 
+def test_end_totals_take_a_blank_snow_load_as_zero():
+    # decision 62: one blank adds 0; every bearing blank leaves the total blank (no snow)
+    document = data()
+    slots = document["上部工反力"]["終点側"]["C支点"]
+    expected = slots[0]["雪荷重_2年確率"]
+    slots[1]["雪荷重_2年確率"] = None
+    for slot in slots[:2]:
+        slot["雪荷重_10年確率"] = None
+    totals = bearings.same_as_bearings(document, "終点側")
+    assert (totals["雪荷重_2年確率"], totals["雪荷重_10年確率"]) == (expected, None)
+    assert bearings.state(slots[1]) == "complete" and bearings.missing(document, "終点側", 1) == []
+    parse_input(document)
+
+
 def test_end_totals_need_complete_bearings():
     document = data()
-    document["上部工反力"]["終点側"]["C支点"][1]["雪荷重_2年確率"] = None
-    with pytest.raises(EditorError, match=r"上部工反力.終点側.C支点\[1\].雪荷重_2年確率: 値が必要です"):
+    document["上部工反力"]["終点側"]["C支点"][1]["付加死荷重_D2"] = None
+    with pytest.raises(EditorError, match=r"上部工反力.終点側.C支点\[1\].付加死荷重_D2: 値が必要です"):
         bearings.same_as_bearings(document, "終点側")
     document["上部工反力"]["終点側"]["C支点"] = [None] * 10
     with pytest.raises(EditorError, match="上部工反力.終点側.C支点: 支承がありません"):

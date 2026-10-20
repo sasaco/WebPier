@@ -70,8 +70,9 @@ def test_pedestal_adds_an_arm_and_its_own_section():
     base, seat = result.frame.node(NodeRole.PEDESTAL_BASE), result.frame.node(NodeRole.PEDESTAL_TOP)
     assert (document["node"][str(base.number)], document["node"][str(seat.number)]) == (
         {"x": -0.5, "y": -10.3, "z": None}, {"x": -0.5, "y": -10.6, "z": None})
-    arm, pedestal = document["member"]["6"], document["member"]["7"]
-    assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (1, 7, 7, 8)
+    # numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; members: pedestal 1, arm 2
+    arm, pedestal = document["member"]["2"], document["member"]["1"]
+    assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (3, 2, 2, 1)
     elements = document["element"]["1"]
     assert elements[str(arm["e"])]["n"] == "剛域"
     # B3 = 1.000 normal to the plane, W3 = 7.000 in it: A = 7.000, I = 1.000 × 7.000^3 / 12 = 28.58333.

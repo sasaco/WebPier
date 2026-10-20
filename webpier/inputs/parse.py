@@ -13,7 +13,7 @@ from typing import Any
 from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
-from .fields import BEAM_SURFACES, REPETITION_SLOPES, SNOW_KEYS, read
+from .fields import BEAM_SURFACES, LOAD, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
     Bearing, CantileverCheck, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions, Materials, PierInput,
     Pile, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
@@ -106,6 +106,12 @@ def _train(root: Reader) -> Train:
 BEARING_KEYS = ("支承位置", "固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS, "列車分担")
 
 
+def _snow(node: Reader) -> Printed:
+    """Decision 62: a blank snow load is no snow, 0 kN."""
+    value = read(node)
+    return LOAD(0) if value is None else value
+
+
 def _bearing(slot: Reader) -> Bearing | None:
     if slot.is_null:  # 空き支承枠
         return None
@@ -115,14 +121,15 @@ def _bearing(slot: Reader) -> Bearing | None:
         read(shares.at(track))
     return Bearing(
         position=read(slot.at("支承位置")), d1=read(slot.at("固定死荷重_D1")), d2=read(slot.at("付加死荷重_D2")),
-        snow2=read(slot.at(SNOW_KEYS[0])), snow10=read(slot.at(SNOW_KEYS[1])), snow30=read(slot.at(SNOW_KEYS[2])),
+        snow2=_snow(slot.at(SNOW_KEYS[0])), snow10=_snow(slot.at(SNOW_KEYS[1])), snow30=_snow(slot.at(SNOW_KEYS[2])),
         shares=Shares(l1=read(shares.at("L1")), l2=read(shares.at("L2"))),
     )
 
 
 def _end(node: Reader) -> EndReaction:
     node.only("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)
-    return EndReaction(*(read(node.at(key)) for key in ("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)))
+    return EndReaction(read(node.at("固定死荷重_D1")), read(node.at("付加死荷重_D2")),
+                       *(_snow(node.at(key)) for key in SNOW_KEYS))
 
 
 def _reactions(root: Reader) -> Reactions:
@@ -142,12 +149,14 @@ LAYER_KEYS = ("層番", "層厚", "土質区分", "N値", "単位体積重量", 
 
 
 def _layer(node: Reader, index: int) -> SoilLayer:
-    node.only(*(key for key in LAYER_KEYS if index or key != "層厚"))  # 表層 has no entered thickness
+    node.only(*LAYER_KEYS)
     weights = node.at("単位体積重量").only("湿潤", "水中")
     angle_limit = node.optional("内部摩擦角の上限値")
+    # decision 64: 表層 may leave its thickness out (blank: the rest of Df); the layers below have the key
+    thickness = node.optional("層厚") if index == 0 else node.at("層厚")
     return SoilLayer(
         name=read(node.at("層番")),
-        thickness=None if index == 0 else read(node.at("層厚")),
+        thickness=None if thickness is None else read(thickness),
         soil_type=read(node.at("土質区分")),
         n_value=read(node.at("N値")),
         unit_weight_wet=read(weights.at("湿潤")),
@@ -170,6 +179,8 @@ def _soil(root: Reader) -> Soil:
     surface, support = rows.at(0), rows.at(supports[0])
     _required(surface.at("単位体積重量", "湿潤"))
     _required(surface.at("単位体積重量", "水中"))
+    for index in range(1, supports[0]):  # decision 64: the layers between 表層 and 支持層 fill Df by their thickness
+        _required(rows.at(index, "層厚"))
     angle = _required(support.at("内部摩擦角_φd"))
     if not 25 <= angle.value < 90:
         raise support.at("内部摩擦角_φd").error("25度以上90度未満が必要です（支持力係数表の適用範囲）")

@@ -128,3 +128,32 @@ def test_typography_and_tables_match_the_independent_reference_roles(tmp_path: P
         assert len(equals) >= 7
         assert all(measure.role_errors(s, roles["horizontal.result_equals"], anchor_x=ANCHOR) == [] for s in equals)
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
+
+
+def test_the_displaced_soil_of_several_layers_prints_its_average(tmp_path: Path):
+    # decision 64: H5 + H6 = 2.700 spans 支持層 (0–2.650, 19.0) and ローム (2.650–2.700, 17.0):
+    # γ' = (0.050 × 17.0 + 2.650 × 19.0) / 2.700 = 18.962… → 19.0
+    from copy import deepcopy
+
+    from frame_report_cases import CURRENT
+    from webpier.calc.foundation import calculate_foundation
+    from webpier.calc.longitudinal import calculate_longitudinal
+    from webpier.calc.reaction import calculate_reaction
+    from webpier.calc.seismic_longitudinal import calculate_seismic_longitudinal
+    from webpier.inputs import parse_input
+
+    data = deepcopy(CURRENT)
+    layers = data["地盤データ"]["層"]
+    layers[0]["層厚"] = 1.05
+    layers.insert(1, deepcopy(layers[0]) | {"層番": "ローム", "層厚": 1.0, "土質区分": "粘性土",
+                                           "単位体積重量": {"湿潤": 17.0, "水中": 7.0}})
+    data["下部構造"]["単位体積重量"]["フーチング"] = 24.5
+    pier = parse_input(data)
+    foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
+    result = calculate_seismic_longitudinal(pier, foundation, reaction,
+                                            calculate_longitudinal(pier, foundation, reaction))
+    assert result.self_weight.footing.displaced == Printed(19.0, 1, "kN/m3")
+    text = "".join(squeeze(r["text"]) for r in semantic_records(result, pier))
+    assert "γ'=(0.050×17.0+2.650×19.0)/2.700=19.0" in text and "厚さによる平均" in text
+    checks = formula_checks(render_seismic_longitudinal(result, pier, tmp_path / "layers.pdf", REPORT))
+    assert [check for check in checks if not check.ok] == []

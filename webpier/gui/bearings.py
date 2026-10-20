@@ -41,11 +41,16 @@ def _empty() -> dict:
     return slot
 
 
+def _required(tail: JsonPath) -> bool:
+    """A value a bearing needs: not L3/L4 (decision 23) and not a snow load, whose blank is 0 (decision 62)."""
+    return tail[-1] not in ("L3", "L4", *SNOW_KEYS)
+
+
 def state(slot: dict | None) -> str:
     """empty (null), partial (some values blank) or complete."""
     if slot is None:
         return "empty"
-    blank = [_leaf(slot, tail) is None for tail in SLOT_LEAVES if tail[-1] not in ("L3", "L4")]
+    blank = [_leaf(slot, tail) is None for tail in SLOT_LEAVES if _required(tail)]
     return "partial" if any(blank) else "complete"
 
 
@@ -69,7 +74,7 @@ def missing(data: Any, side: str, index: int) -> list[JsonPath]:
     if slot is None:
         return []
     prefix = ("上部工反力", side, SUPPORTS[side][1], index)
-    return [(*prefix, *tail) for tail in SLOT_LEAVES if tail[-1] not in ("L3", "L4") and _leaf(slot, tail) is None]
+    return [(*prefix, *tail) for tail in SLOT_LEAVES if _required(tail) and _leaf(slot, tail) is None]
 
 
 def _printed(root: Reader, *keys: str | int) -> Printed:
@@ -97,6 +102,11 @@ def same_as_bearings(data: Any, side: str) -> dict[str, float]:
     totals = {}
     for key in LOAD_KEYS:
         parts = [_printed(root, "上部工反力", side, support, index, key) for index in used]
+        if key in SNOW_KEYS:  # decision 62: a blank snow load is 0; all blank stays blank (no snow)
+            if all(part is None for part in parts):
+                totals[key] = None
+                continue
+            parts = [LOAD(0) if part is None else part for part in parts]
         totals[key] = LOAD.total(parts).value
     data["上部工反力"][side][end] = totals
     return totals

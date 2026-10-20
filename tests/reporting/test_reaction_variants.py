@@ -189,3 +189,23 @@ def test_the_axle_count_of_ra_is_read_from_the_result():
     odd = replace(result.train.loading, origin_axles=Printed(7.0, 0, ""))
     actual = records("", replace(result, train=replace(result.train, loading=odd)), pier)
     assert actual["train.loading.a"] == "RA=160.00×7−272.47=367.53kN"
+
+
+def test_a_long_span_wraps_the_levers_of_its_reaction(tmp_path):
+    # P7 終点側 61.390 m carries 12 axles: RC = P × (a1 + … + a12) / l is longer than a line, so the group wraps
+    # (more than INLINE_AXLES = 8 levers); the formula still reads the same.
+    from copy import deepcopy
+
+    from reaction_report_cases import input_document
+    from webpier.calc.reaction import calculate_reaction
+    from webpier.inputs import parse_input
+    from webpier.reporting.stages.reaction import render_reaction
+
+    data = deepcopy(input_document("current"))
+    data["上部構造"]["終点側"]["桁長"]["スパン長"] = 61.39
+    pier = parse_input(data)
+    result = calculate_reaction(pier)
+    assert sum(axle.girder.name == "END" for axle in result.train.loading.axles) > 8
+    rc = records("long", result, pier)["train.loading.c"]
+    assert rc.startswith("RC=160.00×(") and rc.count("+") > 8
+    render_reaction(result, pier, tmp_path / "0600.pdf")  # lays out without overflowing the line

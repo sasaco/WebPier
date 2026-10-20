@@ -94,7 +94,8 @@ def _frame(model: NduModel) -> Iterator[Record]:
     for e in model.elements:
         yield f"ShabuzaiMeInfo{e.number}", (*(0,) * 9, False, False)
     yield "NonLinNum", (1, 1, 0)  # one automatic M-θ definition, for the one nonlinear element
-    yield "NonLinInfo1", (1, 1, 1, 1, 1, 1, 1, 1, 0, NONLINEAR_TITLE)
+    # The 4th field is the 破壊形態: 1 曲げ, 2 せん断 (the AP card's S; decision 66)
+    yield "NonLinInfo1", (1, 1, 1, 2 if model.section.shear_failure else 1, 1, 1, 1, 1, 0, NONLINEAR_TITLE)
 
 
 def _section(model: NduModel) -> Iterator[Record]:
@@ -156,8 +157,10 @@ def _loads(model: NduModel) -> Iterator[Record]:
         yield f"JLoadRow{case.number}", (len(case.joint_loads),)
         for load in case.joint_loads:
             joint += 1
-            yield f"JLoadInfo{joint}", (case.number, BLANK, load.node, case.increment, _blank_zero(load.h),
-                                        _blank_zero(load.n), _blank_zero(load.m), load.label)
+            # The zero row of a case without loads (decision 62) writes N = 0: a row of three blanks is no load.
+            n = _blank_zero(load.n) if load.h.value or load.n.value or load.m.value else load.n
+            yield f"JLoadInfo{joint}", (case.number, BLANK, load.node, case.increment, _blank_zero(load.h), n,
+                                        _blank_zero(load.m), load.label)
     for key in ("ELoadNum", "ELoadRow", "DLoadNum", "DLoadRow"):
         yield key, (0,)
     yield "SNAPConbNum", (len(model.combinations),)

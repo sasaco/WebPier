@@ -31,7 +31,8 @@ def _writer(form: Form, side: str, index: int, tail: tuple):
 
 def reactions(form: Form) -> None:
     form.figure(form.section("支点と支承の位置", note="支承位置は柱の中心線から測った線路直角方向の距離です。"
-                             "全項目が空欄の枠は支承なし（空き支承枠）、一部だけ入力した枠の空欄は入力エラーです。"),
+                             "全項目が空欄の枠は支承なし（空き支承枠）、一部だけ入力した枠の空欄は入力エラーです。"
+                             "ただし雪荷重の空欄は雪荷重なし（0）です。"),
                 "reactions", "A・B・C・D支点と支承位置 / 原図・記号確認用")
     for side in bearings.SUPPORTS:
         end, support = bearings.SUPPORTS[side]
