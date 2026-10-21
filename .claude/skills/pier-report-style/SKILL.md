@@ -69,7 +69,8 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 
 1. GridLayoutPdf の `AGENTS.md` から辿れる規則に従う（TDD、`run_tests.py`、`update_design.py`、docs/api.md と DESIGN.md の更新、片持ち梁37頁 manifest の SHA 更新）。
 2. そのリポジトリのテストを通す。
-3. WebPier に取り込み直す：`uv sync --project "." --locked --reinstall-package gridlayoutpdf`（取り込み直さないと実装ハッシュが食い違いテストが失敗する）。
+3. 試すときは、手元の作業ツリーを venv に入れて `--no-sync` で走らせる（CLAUDE.md の「手元の GridLayoutPdf の作業ツリーを試す」）。`--locked` の実行は venv を lock の版に戻す。
+4. 取り込むときは、GridLayoutPdf の版を上げてコミット・push し、タグと再現できる wheel の Release を作ってから、WebPier の `url` を差し替えて `uv lock`・`uv sync --locked` する（CLAUDE.md の手順。v0.2.1 の例：版上げ b9e86c3、wheel を2回作って SHA-256 が同じことを確かめてから載せる）。Release の作成は外への公開なので利用者の承認を得る。手元の path 依存は一時的なもので、push しない。
 
 これまでに足した汎用機能：`TermStop`／`EquationGroup(term_columns="grid")`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）、`SideRule`（式のまとまりを括る左の縦線。FR-020）、方眼Excel `render_xlsx`（FR-021）、罫線の種類 `BorderStyle`／`TableBorders`（FR-022）、書体を名前で引く（FR-024）。方眼Excel の左辺を等号の境目の左の列まで届かせる直し（「B′」のように字形が左に寄った記号。2026-10-21）。
 
@@ -97,3 +98,35 @@ GridLayoutPdf の描画のソースを変えると、片持ち梁37頁の画素�
 - 文や段を消す前に、その段だけが印刷している結果の値がないか確かめる。結果の全値が計算書に出ることをテストが確かめる（0600 の 6.3 2) の「（安全性（疲労破壊））iF(単線)・iF(複線)」は見本にない重複に見えるが、`train.fatigue.*_impact` を印刷する唯一の段なので残す）。
 - 組合せの名前の数値（「0.8 LR」）は値ではなく名前。係数の印字値から名前を作ると 0.8 LR が「1.0 LR」になるので、名前は表（0600 の `CASES`）に持ち、値から作るのは γB のような係数の部分だけにする。
 - 体裁のテスト（`test_*_pdf.py` の ROLES など）は行を文言で選ぶ。文言を変えたり消したりしたら、同じ役割（同じ x）の残る行の文言に選び直す（StopIteration で落ちる）。
+
+## 7. 共通グリッドへの移行で踏んだこと（2026-10-21、決定71）
+
+移行の記録は `.claude/docs/plans/glp-0.2.0-grid.md`。手本は関内 EVピット部の同じ移行（`evpit-design` スキルの同名の節）。
+
+**式**
+- アンカーの境目は厳密に増える。等号は列の境目に中心を置くので、左辺は「左端の列〜等号の列の1つ手前」に、ことばのラベル（`Equation(label=)`、自動の幅は最大 96.48pt）と左辺と間 4pt が入らないといけない。入らないとラベルが折り返して「leading of 1 rows is smaller than a measured line of 2 rows」になる。等号の列を右へ動かすか、左辺を短い記号にする。
+- 項は1つずつ整数の列を取るので、見本より横に長い。結果の等号まで右辺が入らない式は、結果が次の行の結果の列に回る（重なりではない）。frame_report の＝11／22 で回っている式：0610 p3・0620 p3 の鉛直力 N、0620 p7 のモーメント M、0710 p8・0720 p9 の H_w1〜3 とフーチングの H。1行に戻すなら、frame_report のアンカーを帳票ぐるみで見直す（0600 は結果の等号を23にしている）。
+- 右辺そのものが30列に入らないと `term_fallback` で `LayoutOverflowError`。0600 は `layout.py` で「=」「+」「−」（だめなら「×」「/」）の前で行を分け、続きの行の先頭の演算子を等号の列に置く。照査系は原稿の単位を2つに分けて `left=` で字下げする。どちらも文字と並びは変えない。
+- 被りの層が多い 0500 の γ2 は、区間が5つ以上だと30列に入らないおそれがある（4区間までは入る）。起きたら考える（2026-10-21、利用者）。
+- 形の違う式は別の群（`Stack` の子）になる。群は1つの part で、改頁は群の境目のうち keep でない式の後だけ。群に加えると項が入らなくなる式は加えない（`equations.py`）。
+- 先頭の全角空白で字下げしない。方眼Excel で位置がずれる（0611 の「× (Vpd+Vcd)…」、0910 の Mtud2・Mtud3 で 35pt）。字下げは `left=` の列で。
+
+**表・図**
+- 列幅は中身の字数から見積もる：全角 10pt、半角 約5pt、左右の余白 3pt ずつ。1列（16.08pt）に「1.35」は入らない。30列に入らない表は左へ寄せ、それでも入らなければ分ける（0610・0620 の組合せ係数の表は `TableParts` で要求性能の変わり目で2つに分け、後半にもケースの列を出す）か回す。
+- 回す表は縦横を入れ替えた局所グリッド（`GridSpec(0, 0, PITCH_Y, PITCH_X, …)`）で `QuarterTurn`。こうしないと方眼Excel で図形への切替え（`quarter_turn`）になり strict に落ちる。縦書きのセルは `tables.VerticalLabel`。
+- 添字のあるセルは、セルごとに上下中央に置くと同じ行の数値より 0.7pt 上に出る。frame_report の1行の本文のセルは `CELL_BASELINE` で行の基線をそろえる。上付きのある見出しのセル（N/mm²）に固定の基線を渡すと「content lacks clearance」になるので、見出しは中央のまま。
+- 図の枠は `columns_for`・`rows_for`。図題が図の上端に近いと、図が頁の先頭に来たとき方眼Excel が前の頁にも描いて切る（0800 の地盤反力形状）。図題を下げる。
+- 括り線（`SideRule`）の上下を行の途中で縮めると `border_off_grid` で strict に落ちる。行全体に引く。
+
+**方眼Excel と Excel 比較**
+- 本文の右端まで届く行・列の境目の手前で終わる行は、Excel の印刷で最後の1字が欠ける（`texts_clipped`、受け入れ済みの制限）。「[… の組合せ]」の「]」のように落としたくない字は、1マス空けるか行を分ける。
+- 添字の多い項は Excel が PDF より狭く描く（1字あたり約2pt）。記号式は項を左寄せにし、括弧の中を「+」で分けて項を短くする（0500 の γ2）。
+- 「B′：」のように字形が送り幅の左に寄った左辺は、GridLayoutPdf 0.2.0 では1列手前で終わって Excel 比較の `no_cell` になった。0.2.1 で直した（左辺は等号の境目の左の列まで）。似た症状は GridLayoutPdf を直す。
+- 比較の不合格は `result.json` の `pages[].outside`（`failures`：`clipped`・`no_cell` など、`dx_pt`・`dy_pt`）で読む。`tests/reporting/grid_excel_support.py` は比較スクリプトを GridLayoutPdf のチェックアウト（`GRIDLAYOUTPDF_CHECKOUT`、既定は手元）から読む（Release の wheel にスクリプトは無い）。
+
+**テストと作業の進め方**
+- `test_grid_excel.py` は段階ごとに代役の runner で単独生成し、生成が `write_workbook` に渡した文書を記録して、その文書で strict と Excel 比較を行う（Capacita が飛ばした節で原稿が変わる 0611・0621・0910 も、公開物と同じ文書で調べられる）。入力は current.json にフーチングの鉄筋を足したもの（0800〜0820 に要る）。`-k "train-0610"`・`-k "addin-0600"` で段階を選ぶ。Excel 比較は1冊 20〜60秒、全体のテストは約20分、`check.ps1` は約35分。
+- 開いた表には上の線が無いので、空き行の検査は罫線ではなく配置の metadata（parts の "cells"）で表の範囲を取る（`test_report_spacing.py`）。
+- 帳票の作り直しでは、文字の並び（空白を除く）と結果JSON・`post/` の値（実装のハッシュを除く）を前の実装の出力と比べる。並びが違うときは文字の多重集合も比べ、並べ替えか増減かを見分ける。比べる基準は今の実装で出し直す（`output/` は古いことがある）。
+- 並行で担当を分けると、別の担当の編集で生成テストが「生成中にプログラム・描画依存が変更されました」で落ちる。重なっただけなので走らせ直す。共通部品は担当が終わってから直す。
+- Python の `Path.write_text` は Windows で CRLF にする。`.py` は LF なので `write_bytes` か Edit を使う。引用符の多い Python を Bash の heredoc で渡さない（ファイルに書いて動かす）。
