@@ -127,7 +127,12 @@
 
 - [ ] 出力項目 `detailing`：`inputs/outputs.py`、`pipeline/stages.py`（`OUTPUT_STAGES`、`StageSpec("0400", "0400_照査の前提", ...)`）、`gui/calculation_page.py`、`current.json`・`pre/input.json` の `outputs`、項目を数えるテスト
 - [ ] `current.json`・`pre/input.json` にフーチング上面の配筋
-- [ ] 中間帯鉄筋の配置（calc 層。E も使う）
+- [x] ✅ 中間帯鉄筋の配置（calc 層。E も使う）：`webpier/calc/detailing/ties.py`（2026-10-21）
+  - `base_hoops(pier, direction) -> BaseHoops`：その方向の帯鉄筋で柱下端を含む行（`start` が空欄か 0、ちょうど1行）。`direction`・`path`（入力のパス）・`diameter`・`legs`（方向別有効本数 n）・`pitch`・`grade`（柱の帯鉄筋の材質）。
+  - `column_ties(pier, direction) -> TieLayout`：柱下端の行の脚の位置（`base_hoops` と `column_layout` から）。`tie_layout(layout, direction, legs, path)` が本体。
+  - `TieLayout`：`direction`（線路／直角）、`effective_legs`（n）、`span`（面の長さ mm。線路は W6、直角は B6）、`targets`（面を n−1 等分する点 k·span/(n−1)、k=1…n−2、0.1 mm）、`outer`（外巻き帯鉄筋の2本の脚）、`intermediate`（中間帯鉄筋の脚、昇順）、`legs`（全部の脚、昇順。property）、`sets`（n/2 組）、`intermediate_sets`（(n−2)/2 組）、`max_spacing`（隣り合う脚の最大の間隔、48φ の照査に使う）。
+  - 座標は `calc/column_rebar.py` と同じ（mm、左上が原点）。線路の脚は x（線路の主鉄筋の面＝Y に垂直な面に沿う）、直角の脚は y。脚は掛ける鉄筋の中心に立てる（使う鉄筋＝配置表の変更の後の `layout.bars`）。外巻きの脚は、その面に沿う方向で断面のいちばん外の鉄筋（どちらの方向の鉄筋でもよい。Ex2 の線路は直角の鉄筋の x＝102・4398、直角は線路の鉄筋の y＝108・2592）。中間帯鉄筋はその方向の1段目の主鉄筋のうち点に最も近いもの（同じ近さなら原点に近いもの）。
+  - 入力エラー：n＜2、中間帯鉄筋があるのに1段目の主鉄筋がない、2本の脚が同じ鉄筋に掛かる（本数が足りない）。
 - [ ] `webpier/calc/detailing/`：4.2 柱（1)〜9)）、4.3 梁、4.4 フーチング。印字桁で丸め、frozen dataclass
 - [ ] `webpier/reporting/stages/detailing.py`：§4、4.1（図の場所。図は E）〜4.4、`grid_documents`
 - [ ] 結果JSON と `engineering_status`
@@ -166,11 +171,26 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 
 ## Phase 6　配筋図（担当 E）
 
-- [ ] 依存 `ezdxf>=1.4,<2`、`dependency_hashes` に ezdxf
-- [ ] `webpier/export/drawing/`：作図道具（画層・文字スタイル・寸法スタイル・`dxf_bytes`・`pdf_bytes`）
-- [ ] 柱の水平断面・梁の柱前面の断面・フーチングの断面
-- [ ] `post/配筋図.dxf`（付帯JSON）、4.1 に Phase 5 の部品で図ごとの PDF
-- [ ] テスト（DXF の円・文字・`audit()`・決定的、PDF 1頁・決定的）、PNG で目視、`.gitattributes` に `*.dxf -text`
+- [x] ✅ 依存 `ezdxf>=1.4,<2`（1.4.5）、`dependency_hashes` に ezdxf・fontTools・pymupdf（bcb421a）
+- [x] ✅ `webpier/export/drawing/`：作図道具 `sheet.py`（画層・MSゴシックの文字スタイル・寸法スタイル・`label`・`arrow_to`・`fan`・`chain`・`dxf_bytes`・`figure_bytes`）（bcb421a）
+- [x] ✅ 柱の水平断面（中間帯鉄筋は D の `calc/detailing/ties.py` を 8678729 から取り込み）・梁の柱前面の断面・フーチングの断面（bcb421a）
+- [ ] `post/配筋図.dxf`（付帯JSON）、4.1 に Phase 5 の部品で図ごとの PDF（段階の組み込みは D の段階と GLP の Release の後）
+- [x] ✅ テスト `tests/export/test_drawing.py`（DXF の円・線・寸法と表記の文字・`audit()`・ハッシュの種によらない同じバイト列、PDF 1頁・PNG の縦横比・決定的）、PNG で目視、`.gitattributes` に `*.dxf -text`（bcb421a）
+
+公開した関数（`webpier.export.drawing`）：
+
+- `drawing_dxf(pier: PierInput) -> bytes`：3図（梁・柱・フーチング）を横に並べた DXF 1つ。図ごとに縮尺（`sheet.scale_for`：長辺が紙の上で 120mm に収まる最小の 1/20〜1/500）で文字と寸法を描き、図の上に「梁（柱前面の断面）　1:25」などの題。
+- `drawing_figures(pier: PierInput) -> dict[str, tuple[bytes, bytes]]`：`FIGURES = ("梁", "柱", "フーチング")` の順に (PDF, PNG)。PDF は図1つを1頁に縮尺どおり（GridLayoutPdf の `PdfFigure(col_span, rows, data=PDF, preview=PNG)` にそのまま渡す）、PNG は同じ頁を 200 dpi・白地で（方眼Excel の preview）。
+- 入力の空欄はパスを名指しした入力エラー（calc の関数が出す。外巻き帯鉄筋の径だけは export が `鉄筋.柱.column_hoops.enclosing_diameter_mm` を名指しする）。
+
+知見（担当 E）：
+
+- （事実 2026-10-21、bcb421a）ezdxf 1.4.5 の DXF のバイト列は、CLASSES 節の並び（LAYOUT と ACDBPLACEHOLDER）がプロセスの文字列ハッシュの種（PYTHONHASHSEED）で入れ替わる（`ClassesSection.add_required_classes` が `dxf_types_in_use()` の set を回す）。参考の EVピット部のスキルは「import の順」と書いているが原因は set。`dxf_bytes` で書く前に使っている型を名前順に `doc.classes.add_class` して固定した。テストは種 1・2 の子プロセスで同じバイト列を確かめる。
+- （事実 2026-10-21、bcb421a）PyMuPdfBackend の `get_pdf_bytes()` は毎回ランダムな /ID を書く。`get_replay(...).doc.tobytes(no_new_id=True)` で /ID なしにして決定的にした（作成日時は書かれない）。PNG は同じ頁の `get_pixmap(dpi=200, alpha=False).tobytes("png")` で決定的。幅は切り上げで 1px 増えることがあるが（476pt → 1323px）、GridLayoutPdf の preview の検査（両軸 ±0.5px で同じ倍率がある）は通る（GLP f2e618b の `PdfFigure` を venv に入れて3図で確かめた。venv は lock の版に戻した）。
+- （事実 2026-10-21）文字スタイル「MSゴシック」の font は `msgothic.ttc`。ezdxf のフォントマネージャーが MS Gothic を見つけ、PDF・PNG で日本語が出る（PNG で目視、テストは style と `has_font`）。書体が無い PC では ezdxf は黙って別の書体に替える（未対処、報告済み）。
+- （事実 2026-10-21）WebPier の `.gitignore` の `export/` は `webpier/export/` と `tests/export/` の新しいファイルも無視する。新しいファイルは `git add -f` が要る。
+- （推定）フーチングの直角方向の鉄筋は入力に始点がないので、ピッチで中央から振り分け、面の最も外側の段の芯の間に置いた。梁のスターラップは外周の1本だけを描き、有効本数は表記（組＝有効本数／2）で示す（中間の脚の位置は入力にない）。
+- （事実 2026-10-21）品質ゲート（bcb421a の前、(PDF, PNG) への変更の前）：3 failed・21 errors はすべて受入の入力の SHA の不一致（accept_capacita_column・accept_footing・accept_foundation_check・accept_jrsnap_ndu・accept_jrsnap_figures、pre/input.json は変えていない）、pipeline 99.93%（`pipeline/headless.py:221-222` の IO_ERROR）。export 100%。
 
 ## 検証（オーケストレーター）
 

@@ -9,3 +9,6 @@ pre/** -text
 scripts/*.cs text eol=lf
 .claude/skills/jrsnap-input-open-save/scripts/*.cs text eol=lf
 .claude/skills/jrsnap-input-open-save/scripts/*.ps1 text eol=lf
+
+# DXF drawings (配筋図, decision 73): the bytes ezdxf writes (LF), never converted.
+*.dxf -text

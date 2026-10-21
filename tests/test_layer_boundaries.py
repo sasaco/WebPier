@@ -20,15 +20,18 @@ ALLOWED = {
     "pipeline": {"core", "inputs", "loadmodel", "calc", "reporting", "export"},
     "gui": {"core", "inputs", "loadmodel", "calc", "reporting", "export", "pipeline"},
 }
-# Third-party packages a layer must not touch, so calculation never depends on drawing or Tk. A module is imported
+# Third-party packages a layer must not touch, so calculation never depends on drawing or Tk, and the report takes the
+# 配筋図 as bytes (export.drawing draws them with ezdxf, decision 73). A module is imported
 # by name only in pipeline (importlib), which reads a load model's add-in (decision 70).
+_NOT_BELOW_RENDERING = {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "ezdxf",
+                        "importlib"}
 FORBIDDEN_EXTERNAL = {
-    "core": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
-    "inputs": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
-    "loadmodel": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
-    "calc": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pymupdf", "fitz", "PIL", "pypdf", "importlib"},
+    "core": _NOT_BELOW_RENDERING,
+    "inputs": _NOT_BELOW_RENDERING,
+    "loadmodel": _NOT_BELOW_RENDERING,
+    "calc": _NOT_BELOW_RENDERING,
     "export": {"reportlab", "gridlayoutpdf", "tkinter", "tksheet", "pypdf", "importlib"},
-    "reporting": {"tkinter", "tksheet", "importlib"},
+    "reporting": {"tkinter", "tksheet", "ezdxf", "importlib"},
     "pipeline": {"tkinter", "tksheet"},
     "gui": {"importlib"},
 }
