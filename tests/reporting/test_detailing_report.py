@@ -7,12 +7,13 @@ result.
 """
 
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 
 import pymupdf
 import pytest
-from gridlayoutpdf import Figure
+from gridlayoutpdf import Figure, Line
 
 from webpier.calc.detailing import calculate_detailing
 from webpier.inputs import parse_input
@@ -188,6 +189,29 @@ def test_the_figures_of_4_1_stand_under_their_headings():
         content(result(), {"drawing": FigureSpec(Figure(4, 2), ())})
 
 
+def drawn(block_id: str) -> Figure:
+    """A figure that draws (a 配筋図 always does): an empty one would leave its heading kept with nothing."""
+    return Figure(4, 2, Line(5, 5, 20, 20), block_id=block_id)
+
+
+def test_a_page_breaks_only_before_a_heading_or_a_lead():
+    """A formula stays on the page of its text, its "ここに、" list, its judgement and "以上の結果より": every page
+    begins with a heading or a lead (① 一般部, ディープビームの構造細目, …). 4.2, 4.3 and 4.4 and (2) 線路直角方向 of
+    4.2 and 4.4 (to be read beside (1) 線路方向) begin a page, and no blank line is left before them. Without the
+    figures of 4.1, 4.2 follows its headings."""
+    figures = {name: FigureSpec(drawn(f"0400/test.{name}"), ()) for name in ("beam", "column", "footing")}
+    pages = build_detailing(result(), figures).layout()
+    firsts = [page.metadata["placements"][0]["block_id"] for page in pages]
+    assert len(firsts) > 10
+    assert all(re.search(r"\.(heading(\.row)?|lead)$|^0400/heading$", first) for first in firsts), firsts
+    for key in ("0400/column.heading", "0400/column.直角.heading", "0400/beam.heading", "0400/footing.heading",
+                "0400/footing.直角.heading"):
+        before = pages[firsts.index(key) - 1]
+        assert before.metadata["placements"][-1]["block_type"] != "Spacer"
+    alone = build_detailing(result()).layout()
+    assert [placement["block_id"] for placement in alone[0].metadata["placements"]][-1] != "0400/layout.footing.heading"
+
+
 def test_the_pdf_is_the_same_bytes_and_the_workbook_the_same_document(tmp_path):
     detailing = result()
     first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
@@ -197,5 +221,5 @@ def test_the_pdf_is_the_same_bytes_and_the_workbook_the_same_document(tmp_path):
     with pymupdf.open(tmp_path / "a.pdf") as pdf:
         text = "".join(page.get_text() for page in pdf)
     assert "§4. 照査の前提" in text and "#REF!" not in text and "小判形" not in text
-    figure = {"footing": FigureSpec(Figure(4, 2, block_id="0400/test.figure"), ())}
+    figure = {"footing": FigureSpec(drawn("0400/test.figure"), ())}
     assert build_detailing(detailing, figure).render(tmp_path / "d.pdf", invariant=True).read_bytes() != first

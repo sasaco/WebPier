@@ -27,7 +27,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from gridlayoutpdf import Document, Equation, KeepWithNext, PdfFigure, PreferKeepTogether, Row
+from gridlayoutpdf import Document, Equation, KeepWithNext, PageBreak, PdfFigure, PreferKeepTogether, Row
 from pypdf import PdfReader
 
 from ...calc.detailing import DetailingResult
@@ -37,7 +37,7 @@ from ...calc.detailing.common import (BarGroup, Bound, CapacityRatio, ClearSpaci
                                       SteelRatio, StirrupSpacing)
 from ...calc.detailing.footing import FootingDetailing, FootingDirection
 from ...core.printed import Printed
-from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
+from ..document import blank, heading, indent_to, is_blank, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
 from ..styles import columns_pt, rows_for
 from . import cantilever_check, column_check, footing_check
@@ -66,6 +66,10 @@ DOTS = "・・・・・・"
 MM2 = sup("mm", "2")
 FACES = {"上": "上側", "下": "下側"}
 DIRECTIONS = {"線路": "線路方向", "直角": "線路直角方向"}
+# 4.2, 4.3 and 4.4 begin a page, and so does (2) 線路直角方向 of 4.2 and 4.4: it repeats the items of (1) 線路方向,
+# to be read beside them. Headings alone before one (4.1 without its figures) stay on its page.
+NEW_PAGES = frozenset(f"{PREFIX}{member}{direction}.heading" for member in ("column", "beam", "footing")
+                      for direction in ("", ".直角") if member != "beam" or not direction)
 
 
 @dataclass(frozen=True)
@@ -112,9 +116,9 @@ class _Manuscript:
         self.add(key, item, "line", left=left, keep=keep)
 
     def equation(self, key: str, label: str, lhs: Any, rhs: Any, result: Any = None, unit: Any = None, *,
-                 anchors: tuple[int, ...] = SYMBOL, keep: bool = False) -> None:
+                 anchors: tuple[int, ...] = SYMBOL) -> None:
         item = Equation(lhs, rhs) if result is None else Equation(lhs, rhs, result=result, unit=unit)
-        self.add(key, Labelled(label, item), "equation" if anchors == SYMBOL else "bounds", keep=keep)
+        self.add(key, Labelled(label, item), "equation" if anchors == SYMBOL else "bounds")
 
     def definitions(self, key: str, *items: Definition) -> None:
         self.add(key, Definitions(items, COLON), "definitions")
@@ -619,7 +623,7 @@ def _equations(run: Sequence[Unit], anchors: tuple[int, ...]) -> Any:
                           second_equal=second if result else None, result_right=right if result else None,
                           unit_start=unit if result else None, block_id=run[0].key,
                           label_columns=first - left - 1 if anchors == BOUND_LIST else None,
-                          keep=tuple(piece.keep for piece in run))
+                          keep=(True,) * len(run))  # the formulas of a group stay on one page
 
 
 def _titles(piece: Unit, following: Sequence[Unit]) -> bool:
@@ -627,9 +631,16 @@ def _titles(piece: Unit, following: Sequence[Unit]) -> bool:
     return bool(following) and following[0].kind == "table"
 
 
+def _starts(piece: Unit) -> bool:
+    """A heading or a lead (① 一般部, ディープビームの構造細目, …) begins a group that is laid out on one page: the page
+    breaks only before one, so a formula stays with its text, its "ここに、" list and its judgement."""
+    return piece.kind == "heading" or piece.key.endswith(".lead")
+
+
 def _blocks(units: Sequence[Unit]) -> list:
     """One blank line around each heading, table and figure and between two groups of another kind (text, formulas,
-    a "ここに、" list); a kept unit stays with the next without one, and a table's title with its table."""
+    a "ここに、" list); a kept unit stays with the next without one, and a table's title with its table. Every unit
+    stays on the page of the next unless that one begins a group (_starts)."""
     found: list = []
     index = 0
     previous: Unit | None = None
@@ -641,6 +652,10 @@ def _blocks(units: Sequence[Unit]) -> list:
         if previous is not None and not previous.keep and (lead_in or group != _GROUPS[previous.kind] or group in (
                 "heading", "table", "figure", "definitions", "items")):
             blank(found)
+        if piece.key in NEW_PAGES and previous is not None and previous.kind != "heading":
+            if found and is_blank(found[-1]):
+                found.pop()
+            found.append(PageBreak())
         if piece.kind == "heading":
             text, tag = piece.value if isinstance(piece.value, tuple) else (piece.value, None)
             column = next((value for suffix, value in TAG_COLUMNS.items() if piece.key.endswith(suffix)), None)
@@ -671,7 +686,8 @@ def _blocks(units: Sequence[Unit]) -> list:
             block = PreferKeepTogether(table_block(piece.value, piece.key))
         else:  # a figure
             block = indent_to(piece.value.block, piece.left)
-        found.append(KeepWithNext(block) if piece.keep else block)
+        joined = piece.keep or (index < len(units) and not _starts(units[index]))
+        found.append(KeepWithNext(block) if joined else block)
         previous = piece
     return found
 
