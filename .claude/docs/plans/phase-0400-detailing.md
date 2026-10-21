@@ -199,6 +199,7 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 - [x] ✅ 柱の水平断面（中間帯鉄筋は D の `calc/detailing/ties.py` を 8678729 から取り込み）・梁の柱前面の断面・フーチングの断面（bcb421a）
 - [x] ✅ `post/配筋図.dxf`（付帯JSON、`Export("dxf", "配筋図.dxf")`、役割 `0400.dxf`）、4.1 に GLP の `PdfFigure` で図ごとの PDF（preview は PNG）。`reporting/stages/detailing.py: figure_specs`（26 列・頁の縦横比で行数・最大 30 行）、`pipeline/stages.py: _drawings`（7fa0e00、GLP f2e618b が要る：今の lock の GLP 0.2.1 では import できない）
 - [x] ✅ 組数は整数なら整数（D22-5組@150）、端数は印字桁（3.5組）。calc の stirrups を公開名に（`cantilever.check.beam_stirrups`、`footing_rebar.stirrups`）（7fa0e00）
+- [x] ✅ フーチングの線路方向の鉄筋（切断面に平行）を径の幅の帯（2本の線）で描き、矢印を帯の外側で止める。直角方向は点と扇のまま。梁の段の芯の寸法（108・64、121）を右の隅に移し、左の側方鉄筋の連続寸法と重ならないようにした（0b4dc13）。sasa/glp を取り込み（d235edd、衝突は `reporting/stages/detailing.py` の import だけ）、0400 だけの生成2回で PDF・xlsx・DXF が同じバイト列、4.1 を PNG で目視（2026-10-21）
 - [ ] 0400 の Excel 比較（`tests/reporting/test_grid_excel.py::test_excel_prints_the_published_workbook_where_the_pdf_does[train-0400]`）：下の知見の表のセルの dy で不合格（オーケストレーターに報告済み）
 - [x] ✅ テスト `tests/export/test_drawing.py`（DXF の円・線・寸法と表記の文字・`audit()`・ハッシュの種によらない同じバイト列、PDF 1頁・PNG の縦横比・決定的）、PNG で目視、`.gitattributes` に `*.dxf -text`（bcb421a）
 
