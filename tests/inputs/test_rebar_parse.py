@@ -75,7 +75,7 @@ def test_the_beam_and_the_footing_bars_of_the_current_input():
     bars = {(face, direction): footing.faces[face].bars[direction] for face in ("上", "下") for direction in ("線路", "直角")}
     assert {key: (item.diameter, item.pitch, item.cover_mode, item.center, item.inner_layers)
             for key, item in bars.items()} == {
-        ("上", "線路"): (mm(25, 0), mm(125), "指定", mm(78.5), ()), ("上", "直角"): (mm(25, 0), mm(125), "指定", mm(103.5), ()),
+        ("上", "線路"): (mm(25, 0), mm(125), "指定", mm(79), ()), ("上", "直角"): (mm(25, 0), mm(125), "指定", mm(104), ()),
         ("下", "線路"): (mm(25, 0), mm(125), "指定", mm(100), ()), ("下", "直角"): (mm(29, 0), mm(125), "指定", mm(127), ())}
     stirrups = footing.stirrups["直角"]
     assert (stirrups.diameter, stirrups.pitch, stirrups.width_mode, stirrups.density) == (
