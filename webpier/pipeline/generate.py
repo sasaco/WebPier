@@ -75,14 +75,7 @@ class GenerationOptions:
     post_dir: Path  # external-program inputs and their sidecars
     overwrite: bool = False
     addin: Path | None = None  # the folder of a load model's add-in (decision 70); none: the train's
-    export_dir: Path | None = None  # the grid Excel workbooks; none: export beside the output folder
-
-    @property
-    def workbook_dir(self) -> Path:
-        """Where the grid Excel workbooks go: ``export_dir``, or the folder export beside ``output_dir``."""
-        if self.export_dir is not None:
-            return Path(self.export_dir)
-        return Path(self.output_dir).resolve().parent / "export"
+    export_dir: Path | None = None  # where the grid Excel workbooks go; none: they are not written (decision 75)
 
 
 @dataclass(frozen=True)
@@ -135,8 +128,8 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
             for suffix in ("pdf", "json"):
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
-        if stage.grid_documents is not None:
-            reports.append(Artifact(f"{stage_id}.xlsx", options.workbook_dir / f"{stage.stem}.xlsx", "export"))
+        if stage.grid_documents is not None and options.export_dir is not None:
+            reports.append(Artifact(f"{stage_id}.xlsx", Path(options.export_dir) / f"{stage.stem}.xlsx", "export"))
         files = [(item.kind, item.file_name, item, False, None, None, None) for item in stage.exports]
         if stage.frame_analysis is not None and _analysis_key(stage.frame_analysis) not in analyzed:
             analyzed.add(_analysis_key(stage.frame_analysis))
@@ -156,6 +149,17 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
                                "post")
             posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check, seismic))
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
+
+
+def _stale(options: GenerationOptions, registry: Registry, artifacts: list[Artifact]) -> list[Artifact]:
+    """The artifacts of the stages this generation does not select that are still on disk (decision 74): they belong
+    to an earlier generation, so a publication removes them. Only with ``overwrite``; without it nothing is touched."""
+    if not options.overwrite:
+        return []
+    planned_paths = {artifact.path for artifact in artifacts}
+    every = _plan(options, registry, tuple(stage.id for stage in registry.stages))[0]
+    return [artifact for artifact in every
+            if artifact.path not in planned_paths and (artifact.path.exists() or artifact.path.is_symlink())]
 
 
 def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierInput]:
@@ -250,8 +254,9 @@ class Candidate:
     def __init__(self, options: GenerationOptions, stages: tuple[str, ...], results: Mapping[str, Any],
                  artifacts: list[Artifact], staging: ArtifactStaging, input_sha256: str,
                  identity: Mapping[Path, str], baseline: Mapping[Path, str | None],
-                 addin: Mapping[str, Any] | None = None) -> None:
+                 addin: Mapping[str, Any] | None = None, stale: Sequence[Artifact] = ()) -> None:
         self.options = options
+        self.stale = tuple(stale)  # earlier artifacts of unselected stages, removed by ``publish`` (decision 74)
         self.addin = addin  # the add-in's provenance of a load model (decision 70), as every artifact records it
         self.stages = stages
         self.results = results
@@ -261,6 +266,7 @@ class Candidate:
         self._staging = staging
         self._identity = dict(identity)
         self._baseline = dict(baseline)
+        self._stale_paths = [artifact.path for artifact in self.stale]
         self._sha256 = {artifact.role: content_sha256(self.staged(artifact.role)) for artifact in artifacts}
         self._active = True
         self._attempted = False
@@ -312,7 +318,8 @@ class Candidate:
         self.verify()
         pairs = [(self.staged(artifact.role), artifact.path) for artifact in self.artifacts]
         publish_outputs(pairs, self._staging.directories, self.options.overwrite,
-                        final_validator=self._verify_published, folders=_folders(list(self.artifacts)))
+                        final_validator=self._verify_published, folders=_folders(list(self.artifacts)),
+                        remove=self._stale_paths, remove_folders=_folders(list(self.stale)))
         self.published = True
 
 
@@ -640,7 +647,10 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
                           folders=_folders(artifacts))
-    baseline = {path: _state(path) for path in destinations}
+    stale = _stale(options, registry, artifacts)
+    stale_paths = [artifact.path for artifact in stale]
+    validate_destinations(stale_paths, overwrite=True, input_path=Path(options.input_path), folders=_folders(stale))
+    baseline = {path: _state(path) for path in [*destinations, *stale_paths]}
     identity = _identity()
     runners = _runner_paths(registry, selected)
     runner, jrsnap_runner = runners.get(fempython), runners.get(jrsnap)
@@ -653,7 +663,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     addin = None if registry.load_model is None else registry.load_model.record(pier)
     common = {"input": {"file": Path(options.input_path).name, "sha256": input_sha256},
               "implementation_sha256": _implementation_sha256(identity), **({} if addin is None else {"addin": addin})}
-    with ArtifactStaging(destinations) as staging:
+    with ArtifactStaging([*destinations, *stale_paths]) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
         for post in posts:
             if post.export is not None:
@@ -730,7 +740,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             try:
                 spec.render(_own(registry, results, stage_id), pier, staging.path_for(by_role[f"{stage_id}.pdf"].path),
                             pages)
-                if spec.grid_documents is not None:
+                if spec.grid_documents is not None and options.export_dir is not None:
                     write_workbook(spec.grid_documents(_own(registry, results, stage_id), pier, pages),
                                    staging.path_for(by_role[f"{stage_id}.xlsx"].path), spec.stem)
             except (LayoutError, XlsxError) as exc:
@@ -769,7 +779,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                      else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)
-        candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline, addin)
+        candidate = Candidate(options, selected, results, artifacts, staging, input_sha256, identity, baseline, addin, stale)
         try:
             yield candidate
         finally:

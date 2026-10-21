@@ -124,7 +124,8 @@ def _failure(code: str, exc: BaseException | str, summary: Any = None, *,
 
 
 def _options(arguments: argparse.Namespace, output_dir: Path) -> GenerationOptions:
-    return GenerationOptions(arguments.input, output_dir / "output", output_dir / "post", addin=arguments.addin)
+    return GenerationOptions(arguments.input, output_dir / "output", output_dir / "post", addin=arguments.addin,
+                             export_dir=output_dir / "export")
 
 
 def _chosen(registry: Registry, selected: Sequence[str]) -> list[str]:

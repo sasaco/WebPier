@@ -136,13 +136,13 @@ def test_a_generation_with_the_frame_analysis_is_verified(tmp_path, input_path, 
         validate_outputs(control.job, registry=stages)
 
 
-def test_a_generation_without_the_frame_analysis_does_not_check_old_pickup_files(tmp_path, input_path, stages):
+def test_a_generation_without_the_frame_analysis_removes_old_pickup_files(tmp_path, input_path, stages):
     original = input_path.read_bytes()
     run(tmp_path, input_path, stages, items=("longitudinal_frame_analysis",))
     input_path.write_bytes(original)
     control, _, result = run(tmp_path, input_path, stages)
     assert result.success and "0611" not in control.job.stages
-    assert (tmp_path / "post" / "線路方向.pik").exists()  # kept, as a file of the earlier generation
+    assert not (tmp_path / "post" / "線路方向.pik").exists()  # removed (decision 74)
 
 
 def test_a_generation_with_the_nonlinear_analysis_checks_the_folder_as_a_whole(tmp_path, input_path, stages):

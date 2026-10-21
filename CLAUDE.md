@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```powershell
 # 計算・PDF生成（既存成果物の更新には --overwrite）。作る計算書は入力の出力項目 outputs（13の true/false）だけで決まり、段階やスイッチの引数はない（決定72、ADR-0011。webpier/inputs/outputs.py・stages.py の OUTPUT_STAGES）
-# 項目は、使う項目がすべて true のときだけ true にできる（違反と全 false は入力エラー）。選ばなかった項目の成果物は前回のまま残る
+# 項目は、使う項目がすべて true のときだけ true にできる（違反と全 false は入力エラー）。--overwrite の生成は、選ばなかった項目の前回の成果物（output/・export/・post/ の登録表の名前のものだけ。付帯JSONと JRSNAP のフォルダーを含む）を同じ公開で取り除く（決定74）。--overwrite なしでは触らない
 uv run --project "." --locked python -m webpier --overwrite
 # detailing=0400（照査の前提。入力だけから。決定73、ADR-0012）：構造細目を WebPier が判定し、断面力を使う照査は Capacita の節を参照するだけ。配筋図は export/drawing（ezdxf）で描き、post/配筋図.dxf（付帯JSON付き）と 4.1 の図（GridLayoutPdf の PdfFigure、方眼Excel は PNG の preview）に出す
 # ground_model=0500、reactions=0600、longitudinal=0610、transverse=0620：0610/0620 は FrameWeb入力も常に post/ に出力する

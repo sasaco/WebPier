@@ -34,7 +34,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--input", type=Path, default=PROJECT_DIR / "pre" / "input.json", help="入力JSON")
     result.add_argument("--output-dir", type=Path, default=PROJECT_DIR / "output", help="計算書・計算結果の出力先")
     result.add_argument("--post-dir", type=Path, help="解析入力と付帯JSONの出力先（既定: 出力先と並ぶ post）")
-    result.add_argument("--export-dir", type=Path, help="方眼Excel の出力先（既定: 出力先と並ぶ export）")
+    result.add_argument("--export-dir", type=Path, help="方眼Excel の出力先（付けなければ方眼Excel は書かない）")
     result.add_argument("--overwrite", action="store_true", help="既存の出力を上書きする")
     result.add_argument("--addin", type=Path, help="荷重モデルのアドインのフォルダー（なければ列車荷重）")
     return result

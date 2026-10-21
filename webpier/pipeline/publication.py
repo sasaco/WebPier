@@ -191,14 +191,18 @@ class ArtifactStaging:
 
 def publish_outputs(pairs: list[tuple[Path, Path]],
                     staging: Mapping[Path, Path], overwrite: bool, *,
-                    final_validator: Callable[[], None] | None = None, folders: Collection[Path] = ()) -> None:
+                    final_validator: Callable[[], None] | None = None, folders: Collection[Path] = (),
+                    remove: Sequence[Path] = (), remove_folders: Collection[Path] = ()) -> None:
     """Back up every old file, publish every new file, and restore all on failure.
 
     *staging* maps each destination parent to its ArtifactStaging directory. A destination in *folders* is a
-    folder published from a staged folder.
+    folder published from a staged folder. *remove* are old files (folders in *remove_folders*) taken out in the same
+    publication: they are backed up with the replaced ones, so a failure restores them too.
     """
     destinations = [destination for _, destination in pairs]
     validate_destinations(destinations, overwrite=overwrite, folders=folders)
+    if remove:
+        validate_destinations([*destinations, *remove], overwrite=True, folders=[*folders, *remove_folders])
     sources = [source.resolve() for source, _ in pairs]
     if len(set(sources)) != len(sources) or set(sources) & {path.resolve() for path in destinations}:
         raise OSError("一時ファイルと出力先が重複しています")
@@ -214,7 +218,7 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
     published: list[Path] = []
     journal: dict | None = None
     try:
-        for destination in destinations:
+        for destination in [*destinations, *remove]:
             parent = destination.parent.resolve()
             if parent not in directories or directories[parent].parent != parent:
                 raise OSError(f"退避先は出力先と同じ親に必要です: {destination}")
@@ -223,13 +227,15 @@ def publish_outputs(pairs: list[tuple[Path, Path]],
             "artifacts": [{"source": str(source.resolve()), "destination": str(destination.resolve()),
                            "backup": str(backup_path(directories, destination)),
                            "had_original": destination.exists()}
-                          for source, destination in pairs],
+                          for source, destination in pairs]
+                         + [{"source": None, "destination": str(old.resolve()),
+                             "backup": str(backup_path(directories, old)), "had_original": True} for old in remove],
         }
         _create_pending(directories, journal["transaction_id"])
         _write_journals(directories, journal)
         check_incomplete_publications(destinations, exclude=tuple(directories.values()))
         # Back up every old artifact before publishing any new artifact.
-        for destination in destinations:
+        for destination in [*destinations, *remove]:
             if destination.exists():
                 backup = backup_path(directories, destination)
                 os.replace(destination, backup)

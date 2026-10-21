@@ -177,11 +177,11 @@ def test_a_changed_file_of_the_folder_rolls_the_publication_back(env, monkeypatc
     before = tree(Path(options.post_dir))
     original = generate.publish_outputs
 
-    def tampering(pairs, staging, overwrite, *, final_validator, folders):
+    def tampering(pairs, staging, overwrite, *, final_validator, folders, **removal):
         def validator():
             (Path(options.post_dir) / FOLDER / f"{CASE}.OUT").write_bytes(b"changed")
             final_validator()
-        return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
+        return original(pairs, staging, overwrite, final_validator=validator, folders=folders, **removal)
     monkeypatch.setattr(generate, "publish_outputs", tampering)
     with pytest.raises(GenerationError, match="公開した成果物が一致しません: E.jrsnap"):
         generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
@@ -192,10 +192,10 @@ def test_a_new_folder_is_removed_when_the_publication_rolls_back(env, monkeypatc
     options, _, stages = env
     original = generate.publish_outputs
 
-    def failing(pairs, staging, overwrite, *, final_validator, folders):
+    def failing(pairs, staging, overwrite, *, final_validator, folders, **removal):
         def validator():
             raise GenerationError("stop")
-        return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
+        return original(pairs, staging, overwrite, final_validator=validator, folders=folders, **removal)
     monkeypatch.setattr(generate, "publish_outputs", failing)
     with pytest.raises(GenerationError, match="stop"):
         generate.generate(analyzed(options), registry=stages)
@@ -207,10 +207,10 @@ def test_a_folder_that_cannot_be_removed_on_rollback_keeps_the_backups(env, monk
     generate.generate(analyzed(options), registry=stages)
     original, remove = generate.publish_outputs, publication.shutil.rmtree
 
-    def failing(pairs, staging, overwrite, *, final_validator, folders):
+    def failing(pairs, staging, overwrite, *, final_validator, folders, **removal):
         def validator():
             raise GenerationError("stop")
-        return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
+        return original(pairs, staging, overwrite, final_validator=validator, folders=folders, **removal)
 
     def locked(path, *args, **kwargs):
         if Path(path).name == FOLDER:

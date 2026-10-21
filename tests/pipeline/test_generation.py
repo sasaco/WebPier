@@ -292,8 +292,34 @@ def test_existing_outputs_need_overwrite_and_are_checked_before_calculating(env)
     assert env.files()["post/frame.json"] == b'{"B": 1}\n'
 
 
+def test_outputs_of_the_items_not_chosen_are_removed_when_overwriting(env):
+    """Decision 74: an overwriting generation leaves only the files of the items it chooses; others' files stay."""
+    old = env.write_old("output/C_地震.pdf", "output/C_地震.json", "post/model.ndu", "output/unrelated.txt")
+    env.choose(*LONGITUDINAL)
+    env.generate(overwrite=True)
+    files = env.files()
+    assert not any("C_地震" in name or "model.ndu" in name for name in files)
+    assert files["output/unrelated.txt"] == old["output/unrelated.txt"]
+    assert "output/A_基礎.pdf" in files
+
+
+def test_a_failed_publication_restores_the_removed_files_of_the_items_not_chosen(env, monkeypatch):
+    old = env.write_old("output/C_地震.pdf", "post/model.ndu")
+    env.choose(*LONGITUDINAL)
+    original = os.replace
+
+    def locked(source, destination):
+        if Path(destination).name == "frame.json.provenance.json":
+            raise PermissionError("locked")
+        return original(source, destination)
+    monkeypatch.setattr(publication.os, "replace", locked)
+    with pytest.raises(PermissionError, match="locked"):
+        env.generate(overwrite=True)
+    assert env.files() == old
+
+
 def test_outputs_of_the_items_not_chosen_are_left_alone(env):
-    """Decision 72: a generation never touches the files of the items it does not choose."""
+    """Decision 72: a generation without --overwrite never touches the files of the items it does not choose."""
     old = env.write_old("output/C_地震.pdf", "post/model.ndu")
     env.choose(*LONGITUDINAL)
     env.generate()
@@ -328,10 +354,10 @@ def test_an_output_written_just_before_publication_is_restored(env, monkeypatch)
     env.write_old("output/A_基礎.pdf")
     original = generate.publish_outputs
 
-    def racing(pairs, staging, overwrite, *, final_validator, folders):
+    def racing(pairs, staging, overwrite, *, final_validator, folders, **removal):
         (env.output / "A_基礎.pdf").write_bytes(b"theirs")
         (env.output / "C_地震.pdf").write_bytes(b"new file of theirs")
-        return original(pairs, staging, overwrite, final_validator=final_validator, folders=folders)
+        return original(pairs, staging, overwrite, final_validator=final_validator, folders=folders, **removal)
     monkeypatch.setattr(generate, "publish_outputs", racing)
     with pytest.raises(GenerationError, match="公開の直前に出力先が変更されました"):
         env.generate(overwrite=True)
@@ -341,11 +367,11 @@ def test_an_output_written_just_before_publication_is_restored(env, monkeypatch)
 def test_a_published_file_changed_before_commit_is_rolled_back(env, monkeypatch):
     original = generate.publish_outputs
 
-    def tampering(pairs, staging, overwrite, *, final_validator, folders):
+    def tampering(pairs, staging, overwrite, *, final_validator, folders, **removal):
         def validator():
             (env.post / "frame.json").write_bytes(b"changed")
             final_validator()
-        return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
+        return original(pairs, staging, overwrite, final_validator=validator, folders=folders, **removal)
     monkeypatch.setattr(generate, "publish_outputs", tampering)
     with pytest.raises(GenerationError, match="公開した成果物が一致しません: B.frameweb"):
         env.generate()
