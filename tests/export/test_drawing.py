@@ -26,6 +26,7 @@ from ezdxf.fonts import fonts
 from webpier.core.errors import InputError
 from webpier.export.drawing import FIGURES, drawing_dxf, drawing_figures
 from webpier.export.drawing import beam, column, footing
+from webpier.export.drawing import sheet as sheet_module
 from webpier.export.drawing.sheet import Sheet, Vec2, mm, scale_for
 from webpier.inputs import parse_input
 
@@ -88,6 +89,16 @@ def lines(msp, layer="鉄筋") -> set[tuple[float, float, float, float]]:
     return {(round(line.dxf.start.x, 1), round(line.dxf.start.y, 1), round(line.dxf.end.x, 1),
              round(line.dxf.end.y, 1)) for line in msp.query(f'LINE[layer=="{layer}"]')}
 
+def bands(msp) -> set[tuple[float, float, float, float]]:
+    """(x0, y0, x1, y1) of each closed polyline of the bars without bends (a bar drawn along its length)."""
+    found = set()
+    for polyline in msp.query('LWPOLYLINE[layer=="鉄筋"]'):
+        points = list(polyline.get_points())
+        if not any(point[4] for point in points):
+            xs, ys = [point[0] for point in points], [point[1] for point in points]
+            found.add((round(min(xs), 1), round(min(ys), 1), round(max(xs), 1), round(max(ys), 1)))
+    return found
+
 
 def read(data: bytes):
     return ezdxf.read(io.StringIO(data.decode("utf-8")))
@@ -128,17 +139,19 @@ def test_the_column_dimensions_and_labels_are_the_samples(sample):
     msp = drawn(column.draw_column, column.column_figure(sample), 40).msp
     assert sorted(dimensions(msp)) == sorted(["108", "192", "26×150=3900", "192", "108", "4500", "102",
                                               "108", "242", "8×250=2000", "242", "108", "2700"])
-    assert set(texts(msp)) == {"D32-29本", "D19-9本", "D22-5.0組@150", "D22-3.0組@150", "直角方向", "線路方向"}
+    assert set(texts(msp)) == {"D32-29本", "D19-9本", "D22-5組@150", "D22-3組@150", "直角方向", "線路方向"}
 
 
 def test_a_cover_apart_from_the_bars_along_the_face_is_in_the_chain(sample):
     """線路 29 bars at 150 centred start at (4500 − 28·150)/2 = 150, so the 直角 cover 102 joins the chain along X;
     直角 9 bars at 310 start at (2700 − 8·310)/2 = 110, so the 線路 cover 108 is dimensioned on its own along Y."""
     changed = pier(**{"鉄筋/柱/main_bars/線路/distribution/mode": "中央ピッチ",
-                      "鉄筋/柱/main_bars/直角/distribution/pitch_mm": 310})
+                      "鉄筋/柱/main_bars/直角/distribution/pitch_mm": 310,
+                      "鉄筋/柱/column_hoops/direction_rows/1/effective_legs": 7})
     msp = drawn(column.draw_column, column.column_figure(changed), 40).msp
     assert sorted(dimensions(msp)) == sorted(["102", "48", "28×150=4200", "48", "102", "4500",
                                               "110", "8×310=2480", "110", "2700", "108"])
+    assert "D22-3.5組@150" in texts(msp)
 
 
 def test_a_column_with_one_direction_and_two_layers(sample):
@@ -149,7 +162,7 @@ def test_a_column_with_one_direction_and_two_layers(sample):
     # layer 2 at 108 + 32 + 32 = 172 takes the middle 15 of layer 1's 29 positions: 1200 … 3300
     assert {(float(x), 2700.0 - 172, 16.0) for x in range(1200, 3301, 150)} <= circles(msp)
     assert len(circles(msp)) == 2 * (29 + 15)
-    assert {"1段目D32-29本", "2段目D32-15本", "D22-1.0組@150"} <= set(texts(msp))
+    assert {"1段目D32-29本", "2段目D32-15本", "D22-1組@150"} <= set(texts(msp))
     assert sorted(dimensions(msp)) == sorted(["108", "192", "26×150=3900", "192", "108", "4500",
                                               "108", "2484", "108", "2700"])
 
@@ -185,14 +198,14 @@ def test_the_beam_dimensions_and_labels(sample):
     # the lower layer: 18 at (2700 − 368)/17 = 137.18 → 137.2
     assert sorted(dimensions(msp)) == sorted(["184", "16×145.8=2332", "184", "2700", "184", "17×137.2=2332", "184",
                                               "64", "108", "121", "350", "16×125=2000", "350", "2700"])
-    assert set(texts(msp)) == {"1段目D32-17本", "2段目D32-8本", "D19-18本", "D22-17本", "D22-2.0組@125"}
+    assert set(texts(msp)) == {"1段目D32-17本", "2段目D32-8本", "D19-18本", "D22-17本", "D22-2組@125"}
 
 
 def test_a_beam_without_side_bars(sample):
     changed = pier(**{"鉄筋/梁/side_bars": None})
     msp = drawn(beam.draw_beam, beam.beam_figure(changed), 25).msp
     assert len(circles(msp)) == 17 + 8 + 18
-    assert set(texts(msp)) == {"1段目D32-17本", "2段目D32-8本", "D19-18本", "D22-2.0組@125"}
+    assert set(texts(msp)) == {"1段目D32-17本", "2段目D32-8本", "D19-18本", "D22-2組@125"}
     assert "16×125=2000" not in dimensions(msp)
 
 
@@ -209,8 +222,10 @@ def test_the_footing_bars_are_the_layers_of_both_faces(sample):
     stations = [3500 + 125 * k for k in range(-27, 28)]
     expected = {(float(x), 2700.0 - 104, 12.5) for x in stations} | {(float(x), 127.0, 14.5) for x in stations}
     assert circles(msp) == expected
-    # 線路 lines between those centres: upper at 79 from the top, lower at 100
-    assert lines(msp) == {(79.0, 2621.0, 6921.0, 2621.0), (100.0, 100.0, 6900.0, 100.0)}
+    # 線路 bars in the plane of the section, between those centres, as bands of their diameter: upper at 79 from the
+    # top, lower at 100; no single lines
+    assert bands(msp) == {(79.0, 2608.5, 6921.0, 2633.5), (100.0, 87.5, 6900.0, 112.5)}
+    assert not lines(msp)
 
 
 def test_the_footing_dimensions_and_labels(sample):
@@ -226,7 +241,7 @@ def test_a_footing_layer_inside_is_labelled_with_its_layer(sample):
     changed = pier(**{"鉄筋/フーチング/faces/下/線路/inner_layers": inner})
     msp = drawn(footing.draw_footing, footing.footing_figure(changed), 60).msp
     # layer 2 at 100 + 25 + 25 = 150 from the lower face
-    assert (100.0, 150.0, 6900.0, 150.0) in lines(msp)
+    assert (100.0, 137.5, 6900.0, 162.5) in bands(msp)
     assert {"1段目D25-ctc125", "2段目D25-ctc250"} <= set(texts(msp))
 
 
@@ -249,8 +264,9 @@ def test_the_dxf_has_the_three_figures_titled_with_their_scales(sample):
     assert data == drawing_dxf(sample)
 
 
-def test_the_bytes_do_not_depend_on_the_string_hash_seed(sample, tmp_path):
-    """ezdxf orders the CLASSES section by a set; the DXF and the PDFs are the same in processes with other seeds."""
+def test_the_bytes_do_not_depend_on_the_string_hash_seed_or_a_home(sample, tmp_path):
+    """ezdxf orders the CLASSES section by a set, and needs a home: the DXF and the figures are the same in processes
+    with other seeds and in one without a home (the headless runner's minimal environment)."""
     source = tmp_path / "input.json"
     source.write_text(json.dumps(document(), ensure_ascii=False), encoding="utf-8")
     script = ("import hashlib, json, sys; from pathlib import Path; from webpier.inputs import parse_input; "
@@ -260,9 +276,11 @@ def test_the_bytes_do_not_depend_on_the_string_hash_seed(sample, tmp_path):
               "print(*(hashlib.sha256(pdf + png).hexdigest() for pdf, png in drawing_figures(pier).values()))")
     hashes = " ".join(hashlib.sha256(pdf + png).hexdigest() for pdf, png in drawing_figures(sample).values())
     expected = "\n".join([hashlib.sha256(drawing_dxf(sample)).hexdigest(), hashes])
-    for seed in ("1", "2"):
+    homes = ("USERPROFILE", "HOMEDRIVE", "HOMEPATH", "HOME")
+    homeless = {key: value for key, value in os.environ.items() if key not in homes}
+    for environment in ({**os.environ, "PYTHONHASHSEED": "1"}, {**os.environ, "PYTHONHASHSEED": "2"}, homeless):
         done = subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(source)], cwd=ROOT, check=True,
-                              capture_output=True, text=True, env={**os.environ, "PYTHONHASHSEED": seed})
+                              capture_output=True, text=True, env=environment)
         assert done.stdout.strip() == expected
 
 
@@ -319,3 +337,20 @@ def test_a_narrow_gap_moves_its_text_outwards():
                                   for insert in (mtext.dxf.insert,)), key=lambda insert: insert.x)
     assert first.x < 0 and last.x > 2010
     assert 1000 < middle.x < 1010 and middle.y > first.y
+
+
+def test_a_process_without_a_home_gets_one_under_the_temporary_folder(monkeypatch, tmp_path):
+    def homeless():
+        raise RuntimeError("Could not determine home directory.")
+
+    monkeypatch.setattr(sheet_module.Path, "home", staticmethod(homeless))
+    monkeypatch.setattr(sheet_module.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", "unused")
+    sheet_module.home()
+    assert os.environ["USERPROFILE"] == str(tmp_path / "webpier-ezdxf")
+
+
+def test_a_process_with_a_home_keeps_it(monkeypatch):
+    monkeypatch.setenv("USERPROFILE", "C:/Users/someone")
+    sheet_module.home()
+    assert os.environ["USERPROFILE"] == "C:/Users/someone"

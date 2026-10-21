@@ -80,6 +80,7 @@ from ..core.integrity import dump_json
 from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
 from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wdj, point_index, write_footing_wdj,
                                write_wdj)
+from ..export.drawing import drawing_dxf, drawing_figures
 from ..export.frameweb import build_frameweb, build_frameweb_generic, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
@@ -437,6 +438,15 @@ class Registry:
         return tuple(stage_id for stage_id in self.ids if stage_id in needed)
 
 
+# The 配筋図 of 4.1 by the report's names: export.drawing draws them, the report puts their (PDF, PNG) as they are.
+_DRAWINGS = {"beam": "梁", "column": "柱", "footing": "フーチング"}
+
+
+def _drawings(pier: PierInput) -> dict[str, Any]:
+    drawn = drawing_figures(pier)
+    return detailing_report.figure_specs({name: drawn[figure] for name, figure in _DRAWINGS.items()})
+
+
 def _frameweb(stage_id: str, build: Callable[[Any], dict[str, Any]]) -> Callable[[Results, PierInput], bytes]:
     return lambda results, pier: dump_json(build(results[stage_id]))
 
@@ -588,11 +598,13 @@ _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_
 _PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION}
 
 STAGES = Registry((
-    # 照査の前提 (decision 73): the input alone; its 配筋図 of 4.1 are not drawn yet (decision 73, Phase 6)
+    # 照査の前提 (decision 73): the input alone; the 配筋図 in 4.1 and in post/ (one DXF of the three)
     StageSpec("0400", "0400_照査の前提", (),
               lambda pier, results: calculate_detailing(pier),
-              lambda results, pier, path, pages: render_detailing(results["0400"], path),
-              grid_documents=lambda results, pier, pages: detailing_report.grid_documents(results["0400"])),
+              lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier)),
+              (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier)),),
+              grid_documents=lambda results, pier, pages: detailing_report.grid_documents(results["0400"],
+                                                                                          _drawings(pier))),
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
               lambda results, pier, path, pages: render_foundation(

@@ -184,7 +184,9 @@ def stirrup_width(footing: FootingBars, direction: str) -> tuple[Printed, Printe
     return legs, put(LENGTH_MM, _METRE_MM / d(legs))
 
 
-def _stirrups(footing: FootingBars, direction: str) -> Stirrups:
+def stirrups(footing: FootingBars, direction: str) -> Stirrups:
+    """The stirrups of *direction* (鉄筋.フーチング.stirrups): size, legs per 1 m, pitch and grade; a blank is an input
+    error naming its path."""
     here = f"{_FOOTING}.stirrups.{direction}"
     row = footing.stirrups[direction]
     diameter = _need(row.diameter, f"{here}.diameter_mm")
@@ -198,4 +200,4 @@ def footing_reinforcement(pier: PierInput, direction: str) -> FootingReinforceme
     """The bars of the overhang in *direction* (LONGITUDINAL or TRANSVERSE) as the section check is given them."""
     footing = pier.rebar.footing
     return FootingReinforcement(direction=direction, main=_main(footing, direction),
-                                stirrups=_stirrups(footing, direction), fck=pier.materials.footing)
+                                stirrups=stirrups(footing, direction), fck=pier.materials.footing)

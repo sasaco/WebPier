@@ -198,7 +198,10 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 - [x] ✅ 依存 `ezdxf>=1.4,<2`（1.4.5）、`dependency_hashes` に ezdxf・fontTools・pymupdf（bcb421a）
 - [x] ✅ `webpier/export/drawing/`：作図道具 `sheet.py`（画層・MSゴシックの文字スタイル・寸法スタイル・`label`・`arrow_to`・`fan`・`chain`・`dxf_bytes`・`figure_bytes`）（bcb421a）
 - [x] ✅ 柱の水平断面（中間帯鉄筋は D の `calc/detailing/ties.py` を 8678729 から取り込み）・梁の柱前面の断面・フーチングの断面（bcb421a）
-- [ ] `post/配筋図.dxf`（付帯JSON）、4.1 に Phase 5 の部品で図ごとの PDF（段階の組み込みは D の段階と GLP の Release の後）
+- [x] ✅ `post/配筋図.dxf`（付帯JSON、`Export("dxf", "配筋図.dxf")`、役割 `0400.dxf`）、4.1 に GLP の `PdfFigure` で図ごとの PDF（preview は PNG）。`reporting/stages/detailing.py: figure_specs`（26 列・頁の縦横比で行数・最大 30 行）、`pipeline/stages.py: _drawings`（7fa0e00、GLP f2e618b が要る：今の lock の GLP 0.2.1 では import できない）
+- [x] ✅ 組数は整数なら整数（D22-5組@150）、端数は印字桁（3.5組）。calc の stirrups を公開名に（`cantilever.check.beam_stirrups`、`footing_rebar.stirrups`）（7fa0e00）
+- [x] ✅ フーチングの線路方向の鉄筋（切断面に平行）を径の幅の帯（2本の線）で描き、矢印を帯の外側で止める。直角方向は点と扇のまま。梁の段の芯の寸法（108・64、121）を右の隅に移し、左の側方鉄筋の連続寸法と重ならないようにした（0b4dc13）。sasa/glp を取り込み（d235edd、衝突は `reporting/stages/detailing.py` の import だけ）、0400 だけの生成2回で PDF・xlsx・DXF が同じバイト列、4.1 を PNG で目視（2026-10-21）
+- [ ] 0400 の Excel 比較（`tests/reporting/test_grid_excel.py::test_excel_prints_the_published_workbook_where_the_pdf_does[train-0400]`）：下の知見の表のセルの dy で不合格（オーケストレーターに報告済み）
 - [x] ✅ テスト `tests/export/test_drawing.py`（DXF の円・線・寸法と表記の文字・`audit()`・ハッシュの種によらない同じバイト列、PDF 1頁・PNG の縦横比・決定的）、PNG で目視、`.gitattributes` に `*.dxf -text`（bcb421a）
 
 公開した関数（`webpier.export.drawing`）：
@@ -214,6 +217,9 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 - （事実 2026-10-21）文字スタイル「MSゴシック」の font は `msgothic.ttc`。ezdxf のフォントマネージャーが MS Gothic を見つけ、PDF・PNG で日本語が出る（PNG で目視、テストは style と `has_font`）。書体が無い PC では ezdxf は黙って別の書体に替える（未対処、報告済み）。
 - （事実 2026-10-21）WebPier の `.gitignore` の `export/` は `webpier/export/` と `tests/export/` の新しいファイルも無視する。新しいファイルは `git add -f` が要る。
 - （推定）フーチングの直角方向の鉄筋は入力に始点がないので、ピッチで中央から振り分け、面の最も外側の段の芯の間に置いた。梁のスターラップは外周の1本だけを描き、有効本数は表記（組＝有効本数／2）で示す（中間の脚の位置は入力にない）。
+- （事実 2026-10-21、7fa0e00）ezdxf 1.4.5 は import のときに home（`Path("~").expanduser()`）を引き、home のない環境（structural-mcp が headless runner を起動する PATH・SystemRoot・TEMP・TMP だけの環境）では RuntimeError で止まる（`tests/pipeline/test_headless.py::test_run_headless_py_in_a_minimal_environment` が検出）。`export/drawing/sheet.py: home()` が、home が決まらないときだけ USERPROFILE を一時フォルダーの下（`webpier-ezdxf`）にしてから ezdxf を読む。home のない子プロセスでも DXF・PDF・PNG は同じバイト列（テスト）。
+- （事実 2026-10-21、7fa0e00）0400 だけを選んだ生成を2回行い、`output/0400_照査の前提.pdf`・`.json`・`export/0400_照査の前提.xlsx`・`post/配筋図.dxf` が同じバイト列。方眼Excel は strict で preview により通る。4.1 は (1) 梁が1頁目、(2) 柱・(3) フーチングが2頁目（19頁）。
+- （事実 2026-10-21、7fa0e00）0400 の Excel 比較：4.4 の表「鉄筋のあき」の3行を結合したセル（フーチング（上側）など）の文字が、ライブラリの PDF では結合範囲の中央より半行下、Excel では中央に出る。統合版 bb4a2cf（図なし）でも dy 7.67〜7.70 pt（許容 7.74）で境目にあり、図で頁割りが変わると 7.75 pt で不合格になる（図そのもののずれではない）。D の表（結合セルの縦位置）か GLP の方眼Excel の対応で直す点（未対処）。
 - （事実 2026-10-21）品質ゲート（bcb421a の前、(PDF, PNG) への変更の前）：3 failed・21 errors はすべて受入の入力の SHA の不一致（accept_capacita_column・accept_footing・accept_foundation_check・accept_jrsnap_ndu・accept_jrsnap_figures、pre/input.json は変えていない）、pipeline 99.93%（`pipeline/headless.py:221-222` の IO_ERROR）。export 100%。
 
 ## 検証（オーケストレーター）

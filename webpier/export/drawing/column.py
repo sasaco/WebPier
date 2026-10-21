@@ -50,14 +50,15 @@ def column_figure(pier: PierInput) -> ColumnFigure:
     return ColumnFigure(layout=layout, enclosing=enclosing, hoops=hoops, ties=ties)
 
 
-def printed(value: Printed) -> str:
-    """*value* to its printed digits ('5.0' 組)."""
-    return f"{value.value:.{value.digits}f}"
+def sets_text(value: Printed) -> str:
+    """組 as the plan prints it (decision 73): a whole number without decimals (5 組), else to its printed digits
+    (3.5 組)."""
+    return str(int(value.value)) if value.value.is_integer() else f"{value.value:.{value.digits}f}"
 
 
 def hoop_text(hoops: BaseHoops, ties: TieLayout) -> str:
-    """'D22-5.0組@150': the size, 組 = 有効本数 / 2 and the pitch of the hoop row."""
-    return f"D{mm(number(hoops.diameter))}-{printed(ties.sets)}組@{mm(number(hoops.pitch))}"
+    """'D22-5組@150': the size, 組 = 有効本数 / 2 and the pitch of the hoop row."""
+    return f"D{mm(number(hoops.diameter))}-{sets_text(ties.sets)}組@{mm(number(hoops.pitch))}"
 
 
 def row_texts(rows: Sequence[FaceRow]) -> list[str]:

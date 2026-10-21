@@ -110,7 +110,8 @@ def _need(value, path: str):
     return value
 
 
-def _stirrups(beam: BeamBars) -> Hoops:
+def beam_stirrups(beam: BeamBars) -> Hoops:
+    """The stirrups of the beam (鉄筋.梁.stirrups): size, 有効本数 and pitch; a blank is an input error naming its path."""
     stirrups, path = beam.stirrups, f"{_BEAM}.stirrups"
     return Hoops(diameter=_need(stirrups.diameter, f"{path}.diameter_mm"),
                  legs=_need(stirrups.effective_legs, f"{path}.effective_legs"),
@@ -137,7 +138,7 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
     """The beam check Capacita is given, from the input and 0900's result."""
     s, beam = pier.substructure, pier.rebar.beam
     width, depth = beam_section(s.b[1], s.h[2], s.h[3])
-    stirrups = _stirrups(beam)
+    stirrups = beam_stirrups(beam)
     main_grade = _need(beam.materials.main, f"{_BEAM}.materials.main")
     stirrup_grade = _need(beam.materials.transverse, f"{_BEAM}.materials.transverse")
     layout = beam_layout(beam, width, depth)

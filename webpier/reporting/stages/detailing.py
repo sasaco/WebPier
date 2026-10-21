@@ -23,10 +23,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from gridlayoutpdf import Document, Equation, KeepWithNext, PreferKeepTogether, Row
+from gridlayoutpdf import Document, Equation, KeepWithNext, PdfFigure, PreferKeepTogether, Row
+from pypdf import PdfReader
 
 from ...calc.detailing import DetailingResult
 from ...calc.detailing.beam import BeamDetailing, SkinBars
@@ -37,12 +39,16 @@ from ...calc.detailing.footing import FootingDetailing, FootingDirection
 from ...core.printed import Printed
 from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
+from ..styles import columns_pt, rows_for
 from . import cantilever_check, column_check, footing_check
 from .frame_report import (Definitions, FigureSpec, Labelled, Span, TableSpec, Unit, plain, sub, sup, table_block,
                            value)
 
 PREFIX = "0400/"
 FIGURES = ("beam", "column", "footing")  # the 配筋図 of 4.1, by name
+# A 配筋図 fills the body width from column 4 (as the sample Example橋脚2 6.1 nearly does) and as many rows as its page
+# needs at that width, at most FIGURE_ROWS (a taller one is narrower).
+FIGURE_LEFT, FIGURE_COLUMNS, FIGURE_ROWS = 4, 26, 30
 LEVELS = (0, 1, 2, 3, 4)
 BODY, INDENT = 4, 5
 # The formula columns: a symbol's "=" on the boundary before column 8, a result's "=" before 24, the result ending at
@@ -562,6 +568,19 @@ def _footing(m: _Manuscript, footing: FootingDetailing, refs: References) -> Non
 
 
 # --- the document ---------------------------------------------------------------------------------------------------
+
+
+def figure_specs(drawings: Mapping[str, tuple[bytes, bytes]]) -> dict[str, FigureSpec]:
+    """The 配筋図 of 4.1 from their (PDF, PNG) by name (FIGURES): each page as vector artwork in a frame of the body
+    width (GridLayoutPdf's PdfFigure), the PNG its picture in the grid Excel. The drawing is made elsewhere
+    (export.drawing; the pipeline passes the bytes) and prints nothing WebPier reads back."""
+    specs = {}
+    for name, (pdf, png) in drawings.items():
+        box = PdfReader(BytesIO(pdf)).pages[0].cropbox
+        rows = min(rows_for(columns_pt(FIGURE_COLUMNS) * float(box.height) / float(box.width)), FIGURE_ROWS)
+        figure = PdfFigure(FIGURE_COLUMNS, rows, pdf, preview=png, block_id=f"{PREFIX}layout.{name}.figure")
+        specs[name] = FigureSpec(figure, (), left=FIGURE_LEFT)
+    return specs
 
 
 def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None) -> tuple[Unit, ...]:

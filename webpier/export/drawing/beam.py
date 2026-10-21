@@ -8,8 +8,8 @@ Example橋脚2 06_照査の前提.pdf 6.1 (1). It shows
   ('D22-17本', on each side face);
 - the stirrup round the bars of the faces, labelled 'D22-2組@125' (組 = 有効本数 / 2, as the column's hoops);
 - the dimensions: above, the chain through the upper layer 1 and the width; under, the chain through the lower layer
-  1 (both from the side bars' centre when there are side bars, calc.beam_rebar); on the left the layers' centres from
-  their faces, the side bars' chain and the depth.
+  1 (both from the side bars' centre when there are side bars, calc.beam_rebar); on the right at the corners the
+  layers' centres from their faces; on the left the side bars' chain and the depth.
 """
 
 from __future__ import annotations
@@ -20,11 +20,11 @@ from decimal import Decimal
 from .sheet import GAP, TEXT, Sheet, TextEntityAlignment, Vec2, fan, mm, number  # isort: skip
 
 from ...calc.beam_rebar import SIDE, BeamLayout, beam_layout, beam_section
-from ...calc.cantilever.check import _stirrups
+from ...calc.cantilever.check import beam_stirrups
 from ...calc.column_check import Hoops
 from ...calc.detailing.ties import SETS
 from ...inputs import PierInput, choices
-from .column import printed
+from .column import sets_text
 
 UPPER, LOWER = choices.BEAM_FACES
 
@@ -39,7 +39,7 @@ def beam_figure(pier: PierInput) -> BeamFigure:
     """What the beam section is drawn from; a blank it needs is an input error naming its path."""
     sub = pier.substructure
     layout = beam_layout(pier.rebar.beam, *beam_section(sub.b[1], sub.h[2], sub.h[3]))
-    return BeamFigure(layout=layout, stirrups=_stirrups(pier.rebar.beam))
+    return BeamFigure(layout=layout, stirrups=beam_stirrups(pier.rebar.beam))
 
 
 def face_texts(layout: BeamLayout, face: str) -> list[str]:
@@ -90,13 +90,14 @@ def draw_beam(sheet: Sheet, figure: BeamFigure, origin: Vec2) -> None:
     lower = _first_layer(layout, LOWER)
     sheet.chain([Decimal(0), *lower, number(layout.width)], 0.0, cursor - 2 * line, vertical=False, origin=origin)
 
-    # on the left: the layers' centres from their faces, the side bars' chain, the depth (model y up)
-    column = -2 * line
+    # on the right, at the corners: the layers' centres from their faces (108 | 64 at the top, 121 at the bottom),
+    # apart from the side bars' chain and the depth on the left (model y up)
     height = number(layout.depth)
     for face in (UPPER, LOWER):
         centres = [number(c) for c in layout.centers[face]]
         points = sorted({height, *(height - c for c in centres)}) if face == UPPER else sorted({Decimal(0), *centres})
-        sheet.chain(points, 0.0, column, vertical=True, origin=origin)
+        sheet.chain(points, width, width + 2 * line, vertical=True, origin=origin)
+    column = 0.0
     sides = sorted({bar.y.value for bar in layout.bars if bar.group == SIDE})
     if sides:
         column -= 2 * line
@@ -116,7 +117,7 @@ def draw_beam(sheet: Sheet, figure: BeamFigure, origin: Vec2) -> None:
     leg = at(right, depth / 2 + 2 * line)
     sheet.arrow_to(elbow, leg)
     stirrups = figure.stirrups
-    sets = printed(SETS(stirrups.legs / 2))
+    sets = sets_text(SETS(stirrups.legs / 2))
     sheet.label(elbow, 1, f"D{mm(number(stirrups.diameter))}-{sets}組@{mm(number(stirrups.pitch))}")
 
 
