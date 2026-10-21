@@ -59,7 +59,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 4. `render_*` 関数で scratchpad に PDF を出し、`compare_pages.py` で見本と並べて目視する。方眼Excel は `tests/reporting/test_grid_excel.py -k "train-0600"` のように段階を選んで確かめる（strict と Excel 比較。Excel 比較は1冊 20〜60秒）。
 5. テストを足す・直す。意味内容（`test_*_semantics.py`）、体裁（`test_*_pdf.py` と `test_report_spacing.py`・`test_report_definitions.py`・`test_report_equation_terms.py`・`test_frame_report_style.py`・`test_grid_excel.py`）、印刷物での検算。
 6. `& ".claude/check.ps1"` を通す（reporting は行・分岐カバレッジ 95%）。
-7. 帳票だけを直したときは、直す前の結果 JSON を scratchpad に写しておき、`--stage <段階> --overwrite` で作り直した結果 JSON と比べる。違うのが `implementation_sha256` だけなら計算は変わっていない。
+7. 帳票だけを直したときは、直す前の結果 JSON を scratchpad に写しておき、入力の `outputs` でその段階の出力項目（と使う項目）だけを選んだ写しから `--overwrite` で作り直した結果 JSON と比べる（決定72）。違うのが `implementation_sha256` だけなら計算は変わっていない。
 
 見本の使い分け：利用者が「Example橋脚2 のような式の表現に」と言うときは、式の書き方（何を何行で書くか、見出しの構成）を Example橋脚2 に合わせ、列・空き行は reporting-style.md の契約を使う。`tests/fixtures/reporting/appearance` の見本の実測は、共通グリッドへの移行（2026-10-21）で位置の基準ではなくなった。式を1行に収めるために列を動かすときは、その帳票の同じ意味の行のアンカーをそろえて動かす。
 
@@ -90,7 +90,7 @@ GridLayoutPdf の描画のソースを変えると、片持ち梁37頁の画素�
 - 文字の縮小・伸縮で固定頁数に収めない。まとまりを保って改ページする。
 - `tests/fixtures/reporting/appearance` を新しい出力から作り直さない（見本から独立に測った値）。
 - テスト実行中に `webpier` のソースを編集しない（実装ハッシュの照合で失敗する）。
-- 並行作業中は `python -m webpier` の CLI（`output/` を書き換える）ではなく `render_*` 関数で scratchpad に出す。`output/` を作り直すよう頼まれたら、まず全段階で試し、別の段階が途中の実装で失敗したら（一括公開なので何も変わらない）`--stage 0600 --overwrite` のように直した段階だけ作り直す。
+- 並行作業中は `python -m webpier` の CLI（`output/` を書き換える）ではなく `render_*` 関数で scratchpad に出す。`output/` を作り直すよう頼まれたら、まず全段階で試し、別の段階が途中の実装で失敗したら（一括公開なので何も変わらない）入力の写しの `outputs` を直した段階の出力項目（と使う項目）だけにして作り直す（決定72。段階を選ぶ引数はない）。
 - 並行作業中の `check.ps1` は、相手がファイルを消すと「No source for code」やそのファイルのテストの失敗で止まる。自分の変更の可否は、直した帳票のテスト（例：`-k "reaction or report_equation_terms or report_spacing"`）で判断し、全体の検査は相手の区切りを待って流し直す。
 - 線（括り線など）で空き行が見える部品になると、keep の鎖（`KeepWithNext` は次の「見える」部品と同じ頁に置く）が空き行で切れ、まとまりの最後の行だけ次の頁に送られる。線を引く空き行は、前の部品が keep なら `KeepWithNext` で包む。
 - TTC を何度も読む検査は遅い。フォント名はモジュールで1回求める。

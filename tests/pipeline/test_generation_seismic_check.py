@@ -16,19 +16,19 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import SEISMIC, Recorder, choose, copy_input, tree
 from webpier.core.integrity import content_sha256
 from webpier.export.aggrese import databases
 from webpier.pipeline import aggrese, generate, jrsnap
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry, SeismicCheck,
-                                     StageSpec)
+from webpier.pipeline.stages import Export, NonlinearAnalysis, Project, Registry, SeismicCheck, StageSpec
 from webpier.reporting.stages.seismic_check import render_seismic_check
 
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
 CASE = "model(Case1_ρm10_αf1_正向)"
 PIK, XLSX, STEPS = "model_Aggre-SE.pik", "model_Aggre-SE.xlsx", "model_Aggre-SE_直接基礎.csv"
+NONLINEAR = (*SEISMIC, "longitudinal_nonlinear_analysis")  # the items that choose E (decision 72)
 COLUMNS = ["case_index", "case_name", "node", "step", "V", "H", "M", "qvd", "qd", "Rvd", "Mmd", "plasticity"]
 
 
@@ -45,12 +45,11 @@ def registry(recorder: Recorder) -> Registry:
         StageSpec("C", "C_地震", ("A",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", NDU)),)),
         StageSpec("E", "E_解析", ("C",), render=lambda results, pier, path, pages: render_seismic_check(path, pages),
-                  opt_in=NONLINEAR_ANALYSIS,
                   nonlinear_analysis=NonlinearAnalysis(
                       "C", "jrsnap", "jrsnap", FOLDER,
                       Project("aggrese", "model.xml", lambda results, pier: project, {"target": "Aggre-SE"})),
                   seismic_check=SeismicCheck((("pik", PIK), ("xlsx", XLSX), ("steps", STEPS)))),
-    ))
+    ), outputs={"ground_model": ("A",), "longitudinal_seismic": ("C",), "longitudinal_nonlinear_analysis": ("E",)})
 
 
 @pytest.fixture
@@ -59,8 +58,7 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(jrsnap, "ENV_FILE", tmp_path / ".env")
     monkeypatch.setattr(aggrese, "ENV_FILE", tmp_path / ".env")
     recorder = Recorder()
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                nonlinear_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *NONLINEAR), tmp_path / "output", tmp_path / "post")
     return options, recorder, registry(recorder)
 
 
@@ -95,7 +93,7 @@ def test_the_report_is_aggre_ses_report_as_it_is(env, monkeypatch: pytest.Monkey
     assert post[XLSX] == made[0].files["xlsx"]
     assert post[STEPS] == made[0].files["steps"]
     assert post[STEPS].startswith(",".join(COLUMNS).encode() + b"\r\n")
-    assert planned(options, registry=stages) == generation.artifacts
+    assert planned(options, generation.stages, registry=stages) == generation.artifacts
 
 
 def test_the_result_records_the_check_and_its_files_without_a_judgement(env):
@@ -137,18 +135,18 @@ def test_the_result_records_the_check_and_its_files_without_a_judgement(env):
 def test_a_generation_without_the_check_needs_no_runner(env, monkeypatch: pytest.MonkeyPatch):
     options, _, stages = env
     monkeypatch.setenv(aggrese.RUNNER_KEY, "")
-    generate.generate(GenerationOptions(options.input_path, options.output_dir, options.post_dir), registry=stages)
+    choose(Path(options.input_path), *SEISMIC)
+    generate.generate(options, registry=stages)
     assert sorted(tree(Path(options.output_dir))) == ["A_基礎.json", "A_基礎.pdf", "C_地震.json", "C_地震.pdf"]
 
 
-def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.MonkeyPatch):
-    options, _, stages = env
+def test_without_a_runner_nothing_is_calculated_or_published(env, monkeypatch: pytest.MonkeyPatch):
+    """The input is read to know the stages (decision 72); the runners are looked up before any calculation."""
+    options, recorder, stages = env
     monkeypatch.setenv(aggrese.RUNNER_KEY, "")
-    read = []
-    monkeypatch.setattr(generate, "parse_input", lambda data: read.append(data))
     with pytest.raises(GenerationError, match="Aggre-SE の runner が設定されていません"):
         generate.generate(options, registry=stages)
-    assert read == [] and not Path(options.post_dir).exists() and not Path(options.output_dir).exists()
+    assert recorder.log == [] and not Path(options.post_dir).exists() and not Path(options.output_dir).exists()
 
 
 @pytest.mark.parametrize("mode,message", [

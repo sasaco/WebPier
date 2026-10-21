@@ -1,12 +1,14 @@
-"""The stage registry (ADR-0004): one table of stages, a generic dependency closure."""
+"""The stage registry (ADR-0004): one table of stages, a generic dependency closure, and the stages of each 出力項目
+(decision 72)."""
 
 from pathlib import Path
 
 import pytest
 
 from webpier.core.errors import InputError
-from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis,
-                                     NonlinearAnalysis, Project, Registry, SeismicCheck, StageSpec)
+from webpier.inputs.outputs import OUTPUT_KEYS, uses
+from webpier.pipeline.stages import (OUTPUT_STAGES, STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project,
+                                     Registry, SeismicCheck, StageSpec)
 
 
 def spec(stage_id, *depends_on, exports=()):
@@ -23,18 +25,23 @@ NDU = (export("jrsnap", "x.ndu"),)
 PICKUPS = (("pik", "x.pik"), ("displacement", "x_変位量.csv"), ("reaction", "x_反力.csv"))
 
 
-def analyzing(stage_id, *depends_on, source="A", files=PICKUPS, opt_in=FRAME_ANALYSIS, exports=()):
+def analyzing(stage_id, *depends_on, source="A", files=PICKUPS, exports=()):
     """A stage without a report that analyzes the FrameWeb file of *source* (decision 46)."""
-    return StageSpec(stage_id, f"{stage_id}_照査", depends_on, exports=exports, opt_in=opt_in,
+    return StageSpec(stage_id, f"{stage_id}_照査", depends_on, exports=exports,
                      frame_analysis=FrameAnalysis(source, "frameweb", files))
 
 
-def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", opt_in=NONLINEAR_ANALYSIS, kind="jrsnap",
-            project=None, render=None, seismic_check=None):
+def solving(stage_id, *depends_on, source="A", folder="x_JRSNAP", kind="jrsnap", project=None, render=None,
+            seismic_check=None):
     """A stage, without a report unless given one, that has JRSNAP analyze the NDU of *source* (decision 47)."""
-    return StageSpec(stage_id, f"{stage_id}_解析", depends_on, render=render, opt_in=opt_in,
+    return StageSpec(stage_id, f"{stage_id}_解析", depends_on, render=render,
                      nonlinear_analysis=NonlinearAnalysis(source, "jrsnap", kind, folder, project),
                      seismic_check=seismic_check)
+
+
+def one_item(*stages):
+    """A registry of *stages* that all belong to one 出力項目, so no stage reads another item's."""
+    return Registry(stages, outputs={"ground_model": tuple(dict.fromkeys(stage.id for stage in stages))})
 
 
 PIK = SeismicCheck((("pik", "x_Aggre-SE.pik"), ("xlsx", "x_Aggre-SE.xlsx"), ("steps", "x_Aggre-SE_直接基礎.csv")))
@@ -88,18 +95,40 @@ def test_frameweb_is_written_for_the_non_seismic_frames_and_jrsnap_for_the_seism
 
 def test_every_export_is_always_written():
     """Decision 42: an export is part of its stage; nothing is written only on request."""
-    assert "opt_in" not in Export.__dataclass_fields__
+    assert "opt_in" not in Export.__dataclass_fields__ and "opt_in" not in StageSpec.__dataclass_fields__
     assert not hasattr(STAGES, "opt_in_kinds") and not hasattr(StageSpec, "enabled_exports")
 
 
-def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
+def test_each_output_item_makes_its_stages():
+    """Decision 72: the stages of each 出力項目, in registry order; the input's six default items are the stages the
+    switches used to leave out of all."""
+    assert dict(STAGES.outputs) == {
+        "ground_model": ("0500",), "reactions": ("0600",), "longitudinal": ("0610",),
+        "longitudinal_frame_analysis": ("0611", "0612"), "transverse": ("0620",),
+        "transverse_frame_analysis": ("0621", "0622"), "longitudinal_seismic": ("0710",),
+        "longitudinal_nonlinear_analysis": ("0711",), "transverse_seismic": ("0720",),
+        "transverse_nonlinear_analysis": ("0721",), "footing": ("0800", "0810", "0820"),
+        "cantilever": ("0900", "0910")}
+    assert STAGES.outputs is OUTPUT_STAGES and tuple(STAGES.outputs) == OUTPUT_KEYS
+    assert STAGES.selected(OUTPUT_KEYS) == STAGES.ids
+    assert STAGES.selected(("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic",
+                            "transverse_seismic")) == ("0500", "0600", "0610", "0620", "0710", "0720")
+    assert STAGES.selected(("transverse_frame_analysis", "ground_model")) == ("0500", "0621", "0622")
+    assert [STAGES.item(stage_id) for stage_id in ("0500", "0612", "0721", "0820", "0910")] == [
+        "ground_model", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]
+
+
+def test_an_item_with_every_item_it_uses_has_every_stage_its_stages_read():
+    """Decision 72: an item is chosen only with every item it uses, so the chosen stages are all a generation needs."""
+    for key in OUTPUT_KEYS:
+        chosen = STAGES.selected({key, *uses(key)})
+        assert STAGES.closure(chosen) == chosen
+
+
+def test_the_frame_analysis_stages_analyze_the_frameweb_files():
     """Decision 46: 0611 and 0621 publish the pickup files of their load stage's FrameWeb, and each the column
     section check by Capacita with that PIK (decision 48); 0612 and 0622 share that analysis for the 基礎の照査, which
     reads its reactions (decision 54)."""
-    assert STAGES.opt_in(FRAME_ANALYSIS) == ("0611", "0612", "0621", "0622", "0800", "0810", "0820")
-    assert STAGES.select("all") == ("0500", "0600", "0610", "0620", "0710", "0720")
-    assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS})) == (
-        "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0720")
     for stage_id, column in (("0612", "0611"), ("0622", "0621")):
         stage = STAGES.get(stage_id)
         assert stage.has_report and stage.complete is not None and stage.section_check is None
@@ -113,14 +142,10 @@ def test_the_frame_analysis_stages_are_opt_in_and_analyze_the_frameweb_files():
             ("reaction", f"{stem}_ピックアップ反力.csv")))
 
 
-def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
+def test_the_nonlinear_analysis_stages_analyze_the_ndu_files():
     """Decision 47: 0711 and 0721 publish the folder of the JRSNAP analysis of their seismic stage's NDU, and beside it
     the Aggre-SE project that reads it (decision 49); their report is Aggre-SE's, without a calculation of their own
     (decision 56)."""
-    assert STAGES.opt_in(NONLINEAR_ANALYSIS) == ("0711", "0721", "0800", "0810", "0820", "0900", "0910")
-    assert STAGES.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == (
-        "0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721", "0900", "0910")
-    assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == STAGES.ids
     for stage_id, source, folder in (("0711", "0710", "線路方向_JRSNAP"), ("0721", "0720", "線路直角方向_JRSNAP")):
         stage = STAGES.get(stage_id)
         assert (stage.has_report, stage.calculate, stage.exports, stage.frame_analysis) == (True, None, (), None)
@@ -135,7 +160,7 @@ def test_the_nonlinear_analysis_stages_are_opt_in_and_analyze_the_ndu_files():
         assert analysis.project.metadata == {"target": "Aggre-SE", "target_version": "5.3.0.1"}
 
 
-def test_the_footing_stages_opt_into_both_switches_and_read_the_analyses_of_both_directions():
+def test_the_footing_stages_read_the_analyses_of_both_directions():
     """Decision 60: 0800 is prepared from 0500 and the frames of 0610・0620 and finished with the reactions of the
     analyses of 0612・0622 and the step tables of the seismic checks of 0711・0721; 0810・0820 have Capacita check
     the WDJ of their direction as given (no frame analysis of their own)."""
@@ -143,96 +168,72 @@ def test_the_footing_stages_opt_into_both_switches_and_read_the_analyses_of_both
             ("0800", "0800_フーチング", ("0500", "0610", "0612", "0620", "0622", "0711", "0721")),
             ("0810", "0810_線路方向フーチング照査", ("0800",)), ("0820", "0820_直角方向フーチング照査", ("0800",))):
         stage = STAGES.get(stage_id)
-        assert (stage.stem, stage.depends_on, stage.opt_in) == (stem, depends, (FRAME_ANALYSIS, NONLINEAR_ANALYSIS))
+        assert (stage.stem, stage.depends_on, STAGES.item(stage_id)) == (stem, depends, "footing")
         assert stage.has_report and stage.complete is not None and stage.exports == ()
         assert stage.frame_analysis is None and stage.nonlinear_analysis is None and stage.seismic_check is None
     assert STAGES.get("0800").calculate is not None and STAGES.get("0800").section_check is None
     for stage_id, name in (("0810", "線路方向フーチング.wdj"), ("0820", "線路直角方向フーチング.wdj")):
         check = STAGES.get(stage_id).section_check
         assert (check.kind, check.file_name) == ("wdj", name) and STAGES.get(stage_id).calculate is None
-    assert STAGES.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == STAGES.ids
     assert STAGES.closure(("0810",)) == ("0500", "0600", "0610", "0612", "0620", "0622", "0710", "0711", "0720",
                                          "0721", "0800", "0810")
 
 
-def test_a_stage_chosen_alone_brings_the_dependencies_that_run_engines_or_finish_results():
-    """Decision 60 (owner 2026-10-19): --stage 0800 generates and publishes, from its closure, the stages whose
-    runners' files it reads (the frame analyses of 0612・0622, the nonlinear analyses and seismic checks of
-    0711・0721) and the stages that finish a result (0800 for 0810); the plain stages are only calculated. The same
-    rule serves 0900・0910 (decision 59)."""
-    assert STAGES.select("0612") == ("0612",)
-    assert STAGES.select("0800") == ("0612", "0622", "0711", "0721", "0800")
-    assert STAGES.select("0810") == ("0612", "0622", "0711", "0721", "0800", "0810")
-    assert STAGES.select("0820") == ("0612", "0622", "0711", "0721", "0800", "0820")
-    assert STAGES.select("0900") == ("0711", "0721", "0900")
-    assert STAGES.select("0910") == ("0711", "0721", "0900", "0910")
-    assert STAGES.select("0610") == ("0610",)
-
-
 def test_closure_adds_transitive_dependencies_in_registry_order():
-    registry = Registry((spec("A"), spec("B"), spec("C", "A"), spec("D", "C")))
+    registry = one_item(spec("A"), spec("B"), spec("C", "A"), spec("D", "C"))
     assert registry.closure(("D",)) == ("A", "C", "D")
     assert registry.closure(("B", "C")) == ("A", "B", "C")
     assert registry.closure(registry.ids) == ("A", "B", "C", "D")
 
 
-def test_select_all_or_one_stage():
-    registry = Registry((spec("A"), spec("B", "A")))
-    assert registry.select("all") == ("A", "B")
-    assert registry.select("B") == ("B",)
+def test_a_stage_is_looked_up_by_its_id():
+    registry = one_item(spec("A"), spec("B", "A"))
+    assert registry.stage("B") is registry.get("B")
     with pytest.raises(InputError, match="計算段階が不正です: C"):
-        registry.select("C")
-    assert registry.choices == ("A", "B", "all")
+        registry.stage("C")
 
 
 def test_a_stage_may_have_no_report():
     stage = analyzing("B", "A")
     assert (stage.calculate, stage.render, stage.has_report, stage.exports) == (None, None, False, ())
-    assert spec("A").has_report and not spec("A").opt_in
+    assert spec("A").has_report
 
 
-def test_all_leaves_out_the_opt_in_stages_unless_they_are_asked_for():
-    """Decisions 46, 47: each switch adds its own opt-in stages to all; any of them may be chosen directly."""
-    registry = Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), spec("C", "A"), solving("D", "A")))
-    assert (registry.opt_in(FRAME_ANALYSIS), registry.opt_in(NONLINEAR_ANALYSIS)) == (("B",), ("D",))
-    assert registry.select("all") == ("A", "C")
-    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS})) == ("A", "B", "C")
-    assert registry.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == ("A", "C", "D")
-    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == ("A", "B", "C", "D")
-    assert registry.select("B") == ("B",) and registry.select("D") == ("D",)
-    assert registry.closure(("B",)) == ("A", "B")
-    with pytest.raises(InputError, match="--frame-analysis は --stage all と使います（選択式の段階 B は --stage で直接選べます）"):
-        registry.select("A", switches=frozenset({FRAME_ANALYSIS}))
-    with pytest.raises(InputError, match="--frame-analysis --nonlinear-analysis は --stage all と使います（選択式の段階 B・D は"):
-        registry.select("C", switches=frozenset({NONLINEAR_ANALYSIS, FRAME_ANALYSIS}))
-    with pytest.raises(InputError, match="選択式のスイッチが不正です: other"):
-        registry.select("all", switches=frozenset({"other"}))
+def test_the_stages_of_the_chosen_items_in_registry_order():
+    """Decision 72: an item may have several stages; an item without stages chooses none."""
+    registry = Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), spec("C", "A"), solving("D", "A")),
+                        outputs={"ground_model": ("A",), "longitudinal": ("C",), "longitudinal_frame_analysis": ("B",),
+                                 "longitudinal_seismic": ("D",)})
+    assert registry.selected(("ground_model",)) == ("A",)
+    assert registry.selected(("longitudinal_seismic", "longitudinal_frame_analysis", "ground_model")) == ("A", "B", "D")
+    assert registry.selected(("reactions",)) == ()
+    assert [registry.item(stage) for stage in registry.ids] == [
+        "ground_model", "longitudinal_frame_analysis", "longitudinal", "longitudinal_seismic"]
 
 
-def test_a_stage_opting_into_both_switches_is_in_all_only_with_both():
-    """Decision 60: 0800〜0820 read the frame analyses and the nonlinear analyses, so all includes them only when both
-    switches are given; they may depend on the opt-in stages of either switch; chosen directly they are one stage."""
-    both = StageSpec("F", "F_名前", ("B", "D"), lambda pier, results: "F", lambda results, pier, path, pages: path,
-                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS))
-    registry = Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), solving("D", "A"), both))
-    assert registry.get("F").opt_in == (FRAME_ANALYSIS, NONLINEAR_ANALYSIS)
-    assert registry.get("B").opt_in == (FRAME_ANALYSIS,) and registry.get("A").opt_in == ()
-    assert registry.select("all") == ("A",)
-    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS})) == ("A", "B")
-    assert registry.select("all", switches=frozenset({NONLINEAR_ANALYSIS})) == ("A", "D")
-    assert registry.select("all", switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS})) == ("A", "B", "D", "F")
-    assert registry.closure(("F",)) == ("A", "B", "D", "F")
-    assert registry.select("F") == ("B", "D", "F")  # chosen alone: with the stages whose runners' files it reads
-    assert (registry.opt_in(FRAME_ANALYSIS), registry.opt_in(NONLINEAR_ANALYSIS)) == (("B", "F"), ("D", "F"))
-    with pytest.raises(ValueError, match="Gは選択式の段階Fに依存するので、そのスイッチ（frame_analysis・nonlinear_analysis）を含む"):
-        Registry((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"), solving("D", "A"), both,
-                  StageSpec("G", "G_名前", ("F",), lambda pier, results: "G", lambda results, pier, path, pages: path,
-                            opt_in=NONLINEAR_ANALYSIS)))
+@pytest.mark.parametrize("outputs,message", [
+    ({"ground_model": ("A",), "other": ("B",)}, "出力項目がありません: other"),
+    ({"ground_model": ("A", "B"), "reactions": ("B",)}, "段階が複数の出力項目にあります"),
+    ({"ground_model": ("A",)}, "Bの出力項目がありません"),
+    ({"ground_model": ("A", "B", "X")}, "出力項目の段階がありません: X"),
+    # B reads A, but reactions does not use ground_model (decision 72)
+    ({"ground_model": ("A",), "reactions": ("B",)},
+     "B（出力項目 reactions）はA（出力項目 ground_model）を読むので、reactions は ground_model を使う出力項目です"),
+    # the other way round: a stage of an item that uses another may read it
+    ({"reactions": ("A",), "longitudinal": ("B",)}, None),
+])
+def test_a_stage_reads_only_its_own_item_and_the_items_it_uses(outputs, message):
+    stages = (spec("A"), spec("B", "A"))
+    if message is None:
+        assert Registry(stages, outputs=outputs).selected(("longitudinal",)) == ("B",)
+    else:
+        with pytest.raises(ValueError, match=message):
+            Registry(stages, outputs=outputs)
 
 
 def test_get_returns_the_spec():
     first = spec("A")
-    assert Registry((first,)).get("A") is first
+    assert one_item(first).get("A") is first
 
 
 @pytest.mark.parametrize("stages,message", [
@@ -240,7 +241,6 @@ def test_get_returns_the_spec():
     ((spec("A"), spec("A")), "段階が重複しています: A"),
     ((spec("A", "B"), spec("B")), "Aの依存段階Bが先に登録されていません"),
     ((spec("A", "A"),), "Aの依存段階Aが先に登録されていません"),
-    ((spec("all"),), "段階の名前にallは使えません"),
     ((StageSpec("A", "B_名前", (), lambda p, r: 0, lambda r, p, path, pages: path),), "AのファイルB_名前の名前"),
     ((spec("A", exports=(export("frameweb", "x.json"),)), spec("B", exports=(export("frameweb", "x.json"),))),
      "出力ファイル名が重複しています: x.json"),
@@ -271,7 +271,7 @@ def test_get_returns_the_spec():
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),
      "Aの荷重図を差し込む計算書がありません"),
     ((spec("A", exports=FRAMEWEB), StageSpec("B", "B_名前", ("A",), lambda p, r: 0, lambda r, p, path, pages: path,
-                                             opt_in=FRAME_ANALYSIS, load_diagram="pik",
+                                             load_diagram="pik",
                                              frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS))),
      "Bの荷重図の出力pikがありません"),  # a load diagram draws one of the stage's own exports
     ((spec("A", exports=FRAMEWEB), spec("C"), analyzing("B", "C")), "Bが骨組解析するAが依存段階にありません"),
@@ -286,18 +286,6 @@ def test_get_returns_the_spec():
      "出力ファイル名が重複しています: x.json"),
     ((spec("A", exports=FRAMEWEB), analyzing("B", "A", files=(("pik", "sub/x.pik"), *PICKUPS[1:]))),
      "出力ファイル名が不正です: sub/x.pik"),
-    ((spec("A", exports=FRAMEWEB), analyzing("B", "A", opt_in="")), "Bは骨組解析するので選択式（frame_analysis）の段階です"),
-    ((spec("A", exports=FRAMEWEB), analyzing("B", "A", opt_in=NONLINEAR_ANALYSIS)),
-     "Bは骨組解析するので選択式（frame_analysis）の段階です"),
-    ((spec("A", exports=FRAMEWEB), analyzing("B", "A"), spec("C", "B")),
-     "Cは選択式の段階Bに依存するので、そのスイッチ（frame_analysis）を含む選択式の段階です"),
-    ((spec("A", exports=(*FRAMEWEB, *NDU)), analyzing("B", "A"),
-      StageSpec("C", "C_名前", ("B",), lambda p, r: 0, lambda r, p, path, pages: path, opt_in=NONLINEAR_ANALYSIS)),
-     "Cは選択式の段階Bに依存するので、そのスイッチ（frame_analysis）を含む選択式の段階です"),
-    ((StageSpec("A", "A_名前", (), lambda p, r: 0, lambda r, p, path, pages: path, opt_in="other"),),
-     "Aの選択式のスイッチotherがありません"),
-    ((spec("A", exports=NDU), solving("B", "A", opt_in=FRAME_ANALYSIS)),
-     "Bは静的非線形解析するので選択式（nonlinear_analysis）の段階です"),
     ((spec("A", exports=NDU), spec("C"), solving("B", "C")), "Bが静的非線形解析するAが依存段階にありません"),
     ((spec("A", exports=FRAMEWEB), solving("B", "A")), "Bが静的非線形解析するAの出力jrsnap がありません"),
     ((spec("A", exports=NDU), solving("B", "A", folder="x.ndu")), "出力ファイル名が重複しています: x.ndu"),
@@ -307,13 +295,13 @@ def test_get_returns_the_spec():
     ((spec("A", exports=NDU), solving("B", "A", project=project(kind="jrsnap"))), "Bの出力の種類が重複しています: jrsnap"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(file_name="a/x.xml"))), "出力ファイル名が不正です: a/x.xml"),
     ((spec("A", exports=(*FRAMEWEB, *NDU)),
-      StageSpec("B", "B_名前", ("A",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS),
+      StageSpec("B", "B_名前", ("A",), frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS),
                 nonlinear_analysis=NonlinearAnalysis("A", "jrsnap", "jrsnap", "x_JRSNAP"))),
      "Bは骨組解析と静的非線形解析の両方はできません"),
 ])
 def test_an_inconsistent_registry_is_a_programming_error(stages, message):
     with pytest.raises(ValueError, match=message):
-        Registry(stages)
+        one_item(*stages)
 
 
 def test_stage_callables_are_kept_as_given():

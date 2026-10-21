@@ -97,13 +97,10 @@ def test_the_beam_check_group_holds_the_cantilever_conditions(editor):
     assert (CHECK, "外観の照査") not in editor.bindings.items
 
 
-def test_the_calculation_page_names_the_cantilever_stages_under_the_nonlinear_switch(editor):
+def test_the_calculation_page_lists_the_cantilever_as_an_item_of_its_own(editor):
+    """Decisions 59, 72: 0900・0910 are the 出力項目 片持ち梁の計算, which needs both static nonlinear analyses."""
     assert editor.select("計算・印刷")
     shown = list(texts(editor.view.frame))
-    frame = next(text for text in shown if text.startswith("骨組解析も行う"))
-    nonlinear = next(text for text in shown if text.startswith("静的非線形解析も行う"))
-    assert "0900" not in frame and "0910" not in frame
-    assert "0611・0621 は Capacita で柱の断面照査も行う（決定48）" in frame
-    assert "0612・0622 は反力で基礎の照査も行う（決定54）" in frame
-    assert "0711・0721・0800・0810・0820・0900・0910。" in nonlinear
-    assert "0900・0910 は片持ち梁の応答値と Capacita の断面照査も行い、post/片持ち梁.wdj を出力（決定59）" in nonlinear
+    assert "片持ち梁の計算（0900・0910）" in shown and "　両方向の静的非線形解析が必要です" in shown
+    assert [text for text in shown if text.startswith("静的非線形解析も行う")] == [
+        "静的非線形解析も行う（0711）", "静的非線形解析も行う（0721）"]

@@ -39,7 +39,7 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 
 ## post の出力を作る・最新か確かめる
 
-- 作る：`uv run --project "." --locked python -m webpier --stage 0711 --overwrite`（0721 も同じ。両方なら `--stage all --nonlinear-analysis --overwrite`）。依存段階は内部で計算するだけで、0711 を選んだ生成が書くのは `output/0711_線路方向非線形解析.pdf`・`.json` と `post/` の `線路方向_JRSNAP/`・`線路方向.xml`・`線路方向_Aggre-SE.pik`・`線路方向_Aggre-SE.xlsx`・`線路方向_Aggre-SE_直接基礎.csv` と各付帯JSON。1方向数分かかり、JRSNAP の画面が出る。`.env` に JRSNAP と Aggre-SE の runner が要る。
+- 作る：入力の `outputs` で `longitudinal_nonlinear_analysis`（0721 は `transverse_nonlinear_analysis`）と、それが使う項目（`ground_model`・`reactions`・`longitudinal`・`longitudinal_seismic`）を選び、`uv run --project "." --locked python -m webpier --overwrite`（決定72。段階を選ぶ引数はない）。使う項目の段階（0500・0600・0610・0710）も作り直して公開する。0711 が書くのは `output/0711_線路方向非線形解析.pdf`・`.json` と `post/` の `線路方向_JRSNAP/`・`線路方向.xml`・`線路方向_Aggre-SE.pik`・`線路方向_Aggre-SE.xlsx`・`線路方向_Aggre-SE_直接基礎.csv` と各付帯JSON。1方向数分かかり、JRSNAP の画面が出る。`.env` に JRSNAP と Aggre-SE の runner が要る。
 - 最新か確かめる（作り直す前に）：付帯JSONの `input.sha256` を `pre/input.json` の SHA256 と、`implementation_sha256` を `canonical_sha256({str(p): d for p, d in webpier.pipeline.runtime.dependency_hashes().items()})` と比べる。両方一致すれば、いまの入力と実装で作ったもの（2026-10-19、「出力して」と言われて確かめた手順）。総括表と計算書はバイトが毎回変わるので、ファイルの SHA256 どうしを比べて新旧を判断しない。
 - 同じ作業ツリーで別のセッションが `CONTEXT.md` などを編集していることがある。コミットは `git commit --only <自分のファイル>` で、他人の差分を含めない（`git diff -U0` で自分の差分か確かめる）。
 

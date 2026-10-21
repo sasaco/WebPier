@@ -9,8 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import copy_input, footing_input, tree
+from pipeline_support import LONGITUDINAL, copy_input, footing_input, outputs, tree
 from test_headless import call
+from webpier.inputs.outputs import OUTPUT_KEYS
 from webpier.loadmodel import CONTRACT_VERSION
 from webpier.pipeline import cli, headless
 from webpier.pipeline.addin import MANIFEST
@@ -21,11 +22,12 @@ RECORD = {"name": "minimal", "version": "1.0.0", "contract": CONTRACT_VERSION,
           "provenance": {"source": "tests/fixtures/addin/minimal", "bearings": 6}}
 
 
-def garbled_input(directory: Path) -> Path:
+def garbled_input(directory: Path, *items: str) -> Path:
     """The input (with the sample's footing bars, which 0800 needs) with values the train path rejects left in the load
-    model's items."""
+    model's items, choosing the 出力項目 *items* (decision 72)."""
     path = footing_input(directory)
     document = json.loads(path.read_text(encoding="utf-8"))
+    document["outputs"] = outputs(*items)
     document["上部構造"]["列車"]["車両名"] = "トラム"
     document["上部構造"]["起点側"]["曲線半径"] = -1
     document["上部工反力"]["起点側"]["B支点"][0]["列車分担"]["L3"] = 1.0
@@ -38,8 +40,8 @@ def generation(tmp_path_factory: pytest.TempPathFactory):
     """One generation of every stage, run as the runner's command without its stdout."""
     root = tmp_path_factory.mktemp("addin")
     arguments = headless.parser().parse_args([
-        "run", "--input", str(garbled_input(root / "pre")), "--output-dir", str(root / "out"), "--stage", "all",
-        "--frame-analysis", "true", "--nonlinear-analysis", "true", "--addin", str(MINIMAL)])
+        "run", "--input", str(garbled_input(root / "pre", *OUTPUT_KEYS)), "--output-dir", str(root / "out"),
+        "--addin", str(MINIMAL)])
     code, envelope = headless._run(arguments, STAGES)
     return code, envelope, root / "out"
 
@@ -47,6 +49,7 @@ def generation(tmp_path_factory: pytest.TempPathFactory):
 def test_every_stage_is_generated(generation):
     code, envelope, _ = generation
     assert code == 0, envelope["errors"]
+    assert envelope["summary"]["outputs"] == list(OUTPUT_KEYS)
     assert [stage["id"] for stage in envelope["summary"]["stages"]] == [
         "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721", "0800", "0810",
         "0820", "0900", "0910"]
@@ -73,14 +76,13 @@ def test_nothing_of_the_train_is_printed_and_the_load_model_is(generation):
 
 
 def test_the_cli_takes_the_addin(tmp_path: Path, capsys):
-    source = garbled_input(tmp_path / "pre")
-    code = cli.main(["--input", str(source), "--output-dir", str(tmp_path / "output"), "--stage", "0600",
-                     "--addin", str(MINIMAL)])
+    source = garbled_input(tmp_path / "pre", "reactions")
+    code = cli.main(["--input", str(source), "--output-dir", str(tmp_path / "output"), "--addin", str(MINIMAL)])
     assert code == 0
+    assert sorted(path.name for path in (tmp_path / "output").iterdir()) == ["0600_上部工反力.json", "0600_上部工反力.pdf"]
     document = json.loads((tmp_path / "output" / "0600_上部工反力.json").read_text(encoding="utf-8"))
     assert document["addin"] == RECORD
-    code = cli.main(["--input", str(source), "--output-dir", str(tmp_path / "other"), "--stage", "0600",
-                     "--addin", str(tmp_path)])
+    code = cli.main(["--input", str(source), "--output-dir", str(tmp_path / "other"), "--addin", str(tmp_path)])
     assert code == 2 and "アドインの宣言" in capsys.readouterr().err
 
 
@@ -117,7 +119,7 @@ def test_the_errors_of_an_add_in(tmp_path: Path, capsys, case, code, message, co
                            "class M:\n    def calculate(self, context):\n"
                            "        raise LoadModelInputError('input.addin.json:車荷重[1]', '値が必要です')\n"
                            "def make():\n    return M()\n")
-    arguments = [command, "--input", copy_input(tmp_path / "pre"), "--stage", "0610", "--addin", folder]
+    arguments = [command, "--input", copy_input(tmp_path / "pre", *LONGITUDINAL), "--addin", folder]
     if command == "run":
         arguments += ["--output-dir", tmp_path / "out"]
     exit_code, envelope = call(capsys, *arguments)
@@ -128,9 +130,9 @@ def test_the_errors_of_an_add_in(tmp_path: Path, capsys, case, code, message, co
 
 
 def test_validate_contract_and_schema_with_an_add_in(tmp_path: Path, capsys):
-    code, envelope = call(capsys, "validate", "--input", garbled_input(tmp_path / "pre"), "--stage", "0720",
-                          "--addin", MINIMAL)
-    assert code == 0 and envelope["summary"]["stages"][-1] == "0720"
+    source = garbled_input(tmp_path / "pre", "ground_model", "reactions", "transverse", "transverse_seismic")
+    code, envelope = call(capsys, "validate", "--input", source, "--addin", MINIMAL)
+    assert code == 0 and envelope["summary"]["stages"] == ["0500", "0600", "0620", "0720"]
     code, envelope = call(capsys, "contract", "--addin", MINIMAL)
     assert code == 0 and envelope["summary"]["addin"] == {"name": "minimal", "version": "1.0.0",
                                                          "contract": CONTRACT_VERSION}

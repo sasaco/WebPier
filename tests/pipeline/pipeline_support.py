@@ -1,7 +1,9 @@
 """A small stage registry with fast fake calculations and reports, for the generation tests.
 
 A → B → C, where B writes a FrameWeb-like file and C a JRSNAP-like file. Every call is logged so the
-tests can tell what was calculated and rendered, and in which order.
+tests can tell what was calculated and rendered, and in which order. A, B and C are the stages of the 出力項目
+ground_model, longitudinal and longitudinal_seismic (decision 72), which current.json chooses; ``choose`` sets which
+items an input chooses.
 """
 
 from __future__ import annotations
@@ -13,10 +15,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from webpier.core.printed import LENGTH, Printed
+from webpier.inputs.outputs import OUTPUT_KEYS
 from webpier.pipeline.stages import Export, Registry, StageSpec
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = FIXTURES / "inputs" / "current.json"
+FAKE_OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_seismic": ("C",)}
+# The items of the 線路方向 (decision 72): with every item each uses, the stages A, B and C of the fake registry
+LONGITUDINAL = ("ground_model", "reactions", "longitudinal")
+SEISMIC = (*LONGITUDINAL, "longitudinal_seismic")
 
 
 @dataclass(frozen=True)
@@ -70,7 +77,7 @@ def fake_registry(recorder: Recorder) -> Registry:
         StageSpec("C", "C_地震", ("B",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", b"NDU C\r\n"),
                           metadata={"target_version": "5.2-L03", "analysis_run": False}),)),
-    ))
+    ), outputs=FAKE_OUTPUTS)
 
 
 def fake_fempython():
@@ -86,10 +93,24 @@ def fake_reactions(frameweb: bytes) -> bytes:
     return fake_fempython().reactions(json.loads(frameweb))
 
 
-def copy_input(directory: Path) -> Path:
+def copy_input(directory: Path, *items: str) -> Path:
+    """current.json as a generation's input; with *items*, choosing only those 出力項目 (``choose``)."""
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "input.json"
     shutil.copyfile(CURRENT, path)
+    return choose(path, *items) if items else path
+
+
+def outputs(*items: str) -> dict[str, bool]:
+    """The 出力項目 of an input choosing *items* (decision 72)."""
+    return {key: key in items for key in OUTPUT_KEYS}
+
+
+def choose(path: Path, *items: str) -> Path:
+    """Rewrite the input at *path* to choose the 出力項目 *items* and no other."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["outputs"] = outputs(*items)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 

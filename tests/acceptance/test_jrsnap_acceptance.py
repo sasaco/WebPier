@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.core.integrity import load_json, sha256
 from webpier.export.jrsnap.readback import Normalized, compare_readback, compare_state, parse_records, summarize
 from webpier.inputs import parse_input
@@ -26,7 +27,7 @@ STAGES = ("0710", "0720")
 @pytest.fixture(scope="module")
 def generated():
     data = (ROOT / RECORD["input"]["path"]).read_bytes()
-    assert sha256(data) == RECORD["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+    assert RECORD["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{REDO}"
     pier = parse_input(load_json(data))
     return {stage: export_bytes(pier, stage, "jrsnap") for stage in STAGES}
 

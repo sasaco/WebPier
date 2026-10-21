@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
@@ -42,7 +43,7 @@ def accepted(request):
     stage = request.param
     recorded = record(stage)
     data = (ROOT / recorded["input"]["path"]).read_bytes()
-    assert sha256(data) == recorded["input"]["sha256"], f"受入時の入力から変わっています。{redo(stage)}"
+    assert recorded["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{redo(stage)}"
     pier = parse_input(load_json(data))
     foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
     check = (calculate_column_check(pier, calculate_transverse(pier, foundation, reaction), TRANSVERSE)

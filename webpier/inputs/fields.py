@@ -1,7 +1,7 @@
 """The scalar fields of the schema 2 input: one table read by the parser and the editor (decisions 6, 17, 19, 23).
 
 Each entry maps a path pattern to how its value is written: a number at its printed digits and unit with a sign
-rule, an integer in a range, one of the program's choices, or free text; whether a blank (null) is allowed; a
+rule, an integer in a range, one of the program's choices, free text, or true/false; whether a blank (null) is allowed; a
 range the value must lie in; and whether it is a reserved field, validated but not calculated (decision 19).
 ``[*]`` in a pattern stands for any list index. Rules between fields (B1 > B4+B5, the support layer, an empty
 bearing slot, the foundation type that can be calculated) stay in the parser. Captions live in the editor.
@@ -17,6 +17,7 @@ from typing import Literal
 from ..core.printed import Precision, Printed
 from ..core.reader import Reader, Sign
 from . import choices
+from .outputs import OUTPUT_KEYS
 
 # Digits of the input sheet (.claude/docs/Example橋脚/pre/input-*.pdf).
 LENGTH = Precision(3, "m")
@@ -50,7 +51,7 @@ MAX_YEARS = 1_000  # 設計耐用年数
 BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own corrosion environment (decision 59)
 REPETITION_SLOPES = ("k=0.06", "k=0.12")  # the S-N slopes an equivalent repetition count is given for
 
-Kind = Literal["number", "integer", "choice", "text", "blank"]
+Kind = Literal["number", "integer", "choice", "text", "boolean", "blank"]
 
 
 @dataclass(frozen=True)
@@ -90,7 +91,7 @@ class Field:
     def unit(self) -> str:
         return self.precision.unit if self.precision is not None else ""
 
-    def read(self, node: Reader) -> Printed | int | str | None:
+    def read(self, node: Reader) -> Printed | int | str | bool | None:
         """The value at *node*, or None for an allowed blank; any other value is an input error naming the path."""
         if self.kind == "blank":
             if not node.is_null:
@@ -108,6 +109,8 @@ class Field:
             return node.integer(self.minimum, self.maximum)
         if self.kind == "choice":
             return node.choice(self.choices)
+        if self.kind == "boolean":
+            return node.boolean()
         return node.text()
 
 
@@ -125,6 +128,7 @@ def choice(options: Iterable[str], *, nullable: bool = False, reserved: bool = F
 
 
 TEXT = Field("text")
+BOOLEAN = Field("boolean")
 SNOW_KEYS = ("雪荷重_2年確率", "雪荷重_10年確率", "雪荷重_30年確率")
 LOAD_KEYS = ("固定死荷重_D1", "付加死荷重_D2", *SNOW_KEYS)
 SIDES = ("起点側", "終点側")
@@ -374,8 +378,14 @@ def _rebar() -> dict[str, Field]:
     return table
 
 
+def _outputs() -> dict[str, Field]:
+    # 出力項目 (decision 72): each item is true or false; which may be true together is the parser's (outputs.py)
+    return {f"outputs.{key}": BOOLEAN for key in OUTPUT_KEYS}
+
+
 FIELDS: dict[str, Field] = {**_reactions(), **_superstructure(), **_substructure(), **_soil(), **_rebar(),
-                            **_seismic_design(), **_column_check(), **_cantilever_check(), **_jrsnap()}
+                            **_seismic_design(), **_column_check(), **_cantilever_check(), **_jrsnap(),
+                            **_outputs()}
 _INDEX = re.compile(r"\[\d+\]")
 
 
@@ -400,6 +410,6 @@ def field(path: str | tuple[str | int, ...]) -> Field:
         raise KeyError(f"入力項目の定義がありません: {key}") from None
 
 
-def read(node: Reader) -> Printed | int | str | None:
+def read(node: Reader) -> Printed | int | str | bool | None:
     """Read the scalar at *node* by its field."""
     return field(node.path).read(node)

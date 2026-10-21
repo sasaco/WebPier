@@ -1,6 +1,6 @@
 """The headless runner (decision 61): one protocol v1 envelope on stdout for each command, the generation the CLI
-makes under output/ and post/, the runners of the environment only, the error codes, and the contract and the input
-schema derived from the registry and the field table."""
+makes under output/ and post/ for the 出力項目 of the input (decision 72), the runners of the environment only, the
+error codes, and the contract and the input schema derived from the registry and the field table."""
 
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import CURRENT, Recorder, copy_input, fake_registry, tree
+from pipeline_support import CURRENT, LONGITUDINAL, SEISMIC, Recorder, choose, copy_input, fake_registry, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import sha256
 from webpier.inputs.fields import FIELDS
+from webpier.inputs.outputs import OUTPUT_KEYS
 from webpier.inputs.parse import TOP_KEYS
 from webpier.pipeline import fempython, generate, headless, jrsnap
 from webpier.pipeline.fempython import RunnerError
@@ -46,12 +47,12 @@ def fake(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_run_publishes_the_generation_under_output_and_post(tmp_path: Path, capsys, fake):
-    source = copy_input(tmp_path / "pre")
-    code, envelope = call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out", "--stage", "B",
-                          registry=fake[1])
+    source = copy_input(tmp_path / "pre", *LONGITUDINAL)
+    code, envelope = call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out", registry=fake[1])
     assert code == 0 and envelope["errors"] == [] and envelope["messages"] == []
     files = tree(tmp_path / "out")
     assert [(item["kind"], item["relativePath"], item["mediaType"]) for item in envelope["artifacts"]] == [
+        ("A-pdf", "output/A_基礎.pdf", "application/pdf"), ("A-json", "output/A_基礎.json", "application/json"),
         ("B-pdf", "output/B_荷重.pdf", "application/pdf"), ("B-json", "output/B_荷重.json", "application/json"),
         ("B-frameweb", "post/frame.json", "application/json"),
         ("B-frameweb-provenance", "post/frame.json.provenance.json", "application/json")]
@@ -60,8 +61,9 @@ def test_run_publishes_the_generation_under_output_and_post(tmp_path: Path, caps
         data = files[item["relativePath"]]
         assert (item["bytes"], item["sha256"]) == (len(data), sha256(data))
     summary = envelope["summary"]
-    assert summary["command"] == "run" and (summary["stage"], summary["frameAnalysis"]) == ("B", False)
-    assert summary["stages"] == [{"id": "B", "stem": "B_荷重", "hasReport": True, "engineeringStatus": "not_evaluated"}]
+    assert summary["command"] == "run" and summary["outputs"] == ["ground_model", "longitudinal"]  # decision 72
+    assert summary["stages"] == [{"id": stage, "stem": stem, "hasReport": True, "engineeringStatus": "not_evaluated"}
+                                 for stage, stem in (("A", "A_基礎"), ("B", "B_荷重"))]
     assert envelope["engineeringStatus"] == summary["engineeringStatus"] == "not_evaluated"
     assert summary["runners"] == []
     assert summary["input"] == {"file": "input.json", "sha256": sha256(source.read_bytes())}
@@ -71,25 +73,28 @@ def test_run_publishes_the_generation_under_output_and_post(tmp_path: Path, caps
 def test_what_a_library_prints_goes_to_stderr(tmp_path: Path, capsys, fake):
     recorder, registry = fake
     recorder.hooks[("render", "A")] = lambda: print("a library prints")
-    code = headless.main(["run", "--input", str(copy_input(tmp_path / "pre")), "--output-dir", str(tmp_path / "out"),
-                          "--stage", "A"], registry=registry)
+    code = headless.main(["run", "--input", str(copy_input(tmp_path / "pre", "ground_model")), "--output-dir",
+                          str(tmp_path / "out")], registry=registry)
     captured = capsys.readouterr()
     assert code == 0 and json.loads(captured.out)["ok"] and "a library prints" in captured.err
 
 
 def test_run_gives_the_bytes_of_the_cli(tmp_path: Path, capsys):
     """The same generation as python -m webpier: the real 0500 report and result, byte for byte."""
-    source = copy_input(tmp_path / "pre")
-    assert call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out", "--stage", "0500")[0] == 0
-    generate.generate(GenerationOptions(source, tmp_path / "cli" / "output", tmp_path / "cli" / "post", stage="0500"))
+    source = copy_input(tmp_path / "pre", "ground_model")
+    assert call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out")[0] == 0
+    generate.generate(GenerationOptions(source, tmp_path / "cli" / "output", tmp_path / "cli" / "post"))
     assert tree(tmp_path / "out") == tree(tmp_path / "cli")
 
 
 @pytest.mark.parametrize("arguments,message", [
     ([], "the following arguments are required: command"), (["draw"], "invalid choice"),
     (["run", "--input", "x.json"], "--output-dir"), (["validate", "--output-dir", "x"], "--input"),
-    (["validate", "--input", "x.json", "--frame-analysis", "yes"], "true か false が必要です"),
-    (["run", "--input", "x.json", "--output-dir", "x", "--stage", "9999"], "invalid choice")])
+    # decision 72: the input's 出力項目 choose the stages; no argument does
+    (["validate", "--input", "x.json", "--frame-analysis", "true"], "unrecognized arguments: --frame-analysis true"),
+    (["run", "--input", "x.json", "--output-dir", "x", "--stage", "0500"], "unrecognized arguments: --stage 0500"),
+    (["run", "--input", "x.json", "--output-dir", "x", "--nonlinear-analysis", "true"],
+     "unrecognized arguments: --nonlinear-analysis true")])
 def test_a_wrong_command_line_is_an_invalid_argument(capsys, arguments, message):
     code, envelope = call(capsys, *arguments)
     assert code == 2 and envelope["errors"][0]["code"] == "INVALID_ARGUMENT"
@@ -123,11 +128,21 @@ def test_an_input_error_names_the_input_path(tmp_path: Path, capsys, fake):
     assert not (tmp_path / "run").exists()
 
 
-def test_a_switch_with_one_stage_is_an_input_error_without_a_path(tmp_path: Path, capsys, fake):
-    code, envelope = call(capsys, "run", "--input", copy_input(tmp_path / "pre"), "--output-dir", tmp_path / "out",
-                          "--stage", "B", "--frame-analysis", "true", registry=fake[1])
-    assert code == 2 and envelope["errors"][0]["code"] == "INPUT_ERROR" and "path" not in envelope["errors"][0]
-    assert envelope["messages"][0]["path"] is None
+@pytest.mark.parametrize("items,path,message", [
+    ((), "outputs", "出力項目が選ばれていません"),
+    (("ground_model", "longitudinal"), "outputs.longitudinal", "outputs.reactions も true が必要です")])
+def test_the_outputs_of_the_input_are_checked_before_anything_runs(tmp_path: Path, capsys, fake, items, path, message):
+    """Decision 72: an input choosing nothing, or an item without an item it uses, is an input error at outputs."""
+    recorder, registry = fake
+    source = copy_input(tmp_path / "pre")
+    choose(source, *items)
+    for command in ("run", "validate"):
+        code, envelope = call(capsys, command, "--input", source, "--output-dir", tmp_path / command,
+                              registry=registry)
+        (error,) = envelope["errors"]
+        assert code == 2 and (error["code"], error["path"]) == ("INPUT_ERROR", path) and message in error["message"]
+        assert envelope["summary"] == {"command": command}
+    assert recorder.log == [] and not (tmp_path / "run").exists()
 
 
 @pytest.mark.parametrize("message,path", [
@@ -136,6 +151,7 @@ def test_a_switch_with_one_stage_is_an_input_error_without_a_path(tmp_path: Path
      "鉄筋.柱.main_bars.線路.inner_layers[2].clear_gap_mm"),
     ("入力項目がありません: jrsnap_transverse", "jrsnap_transverse"),
     ("柱の断面照査.ε'csd: 値が必要です", "柱の断面照査.ε'csd"),
+    ("outputs.footing: outputs.transverse_frame_analysis も true が必要です", "outputs.footing"),
     ("FrameWeb入力: 全体: 不正です", None), ("0600 本体: 面積が0です", None), ("計算段階が不正です: 9", None),
     (": 空", None)])
 def test_the_input_path_of_an_error_message(message, path):
@@ -159,7 +175,7 @@ def test_a_runner_set_only_in_the_env_file_is_unavailable(tmp_path: Path, capsys
     assert envelope["summary"]["missingRunners"] == [
         {"engine": "fempython", "environmentVariable": "STRUCTURAL_MCP_FEMPYTHON_RUNNER"},
         {"engine": "jrsnap", "environmentVariable": "STRUCTURAL_MCP_JRSNAP_RUNNER"}]
-    code, envelope = call(capsys, "validate", "--input", source, "--stage", "all")
+    code, envelope = call(capsys, "validate", "--input", source)
     assert code == 0 and envelope["summary"]["requiredRunners"] == [
         {"engine": "fempython", "environmentVariable": "STRUCTURAL_MCP_FEMPYTHON_RUNNER", "available": False},
         {"engine": "jrsnap", "environmentVariable": "STRUCTURAL_MCP_JRSNAP_RUNNER", "available": False}]
@@ -197,14 +213,15 @@ def test_validate_checks_the_input_without_writing_or_calling_a_runner(tmp_path:
         raise AssertionError("validate staged a generation")
     for name in ("prepare", "_runner_paths", "_draw_figures"):
         monkeypatch.setattr(generate, name, never)
-    source = copy_input(tmp_path / "pre")
+    source = copy_input(tmp_path / "pre", *SEISMIC)
     before = sorted(path.name for path in tmp_path.rglob("*"))
-    code, envelope = call(capsys, "validate", "--input", source, "--stage", "0710")
+    code, envelope = call(capsys, "validate", "--input", source)
     assert code == 0 and envelope["artifacts"] == [] and envelope["engineeringStatus"] == "not_evaluated"
     assert sorted(path.name for path in tmp_path.rglob("*")) == before
     assert envelope["summary"] == {
-        "command": "validate", "stage": "0710", "frameAnalysis": False, "nonlinearAnalysis": False,
-        "stages": ["0710"], "requiredRunners": [
+        "command": "validate", "outputs": list(SEISMIC), "stages": ["0500", "0600", "0610", "0710"],
+        "requiredRunners": [
+            {"engine": "fempython", "environmentVariable": "STRUCTURAL_MCP_FEMPYTHON_RUNNER", "available": True},
             {"engine": "jrsnap", "environmentVariable": "STRUCTURAL_MCP_JRSNAP_RUNNER", "available": True}]}
 
 
@@ -214,8 +231,8 @@ def test_validate_checks_what_an_export_reads(tmp_path: Path, capsys):
     data["耐震設計条件"]["地域別"] = None
     source = tmp_path / "input.json"
     source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    assert call(capsys, "validate", "--input", source, "--stage", "0710")[0] == 0
-    code, envelope = call(capsys, "validate", "--input", source, "--stage", "0711")
+    assert call(capsys, "validate", "--input", choose(source, *SEISMIC))[0] == 0
+    code, envelope = call(capsys, "validate", "--input", choose(source, *SEISMIC, "longitudinal_nonlinear_analysis"))
     assert code == 2 and envelope["errors"][0]["path"] == "耐震設計条件.地域別"
 
 
@@ -224,27 +241,31 @@ def test_validate_reports_a_missing_input_file(tmp_path: Path, capsys):
     assert code == 2 and envelope["errors"][0]["code"] == "IO_ERROR"
 
 
-def test_a_frame_analysis_reports_its_runner_and_the_foundation_check(tmp_path: Path, capsys):
-    code, envelope = call(capsys, "run", "--input", copy_input(tmp_path / "pre"), "--output-dir", tmp_path / "out",
-                          "--stage", "0612")
+def test_a_frame_analysis_reports_its_runners_and_the_foundation_check(tmp_path: Path, capsys):
+    source = copy_input(tmp_path / "pre", *LONGITUDINAL, "longitudinal_frame_analysis")
+    code, envelope = call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out")
     assert code == 0
     summary = envelope["summary"]
+    assert summary["outputs"] == [*LONGITUDINAL, "longitudinal_frame_analysis"]
     status = json.loads((tmp_path / "out" / "output" / "0612_線路方向基礎.json").read_text(encoding="utf-8"))
-    assert summary["stages"] == [{"id": "0612", "stem": "0612_線路方向基礎", "hasReport": True,
-                                  "engineeringStatus": status["result"]["engineering_status"]}]
+    stages = {stage["id"]: stage for stage in summary["stages"]}
+    assert list(stages) == ["0500", "0600", "0610", "0611", "0612"]
+    assert stages["0612"] == {"id": "0612", "stem": "0612_線路方向基礎", "hasReport": True,
+                              "engineeringStatus": status["result"]["engineering_status"]}
+    assert all(stages[stage]["engineeringStatus"] == "not_evaluated" for stage in ("0500", "0600", "0610", "0611"))
     assert envelope["engineeringStatus"] == status["result"]["engineering_status"] in ("ok", "not_ok")
-    (runner,) = summary["runners"]
-    assert runner["engine"] == "fempython" and runner["engineVersions"] and all(runner["engineVersions"])
+    assert [runner["engine"] for runner in summary["runners"]] == ["fempython", "webdan2"]
+    assert all(runner["engineVersions"] and all(runner["engineVersions"]) for runner in summary["runners"])
     assert [item["relativePath"] for item in envelope["artifacts"]] == [
         f"{artifact.directory}/{artifact.path.name}" for artifact in planned(GenerationOptions(
-            Path("input.json"), Path("output"), Path("post"), stage="0612"))]
+            Path("input.json"), Path("output"), Path("post")), list(stages))]
     assert {item["mediaType"] for item in envelope["artifacts"] if item["relativePath"].endswith(".csv")} == {
         "text/csv; charset=utf-8"}
 
 
 def test_a_jrsnap_folder_is_listed_file_by_file(tmp_path: Path, capsys):
-    code, envelope = call(capsys, "run", "--input", copy_input(tmp_path / "pre"), "--output-dir", tmp_path / "out",
-                          "--stage", "0711")
+    source = copy_input(tmp_path / "pre", *SEISMIC, "longitudinal_nonlinear_analysis")
+    code, envelope = call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out")
     assert code == 0
     folder = tmp_path / "out" / "post" / "線路方向_JRSNAP"
     listed = [item for item in envelope["artifacts"] if item["kind"] == "0711-jrsnap"]
@@ -254,7 +275,7 @@ def test_a_jrsnap_folder_is_listed_file_by_file(tmp_path: Path, capsys):
     kinds = {item["kind"]: item["mediaType"] for item in envelope["artifacts"]}
     assert kinds["0711-aggrese"] == "application/xml"
     assert kinds["0711-xlsx"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    assert [runner["engine"] for runner in envelope["summary"]["runners"]] == ["jrsnap", "aggrese"]
+    assert [runner["engine"] for runner in envelope["summary"]["runners"]] == ["fempython", "jrsnap", "aggrese"]
     assert all(runner["engineVersions"] for runner in envelope["summary"]["runners"])
     assert envelope["engineeringStatus"] == "not_evaluated"
 
@@ -273,30 +294,38 @@ def test_the_whole_engineering_status(statuses, whole):
 
 
 def test_the_contract_is_the_registry(capsys):
+    """Decision 72: the stages with their 出力項目, and for each item its stages, the items it uses, the runners choosing
+    it calls (with those of the items it uses) and the files it publishes."""
     code, envelope = call(capsys, "contract")
     contract = envelope["summary"]
-    assert code == 0 and contract["command"] == "contract"
+    assert code == 0 and list(contract) == ["command", "stages", "runners", "outputs"]
+    assert contract["command"] == "contract"
     assert [stage["id"] for stage in contract["stages"]] == list(STAGES.ids)
     assert contract["stages"][2] == {"id": "0610", "stem": "0610_線路方向荷重", "dependsOn": ["0500", "0600"],
-                                     "optIn": [], "hasReport": True}
-    assert contract["switches"] == [{"name": "frame_analysis", "flag": "--frame-analysis",
-                                     "stages": ["0611", "0612", "0621", "0622", "0800", "0810", "0820"]},
-                                    {"name": "nonlinear_analysis", "flag": "--nonlinear-analysis",
-                                     "stages": ["0711", "0721", "0800", "0810", "0820", "0900", "0910"]}]
+                                     "output": "longitudinal", "hasReport": True}
     assert [runner["engine"] for runner in contract["runners"]] == ["fempython", "jrsnap", "webdan2", "aggrese"]
-    selections = {(item["stage"], item["frameAnalysis"], item["nonlinearAnalysis"]): item
-                  for item in contract["selections"]}
-    assert len(selections) == 4 + len(STAGES.ids)
-    assert selections[("all", False, False)]["runners"] == ["fempython", "jrsnap"]
-    assert selections[("0500", False, False)] == {
-        "stage": "0500", "frameAnalysis": False, "nonlinearAnalysis": False, "stages": ["0500"], "runners": [],
+    outputs = {item["key"]: item for item in contract["outputs"]}
+    assert list(outputs) == list(OUTPUT_KEYS)
+    assert [stage for item in contract["outputs"] for stage in item["stages"]] == list(STAGES.ids)
+    assert outputs["ground_model"] == {
+        "key": "ground_model", "requires": [], "stages": ["0500"], "runners": [],
         "files": [{"role": "0500.pdf", "path": "output/0500_直接基礎.pdf", "folder": False},
                   {"role": "0500.json", "path": "output/0500_直接基礎.json", "folder": False},
                   {"role": "0500.xlsx", "path": "export/0500_直接基礎.xlsx", "folder": False}]}
-    assert selections[("0800", False, False)]["stages"] == ["0612", "0622", "0711", "0721", "0800"]
-    assert selections[("0800", False, False)]["runners"] == ["fempython", "jrsnap", "aggrese"]
-    folder = [item for item in selections[("all", True, True)]["files"] if item["folder"]]
-    assert [item["path"] for item in folder] == ["post/線路方向_JRSNAP", "post/線路直角方向_JRSNAP"]
+    assert (outputs["longitudinal"]["requires"], outputs["longitudinal"]["runners"]) == (
+        ["ground_model", "reactions"], ["fempython"])
+    assert outputs["longitudinal_frame_analysis"]["stages"] == ["0611", "0612"]
+    assert outputs["longitudinal_frame_analysis"]["runners"] == ["fempython", "webdan2"]
+    assert outputs["longitudinal_seismic"]["runners"] == ["fempython", "jrsnap"]  # with the load diagram of 0610
+    assert outputs["footing"]["requires"] == ["longitudinal_frame_analysis", "transverse_frame_analysis",
+                                              "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"]
+    assert outputs["footing"]["stages"] == ["0800", "0810", "0820"]
+    assert outputs["footing"]["runners"] == ["fempython", "jrsnap", "webdan2", "aggrese"]
+    assert outputs["cantilever"]["runners"] == ["fempython", "jrsnap", "webdan2", "aggrese"]
+    folders = [file["path"] for item in contract["outputs"] for file in item["files"] if file["folder"]]
+    assert folders == ["post/線路方向_JRSNAP", "post/線路直角方向_JRSNAP"]
+    assert [file["path"] for file in outputs["transverse_nonlinear_analysis"]["files"] if file["folder"]] == [
+        "post/線路直角方向_JRSNAP"]
 
 
 def conforms(value, schema: dict, path: str = "") -> list[str]:
@@ -307,7 +336,7 @@ def conforms(value, schema: dict, path: str = "") -> list[str]:
         return [] if value in schema["enum"] else [path]
     kinds = schema.get("type", [])
     kinds = [kinds] if isinstance(kinds, str) else kinds
-    names = {"object": dict, "array": list, "string": str, "null": type(None)}
+    names = {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None)}
     if kinds and not any(isinstance(value, names[kind]) if kind in names else
                          isinstance(value, (int, float)) and not isinstance(value, bool)
                          and (kind == "number" or float(value).is_integer()) for kind in kinds):
@@ -371,6 +400,7 @@ def test_the_schema_leaves(schema):
     assert list(repetitions["A列車"]["properties"]) == ["k=0.06", "k=0.12"]
     assert properties["鉄筋"]["properties"]["version"] == {"const": 3}
     assert properties["schema_version"] == {"const": 2}
+    assert properties["outputs"]["properties"] == {key: {"type": "boolean"} for key in OUTPUT_KEYS}  # decision 72
     for side, slots in (("起点側", "B支点"), ("終点側", "C支点")):  # an empty bearing slot is null
         array = properties["上部工反力"]["properties"][side]["properties"][slots]
         assert (array["items"]["type"], array["minItems"], array["maxItems"]) == (["object", "null"], 10, 10)

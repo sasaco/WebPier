@@ -5,7 +5,7 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 
 # フーチングの照査（0800・0810・0820）
 
-0800 は線路方向・線路直角方向のフーチングの応答値（12.1）を WebPier が計算して印刷し、0810・0820 は方向ごとの断面照査（12.2〜12.4／12.5〜12.7）を Capacita に任せてページを差し込む（決定60、ADR-0008）。3段階とも `--frame-analysis` と `--nonlinear-analysis` の両方を付けたときだけ `all` に入る。0612・0622（安定計算）の列は流用しない：同じ反力 CSV を**断面照査用のピックアップ**で読み直し、地震時は JRSNAP の Rvd到達ステップを使う。
+0800 は線路方向・線路直角方向のフーチングの応答値（12.1）を WebPier が計算して印刷し、0810・0820 は方向ごとの断面照査（12.2〜12.4／12.5〜12.7）を Capacita に任せてページを差し込む（決定60、ADR-0008）。3段階とも出力項目 `footing` で、両方向の骨組解析と静的非線形解析を選んだときだけ選べる（決定72）。0612・0622（安定計算）の列は流用しない：同じ反力 CSV を**断面照査用のピックアップ**で読み直し、地震時は JRSNAP の Rvd到達ステップを使う。
 
 ## 置き場所
 
@@ -49,7 +49,7 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 
 ## 生成
 
-- `uv run --project "." --locked python -m webpier --stage all --frame-analysis --nonlinear-analysis --overwrite`（4つの runner が `.env` に要る。JRSNAP を含むので数分）。`--stage 0800`（0810・0820 も）を直接選ぶと、依存のうち runner を動かす段階（0611・0612・0621・0622・0711・0721）も一緒に生成して公開する（owner 2026-10-19。決定59の 0900・0910 も同じ規則）。
+- 入力の `outputs` で `footing` と使う項目（両方向の計算・骨組解析・静的非線形解析）を選び、`uv run --project "." --locked python -m webpier --overwrite`（4つの runner が `.env` に要る。JRSNAP を含むので数分）。使う項目の段階（0611・0612・0621・0622・0711・0721 ほか）も作り直して公開する（決定72）。
 - 受入：`uv run --project "." --locked python -X utf8 scripts/accept_footing.py`（一時フォルダーに生成し、`output/`・`post/` は触らない）。`current.json` を変えると他の受入記録（0610〜0721、データ確認図）も SHA で落ちるので、各 `scripts/accept_*.py` を回し直す（JRSNAP の NDU と Aggre-SE のプロジェクトは `--overwrite` が要る）。
 - 並行して別のセッションが作業しているときは CLI を避け、`render_footing`／`render_footing_check` で scratchpad に出す。
 

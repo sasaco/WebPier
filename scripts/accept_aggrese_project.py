@@ -1,8 +1,8 @@
 """Real-app acceptance of the 0711 / 0721 Aggre-SE projects (decision 49, CONTEXT.md 耐震照査の入力).
 
-For each direction, ``python -m webpier --stage 0711`` (0721) is generated from the input into a temporary folder
-with the real JRSNAP runner (``STRUCTURAL_MCP_JRSNAP_RUNNER``, as a normal generation finds it). A copy of the XML and
-its JRSNAP folder is then
+For each direction, ``python -m webpier`` is generated from the input choosing 0711 (0721) and the items it uses
+(decision 72) into a temporary folder with the real JRSNAP runner (``STRUCTURAL_MCP_JRSNAP_RUNNER``, as a normal
+generation finds it). A copy of the XML and its JRSNAP folder is then
 
 1. read and calculated by the Aggre-SE runner of structural-mcp ``Batch`` (``AggreSE.Headless.exe inspect`` and
    ``run`` with the summary and the report), with the DB1 of each Case mapped as the XML names them; and
@@ -32,7 +32,8 @@ import xml.etree.ElementTree as ET
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
 
-from webpier.core.integrity import canonical_sha256, content_sha256, file_sha256, load_json  # noqa: E402
+from webpier.core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json  # noqa: E402
+from webpier.inputs.outputs import OUTPUT_KEYS, uses  # noqa: E402
 from webpier.pipeline.generate import GenerationOptions, generate  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
 from webpier.pipeline.stages import STAGES  # noqa: E402
@@ -123,6 +124,16 @@ def roundtrip(helper: Path, batch: Path, project: Path, timeout: int) -> bytes:
     return saved.read_bytes()
 
 
+def choosing(input_path: Path, stage: str, work: Path) -> Path:
+    """A copy of the input at *input_path* choosing the 出力項目 of *stage* and every item it uses (decision 72)."""
+    data = load_json(input_path.read_bytes())
+    item = STAGES.item(stage)
+    data["outputs"] = {key: key == item or key in uses(item) for key in OUTPUT_KEYS}
+    path = work / f"{stage}-input.json"
+    path.write_bytes(dump_json(data))
+    return path
+
+
 def accept(input_path: Path, evidence: Path, batch: Path, timeout: int, overwrite: bool) -> dict[str, Any]:
     if evidence.exists() and not overwrite:
         raise AcceptanceError(f"受入記録が既にあります（--overwrite で作り直します）: {evidence}")
@@ -138,7 +149,7 @@ def accept(input_path: Path, evidence: Path, batch: Path, timeout: int, overwrit
         for stage in STAGES_ACCEPTED:
             analysis = STAGES.get(stage).nonlinear_analysis
             generated = work / stage
-            generate(GenerationOptions(input_path, generated / "output", generated / "post", stage=stage))
+            generate(GenerationOptions(choosing(input_path, stage, work), generated / "output", generated / "post"))
             post = generated / "post"
             project, folder = post / analysis.project.file_name, post / analysis.folder
             sidecar = load_json((post / (analysis.folder + ".provenance.json")).read_bytes())

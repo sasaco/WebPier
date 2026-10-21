@@ -1,7 +1,7 @@
 """A stage with a static nonlinear analysis (decision 47): JRSNAP analyzes the NDU of its dependency, every returned
 file is published under JRSNAP's name in one folder that replaces the old one whole, one sidecar beside the folder
-names the analyzed bytes and each file, the stage is left out of all unless asked for, and a failing analysis
-publishes nothing.
+names the analyzed bytes and each file, the stage is made only when the input chooses its 出力項目 (decision 72),
+and a failing analysis publishes nothing.
 
 The expected files are those the stand-in runner documents (tests/fixtures/jrsnap/fake_runner.py), written out here
 from the analyzed bytes."""
@@ -16,18 +16,19 @@ import stat
 
 import pytest
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import SEISMIC, Recorder, choose, copy_input, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import canonical_sha256
 from webpier.pipeline import generate, jrsnap, publication
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
 from webpier.export.aggrese import databases
-from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry,
-                                     StageSpec)
+from webpier.pipeline.stages import Export, NonlinearAnalysis, Project, Registry, StageSpec
 
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
 CASE = "model(Case1_ρm10_αf1_正向)"
+# A and C are the 線路方向's items up to the seismic one; E, with its analysis, its own (decision 72)
+OUTPUTS = {"ground_model": ("A",), "longitudinal_seismic": ("C",), "longitudinal_nonlinear_analysis": ("E",)}
 
 
 def registry(recorder: Recorder) -> Registry:
@@ -35,9 +36,8 @@ def registry(recorder: Recorder) -> Registry:
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("C", "C_地震", ("A",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", NDU)),)),
-        StageSpec("E", "E_解析", ("C",), opt_in=NONLINEAR_ANALYSIS,
-                  nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", FOLDER)),
-    ))
+        StageSpec("E", "E_解析", ("C",), nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", FOLDER)),
+    ), outputs=OUTPUTS)
 
 
 def expected() -> dict[str, bytes]:
@@ -68,7 +68,13 @@ def with_(options: GenerationOptions, **changes) -> GenerationOptions:
     return GenerationOptions(**{**options.__dict__, **changes})
 
 
-def test_all_leaves_the_analysis_out_and_needs_no_runner(env, monkeypatch: pytest.MonkeyPatch):
+def analyzed(options: GenerationOptions) -> GenerationOptions:
+    """*options* with its input choosing the static nonlinear analysis (decision 72)."""
+    choose(Path(options.input_path), *SEISMIC, "longitudinal_nonlinear_analysis")
+    return options
+
+
+def test_an_input_without_the_analysis_needs_no_runner(env, monkeypatch: pytest.MonkeyPatch):
     options, _, stages = env
     monkeypatch.setenv(jrsnap.RUNNER_KEY, "")
     generate.generate(options, registry=stages)
@@ -77,7 +83,7 @@ def test_all_leaves_the_analysis_out_and_needs_no_runner(env, monkeypatch: pytes
 
 def test_the_analysis_publishes_every_returned_file_in_one_folder(env):
     options, recorder, stages = env
-    generation = generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
+    generation = generate.generate(analyzed(options), registry=stages)
     assert generation.stages == ("A", "C", "E")
     post = tree(Path(options.post_dir))
     assert sorted(post) == sorted(["model.ndu", "model.ndu.provenance.json", f"{FOLDER}.provenance.json",
@@ -86,12 +92,12 @@ def test_the_analysis_publishes_every_returned_file_in_one_folder(env):
     assert recorder.actions("export") == ["C"]  # built once: the staged NDU is the NDU analyzed
     assert [(artifact.role, artifact.folder) for artifact in generation.artifacts if artifact.role.startswith("E")] == [
         ("E.jrsnap", True), ("E.jrsnap.provenance", False)]
-    assert planned(with_(options, nonlinear_analysis=True), registry=stages) == generation.artifacts
+    assert planned(options, generation.stages, registry=stages) == generation.artifacts
 
 
 def test_the_sidecar_of_the_folder_names_the_ndu_each_file_and_what_jrsnap_reported(env):
     options, _, stages = env
-    generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
     document = sidecar(options, FOLDER)
     files = {name: hashlib.sha256(content).hexdigest() for name, content in expected().items()}
     assert {key: document[key] for key in ("stage", "export", "file", "sha256", "selected_stages")} == {
@@ -117,7 +123,7 @@ def test_the_folder_is_replaced_whole(env):
     (old / "sub").mkdir(parents=True)
     (old / "old(Case9).ndt").write_bytes(b"old")
     (old / "sub" / "note.txt").write_bytes(b"old note")
-    generate.generate(with_(options, nonlinear_analysis=True, overwrite=True), registry=stages)
+    generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
     assert folder(options) == expected()  # nothing of the old folder is left
     assert sorted(path.name for path in Path(options.post_dir).iterdir()) == sorted(
         ["model.ndu", "model.ndu.provenance.json", FOLDER, f"{FOLDER}.provenance.json"])
@@ -125,50 +131,49 @@ def test_the_folder_is_replaced_whole(env):
 
 def test_a_generation_without_the_analysis_keeps_the_old_folder(env):
     options, _, stages = env
-    generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
+    choose(Path(options.input_path), *SEISMIC)
     generate.generate(with_(options, overwrite=True), registry=stages)
     assert folder(options) == expected()
 
 
-def test_a_stage_chosen_alone_is_analyzed_with_its_dependencies_calculated(env):
+def test_the_analysis_is_chosen_only_with_the_items_it_reads(env):
+    """Decision 72: E analyzes C's NDU, so its item needs the items of C and A; alone it is an input error and nothing
+    is calculated or published."""
     options, recorder, stages = env
-    generate.generate(with_(options, stage="E"), registry=stages)
-    assert not Path(options.output_dir).exists()
-    assert sorted(tree(Path(options.post_dir))) == sorted(
-        [f"{FOLDER}.provenance.json", *(f"{FOLDER}/{name}" for name in expected())])
-    assert recorder.actions("calculate") == ["A", "C"] and recorder.actions("render") == []
-    # model.ndu is not of this generation: the sidecar's SHA256 is what binds the analysis to it.
-    assert sidecar(options, FOLDER)["nonlinear_analysis"]["ndu"]["sha256"] == hashlib.sha256(NDU).hexdigest()
+    choose(Path(options.input_path), "longitudinal_nonlinear_analysis")
+    with pytest.raises(InputError, match="outputs.longitudinal_nonlinear_analysis: outputs.longitudinal_seismic も"):
+        generate.generate(options, registry=stages)
+    assert recorder.log == [] and not Path(options.post_dir).exists()
 
 
 def test_an_old_folder_is_not_replaced_without_overwrite(env):
     options, _, stages = env
     (Path(options.post_dir) / FOLDER).mkdir(parents=True)
     with pytest.raises(FileExistsError, match="出力が既にあります"):
-        generate.generate(with_(options, stage="E"), registry=stages)
+        generate.generate(analyzed(options), registry=stages)
 
 
 def test_a_failing_analysis_stops_before_any_report_and_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch):
     options, recorder, stages = env
     monkeypatch.setenv("FAKE_JRSNAP", "fail")
     with pytest.raises(GenerationError, match="model.ndu を JRSNAP で静的非線形解析できません: ANALYSIS_FAILED"):
-        generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
+        generate.generate(analyzed(options), registry=stages)
     assert recorder.actions("render") == [] and not Path(options.post_dir).exists()
 
 
-def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.MonkeyPatch):
-    options, _, stages = env
+def test_without_a_runner_nothing_is_calculated_or_published(env, monkeypatch: pytest.MonkeyPatch):
+    """The input is read to know the stages (decision 72); the runners are looked up before any calculation."""
+    options, recorder, stages = env
     monkeypatch.setenv(jrsnap.RUNNER_KEY, "")
-    read = []
-    monkeypatch.setattr(generate, "parse_input", lambda data: read.append(data))
     with pytest.raises(GenerationError, match="JRSNAP の runner が設定されていません"):
-        generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
-    assert read == [] and not Path(options.post_dir).exists()
+        generate.generate(analyzed(options), registry=stages)
+    assert recorder.log == [] and not Path(options.post_dir).exists()
 
 
 def test_a_changed_file_of_the_folder_rolls_the_publication_back(env, monkeypatch: pytest.MonkeyPatch):
     options, _, stages = env
-    generate.generate(with_(options, nonlinear_analysis=True), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
     before = tree(Path(options.post_dir))
     original = generate.publish_outputs
 
@@ -179,7 +184,7 @@ def test_a_changed_file_of_the_folder_rolls_the_publication_back(env, monkeypatc
         return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
     monkeypatch.setattr(generate, "publish_outputs", tampering)
     with pytest.raises(GenerationError, match="公開した成果物が一致しません: E.jrsnap"):
-        generate.generate(with_(options, nonlinear_analysis=True, overwrite=True), registry=stages)
+        generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
     assert tree(Path(options.post_dir)) == before
 
 
@@ -193,13 +198,13 @@ def test_a_new_folder_is_removed_when_the_publication_rolls_back(env, monkeypatc
         return original(pairs, staging, overwrite, final_validator=validator, folders=folders)
     monkeypatch.setattr(generate, "publish_outputs", failing)
     with pytest.raises(GenerationError, match="stop"):
-        generate.generate(with_(options, stage="E"), registry=stages)
+        generate.generate(analyzed(options), registry=stages)
     assert not Path(options.post_dir).exists()  # the folders the generation created are removed as well
 
 
 def test_a_folder_that_cannot_be_removed_on_rollback_keeps_the_backups(env, monkeypatch: pytest.MonkeyPatch):
     options, _, stages = env
-    generate.generate(with_(options, stage="E"), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
     original, remove = generate.publish_outputs, publication.shutil.rmtree
 
     def failing(pairs, staging, overwrite, *, final_validator, folders):
@@ -214,7 +219,7 @@ def test_a_folder_that_cannot_be_removed_on_rollback_keeps_the_backups(env, monk
     monkeypatch.setattr(generate, "publish_outputs", failing)
     monkeypatch.setattr(publication.shutil, "rmtree", locked)
     with pytest.raises(publication.RecoveryError, match=f"{FOLDER}: locked"):
-        generate.generate(with_(options, stage="E", overwrite=True), registry=stages)
+        generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
     backups = list(Path(options.post_dir).glob(f".webpier-*/{FOLDER}.backup"))
     assert len(backups) == 1 and tree(backups[0]) == expected()  # the old folder is kept for manual recovery
 
@@ -231,7 +236,7 @@ def test_a_destination_that_cannot_be_replaced_as_a_folder_is_refused(env, make,
     make(target)
     try:
         with pytest.raises(error, match=message):
-            generate.generate(with_(options, stage="E", overwrite=True), registry=stages)
+            generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
     finally:
         for path in target.rglob("*") if target.is_dir() else ():
             os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
@@ -246,21 +251,21 @@ def test_a_link_in_place_of_or_inside_the_folder_is_refused(env, tmp_path: Path)
     target.parent.mkdir(parents=True)
     _winapi.CreateJunction(str(elsewhere), str(target))
     with pytest.raises(OSError, match="フォルダー以外は出力フォルダーとして置き換えられません"):
-        generate.generate(with_(options, stage="E", overwrite=True), registry=stages)
+        generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
     target.rmdir()
     target.mkdir()
     _winapi.CreateJunction(str(elsewhere), str(target / "link"))
     with pytest.raises(OSError, match="出力フォルダーに通常のファイル・フォルダー以外があります"):
-        generate.generate(with_(options, stage="E", overwrite=True), registry=stages)
+        generate.generate(with_(analyzed(options), overwrite=True), registry=stages)
 
 
 def test_the_input_may_not_be_inside_the_folder(env, tmp_path: Path):
     options, _, stages = env
     inside = Path(options.post_dir) / FOLDER / "input.json"
     inside.parent.mkdir(parents=True)
-    inside.write_bytes(Path(options.input_path).read_bytes())
+    inside.write_bytes(Path(analyzed(options).input_path).read_bytes())
     with pytest.raises(OSError, match="入力ファイルと出力ファイルを同じパスにはできません"):
-        generate.generate(with_(options, input_path=inside, stage="E", overwrite=True), registry=stages)
+        generate.generate(with_(options, input_path=inside, overwrite=True), registry=stages)
 
 
 def projecting(recorder: Recorder, cases: int = 1) -> Registry:
@@ -270,13 +275,14 @@ def projecting(recorder: Recorder, cases: int = 1) -> Registry:
         return lambda folder, names: "\r\n".join(databases(folder, names, cases)).encode("cp932")
     project = Project("aggrese", "model.xml", build, {"target": "Aggre-SE"})
     return Registry((*registry(recorder).stages[:2],
-                     StageSpec("E", "E_解析", ("C",), opt_in=NONLINEAR_ANALYSIS,
-                               nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", FOLDER, project))))
+                     StageSpec("E", "E_解析", ("C",),
+                               nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", FOLDER, project))),
+                    outputs=OUTPUTS)
 
 
 def test_the_project_names_the_databases_of_the_folder_and_is_published_beside_it(env):
     options, recorder, _ = env
-    generation = generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder))
+    generation = generate.generate(analyzed(options), registry=projecting(recorder))
     post = tree(Path(options.post_dir))
     assert post["model.xml"] == f"{FOLDER}/{CASE}.DB1".encode("cp932")
     assert ("project", "C", ("A", "C")) in recorder.log  # the analyzed stage's results, before the analysis
@@ -296,14 +302,14 @@ def test_the_project_names_the_databases_of_the_folder_and_is_published_beside_i
 def test_a_project_without_the_databases_of_every_case_publishes_nothing(env):
     options, recorder, _ = env
     with pytest.raises(GenerationError, match=r"model.xml を作れません: JRSNAP の結果に Case1〜2 の DB1"):
-        generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder, cases=2))
+        generate.generate(analyzed(options), registry=projecting(recorder, cases=2))
     assert not Path(options.post_dir).exists()
 
 
 def test_the_project_bytes_are_those_a_generation_writes(env):
     """The acceptance rebuilds its candidate this way (decision 49); a stage without a project has none."""
     options, recorder, stages = env
-    generate.generate(with_(options, nonlinear_analysis=True), registry=projecting(recorder))
+    generate.generate(analyzed(options), registry=projecting(recorder))
     names = list(expected())
     assert generate.project_bytes(None, "E", names, registry=projecting(recorder)) == tree(
         Path(options.post_dir))["model.xml"]

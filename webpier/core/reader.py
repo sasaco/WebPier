@@ -87,6 +87,11 @@ class Reader:
             raise self.error(f"{minimum}～{maximum}の整数が必要です（入力: {self.value!r}）")
         return self.value
 
+    def boolean(self) -> bool:
+        if not isinstance(self.value, bool):
+            raise self.error(f"true か false が必要です（入力: {self.value!r}）")
+        return self.value
+
     def text(self) -> str:
         value = self.value
         if not isinstance(value, str) or not value.strip():

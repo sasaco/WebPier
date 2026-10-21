@@ -2,9 +2,8 @@
 
 ``run_headless.py`` at the repository root runs ``main``::
 
-    run      --input <JSON> --output-dir <empty folder> [--stage <stage|all>] [--frame-analysis true|false]
-             [--nonlinear-analysis true|false] [--addin <folder>]
-    validate --input <JSON> [--output-dir <folder>] [the same selection] [--addin <folder>]
+    run      --input <JSON> --output-dir <empty folder> [--addin <folder>]
+    validate --input <JSON> [--output-dir <folder>] [--addin <folder>]
     contract [--addin <folder>]
     schema   [--addin <folder>]
 
@@ -14,10 +13,11 @@ add-in as it declared itself and the provenance it returned (``addin``). An add-
 ``ADDIN_ERROR`` (exit 2); an error in its own input is ``INPUT_ERROR``. ``schema --addin`` marks the items of the load
 model (``x-webpier-load-model``), which may then hold anything or be left out.
 
-``run`` is one generation by ``generate`` as the CLI makes it, with ``output/`` and ``post/`` under the output folder
+Which stages ``run`` and ``validate`` take is the input's 出力項目 alone (``outputs``, decision 72, ADR-0011); the
+summary names the chosen items. ``run`` is one generation by ``generate`` as the CLI makes it, with ``output/`` and ``post/`` under the output folder
 (never ``--overwrite``: the folder is new). ``validate`` checks the input as far as it is decided before any runner
-(``generate.validate``). ``contract`` gives the stages, their dependencies, the runners and the files of every
-selection, and ``schema`` the JSON Schema of the input; both from the registry and the field table, not written by
+(``generate.validate``). ``contract`` gives the stages, their dependencies, and for each 出力項目 its stages, the
+items it uses, the runners choosing it needs and the files it publishes, and ``schema`` the JSON Schema of the input; both from the registry and the field table, not written by
 hand.
 
 stdout is one JSON envelope (protocol v1) and nothing else; anything a library prints goes to stderr. The runners are
@@ -45,15 +45,16 @@ from typing import Any
 from ..core.errors import InputError
 from ..core.integrity import sha256
 from ..inputs.fields import FIELDS, Field
+from ..inputs.outputs import OUTPUT_ITEMS, uses
 from ..inputs.parse import BEARING_SLOTS, SCHEMA_VERSION as INPUT_SCHEMA_VERSION, TOP_KEYS, load_model_item
 from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
 from .addin import AddinError
 from .fempython import RunnerError
 from .generate import (RUNNERS, Candidate, GenerationError, GenerationOptions, generate, planned, required_runners,
-                       validate, with_addin)
+                       selection, validate, with_addin)
 from .publication import RecoveryError
-from .stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, SWITCHES, Registry, flag
+from .stages import STAGES, Registry
 
 ENGINE = "webpier"
 PROTOCOL_VERSION = 1
@@ -77,22 +78,13 @@ class _Parser(argparse.ArgumentParser):
         raise _ArgumentError(message)
 
 
-def _boolean(text: str) -> bool:
-    if text not in ("true", "false"):
-        raise argparse.ArgumentTypeError(f"true か false が必要です: {text}")
-    return text == "true"
-
-
-def parser(registry: Registry = STAGES) -> argparse.ArgumentParser:
+def parser() -> argparse.ArgumentParser:
     result = _Parser(prog="run_headless.py", description="WebPier の headless runner（protocol v1）")
     commands = result.add_subparsers(dest="command", required=True)
     for command in ("run", "validate"):
         sub = commands.add_parser(command)
         sub.add_argument("--input", type=Path, required=True)
         sub.add_argument("--output-dir", type=Path, required=command == "run")
-        sub.add_argument("--stage", choices=registry.choices, default=ALL)
-        for switch in SWITCHES:
-            sub.add_argument(flag(switch), type=_boolean, default=False)
         sub.add_argument("--addin", type=Path)
     for command in ("contract", "schema"):
         commands.add_parser(command).add_argument("--addin", type=Path)
@@ -132,14 +124,12 @@ def _failure(code: str, exc: BaseException | str, summary: Any = None, *,
 
 
 def _options(arguments: argparse.Namespace, output_dir: Path) -> GenerationOptions:
-    return GenerationOptions(arguments.input, output_dir / "output", output_dir / "post", stage=arguments.stage,
-                             frame_analysis=arguments.frame_analysis, nonlinear_analysis=arguments.nonlinear_analysis,
-                             addin=arguments.addin)
+    return GenerationOptions(arguments.input, output_dir / "output", output_dir / "post", addin=arguments.addin)
 
 
-def _selection(arguments: argparse.Namespace) -> dict[str, Any]:
-    return {"command": arguments.command, "stage": arguments.stage, "frameAnalysis": arguments.frame_analysis,
-            "nonlinearAnalysis": arguments.nonlinear_analysis}
+def _chosen(registry: Registry, selected: Sequence[str]) -> list[str]:
+    """The 出力項目 of the stages *selected*, in registry order."""
+    return list(dict.fromkeys(registry.item(stage_id) for stage_id in selected))
 
 
 def _runner(module: ModuleType) -> dict[str, Any]:
@@ -220,32 +210,36 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
     if root.exists() and (not root.is_dir() or any(root.iterdir())):
         return _failure("INVALID_ARGUMENT", f"--output-dir は空のフォルダーにしてください: {root}", category="request")
     options = _options(arguments, root)
+    summary: dict[str, Any] = {"command": arguments.command}
     try:
         registry = with_addin(options, registry)
+        selected = selection(options, registry=registry)
     except AddinError as exc:
-        return _failure("ADDIN_ERROR", exc, _selection(arguments), category="addin")
-    try:
-        needed = required_runners(options, registry=registry)
+        return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except InputError as exc:
-        return _failure("INPUT_ERROR", exc, _selection(arguments), category="input")
+        return _failure("INPUT_ERROR", exc, summary, category="input")
+    except OSError as exc:
+        return _failure("IO_ERROR", exc, summary, category="file_system")
+    summary["outputs"] = _chosen(registry, selected)
+    needed = required_runners(selected, registry=registry)
     if missing := [module for module in needed if not _available(module)]:
-        summary = {**_selection(arguments), "missingRunners": [_runner(module) for module in missing]}
         names = "・".join(f"{module.ENGINE}（{module.RUNNER_KEY}）" for module in missing)
-        return _failure("RUNNER_UNAVAILABLE", f"この生成に必要な runner がありません: {names}", summary,
+        return _failure("RUNNER_UNAVAILABLE", f"この生成に必要な runner がありません: {names}",
+                        {**summary, "missingRunners": [_runner(module) for module in missing]},
                         category="engine_unavailable")
     try:
         generation = generate(options, registry=registry)
     except RecoveryError as exc:
-        return _failure("RECOVERY_REQUIRED", exc, _selection(arguments), category="file_system")
+        return _failure("RECOVERY_REQUIRED", exc, summary, category="file_system")
     except InputError as exc:
-        return _failure("INPUT_ERROR", exc, _selection(arguments), category="input")
+        return _failure("INPUT_ERROR", exc, summary, category="input")
     except AddinError as exc:
-        return _failure("ADDIN_ERROR", exc, _selection(arguments), category="addin")
+        return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except GenerationError as exc:
         code = "ENGINE_FAILED" if isinstance(exc.__cause__, RunnerError) else "GENERATION_FAILED"
-        return _failure(code, exc, _selection(arguments))
+        return _failure(code, exc, summary)
     except OSError as exc:
-        return _failure("IO_ERROR", exc, _selection(arguments), category="file_system")
+        return _failure("IO_ERROR", exc, summary, category="file_system")
     artifacts = _artifacts(root, generation)
     # The result JSON (role "<stage>.json") and the sidecars ("….provenance") name the runners and their versions.
     versions = _engine_versions([json.loads((root / item["relativePath"]).read_bytes()) for item in artifacts
@@ -253,7 +247,7 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
     stages = [{"id": stage_id, "stem": registry.get(stage_id).stem, "hasReport": registry.get(stage_id).has_report,
                "engineeringStatus": _stage_status(generation.results.get(stage_id))} for stage_id in generation.stages]
     status = engineering_status([stage["engineeringStatus"] for stage in stages])
-    summary = {**_selection(arguments), "stages": stages, "engineeringStatus": status,
+    summary = {**summary, "stages": stages, "engineeringStatus": status,
                "runners": [{**_runner(module), "engineVersions": sorted(versions.get(module.ENGINE, ()))}
                            for module in needed],
                "input": {"file": Path(arguments.input).name, "sha256": generation.input_sha256},
@@ -265,17 +259,18 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
 def _validate(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[str, Any]]:
     # Nothing is written, so the destinations are only names.
     options = _options(arguments, Path("."))
+    summary: dict[str, Any] = {"command": arguments.command}
     try:
         registry = with_addin(options, registry)
         selected = validate(options, registry=registry)
-        needed = required_runners(options, registry=registry)
+        needed = required_runners(selected, registry=registry)
     except AddinError as exc:
-        return _failure("ADDIN_ERROR", exc, _selection(arguments), category="addin")
+        return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except InputError as exc:
-        return _failure("INPUT_ERROR", exc, _selection(arguments), category="input")
+        return _failure("INPUT_ERROR", exc, summary, category="input")
     except OSError as exc:
-        return _failure("IO_ERROR", exc, _selection(arguments), category="file_system")
-    summary = {**_selection(arguments), "stages": list(selected),
+        return _failure("IO_ERROR", exc, summary, category="file_system")
+    summary = {**summary, "outputs": _chosen(registry, selected), "stages": list(selected),
                "requiredRunners": [{**_runner(module), "available": _available(module)} for module in needed]}
     return 0, _envelope(True, summary)
 
@@ -307,28 +302,24 @@ def _schema(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dic
 
 
 def contract(registry: Registry = STAGES) -> dict[str, Any]:
-    """The stages and every selection with the stages it generates, the runners it calls and the files it
-    publishes (``planned``), from the registry."""
-    def selection(stage: str, switches: frozenset[str]) -> dict[str, Any]:
-        options = GenerationOptions(Path("input.json"), Path("output"), Path("post"), stage=stage,
-                                    frame_analysis=FRAME_ANALYSIS in switches,
-                                    nonlinear_analysis=NONLINEAR_ANALYSIS in switches)
-        return {"stage": stage, "frameAnalysis": options.frame_analysis,
-                "nonlinearAnalysis": options.nonlinear_analysis,
-                "stages": list(registry.select(stage, switches=switches)),
-                "runners": [module.ENGINE for module in required_runners(options, registry=registry)],
-                "files": [{"role": artifact.role, "path": f"{artifact.directory}/{artifact.path.name}",
-                           "folder": artifact.folder} for artifact in planned(options, registry=registry)]}
+    """The stages, and for each 出力項目 (decision 72) its stages, the items it uses, the runners choosing it calls
+    (with the items it uses, which are chosen with it) and the files it publishes (``planned``), from the registry."""
+    options = GenerationOptions(Path("input.json"), Path("output"), Path("post"))
 
-    combinations = [frozenset(), frozenset({FRAME_ANALYSIS}), frozenset({NONLINEAR_ANALYSIS}), frozenset(SWITCHES)]
+    def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
+        stages = registry.outputs.get(key, ())
+        needed = [stage_id for item in (*uses(key), key) for stage_id in registry.outputs.get(item, ())]
+        return {"key": key, "requires": list(requires), "stages": list(stages),
+                "runners": [module.ENGINE for module in required_runners(needed, registry=registry)],
+                "files": [{"role": artifact.role, "path": f"{artifact.directory}/{artifact.path.name}",
+                           "folder": artifact.folder} for artifact in planned(options, stages, registry=registry)]}
+
     return {"command": "contract",
             "stages": [{"id": stage.id, "stem": stage.stem, "dependsOn": list(stage.depends_on),
-                        "optIn": list(stage.opt_in), "hasReport": stage.has_report} for stage in registry.stages],
-            "switches": [{"name": switch, "flag": flag(switch), "stages": list(registry.opt_in(switch))}
-                         for switch in SWITCHES],
+                        "output": registry.item(stage.id), "hasReport": stage.has_report}
+                       for stage in registry.stages],
             "runners": [_runner(module) for module in RUNNERS],
-            "selections": [*(selection(ALL, switches) for switches in combinations),
-                           *(selection(stage_id, frozenset()) for stage_id in registry.ids)]}
+            "outputs": [output(item.key, item.requires) for item in OUTPUT_ITEMS]}
 
 
 def _parts(pattern: str) -> list[str]:
@@ -351,6 +342,8 @@ def _leaf(spec: Field) -> dict[str, Any]:
         leaf = {"type": "integer", "minimum": spec.minimum, "maximum": spec.maximum}
     elif spec.kind == "text":
         leaf = {"type": "string"}
+    elif spec.kind == "boolean":
+        leaf = {"type": "boolean"}
     else:
         leaf = {"type": "number", "x-webpier-unit": spec.unit, "x-webpier-digits": spec.precision.digits}
         if spec.sign == "positive":
@@ -419,7 +412,7 @@ def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
     stdout = sys.stdout
     with redirect_stdout(sys.stderr):
         try:
-            arguments = parser(registry).parse_args(argv)
+            arguments = parser().parse_args(argv)
         except _ArgumentError as exc:
             code, envelope = _failure("INVALID_ARGUMENT", exc, category="request")
         else:

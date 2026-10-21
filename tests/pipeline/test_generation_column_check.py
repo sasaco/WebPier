@@ -1,8 +1,9 @@
 """A stage with a column section check (decision 48, ADR-0008): after its frame analysis, Capacita checks the WDJ the
 stage builds (from its results and that analysis' PIK) with the same PIK; the report takes Capacita's pages and the
 sections it skipped for zero forces, the completed WDJ is published under post/ with a sidecar naming the PIK, the
-result JSON records that the check ran (not its judgement) and what was skipped, the stage is left out of all unless
-asked for, and a missing or failing runner, or a PIK without the check point, publishes nothing.
+result JSON records that the check ran (not its judgement) and what was skipped, the stage is made only when the
+input chooses its 出力項目 (decision 72), and a missing or failing runner, or a PIK without the check point, publishes
+nothing.
 
 The expected WDJ and pages are those the stand-in runner documents (tests/fixtures/capacita/fake_runner.py), written
 out here from the given bytes."""
@@ -16,15 +17,17 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import LONGITUDINAL, Recorder, choose, copy_input, tree
 from webpier.export.capacita import PickupError
 from webpier.pipeline import capacita, fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, SectionCheck, StageSpec
+from webpier.pipeline.stages import Export, FrameAnalysis, Registry, SectionCheck, StageSpec
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}}}).encode()
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
 WDJ = json.dumps({"crack": [{"vis_u": True}]}).encode()
+# A and B are the 線路方向's items; D, with its frame analysis, its own (decision 72)
+OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_frame_analysis": ("D",)}
 SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
             "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
 
@@ -64,10 +67,10 @@ def registry(recorder: Recorder, rendered: list, given: list | None = None) -> R
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), recorder.render("B"),
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),)),
-        StageSpec("D", "D_照査", ("B",), recorder.calculate("D"), render, opt_in=FRAME_ANALYSIS,
+        StageSpec("D", "D_照査", ("B",), recorder.calculate("D"), render,
                   frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS),
                   section_check=SectionCheck("wdj", "frame.wdj", wdj, lambda results: SECTIONS)),
-    ))
+    ), outputs=OUTPUTS)
 
 
 @pytest.fixture
@@ -76,8 +79,8 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(fempython, "ENV_FILE", tmp_path / ".env")
     monkeypatch.setattr(capacita, "ENV_FILE", tmp_path / ".env")
     recorder, rendered, given = Recorder(), [], []
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                frame_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *LONGITUDINAL, "longitudinal_frame_analysis"),
+                                tmp_path / "output", tmp_path / "post")
     return options, recorder, rendered, registry(recorder, rendered, given), given
 
 
@@ -125,14 +128,16 @@ def test_the_sidecar_names_the_pik_and_the_wdj_given(env):
 
 def test_planned_names_the_report_and_the_wdj(env):
     options, recorder, rendered, stages, given = env
-    roles = [artifact.role for artifact in planned(options, registry=stages)]
+    roles = [artifact.role for artifact in planned(options, generate.selection(options, registry=stages),
+                                                   registry=stages)]
     assert {"D.pdf", "D.json", "D.wdj", "D.wdj.provenance", "D.pik"} <= set(roles)
 
 
-def test_all_without_the_switch_needs_no_capacita(env, monkeypatch: pytest.MonkeyPatch):
+def test_an_input_without_the_frame_analysis_needs_no_capacita(env, monkeypatch: pytest.MonkeyPatch):
     options, recorder, rendered, stages, given = env
     monkeypatch.setenv(capacita.RUNNER_KEY, "")
-    generate.generate(GenerationOptions(**{**options.__dict__, "frame_analysis": False}), registry=stages)
+    generate.generate(GenerationOptions(choose(Path(options.input_path), *LONGITUDINAL), options.output_dir,
+                                        options.post_dir), registry=stages)
     assert "frame.wdj" not in tree(Path(options.post_dir)) and rendered == []
 
 
@@ -162,17 +167,19 @@ def test_the_registry_needs_a_report_for_a_check_and_allows_one_without_a_frame_
     check = SectionCheck("wdj", "frame.wdj", lambda results, pier, pik: WDJ, lambda results: SECTIONS)
     base = (StageSpec("A", "A_基礎", (), lambda pier, results: 1, lambda results, pier, path, pages: path,
                       (Export("frameweb", "frame.json", lambda results, pier: FRAMEWEB),)),)
+    outputs = {"ground_model": ("A", "D")}
     without = Registry((*base, StageSpec("D", "D_照査", ("A",), lambda pier, results: 1,
-                                         lambda results, pier, path, pages: path, section_check=check)))
+                                         lambda results, pier, path, pages: path, section_check=check)), outputs=outputs)
     assert without.get("D").frame_analysis is None and without.get("D").section_check is check
     with pytest.raises(ValueError, match="計算書"):
-        Registry((*base, StageSpec("D", "D_照査", ("A",), opt_in=FRAME_ANALYSIS,
-                                   frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS), section_check=check)))
+        Registry((*base, StageSpec("D", "D_照査", ("A",), frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS),
+                                   section_check=check)), outputs=outputs)
     with pytest.raises(ValueError, match="出力ファイル名が重複"):
         Registry((*base, StageSpec("D", "D_照査", ("A",), lambda pier, results: 1,
-                                   lambda results, pier, path, pages: path, opt_in=FRAME_ANALYSIS,
+                                   lambda results, pier, path, pages: path,
                                    frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS),
-                                   section_check=SectionCheck("wdj", "frame.pik", check.build, check.sections))))
+                                   section_check=SectionCheck("wdj", "frame.pik", check.build, check.sections))),
+                 outputs=outputs)
 
 
 def test_the_sections_capacita_skipped_reach_the_report_and_the_result_json(env, monkeypatch: pytest.MonkeyPatch):
@@ -193,9 +200,9 @@ def test_a_pik_without_the_check_point_publishes_nothing(env, monkeypatch: pytes
         raise PickupError("PIK に部材3のJTANがちょうど1つありません（0個）")
 
     stages = Registry((*stages.stages[:2], StageSpec(
-        "D", "D_照査", ("B",), recorder.calculate("D"), stages.stages[2].render, opt_in=FRAME_ANALYSIS,
+        "D", "D_照査", ("B",), recorder.calculate("D"), stages.stages[2].render,
         frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS),
-        section_check=SectionCheck("wdj", "frame.wdj", missing, lambda results: SECTIONS))))
+        section_check=SectionCheck("wdj", "frame.wdj", missing, lambda results: SECTIONS))), outputs=OUTPUTS)
     with pytest.raises(GenerationError, match="frame.pik で柱の断面照査の WDJ を作れません: PIK に部材3の"):
         generate.generate(options, registry=stages)
     for directory in (options.output_dir, options.post_dir):

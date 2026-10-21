@@ -9,11 +9,18 @@ from pathlib import Path
 import pytest
 
 from gui_support import InProcessRunner, registry, wait
+from webpier.core.errors import InputError
 from webpier.core.integrity import file_sha256
 from webpier.gui import calculation
 from webpier.gui.calculation import CalculationController, CalculationJob, validate_outputs
 from webpier.pipeline import generate
-from webpier.pipeline.generate import planned
+from webpier.pipeline.generate import GenerationOptions, planned, selection
+from webpier.pipeline.stages import STAGES
+
+# current.json's 出力項目 (decision 72), and those with the analyses of both directions
+CURRENT_ITEMS = ("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic", "transverse_seismic")
+FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
+NONLINEAR = ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
 
 
 @pytest.fixture(autouse=True)
@@ -30,56 +37,77 @@ def controller(tmp_path, runner, stages):
     return CalculationController(tmp_path / "output", runner, registry=stages)
 
 
-def run(tmp_path, input_path, stages, *, before=None, after=None, frame_analysis=False, nonlinear_analysis=False):
+def chosen(input_path, stages):
+    """The stages the input's 出力項目 choose, as the page passes them; none for an input the CLI will refuse."""
+    try:
+        return selection(GenerationOptions(input_path, Path("output"), Path("post")), registry=stages)
+    except InputError:
+        return ()
+
+
+def choose(input_path, *items):
+    """Choose the 出力項目 *items* as well in the input at *input_path*."""
+    data = json.loads(input_path.read_text(encoding="utf-8"))
+    data["outputs"].update((item, True) for item in items)
+    input_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def start(control, input_path, stages):
+    return control.start(input_path, file_sha256(input_path), chosen(input_path, stages))
+
+
+def run(tmp_path, input_path, stages, *, before=None, after=None, items=()):
+    """One calculation of the input with the 出力項目 *items* chosen as well."""
+    if items:
+        choose(input_path, *items)
     runner = InProcessRunner(stages, before=before, after=after)
     control = controller(tmp_path, runner, stages)
-    control.start(input_path, file_sha256(input_path), frame_analysis=frame_analysis,
-                  nonlinear_analysis=nonlinear_analysis)
+    start(control, input_path, stages)
     return control, runner, wait(control)
 
 
+def job(tmp_path, *items):
+    return CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
+                          STAGES.selected(items))
+
+
 def test_the_command_runs_the_new_pipeline(tmp_path):
-    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64)
-    assert job.command == [sys.executable, "-m", "webpier", "--input", str(tmp_path / "in.json"), "--output-dir",
-                           str(tmp_path / "output"), "--post-dir", str(tmp_path / "post"), "--stage", "all",
-                           "--overwrite"]
+    """Decision 72: the saved input's 出力項目 choose the reports; the command chooses nothing."""
+    assert job(tmp_path, *CURRENT_ITEMS).command == [
+        sys.executable, "-m", "webpier", "--input", str(tmp_path / "in.json"), "--output-dir", str(tmp_path / "output"),
+        "--post-dir", str(tmp_path / "post"), "--overwrite"]
 
 
-def test_the_frame_analysis_is_added_to_the_command_when_chosen(tmp_path):
-    """Decision 46: the editor's checkbox only adds --frame-analysis to the same generation."""
-    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
-                         frame_analysis=True)
-    assert job.command[-3:] == ["all", "--overwrite", "--frame-analysis"]
-    assert job.options.frame_analysis and job.options.stage == "all"
-    names = {artifact.path.name for artifact in planned(job.options)}
+def test_the_check_covers_the_files_of_the_chosen_frame_analysis(tmp_path):
+    """Decision 46: with the frame analyses chosen, the check covers their pickup files."""
+    chosen_job = job(tmp_path, *CURRENT_ITEMS, *FRAMES)
+    assert chosen_job.stages == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0720")
+    names = {artifact.path.name for artifact in planned(chosen_job.options, chosen_job.stages)}
     assert {"線路方向.pik", "線路直角方向_ピックアップ反力.csv", "線路方向_ピックアップ変位量.csv.provenance.json"} <= names
-    assert not CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64
-                              ).options.frame_analysis
+    plain = job(tmp_path, *CURRENT_ITEMS)
+    assert not any(artifact.path.suffix == ".pik" for artifact in planned(plain.options, plain.stages))
 
 
-def test_the_nonlinear_analysis_is_added_to_the_command_when_chosen(tmp_path):
-    """Decision 47: a checkbox of its own adds --nonlinear-analysis, after --frame-analysis when both are chosen."""
-    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
-                         nonlinear_analysis=True)
-    assert job.command[-2:] == ["--overwrite", "--nonlinear-analysis"]
-    assert job.options.nonlinear_analysis and not job.options.frame_analysis
-    folders = [artifact for artifact in planned(job.options) if artifact.folder]
+def test_the_check_covers_the_folders_of_the_chosen_nonlinear_analysis(tmp_path):
+    """Decision 47: with the static nonlinear analyses chosen, the check covers their JRSNAP folders."""
+    chosen_job = job(tmp_path, *CURRENT_ITEMS, *NONLINEAR)
+    folders = [artifact for artifact in planned(chosen_job.options, chosen_job.stages) if artifact.folder]
     assert [artifact.path.name for artifact in folders] == ["線路方向_JRSNAP", "線路直角方向_JRSNAP"]
-    both = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64,
-                          frame_analysis=True, nonlinear_analysis=True)
-    assert both.command[-2:] == ["--frame-analysis", "--nonlinear-analysis"]
 
 
-def test_there_is_no_jrsnap_choice():
-    """Decision 42: the NDUs are always written, so neither the job nor the controller takes a JRSNAP flag."""
+def test_there_is_no_jrsnap_or_switch_choice():
+    """Decisions 42, 72: the NDUs are always written with their stage, and no switch adds stages to a generation."""
     with pytest.raises(TypeError):
-        CalculationJob("id", Path("i"), Path("o"), Path("p"), "0", jrsnap=True)
-    assert "jrsnap" not in inspect.signature(CalculationController.start).parameters
+        CalculationJob("id", Path("i"), Path("o"), Path("p"), "0", (), jrsnap=True)
+    with pytest.raises(TypeError):
+        CalculationJob("id", Path("i"), Path("o"), Path("p"), "0", (), frame_analysis=True)
+    parameters = inspect.signature(CalculationController.start).parameters
+    assert not {"jrsnap", "frame_analysis", "nonlinear_analysis"} & set(parameters)
 
 
 def test_the_check_covers_the_ndus_of_the_real_registry(tmp_path):
-    job = CalculationJob("id", tmp_path / "in.json", tmp_path / "output", tmp_path / "post", "0" * 64)
-    names = {artifact.path.name for artifact in planned(job.options)}
+    chosen_job = job(tmp_path, *CURRENT_ITEMS)
+    names = {artifact.path.name for artifact in planned(chosen_job.options, chosen_job.stages)}
     assert {"線路方向.ndu", "線路直角方向.ndu", "線路方向.ndu.provenance.json",
             "線路直角方向.ndu.provenance.json"} <= names
 
@@ -98,9 +126,9 @@ def test_a_successful_generation_is_verified(tmp_path, input_path, stages):
 
 
 def test_a_generation_with_the_frame_analysis_is_verified(tmp_path, input_path, stages):
-    control, runner, result = run(tmp_path, input_path, stages, frame_analysis=True)
+    control, runner, result = run(tmp_path, input_path, stages, items=("longitudinal_frame_analysis",))
     assert result.success, result.message
-    assert runner.commands[0][-1] == "--frame-analysis"
+    assert control.job.stages == ("0500", "0610", "0611", "0710")
     assert [path.name for path in result.pdf_paths] == ["0500_直接基礎.pdf", "0610_線路方向荷重.pdf", "0710_線路方向荷重.pdf"]
     assert (tmp_path / "post" / "線路方向.pik").read_bytes().startswith("FAKE PIK 線路方向.json ".encode())
     (tmp_path / "post" / "線路方向.pik").write_bytes(b"replaced")
@@ -109,16 +137,18 @@ def test_a_generation_with_the_frame_analysis_is_verified(tmp_path, input_path, 
 
 
 def test_a_generation_without_the_frame_analysis_does_not_check_old_pickup_files(tmp_path, input_path, stages):
-    run(tmp_path, input_path, stages, frame_analysis=True)
+    original = input_path.read_bytes()
+    run(tmp_path, input_path, stages, items=("longitudinal_frame_analysis",))
+    input_path.write_bytes(original)
     control, _, result = run(tmp_path, input_path, stages)
-    assert result.success and "--frame-analysis" not in control.job.command
+    assert result.success and "0611" not in control.job.stages
     assert (tmp_path / "post" / "線路方向.pik").exists()  # kept, as a file of the earlier generation
 
 
 def test_a_generation_with_the_nonlinear_analysis_checks_the_folder_as_a_whole(tmp_path, input_path, stages):
-    control, runner, result = run(tmp_path, input_path, stages, nonlinear_analysis=True)
+    control, runner, result = run(tmp_path, input_path, stages, items=("longitudinal_nonlinear_analysis",))
     assert result.success, result.message
-    assert runner.commands[0][-1] == "--nonlinear-analysis"
+    assert control.job.stages == ("0500", "0610", "0710", "0711")
     folder = tmp_path / "post" / "線路方向_JRSNAP"
     assert sorted(path.suffix for path in folder.iterdir()) == [".DB1", ".LOG", ".OUT", ".ndt"]
     assert control.check_current_outputs() is None
@@ -130,7 +160,7 @@ def test_a_generation_with_the_nonlinear_analysis_checks_the_folder_as_a_whole(t
 
 
 def test_a_folder_that_is_not_one_any_more_breaks_the_generation(tmp_path, input_path, stages):
-    control, _, _ = run(tmp_path, input_path, stages, nonlinear_analysis=True)
+    control, _, _ = run(tmp_path, input_path, stages, items=("longitudinal_nonlinear_analysis",))
     folder = tmp_path / "post" / "線路方向_JRSNAP"
     for path in folder.iterdir():
         path.unlink()
@@ -161,16 +191,16 @@ def test_a_runner_that_cannot_start_is_reported(tmp_path, input_path, stages):
         raise FileNotFoundError("python")
 
     control = controller(tmp_path, broken, stages)
-    control.start(input_path, file_sha256(input_path))
+    start(control, input_path, stages)
     result = wait(control)
     assert not result.success and result.message == "計算を実行できませんでした: FileNotFoundError: python"
 
 
 def test_only_one_calculation_runs_at_a_time(tmp_path, input_path, stages):
     control = controller(tmp_path, InProcessRunner(stages), stages)
-    control.start(input_path, file_sha256(input_path))
+    start(control, input_path, stages)
     with pytest.raises(RuntimeError, match="計算中です"):
-        control.start(input_path, file_sha256(input_path))
+        start(control, input_path, stages)
     assert wait(control).success
 
 
@@ -261,7 +291,7 @@ def test_long_logs_keep_their_end(tmp_path, input_path, stages):
         return subprocess.CompletedProcess(command, 1)
 
     control = controller(tmp_path, chatty, stages)
-    control.start(input_path, file_sha256(input_path))
+    start(control, input_path, stages)
     result = wait(control)
     assert result.stdout.startswith(calculation.LOG_TRUNCATED) and result.stdout.endswith("最後")
 

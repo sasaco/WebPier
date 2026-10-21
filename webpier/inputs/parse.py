@@ -23,6 +23,7 @@ from .model import (
     Bearing, CantileverCheck, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions, Materials, PierInput,
     Pile, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
 )
+from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS
 from .rebar import parse_rebar
 
 SCHEMA_VERSION = 2
@@ -280,8 +281,20 @@ def _cantilever_check(root: Reader) -> CantileverCheck:
                               service_life=read(fatigue.at("設計耐用年数")), repetitions=counts))
 
 
+def _outputs(root: Reader) -> tuple[str, ...]:
+    """The chosen 出力項目 (decision 72): at least one, each with every item it uses."""
+    node = root.at("outputs").only(*OUTPUT_KEYS)
+    chosen = tuple(key for key in OUTPUT_KEYS if read(node.at(key)))
+    for item in OUTPUT_ITEMS:
+        if item.key in chosen and (missing := [key for key in item.requires if key not in chosen]):
+            raise node.at(item.key).error(f"{'・'.join(f'outputs.{key}' for key in missing)} も true が必要です")
+    if not chosen:
+        raise node.error("出力項目が選ばれていません（どれかを true にしてください）")
+    return chosen
+
+
 TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋", "耐震設計条件", "柱の断面照査",
-            CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse")
+            CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse", "outputs")
 
 
 SPAN_LOAD_MODEL_KEYS = ("衝撃係数_単線終局", "曲線半径", "列車速度", "遠心作用方向")
@@ -322,4 +335,5 @@ def parse_input(data: Any, *, load_model: bool = False) -> PierInput:
         cantilever_check=_cantilever_check(root),
         jrsnap=Jrsnap(longitudinal=_jrsnap_conditions(root, "jrsnap_longitudinal"),
                       transverse=_jrsnap_conditions(root, "jrsnap_transverse")),
+        outputs=_outputs(root),
     )

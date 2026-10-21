@@ -1,26 +1,25 @@
 """One generation: calculate → render → publish all files together (CLAUDE.md, ADR-0004).
 
-1. The selection and every destination are checked before anything is read or calculated.
-2. The input is read once as bytes; its SHA256 is recorded in every result JSON and sidecar. It is always
+1. The input is read once as bytes; its SHA256 is recorded in every result JSON and sidecar. It is always
    parsed strictly (duplicate keys, NaN and Infinity are input errors).
-3. The selected stages and their dependencies are all calculated, and every export of the selected stages
-   built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
+2. Its 出力項目 select the stages (decision 72, ADR-0011): an item is chosen only with every item it uses, so they are
+   every stage the generation calculates. Every destination is checked before anything is calculated.
+3. The selected stages are all calculated, and every export of them built, before any report is rendered; an input that only an export reads (the JRSNAP settings) is an input
    error before any rendering. A stage with a load diagram (0610, 0620) has the FEMPython runner draw its staged
    FrameWeb file, and its report takes those pages (decision 44); a stage with JRSNAP's figures (0710, 0720) has the
    JRSNAP runner draw the データ確認図 and the 荷重図 from its NDU in one call, each basic case from the combination
    the stage names for it, and its report takes those pages the same way (decisions 50, 51). A stage with a frame analysis (0611, 0612, 0621,
-   0622, opt-in) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
+   0622) has the runner analyze the FrameWeb file of its dependency, in a separate call, before any report is
    rendered; the returned pickup files are staged as they are (decision 46). Stages that analyze the same file share
    one call and one set of files, staged under the first of them; a stage that reads them (the 基礎の照査, decision
    54) finishes its result with them before any report is rendered. A stage with a static nonlinear
-   analysis (0711, 0721, opt-in) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
+   analysis (0711, 0721) has the JRSNAP runner analyze the NDU of its dependency the same way; every returned
    file is staged, under JRSNAP's name, in one folder (decision 47), and beside it the Aggre-SE project that reads
    the DB1 of each Case (decision 49; its input is checked before any analysis). The Aggre-SE runner then checks with
    that staged project and folder: its report is the stage's report as it is (decision 56) and its section force
    pickup and summary workbook are staged as they are (decisions 57, 58). Each export is built
-   once, so the file
-   analyzed is the bytes staged, even when the dependency's own files are not published. The runners are looked
-   up before anything is read, and a missing or failing runner stops the generation.
+   once, so the file analyzed is the bytes staged. The runners are looked up before anything is calculated, and a
+   missing or failing runner stops the generation.
 4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
    sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
    written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
@@ -59,8 +58,8 @@ from .fempython import ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, ana
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
-from .stages import (ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis, NonlinearAnalysis,
-                     Project, Registry, SectionCheck, SeismicCheck, StageSpec, seismic_file, stages_for)
+from .stages import (STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project, Registry, SectionCheck, SeismicCheck,
+                     StageSpec, seismic_file, stages_for)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -74,10 +73,7 @@ class GenerationOptions:
     input_path: Path
     output_dir: Path  # reports and result JSON
     post_dir: Path  # external-program inputs and their sidecars
-    stage: str = ALL
     overwrite: bool = False
-    frame_analysis: bool = False  # add the opt-in stages to all: FEMPython analyzes the frames (decision 46)
-    nonlinear_analysis: bool = False  # add the opt-in stages to all: JRSNAP analyzes the NDU (decision 47)
     addin: Path | None = None  # the folder of a load model's add-in (decision 70); none: the train's
     export_dir: Path | None = None  # the grid Excel workbooks; none: export beside the output folder
 
@@ -87,11 +83,6 @@ class GenerationOptions:
         if self.export_dir is not None:
             return Path(self.export_dir)
         return Path(self.output_dir).resolve().parent / "export"
-
-    @property
-    def switches(self) -> frozenset[str]:
-        return frozenset(name for name, given in ((FRAME_ANALYSIS, self.frame_analysis),
-                                                  (NONLINEAR_ANALYSIS, self.nonlinear_analysis)) if given)
 
 
 @dataclass(frozen=True)
@@ -167,20 +158,31 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
 
 
-def _select(options: GenerationOptions, registry: Registry) -> tuple[str, ...]:
-    return registry.select(options.stage, switches=options.switches)
+def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierInput]:
+    """The input's bytes, read once, and the input parsed from them strictly."""
+    data = Path(options.input_path).read_bytes()
+    return data, parse_input(load_json(data), load_model=registry.load_model is not None)
+
+
+def selection(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[str, ...]:
+    """The stages the 出力項目 of the input of *options* choose, in registry order (decision 72); the input is read
+    and parsed strictly, so an invalid one is an input error."""
+    registry = with_addin(options, registry)
+    return registry.selected(_read(options, registry)[1].outputs)
 
 
 def _folders(artifacts: list[Artifact]) -> tuple[Path, ...]:
     return tuple(artifact.path for artifact in artifacts if artifact.folder)
 
 
-def planned(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[Artifact, ...]:
-    """The files a generation with *options* publishes, in publication order; nothing is read or written.
+def planned(options: GenerationOptions, selected: Sequence[str], *,
+            registry: Registry = STAGES) -> tuple[Artifact, ...]:
+    """The files a generation of the stages *selected* (``selection``) with *options* publishes, in publication order;
+    nothing is read or written.
 
     The editor uses it to check a finished generation against exactly the files the CLI wrote.
     """
-    return tuple(_plan(options, registry, _select(options, registry))[0])
+    return tuple(_plan(options, registry, tuple(selected))[0])
 
 
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
@@ -208,7 +210,7 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
 
     The real-app acceptance rebuilds its candidate files with this.
     """
-    (selected,) = registry.select(stage_id)
+    selected = registry.stage(stage_id).id
     item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
     if item is None:
         raise InputError(f"{selected}に{kind} の出力はありません")
@@ -221,7 +223,7 @@ def figure_cases(pier: PierInput, stage_id: str, *, registry: Registry = STAGES)
 
     The real-app acceptance draws its candidate pages with this (decision 51).
     """
-    (selected,) = registry.select(stage_id)
+    selected = registry.stage(stage_id).id
     figures = registry.get(selected).jrsnap_figures
     if figures is None:
         raise InputError(f"{selected}に JRSNAP のデータ確認図と荷重図はありません")
@@ -234,7 +236,7 @@ def project_bytes(pier: PierInput, stage_id: str, names: Sequence[str], *, regis
 
     The real-app acceptance rebuilds its candidate with this (decision 49).
     """
-    (selected,) = registry.select(stage_id)
+    selected = registry.stage(stage_id).id
     analysis = registry.get(selected).nonlinear_analysis
     if analysis is None or analysis.project is None:
         raise InputError(f"{selected}に Aggre-SE のプロジェクトはありません")
@@ -460,10 +462,10 @@ def _required(registry: Registry, selected: Sequence[str]) -> tuple[ModuleType, 
                  if any(calls(registry.get(stage_id)) for stage_id in selected))
 
 
-def required_runners(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[ModuleType, ...]:
-    """The modules of the runners a generation with *options* calls (each has ``ENGINE``, ``RUNNER_KEY`` and
-    ``runner_path``), in the order they are looked up; nothing is read."""
-    return _required(registry, _select(options, registry))
+def required_runners(selected: Sequence[str], *, registry: Registry = STAGES) -> tuple[ModuleType, ...]:
+    """The modules of the runners a generation of the stages *selected* calls (each has ``ENGINE``, ``RUNNER_KEY``
+    and ``runner_path``), in the order they are looked up; nothing is read."""
+    return _required(registry, selected)
 
 
 def _runner_paths(registry: Registry, selected: tuple[str, ...]) -> dict[ModuleType, Path]:
@@ -602,10 +604,8 @@ def with_addin(options: GenerationOptions, registry: Registry = STAGES) -> Regis
     return stages_for(load_addin(options.addin).bind(options.input_path))
 
 
-def _inputs(options: GenerationOptions, registry: Registry, selected: tuple[str, ...],
+def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[str, ...],
             posts: list[_PostFile]) -> _Inputs:
-    data = Path(options.input_path).read_bytes()
-    pier = parse_input(load_json(data), load_model=registry.load_model is not None)
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
@@ -620,12 +620,13 @@ def _inputs(options: GenerationOptions, registry: Registry, selected: tuple[str,
 
 def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[str, ...]:
     """Check the input of a generation with *options* as far as it is decided before any runner: the strict parse,
-    the calculations of the selected stages and their dependencies, every export and the Aggre-SE projects' input.
+    the stages its 出力項目 select and their calculations, every export and the Aggre-SE projects' input.
     Nothing is written and no runner is looked up or called; a result a runner's files finish (decisions 54, 59, 60)
     is checked only by a generation. Returns the selected stages."""
     registry = with_addin(options, registry)
-    selected = _select(options, registry)
-    _inputs(options, registry, selected, _plan(options, registry, selected)[1])
+    data, pier = _read(options, registry)
+    selected = registry.selected(pier.outputs)
+    _inputs(data, pier, registry, selected, _plan(options, registry, selected)[1])
     return selected
 
 
@@ -633,7 +634,8 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
 def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Iterator[Candidate]:
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
     registry = with_addin(options, registry)
-    selected = _select(options, registry)
+    data, pier = _read(options, registry)
+    selected = registry.selected(pier.outputs)
     artifacts, posts = _plan(options, registry, selected)
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
@@ -643,8 +645,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     runners = _runner_paths(registry, selected)
     runner, jrsnap_runner = runners.get(fempython), runners.get(jrsnap)
     capacita_runner, aggrese_runner = runners.get(capacita), runners.get(aggrese)
-    found = _inputs(options, registry, selected, posts)
-    pier, results, built = found.pier, found.results, found.built
+    found = _inputs(data, pier, registry, selected, posts)
+    results, built = found.results, found.built
     analyses, nonlinear, writers = found.analyses, found.nonlinear, found.writers
     input_sha256 = sha256(found.data)
     # The add-in as it declared itself and the provenance it returned, copied into every artifact (decision 70).

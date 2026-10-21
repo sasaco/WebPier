@@ -16,14 +16,14 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import SEISMIC, Recorder, copy_input, tree
 from webpier.calc.cantilever import ResponseError
 from webpier.core.integrity import load_json
 from webpier.export.aggrese import databases
 from webpier.pipeline import aggrese, capacita, generate, jrsnap
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import (NONLINEAR_ANALYSIS, Export, NonlinearAnalysis, Project, Registry, SectionCheck,
-                                     SeismicCheck, StageSpec, seismic_file)
+from webpier.pipeline.stages import (Export, NonlinearAnalysis, Project, Registry, SectionCheck, SeismicCheck, StageSpec,
+                                     seismic_file)
 from webpier.reporting.stages.seismic_check import render_seismic_check
 
 NDU = b"Virsion=5.2.3.S.4\r\n"
@@ -32,6 +32,11 @@ FILES = (("pik", "model_Aggre-SE.pik"), ("xlsx", "model_Aggre-SE.xlsx"), ("steps
 # A WDJ whose force table asks for the three 安全性（破壊） checks (the stand-in derives the sections from the rows).
 WDJ = json.dumps({"crack": [{"vis_u": False}],
                   "force": [{"index": 1, "Md5_Md": -5942.86, "Vd5_Vd": 5249.37, "Mt5_Mt": 1058.28}]}).encode()
+# The items of the fake stages (decision 72): G and H are the cantilever's, which uses both static nonlinear analyses.
+OUTPUTS = {"ground_model": ("A",), "longitudinal_seismic": ("C",), "longitudinal_nonlinear_analysis": ("E",),
+           "cantilever": ("G", "H")}
+CANTILEVER = (*SEISMIC, "longitudinal_nonlinear_analysis", "transverse", "transverse_seismic",
+              "transverse_nonlinear_analysis", "cantilever")
 SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "torsion_safety_destruction")
 
 
@@ -84,18 +89,17 @@ def registry(recorder: Recorder, rendered: list, complete_g=None) -> Registry:
         StageSpec("C", "C_地震", ("A",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", NDU)),)),
         StageSpec("E", "E_解析", ("C",), render=lambda results, pier, path, pages: render_seismic_check(path, pages),
-                  opt_in=NONLINEAR_ANALYSIS,
                   nonlinear_analysis=NonlinearAnalysis(
                       "C", "jrsnap", "jrsnap", FOLDER,
                       Project("aggrese", "model.xml", lambda results, pier: project, {"target": "Aggre-SE"})),
                   seismic_check=SeismicCheck(FILES)),
         StageSpec("G", "G_片持ち梁", ("A", "E"), recorder.calculate("G"), recorder.render("G"),
-                  opt_in=NONLINEAR_ANALYSIS, complete=finish_g),
-        StageSpec("H", "H_照査", ("G",), None, render_h, opt_in=NONLINEAR_ANALYSIS,
+                  complete=finish_g),
+        StageSpec("H", "H_照査", ("G",), None, render_h,
                   section_check=SectionCheck("wdj", "beam.wdj", lambda results, pier, pik: WDJ,
                                              lambda results: results["H"].sections),
                   complete=finish_h),
-    ))
+    ), outputs=OUTPUTS)
 
 
 @pytest.fixture
@@ -104,8 +108,7 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for module in (jrsnap, aggrese, capacita):
         monkeypatch.setattr(module, "ENV_FILE", tmp_path / ".env")
     recorder, rendered = Recorder(), []
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                nonlinear_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *CANTILEVER), tmp_path / "output", tmp_path / "post")
     return options, recorder, rendered
 
 
@@ -126,7 +129,7 @@ def test_a_stage_finishes_with_the_seismic_check_files_and_the_next_with_its_res
     assert result_g["result"]["workbook_sha256"] == sha(post["model_Aggre-SE.xlsx"])
     result_h = load_json((Path(options.output_dir) / "H_照査.json").read_bytes())
     assert result_h["result"] == {"from_g": sha(post["model_Aggre-SE.xlsx"]), "sections": list(SECTIONS)}
-    assert planned(options, registry=stages) == generation.artifacts
+    assert planned(options, generation.stages, registry=stages) == generation.artifacts
 
 
 def test_the_wdj_with_its_forces_is_calculated_as_given_and_published_as_written(env):

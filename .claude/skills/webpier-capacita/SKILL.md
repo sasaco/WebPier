@@ -32,7 +32,7 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 
 1. 見本の WDJ を Capacita で試す手順と、頁を画像にする手順は `structural-capacita` の develop.md。
 2. WebPier の生成を本物の runner で通すなら、出力先を scratchpad に向ける（`output/` を書き換えない）：
-   `uv run --project "." --locked python -X utf8 -m webpier --input tests/fixtures/inputs/current.json --output-dir <dir>/output --post-dir <dir>/post --stage 0621 --overwrite`（数秒。結果JSON の `section_check.skipped_sections` に飛ばされた節）。
+   `uv run --project "." --locked python -X utf8 -m webpier --input tests/fixtures/inputs/current.json --output-dir <dir>/output --post-dir <dir>/post --overwrite`（入力は `outputs` の `transverse_frame_analysis` と使う項目を選んだ current.json の写し。数秒。結果JSON の `section_check.skipped_sections` に飛ばされた節）。
 3. WebPier の WDJ を本物の PIK で試すときは、`export_bytes(pier, "0620", "frameweb")` を `fempython.analyze_frame` に渡して PIK を得て、`point_index(pik, check.member)` で番号を求めてから `build_wdj` する。
 4. 受入：`uv run --project "." --locked python -X utf8 scripts/accept_capacita_column.py 0611`（照査値を見本と比べる）／`… 0621`（耐力と飛ばされた照査を比べる）。WDJ が変わると `tests/acceptance/test_capacita_acceptance.py` が落ちるので、そのときにやり直す。
 

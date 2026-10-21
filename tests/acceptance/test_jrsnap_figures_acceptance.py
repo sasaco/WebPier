@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.core.integrity import load_json, sha256
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes, figure_cases
@@ -42,7 +43,7 @@ def record() -> dict:
 @cache
 def _pier():
     data = (ROOT / record()["input"]["path"]).read_bytes()
-    assert sha256(data) == record()["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+    assert record()["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{REDO}"
     return parse_input(load_json(data))
 
 
@@ -60,7 +61,7 @@ def test_the_record_is_the_real_runner_of_jrsnap_5_2_l03():
 
 def test_the_input_is_the_accepted_one():
     data = (ROOT / record()["input"]["path"]).read_bytes()
-    assert sha256(data) == record()["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+    assert record()["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{REDO}"
 
 
 @pytest.mark.parametrize("stage", STAGES)

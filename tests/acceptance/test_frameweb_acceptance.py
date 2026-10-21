@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.core.integrity import load_json, sha256
 from webpier.export.frameweb.readback import TOLERANCE, expected_counts
 from webpier.inputs import parse_input
@@ -29,7 +30,7 @@ def documents():
     data = (ROOT / FIXTURE).read_bytes()
     pier = parse_input(load_json(data))
     for run in RUNS.values():
-        assert sha256(data) == run["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+        assert run["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{REDO}"
     return {stage: export_bytes(pier, stage, "frameweb") for stage in RUNS}
 
 

@@ -1,5 +1,4 @@
-"""Tk fixtures of the editor tests: a fresh, withdrawn root per test, destroyed afterwards, and a settings file of
-the test's own."""
+"""Tk fixtures of the editor tests: a fresh, withdrawn root per test, destroyed afterwards."""
 
 import gc
 import time
@@ -64,14 +63,4 @@ def quiet(monkeypatch):
 def input_path(tmp_path):
     path = tmp_path / "input.json"
     path.write_bytes(CURRENT.read_bytes())
-    return path
-
-
-@pytest.fixture(autouse=True)
-def editor_settings(tmp_path, monkeypatch):
-    """Each test's own editor settings file: no test reads or writes the user's %APPDATA% (decision 46)."""
-    from webpier.gui import settings
-
-    path = tmp_path / "appdata" / "WebPier" / "editor.json"
-    monkeypatch.setattr(settings, "SETTINGS_FILE", path)
     return path

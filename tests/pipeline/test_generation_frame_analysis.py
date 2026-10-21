@@ -1,6 +1,6 @@
 """A stage with a frame analysis (decision 46): FEMPython analyzes the FrameWeb file of its dependency, the pickup
-files are published as they are returned with sidecars that name the analyzed bytes, the stage is left out of all
-unless asked for, and a failing analysis publishes nothing.
+files are published as they are returned with sidecars that name the analyzed bytes, the stage is made only when the
+input chooses its 出力項目 (decision 72), and a failing analysis publishes nothing.
 
 The expected pickup bytes are those the stand-in runner documents (tests/fixtures/fempython/fake_runner.py), written
 out here from the analyzed bytes."""
@@ -13,16 +13,17 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import Recorder, copy_input, fake_reactions, tree
+from pipeline_support import LONGITUDINAL, Recorder, choose, copy_input, fake_reactions, tree
 from webpier.core.errors import InputError
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, StageSpec
+from webpier.pipeline.stages import Export, FrameAnalysis, Registry, StageSpec
 from webpier.reporting.stages.insertion import LOAD_DIAGRAM
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}, "2": {}, "3": {}}}).encode()
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
 PICKUP_FILES = ["frame.pik", "frame_変位量.csv", "frame_反力.csv"]
+FRAME = (*LONGITUDINAL, "longitudinal_frame_analysis")  # the items that choose D with what it reads (decision 72)
 
 
 def registry(recorder: Recorder, *, load_diagram: bool = False, pages: list | None = None) -> Registry:
@@ -38,8 +39,8 @@ def registry(recorder: Recorder, *, load_diagram: bool = False, pages: list | No
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), render,
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),),
                   load_diagram="frameweb" if load_diagram else ""),
-        StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
-    ))
+        StageSpec("D", "D_照査", ("B",), frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
+    ), outputs={"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_frame_analysis": ("D",)})
 
 
 def expected(word: str) -> bytes:
@@ -71,7 +72,13 @@ def with_(options: GenerationOptions, **changes) -> GenerationOptions:
     return GenerationOptions(**{**options.__dict__, **changes})
 
 
-def test_all_leaves_the_analysis_out_and_needs_no_runner(env, monkeypatch: pytest.MonkeyPatch):
+def analyzed(options: GenerationOptions) -> GenerationOptions:
+    """*options* with its input choosing the frame analysis (decision 72)."""
+    choose(Path(options.input_path), *FRAME)
+    return options
+
+
+def test_an_input_without_the_analysis_needs_no_runner(env, monkeypatch: pytest.MonkeyPatch):
     options, recorder, stages = env
     monkeypatch.setenv(fempython.RUNNER_KEY, "")
     generate.generate(options, registry=stages)
@@ -80,7 +87,7 @@ def test_all_leaves_the_analysis_out_and_needs_no_runner(env, monkeypatch: pytes
 
 def test_the_frame_analysis_publishes_the_pickup_files_as_returned(env):
     options, recorder, stages = env
-    generation = generate.generate(with_(options, frame_analysis=True), registry=stages)
+    generation = generate.generate(analyzed(options), registry=stages)
     assert generation.stages == ("A", "B", "D")
     output, post = tree(Path(options.output_dir)), tree(Path(options.post_dir))
     assert sorted(output) == ["A_基礎.json", "A_基礎.pdf", "B_荷重.json", "B_荷重.pdf"]  # D has no report
@@ -94,7 +101,7 @@ def test_the_frame_analysis_publishes_the_pickup_files_as_returned(env):
 
 def test_the_sidecar_of_a_pickup_file_names_the_analyzed_frameweb_file(env):
     options, _, stages = env
-    generate.generate(with_(options, frame_analysis=True), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
     document = sidecar(options, "frame.pik")
     assert {key: document[key] for key in ("stage", "export", "file", "sha256", "selected_stages")} == {
         "stage": "D", "export": "pik", "file": "frame.pik", "sha256": hashlib.sha256(expected("PIK")).hexdigest(),
@@ -110,26 +117,21 @@ def test_the_sidecar_of_a_pickup_file_names_the_analyzed_frameweb_file(env):
     assert "frame_analysis" not in sidecar(options, "frame.json")
 
 
-def test_a_stage_chosen_alone_is_analyzed_with_its_dependencies_calculated(env):
+def test_the_analysis_is_chosen_only_with_the_items_it_reads(env):
+    """Decision 72: D reads B's FrameWeb file, so its item needs the items of B and A; alone it is an input error and
+    nothing is calculated or published."""
     options, recorder, stages = env
-    generate.generate(with_(options, stage="D"), registry=stages)
-    assert not Path(options.output_dir).exists()
-    post = tree(Path(options.post_dir))
-    assert sorted(post) == sorted([*PICKUP_FILES, *(name + ".provenance.json" for name in PICKUP_FILES)])
-    assert post["frame.pik"] == expected("PIK")
-    assert recorder.actions("calculate") == ["A", "B"] and recorder.actions("render") == []
-    document = sidecar(options, "frame.pik")
-    # frame.json is not of this generation: the sidecar's SHA256 is what binds the analysis to it.
-    assert document["frame_analysis"]["frameweb"]["sha256"] == hashlib.sha256(FRAMEWEB).hexdigest()
-    assert sorted(item["role"] for item in document["artifacts"]) == ["D.displacement", "D.pik", "D.reaction"]
+    choose(Path(options.input_path), "longitudinal_frame_analysis")
+    with pytest.raises(InputError, match="outputs.longitudinal_frame_analysis: outputs.longitudinal も true が必要です"):
+        generate.generate(options, registry=stages)
+    assert recorder.actions("calculate") == [] and published(options) == []
 
 
 def test_the_load_diagram_and_the_analysis_are_separate_calls(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generate, "dependency_hashes", lambda: {Path("C:/webpier/x.py"): "1" * 64})
     pages: list = []
     stages = registry(Recorder(), load_diagram=True, pages=pages)
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                frame_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *FRAME), tmp_path / "output", tmp_path / "post")
     generate.generate(options, registry=stages)
     (drawn,) = pages
     assert sorted(drawn) == [LOAD_DIAGRAM]
@@ -142,37 +144,38 @@ def test_a_failing_analysis_stops_before_any_report_and_publishes_nothing(env, m
     options, recorder, stages = env
     monkeypatch.setenv("FAKE_FEMPYTHON", "analysis-fail")
     with pytest.raises(GenerationError, match="frame.json を FEMPython で骨組解析できません: EMPTY_PIK"):
-        generate.generate(with_(options, frame_analysis=True), registry=stages)
+        generate.generate(analyzed(options), registry=stages)
     assert recorder.actions("render") == [] and published(options) == []
 
 
-def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.MonkeyPatch):
-    options, _, stages = env
+def test_without_a_runner_nothing_is_calculated_or_published(env, monkeypatch: pytest.MonkeyPatch):
+    """The input is read to know the stages (decision 72); the runners are looked up before any calculation."""
+    options, recorder, stages = env
     monkeypatch.setenv(fempython.RUNNER_KEY, "")
-    read = []
-    monkeypatch.setattr(generate, "parse_input", lambda data: read.append(data))
     with pytest.raises(GenerationError, match="runner が設定されていません"):
-        generate.generate(with_(options, stage="D"), registry=stages)
-    assert read == [] and published(options) == []
+        generate.generate(analyzed(options), registry=stages)
+    assert recorder.log == [] and published(options) == []
 
 
 def test_a_generation_without_the_analysis_keeps_the_earlier_pickup_files(env):
     options, _, stages = env
-    generate.generate(with_(options, frame_analysis=True), registry=stages)
+    generate.generate(analyzed(options), registry=stages)
     before = {name: content for name, content in tree(Path(options.post_dir)).items() if not name.startswith("frame.json")}
     generate.generate(with_(options, overwrite=True), registry=stages)
     after = tree(Path(options.post_dir))
     assert {name: after[name] for name in before} == before
 
 
-def test_the_planned_files_follow_the_frame_analysis_option(env):
+def test_the_planned_files_follow_the_chosen_items(env):
+    """Decision 72: the input's 出力項目 choose the stages, and the plan lists the files of the stages given."""
     options, _, stages = env
-    roles = [artifact.role for artifact in planned(with_(options, frame_analysis=True), registry=stages)]
+    assert generate.selection(options, registry=stages) == ("A", "B")
+    assert "D.pik" not in [artifact.role for artifact in planned(options, ("A", "B"), registry=stages)]
+    selected = generate.selection(analyzed(options), registry=stages)
+    assert selected == ("A", "B", "D")
+    roles = [artifact.role for artifact in planned(options, selected, registry=stages)]
     assert roles == ["A.pdf", "A.json", "B.pdf", "B.json", "B.frameweb", "D.pik", "D.displacement", "D.reaction",
                      "B.frameweb.provenance", "D.pik.provenance", "D.displacement.provenance",
                      "D.reaction.provenance"]
-    assert [artifact.path.name for artifact in planned(with_(options, stage="D"), registry=stages)] == [
+    assert [artifact.path.name for artifact in planned(options, ("D",), registry=stages)] == [
         *PICKUP_FILES, *(name + ".provenance.json" for name in PICKUP_FILES)]
-    assert "D.pik" not in [artifact.role for artifact in planned(options, registry=stages)]
-    with pytest.raises(InputError, match="--frame-analysis は --stage all と使います"):
-        planned(with_(options, stage="B", frame_analysis=True), registry=stages)

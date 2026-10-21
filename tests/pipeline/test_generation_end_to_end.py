@@ -1,4 +1,5 @@
-"""The real registry: every stage alone gives the same bytes as the all generation, the frame analysis stages
+"""The real registry: each 出力項目 with the items it uses gives the same reports as the default generation (decision
+72; the result JSON differ only in the SHA256 of the input, which chooses other items), the frame analysis stages
 (decision 46) add the pickup files of the stand-in runner without changing any report, and the static nonlinear
 analysis (decision 47) adds the folder of the stand-in JRSNAP runner for the published NDU, with the Aggre-SE project
 that reads it (decision 49), the reports of 0711 and 0721, which are the stand-in Aggre-SE runner's (decision 56),
@@ -13,13 +14,32 @@ import re
 import pymupdf
 import pytest
 
-from pipeline_support import FIXTURES, copy_input, fake_reactions, tree
+from pipeline_support import FIXTURES, choose, copy_input, fake_reactions, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import content_sha256, load_json, sha256
 from webpier.export.jrsnap import LONGITUDINAL, TRANSVERSE, validate_ndu
+from webpier.inputs.outputs import OUTPUT_KEYS, uses
 from webpier.pipeline import jrsnap
 from webpier.pipeline.generate import GenerationOptions, generate
 from webpier.pipeline.stages import STAGES
+
+# The 出力項目 current.json chooses (decision 72): every item but the analyses, the footing and the cantilever.
+DEFAULT = ("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic", "transverse_seismic")
+FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
+NONLINEAR = ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
+
+
+def items_for(stage):
+    """The 出力項目 of *stage* with every item it uses: the least an input chooses to make *stage*."""
+    item = STAGES.item(stage)
+    return tuple(key for key in OUTPUT_KEYS if key == item or key in uses(item))
+
+
+def without_input(output):
+    """The published reports and result JSON without the input's name and SHA256, which an input choosing other
+    出力項目 changes (decision 72)."""
+    return {name: {key: value for key, value in load_json(content).items() if key != "input"}
+            if name.endswith(".json") else content for name, content in output.items()}
 
 
 @pytest.fixture(scope="module")
@@ -33,8 +53,8 @@ def all_generation(tmp_path_factory):
 @pytest.fixture(scope="module")
 def analysis_generation(tmp_path_factory):
     root = tmp_path_factory.mktemp("analysis")
-    source = copy_input(root / "pre")
-    generation = generate(GenerationOptions(source, root / "output", root / "post", frame_analysis=True))
+    source = copy_input(root / "pre", *DEFAULT, *FRAMES)
+    generation = generate(GenerationOptions(source, root / "output", root / "post"))
     return root, source, generation
 
 
@@ -45,10 +65,11 @@ def pickup_files(stem):
     return [f"{stem}.pik", f"{stem}_ピックアップ変位量.csv", f"{stem}_ピックアップ反力.csv"]
 
 
-def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_generation):
+def test_the_default_items_publish_a_report_and_result_for_every_stage_and_every_export(all_generation):
     root, source, generation = all_generation
     output, post = tree(root / "output"), tree(root / "post")
-    reports = [stage for stage in STAGES.stages if stage.has_report and not stage.opt_in]  # all: no opt-in stage
+    reports = [STAGES.get(stage) for stage in STAGES.selected(DEFAULT)]
+    assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert sorted(output) == sorted(f"{stage.stem}.{suffix}" for stage in reports for suffix in ("pdf", "json"))
     exports = ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu"]
     assert sorted(post) == sorted([*exports, *(name + ".provenance.json" for name in exports)])
@@ -71,40 +92,50 @@ def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_
     assert generation.published
 
 
-@pytest.mark.parametrize("stage", STAGES.select("all"))
-def test_each_stage_alone_publishes_the_same_bytes_as_all(all_generation, tmp_path, stage):
+@pytest.mark.parametrize("item", DEFAULT)
+def test_each_item_with_the_items_it_uses_publishes_the_same_reports_as_the_default(all_generation, tmp_path, item):
+    """Decision 72: the stages of the chosen items, and their reports and exports as the default generation's."""
     root, _, _ = all_generation
-    source = copy_input(tmp_path / "pre")
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
-    spec = STAGES.get(stage)
+    chosen = (*(key for key in OUTPUT_KEYS if key in uses(item)), item)
+    source = copy_input(tmp_path / "pre", *chosen)
+    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    assert generation.stages == STAGES.selected(chosen)
     alone = tree(tmp_path / "output")
-    assert sorted(alone) == [f"{spec.stem}.json", f"{spec.stem}.pdf"]
-    assert alone == {name: content for name, content in tree(root / "output").items() if name in alone}
+    assert sorted(alone) == sorted(f"{STAGES.get(stage).stem}.{suffix}" for stage in generation.stages
+                                   for suffix in ("json", "pdf"))
+    assert without_input(alone) == {name: content for name, content in without_input(tree(root / "output")).items()
+                                     if name in alone}
+    assert {load_json(content)["input"]["sha256"] for name, content in alone.items() if name.endswith(".json")} == {
+        sha256(source.read_bytes())}
     exported = tree(tmp_path / "post") if (tmp_path / "post").exists() else {}
     assert {name: content for name, content in exported.items() if not name.endswith(".provenance.json")} == {
-        item.file_name: tree(root / "post")[item.file_name] for item in spec.exports}
+        export.file_name: tree(root / "post")[export.file_name] for stage in generation.stages
+        for export in STAGES.get(stage).exports}
 
 
 @pytest.mark.parametrize("stage,profile", [("0710", LONGITUDINAL), ("0720", TRANSVERSE)])
 def test_a_seismic_stage_writes_a_valid_ndu(all_generation, tmp_path, stage, profile):
     root, _, _ = all_generation
-    source = copy_input(tmp_path / "pre")
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
+    source = copy_input(tmp_path / "pre", *items_for(stage))
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
     (item,) = STAGES.get(stage).exports
     post = tree(tmp_path / "post")
-    assert sorted(post) == [item.file_name, item.file_name + ".provenance.json"]
+    assert sorted(name for name in post if name.startswith(item.file_name)) == [
+        item.file_name, item.file_name + ".provenance.json"]
     validate_ndu(post[item.file_name], profile)
     assert post[item.file_name].endswith(b"\r\n")
     sidecar = load_json(post[item.file_name + ".provenance.json"])
     assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == (stage, "jrsnap", sha256(post[item.file_name]))
     assert sidecar["metadata"] == {"target_version": "5.2-L03", "app_read_verified": False, "analysis_run": False}
-    assert tree(tmp_path / "output") == {name: content for name, content in tree(root / "output").items()
-                                         if name.startswith(stage)}
+    assert {name: content for name, content in without_input(tree(tmp_path / "output")).items()
+            if name.startswith(stage)} == {name: content for name, content in without_input(tree(root / "output")).items()
+                                           if name.startswith(stage)}
 
 
-def blank_jrsnap_input(directory):
-    """The current input with every JRSNAP setting blank (null), as a new input has them."""
-    source = copy_input(directory)
+def blank_jrsnap_input(directory, *items):
+    """The current input, choosing *items* when given, with every JRSNAP setting blank (null), as a new input has
+    them."""
+    source = copy_input(directory, *items)
     document = load_json(source.read_bytes())
     for key in ("jrsnap_longitudinal", "jrsnap_transverse"):
         document[key] = dict.fromkeys(document[key])
@@ -115,20 +146,20 @@ def blank_jrsnap_input(directory):
 @pytest.mark.parametrize("stage", ["0500", "0600", "0610", "0620"])
 def test_the_stages_without_an_ndu_need_no_jrsnap_settings(all_generation, tmp_path, stage):
     root, _, _ = all_generation
-    generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                               stage=stage))
+    generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre", *items_for(stage)), tmp_path / "output",
+                               tmp_path / "post"))
     report = f"{STAGES.get(stage).stem}.pdf"
-    assert sorted(tree(tmp_path / "output")) == sorted([report, report.replace(".pdf", ".json")])
+    assert report in tree(tmp_path / "output") and not any(name.startswith("07") for name in tree(tmp_path / "output"))
     assert tree(tmp_path / "output")[report] == tree(root / "output")[report]  # the settings change no report
 
 
-@pytest.mark.parametrize("stage,key", [("0710", "jrsnap_longitudinal"), ("0720", "jrsnap_transverse"),
-                                       ("all", "jrsnap_longitudinal")])
-def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, stage, key):
+@pytest.mark.parametrize("items,key", [(items_for("0710"), "jrsnap_longitudinal"),
+                                       (items_for("0720"), "jrsnap_transverse"), (DEFAULT, "jrsnap_longitudinal")])
+def test_a_blank_jrsnap_setting_stops_a_generation_with_an_ndu(tmp_path, items, key):
     """Decision 42: the settings are required (decision 40); nothing is filled in and nothing is published."""
     with pytest.raises(InputError, match=re.escape(f"{key}.") + ".*値が必要です"):
-        generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                   stage=stage))
+        generate(GenerationOptions(blank_jrsnap_input(tmp_path / "pre", *items), tmp_path / "output",
+                                   tmp_path / "post"))
     assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
 
 
@@ -141,8 +172,8 @@ def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_gene
                                              "0720")
     output = tree(root / "output")
     columns = tuple(STAGES.get(stage).stem for stage in ("0611", "0612", "0621", "0622"))
-    assert {name: content for name, content in output.items() if not name.startswith(columns)} == tree(
-        all_generation[0] / "output")
+    assert without_input({name: content for name, content in output.items() if not name.startswith(columns)}) == (
+        without_input(tree(all_generation[0] / "output")))
     assert sorted(name for name in output if name.startswith(columns)) == sorted(
         f"{column}.{suffix}" for column in columns for suffix in ("json", "pdf"))
     post = tree(root / "post")
@@ -166,14 +197,15 @@ def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_gene
 
 def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all_generation, tmp_path):
     """The stand-in writes one case per combination of the NDU: the transverse one has two (decision 47)."""
-    source = copy_input(tmp_path / "pre")
-    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", nonlinear_analysis=True))
+    source = copy_input(tmp_path / "pre", *DEFAULT, *NONLINEAR, "cantilever")
+    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
     assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721", "0900", "0910")
     output = tree(tmp_path / "output")
     reports = {"0711": "0711_線路方向非線形解析", "0721": "0721_線路直角方向非線形解析", "0900": "0900_片持ち梁",
                "0910": "0910_片持ち梁照査"}
-    assert {name: content for name, content in output.items()
-            if not name.startswith(tuple(reports.values()))} == tree(all_generation[0] / "output")
+    assert without_input({name: content for name, content in output.items()
+                          if not name.startswith(tuple(reports.values()))}) == without_input(
+        tree(all_generation[0] / "output"))
     post = tree(tmp_path / "post")
     for stage, source_stage, stem, cases in (("0711", "0710", "線路方向", (1,)), ("0721", "0720", "線路直角方向", (1, 2))):
         folder, ndu = f"{stem}_JRSNAP", f"{stem}.ndu"
@@ -235,15 +267,16 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
 def test_a_blank_seismic_design_condition_stops_a_nonlinear_analysis_before_it_runs(tmp_path, monkeypatch, stage,
                                                                                     key):
     """Decision 49: only 0711 and 0721 need the 耐震設計条件, and a blank one is an input error before the runner."""
-    source = copy_input(tmp_path / "pre")
+    source = copy_input(tmp_path / "pre", *items_for(stage))
     document = load_json(source.read_bytes())
     document["耐震設計条件"][key] = None
     source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
     monkeypatch.setattr(jrsnap, "analyze_nonlinear", lambda *args, **kwargs: pytest.fail("the runner was called"))
     with pytest.raises(InputError, match=re.escape(f"耐震設計条件.{key}: 値が必要です")):
-        generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
+        generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
     assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))  # all: no analysis, no condition
+    choose(source, *DEFAULT)
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))  # no analysis, no condition
 
 
 def test_the_column_section_check_of_0611(analysis_generation):
@@ -288,37 +321,25 @@ def test_the_column_section_check_of_0621(analysis_generation):
     assert texts[0].strip().startswith("9.5 断面力の総括") and "9.9 復旧性の照査" in "".join(texts)
 
 
-@pytest.mark.parametrize("stage", ["0611", "0621"])
-def test_a_frame_analysis_stage_alone_publishes_only_its_pickup_files(analysis_generation, tmp_path, stage):
+@pytest.mark.parametrize("item,stages", [("longitudinal_frame_analysis", ("0611", "0612")),
+                                         ("transverse_frame_analysis", ("0621", "0622"))])
+def test_the_frame_analysis_of_one_direction_runs_one_shared_analysis(analysis_generation, tmp_path, item, stages):
+    """Decisions 48, 54, 72: the item of one direction makes its column check and its 基礎の照査 from one analysis of
+    the FrameWeb file, with the reports and files of the generation with both directions."""
     root, _, _ = analysis_generation
-    source = copy_input(tmp_path / "pre")
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
-    checked = [{"0611": "線路方向.wdj", "0621": "線路直角方向.wdj"}[stage]]  # and the report of the check (decision 48)
+    column, stage = stages
+    assert items_for(column) == items_for(stage) and item in items_for(column)
+    source = copy_input(tmp_path / "pre", *items_for(column))
+    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    assert generation.stages == ("0500", "0600", {"0611": "0610", "0621": "0620"}[column], column, stage)
     output = tree(tmp_path / "output")
-    assert sorted(output) == [f"{STAGES.get(stage).stem}.json", f"{STAGES.get(stage).stem}.pdf"]
-    names = pickup_files(PICKUPS[stage])
+    assert without_input(output) == {name: content for name, content in without_input(tree(root / "output")).items()
+                                     if name in output}
+    names = [*pickup_files(PICKUPS[column]), {"0611": "線路方向.wdj", "0621": "線路直角方向.wdj"}[column]]
     post = tree(tmp_path / "post")
-    assert sorted(post) == sorted([*names, *checked, *(name + ".provenance.json" for name in [*names, *checked])])
-    assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}
-
-
-@pytest.mark.parametrize("stage,column", [("0612", "0611"), ("0622", "0621")])
-def test_a_foundation_check_alone_runs_the_shared_analysis_and_publishes_its_files(analysis_generation, tmp_path,
-                                                                                   stage, column):
-    """Decision 54: chosen alone, the 基礎の照査 analyzes the FrameWeb file itself and publishes the pickup files
-    (not the column check's WDJ); its report and result are those of the generation with both."""
-    root, _, _ = analysis_generation
-    source = copy_input(tmp_path / "pre")
-    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage=stage))
-    stem = STAGES.get(stage).stem
-    output = tree(tmp_path / "output")
-    assert sorted(output) == [f"{stem}.json", f"{stem}.pdf"]
-    assert output == {name: tree(root / "output")[name] for name in output}
-    names = pickup_files(PICKUPS[column])
-    post = tree(tmp_path / "post")
-    assert sorted(post) == sorted([*names, *(name + ".provenance.json" for name in names)])
-    assert {name: post[name] for name in names} == {name: tree(root / "post")[name] for name in names}
+    assert {name: post[name] for name in names[:3]} == {name: tree(root / "post")[name] for name in names[:3]}
+    assert all(name + ".provenance.json" in post for name in names)
     sidecar = load_json(post[f"{PICKUPS[column]}.pik.provenance.json"])
-    assert (sidecar["stage"], sidecar["frame_analysis"]["stages"]) == (stage, [stage])
-    result = load_json(output[f"{stem}.json"])["result"]
+    assert (sidecar["stage"], sidecar["frame_analysis"]["stages"]) == (column, [column, stage])
+    result = load_json(output[f"{STAGES.get(stage).stem}.json"])["result"]
     assert result["engineering_status"] in ("ok", "not_ok") and len(result["columns"]) == 4

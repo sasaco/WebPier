@@ -1,43 +1,52 @@
-"""The 計算・印刷 page: the JRSNAP conditions, one generation of every report, and the PDF preview.
+"""The 計算・印刷 page: the 出力項目, one generation of the reports they choose, and the PDF preview.
 
 計算 saves the input, parses it as every stage will (an input error is shown before anything runs), runs the
 pipeline as a child process, checks what it published against the saved input (calculation.py) and then shows
 the PDFs. While it runs, the editor refuses navigation, saving, opening and closing. A later edit or a changed
 output file marks the shown PDFs as not the current result.
 
-The checkbox of the frame analysis adds ``--frame-analysis`` (the opt-in stages, decision 46) to the generation, and
-the one of the static nonlinear analysis ``--nonlinear-analysis`` (decision 47; JRSNAP takes minutes and shows its
-own windows). Their states are editor settings of the user (settings.py), not inputs, and are kept for the next
-start.
+The 出力項目 are part of the input (``outputs``, decision 72, ADR-0011): a checkbox writes its item into the document,
+so the input is changed and the shown PDFs are no longer the current result. An item can be checked only when every
+item it uses is checked, and unchecking an item unchecks every item that uses it. An input without the items, or
+with some missing, gets all of them (the missing ones false) on the first click.
 """
 
 from __future__ import annotations
 
 import gc
 import tkinter as tk
-from dataclasses import replace
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any
 
 from ..core.errors import InputError
 from ..core.integrity import file_sha256
-from ..export.jrsnap import LONGITUDINAL, TRANSVERSE
 from ..inputs import parse_input
-from ..pipeline.stages import FRAME_ANALYSIS, NONLINEAR_ANALYSIS
+from ..inputs.outputs import OUTPUT_KEYS, requires, users
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
-from .form import Form
 from .pdf_dialog import PdfPreviewDialog
-from .settings import save_settings
 
 if TYPE_CHECKING:
     from .app import InputEditor
 
 POLL_MS = 100
 NOT_RUN = "未実行 — 表示できるPDFは今回の計算結果ではありません。"
-JRSNAP_ROWS = (("shear_factor_vcd", "部材係数 γb（Vcd）"), ("shear_factor_vsd", "部材係数 γb（Vsd）"),
-               ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("analysis_steps", "解析のステップ数"),
-               ("limited_final_step", "限定増分の最終ステップ"), ("target_displacement_m", "目標変位（大きさ）"))
+_JRSNAP = "数分かかり、JRSNAP の画面が出ます"
+# The 出力項目 as the page lists them (decision 72): (key, caption, note, indented under the item it adds to).
+OUTPUT_ROWS = (
+    ("ground_model", "地盤のモデル化", "", False),
+    ("reactions", "上部工反力及び橋脚自重", "", False),
+    ("longitudinal", "線路方向の計算（地震時以外）", "", False),
+    ("longitudinal_frame_analysis", "骨組解析も行う", "", True),
+    ("transverse", "線路直角方向の計算（地震時以外）", "", False),
+    ("transverse_frame_analysis", "骨組解析も行う", "", True),
+    ("longitudinal_seismic", "線路方向の計算（地震時）", "", False),
+    ("longitudinal_nonlinear_analysis", "静的非線形解析も行う", _JRSNAP, True),
+    ("transverse_seismic", "線路直角方向の計算（地震時）", "", False),
+    ("transverse_nonlinear_analysis", "静的非線形解析も行う", _JRSNAP, True),
+    ("footing", "フーチングの計算", "両方向の骨組解析と静的非線形解析が必要です", False),
+    ("cantilever", "片持ち梁の計算", "両方向の静的非線形解析が必要です", False),
+)
 
 
 class CalculationPage:
@@ -57,52 +66,23 @@ class CalculationPage:
         ttk.Label(page, text=f"入力：{editor.document.path}", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(page, text=f"出力先：{self.controller.output_dir}　解析入力：{self.controller.post_dir}",
                   style="Muted.TLabel").pack(anchor="w", pady=(2, 0))
+        box = ttk.LabelFrame(page, text="出力項目", padding=(12, 6), style="Sheet.TLabelframe")
+        box.pack(anchor="w", pady=(8, 0))
         registry = self.controller.registry
-        reports = "・".join(stage.id for stage in registry.stages if stage.has_report and not stage.opt_in)
-        ttk.Label(page, text=f"{reports} の計算書PDFと計算結果JSONを作り直します。", style="Muted.TLabel").pack(
-            anchor="w", pady=(4, 8))
-        settings = ttk.Frame(page)
-        settings.pack(anchor="w", pady=(0, 8))
-        form = Form(editor, settings)
-        for profile, direction in ((LONGITUDINAL, "線路方向（0710）"), (TRANSVERSE, "線路直角方向（0720）")):
-            namespace = f"jrsnap_{profile.jrsnap}"
-            box = ttk.LabelFrame(settings, text=f"JRSNAP 5.2-L03 {direction}")
-            box.pack(side="left", anchor="n", padx=(0, 8))
-            form.properties(box, [((namespace, key), label) for key, label in JRSNAP_ROWS], widths=[220, 110, 60])
-            ttk.Label(box, text=f"目標変位の向き：{profile.earthquake_text}（地震の向き。自動で決めます）",
-                      style="Muted.TLabel").pack(anchor="w")
-        ttk.Label(page, text="0710・0720 は JRSNAP入力（NDU）も作るため、両方向の全項目が必要です。空欄は補いません。",
-                  style="Muted.TLabel").pack(anchor="w")
-        self.frame_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.frame_analysis)
-        checked = [stage.id for stage in registry.stages
-                   if stage.section_check is not None and stage.frame_analysis is not None]
-        column_check = f"。{'・'.join(checked)} は Capacita で柱の断面照査も行う（決定48）" if checked else ""
-        founded = [stage.id for stage in registry.stages
-                   if stage.complete is not None and stage.frame_analysis is not None]
-        column_check += f"。{'・'.join(founded)} は反力で基礎の照査も行う（決定54）" if founded else ""
-        self.frame_analysis_box = ttk.Checkbutton(
-            page, variable=self.frame_analysis, command=self._analysis_changed,
-            text=f"骨組解析も行う（{'・'.join(registry.opt_in(FRAME_ANALYSIS))}。FEMPython：ピックアップ断面力・変位量・反力を "
-                 f"post に出力{column_check}）")
-        self.frame_analysis_box.pack(anchor="w", pady=(6, 0))
-        self.nonlinear_analysis = tk.BooleanVar(master=editor.root, value=editor.settings.nonlinear_analysis)
-        seismic = [stage.id for stage in registry.stages if stage.seismic_check is not None]
-        seismic_check = (f"。{'・'.join(seismic)} は Aggre-SE で耐震性能照査も行い、ピックアップ（PIK）と総括表（xlsx）を post に出力（決定56〜58）"
-                         if seismic else "")
-        cantilever = [stage.id for stage in registry.stages if stage.opt_in == (NONLINEAR_ANALYSIS,)
-                      and stage.nonlinear_analysis is None and stage.seismic_check is None]
-        wdj = [stage.section_check.file_name for stage in registry.stages
-               if stage.id in cantilever and stage.section_check is not None]
-        seismic_check += (f"。{'・'.join(cantilever)} は片持ち梁の応答値と Capacita の断面照査も行い、"
-                          f"post/{'・'.join(wdj)} を出力（決定59）") if cantilever else ""
-        both = [stage.id for stage in registry.stages if len(stage.opt_in) == 2]
-        seismic_check += (f"。{'・'.join(both)} はフーチングの応答値と Capacita の断面照査で、骨組解析と両方を選んだときに"
-                          "加わる（決定60）") if both else ""
-        self.nonlinear_analysis_box = ttk.Checkbutton(
-            page, variable=self.nonlinear_analysis, command=self._analysis_changed,
-            text=f"静的非線形解析も行う（{'・'.join(registry.opt_in(NONLINEAR_ANALYSIS))}。JRSNAP：解析用データと解析結果を "
-                 f"post のフォルダーに出力{seismic_check}。数分かかり、JRSNAP の画面が出ます）")
-        self.nonlinear_analysis_box.pack(anchor="w", pady=(2, 0))
+        self.outputs: dict[str, tk.BooleanVar] = {}
+        self.output_boxes: dict[str, ttk.Checkbutton] = {}
+        for key, caption, note, child in OUTPUT_ROWS:
+            row = ttk.Frame(box)
+            row.pack(anchor="w", padx=(28 if child else 0, 0), pady=1)
+            stages = "・".join(registry.outputs.get(key, ()))
+            self.outputs[key] = tk.BooleanVar(master=editor.root, value=False)
+            self.output_boxes[key] = ttk.Checkbutton(row, variable=self.outputs[key],
+                                                     command=lambda key=key: self._output_changed(key),
+                                                     text=f"{caption}（{stages}）" if stages else caption)
+            self.output_boxes[key].pack(side="left")
+            if note:
+                ttk.Label(row, text=f"　{note}", style="Muted.TLabel").pack(side="left")
+        self._show_outputs()
         actions = ttk.Frame(page)
         actions.pack(fill="x", pady=(6, 0))
         self.calculate_button = ttk.Button(actions, text="保存して計算・PDF出力", command=self.start)
@@ -133,9 +113,10 @@ class CalculationPage:
 
     def _controls(self) -> None:
         state = ["disabled"] if self.busy else ["!disabled"]
-        for widget in (self.calculate_button, self.preview_button, self.frame_analysis_box,
-                       self.nonlinear_analysis_box, self.editor.tree, *self.editor.toolbar_buttons.values()):
+        for widget in (self.calculate_button, self.preview_button, self.editor.tree,
+                       *self.editor.toolbar_buttons.values()):
             widget.state(state)
+        self._show_outputs()
         if self.busy:
             self.progress.pack(side="left", fill="x", expand=True, padx=(16, 0))
             self.progress.start(12)
@@ -149,14 +130,28 @@ class CalculationPage:
         if self.dialog is not None:
             self.dialog.update_labels(self.catalog().entries)
 
-    def _analysis_changed(self) -> None:
-        """Keep the choices for the next start of the editor; they are not part of the input (decisions 46, 47)."""
-        self.editor.settings = replace(self.editor.settings, frame_analysis=self.frame_analysis.get(),
-                                       nonlinear_analysis=self.nonlinear_analysis.get())
-        try:
-            save_settings(self.editor.settings, self.editor.settings_path)
-        except OSError as exc:
-            self._show_log(f"設定を保存できません（次回の起動では元に戻ります）: {exc}")
+    def _chosen(self) -> dict[str, bool]:
+        """Each 出力項目 as the document holds it; a missing or non-true one is not chosen."""
+        outputs = self.editor.document.data.get("outputs")
+        return {key: isinstance(outputs, dict) and outputs.get(key) is True for key in OUTPUT_KEYS}
+
+    def _show_outputs(self) -> None:
+        """The checkboxes as the document holds the items; an item is enabled only with every item it uses."""
+        chosen = self._chosen()
+        for key, variable in self.outputs.items():
+            variable.set(chosen[key])
+            enabled = not self.busy and all(chosen[item] for item in requires(key))
+            self.output_boxes[key].state(["!disabled"] if enabled else ["disabled"])
+
+    def _output_changed(self, key: str) -> None:
+        """Write the item into the document (decision 72); unchecking it unchecks every item that uses it."""
+        chosen = self._chosen()
+        chosen[key] = self.outputs[key].get()
+        if not chosen[key]:
+            chosen.update((item, False) for item in users(key))
+        self.editor.document.data["outputs"] = {item: chosen[item] for item in OUTPUT_KEYS}
+        self._show_outputs()
+        self.editor.changed()
 
     # calculation --------------------------------------------------------------------------------------------
 
@@ -164,7 +159,7 @@ class CalculationPage:
         if self.busy or not self.editor.save():
             return False
         try:
-            parse_input(self.editor.document.data)
+            pier = parse_input(self.editor.document.data)
         except InputError as exc:
             self._set_status("入力エラーのため計算しません。入力を直してください。", str(exc))
             return False
@@ -182,8 +177,7 @@ class CalculationPage:
         # Collect garbage here: a Tk image finalized by a collection on the worker thread waits for Tk's main loop.
         gc.collect()
         try:
-            self.controller.start(path, sha, frame_analysis=self.frame_analysis.get(),
-                                  nonlinear_analysis=self.nonlinear_analysis.get())
+            self.controller.start(path, sha, self.controller.registry.selected(pier.outputs))
         except RuntimeError as exc:
             self._set_status("計算を開始できませんでした。", str(exc))
             return False

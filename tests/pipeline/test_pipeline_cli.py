@@ -1,4 +1,5 @@
-"""The command line: options from the registry, and an exit code for every error the user can fix."""
+"""The command line: the input's 出力項目 choose the stages (decision 72), and an exit code for every error the user
+can fix."""
 
 from __future__ import annotations
 
@@ -8,13 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import CURRENT, Recorder, copy_input, fake_registry
+from pipeline_support import (CURRENT, FAKE_OUTPUTS, LONGITUDINAL, SEISMIC, Recorder, choose, copy_input,
+                              fake_registry)
 from webpier.core.errors import InputError
 from webpier.pipeline import cli, generate
 from webpier.pipeline.generate import GenerationError
 from webpier.pipeline.publication import RecoveryError
-from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, FrameAnalysis, NonlinearAnalysis,
-                                     Registry, StageSpec)
+from webpier.pipeline.stages import FrameAnalysis, NonlinearAnalysis, Registry, StageSpec
 
 ROOT = Path(__file__).parents[2]
 
@@ -25,13 +26,15 @@ def registry(monkeypatch):
     return fake_registry(Recorder())
 
 
-def run(tmp_path, registry, *arguments):
-    source = copy_input(tmp_path / "pre")
+def run(tmp_path, registry, *arguments, items=()):
+    """One run of the CLI with current.json, choosing only *items* when given (decision 72)."""
+    source = copy_input(tmp_path / "pre", *items)
     return cli.main(["--input", str(source), "--output-dir", str(tmp_path / "output"), *arguments],
                     registry=registry)
 
 
-def test_all_is_the_default_and_every_published_file_is_listed(tmp_path, registry, capsys):
+def test_the_input_chooses_the_stages_and_every_published_file_is_listed(tmp_path, registry, capsys):
+    """current.json chooses ground_model, longitudinal and longitudinal_seismic: the fake stages A, B and C."""
     assert run(tmp_path, registry) == 0
     printed = capsys.readouterr().out.splitlines()
     output, post = (tmp_path / "output").resolve(), (tmp_path / "post").resolve()
@@ -44,36 +47,56 @@ def test_all_is_the_default_and_every_published_file_is_listed(tmp_path, registr
         f"C jrsnap付帯JSON: {post / 'model.ndu.provenance.json'}"]
 
 
+def test_only_the_chosen_items_are_published(tmp_path, registry, capsys):
+    """Decision 72: ground_model alone publishes A; longitudinal with the items it uses adds B, not C."""
+    assert run(tmp_path, registry, items=("ground_model",)) == 0
+    assert [line.split(" ")[0] for line in capsys.readouterr().out.splitlines()] == ["A", "A"]
+    assert run(tmp_path / "frame", registry, items=LONGITUDINAL) == 0
+    assert {line.split(" ")[0] for line in capsys.readouterr().out.splitlines()} == {"A", "B"}
+
+
 def test_post_is_a_sibling_of_the_output_directory_unless_given(tmp_path, registry):
-    assert run(tmp_path, registry, "--stage", "B", "--post-dir", str(tmp_path / "elsewhere")) == 0
+    assert run(tmp_path, registry, "--post-dir", str(tmp_path / "elsewhere"), items=LONGITUDINAL) == 0
     assert (tmp_path / "elsewhere" / "frame.json").is_file() and not (tmp_path / "post").exists()
 
 
 def test_jrsnap_is_written_without_a_flag(tmp_path, registry):
-    assert run(tmp_path, registry, "--stage", "C") == 0
+    assert run(tmp_path, registry, items=SEISMIC) == 0
     assert (tmp_path / "post" / "model.ndu").read_bytes() == b"NDU C\r\n"
 
 
 def test_there_is_no_jrsnap_flag(capsys):
     """Decision 42: the NDU is an ordinary export, so --jrsnap is an unknown argument."""
     with pytest.raises(SystemExit) as exit_info:
-        cli.parser(STAGES).parse_args(["--jrsnap"])
+        cli.parser().parse_args(["--jrsnap"])
     assert exit_info.value.code == 2
     assert "unrecognized arguments: --jrsnap" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("arguments", [["--stage", "B"], ["--stage", "all"], ["--frame-analysis"],
+                                       ["--nonlinear-analysis"]])
+def test_no_argument_chooses_stages(arguments, capsys):
+    """Decision 72 (ADR-0011): which reports are made is the input's 出力項目 alone."""
+    with pytest.raises(SystemExit) as exit_info:
+        cli.parser().parse_args(arguments)
+    assert exit_info.value.code == 2
+    assert f"unrecognized arguments: {arguments[0]}" in capsys.readouterr().err
+
+
 def analyzing(recorder: Recorder) -> Registry:
-    """The fake registry with D, an opt-in stage that analyzes B's FrameWeb file (decision 46)."""
+    """The fake registry with D, the stage of longitudinal_frame_analysis that analyzes B's FrameWeb file
+    (decisions 46, 72)."""
     stages = fake_registry(recorder).stages
-    return Registry((*stages, StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(
-        "B", "frameweb", (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))))))
+    return Registry((*stages, StageSpec("D", "D_照査", ("B",), frame_analysis=FrameAnalysis(
+        "B", "frameweb", (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))))),
+        outputs={**FAKE_OUTPUTS, "longitudinal_frame_analysis": ("D",)})
 
 
-def test_frame_analysis_adds_the_opt_in_stages_to_all(tmp_path, registry, capsys):
+def test_the_frame_analysis_item_adds_its_stages(tmp_path, registry, capsys):
     stages = analyzing(Recorder())
     assert run(tmp_path, stages) == 0
     assert "D " not in capsys.readouterr().out
-    assert run(tmp_path / "again", stages, "--frame-analysis") == 0
+    assert run(tmp_path / "again", stages, items=(*LONGITUDINAL, "longitudinal_frame_analysis")) == 0
     printed = capsys.readouterr().out.splitlines()
     post = (tmp_path / "again" / "post").resolve()
     assert [line for line in printed if line.startswith("D ")] == [
@@ -84,54 +107,44 @@ def test_frame_analysis_adds_the_opt_in_stages_to_all(tmp_path, registry, capsys
     assert f"B frameweb入力: {post / 'frame.json'}" in printed
 
 
-def test_frame_analysis_with_one_stage_is_exit_code_2(tmp_path, registry, capsys):
-    assert run(tmp_path, analyzing(Recorder()), "--stage", "B", "--frame-analysis") == 2
-    assert "--frame-analysis は --stage all と使います（選択式の段階 D は --stage で直接選べます）" in capsys.readouterr().err
+def test_an_item_without_the_items_it_uses_is_exit_code_2(tmp_path, registry, capsys):
+    """Decision 72: an item is chosen only with every item it uses; nothing is published."""
+    assert run(tmp_path, analyzing(Recorder()), items=("ground_model", "longitudinal_frame_analysis")) == 2
+    assert capsys.readouterr().err == ("エラー: outputs.longitudinal_frame_analysis: outputs.longitudinal も true が"
+                                       "必要です\n")
     assert not (tmp_path / "output").exists()
 
 
-def test_the_analysis_options_name_their_opt_in_stages(capsys):
-    with pytest.raises(SystemExit):
-        cli.parser(STAGES).parse_args(["--help"])
-    help_text = "".join(capsys.readouterr().out.split())  # argparse wraps the lists over lines
-    assert "（0611・0612・0621・0622・0800・0810・0820）" in help_text
-    assert "（0711・0721・0800・0810・0820・0900・0910）" in help_text
-    arguments = cli.parser(STAGES).parse_args([])
-    assert (arguments.frame_analysis, arguments.nonlinear_analysis) == (False, False)
+def test_an_input_choosing_nothing_is_exit_code_2(tmp_path, registry, capsys):
+    source = choose(copy_input(tmp_path / "pre"))
+    assert cli.main(["--input", str(source), "--output-dir", str(tmp_path / "output")], registry=registry) == 2
+    assert capsys.readouterr().err == "エラー: outputs: 出力項目が選ばれていません（どれかを true にしてください）\n"
+    assert not (tmp_path / "output").exists()
 
 
 def solving(recorder: Recorder) -> Registry:
-    """The fake registry with E, an opt-in stage that has JRSNAP analyze C's NDU (decision 47)."""
+    """The fake registry with E, the stage of longitudinal_nonlinear_analysis that has JRSNAP analyze C's NDU
+    (decisions 47, 72)."""
     stages = fake_registry(recorder).stages
-    return Registry((*stages, StageSpec("E", "E_解析", ("C",), opt_in=NONLINEAR_ANALYSIS,
-                                        nonlinear_analysis=NonlinearAnalysis("C", "jrsnap", "jrsnap", "model_JRSNAP"))))
+    return Registry((*stages, StageSpec("E", "E_解析", ("C",), nonlinear_analysis=NonlinearAnalysis(
+        "C", "jrsnap", "jrsnap", "model_JRSNAP"))), outputs={**FAKE_OUTPUTS, "longitudinal_nonlinear_analysis": ("E",)})
 
 
-def test_nonlinear_analysis_adds_its_opt_in_stages_to_all(tmp_path, registry, capsys, monkeypatch):
+def test_the_nonlinear_analysis_item_adds_its_stages(tmp_path, registry, capsys, monkeypatch):
     stages = solving(Recorder())
     assert run(tmp_path, stages) == 0
     assert "E " not in capsys.readouterr().out
-    assert run(tmp_path / "again", stages, "--nonlinear-analysis") == 0
+    assert run(tmp_path / "again", stages, items=(*SEISMIC, "longitudinal_nonlinear_analysis")) == 0
     post = (tmp_path / "again" / "post").resolve()
     assert [line for line in capsys.readouterr().out.splitlines() if line.startswith("E ")] == [
         f"E jrsnap解析結果: {post / 'model_JRSNAP'}", f"E jrsnap付帯JSON: {post / 'model_JRSNAP.provenance.json'}"]
-    assert run(tmp_path / "one", stages, "--stage", "C", "--nonlinear-analysis") == 2
-    assert "--nonlinear-analysis は --stage all と使います（選択式の段階 E は" in capsys.readouterr().err
-
-
-def test_the_stage_choices_come_from_the_registry(capsys):
-    plain = Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path, pages: path),))
-    with pytest.raises(SystemExit) as exit_info:
-        cli.main(["--stage", "B"], registry=plain)
-    assert exit_info.value.code == 2
-    assert "invalid choice" in capsys.readouterr().err
 
 
 def test_default_paths_are_the_project_input_and_output():
-    arguments = cli.parser(Registry((StageSpec("A", "A_x", (), lambda p, r: 0, lambda r, p, path, pages: path),))
-                           ).parse_args([])
-    assert (arguments.input, arguments.output_dir, arguments.post_dir, arguments.stage, arguments.overwrite) == (
-        ROOT / "pre" / "input.json", ROOT / "output", None, "all", False)
+    arguments = cli.parser().parse_args([])
+    assert (arguments.input, arguments.output_dir, arguments.post_dir, arguments.overwrite) == (
+        ROOT / "pre" / "input.json", ROOT / "output", None, False)
+    assert not hasattr(arguments, "stage")
     assert cli.post_dir(ROOT / "output", None) == (ROOT / "post").resolve()
 
 
@@ -143,8 +156,8 @@ def test_an_input_error_is_a_message_and_exit_code_2(tmp_path, registry, capsys)
 
 
 def test_existing_outputs_without_overwrite_are_exit_code_2(tmp_path, registry, capsys):
-    assert run(tmp_path, registry, "--stage", "A") == 0
-    assert run(tmp_path, registry, "--stage", "A") == 2
+    assert run(tmp_path, registry, items=("ground_model",)) == 0
+    assert run(tmp_path, registry, items=("ground_model",)) == 2
     assert "--overwrite" in capsys.readouterr().err
 
 
@@ -169,10 +182,12 @@ def test_anything_else_is_a_bug_with_a_traceback(tmp_path, registry, monkeypatch
 
 
 def test_python_m_webpier_runs_the_real_pipeline(tmp_path):
+    source = copy_input(tmp_path / "pre", "ground_model")
     completed = subprocess.run(
-        [sys.executable, "-X", "utf8", "-m", "webpier", "--input", str(CURRENT), "--output-dir",
-         str(tmp_path / "output"), "--stage", "0500"],
+        [sys.executable, "-X", "utf8", "-m", "webpier", "--input", str(source), "--output-dir",
+         str(tmp_path / "output")],
         cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
     assert completed.returncode == 0, completed.stderr
     assert sorted(path.name for path in (tmp_path / "output").iterdir()) == ["0500_直接基礎.json", "0500_直接基礎.pdf"]
     assert "0500 計算書" in completed.stdout
+    assert CURRENT.is_file()

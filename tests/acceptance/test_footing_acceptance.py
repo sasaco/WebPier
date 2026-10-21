@@ -27,11 +27,13 @@ SERVICE = ("short_term", "long_term")
 def accepted():
     record = json.loads((RECORDS / "record.json").read_text(encoding="utf-8"))
     data = load_json((ROOT / record["input"]["path"]).read_bytes())
+    # Recorded before the input had the 出力項目, which are no condition of the calculation (decision 72, ADR-0011).
+    chosen = data.pop("outputs")
     data["鉄筋"]["フーチング"] = record["input"]["footing_bars"]
     rebuilt = dump_json(data)
     assert sha256(rebuilt) == record["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
     assert sha256((RECORDS / record["input"]["file"]).read_bytes()) == record["input"]["sha256"]
-    return record, parse_input(load_json(rebuilt))
+    return record, parse_input({**load_json(rebuilt), "outputs": chosen})
 
 
 def test_the_record_is_accepted(accepted):

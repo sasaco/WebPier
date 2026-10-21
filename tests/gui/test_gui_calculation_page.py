@@ -1,5 +1,7 @@
-"""The 計算・印刷 page with the CLI run in-process on a small registry instead of a child process."""
+"""The 計算・印刷 page with the CLI run in-process on a small registry instead of a child process, and the JRSNAP page
+whose conditions it used to hold (decision 72)."""
 
+import json
 import subprocess
 import time
 import tkinter as tk
@@ -10,8 +12,8 @@ import pytest
 from gui_support import InProcessRunner, registry
 from webpier.gui import app as gui
 from webpier.gui import calculation_page
-from webpier.gui import settings
 from webpier.gui.calculation import CalculationController
+from webpier.inputs.outputs import OUTPUT_KEYS
 from webpier.pipeline import generate
 
 
@@ -41,6 +43,20 @@ def cell(editor, *path):
     return editor.bindings.items[path].cell
 
 
+def jrsnap_cell(editor, *path):
+    """A cell of the JRSNAPの設定 page, which is selected for it."""
+    assert editor.page == gui.JRSNAP or editor.select(gui.JRSNAP)
+    return cell(editor, *path)
+
+
+def chosen(editor) -> dict:
+    return editor.document.data["outputs"]
+
+
+def box(editor, key):
+    return page(editor).output_boxes[key]
+
+
 def finish(editor, timeout=30):
     deadline = time.monotonic() + timeout
     while page(editor).busy:
@@ -60,8 +76,11 @@ def labels(view):
     return [entry.label for entry in view.catalog().entries]
 
 
-def test_the_jrsnap_conditions_are_inputs_with_program_units(editor):
-    steps = cell(editor, "jrsnap_longitudinal", "analysis_steps")
+def test_the_jrsnap_conditions_are_inputs_with_program_units_on_their_own_page(editor):
+    """Decision 72: the JRSNAP conditions moved from 計算・印刷 to the page 06 JRSNAPの設定."""
+    assert ("jrsnap_longitudinal", "analysis_steps") not in editor.bindings.items
+    steps = jrsnap_cell(editor, "jrsnap_longitudinal", "analysis_steps")
+    assert gui.PAGES.index(gui.JRSNAP) == 5 and gui.PAGES.index(gui.CALCULATION) == 6
     assert steps.get() == "300" and cell(editor, "jrsnap_transverse", "target_displacement_m").get() == "0.350"
     row = steps.row
     assert steps.sheet.get_cell_data(row, 0) == "解析のステップ数"
@@ -73,19 +92,22 @@ def test_the_jrsnap_conditions_are_inputs_with_program_units(editor):
 
 def test_the_direction_of_the_target_displacement_is_shown_not_entered(editor):
     """Decision 43: the program applies the earthquake direction of each NDU; nobody enters a sign."""
-    shown = list(texts(page(editor).frame))
+    factor = jrsnap_cell(editor, "jrsnap_longitudinal", "shear_factor_vcd")
+    shown = list(texts(editor.form))
     assert "目標変位の向き：−x（←）（地震の向き。自動で決めます）" in shown
     assert "目標変位の向き：+x（→）（地震の向き。自動で決めます）" in shown
-    factor = cell(editor, "jrsnap_longitudinal", "shear_factor_vcd")
     factor.type("1.234")
     assert factor.get() == "1.23" and editor.document.data["jrsnap_longitudinal"]["shear_factor_vcd"] == 1.23
 
 
 def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner, tmp_path):
-    cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.1")
+    jrsnap_cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.1")
+    assert editor.select(gui.CALCULATION)
     view = calculate(editor)
     assert not editor.dirty
-    assert runner.commands[0][1:3] == ["-m", "webpier"] and "--jrsnap" not in runner.commands[0]
+    assert runner.commands[0][1:3] == ["-m", "webpier"] and runner.commands[0][-1] == "--overwrite"
+    assert not any(argument.startswith(("--stage", "--frame", "--nonlinear", "--jrsnap"))
+                   for argument in runner.commands[0])  # the saved input's 出力項目 choose (decision 72)
     assert (tmp_path / "post" / "線路方向.ndu").exists()
     assert view.status.get() == "計算・PDF出力が完了しました（3帳票）。"
     assert view.dialog is not None and view.dialog.selected_path.name == "0500_直接基礎.pdf"
@@ -104,73 +126,107 @@ def texts(widget):
         yield from texts(child)
 
 
-def test_there_is_no_jrsnap_checkbox_and_the_settings_are_required(editor):
-    """Decision 42: the NDUs are always written, so the settings are always needed."""
+def test_there_is_no_jrsnap_checkbox_and_the_settings_are_needed_by_the_seismic_items(editor):
+    """Decision 42: the NDUs are always written with 0710 / 0720, so their settings are needed when those are chosen
+    (decision 72)."""
     view = page(editor)
-    shown = list(texts(view.frame))
-    assert not any("両方向のJRSNAP入力ファイルも出力" in text for text in shown)
-    assert not any("出力するときは" in text for text in shown)
-    assert any("両方向の全項目が必要です" in text for text in shown)
     assert not hasattr(view, "jrsnap_box") and not hasattr(view, "jrsnap")
     assert not hasattr(editor, "calculation_jrsnap")
+    assert not any("JRSNAP 5.2-L03" in text for text in texts(view.frame))
+    editor.select(gui.JRSNAP)
+    shown = list(texts(editor.form))
+    assert not any("両方向のJRSNAP入力ファイルも出力" in text for text in shown)
+    assert ("線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと線路直角方向の全項目が必要です。"
+            "空欄は補いません。") in shown
 
 
-def test_the_page_names_the_reports_and_the_opt_in_frame_analysis(editor):
-    shown = list(texts(page(editor).frame))
-    assert "0500・0610・0710 の計算書PDFと計算結果JSONを作り直します。" in shown
-    assert "骨組解析も行う（0611。FEMPython：ピックアップ断面力・変位量・反力を post に出力）" in shown
-    assert ("静的非線形解析も行う（0711。JRSNAP：解析用データと解析結果を post のフォルダーに出力。数分かかり、"
-            "JRSNAP の画面が出ます）") in shown
-
-
-def test_the_nonlinear_analysis_checkbox_is_separate_and_remembered(editor, runner, tmp_path, editor_settings):
-    """Decision 47: JRSNAP takes minutes and shows windows, so it has its own switch, kept like the frame analysis."""
+def test_the_page_lists_the_output_items_with_their_stages(editor):
+    """Decision 72: each item with the stages it makes (none: the caption alone), the analyses indented under the
+    item they add to, and nothing about switches or the files under post."""
     view = page(editor)
-    assert not view.nonlinear_analysis.get()
-    view.nonlinear_analysis_box.invoke()
-    assert view.nonlinear_analysis.get() and not view.frame_analysis.get()
-    assert settings.load_settings(editor_settings) == settings.EditorSettings(nonlinear_analysis=True)
-    assert "nonlinear_analysis" not in editor.document.data and not editor.dirty
-    calculate(editor).dialog.close()
-    assert runner.commands[0][-1] == "--nonlinear-analysis" and "--frame-analysis" not in runner.commands[0]
-    assert (tmp_path / "post" / "線路方向_JRSNAP").is_dir()
-    view.nonlinear_analysis_box.invoke()
-    assert settings.load_settings(editor_settings) == settings.EditorSettings()
+    shown = list(texts(view.frame))
+    for text in ("出力項目", "地盤のモデル化（0500）", "上部工反力及び橋脚自重", "線路方向の計算（地震時以外）（0610）",
+                 "骨組解析も行う（0611）", "線路方向の計算（地震時）（0710）", "静的非線形解析も行う（0711）",
+                 "　数分かかり、JRSNAP の画面が出ます", "フーチングの計算", "　両方向の骨組解析と静的非線形解析が必要です",
+                 "片持ち梁の計算", "　両方向の静的非線形解析が必要です"):
+        assert text in shown
+    assert not any("--" in text or "post に出力" in text or "決定" in text for text in shown)
+    assert list(view.output_boxes) == list(OUTPUT_KEYS)
+    indented = {key for key, row in view.output_boxes.items() if row.master.pack_info()["padx"] != 0}
+    assert indented == {"longitudinal_frame_analysis", "transverse_frame_analysis", "longitudinal_nonlinear_analysis",
+                        "transverse_nonlinear_analysis"}
 
 
-def test_the_frame_analysis_checkbox_adds_the_flag_and_is_remembered(editor, runner, tmp_path, editor_settings):
+def test_the_checkboxes_show_the_input_and_an_item_waits_for_the_items_it_uses(editor):
+    """Decision 72: current.json chooses the six items without analyses; an analysis may be checked once its item is,
+    the footing only with both directions' analyses, the cantilever with both nonlinear analyses."""
     view = page(editor)
-    assert not view.frame_analysis.get() and not editor_settings.exists()
-    view.frame_analysis_box.invoke()
-    assert view.frame_analysis.get() and editor.settings.frame_analysis
-    assert settings.load_settings(editor_settings).frame_analysis
-    assert "frame_analysis" not in editor.document.data and not editor.dirty  # not part of the input
+    assert {key for key, variable in view.outputs.items() if variable.get()} == {
+        key for key, value in chosen(editor).items() if value}
+    enabled = {key for key in OUTPUT_KEYS if box(editor, key).instate(["!disabled"])}
+    assert enabled == {"ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
+                       "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
+                       "transverse_seismic", "transverse_nonlinear_analysis"}
+    for key in ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"):
+        box(editor, key).invoke()
+    assert box(editor, "cantilever").instate(["!disabled"]) and box(editor, "footing").instate(["disabled"])
+    for key in ("longitudinal_frame_analysis", "transverse_frame_analysis"):
+        box(editor, key).invoke()
+    assert box(editor, "footing").instate(["!disabled"])
+
+
+def test_a_checkbox_writes_its_item_into_the_input(editor, runner, tmp_path):
+    """Decision 72: the 出力項目 are input, so a click changes the document and the next generation follows it."""
+    assert not editor.dirty
+    box(editor, "longitudinal_nonlinear_analysis").invoke()
+    assert chosen(editor)["longitudinal_nonlinear_analysis"] is True and editor.dirty
     calculate(editor).dialog.close()
-    assert runner.commands[0][-1] == "--frame-analysis"
+    saved = json.loads((Path(editor.document.path)).read_text(encoding="utf-8"))
+    assert saved["outputs"]["longitudinal_nonlinear_analysis"] is True
+    assert (tmp_path / "post" / "線路方向_JRSNAP").is_dir() and not (tmp_path / "post" / "線路方向.pik").exists()
+    box(editor, "longitudinal_frame_analysis").invoke()
+    calculate(editor).dialog.close()
     assert (tmp_path / "post" / "線路方向.pik").exists()
     assert page(editor).status.get() == "計算・PDF出力が完了しました（3帳票）。"
-    view.frame_analysis_box.invoke()
-    assert not settings.load_settings(editor_settings).frame_analysis
 
 
-def test_the_checkbox_starts_from_the_saved_setting(tk_root, input_path, quiet, runner, tmp_path):
-    path = tmp_path / "mine" / "editor.json"
-    settings.save_settings(settings.EditorSettings(frame_analysis=True, nonlinear_analysis=True), path)
+def test_unchecking_an_item_unchecks_every_item_that_uses_it(editor):
+    for key in ("longitudinal_frame_analysis", "longitudinal_nonlinear_analysis", "transverse_frame_analysis",
+                "transverse_nonlinear_analysis", "footing", "cantilever"):
+        box(editor, key).invoke()
+    assert all(chosen(editor).values())
+    box(editor, "longitudinal").invoke()
+    assert {key for key, value in chosen(editor).items() if not value} == {
+        "longitudinal", "longitudinal_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
+        "footing", "cantilever"}
+    assert box(editor, "longitudinal_seismic").instate(["disabled"]) and box(editor, "footing").instate(["disabled"])
+    assert not page(editor).outputs["footing"].get()
+
+
+def test_an_input_without_the_items_gets_all_of_them_on_the_first_click(tk_root, input_path, quiet, runner, tmp_path):
+    data = json.loads(input_path.read_text(encoding="utf-8"))
+    del data["outputs"]
+    input_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     controller = CalculationController(tmp_path / "output", runner, registry=runner.registry)
-    editor = gui.InputEditor(tk_root, input_path, calculation=controller, settings_path=path)
-    assert editor.settings_path == path and editor.select("計算・印刷")
-    assert page(editor).frame_analysis.get() and page(editor).nonlinear_analysis.get()
+    editor = gui.InputEditor(tk_root, input_path, calculation=controller)
+    assert editor.select(gui.CALCULATION)
+    assert not any(variable.get() for variable in page(editor).outputs.values())
+    assert box(editor, "longitudinal").instate(["disabled"])
+    assert not page(editor).start()  # an input error names the missing item
+    assert "入力項目がありません: outputs" in page(editor).log.get("1.0", "end")
+    box(editor, "ground_model").invoke()
+    assert chosen(editor) == {key: key == "ground_model" for key in OUTPUT_KEYS}
+    assert page(editor).start()
+    finish(editor)
+    assert page(editor).status.get() == "計算・PDF出力が完了しました（1帳票）。"
 
 
-def test_a_setting_that_cannot_be_saved_is_reported_and_kept_for_now(editor, monkeypatch):
-    def locked(value, path):
-        raise PermissionError("locked")
-
-    monkeypatch.setattr(calculation_page, "save_settings", locked)
-    view = page(editor)
-    view.frame_analysis_box.invoke()
-    assert view.frame_analysis.get() and editor.settings.frame_analysis
-    assert "設定を保存できません（次回の起動では元に戻ります）: locked" in view.log.get("1.0", "end")
+def test_an_input_choosing_nothing_is_not_calculated(editor, runner):
+    for key in ("ground_model", "reactions"):
+        box(editor, key).invoke()
+    assert not any(chosen(editor).values())
+    assert not page(editor).start() and runner.commands == []
+    assert "outputs: 出力項目が選ばれていません（どれかを true にしてください）" in page(editor).log.get("1.0", "end")
 
 
 def test_a_stray_pdf_of_a_stage_without_a_report_is_listed_as_another_file(editor, tmp_path):
@@ -191,9 +247,9 @@ def test_an_input_error_stops_before_anything_runs(editor, runner):
     assert "下部構造.寸法.側面.B1: 値が必要です" in page(editor).log.get("1.0", "end")
 
 
-def test_text_that_cannot_be_entered_stops_the_calculation(editor, runner):
-    cell(editor, "jrsnap_longitudinal", "analysis_steps").type("many")
-    assert not page(editor).start() and runner.commands == []
+def test_text_that_cannot_be_entered_keeps_the_calculation_away(editor, runner, quiet):
+    jrsnap_cell(editor, "jrsnap_longitudinal", "analysis_steps").type("many")
+    assert not editor.select(gui.CALCULATION) and runner.commands == []
 
 
 def test_the_editor_is_locked_while_calculating(editor, runner, quiet):
@@ -211,10 +267,10 @@ def test_the_editor_is_locked_while_calculating(editor, runner, quiet):
     assert calls[-1][0] == "showinfo"
     assert not page(editor).start() and not page(editor).open_preview()
     assert page(editor).calculate_button.instate(["disabled"]) and editor.tree.instate(["disabled"])
-    assert page(editor).frame_analysis_box.instate(["disabled"])
-    assert page(editor).nonlinear_analysis_box.instate(["disabled"])
+    assert all(item.instate(["disabled"]) for item in page(editor).output_boxes.values())
     finish(editor)
     assert started and not editor.busy
+    assert box(editor, "ground_model").instate(["!disabled"]) and box(editor, "footing").instate(["disabled"])
     assert editor.select("上部構造")
 
 
@@ -238,7 +294,7 @@ def test_a_failed_generation_is_shown_with_its_log_and_old_pdfs_are_not_current(
 def test_an_edit_after_success_marks_the_pdfs_old(editor):
     view = calculate(editor)
     view.dialog.close()
-    cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.2")
+    box(editor, "longitudinal_frame_analysis").invoke()  # the 出力項目 are input too (decision 72)
     assert editor.calculation.state == "stale"
     assert page(editor).status.get().startswith("入力が変更されました")
     assert all(label.endswith("既存出力／今回未計算") for label in labels(page(editor)))

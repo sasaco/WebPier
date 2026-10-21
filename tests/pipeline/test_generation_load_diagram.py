@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from pypdf import PdfReader
 
-from pipeline_support import Recorder, copy_input, tree
+from pipeline_support import Recorder, choose, copy_input, tree
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions
 from webpier.pipeline.stages import Export, Registry, StageSpec
@@ -29,7 +29,7 @@ def registry(recorder: Recorder, pages: list) -> Registry:
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), render,
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),), load_diagram="frameweb"),
-    ))
+    ), outputs={"ground_model": ("A",), "longitudinal": ("B",)})
 
 
 def published(options: GenerationOptions) -> list[Path]:
@@ -59,21 +59,21 @@ def test_the_report_takes_the_pages_drawn_from_the_staged_file(env):
 
 def test_a_stage_without_a_load_diagram_renders_as_before(env):
     options, stages, pages = env
-    generate.generate(GenerationOptions(options.input_path, options.output_dir, options.post_dir, stage="A"),
-                      registry=stages)
+    choose(Path(options.input_path), "ground_model")
+    generate.generate(options, registry=stages)
     assert pages == []
     assert sorted(tree(Path(options.output_dir))) == ["A_基礎.json", "A_基礎.pdf"]
 
 
 @pytest.mark.parametrize("setting,message", [("", "runner が設定されていません"), ("C:/missing/runner.exe", "ありません")])
-def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.MonkeyPatch, setting, message):
-    options, stages, pages = env
+def test_without_a_runner_nothing_is_calculated_or_published(env, monkeypatch: pytest.MonkeyPatch, setting, message):
+    """The input is read for its 出力項目 (decision 72); the runners are looked up before anything is calculated."""
+    options, _, pages = env
+    recorder = Recorder()
     monkeypatch.setenv(fempython.RUNNER_KEY, setting)
-    read = []
-    monkeypatch.setattr(generate, "parse_input", lambda data: read.append(data))
     with pytest.raises(GenerationError, match=message):
-        generate.generate(options, registry=stages)
-    assert read == [] and pages == [] and published(options) == []
+        generate.generate(options, registry=registry(recorder, pages))
+    assert recorder.log == [] and pages == [] and published(options) == []
 
 
 def test_a_runner_that_fails_publishes_nothing(env, monkeypatch: pytest.MonkeyPatch):
@@ -87,4 +87,5 @@ def test_a_runner_that_fails_publishes_nothing(env, monkeypatch: pytest.MonkeyPa
 def test_a_load_diagram_must_name_an_export_of_its_stage():
     recorder = Recorder()
     with pytest.raises(ValueError, match="Aの荷重図の出力frameweb"):
-        Registry((StageSpec("A", "A_x", (), recorder.calculate("A"), recorder.render("A"), load_diagram="frameweb"),))
+        Registry((StageSpec("A", "A_x", (), recorder.calculate("A"), recorder.render("A"), load_diagram="frameweb"),),
+                 outputs={"ground_model": ("A",)})

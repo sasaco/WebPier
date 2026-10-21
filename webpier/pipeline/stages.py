@@ -32,9 +32,11 @@ dependencies (0900: the 最大応答震度 of Aggre-SE's summary workbook, decis
 or with the completed results of its dependencies alone (0910); ``calculate`` gives what the input alone decides,
 before any runner, and may be absent when everything waits for ``complete``. Stages that analyze the same FrameWeb
 file declare the same files and share one analysis: a generation runs it once and publishes its files once (decision
-54). Such a stage is ``opt_in``: ``all`` leaves it out unless its switch is given (``--frame-analysis``,
-``--nonlinear-analysis``), and so is every stage that reads one, with the same switch; chosen directly, it is
-calculated with its dependencies.
+54).
+
+Which stages a generation makes is decided by the input's 出力項目 alone (decision 72, ADR-0011): ``OUTPUT_STAGES``
+gives the stages of each item, and the registry checks that a stage reads only the stages of its own item and of the
+items that item uses (inputs.outputs), so the stages of the chosen items are all a generation calculates.
 
 With a load model's add-in (decision 70) the registry is ``stages_for(source)``: 0600 has the dead loads only, 0610 /
 0620 / 0710 / 0720 / 0900 are calculated from the load model's result (calc.generic) and 0711 / 0721 write the Aggre-SE
@@ -46,8 +48,9 @@ add-in in every artifact.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Any, Protocol
 
 from ..calc.cantilever import calculate_cantilever, complete_cantilever, read_max_response
@@ -82,6 +85,7 @@ from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
 from ..inputs import PierInput
+from ..inputs.outputs import OUTPUT_KEYS, uses
 from ..reporting.stages import cantilever as cantilever_report
 from ..reporting.stages import cantilever_check as cantilever_check_report
 from ..reporting.stages import column_check as column_check_report
@@ -124,17 +128,17 @@ from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
 from .fempython import ANALYSIS_FILES, support_reactions
 
 Results = Mapping[str, Any]
-ALL = "all"
-# The switches that add opt-in stages to all, by the name GenerationOptions and the editor settings use.
-FRAME_ANALYSIS = "frame_analysis"  # --frame-analysis: FEMPython (decision 46)
-NONLINEAR_ANALYSIS = "nonlinear_analysis"  # --nonlinear-analysis: JRSNAP (decision 47)
-SWITCHES = (FRAME_ANALYSIS, NONLINEAR_ANALYSIS)
+# The stages of each 出力項目 (decision 72): the frame analysis (decisions 46, 54), the static nonlinear analysis
+# (decision 47), the footing (decision 60) and the cantilever (decision 59) are items of their own.
+OUTPUT_STAGES: Mapping[str, tuple[str, ...]] = MappingProxyType({
+    "ground_model": ("0500",), "reactions": ("0600",),
+    "longitudinal": ("0610",), "longitudinal_frame_analysis": ("0611", "0612"),
+    "transverse": ("0620",), "transverse_frame_analysis": ("0621", "0622"),
+    "longitudinal_seismic": ("0710",), "longitudinal_nonlinear_analysis": ("0711",),
+    "transverse_seismic": ("0720",), "transverse_nonlinear_analysis": ("0721",),
+    "footing": ("0800", "0810", "0820"), "cantilever": ("0900", "0910"),
+})
 _KIND = re.compile(r"[a-z][a-z0-9]*")
-
-
-def flag(switch: str) -> str:
-    """The command-line flag of a switch, e.g. ``--frame-analysis``."""
-    return "--" + switch.replace("_", "-")
 
 
 def _plain_name(name: str) -> bool:
@@ -257,9 +261,6 @@ class StageSpec:
     exports: tuple[Export, ...] = ()
     load_diagram: str = ""  # the kind of the export FEMPython draws into the report (decision 44), or none
     jrsnap_figures: JrsnapFigures | None = None  # JRSNAP draws figures of the NDU into the report (decisions 50, 51)
-    # the switches without all of which all leaves the stage out (decisions 46, 47, 60): one, both, or none; a stage
-    # may be given one switch as a string
-    opt_in: tuple[str, ...] | str = ()
     frame_analysis: FrameAnalysis | None = None
     nonlinear_analysis: NonlinearAnalysis | None = None
     section_check: SectionCheck | None = None  # Capacita checks the column with the PIK of frame_analysis (decision 48)
@@ -272,17 +273,6 @@ class StageSpec:
     # (results, pier, pages) → the documents of the report WebPier lays out, in order, without the pages of other
     # programs: its grid Excel workbook (export/). None: a report with none of WebPier's pages (0711, 0721)
     grid_documents: Callable[[Results, PierInput, Mapping[str, bytes]], Sequence[Any]] | None = None
-
-    def __post_init__(self) -> None:
-        if isinstance(self.opt_in, str):
-            object.__setattr__(self, "opt_in", (self.opt_in,) if self.opt_in else ())
-
-    @property
-    def uses_runners(self) -> bool:
-        """A runner analyzes or checks for the stage, or the stage finishes its result with what runners returned:
-        chosen alone, such a stage of a dependency closure is generated and published with the choice (decision 60)."""
-        return (self.frame_analysis is not None or self.nonlinear_analysis is not None
-                or self.section_check is not None or self.complete is not None)
 
     @property
     def has_report(self) -> bool:
@@ -302,16 +292,25 @@ class LoadModelSource(Protocol):
 class Registry:
     stages: tuple[StageSpec, ...]
     load_model: LoadModelSource | None = None  # stages_for: the input is read without the load model's items
+    outputs: Mapping[str, tuple[str, ...]] = OUTPUT_STAGES  # the stages of each 出力項目 (decision 72)
 
     def __post_init__(self) -> None:
         if not self.stages:
             raise ValueError("段階がありません")
+        if unknown := set(self.outputs) - set(OUTPUT_KEYS):
+            raise ValueError(f"出力項目がありません: {'・'.join(sorted(unknown))}")
+        items = [(key, stage_id) for key, stage_ids in self.outputs.items() for stage_id in stage_ids]
+        item_of = {stage_id: key for key, stage_id in items}
+        if len(item_of) != len(items):
+            raise ValueError("段階が複数の出力項目にあります")
+        if unknown := set(item_of) - {stage.id for stage in self.stages}:
+            raise ValueError(f"出力項目の段階がありません: {'・'.join(sorted(unknown))}")
         seen: list[str] = []
         files: set[str] = set()
         shared: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {}  # the files of each analyzed FrameWeb file
         for stage in self.stages:
-            if stage.id == ALL:
-                raise ValueError(f"段階の名前に{ALL}は使えません")
+            if stage.id not in item_of:
+                raise ValueError(f"{stage.id}の出力項目がありません")
             if stage.id in seen:
                 raise ValueError(f"段階が重複しています: {stage.id}")
             for dependency in stage.depends_on:
@@ -322,8 +321,6 @@ class Registry:
             if (stage.render is not None and stage.calculate is None and stage.seismic_check is None
                     and stage.complete is None):
                 raise ValueError(f"{stage.id}の計算書には計算が必要です")
-            if unknown := set(stage.opt_in) - set(SWITCHES):
-                raise ValueError(f"{stage.id}の選択式のスイッチ{'・'.join(sorted(unknown))}がありません")
             if stage.frame_analysis is not None and stage.nonlinear_analysis is not None:
                 raise ValueError(f"{stage.id}は骨組解析と静的非線形解析の両方はできません")
             if (not stage.has_report and not stage.exports and stage.frame_analysis is None
@@ -336,8 +333,6 @@ class Registry:
                 self._check_source(stage, analysis.stage, analysis.export, "骨組解析")
                 if sorted(kind for kind, _ in analysis.files) != sorted(ANALYSIS_FILES):
                     raise ValueError(f"{stage.id}の骨組解析の出力は {'・'.join(ANALYSIS_FILES)} です")
-                if stage.opt_in != (FRAME_ANALYSIS,):
-                    raise ValueError(f"{stage.id}は骨組解析するので選択式（{FRAME_ANALYSIS}）の段階です")
                 key = (analysis.stage, analysis.export)
                 if key in shared:
                     if shared[key] != analysis.files:
@@ -359,8 +354,6 @@ class Registry:
             nonlinear = stage.nonlinear_analysis
             if nonlinear is not None:
                 self._check_source(stage, nonlinear.stage, nonlinear.export, "静的非線形解析")
-                if stage.opt_in != (NONLINEAR_ANALYSIS,):
-                    raise ValueError(f"{stage.id}は静的非線形解析するので選択式（{NONLINEAR_ANALYSIS}）の段階です")
                 outputs.append((nonlinear.kind, nonlinear.folder))
                 if nonlinear.project is not None:
                     outputs.append((nonlinear.project.kind, nonlinear.project.file_name))
@@ -372,10 +365,11 @@ class Registry:
                 if sorted(kind for kind, _ in seismic.files) != sorted(AGGRESE_FILES):
                     raise ValueError(f"{stage.id}の耐震性能照査の出力は {'・'.join(AGGRESE_FILES)} です")
                 outputs += seismic.files
+            own = item_of[stage.id]
             for dependency in stage.depends_on:
-                if not set(self.get(dependency).opt_in) <= set(stage.opt_in):
-                    raise ValueError(f"{stage.id}は選択式の段階{dependency}に依存するので、そのスイッチ"
-                                     f"（{'・'.join(self.get(dependency).opt_in)}）を含む選択式の段階です")
+                if item_of[dependency] != own and item_of[dependency] not in uses(own):
+                    raise ValueError(f"{stage.id}（出力項目 {own}）は{dependency}（出力項目 {item_of[dependency]}）を読むので、"
+                                     f"{own} は {item_of[dependency]} を使う出力項目です")
             kinds: set[str] = set()
             for kind, file_name in outputs:
                 if not _KIND.fullmatch(kind):
@@ -411,34 +405,24 @@ class Registry:
     def ids(self) -> tuple[str, ...]:
         return tuple(stage.id for stage in self.stages)
 
-    @property
-    def choices(self) -> tuple[str, ...]:
-        return (*self.ids, ALL)
-
     def get(self, stage_id: str) -> StageSpec:
         return self.stages[self.ids.index(stage_id)]
 
-    def opt_in(self, switch: str) -> tuple[str, ...]:
-        """The stages ``all`` leaves out unless *switch* is given (decisions 46, 47, 60)."""
-        return tuple(stage.id for stage in self.stages if switch in stage.opt_in)
+    def stage(self, stage_id: str) -> StageSpec:
+        """The stage *stage_id*; an input error for a stage the registry does not have."""
+        if stage_id not in self.ids:
+            raise InputError(f"計算段階が不正です: {stage_id}")
+        return self.get(stage_id)
 
-    def select(self, choice: str, *, switches: frozenset[str] = frozenset()) -> tuple[str, ...]:
-        """For ``all`` every stage, an opt-in one only when every switch of it is in *switches*; for one stage, it and
-        the stages of its closure that use runners (``uses_runners``: the files their runners return are what it
-        reads, so they are generated and published with it; decision 60, owner 2026-10-19), in registry order."""
-        if unknown := switches - set(SWITCHES):
-            raise InputError(f"選択式のスイッチが不正です: {'・'.join(sorted(unknown))}")
-        if choice == ALL:
-            return tuple(stage.id for stage in self.stages if set(stage.opt_in) <= switches)
-        if choice not in self.ids:
-            raise InputError(f"計算段階が不正です: {choice}")
-        if switches:
-            given = [switch for switch in SWITCHES if switch in switches]
-            stages = "・".join(stage for switch in given for stage in self.opt_in(switch))
-            raise InputError(f"{' '.join(map(flag, given))} は --stage {ALL} と使います（選択式の段階 {stages} は "
-                             f"--stage で直接選べます）")
-        return tuple(stage_id for stage_id in self.closure((choice,))
-                     if stage_id == choice or self.get(stage_id).uses_runners)
+    def item(self, stage_id: str) -> str:
+        """The 出力項目 of the stage *stage_id*."""
+        return next(key for key, stage_ids in self.outputs.items() if stage_id in stage_ids)
+
+    def selected(self, outputs: Iterable[str]) -> tuple[str, ...]:
+        """The stages of the 出力項目 *outputs*, in registry (dependency) order (decision 72): with every item each of
+        them uses, as the input has them, these are every stage the generation calculates."""
+        chosen = set(outputs)
+        return tuple(stage.id for stage in self.stages if self.item(stage.id) in chosen)
 
     def closure(self, selected: Sequence[str]) -> tuple[str, ...]:
         """The selected stages and everything they read, in registry (dependency) order."""
@@ -509,7 +493,7 @@ def _column_check(stage_id: str, stem: str, source: str, name: str, direction: D
                      lambda pier, results: calculate_column_check(pier, results[source], direction),
                      lambda results, pier, path, pages: render_column_check(results[stage_id], pier, path, pages,
                                                                             chapter),
-                     opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
+                     frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
                      section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections),
                      grid_documents=lambda results, pier, pages: column_check_report.grid_documents(
                          results[stage_id], pier, pages, chapter))
@@ -522,7 +506,7 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
     return StageSpec(stage_id, stem, ("0500", source),
                      lambda pier, results: prepare_foundation_check(pier, results["0500"], results[source], direction),
                      lambda results, pier, path, pages: render_foundation_check(results[stage_id], path, chapter),
-                     opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
+                     frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
                      complete=lambda basis, files, pier, results: check_foundation(
                          basis, support_reactions(files["reaction"], basis.node)),
                      grid_documents=lambda results, pier, pages: foundation_check_report.grid_documents(
@@ -543,7 +527,7 @@ def _footing(stem: str) -> StageSpec:
     return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
                      lambda pier, results: calculate_footing(pier, results["0500"], results["0610"], results["0620"]),
                      lambda results, pier, path, pages: render_footing(results["0800"], path),
-                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS), complete=complete,
+                     complete=complete,
                      grid_documents=lambda results, pier, pages: footing_report.grid_documents(results["0800"]))
 
 
@@ -552,7 +536,6 @@ def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter:
     values of 0800 written in the WDJ, as sections *chapter* of the report (decision 60, ADR-0008)."""
     return StageSpec(stage_id, stem, ("0800",), None,
                      lambda results, pier, path, pages: render_footing_check(results[stage_id], path, pages, chapter),
-                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS),
                      section_check=SectionCheck("wdj", f"{name}フーチング.wdj",
                                                 lambda results, pier, pik: write_footing_wdj(
                                                     build_footing_wdj(results[stage_id])),
@@ -578,7 +561,7 @@ def _cantilever(stem: str, longitudinal: str, transverse: str) -> StageSpec:
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_cantilever(pier, results["0600"]),
                      lambda results, pier, path, pages: render_cantilever(results["0900"], results["0600"], pier, path),
-                     opt_in=NONLINEAR_ANALYSIS, complete=complete,
+                     complete=complete,
                      grid_documents=lambda results, pier, pages: cantilever_report.grid_documents(
                          results["0900"], results["0600"], pier))
 
@@ -587,7 +570,6 @@ def _cantilever_check(stem: str, name: str) -> StageSpec:
     """0910: Capacita checks the beam at the column face with the section forces of 0900 (decision 59)."""
     return StageSpec("0910", stem, ("0900",), None,
                      lambda results, pier, path, pages: render_cantilever_check(results["0910"], pier, path, pages),
-                     opt_in=NONLINEAR_ANALYSIS,
                      section_check=SectionCheck("wdj", f"{name}.wdj",
                                                 lambda results, pier, pik: write_wdj(build_cantilever_wdj(results["0910"])),
                                                 lambda results: results["0910"].sections),
@@ -639,7 +621,7 @@ STAGES = Registry((
               jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
               grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
                   results["0710"], pier)),
-    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
+    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
                   Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
@@ -653,7 +635,7 @@ STAGES = Registry((
               grid_documents=lambda results, pier, pages: seismic_transverse_report.grid_documents(
                   results["0720"], pier)),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
-    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
+    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(
                   "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
                   Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
@@ -710,7 +692,7 @@ def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: L
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_generic_cantilever(pier, results["0600"], source.result(pier)),
                      lambda results, pier, path, pages: render_generic_cantilever(results["0900"], pier, path),
-                     opt_in=NONLINEAR_ANALYSIS, complete=complete,
+                     complete=complete,
                      grid_documents=lambda results, pier, pages: generic_cantilever_report.grid_documents(
                          results["0900"], pier))
 

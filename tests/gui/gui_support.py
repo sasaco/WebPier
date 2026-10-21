@@ -11,8 +11,7 @@ from pathlib import Path
 import pymupdf
 
 from webpier.pipeline import cli
-from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, Export, FrameAnalysis, NonlinearAnalysis,
-                                     Registry, StageSpec)
+from webpier.pipeline.stages import Export, FrameAnalysis, NonlinearAnalysis, Registry, StageSpec
 
 
 def pdf_bytes(pages: int = 2, text: str = "WebPier") -> bytes:
@@ -37,21 +36,22 @@ def _render(stage: str, pages: int):
 
 
 def registry() -> Registry:
-    """0500 → 0610 (FrameWeb) → 0611 (frame analysis, opt-in) and 0710 (JRSNAP) → 0711 (static nonlinear analysis,
-    opt-in); the stems of the real registry."""
+    """0500 → 0610 (FrameWeb) → 0611 (frame analysis) and 0710 (JRSNAP) → 0711 (static nonlinear analysis); the stems
+    and 出力項目 of the real registry (decision 72), so current.json chooses 0500, 0610 and 0710."""
     return Registry((
         StageSpec("0500", "0500_直接基礎", (), lambda pier, results: {"stage": "0500"}, _render("0500", 1)),
         StageSpec("0610", "0610_線路方向荷重", ("0500",), lambda pier, results: {"stage": "0610"}, _render("0610", 2),
                   (Export("frameweb", "線路方向.json", lambda results, pier: b'{"frame": 1}\n'),)),
-        StageSpec("0611", "0611_線路方向照査", ("0610",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(
+        StageSpec("0611", "0611_線路方向照査", ("0610",), frame_analysis=FrameAnalysis(
             "0610", "frameweb", (("pik", "線路方向.pik"), ("displacement", "線路方向_ピックアップ変位量.csv"),
                                  ("reaction", "線路方向_ピックアップ反力.csv")))),
         StageSpec("0710", "0710_線路方向荷重", ("0610",), lambda pier, results: {"stage": "0710"}, _render("0710", 3),
                   (Export("jrsnap", "線路方向.ndu", lambda results, pier: b"NDU\r\n",
                           metadata={"analysis_run": False}),)),
-        StageSpec("0711", "0711_線路方向非線形解析", ("0710",), opt_in=NONLINEAR_ANALYSIS,
+        StageSpec("0711", "0711_線路方向非線形解析", ("0710",),
                   nonlinear_analysis=NonlinearAnalysis("0710", "jrsnap", "jrsnap", "線路方向_JRSNAP")),
-    ))
+    ), outputs={"ground_model": ("0500",), "longitudinal": ("0610",), "longitudinal_frame_analysis": ("0611",),
+                "longitudinal_seismic": ("0710",), "longitudinal_nonlinear_analysis": ("0711",)})
 
 
 class InProcessRunner:

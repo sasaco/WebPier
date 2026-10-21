@@ -40,8 +40,8 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 
 ## 生成
 
-- `uv run --project "." --locked python -m webpier --stage 0612 --frame-analysis --overwrite`（0622 も同じ）。`--frame-analysis` がないと選べない（`all` にも入らない）。runner は `.env` の `STRUCTURAL_MCP_FEMPYTHON_RUNNER`。0611 も選ぶと解析は1回で済むが、Capacita の runner も要る。
-- `--stage` で1つの段階を直接選ぶと、依存のうち runner を動かす段階も一緒に生成して公開する（決定60の規則、2026-10-19）。`--stage 0612` 自体は依存に runner の段階がないので変わらないが、0800 を選ぶと 0612・0622 の計算書も公開される。
+- 入力の `outputs` で `longitudinal_frame_analysis`（0622 は `transverse_frame_analysis`）と使う項目を選び、`uv run --project "." --locked python -m webpier --overwrite`。0612 は 0611 と同じ出力項目なので一緒に作り（解析は1回）、runner は `.env` の `STRUCTURAL_MCP_FEMPYTHON_RUNNER` と Capacita の runner が要る。
+- 段階を1つだけ選ぶ引数はない（決定72）。項目は使う項目と一緒にしか選べないので、0800（`footing`）を選ぶと 0612・0622 の計算書も公開される。
 - `current.json` を変えると受入記録（`record_0612.json`・`record_0622.json`）の SHA が合わなくなり `tests/acceptance` が落ちる。`scripts/accept_foundation_check.py 0612`／`0622` を回し直す（工学値は変わらないはず。2026-10-19 に確認）。
 - 並行して別のセッションが作業しているときは CLI（`output/` と `post/` を書き換える）を避け、`render_foundation_check` で scratchpad に出す。
 - Example2（`pre/input.json`、2026-10-18）は両方向とも全項目 OK、照査値の最大は長期の鉛直支持の 0.743。

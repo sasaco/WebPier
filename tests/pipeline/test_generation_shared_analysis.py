@@ -10,16 +10,21 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import FakeResult, Recorder, copy_input, fake_reactions, tree
+from pipeline_support import LONGITUDINAL, FakeResult, Recorder, copy_input, fake_reactions, tree
 from webpier.calc.foundation_check import ReactionError
 from webpier.pipeline import fempython, generate
 from webpier.pipeline.generate import GenerationError, GenerationOptions, planned
-from webpier.pipeline.stages import FRAME_ANALYSIS, Export, FrameAnalysis, Registry, StageSpec
+from webpier.pipeline.stages import Export, FrameAnalysis, Registry, StageSpec
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}}, "node": {"1": {}, "2": {}},
                        "fix_node": {"1": [{"n": "2"}]}, "pickup": {"1": {"C1": 1, "C2": 2}}}).encode()
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
 PICKUP_FILES = [name for _, name in PICKUPS]
+
+
+def items(*analyzing: str) -> dict[str, tuple[str, ...]]:
+    """A and B are the 線路方向's items, the stages *analyzing* its frame analysis (decision 72)."""
+    return {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_frame_analysis": analyzing}
 
 
 def _complete(result: FakeResult, files, pier=None, results=None) -> FakeResult:
@@ -31,10 +36,10 @@ def registry(recorder: Recorder, complete=_complete) -> Registry:
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), recorder.render("B"),
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),)),
-        StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
-        StageSpec("E", "E_基礎", ("A", "B"), recorder.calculate("E"), recorder.render("E"), opt_in=FRAME_ANALYSIS,
+        StageSpec("D", "D_照査", ("B",), frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
+        StageSpec("E", "E_基礎", ("A", "B"), recorder.calculate("E"), recorder.render("E"),
                   frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS), complete=complete),
-    ))
+    ), outputs=items("D", "E"))
 
 
 @pytest.fixture
@@ -46,13 +51,9 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(generate, "analyze_frame", lambda name, *args, **kwargs: (calls.append(name),
                                                                                   analyze(name, *args, **kwargs))[1])
     recorder = Recorder()
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                frame_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *LONGITUDINAL, "longitudinal_frame_analysis"),
+                                tmp_path / "output", tmp_path / "post")
     return options, recorder, calls
-
-
-def with_(options: GenerationOptions, **changes) -> GenerationOptions:
-    return GenerationOptions(**{**options.__dict__, **changes})
 
 
 def sidecar(options: GenerationOptions, name: str) -> dict:
@@ -82,14 +83,15 @@ def test_a_stage_finishes_its_result_with_the_returned_files_before_its_report(e
     assert result["read"] == ["A", "B", finished]
 
 
-def test_the_stage_chosen_alone_publishes_the_shared_files_as_its_own(env):
-    options, recorder, calls = env
-    generate.generate(with_(options, stage="E", frame_analysis=False), registry=registry(recorder))
-    assert calls == ["frame.json"]
-    assert sorted(tree(Path(options.output_dir))) == ["E_基礎.json", "E_基礎.pdf"]
-    assert sidecar(options, "frame.pik")["stage"] == "E"
-    roles = [artifact.role for artifact in planned(with_(options, stage="E", frame_analysis=False),
-                                                   registry=registry(recorder))]
+def test_the_shared_files_belong_to_the_first_of_the_stages_given_that_analyzes_them(env):
+    """The plan of D and E publishes one set of files under D; planned for E alone, under E (decision 54). D and E are
+    one 出力項目, so a generation always has both (decision 72)."""
+    options, recorder, _ = env
+    stages = registry(recorder)
+    roles = [artifact.role for artifact in planned(options, ("A", "B", "D", "E"), registry=stages)]
+    assert [role for role in roles if role.endswith((".pik", ".displacement", ".reaction"))] == [
+        "D.pik", "D.displacement", "D.reaction"]
+    roles = [artifact.role for artifact in planned(options, ("E",), registry=stages)]
     assert roles == ["E.pdf", "E.json", "E.pik", "E.displacement", "E.reaction", "E.pik.provenance",
                      "E.displacement.provenance", "E.reaction.provenance"]
 
@@ -109,7 +111,7 @@ def test_reactions_that_cannot_be_read_stop_the_generation_before_any_report(env
 def _stage(stage_id: str, **changes) -> StageSpec:
     recorder = Recorder()
     return StageSpec(stage_id, f"{stage_id}_x", ("B",), recorder.calculate(stage_id), recorder.render(stage_id),
-                     opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS), **changes)
+                     frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS), **changes)
 
 
 def test_the_registry_checks_the_shared_analysis_and_the_finishing_step():
@@ -117,8 +119,9 @@ def test_the_registry_checks_the_shared_analysis_and_the_finishing_step():
     base = registry(recorder).stages[:2]
     other = (("pik", "other.pik"), ("displacement", "other_変位量.csv"), ("reaction", "other_反力.csv"))
     with pytest.raises(ValueError, match="FはBの骨組解析を共有するので、同じ出力が必要です"):
-        Registry((*base, _stage("D"), replace(_stage("F"), frame_analysis=FrameAnalysis("B", "frameweb", other))))
+        Registry((*base, _stage("D"), replace(_stage("F"), frame_analysis=FrameAnalysis("B", "frameweb", other))),
+                 outputs=items("D", "F"))
     with pytest.raises(ValueError, match="Fの結果を仕上げるには、骨組解析か、耐震性能照査または仕上げる結果を持つ依存段階が必要です"):
-        Registry((*base, replace(_stage("F"), frame_analysis=None, opt_in="", complete=_complete)))
+        Registry((*base, replace(_stage("F"), frame_analysis=None, complete=_complete)), outputs=items("F"))
     with pytest.raises(ValueError, match="Fの結果を仕上げるには計算書が必要です"):
-        Registry((*base, replace(_stage("F"), render=None, complete=_complete)))
+        Registry((*base, replace(_stage("F"), render=None, complete=_complete)), outputs=items("F"))

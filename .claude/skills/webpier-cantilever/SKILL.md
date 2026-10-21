@@ -5,7 +5,7 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 
 # 片持ち梁の照査（0900・0910）
 
-0900 は左右の張出し（|支承位置| > W6/2 の支承枠が載る側）について 13.1 応答値の算定と 13.2 設計作用の組合せを WebPier が計算して印刷し、0910 はその採用値を断面力表に書いた WDJ を Capacita に計算させ、13.3〜13.6 の見出し・解説の後にページを差し込む（決定59、ADR-0008）。2段階とも `--nonlinear-analysis` の段階で、0711・0721 の Aggre-SE の総括表（最大応答震度）を同じ世代で読む。見本 Example2 13 章はロジックと体裁の移植元で、値の一致は求めない（下の「既知の差」）。
+0900 は左右の張出し（|支承位置| > W6/2 の支承枠が載る側）について 13.1 応答値の算定と 13.2 設計作用の組合せを WebPier が計算して印刷し、0910 はその採用値を断面力表に書いた WDJ を Capacita に計算させ、13.3〜13.6 の見出し・解説の後にページを差し込む（決定59、ADR-0008）。2段階とも出力項目 `cantilever` の段階で（両方向の静的非線形解析を選んだときだけ選べる。決定72）、0711・0721 の Aggre-SE の総括表（最大応答震度）を同じ世代で読む。見本 Example2 13 章はロジックと体裁の移植元で、値の一致は求めない（下の「既知の差」）。
 
 ## 置き場所
 
@@ -55,7 +55,7 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 1. 計算だけ：`parse_input` → `calculate_reaction` → `calculate_cantilever` → `read_max_response(Path("post/線路方向_Aggre-SE.xlsx").read_bytes(), ...)`（直角も）→ `complete_cantilever`。`result.sides[Side.LEFT].actions`・`.cases`・`result.selections`・`result.cracking` を見る（`tests/calc/cantilever_support.py` の `result_of` が同じ）。
 2. 帳票だけ：`render_cantilever(result, reaction, pier, path)`／`calculate_cantilever_section` → `render_cantilever_check(section, pier, path, pages)`。ページは `pymupdf` で画像にして確かめる。
 3. WDJ を本物の Capacita で：`write_wdj(build_cantilever_wdj(section))` を scratchpad に書き、`WebDanforCS.Headless.exe run-rc --input <wdj> --output-dir <dir> --output-format pdf`（`--pickup` なし）。envelope の `summary.reportSections` が `SECTIONS` の順で返るか、`messages` に error がないかを見る。
-4. 全体：`uv run --project "." --locked python -X utf8 -m webpier --stage all --nonlinear-analysis --overwrite`（本物の JRSNAP・Aggre-SE・Capacita。数分）。
+4. 全体：入力の `outputs` で `cantilever` と使う項目を選び、`uv run --project "." --locked python -X utf8 -m webpier --overwrite`（本物の JRSNAP・Aggre-SE・Capacita。数分）。
 
 ## 直すとき
 

@@ -1,9 +1,8 @@
-"""Run one generation (``python -m webpier --stage all --overwrite``, with ``--frame-analysis`` when the frame
-analysis is chosen, decision 46, and ``--nonlinear-analysis`` for the static nonlinear analysis, decision 47) without
-blocking Tk, then check it.
+"""Run one generation (``python -m webpier --overwrite``: the saved input's 出力項目 choose the reports, decision 72)
+without blocking Tk, then check it.
 
 Only the child process and its bounded logs run on the worker thread. The result is consumed on the main thread,
-where it is checked against the files the pipeline plans for the same options: every result JSON and every
+where it is checked against the files the pipeline plans for the same options and the stages the saved input chose: every result JSON and every
 provenance sidecar must name the SHA256 of the input that was saved before the run, every sidecar must list the
 files of that one generation with their SHA256, the PDFs must open, nothing may change during the check, and the
 input must still be the saved one. The folder of a JRSNAP analysis is checked as a whole: its SHA256 is that of every
@@ -32,7 +31,7 @@ from ..core.integrity import content_sha256, file_sha256, load_json
 from ..pipeline.cli import post_dir as default_post_dir
 from ..pipeline.generate import Artifact, GenerationOptions, planned
 from ..pipeline.publication import check_incomplete_publications
-from ..pipeline.stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Registry, flag
+from ..pipeline.stages import STAGES, Registry
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 MAX_LOG_BYTES = 48 * 1024
@@ -59,19 +58,16 @@ class CalculationJob:
     output_dir: Path
     post_dir: Path
     input_sha256: str
-    frame_analysis: bool = False  # add the opt-in frame analysis stages (decision 46)
-    nonlinear_analysis: bool = False  # add the opt-in static nonlinear analysis stages (decision 47)
+    stages: tuple[str, ...]  # the stages the 出力項目 of the saved input choose (decision 72)
 
     @property
     def options(self) -> GenerationOptions:
-        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, stage=ALL, overwrite=True,
-                                 frame_analysis=self.frame_analysis, nonlinear_analysis=self.nonlinear_analysis)
+        return GenerationOptions(self.input_path, self.output_dir, self.post_dir, overwrite=True)
 
     @property
     def command(self) -> list[str]:
         return [sys.executable, "-m", "webpier", "--input", str(self.input_path), "--output-dir",
-                str(self.output_dir), "--post-dir", str(self.post_dir), "--stage", ALL, "--overwrite",
-                *(flag(switch) for switch in (FRAME_ANALYSIS, NONLINEAR_ANALYSIS) if switch in self.options.switches)]
+                str(self.output_dir), "--post-dir", str(self.post_dir), "--overwrite"]
 
 
 @dataclass(frozen=True)
@@ -159,7 +155,7 @@ def validate_outputs(job: CalculationJob, *, registry: Registry = STAGES,
     """
     _main_thread_only()
     try:
-        artifacts = list(planned(job.options, registry=registry))
+        artifacts = list(planned(job.options, job.stages, registry=registry))
         paths = [artifact.path for artifact in artifacts]
         kinds = {artifact.path: artifact.folder for artifact in artifacts}
         check_incomplete_publications(paths)
@@ -237,13 +233,13 @@ class CalculationController:
         self.running = False
         self.state = "idle"  # idle, running, success, failed, stale
 
-    def start(self, input_path: Path, input_sha256: str, *, frame_analysis: bool = False,
-              nonlinear_analysis: bool = False) -> CalculationJob:
+    def start(self, input_path: Path, input_sha256: str, stages: tuple[str, ...]) -> CalculationJob:
+        """Run the generation of the saved input at *input_path*, whose 出力項目 choose *stages*."""
         _main_thread_only()
         if self.running:
             raise RuntimeError("計算中です。完了までお待ちください。")
         job = CalculationJob(uuid.uuid4().hex, Path(input_path).resolve(), self.output_dir, self.post_dir,
-                             input_sha256, frame_analysis, nonlinear_analysis)
+                             input_sha256, tuple(stages))
         self.job, self.result = job, None
         self._verified.clear()
         self._folders.clear()

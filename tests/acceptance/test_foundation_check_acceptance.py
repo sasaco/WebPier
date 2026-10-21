@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.calc import foundation_check as fc
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
@@ -40,7 +41,7 @@ def accepted(request):
     records = FIXTURES / "acceptance" / "foundation_check"
     record = json.loads((records / f"record_{stage}.json").read_text(encoding="utf-8"))
     data = (ROOT / record["input"]["path"]).read_bytes()
-    assert sha256(data) == record["input"]["sha256"], f"受入時の入力から変わっています。{redo(stage)}"
+    assert record["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{redo(stage)}"
     csv = (records / record["reaction"]["file"]).read_bytes()
     assert sha256(csv) == record["reaction"]["sha256"]
     return stage, record, parse_input(load_json(data)), csv, source, direction

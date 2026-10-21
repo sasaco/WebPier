@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from pipeline_support import CURRENT, Recorder, copy_input, fake_registry
+from pipeline_support import CURRENT, SEISMIC, Recorder, copy_input, fake_registry
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
@@ -39,10 +39,10 @@ def test_equals_the_staged_file_of_a_generation(tmp_path, monkeypatch, pier):
     monkeypatch.setattr(generate, "dependency_hashes", lambda: {})
     recorder = Recorder()
     registry = fake_registry(recorder)
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post", stage="C")
+    options = GenerationOptions(copy_input(tmp_path / "pre", *SEISMIC), tmp_path / "output", tmp_path / "post")
     with prepare(options, registry=registry) as candidate:
         staged = candidate.staged("C.jrsnap").read_bytes()
-    generation_log = [entry for entry in recorder.log if entry[0] == "export"]
+    generation_log = [entry for entry in recorder.log if entry[:2] == ("export", "C")]
     recorder.log.clear()
     assert export_bytes(pier, "C", "jrsnap", registry=registry) == staged
     assert [entry for entry in recorder.log if entry[0] == "export"] == generation_log

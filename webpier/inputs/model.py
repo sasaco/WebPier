@@ -260,3 +260,4 @@ class PierInput:
     column_check: ColumnCheck  # 柱の断面照査 (decision 48)
     cantilever_check: CantileverCheck  # 片持ち梁の照査 (decision 59)
     jrsnap: Jrsnap
+    outputs: tuple[str, ...]  # the chosen 出力項目 (decision 72), in the order of inputs.outputs.OUTPUT_KEYS

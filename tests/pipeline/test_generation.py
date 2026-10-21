@@ -1,4 +1,5 @@
-"""One generation: read the input once, calculate everything, render, and publish all files or none."""
+"""One generation: read the input once, calculate the stages its 出力項目 choose (decision 72), render, and publish all
+files or none."""
 
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ from pathlib import Path
 import pytest
 from gridlayoutpdf import FontError, LayoutError
 
-from pipeline_support import Recorder, copy_input, fake_registry, tree
+from pipeline_support import LONGITUDINAL, Recorder, choose, copy_input, fake_registry, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import canonical_sha256, load_json, sha256
 from webpier.pipeline import generate, publication
@@ -47,6 +48,10 @@ class Env:
     def generate(self, **changes):
         return generate.generate(self.options(**changes), registry=self.registry)
 
+    def choose(self, *items: str) -> None:
+        """Have the input choose only the 出力項目 *items* (decision 72)."""
+        choose(self.input, *items)
+
     def files(self) -> dict[str, bytes]:
         return {**{f"output/{k}": v for k, v in tree(self.output).items()},
                 **{f"post/{k}": v for k, v in tree(self.post).items()}}
@@ -64,7 +69,7 @@ def env(tmp_path, monkeypatch):
     return Env(tmp_path, monkeypatch)
 
 
-def test_all_publishes_every_report_and_every_export_with_its_sidecar(env):
+def test_the_chosen_items_publish_every_report_and_every_export_with_its_sidecar(env):
     generation = env.generate()
     assert generation.stages == ("A", "B", "C")
     assert sorted(env.files()) == sorted(
@@ -84,18 +89,26 @@ def test_no_export_is_written_only_on_request(env):
         env.options(opt_in=frozenset({"jrsnap"}))
 
 
-def test_the_default_stage_is_all(env):
-    assert GenerationOptions(env.input, env.output, env.post).stage == "all"
+@pytest.mark.parametrize("name,value", [("stage", "A"), ("frame_analysis", True), ("nonlinear_analysis", True)])
+def test_no_option_chooses_stages(env, name, value):
+    """Decision 72 (ADR-0011): the input's 出力項目 alone choose the stages."""
+    with pytest.raises(TypeError):
+        env.options(**{name: value})
 
 
-def test_one_stage_calculates_its_dependencies_but_publishes_only_itself(env):
-    generation = env.generate(stage="C")
-    assert env.recorder.actions("calculate") == ["A", "B", "C"]
-    assert env.recorder.actions("render") == ["C"]
-    assert env.recorder.actions("export") == ["C"]
-    assert sorted(env.files()) == ["output/C_地震.json", "output/C_地震.pdf",
-                                   "post/model.ndu", "post/model.ndu.provenance.json"]
-    assert set(generation.results) == {"A", "B", "C"}
+def test_only_the_stages_of_the_chosen_items_are_calculated_and_published(env):
+    """Decision 72: an item is chosen with every item it uses, so its stages are all the generation calculates."""
+    env.choose("ground_model")
+    generation = env.generate()
+    assert generation.stages == ("A",) and set(generation.results) == {"A"}
+    assert (env.recorder.actions("calculate"), env.recorder.actions("export"), env.recorder.actions("render")) == (
+        ["A"], [], ["A"])
+    assert sorted(env.files()) == ["output/A_基礎.json", "output/A_基礎.pdf"]
+    env.choose(*LONGITUDINAL)
+    generation = env.generate(overwrite=True)
+    assert generation.stages == ("A", "B")
+    assert sorted(env.files()) == ["output/A_基礎.json", "output/A_基礎.pdf", "output/B_荷重.json",
+                                   "output/B_荷重.pdf", "post/frame.json", "post/frame.json.provenance.json"]
 
 
 def test_every_calculation_and_export_succeeds_before_any_report_is_rendered(env):
@@ -134,7 +147,8 @@ def test_an_export_input_error_stops_before_rendering_and_writes_nothing(env):
 
 
 def test_the_result_json_binds_the_input_bytes_and_the_implementation(env):
-    env.generate(stage="B")
+    env.choose(*LONGITUDINAL)
+    env.generate()
     document = load_json(env.files()["output/B_荷重.json"])
     assert document == {
         "schema_version": 1, "stage": "B",
@@ -163,11 +177,17 @@ def test_the_sidecar_lists_the_whole_generation_with_relative_names(env):
     assert other["artifacts"] == sidecar["artifacts"] and other["export"] == "frameweb"
 
 
-def test_invalid_selection_is_rejected_before_reading_the_input(env, monkeypatch):
-    monkeypatch.setattr(Path, "read_bytes", lambda self: pytest.fail("input read"))
-    with pytest.raises(InputError, match="計算段階が不正です: D"):
-        env.generate(stage="D")
-    assert env.recorder.log == []
+@pytest.mark.parametrize("items,message", [
+    (("longitudinal",), "outputs.longitudinal: outputs.ground_model・outputs.reactions も true が必要です"),
+    (("ground_model", "longitudinal_seismic"), "outputs.longitudinal_seismic: outputs.longitudinal も true が必要です"),
+    ((), r"outputs: 出力項目が選ばれていません"),
+])
+def test_an_invalid_choice_of_items_is_rejected_before_anything_is_calculated(env, items, message):
+    """Decision 72: an item needs every item it uses, and at least one item is chosen."""
+    env.choose(*items)
+    with pytest.raises(InputError, match=message):
+        env.generate()
+    assert env.recorder.log == [] and env.files() == {}
 
 
 @pytest.mark.parametrize("text,message", [
@@ -272,17 +292,20 @@ def test_existing_outputs_need_overwrite_and_are_checked_before_calculating(env)
     assert env.files()["post/frame.json"] == b'{"B": 1}\n'
 
 
-def test_outputs_of_other_stages_are_left_alone(env):
-    old = env.write_old("output/A_基礎.pdf", "post/frame.json")
-    env.generate(stage="C")
+def test_outputs_of_the_items_not_chosen_are_left_alone(env):
+    """Decision 72: a generation never touches the files of the items it does not choose."""
+    old = env.write_old("output/C_地震.pdf", "post/model.ndu")
+    env.choose(*LONGITUDINAL)
+    env.generate()
     files = env.files()
-    assert files["output/A_基礎.pdf"] == old["output/A_基礎.pdf"]
-    assert files["post/frame.json"] == old["post/frame.json"]
+    assert files["output/C_地震.pdf"] == old["output/C_地震.pdf"]
+    assert files["post/model.ndu"] == old["post/model.ndu"]
+    assert "post/model.ndu.provenance.json" not in files
 
 
 def test_the_input_cannot_be_an_output(env):
     env.input.rename(env.input.parent / "A_基礎.json")
-    options = generate.GenerationOptions(env.input.parent / "A_基礎.json", env.input.parent, env.post, stage="A")
+    options = generate.GenerationOptions(env.input.parent / "A_基礎.json", env.input.parent, env.post)
     with pytest.raises(OSError, match="入力ファイルと出力ファイルを同じパスにはできません"):
         generate.generate(options, registry=env.registry)
 
@@ -330,7 +353,8 @@ def test_a_published_file_changed_before_commit_is_rolled_back(env, monkeypatch)
 
 
 def test_a_prepared_generation_publishes_only_once_and_only_while_held(env):
-    with prepare(env.options(stage="A"), registry=env.registry) as candidate:
+    env.choose("ground_model")
+    with prepare(env.options(), registry=env.registry) as candidate:
         assert candidate.staged("A.pdf").read_bytes() == b"%PDF A ()"
         candidate.publish()
         assert candidate.published
@@ -347,7 +371,8 @@ def test_a_prepared_generation_that_is_not_published_leaves_nothing(env):
 
 
 def test_held_staged_files_must_not_change(env):
-    with prepare(env.options(stage="A"), registry=env.registry) as candidate:
+    env.choose("ground_model")
+    with prepare(env.options(), registry=env.registry) as candidate:
         candidate.staged("A.pdf").write_bytes(b"edited")
         with pytest.raises(GenerationError, match="一時領域の成果物が変更されています: A.pdf"):
             candidate.publish()
@@ -355,7 +380,8 @@ def test_held_staged_files_must_not_change(env):
 
 
 def test_no_extra_file_may_appear_in_staging(env):
-    with prepare(env.options(stage="A"), registry=env.registry) as candidate:
+    env.choose("ground_model")
+    with prepare(env.options(), registry=env.registry) as candidate:
         (candidate.staged("A.pdf").parent / "extra.txt").write_bytes(b"x")
         with pytest.raises(GenerationError, match="一時領域のファイル集合が変更されています"):
             candidate.verify()

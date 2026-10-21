@@ -11,22 +11,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 すべてリポジトリのルートで、`uv` の `--locked` 環境を使う。
 
 ```powershell
-# 計算・PDF生成（既定は --stage all。既存成果物の更新には --overwrite）
+# 計算・PDF生成（既存成果物の更新には --overwrite）。作る計算書は入力の出力項目 outputs（12の true/false）だけで決まり、段階やスイッチの引数はない（決定72、ADR-0011。webpier/inputs/outputs.py・stages.py の OUTPUT_STAGES）
+# 項目は、使う項目がすべて true のときだけ true にできる（違反と全 false は入力エラー）。選ばなかった項目の成果物は前回のまま残る
 uv run --project "." --locked python -m webpier --overwrite
-uv run --project "." --locked python -m webpier --stage 0610 --overwrite   # 0500/0600/0610/0611/0612/0620/0621/0622/0710/0711/0720/0721/0800/0810/0820/0900/0910/all
-# 0610/0620 は FrameWeb入力、0710/0720 は JRSNAP入力（NDU）も常に post/ に出力する
-# 骨組解析（0611/0612/0621/0622、選択式。all には含まれない。決定46・54。同じ FrameWeb 入力の解析は1回）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
+# ground_model=0500、reactions=0600、longitudinal=0610、transverse=0620：0610/0620 は FrameWeb入力も常に post/ に出力する
+# longitudinal_seismic=0710、transverse_seismic=0720：JRSNAP入力（NDU）も常に post/ に出力する
+# longitudinal_frame_analysis=0611・0612、transverse_frame_analysis=0621・0622（骨組解析。決定46・54。同じ FrameWeb 入力の解析は1回）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
 # 0611・0621 はそのピックアップで柱の断面照査も Capacita で行い、計算書（8.5〜8.9・9.5〜9.9）と post/線路方向.wdj・post/線路直角方向.wdj を出力する（決定48）
 # 0612・0622 は同じ解析の支点反力で基礎の照査を WebPier で行い、計算書（8.10・9.10）を出力する（決定54）
-uv run --project "." --locked python -m webpier --stage all --frame-analysis --overwrite
-# 静的非線形解析（0711・0721、選択式。別スイッチ。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）。その XML で Aggre-SE の runner が照査した report.pdf をバイト列のまま 0711・0721 の計算書にし（決定56、ADR-0009。見出しや節の番号は足さない）、同じ呼び出しのピックアップ・総括表・直接基礎のステップ表を post/線路方向_Aggre-SE.pik・.xlsx・_直接基礎.csv（線路直角方向も同じ）に出力する（決定57・58・60）
-# 0900・0910 も同じスイッチの段階（決定59）：0900 は 0600 の結果と 0711・0721 の Aggre-SE の総括表（最大応答震度）から片持ち梁の応答値と 31 ケースの組合せを求め、0910 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（13.3〜13.6）と post/片持ち梁.wdj を出力する
-# 0800・0810・0820 は --frame-analysis と --nonlinear-analysis の両方を付けたときだけ all に入る（決定60）：0800 は 0612・0622 の反力 CSV と 0711・0721 の直接基礎のステップ表からフーチングの応答値（12.1、両方向）を求め、0810・0820 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（12.2〜12.4／12.5〜12.7）と post/線路方向フーチング.wdj・post/線路直角方向フーチング.wdj を出力する
-uv run --project "." --locked python -m webpier --stage all --nonlinear-analysis --overwrite
+# longitudinal_nonlinear_analysis=0711、transverse_nonlinear_analysis=0721（静的非線形解析。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）。その XML で Aggre-SE の runner が照査した report.pdf をバイト列のまま 0711・0721 の計算書にし（決定56、ADR-0009。見出しや節の番号は足さない）、同じ呼び出しのピックアップ・総括表・直接基礎のステップ表を post/線路方向_Aggre-SE.pik・.xlsx・_直接基礎.csv（線路直角方向も同じ）に出力する（決定57・58・60）
+# cantilever=0900・0910（両方向の静的非線形解析が要る。決定59）：0900 は 0600 の結果と 0711・0721 の Aggre-SE の総括表（最大応答震度）から片持ち梁の応答値と 31 ケースの組合せを求め、0910 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（13.3〜13.6）と post/片持ち梁.wdj を出力する
+# footing=0800・0810・0820（両方向の骨組解析と静的非線形解析が要る。決定60）：0800 は 0612・0622 の反力 CSV と 0711・0721 の直接基礎のステップ表からフーチングの応答値（12.1、両方向）を求め、0810・0820 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（12.2〜12.4／12.5〜12.7）と post/線路方向フーチング.wdj・post/線路直角方向フーチング.wdj を出力する
 # run_design.py は python -m webpier と同じ
 
 # headless runner（structural-mcp が起動する。決定61、webpier/pipeline/headless.py）：stdout は protocol v1 の envelope 1つ。runner は環境変数だけ（.env を読まない）
-.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --stage 0612   # validate / contract / schema も
+.venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー>   # validate / contract / schema も。summary.outputs に選んだ項目
 # 荷重モデルのアドイン（決定70、ADR-0010）：CLI・headless の全コマンドに --addin <フォルダー>。付けなければ列車荷重（成果物は変わらない）。失敗は ADDIN_ERROR
 .venv\Scripts\python.exe -X utf8 .\run_headless.py run --input pre\input.json --output-dir <空のフォルダー> --addin tests\fixtures\addin\minimal
 
@@ -63,7 +62,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・MS P�
 - `reporting`: GridLayoutPdf で組む帳票（`reporting/stages/`）。工学計算をここに置かない。
 - `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）、`aggrese`（Aggre-SE のプロジェクトXML。Aggre-SE が保存する書式どおりで、宣言は utf-16・中身は Shift-JIS）。
 - `pipeline`: 段階の登録表、生成、公開、CLI。アドインの読み込み（`addin.py`、importlib はここだけ）と、荷重モデルの段階の表 `stages_for`（0600・0610・0620・0710・0711・0720・0721・0900 を汎用のものに替え、残りは共有）。
-- `gui`: 入力エディタ。「計算・印刷」は pipeline を子プロセス（`python -m webpier`）で実行し、付帯JSONで結果を確かめる。
+- `gui`: 入力エディタ（01 下部構造〜05 鉄筋、06 JRSNAPの設定、07 計算・印刷）。「計算・印刷」は出力項目のチェックを入力の `outputs` に書き、pipeline を子プロセス（`python -m webpier`）で実行し、付帯JSONで結果を確かめる。
 
 ### 段階の登録表と一括公開
 段階の依存・計算・帳票・成果物・外部出力は `webpier/pipeline/stages.py` の `StageSpec` 1か所に定義し、段階ごとの分岐を他に書かない。他のプログラムのページ（FEMPython の荷重図、Capacita の節、JRSNAP のデータ確認図と荷重図）は `webpier/reporting/stages/insertion.py` の1つの仕組みで差し込み、`render` は全段階で `(results, pier, path, pages)` を受け取る（`pages` はページの名前からページへの対応で、各エンジンの pipeline のモジュールが作る）。生成は `webpier/pipeline/generate.py`。

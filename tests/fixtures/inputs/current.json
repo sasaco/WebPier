@@ -598,5 +598,19 @@
     "analysis_steps": 350,
     "limited_final_step": 300,
     "target_displacement_m": 0.35
+  },
+  "outputs": {
+    "ground_model": true,
+    "reactions": true,
+    "longitudinal": true,
+    "longitudinal_frame_analysis": false,
+    "transverse": true,
+    "transverse_frame_analysis": false,
+    "longitudinal_seismic": true,
+    "longitudinal_nonlinear_analysis": false,
+    "transverse_seismic": true,
+    "transverse_nonlinear_analysis": false,
+    "footing": false,
+    "cantilever": false
   }
 }

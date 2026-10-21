@@ -54,7 +54,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - 基本ケースの番号は作ったケースの順（`SeismicAction.number`）。`SeismicCase` の値は雪のあるときの番号で、番号に使わない。検証器は `LoadTitle` が profile の名前の順（雪荷重を抜いた順も可）であることを確かめる。
 - いまの WebPier の NDT では `NDT_REJECTED`（要素荷重の2つの値がともに0の行）は起きない（JRSNAP が0にするのは、いまは節点荷重だけ）。
 - 受入：`scripts/accept_jrsnap_figures.py`（本物の runner、5.2-L03。記録 `tests/fixtures/acceptance/jrsnap_figures/record.json`、テスト `tests/acceptance/test_jrsnap_figures_acceptance.py`）。0710 は8ページ・0720 は9ページが CASE の順、A4縦・色の画素0・ページ番号なし、0720 の CASE-5・CASE-6 の両方に 480（`480.000`）を確かめた（2026-10-18）。生成する NDU か「基本ケース → 組合せ」が変わると `tests/acceptance` が失敗するので、`--overwrite` を付けてやり直す。
-- 計算書の確かめ方（本物の runner で `--stage 0710`・`0720` を作り直した後）：`uv run --no-project --with pypdfium2 --with pillow python -X utf8 …` でページごとの文字を取り出し、並びを見る。2026-10-18 の `pre/input.json` では、0710 は17ページ（1〜2 10.1、3〜7 データ確認図、8 10.2 の末尾に「10.3 荷重図」、9〜16 CASE-1〜8、17 「10.4 作用の組合せ」）、0720 は19ページ（8〜9 11.2 で9の末尾に「11.3 荷重図」、10〜18 CASE-1〜9、19 「11.4」）。組合せ2から取った 0720 の CASE-6 だけ、ヘッダーの名前が組合せ2の NDT（`『線路直角方向(Case2_…)』`）になる。見出しのページと 10.4・11.4 の改ページは、150dpi の PNG にして目でも確かめる。
+- 計算書の確かめ方（本物の runner で 0710・0720（出力項目 `longitudinal_seismic`・`transverse_seismic`）を作り直した後）：`uv run --no-project --with pypdfium2 --with pillow python -X utf8 …` でページごとの文字を取り出し、並びを見る。2026-10-18 の `pre/input.json` では、0710 は17ページ（1〜2 10.1、3〜7 データ確認図、8 10.2 の末尾に「10.3 荷重図」、9〜16 CASE-1〜8、17 「10.4 作用の組合せ」）、0720 は19ページ（8〜9 11.2 で9の末尾に「11.3 荷重図」、10〜18 CASE-1〜9、19 「11.4」）。組合せ2から取った 0720 の CASE-6 だけ、ヘッダーの名前が組合せ2の NDT（`『線路直角方向(Case2_…)』`）になる。見出しのページと 10.4・11.4 の改ページは、150dpi の PNG にして目でも確かめる。
 - 見本 `.claude/docs/Example橋脚2/10_線路(耐震).pdf` の 10.3（10-9〜10-11）は、Excel で描いた図（1ページに2〜3ケース）で、その体裁は再現しない。
 - 詳細と進み具合は `.claude/docs/plans/jrsnap-load-diagram-plan.md` と `refactoring-decisions.md` の決定51。
 

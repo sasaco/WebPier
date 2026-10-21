@@ -1,9 +1,8 @@
 """Acceptance of the 0800 / 0810 / 0820 フーチングの照査 with the real runners (decision 60).
 
-A whole generation with both switches is prepared, not published, in a temporary folder from
-tests/fixtures/inputs/current.json (the Example2 input) with the sample's footing bars (12_フーチング.pdf 255・258:
-D25@125 中心 100、D29@125 中心 127、D16 2本/m@250、SD390、f'ck 27), as ``python -m webpier --frame-analysis
---nonlinear-analysis`` runs it: the real FrameWebforCS.Headless analyzes the 0610 / 0620 frames, JRSNAP.Headless the
+A whole generation of every 出力項目 but the cantilever (decision 72) is prepared, not published, in a temporary folder
+from tests/fixtures/inputs/current.json (the Example2 input) with the sample's footing bars (12_フーチング.pdf 255・258:
+D25@125 中心 100、D29@125 中心 127、D16 2本/m@250、SD390、f'ck 27), as ``python -m webpier`` runs it: the real FrameWebforCS.Headless analyzes the 0610 / 0620 frames, JRSNAP.Headless the
 0710 / 0720 NDUs, AggreSE.Headless checks them and returns the step tables, and WebDanforCS.Headless checks the two
 footing WDJs. Recorded in tests/fixtures/acceptance/footing/record.json and compared:
 
@@ -39,6 +38,7 @@ sys.path.insert(0, str(PROJECT))
 
 from webpier.core.integrity import canonical_sha256, dump_json, load_json, sha256  # noqa: E402
 from webpier.pipeline import aggrese, capacita, fempython, generate, jrsnap  # noqa: E402
+from webpier.inputs.outputs import OUTPUT_KEYS  # noqa: E402
 from webpier.pipeline.generate import GenerationOptions  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
 
@@ -74,14 +74,18 @@ class AcceptanceError(RuntimeError):
     """The acceptance did not hold; no record is written."""
 
 
-def footing_input(directory: Path) -> Path:
-    """current.json with the sample's footing bars, written as the generation's input."""
+def footing_input(directory: Path) -> tuple[Path, bytes]:
+    """current.json with the sample's footing bars, written as the generation's input with every 出力項目 but the
+    cantilever; and the recorded input, the same without the 出力項目 (no condition of the calculation, ADR-0011)."""
     data = load_json((PROJECT / INPUT).read_bytes())
+    del data["outputs"]
     data["鉄筋"]["フーチング"] = FOOTING
+    recorded = dump_json(data)
+    data["outputs"] = {key: key != "cantilever" for key in OUTPUT_KEYS}
     directory.mkdir(parents=True)
     path = directory / "input.json"
     path.write_bytes(dump_json(data))
-    return path
+    return path, recorded
 
 
 def _after(lines: list[str], label: str) -> str:
@@ -138,9 +142,8 @@ def main() -> int:
                "aggrese": aggrese.runner_path(), "capacita": capacita.runner_path()}
     with tempfile.TemporaryDirectory(prefix="webpier-accept-footing-") as temp:
         root = Path(temp)
-        source = footing_input(root / "pre")
-        options = GenerationOptions(source, root / "output", root / "post", frame_analysis=True,
-                                    nonlinear_analysis=True)
+        source, input_bytes = footing_input(root / "pre")
+        options = GenerationOptions(source, root / "output", root / "post")
         with generate.prepare(options) as candidate:
             result = candidate.results["0800"]
             given = {stage: candidate.staged(f"{stage}.wdj").read_bytes() for stage in ("0810", "0820")}
@@ -155,8 +158,7 @@ def main() -> int:
                        "steps": {name: sha256(candidate.staged(f"{stage}.steps").read_bytes())
                                  for stage, name in (("0711", "線路方向_Aggre-SE_直接基礎.csv"),
                                                      ("0721", "線路直角方向_Aggre-SE_直接基礎.csv"))}}
-            input_sha256 = candidate.input_sha256
-            input_bytes = source.read_bytes()
+            input_sha256 = sha256(input_bytes)
     failures: list[str] = []
     directions = {}
     for direction, (key, page, compared, seismic_page, stage, name) in DIRECTIONS.items():
@@ -176,7 +178,7 @@ def main() -> int:
     record = {
         "schema_version": 1, "kind": "footing_acceptance",
         "verified_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "method": ("current.json に見本の配筋（鉄筋.フーチング）を足した入力で --frame-analysis --nonlinear-analysis の生成を"
+        "method": ("current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を"
                    "本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達"
                    "ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。"),
         "input": {"path": INPUT, "footing_bars": FOOTING, "file": "input.json", "sha256": input_sha256},

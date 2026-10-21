@@ -1,4 +1,4 @@
-"""The input sheets 下部構造・上部構造・地盤データ, laid out like the original input forms.
+"""The input sheets 下部構造・上部構造・地盤データ・JRSNAPの設定, laid out like the original input forms.
 
 Derived values are not inputs and have no cells: the unit weight of the displaced soil is calculated and printed
 by 0710 / 0720, and each bearing position f is entered on both sides. The 表層 thickness may stay blank: it is
@@ -12,6 +12,7 @@ import copy
 from tkinter import messagebox, ttk
 from typing import Any
 
+from ..export.jrsnap import LONGITUDINAL, TRANSVERSE
 from ..inputs.choices import LAYER_SUPPORT, LAYER_SURFACE
 from . import bearings
 from .document import EditorError
@@ -198,3 +199,21 @@ def soil_change(form: Form, action: str) -> bool:
     editor.soil_selected = index
     editor.rebuild()
     return True
+
+
+JRSNAP_ROWS = (("shear_factor_vcd", "部材係数 γb（Vcd）"), ("shear_factor_vsd", "部材係数 γb（Vsd）"),
+               ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("analysis_steps", "解析のステップ数"),
+               ("limited_final_step", "限定増分の最終ステップ"), ("target_displacement_m", "目標変位（大きさ）"))
+
+
+def jrsnap(form: Form) -> None:
+    """The JRSNAP conditions of each direction, written into its NDU by 0710 / 0720 (decision 72 moved them here)."""
+    body = form.section("JRSNAP 5.2-L03", note="線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと"
+                        "線路直角方向の全項目が必要です。空欄は補いません。")
+    for profile, direction in ((LONGITUDINAL, "線路方向（0710）"), (TRANSVERSE, "線路直角方向（0720）")):
+        box = ttk.LabelFrame(body, text=direction, padding=8)
+        box.pack(side="left", anchor="n", padx=(0, 8))
+        form.properties(box, [((f"jrsnap_{profile.jrsnap}", key), label) for key, label in JRSNAP_ROWS],
+                        widths=[220, 110, 60])
+        ttk.Label(box, text=f"目標変位の向き：{profile.earthquake_text}（地震の向き。自動で決めます）",
+                  style="Muted.TLabel").pack(anchor="w")

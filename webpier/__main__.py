@@ -1,4 +1,4 @@
-"""Run with: uv run --project . --locked python -m webpier [--stage all] [--overwrite]"""
+"""Run with: uv run --project . --locked python -m webpier [--overwrite] (the input's outputs choose the reports)"""
 
 from webpier.pipeline.cli import main
 

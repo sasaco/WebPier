@@ -2,7 +2,8 @@
 where the PDF does (plan glp-0.2.0-grid, 2026-10-21).
 
 The workbook is an output, ``export/<stem>.xlsx``, one sheet a report; 0711 and 0721 have none (their report is
-Aggre-SE's). Each stage is generated alone as the CLI does (stand-in runners), with the documents the generation writes
+Aggre-SE's). Each stage is generated as the CLI does from an input choosing its 出力項目 with the items it uses
+(decision 72; stand-in runners), with the documents the generation writes
 recorded; the tests check that the published workbook is the one written here strictly from those documents, and the
 one compared with Excel. The stages of a load model (decision 70) are generated with the test add-in.
 """
@@ -19,7 +20,8 @@ import pytest
 from grid_excel_support import ROOT, accepted_failures, compare_with_excel, comparison
 from webpier.pipeline import generate as generate_module
 from webpier.pipeline.generate import GenerationOptions, generate
-from webpier.pipeline.stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES
+from webpier.inputs.outputs import OUTPUT_KEYS, uses
+from webpier.pipeline.stages import STAGES
 from webpier.reporting.workbook import grid_pages, write_workbook
 
 _SPEC = importlib.util.spec_from_file_location("grid_excel_pipeline_support",
@@ -28,8 +30,7 @@ _PIPELINE = sys.modules.setdefault(_SPEC.name, importlib.util.module_from_spec(_
 _SPEC.loader.exec_module(_PIPELINE)
 ADDIN = ROOT / "tests" / "fixtures" / "addin" / "minimal"
 GENERIC = ("0600", "0610", "0620", "0710", "0720", "0900")  # the stages a load model replaces (decision 70)
-TRAIN = tuple(stage for stage in STAGES.select(ALL, switches=frozenset({FRAME_ANALYSIS, NONLINEAR_ANALYSIS}))
-              if STAGES.get(stage).grid_documents is not None)
+TRAIN = tuple(stage.id for stage in STAGES.stages if stage.grid_documents is not None)
 CASES = (*(("train", stage) for stage in TRAIN), *(("addin", stage) for stage in GENERIC))
 IDS = [f"{model}-{stage}" for model, stage in CASES]
 
@@ -44,7 +45,10 @@ def generations(tmp_path_factory):
             root = tmp_path_factory.mktemp(f"{model}-{stage}")
             source = root / "pre" / "input.json"  # current.json with the sample's footing bars (0800〜0820)
             source.parent.mkdir()
-            source.write_text(json.dumps(_PIPELINE.footing_document(), ensure_ascii=False, indent=2), encoding="utf-8")
+            document = _PIPELINE.footing_document()
+            item = STAGES.item(stage)  # the stage's 出力項目 with the items it uses (decision 72)
+            document["outputs"] = _PIPELINE.outputs(*(key for key in OUTPUT_KEYS if key == item or key in uses(item)))
+            source.write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
             written: dict[str, list] = {}
             original = generate_module.write_workbook
 
@@ -52,7 +56,7 @@ def generations(tmp_path_factory):
                 written[sheet] = list(documents)
                 return original(documents, path, sheet)
 
-            options = GenerationOptions(source, root / "output", root / "post", stage=stage,
+            options = GenerationOptions(source, root / "output", root / "post",
                                         addin=ADDIN if model == "addin" else None)
             with pytest.MonkeyPatch.context() as patch:
                 patch.setattr(generate_module, "write_workbook", record)

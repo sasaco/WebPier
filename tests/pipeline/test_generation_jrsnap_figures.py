@@ -14,7 +14,7 @@ import pymupdf
 import pytest
 from pypdf import PdfReader
 
-from pipeline_support import CURRENT, Recorder, copy_input, tree
+from pipeline_support import CURRENT, Recorder, choose, copy_input, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
@@ -40,7 +40,7 @@ def registry(recorder: Recorder, pages: list) -> Registry:
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), render,
                   (Export("jrsnap", "pier.ndu", recorder.export("B", NDU)),),
                   jrsnap_figures=JrsnapFigures("jrsnap", lambda results, pier: CASES)),
-    ))
+    ), outputs={"ground_model": ("A",), "longitudinal": ("B",)})
 
 
 def published(options: GenerationOptions) -> list[Path]:
@@ -110,26 +110,27 @@ def test_a_stage_without_figures_needs_no_jrsnap_runner_and_takes_no_pages(env, 
         rendered.append(drawn)
         Path(path).write_bytes(b"%PDF A")
 
-    plain = Registry((StageSpec("A", "A_基礎", (), Recorder().calculate("A"), render),))
-    generate.generate(GenerationOptions(options.input_path, options.output_dir, options.post_dir, stage="A"),
-                      registry=plain)
+    plain = Registry((StageSpec("A", "A_基礎", (), Recorder().calculate("A"), render),),
+                     outputs={"ground_model": ("A",)})
+    choose(Path(options.input_path), "ground_model")
+    generate.generate(options, registry=plain)
     assert rendered == [{}]
-    generate.generate(GenerationOptions(options.input_path, options.output_dir, options.post_dir, stage="A",
-                                        overwrite=True), registry=stages)
+    generate.generate(GenerationOptions(options.input_path, options.output_dir, options.post_dir, overwrite=True),
+                      registry=stages)
     assert pages == []
     assert sorted(tree(Path(options.output_dir))) == ["A_基礎.json", "A_基礎.pdf"]
 
 
 @pytest.mark.parametrize("setting,message", [("", "JRSNAP の runner が設定されていません"),
                                              ("C:/missing/runner.exe", "ありません")])
-def test_without_a_runner_nothing_is_read_or_published(env, monkeypatch: pytest.MonkeyPatch, setting, message):
-    options, stages, pages = env
+def test_without_a_runner_nothing_is_calculated_or_published(env, monkeypatch: pytest.MonkeyPatch, setting, message):
+    """The input is read for its 出力項目 (decision 72); the runners are looked up before anything is calculated."""
+    options, _, pages = env
+    recorder = Recorder()
     monkeypatch.setenv(jrsnap.RUNNER_KEY, setting)
-    read = []
-    monkeypatch.setattr(generate, "parse_input", lambda data: read.append(data))
     with pytest.raises(GenerationError, match=message):
-        generate.generate(options, registry=stages)
-    assert read == [] and pages == [] and published(options) == []
+        generate.generate(options, registry=registry(recorder, pages))
+    assert recorder.log == [] and pages == [] and published(options) == []
 
 
 @pytest.mark.parametrize("mode,message", [("fail", "UNKNOWN_DIALOG"), ("pages", r"load-diagram-2\.pdf のページが")])
@@ -157,7 +158,7 @@ def test_the_figures_must_name_an_export_of_a_stage_with_a_report(spec, message)
     recorder = Recorder()
     fields = {"render": recorder.render("A"), **spec}
     with pytest.raises(ValueError, match=message):
-        Registry((StageSpec("A", "A_x", (), recorder.calculate("A"), **fields),))
+        Registry((StageSpec("A", "A_x", (), recorder.calculate("A"), **fields),), outputs={"ground_model": ("A",)})
 
 
 def test_only_0710_and_0720_take_the_figures_of_their_ndu(pier):
@@ -205,14 +206,16 @@ def _page_order(path: Path, ndu: Path, chapter: int, cases: tuple[tuple[int, int
     assert texts[after + len(cases)].startswith(f"{chapter}.4 ")
 
 
-@pytest.mark.parametrize("stage,stem,ndu,chapter", [("0710", "0710_線路方向荷重", "線路方向.ndu", 10),
-                                                    ("0720", "0720_線路直角方向荷重", "線路直角方向.ndu", 11)])
+@pytest.mark.parametrize("stage,stem,ndu,chapter,direction", [
+    ("0710", "0710_線路方向荷重", "線路方向.ndu", 10, "longitudinal"),
+    ("0720", "0720_線路直角方向荷重", "線路直角方向.ndu", 11, "transverse")])
 def test_the_report_has_the_figures_of_the_published_ndu_where_they_go(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-                                                                       pier, stage, stem, ndu, chapter):
+                                                                       pier, stage, stem, ndu, chapter, direction):
     """The real registry, with the stand-in runners: JRSNAP's pages are those of the NDU published with the report."""
     monkeypatch.setattr(fempython, "ENV_FILE", tmp_path / ".env")
     monkeypatch.setattr(jrsnap, "ENV_FILE", tmp_path / ".env")
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post", stage=stage)
+    items = ("ground_model", "reactions", direction, f"{direction}_seismic")
+    options = GenerationOptions(copy_input(tmp_path / "pre", *items), tmp_path / "output", tmp_path / "post")
     generate.generate(options)
     _page_order(Path(options.output_dir) / f"{stem}.pdf", Path(options.post_dir) / ndu, chapter,
                 figure_cases(pier, stage))

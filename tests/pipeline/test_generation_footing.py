@@ -1,6 +1,6 @@
-"""The generation mechanics of decision 60: a stage that opts into both switches finishes its result with the files
-of the frame analyses and of the seismic checks of its dependencies (``seismic_file``: "<stage>/<kind>"), after every
-runner ran and before any report; all includes it only with both switches.
+"""The generation mechanics of decision 60: a stage that reads both analyses finishes its result with the files of the
+frame analyses and of the seismic checks of its dependencies (``seismic_file``: "<stage>/<kind>"), after every runner
+ran and before any report; its 出力項目 is chosen only with the items of both analyses (decision 72).
 
 The analyses and checks are the stand-ins' (tests/fixtures/fempython, jrsnap, aggrese)."""
 
@@ -12,16 +12,18 @@ from pathlib import Path
 
 import pytest
 
-from pipeline_support import Recorder, copy_input, fake_reactions, footing_input, tree
+from pipeline_support import SEISMIC, Recorder, choose, copy_input, fake_reactions, footing_input, tree
 from webpier.calc.footing import StepsError
 from webpier.calc.foundation_check import ReactionError
+from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.export.aggrese import databases
+from webpier.inputs.outputs import OUTPUT_KEYS
 from webpier.pipeline import aggrese, fempython, generate, jrsnap
 from webpier.pipeline.generate import GenerationError, GenerationOptions
 from webpier.pipeline.generate import planned
-from webpier.pipeline.stages import (FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Export, FrameAnalysis,
-                                     NonlinearAnalysis, Project, Registry, SeismicCheck, StageSpec, seismic_file)
+from webpier.pipeline.stages import (STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project, Registry, SeismicCheck,
+                                     StageSpec, seismic_file)
 from webpier.reporting.stages.seismic_check import render_seismic_check
 
 FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}}, "node": {"1": {}, "2": {}},
@@ -29,6 +31,10 @@ FRAMEWEB = json.dumps({"dimension": 2, "load": {"1": {}}, "node": {"1": {}, "2":
 PICKUPS = (("pik", "frame.pik"), ("displacement", "frame_変位量.csv"), ("reaction", "frame_反力.csv"))
 NDU = b"Virsion=5.2.3.S.4\r\n"
 FOLDER = "model_JRSNAP"
+# The items of the fake stages (decision 72): F, the footing, uses the items of D and E (and of both directions).
+OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_frame_analysis": ("D",),
+           "longitudinal_seismic": ("C",), "longitudinal_nonlinear_analysis": ("E",), "footing": ("F",)}
+FOOTING = tuple(key for key in OUTPUT_KEYS if key != "cantilever")  # footing with every item it uses
 FILES = (("pik", "model_Aggre-SE.pik"), ("xlsx", "model_Aggre-SE.xlsx"), ("steps", "model_Aggre-SE_直接基礎.csv"))
 
 
@@ -57,18 +63,17 @@ def registry(recorder: Recorder, complete_f=None) -> Registry:
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), recorder.render("B"),
                   (Export("frameweb", "frame.json", recorder.export("B", FRAMEWEB)),)),
-        StageSpec("D", "D_照査", ("B",), opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
+        StageSpec("D", "D_照査", ("B",), frame_analysis=FrameAnalysis("B", "frameweb", PICKUPS)),
         StageSpec("C", "C_地震", ("A",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", NDU)),)),
         StageSpec("E", "E_解析", ("C",), render=lambda results, pier, path, pages: render_seismic_check(path, pages),
-                  opt_in=NONLINEAR_ANALYSIS,
                   nonlinear_analysis=NonlinearAnalysis(
                       "C", "jrsnap", "jrsnap", FOLDER,
                       Project("aggrese", "model.xml", lambda results, pier: project, {"target": "Aggre-SE"})),
                   seismic_check=SeismicCheck(FILES)),
         StageSpec("F", "F_フーチング", ("A", "B", "D", "E"), recorder.calculate("F"), recorder.render("F"),
-                  opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS), complete=finish_f),
-    ))
+                  complete=finish_f),
+    ), outputs=OUTPUTS)
 
 
 @pytest.fixture
@@ -77,8 +82,7 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for module in (fempython, jrsnap, aggrese):
         monkeypatch.setattr(module, "ENV_FILE", tmp_path / ".env")
     recorder = Recorder()
-    options = GenerationOptions(copy_input(tmp_path / "pre"), tmp_path / "output", tmp_path / "post",
-                                frame_analysis=True, nonlinear_analysis=True)
+    options = GenerationOptions(copy_input(tmp_path / "pre", *FOOTING), tmp_path / "output", tmp_path / "post")
     return options, recorder
 
 
@@ -100,15 +104,25 @@ def test_a_stage_finishes_with_the_files_of_the_analyses_and_the_checks_of_its_d
     assert result["result"]["read"] == list(keys)
 
 
-@pytest.mark.parametrize("switches,expected", [
-    ({}, ("A", "B", "C")), ({"frame_analysis": True}, ("A", "B", "D", "C")),
-    ({"nonlinear_analysis": True}, ("A", "B", "C", "E")),
+@pytest.mark.parametrize("analyses,expected", [
+    ((), ("A", "B", "C")), (("longitudinal_frame_analysis",), ("A", "B", "D", "C")),
+    (("longitudinal_nonlinear_analysis",), ("A", "B", "C", "E")),
 ])
-def test_all_leaves_the_stage_out_unless_both_switches_are_given(env, switches, expected):
+def test_the_stage_is_made_only_when_the_input_chooses_its_item(env, analyses, expected):
     options, recorder = env
-    options = GenerationOptions(**{**options.__dict__, "frame_analysis": False, "nonlinear_analysis": False,
-                                   **switches})
+    choose(Path(options.input_path), *SEISMIC, *analyses)
     assert generate.generate(options, registry=registry(recorder)).stages == expected
+
+
+def test_the_footing_is_chosen_only_with_both_analyses_of_both_directions(env):
+    """Decision 72: footing uses the frame analyses and the static nonlinear analyses of both directions."""
+    options, recorder = env
+    choose(Path(options.input_path), *SEISMIC, "longitudinal_frame_analysis", "longitudinal_nonlinear_analysis",
+           "footing")
+    with pytest.raises(InputError, match="outputs.footing: outputs.transverse_frame_analysis・"
+                                         "outputs.transverse_nonlinear_analysis も true が必要です"):
+        generate.generate(options, registry=registry(recorder))
+    assert recorder.log == [] and not Path(options.output_dir).exists()
 
 
 @pytest.mark.parametrize("error,message", [
@@ -134,17 +148,17 @@ def test_a_completion_that_cannot_read_the_dependencies_files_stops_the_generati
 @pytest.fixture(scope="module")
 def footing_generation(tmp_path_factory):
     root = tmp_path_factory.mktemp("footing")
-    source = footing_input(root / "pre")
-    options = GenerationOptions(source, root / "output", root / "post", frame_analysis=True, nonlinear_analysis=True)
+    source = choose(footing_input(root / "pre"), *OUTPUT_KEYS)
+    options = GenerationOptions(source, root / "output", root / "post")
     return root, options, generate.generate(options)
 
 
-def test_both_switches_add_the_footing_stages_with_their_reports_and_wdjs(footing_generation):
+def test_every_item_adds_the_footing_stages_with_their_reports_and_wdjs(footing_generation):
     """Decision 60 with the real registry: 0800 reads the reactions of 0612・0622 and the step tables of 0711・0721
     (the 地震時 column is the Case with the largest |M|: the stand-in adds 100 kN m per Case), 0810・0820 publish the
     WDJ WebPier wrote and record the check as not evaluated; 0800 has no engineering status of its own."""
     root, options, generation = footing_generation
-    assert generation.stages == STAGES.ids and planned(options) == generation.artifacts
+    assert generation.stages == STAGES.ids and planned(options, generation.stages) == generation.artifacts
     output, post = tree(root / "output"), tree(root / "post")
     for stem in ("0800_フーチング", "0810_線路方向フーチング照査", "0820_直角方向フーチング照査"):
         assert output[f"{stem}.pdf"].startswith(b"%PDF-")
@@ -166,18 +180,18 @@ def test_both_switches_add_the_footing_stages_with_their_reports_and_wdjs(footin
         assert check["result"]["seismic"]["column"] == "seismic" and check["result"]["safety"]["la"] > 0
 
 
-def test_a_footing_check_chosen_alone_brings_the_stages_whose_runners_it_reads(tmp_path):
-    """Decision 60 (owner 2026-10-19): --stage 0810 generates and publishes 0612・0622 (the frame analyses),
-    0711・0721 (the nonlinear analyses and seismic checks) and 0800 (the finished response values) with it; the plain
-    stages are only calculated, and nothing of 0611・0621・0820 is written."""
-    source = footing_input(tmp_path / "pre")
-    options = GenerationOptions(source, tmp_path / "output", tmp_path / "post", stage="0810")
+def test_the_footing_without_the_cantilever_makes_every_other_stage(tmp_path):
+    """Decision 72: footing chosen with every item it uses publishes the stages of those items with 0800〜0820 (the
+    frame analyses of 0612・0622, the seismic checks of 0711・0721), and nothing of 0900・0910."""
+    source = choose(footing_input(tmp_path / "pre"), *FOOTING)
+    options = GenerationOptions(source, tmp_path / "output", tmp_path / "post")
     generation = generate.generate(options)
-    assert generation.stages == ("0612", "0622", "0711", "0721", "0800", "0810")
+    assert generation.stages == tuple(stage for stage in STAGES.ids if stage not in ("0900", "0910"))
     output, post = tree(tmp_path / "output"), tree(tmp_path / "post")
     assert sorted(name for name in output if name.endswith(".pdf")) == sorted(
         f"{STAGES.get(stage).stem}.pdf" for stage in generation.stages)
-    for name in ("線路方向_ピックアップ反力.csv", "線路直角方向_Aggre-SE_直接基礎.csv", "線路方向フーチング.wdj", "線路方向.xml"):
+    for name in ("線路方向_ピックアップ反力.csv", "線路直角方向_Aggre-SE_直接基礎.csv", "線路方向フーチング.wdj", "線路方向.xml",
+                 "線路直角方向フーチング.wdj"):
         assert name in post, name
-    assert "線路直角方向フーチング.wdj" not in post and "線路方向.wdj" not in post and "線路方向.json" not in post
-    assert planned(options) == generation.artifacts
+    assert "片持ち梁.wdj" not in post
+    assert planned(options, generation.stages) == generation.artifacts
