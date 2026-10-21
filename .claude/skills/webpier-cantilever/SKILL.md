@@ -1,11 +1,11 @@
 ---
 name: webpier-cantilever
-description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.6（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は webpier-capacita（Capacita そのものは structural-capacita）、Aggre-SE の runner と総括表は structural-aggrese（WebPier の取り込みは webpier-aggrese）、フーチングは webpier-footing。
+description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.md「片持ち梁の照査」「最大応答震度」）を扱う。0900 の応答値（左右の張出しの幾何、B/C/B+C 支点最大の3載荷と各シューの列車荷重・衝撃、車両横荷重・風・地震時のトルクによる鉛直反力、ゴム支承とストッパーの水平荷重、自重、集計、31 ケースの組合せ、両側のケースから照査ごとに採る規則、Mcrd と ε'csd、Aggre-SE の総括表からの最大応答震度、webpier/calc/cantilever/）、`鉄筋.梁`・`支承データ`・`片持ち梁の照査` の入力、0910 の断面力入力モードの WDJ（export/capacita/cantilever.py、`run-rc` を --pickup なしで）、計算書 13.1〜13.9（reporting/stages/cantilever/・cantilever_check.py、横置きの組合せ表）、見本 13_片持ち梁照査.pdf との既知の差、代役 runner の挙動に使う。見本 13-1〜13-67 と値が合わない、総括表が読めない、Capacita が返す節が合わない、横置きの表が収まらないときにも使う。柱の断面照査は webpier-capacita（Capacita そのものは structural-capacita）、Aggre-SE の runner と総括表は structural-aggrese（WebPier の取り込みは webpier-aggrese）、フーチングは webpier-footing。
 ---
 
 # 片持ち梁の照査（0900・0910）
 
-0900 は左右の張出し（|支承位置| > W6/2 の支承枠が載る側）について 13.1 応答値の算定と 13.2 設計作用の組合せを WebPier が計算して印刷し、0910 はその採用値を断面力表に書いた WDJ を Capacita に計算させ、13.3〜13.6 の見出し・解説の後にページを差し込む（決定59、ADR-0008）。2段階とも出力項目 `cantilever` の段階で（両方向の静的非線形解析を選んだときだけ選べる。決定72）、0711・0721 の Aggre-SE の総括表（最大応答震度）を同じ世代で読む。見本 Example2 13 章はロジックと体裁の移植元で、値の一致は求めない（下の「既知の差」）。
+0900 は左右の張出し（|支承位置| > W6/2 の支承枠が載る側）について 13.1 応答値の算定と 13.2 設計作用の組合せを WebPier が計算して印刷し、0910 はその採用値を断面力表に書いた WDJ を Capacita（RC標準 R5、決定73）に計算させ、13.3〜13.8（外観の照査ありは 13.9 まで）の見出し・解説の後にページを差し込む（決定59、ADR-0008）。2段階とも出力項目 `cantilever` の段階で（両方向の静的非線形解析を選んだときだけ選べる。決定72）、0711・0721 の Aggre-SE の総括表（最大応答震度）を同じ世代で読む。見本 Example2 13 章はロジックと体裁の移植元で、値の一致は求めない（下の「既知の差」）。
 
 ## 置き場所
 
@@ -19,11 +19,11 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 | Mcrd と ε'csd | `crack.py`（`cracking_moment`、`cracking`：自重→450、永久→350、永久＋変動／割れない→300） |
 | 総括表の最大応答震度 | `response.py`（`read_max_response(xlsx_bytes, file)`：シート `応答値一覧表`、B列「最大応答震度」をA列「復旧性」「安全性」の区画で、Case 列は D 列から、値は文字列。行番号では探さない） |
 | 入口と結果型 | `__init__.py`（`calculate_cantilever`＝runner 前、`complete_cantilever(pier, reaction, basis, longitudinal, transverse)`＝総括表の後、`CantileverResult`） |
-| 0910 の照査データ（配筋の写し、環境条件、疲労、断面力） | `check.py`（`calculate_cantilever_section`、`SECTIONS` 15 節）、WDJ は `webpier/export/capacita/cantilever.py`（`build_cantilever_wdj`） |
+| 0910 の照査データ（配筋の写し、水掛かりの程度、疲労、断面力） | `check.py`（`calculate_cantilever_section`、`SECTIONS` 16 節。外観の照査なしなら `bending_serviceability` を除く 15 節）、WDJ は `webpier/export/capacita/cantilever.py`（`build_cantilever_wdj`） |
 | 登録表・生成 | `webpier/pipeline/stages.py` の `_cantilever`（0900、依存 0600・0711・0721、`complete` が `seismic_file("0711","xlsx")` 等を受ける）と `_cantilever_check`（0910、`calculate=None`、`complete` で 0900 の完成結果から、`section_check` は骨組解析なし）、`generate.py` の `_completion_files`・`_check_section` |
-| runner | `webpier/pipeline/capacita.py` の `check_section`（`--pickup` なし、成果物は result.json と report.pdf の2つ、`ColumnCheckPages.wdj` は渡した WDJ）、`SKIPPED` は WD-1901〜1913 |
+| runner | `webpier/pipeline/capacita.py` の `check_section`（`--pickup` なし、成果物は result.json と report.pdf の2つ、`ColumnCheckPages.wdj` は渡した WDJ）、`SKIPPED` は R5 の WD-1914〜1926 |
 | 帳票 0900 | `webpier/reporting/stages/cantilever/`（`__init__`・`vertical`・`horizontal`・`summary`・`combinations`。0600 の manuscript を `Manuscript(prefix="0900/")` で共用。`rotated_table` → `reaction/layout.py` の `_rotated`＝GridLayoutPdf `QuarterTurn`） |
-| 帳票 0910 | `webpier/reporting/stages/cantilever_check.py`（`Numbering`：外観の照査を行えば 13.6 使用性・13.7 復旧性） |
+| 帳票 0910 | `webpier/reporting/stages/cantilever_check.py`（`Numbering`：13.6 使用性（損傷）・13.7 復旧性（地震時）・13.8 最小鉄筋量及び最大鉄筋量。外観の照査を行えば 13.6 使用性・13.7 使用性（損傷）・13.8 復旧性（地震時）・13.9。番号を変えたら 0400 の参照先 `reporting/stages/detailing.py` の `CANTILEVER_SECTIONS` も） |
 | 見本の転記 | `tests/fixtures/example2/cantilever.json`・`cantilever_notes.md`（差の注記も） |
 | テスト | `tests/calc/test_cantilever_*.py`（`cantilever_support.py`：`response()`・`workbook()`・`result_of()`）、`tests/export/test_cantilever_wdj.py`、`tests/reporting/test_cantilever_report.py`・`test_cantilever_check_report.py`、`tests/pipeline/test_generation_cantilever.py`、`tests/inputs/test_cantilever_check_parse.py`、`tests/gui/test_gui_cantilever.py` |
 | 見本と原資料 | `.claude/docs/Example橋脚2/13_片持ち梁照査.pdf`（13-1〜13-37 応答値と組合せ、13-38〜13-67 解説と WebDan の結果）、`13_片持ち梁照査/WebDan.wdj`（断面力表つき。今の Capacita では `shape` を `"1"` に、`steel` を外して計算できる）、`07_荷重計算/朝里川Bv_P1_荷重計算.xlsm` のシート `§13.鉛直荷重`・`水平荷重`・`片持梁の自重`・`荷重の集計`・`作用の組合せ`（係数とセル参照の読み方はここ） |
@@ -37,13 +37,14 @@ description: WebPier の 0900・0910 片持ち梁の照査（決定59、CONTEXT.
 - 車両横荷重：B支点最大・C支点最大はその載荷の桁の反力×0.2 を最大化した桁だけに、B+C は 0600 の1両分の載荷（52.71／58.98）を両桁に（見本のとおり）。
 - 可動支承の水平力は 13 章のモデル μ·Rm（上限なし）で、0600（7 章）の `min(T/n, max(μRm, μT/n))` とは別。0600 は変えない。
 - 組合せの表の値は印刷した部分の和（ADR-0003）で、見本の未丸めの和と末位が違うことがある（Mt 1058.28／見本 1058.29 など）。
+- 見本は H16 の「13.6 復旧性の照査 (1) 地震時以外 (2) 地震時」。WebPier は R5（決定73）の名前で 13.6 使用性（損傷）・13.7 復旧性（地震時）に分け、13.8 最小鉄筋量及び最大鉄筋量（見出しだけ）を足した。見出しの条文番号は外し、曲げひび割れの流れ図は 0611 と同じ R5 の形、せん断の Vyd は Vcd＋Vsd。
 - 13.1 (1)(2) は左右共通なので1回、(3)(4)・13.2 は左側→右側。組合せの表は横置き3枚ずつ（1〜9・10〜18・19〜31）、まとめは係数を省いた縦置きで 13.2 の先頭、末尾に採用表。見本の 13-46 の列車通過図・反力推移・ΣN の数値行、支承配置・はり断面のスケッチは描かない。ΣN は Capacita が計算する（WDJ の `fatigues`）。
 
 ## 落とし穴（2026-10-19 に確認）
 
 - **総括表は同じ世代の runner の返したバイト列を読む。** post/ の .xlsx は読まない。0900 を単独で選んでも 0711・0721（JRSNAP・Aggre-SE）が走る。3つの runner（JRSNAP・Aggre-SE・Capacita）が要り、本物での生成は数分。
 - **`complete` の順序**：Aggre-SE の照査 → 依存段階の `complete`（登録表の順。0900 は総括表、0910 は 0900 の完成結果）→ Capacita。`_completion_files` は依存段階の閉包の耐震性能照査のファイルを `"<stage>/<kind>"` で渡す（0910 にも 0711 のファイルが渡るが使わない）。
-- **Capacita（`--pickup` なし）**：`section_forces` は出ない。返る節は断面力表の行で決まる。Md8（最小鉄筋量）を空欄にすると warn WD-408 が1つ出るが問題ない。せん断スパンは `shear[0].La` で、片持ち梁上の最も遠い支承の X。計算（`shear_span`）は m、WDJ の La は mm（Capacita は mm として読む。2026-10-19 まで m で書いていて耐力を過大に見積もっていたのを直した。詳細はスキル webpier-capacita の「片持ち梁の断面照査」）。`fatigues.train_A_count` 等は文字列。
+- **Capacita（`--pickup` なし）**：`section_forces` は出ない。返る節は断面力表の行で決まる。Md8（最小鉄筋量）には永久作用のケース 28 を書く（`combinations.FORCE_ROWS` の `ForceRow(8, "最小鉄筋量", …)`、決定73。荷重モデルは行1 の組合せを使う `calc/generic/cantilever.py: POOLED_AS`）。2026-10-21 まで空欄で warn WD-408 が1つ出ていたが、今は出ない。せん断スパンは `shear[0].La` で、片持ち梁上の最も遠い支承の X。計算（`shear_span`）は m、WDJ の La は mm（Capacita は mm として読む。2026-10-19 まで m で書いていて耐力を過大に見積もっていたのを直した。詳細はスキル webpier-capacita の「片持ち梁の断面照査」）。`fatigues.train_A_count` 等は文字列。
 - **横置きの表**：`QuarterTurn` は1部で分割不可。縦横を入れ替えた局所グリッド（`GridSpec(0, 0, PITCH_Y, PITCH_X, …)`）で組むので、方眼Excel でも回転したセルになる。表の列幅（＝回転後の高さ）は本文の47行以下、行の数（＝回転後の幅）は30列以下で、0900 の組合せ表は幅46行×高さ20〜28列を列0から置く。見出しとは同じページに入らないので、見出しの直後には縦置きの表を置く。セルの幅・行の高さはマスの数で、全角の文字は 10 pt、半角は約 5 pt、クリアランスは左右 3 pt（`tables.CELL_PADDING`）。セルが収まらないと `LayoutOverflowError: line n exceeds available width` で止まるので、幅は文字数から見積もって決める。
 - **0600 の manuscript の `wide=True`** は左辺を文字列のラベルにし「ラベル ＝ 記号 ＝ 数値」と組む。記号を左辺にするなら `medium=True`。
 - **reporting は計算しない**：ΣR や地震時の桁慣性力など帳票に要る値は calc の結果に持たせる（`SupportLoads` の合計、`GirderDevices.inertia`）。

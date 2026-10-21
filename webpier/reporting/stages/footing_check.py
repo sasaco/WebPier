@@ -1,4 +1,4 @@
-"""0810 線路方向フーチング照査 (12.2〜12.4) and 0820 直角方向フーチング照査 (12.5〜12.7): フーチングの断面照査 (decision 60,
+"""0810 線路方向フーチング照査 (12.2〜12.5) and 0820 直角方向フーチング照査 (12.6〜12.9): フーチングの断面照査 (decision 60,
 ADR-0008).
 
 WebPier lays out only the headings and the explanations (the check formulas, their symbols and the flowchart of the
@@ -36,7 +36,7 @@ from .column_check import COLON, CRACK_METHOD, CRACK_STRESS, SIGMA_SE, _blocks, 
 from .frame_report import Manuscript, Unit, value
 from .insertion import Insertion, documents, render_with_pages
 
-SAFETY, DURABILITY, SEISMIC_RESTORABILITY = 5, 0, 7  # the limit state ids of calc.column_check.SAFETY_FACTORS
+SAFETY, SEISMIC_RESTORABILITY = 5, 7  # the limit state ids of calc.column_check.SAFETY_FACTORS
 # 2) せん断ひび割れの検討 is not asked of Capacita (decision 60; the sample 262).
 OMISSION = ("本構造物のフーチングは，ディープビーム的な耐荷機構を有する面部材である．このため，せん断補強鋼材の役割が通常の"
             "棒部材と異なり，さらにひび割れ性状も異なると考えられる．したがって，せん断力によって耐久性に問題を生じることは"
@@ -58,6 +58,8 @@ class Chapter:
 
 LONGITUDINAL = Chapter(12, 2, "0810/")
 TRANSVERSE = Chapter(12, 6, "0820/")
+# The offsets (``Chapter.section``) of the parts 0400 refers to (reporting.stages.detailing, decision 73).
+DURABILITY_SECTION, REBAR_AMOUNT_SECTION = 1, 3
 
 
 def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
@@ -118,7 +120,7 @@ def _safety_shear(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
 
 def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     key = "durability.flexure"
-    m.heading("durability.heading", f"{chapter.section(1)} 耐久性の照査", 1)
+    m.heading("durability.heading", f"{chapter.section(DURABILITY_SECTION)} 耐久性の照査", 1)
     m.paragraph("durability.environment", f"水掛かりの程度は「{check.environment}」とする．")
     m.heading(f"{key}.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.heading(f"{key}.method.heading", "(a) 曲げひび割れに対する部材の検討方法", 3)
@@ -132,10 +134,9 @@ def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> N
     m.heading(f"{key}.width.heading", "(c) 曲げひび割れ幅の検討", 3)
     m.paragraph(f"{key}.width.text", "曲げひび割れの検討は，コンクリート表面の設計曲げひび割れ幅Wdがひび割れ幅の制限値Wlim"
                                      "に対して，次式を満たす方法により行う．")
-    m.line(f"{key}.width.check", "γi・Wd / Wlim ≦ 1.0")
+    m.line(f"{key}.width.check", "Wd / Wlim ≦ 1.0")
     m.line(f"{key}.width.formula", "Wd = 1.1・k1・k2・k3・k4{4c + 0.7(Cs − φ)}(σse / Es + ε'csd)")
-    _definitions(m, f"{key}.width.symbols", Definition("γi", f"構造物係数(= {value(_factors(check, DURABILITY).ri)})"),
-                 Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
+    _definitions(m, f"{key}.width.symbols", Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
                  Definition("k1", "鋼材の表面形状がひび割れ幅に及ぼす影響を表す係数"),
                  Definition("k2", "コンクリートの品質がひび割れ幅に及ぼす影響を表す係数"),
                  Definition("k3", "引張鋼材の段数の影響を表す係数"),
@@ -171,7 +172,7 @@ def _restorability_shear(m: Manuscript, check: FootingCheckResult, chapter: Chap
 
 
 def _rebar_amount(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
-    m.heading("rebar_amount.heading", f"{chapter.section(3)} 最小鉄筋量及び最大鉄筋量", 1)
+    m.heading("rebar_amount.heading", f"{chapter.section(REBAR_AMOUNT_SECTION)} 最小鉄筋量及び最大鉄筋量", 1)
 
 
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,

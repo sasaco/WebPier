@@ -456,14 +456,14 @@
             "diameter_mm": 25,
             "pitch_mm": 125,
             "cover_mode": "指定",
-            "center_mm": 78.5,
+            "center_mm": 79,
             "inner_layers": []
           },
           "直角": {
             "diameter_mm": 25,
             "pitch_mm": 125,
             "cover_mode": "指定",
-            "center_mm": 103.5,
+            "center_mm": 104,
             "inner_layers": []
           }
         },

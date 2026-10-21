@@ -40,6 +40,7 @@ from ...core.printed import Printed
 from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
 from ..styles import columns_pt, rows_for
+from . import cantilever_check, column_check, footing_check
 from .frame_report import (Definitions, FigureSpec, Labelled, Span, TableSpec, Unit, plain, sub, sup, table_block,
                            value)
 
@@ -76,19 +77,20 @@ class References:
     footing: Mapping[str, tuple[str, str]]
 
 
-# The sections of the checks with section forces after the switch to R5 (decision 73, Phase 3: sasa/0400-r5
-# eca5fcd), as (最小鉄筋量及び最大鉄筋量, 耐久性の照査): 0611 / 0621 n.10 (the 基礎の照査 n.11) and n.7; 0810 12.2〜12.5
-# and 0820 12.6〜12.9, each 安全性, 耐久性, 復旧性（地震時）, 最小鉄筋量及び最大鉄筋量.
-COLUMN_SECTIONS = {"線路": ("8.10", "8.7"), "直角": ("9.10", "9.7")}
-FOOTING_SECTIONS = {"線路": ("12.5", "12.3"), "直角": ("12.9", "12.7")}
-# 0910: 13.5 耐久性, then 13.6 使用性（損傷）, 13.7 復旧性, 13.8 最小鉄筋量及び最大鉄筋量; with the appearance check of
-# the input 13.6 使用性 comes first and the rest move by one (13.9).
-CANTILEVER_SECTIONS = {False: ("13.8", "13.5"), True: ("13.9", "13.5")}
-
-
 def references(appearance: bool) -> References:
-    """The sections 0400 refers to; 0910's follow the appearance check of the input (片持ち梁の照査.外観の照査)."""
-    return References(column=COLUMN_SECTIONS, beam=CANTILEVER_SECTIONS[appearance], footing=FOOTING_SECTIONS)
+    """The sections 0400 refers to, as (最小鉄筋量及び最大鉄筋量, 耐久性の照査), numbered by the reports that print them
+    (decision 73): 0611 / 0621 n.10 and n.7 (column_check), 0810 / 0820 the fourth and the second of their sections
+    (footing_check), 0910's following the appearance check of the input (cantilever_check.Numbering)."""
+    columns = {"線路": column_check.LONGITUDINAL, "直角": column_check.TRANSVERSE}
+    footings = {"線路": footing_check.LONGITUDINAL, "直角": footing_check.TRANSVERSE}
+    beam = cantilever_check.Numbering.with_appearance(appearance)
+    return References(
+        column={direction: (f"{chapter.number}.{column_check.REBAR_AMOUNT_SECTION}",
+                            f"{chapter.number}.{column_check.DURABILITY_SECTION}") for direction, chapter in columns.items()},
+        beam=(f"{cantilever_check.CHAPTER}.{beam.rebar_amount}", f"{cantilever_check.CHAPTER}.{beam.durability}"),
+        footing={direction: (chapter.section(footing_check.REBAR_AMOUNT_SECTION),
+                             chapter.section(footing_check.DURABILITY_SECTION))
+                 for direction, chapter in footings.items()})
 
 
 class _Manuscript:
