@@ -168,7 +168,7 @@
 - [x] ✅ 部品の API を決めてこの計画書に書く（E が使う）（下の「API」）
 - [x] ✅ 実現の方法と xlsx の描き方を DESIGN.md で決める。決定的なバイト列（GridLayoutPdf の DESIGN.md：FR-028、Key Decisions 2件、技術選定 pypdf）
 - [x] ✅ テスト、commit（GridLayoutPdf `sasa/pdf-figure` の **f2e618b**、未 push。main 7d60e58 から）
-- [ ] Release（tag・wheel、`SOURCE_DATE_EPOCH=315532800`）、WebPier の url・`uv lock`（オーケストレーター）
+- [x] ✅ Release（tag・wheel、`SOURCE_DATE_EPOCH=315532800`）、WebPier の url・`uv lock`（オーケストレーター）：GridLayoutPdf main 85b0389 を v0.3.0 にしてタグと push、Actions の Release の wheel（sha256 a6e1c8eb…bc）を手元で同じバイトに再現、WebPier 107ca10
 
 ### 知見（Phase 5、2026-10-21、f2e618b）
 
@@ -203,7 +203,7 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 - [x] ✅ `post/配筋図.dxf`（付帯JSON、`Export("dxf", "配筋図.dxf")`、役割 `0400.dxf`）、4.1 に GLP の `PdfFigure` で図ごとの PDF（preview は PNG）。`reporting/stages/detailing.py: figure_specs`（26 列・頁の縦横比で行数・最大 30 行）、`pipeline/stages.py: _drawings`（7fa0e00、GLP f2e618b が要る：今の lock の GLP 0.2.1 では import できない）
 - [x] ✅ 組数は整数なら整数（D22-5組@150）、端数は印字桁（3.5組）。calc の stirrups を公開名に（`cantilever.check.beam_stirrups`、`footing_rebar.stirrups`）（7fa0e00）
 - [x] ✅ フーチングの線路方向の鉄筋（切断面に平行）を径の幅の帯（2本の線）で描き、矢印を帯の外側で止める。直角方向は点と扇のまま。梁の段の芯の寸法（108・64、121）を右の隅に移し、左の側方鉄筋の連続寸法と重ならないようにした（0b4dc13）。sasa/glp を取り込み（d235edd、衝突は `reporting/stages/detailing.py` の import だけ）、0400 だけの生成2回で PDF・xlsx・DXF が同じバイト列、4.1 を PNG で目視（2026-10-21）
-- [ ] 0400 の Excel 比較（`tests/reporting/test_grid_excel.py::test_excel_prints_the_published_workbook_where_the_pdf_does[train-0400]`）：下の知見の表のセルの dy で不合格（オーケストレーターに報告済み）
+- [x] ✅ 0400 の Excel 比較（`tests/reporting/test_grid_excel.py::test_excel_prints_the_published_workbook_where_the_pdf_does[train-0400]`）：結合セルの二重の中央寄せを WebPier の `frame_report._cell` で直した（930cc30、Phase 5 の知見）。品質ゲートで合格
 - [x] ✅ テスト `tests/export/test_drawing.py`（DXF の円・線・寸法と表記の文字・`audit()`・ハッシュの種によらない同じバイト列、PDF 1頁・PNG の縦横比・決定的）、PNG で目視、`.gitattributes` に `*.dxf -text`（bcb421a）
 
 公開した関数（`webpier.export.drawing`）：
@@ -227,10 +227,10 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 ## 検証（オーケストレーター）
 
 - [x] ✅ WebPier の品質ゲート `& ".claude/check.ps1"`（2026-10-21、担当 C、sasa/glp 89857d0 の上の worktree C:\tmp\wp-r5）：exit 0、4314 passed（54分44秒）。カバレッジ core・inputs・loadmodel・calc・export・pipeline 100%、reporting 99.25%（下限 95）、gui 96.5%（下限 85）
-- [ ] Capacita の `.claude/check.ps1`
-- [ ] GridLayoutPdf のテスト
-- [ ] 0400 だけを true にした生成で `output/0400_照査の前提.pdf`・`export/0400_照査の前提.xlsx`・`post/配筋図.dxf`、2回で同じバイト列、見本と並べて目視
-- [ ] structural-mcp の `npm test`・`npm run smoke:webpier`、サブモジュールのポインタ
+- [x] ✅ Capacita の `.claude/check.ps1`（`sasa/r5-rebar-amount` f385359：`.agents`→`.claude` の参照の直し edee272、UiTests の書体リゾルバー f385359 の後で通し）
+- [x] ✅ GridLayoutPdf のテスト（f2e618b：新しい74件を含め、落ちるのは main でも落ちる既存の2件だけ。Phase 5 の知見）
+- [x] ✅ 0400 だけを true にした生成で `output/0400_照査の前提.pdf`・`export/0400_照査の前提.xlsx`・`post/配筋図.dxf`、2回で同じバイト列、見本と並べて目視（sasa/glp 89857d0、19頁、4.2 の参照 8.10・8.7）
+- [x] ✅ structural-mcp の `npm test`・`npm run smoke:webpier`、サブモジュールのポインタ（2026-10-21、ルート sasa/glp：npm test 69/69。smoke は 0400・0500・0600・0610・0611・0612 を選んだ入力で exit 0、0400 の PDF・JSON・xlsx・`post/配筋図.dxf` は MCP と CLI で同じバイト列、違うのは他のプログラムのページを持つ 0610・0611 の PDF と付帯JSONだけ。ポインタは Capacita f385359・WebPier この commit）
 
 ## 知見
 
