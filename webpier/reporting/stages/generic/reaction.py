@@ -20,7 +20,7 @@ from ..reaction.layout import document
 from ..reaction.manuscript import (
     CHAPTER, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, Unit, cells, expr, join, plain, sub,
 )
-from ..reaction.tables import GIRDER_ROW, header
+from ..reaction.tables import header
 
 LOADS = (("d1", "固定死荷重 D1", "D1"), ("d2", "付加死荷重 D2", "D2"))
 
@@ -30,8 +30,7 @@ def _support_table(dead) -> TableSpec:
     rows = [header("", sub("R", "A"), sub("R", "B"), sub("R", "C"), sub("R", "D"))]
     for field, label, _ in LOADS:
         rows.append(cells(CellSpec(label, align="center"), *(getattr(support, field) for support in supports)))
-    return TableSpec((116.16, 72.6, 72.6, 72.6, 72.6), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     numeric_columns=(1, 2, 3, 4))
+    return TableSpec((8, 5, 5, 5, 5), tuple(rows), header_rows=1, numeric_columns=(1, 2, 3, 4))
 
 
 def _bearing_table(girder: GirderDeadLoads) -> TableSpec:
@@ -40,8 +39,7 @@ def _bearing_table(girder: GirderDeadLoads) -> TableSpec:
         bearing = item.bearing
         rows.append(cells(CellSpec(bearing_name(item.slot), align="center"), bearing.position, bearing.d1,
                           bearing.d2))
-    return TableSpec((43.56, 50.88, 58.08, 58.08), tuple(rows), header_rows=2, row_height=GIRDER_ROW,
-                     numeric_columns=(1, 2, 3))
+    return TableSpec((2, 3, 3, 3), tuple(rows), header_rows=2, numeric_columns=(1, 2, 3))
 
 
 def _girder(m: Manuscript, key: str, title: str, support: str, girder: GirderDeadLoads) -> None:
@@ -87,3 +85,8 @@ def build_dead_reaction(result: DeadReactionResult, pier: PierInput) -> Document
 def render_dead_reaction(result: DeadReactionResult, pier: PierInput, path: str | Path) -> Path:
     """Lay out completely, then atomically replace *path*; the same input gives the same bytes."""
     return build_dead_reaction(result, pier).render(path, invariant=True)
+
+
+def grid_documents(result: DeadReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_dead_reaction(result, pier),)

@@ -17,7 +17,7 @@ import pytest
 from footing_report_cases import completed
 from frame_report_cases import text
 from webpier.calc.footing import FootingResult
-from webpier.reporting.stages.footing import build_footing, records, render_footing
+from webpier.reporting.stages.footing import build_footing, content, records, render_footing
 
 HEADINGS = ("(1) 線路方向の計算", "1) 設計鉛直地盤反力度の算定", "2) 有効幅", "3) 地盤反力による断面力",
             "4) フーチング自重および上載土による断面力", "5) 浮力による断面力", "6) 設計曲げモーメント",
@@ -157,3 +157,18 @@ def test_duplicated_unit_keys_are_refused(monkeypatch, result):
     monkeypatch.setattr(report, "content", lambda *args: (*units, units[0]))
     with pytest.raises(ValueError, match="重複したキー"):
         build_footing(result)
+
+
+def test_the_tables_and_figures_stand_on_the_grid_within_the_body(result):
+    """GridLayoutPdf's common grid: tables and figures take whole grid columns and rows and end by the body's right
+    edge (column 30); a table's header is two grid rows (two-line titles), every other row one."""
+    units = content(result)
+    tables = [unit.value for unit in units if unit.kind == "table"]
+    figures = [unit.value for unit in units if unit.kind == "figure"]
+    assert len(tables) == 18 and len(figures) == 8
+    for spec in tables:
+        assert all(isinstance(width, int) for width in (spec.left, *spec.widths))
+        assert spec.left + sum(spec.widths) <= 30
+        assert spec.row_heights == (2, *(1,) * (len(spec.rows) - 1))
+    for spec in figures:
+        assert spec.left + spec.block.col_span <= 30 and isinstance(spec.block.rows, int)

@@ -88,19 +88,21 @@ def test_a_gamma2_that_does_not_follow_from_the_printed_values_is_found(tmp_path
 
 
 def test_a_wrapped_formula_is_read_across_its_lines(tmp_path: Path):
-    """The deep footing's surface thickness fits its term columns on one line; a longer
-    term-column formula falls back to wrapping and is still read across its lines."""
+    """The deep footing's surface thickness fills its term columns, so its result stands on a line of its own; a
+    longer formula without term columns wraps at its operators. Both are read across their lines."""
     import pymupdf
-    from gridlayoutpdf import Equation
+    from gridlayoutpdf import Equation, Operator, Row
     from webpier.reporting.document import report
-    from webpier.reporting.equations import equation_group, terms
+    from webpier.reporting.equations import TERM_SPACE, equation_group
 
     path = render(tmp_path, *case("deep"))
     check = next(check for check in formula_checks(path) if check.printed == "23.720")
     assert (check.expression, check.ok) == ("12.345+1.250+min(10.125,10.500)", True)
-    long = equation_group(Equation("X", terms(*["1.111", "+"] * 20, "1.111"), result="23.331", unit="m"),
-                          left=152.04, first_equal=184.44, second_equal=460.32, result_right=525.96,
-                          unit_start=530.4)
+    with pymupdf.open(path) as pdf:
+        assert pdf[0].search_for("23.720")[-1].y0 - pdf[0].search_for("12.345")[0].y0 > 10
+    long = equation_group(Equation("X", Row(*["1.111", Operator("+")] * 20, "1.111", gap=TERM_SPACE),
+                                   result="23.331", unit="m"),
+                          left=4, first_equal=6, second_equal=21, result_right=26, unit_start=27)
     path = report(long).render(tmp_path / "wrapped.pdf", invariant=True)
     with pymupdf.open(path) as pdf:
         first = pdf[0].search_for("1.111")[0]
@@ -123,9 +125,9 @@ def test_figure_strokes_are_not_read_as_fraction_bars_or_radicals(tmp_path: Path
     from gridlayoutpdf import Figure, Line, Polyline, Text
     from pdf_handcheck import read_lines
     from webpier.reporting.document import report, paragraph
-    from webpier.reporting.styles import BODY, grid_units
+    from webpier.reporting.styles import BODY, columns_for, rows_for
 
-    figure = Figure(grid_units(240), grid_units(72),
+    figure = Figure(columns_for(240), rows_for(72),
                     Line(20, 30, 70, 30, .8), Text(40, 26, "H", BODY),  # an arrow shaft with its label above
                     Polyline(((100, 40), (105, 35), (110, 40), (120, 30), (160, 30)), .5),  # a spring lead
                     Text(130, 44, "Hw3", BODY), Text(170, 34, "P", BODY))

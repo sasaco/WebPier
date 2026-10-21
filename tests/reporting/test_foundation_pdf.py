@@ -1,4 +1,4 @@
-"""0500 PDF: the drawn text is the manuscript, bytes are deterministic, appearance meets the reference."""
+"""0500 PDF: the drawn text is the manuscript, bytes are deterministic, the layout follows the common grid."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from gridlayoutpdf import Equation, Literal, Root, Row, Script, TermStop, Text
 from foundation_report_cases import CASES, case
 from webpier.inputs.model import Soil
 from webpier.reporting.equations import Definition
+from webpier.reporting.styles import BODY, HEADING, column_x
 from webpier.reporting.stages.foundation import build_foundation, content, render_foundation
 
 ROOT = Path(__file__).parents[2]
@@ -156,63 +157,72 @@ def test_long_names_wrap_without_shrinking_and_labels_stay_with_their_equations(
                     assert f"{getattr(result.short_term, direction).value:,.0f}" in page.get_text().replace(" ", "")
         spans = [span for page in pdf for block in page.get_text("dict")["blocks"]
                  for line in block.get("lines", []) for span in line["spans"] if span["text"] and span["text"] in name]
-        assert spans and all(span["size"] == pytest.approx(9.9, abs=.1) for span in spans)
+        assert spans and all(span["size"] == 10 for span in spans)
 
 
-ROLES = ("chapter", "section", "body", "subsection", "subsubsection", "table_header", "table_header_compressive",
-         "table_value", "symbolic_equals", "substitution_equals", "result_equals")
+HEADING_STARTS = tuple(column_x(column) for column in (0, 1, 2, 3, 18))  # the heading levels and the tag
 
 
-def test_typography_and_soil_table_match_the_independent_reference_roles(tmp_path: Path):
-    from reportlab.pdfbase.ttfonts import TTFont
+def _texts(pages) -> list[tuple[int, Text]]:
+    return [(number, command) for number, page in enumerate(pages, 1) for command in page.commands
+            if isinstance(command, Text) and command.text.strip()]
+
+
+@pytest.mark.parametrize("name", list(CASES))
+def test_every_text_is_ms_mincho_or_ms_gothic_at_10_pt_with_6_5_pt_scripts_on_grid_rows(name: str):
+    """No text is shrunk or stretched: the body MS明朝, headings and the soil table MSゴシック, all 10 pt; scripts
+    6.5 pt. Every 10 pt line stands on its own grid row (one line, one row), the same offset into each row."""
+    pages = build_foundation(*case(name)).layout()
+    texts = _texts(pages)
+    assert {(command.style.font, command.style.size) for _, command in texts} == {
+        ("MS Mincho", 10), ("MS Gothic", 10), ("MS Mincho", 6.5), ("MS Gothic", 6.5)}
+    assert all(command.style.size in (10, 6.5) for _, command in texts)
+    grid = pages[0].profile.grid
+    # The flow (body, equations, headings) shares one baseline offset; the soil table centres its cells' lines.
+    offsets = {round((command.y - grid.origin_y) % grid.pitch_y, 3) for _, command in texts
+               if command.style == BODY
+               or (command.style == HEADING and min(abs(command.x - x) for x in HEADING_STARTS) < .01)}
+    assert len(offsets) == 1, offsets
+    headings = {command.text for _, command in texts if command.style.font == "MS Gothic" and command.style.size == 10}
+    assert {"§5. 地盤のモデル化", "5.2 地盤反力係数の算定", "【基礎標準 13.2.2.2】", "層番", "一軸圧縮強度"} <= headings
+
+
+def test_headings_body_and_soil_table_stand_on_the_common_grid_columns(tmp_path: Path):
+    """§5 from column 0, 5.1 from 1, (1) from 2, 1) from 3, the body from 4 and the source tag from 18 (as the other
+    reports); the soil table spans the body's 30 columns at whole-column widths, framed medium with hair rules."""
+    from gridlayoutpdf import BorderStyle
+    from webpier.reporting.styles import PITCH_Y
 
     result, pier, embedment = case("current")
-    reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))
     document = build_foundation(result, pier, embedment)
-    path = document.render(tmp_path / "appearance.pdf", invariant=True)
-    faces = {TTFont(f"verify-{name}", str(face.path), subfontIndex=face.face_index).face.name.decode("ascii"): face
-             for name in ("body", "heading") for face in (document.fonts.resolve(name),)}
+    starts = {command.text: command.x for _, command in _texts(document.layout())}
+    for text, column in (("§5. 地盤のモデル化", 0), ("5.1 地盤の諸数値の設計用値のまとめ", 1),
+                         ("(1) フーチング底面の鉛直地盤ばね定数", 2), ("1) フーチング底面の鉛直地盤反力係数", 3),
+                         ("1) 線路方向", 3), ("本橋脚の設計に用いる地盤の諸数値の設計用値を表 2.4.8 に示す.", 4),
+                         ("支持層の支持力係数", 4), ("・長期", 4), ("【基礎標準 13.2.2.2】", 18)):
+        assert starts[text] == pytest.approx(column_x(column), abs=.01), text
+    path = document.render(tmp_path / "grid.pdf", invariant=True)
     with pymupdf.open(path) as pdf:
-        samples = [sample for page in pdf for sample in measure.text_samples(page)]
-        for role_name in ROLES:
-            role = reference["roles"]["foundation." + role_name]
-            selector = role["source"]["selector_exact_text"]
-            if role_name == "table_value":
-                selector = "4.700"  # the surface thickness of this input; the reference printed 4.000
-            matches = [sample for sample in samples if sample.text.startswith(selector)]
-            if "equals" in role_name:
-                matches = [sample for sample in matches if abs(sample.x - role["source"]["selector_x_pt"]) < .5]
-            assert matches, role_name
-            sample = matches[0]
-            face = faces[role["font"]]
-            assert len(sample.font) >= 20 and face.pdf_name.startswith(sample.font)
-            assert measure.role_errors(replace(sample, font=role["font"]), role, anchor_x=93.96) == [], role_name
-        # Negative checks: the 8.9 pt caption is that one measured role only.
-        header = next(sample for sample in samples if sample.text == "層番")
-        assert measure.role_errors(replace(header, font="MS-Gothic", size=8.9), reference["roles"]["foundation.table_header"])
-        compressive = next(sample for sample in samples if sample.text == "一軸圧縮強度")
-        assert measure.role_errors(replace(compressive, font="MS-Gothic", size=9.9),
-                                   reference["roles"]["foundation.table_header_compressive"])
-        unit = next(sample for sample in samples if sample.text == "qu(kN/m")
-        assert unit.size == pytest.approx(9.9, abs=.1)
-        exponent = next(sample for sample in samples if sample.text == "2" and sample.page == unit.page
-                        and abs(sample.baseline - unit.baseline + 4.92) < .06 and 0 < sample.x - unit.x < 50)
-        assert exponent.size == pytest.approx(6.5, abs=.1)
         rules = measure.native_rules(pdf[0])
-        vertical = [rule for rule in rules if rule.axis == "v" and abs(rule.coordinate - 76.92) <= .5]
-        assert vertical
-        bands = [band for band in measure.painted_rule_bands(rules, axis="h", crossing=310)
-                 if min(rule.start for rule in vertical) - .5 <= band.coordinate <= max(rule.end for rule in vertical) + .5]
-        contract = reference["tables"]["foundation.soil"]
-        rows = 2 + len(pier.soil.layers)
-        assert measure.table_errors([band.coordinate for band in bands], [contract["nominal_row_height_pt"]] * rows) == []
-        assert {round(rule.width, 2) for rule in rules if rule.axis == "v"} == {0.12, 0.96}
-        assert bands[0].width == pytest.approx(contract["thick_rule_pt"], abs=.001)
-        assert bands[-1].width == pytest.approx(contract["thick_rule_pt"], abs=.001)
-        assert bands[1].width == pytest.approx(contract["thin_rule_pt"], abs=.001)
-        # The public Table draws shared row-part boundaries separately: a 0.24 pt union,
-        # reported as is and never claimed equal to the reference's single 0.12 pt rule.
-        assert all(band.width == pytest.approx(2 * contract["thin_rule_pt"], abs=.001) for band in bands[2:-1])
+        table = [rule for rule in rules
+                 if rule.width in (BorderStyle.HAIR.stroke_width, BorderStyle.MEDIUM.stroke_width)]
+        vertical = [rule for rule in table if rule.axis == "v"]
+        horizontal = [rule for rule in table if rule.axis == "h"]
+        # Column boundaries: 層番 3, 層厚 3, 土質区分 3, Ｎ値 2, 湿潤 3, 水中 3, 内部摩擦角 4, 一軸圧縮強度 5, 変形係数 4.
+        boundaries = (0, 3, 6, 9, 11, 14, 17, 21, 26, 30)
+        frame = BorderStyle.MEDIUM.stroke_width / 2  # the frame is drawn inside the table
+        assert sorted({round(rule.coordinate, 2) for rule in vertical}) == pytest.approx(
+            [column_x(boundaries[0]) + frame, *(column_x(column) for column in boundaries[1:-1]),
+             column_x(boundaries[-1]) - frame], abs=.01)
+        assert {rule.width for rule in vertical if not column_x(0) + 1 < rule.coordinate < column_x(30) - 1} == {
+            BorderStyle.MEDIUM.stroke_width}
+        assert {rule.width for rule in vertical if column_x(0) + 1 < rule.coordinate < column_x(30) - 1} == {
+            BorderStyle.HAIR.stroke_width}
+        rows = sorted({round(rule.coordinate, 2) for rule in horizontal})
+        top, bottom = rows[0] - frame, rows[-1] + frame
+        assert bottom - top == pytest.approx(PITCH_Y * (2 + len(pier.soil.layers)), abs=.01)
+        assert all(((row - top) / PITCH_Y) % 1 in (pytest.approx(0, abs=.01), pytest.approx(1, abs=.01))
+                   for row in rows[1:-1])
         assert all(measure.monochrome_errors(page) == [] for page in pdf)
 
 
@@ -233,7 +243,7 @@ def test_scripts_sit_at_the_measured_offsets_in_the_kv_equations(tmp_path: Path)
 
 
 def _rows(page) -> list[list[dict]]:
-    """The 9.9 pt spans of *page* by baseline, left to right (scripts left out)."""
+    """The 10 pt spans of *page* by baseline, left to right (scripts left out)."""
     rows: dict[float, list[dict]] = {}
     for block in page.get_text("dict")["blocks"]:
         for line in block.get("lines", []):
@@ -243,15 +253,21 @@ def _rows(page) -> list[list[dict]]:
     return [sorted(spans, key=lambda span: span["origin"][0]) for _, spans in sorted(rows.items())]
 
 
+def _centre(span: dict) -> float:
+    return (span["bbox"][0] + span["bbox"][2]) / 2
+
+
 def _substitution_terms(path: Path) -> list[list[dict]]:
-    """The right-hand terms of each substitution: between the "=" at 184.44 and the result's "=" at 460.32."""
+    """The right-hand terms of each substitution: between its "=" centred on the boundary before body column 6 and
+    its result's "=" centred on the boundary before column 21."""
+
     found = []
     with pymupdf.open(path) as pdf:
         for page in pdf:
             for spans in _rows(page):
                 equals = [span for span in spans if span["text"].strip() == "="]
-                if (len(equals) >= 2 and abs(equals[0]["origin"][0] - 184.44) < .1
-                        and abs(equals[-1]["origin"][0] - 460.32) < .1):
+                if (len(equals) >= 2 and abs(_centre(equals[0]) - column_x(6)) < .1
+                        and abs(_centre(equals[-1]) - column_x(21)) < .1):
                     found.append([span for span in spans
                                   if equals[0]["bbox"][2] < span["origin"][0] < equals[-1]["origin"][0]])
     return found
@@ -260,7 +276,9 @@ def _substitution_terms(path: Path) -> list[list[dict]]:
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_terms_of_one_family_stand_in_the_same_columns(tmp_path: Path, name: str):
     """kv, Kv, ks, Ks, Iv and Kr: each number ends, and each operator is centred, in one column for
-    the long- and short-term (and both directions') equations, though labels and blank lines part them."""
+    the long- and short-term (and both directions') equations, though labels and blank lines part them.
+    Each term stands in whole grid columns: a number ends 2.4 pt (Excel's cell padding) before a column boundary."""
+    from webpier.reporting.styles import PITCH_X
     from foundation_report_cases import text
 
     result, pier, embedment = case(name)
@@ -292,11 +310,16 @@ def test_the_terms_of_one_family_stand_in_the_same_columns(tmp_path: Path, name:
             else:            # a number: right-aligned
                 rights = [span["bbox"][2] for span in spans]
                 assert rights == pytest.approx([rights[0]] * len(spans), abs=.01), (family, column)
+                if family in ("Kv", "ks", "Ks", "Kr"):  # numbers without a script after them
+                    boundary = round((rights[0] + 2.4 - column_x(0)) / PITCH_X)
+                    assert rights[0] + 2.4 == pytest.approx(column_x(boundary), abs=.3), (family, column)
 
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_every_definition_puts_its_colon_in_one_column(tmp_path: Path, name: str):
-    """Reference p1/p2: the "：" of every "ここに、" list at 210.96; "ここに、" opens each list once."""
+    """Reference p1/p2: the "：" of every "ここに、" list in one column, centred on the boundary before body column 9;
+    "ここに、" opens each list once."""
+
     result, pier, embedment = case(name)
     units = content(result, pier, embedment)
     path = render_foundation(result, pier, embedment, tmp_path / "definitions.pdf")
@@ -308,8 +331,9 @@ def test_every_definition_puts_its_colon_in_one_column(tmp_path: Path, name: str
                 for line in block.get("lines", []):
                     for span in line["spans"]:
                         chars = span["chars"]
-                        colons.extend(char["origin"][0] for previous, char in zip(chars, chars[1:])
+                        colons.extend((char["bbox"][0] + char["bbox"][2]) / 2
+                                      for previous, char in zip(chars, chars[1:])
                                       if char["c"] == "：" and previous["c"].isspace())
     assert len(colons) == sum(unit.kind == "definition" for unit in units)
-    assert colons == pytest.approx([210.96] * len(colons), abs=.06)
+    assert colons == pytest.approx([column_x(9)] * len(colons), abs=.06)
     assert labels == sum(unit.lead == "ここに、" for unit in units)

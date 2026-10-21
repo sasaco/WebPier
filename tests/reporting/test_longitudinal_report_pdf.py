@@ -1,10 +1,9 @@
-"""0610 PDF: the drawn text is the manuscript, bytes are deterministic, appearance meets the reference,
-and every printed formula and table row recomputes from the printed numbers."""
+"""0610 PDF: the drawn text is the manuscript, bytes are deterministic, the pages follow the common grid (GridLayoutPdf
+0.2.0), and every printed formula and table row recomputes from the printed numbers."""
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import re
 import subprocess
 import sys
@@ -17,7 +16,10 @@ import pytest
 from gridlayoutpdf import Text
 
 from frame_report_cases import CASES, chain
-from frame_report_pdf_checks import table_checks
+from frame_report_pdf_checks import (
+    BODY, HEADING, band_errors, column_x, drawn_order_errors, first, outside_body, placement_errors, relation_centres, row_bands, row_offset,
+    spans, table_checks,
+)
 from pdf_handcheck import formula_checks
 from webpier.core.printed import Printed
 from load_diagram_support import PAGES, REPORT, inserted, layout
@@ -26,7 +28,6 @@ from webpier.reporting.stages.longitudinal import (
 )
 
 ROOT = Path(__file__).parents[2]
-APPEARANCE = ROOT / "tests" / "fixtures" / "reporting" / "appearance" / "reference-style.json"
 _spec = importlib.util.spec_from_file_location("reporting_appearance_measure", ROOT / "scripts" / "reporting_appearance.py")
 assert _spec is not None and _spec.loader is not None
 measure = importlib.util.module_from_spec(_spec)
@@ -34,7 +35,6 @@ sys.modules[_spec.name] = measure
 _spec.loader.exec_module(measure)
 
 PAGE_NUMBER = re.compile(r"^\d+ - \d+$", re.MULTILINE)  # the reference prints no page numbers
-ANCHOR = 58.92  # the chapter start of 0600 and later (reporting-style.md)
 
 
 def squeeze(value: str) -> str:
@@ -53,7 +53,7 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
     pages = before + after
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
-    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
+    assert drawn_order_errors(squeeze("".join(drawn)), content(result, reaction, pier)) == []
     with pymupdf.open(render(case, tmp_path / "0610.pdf")) as pdf:
         # Decision 44: the load diagram pages come right after 8.3, and 8.4 starts the next page.
         assert len(pdf) == len(pages) + PAGES
@@ -125,74 +125,52 @@ def test_render_replaces_the_target_only_after_a_complete_layout(tmp_path: Path)
     assert path.read_bytes() == b"previous-published-bytes"
 
 
-def _samples(pdf) -> list:
-    """Spans with the real face name of the subset font (MS-Mincho, MS-Gothic), as in the 0500 test."""
-    from reportlab.pdfbase.ttfonts import TTFont
-
-    from webpier.reporting.fonts import load_fonts
-
-    fonts = load_fonts()
-    faces = {}
-    for name in ("body", "heading"):
-        face = fonts.resolve(name)
-        faces[face.pdf_name] = TTFont(f"verify-{name}", str(face.path), subfontIndex=face.face_index).face.name.decode("ascii")
-    found = []
+def subscript_errors(pdf) -> list[str]:
+    """R with its 6.5 pt subscript B 1.92 pt below the line (Example2's subscripts) on the baseline of the numbers of
+    its table row."""
     for page in pdf:
-        for sample in measure.text_samples(page):
-            real = next((faces[pdf_name] for pdf_name in faces if len(sample.font) >= 20 and pdf_name.startswith(sample.font)),
-                        sample.font)
-            found.append(replace(sample, font=real))
-    return found
-
-
-def test_typography_tables_and_figure_match_the_independent_reference_roles(tmp_path: Path):
-    reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))
-    roles = reference["roles"]
-    with pymupdf.open(render("current", tmp_path / "0610.pdf")) as pdf:
-        samples = _samples(pdf)
-
-        def first(text: str, **where) -> object:
-            found = [s for s in samples if s.text == text and all(getattr(s, k) == v for k, v in where.items())]
-            assert found, text
-            return found[0]
-
-        for role, text in (("common.chapter", "§8. 線路方向の計算（地震時以外）"), ("common.section", "8.1 検討モデル"),
-                           ("common.subsection", "(1) 骨組図"), ("common.subsubsection", "1) 柱（はり・ハンチを含む）"),
-                           ("common.body", "フーチングはすべて剛域とする．")):
-            assert measure.role_errors(first(text), roles[role], anchor_x=ANCHOR) == [], role
-        assert measure.role_errors(first("荷重名称"), roles["common.table_header"]) == []
-        assert measure.role_errors(first("5740.00"), roles["common.table_value"]) == []
-        # The figure: node numbers MS-Gothic 9.9, member numbers 8, dimensions 9.9 (rotated) on page 1.
-        page_one = [s for s in samples if s.page == 1]
-        node = next(s for s in page_one if s.text == "1" and s.size > 9)
-        member = next(s for s in page_one if s.text == "1" and s.size < 9)
-        dimension = next(s for s in page_one if s.text == "2.000")
-        for sample, role in ((node, "frame.node"), (member, "frame.member"), (dimension, "frame.dimension")):
-            assert measure.role_errors(sample, roles[role]) == [], role
-        # Result '=' of the action formulas in the 0600 multi-step result column.
-        equals = [s for s in samples if s.text == "=" and abs(s.x - 436.44) < 3]
-        assert len(equals) >= 10
-        assert all(measure.role_errors(s, roles["horizontal.result_equals"], anchor_x=ANCHOR) == [] for s in equals)
-        # R with its subscript B on the baseline of the numbers of its row.
-        chars = [(c["c"], c["origin"], span["size"]) for block in pdf[2].get_text("rawdict")["blocks"]
+        chars = [(c["c"], c["origin"], span["size"]) for block in page.get_text("rawdict")["blocks"]
                  for line in block.get("lines", []) for span in line["spans"] for c in span["chars"]
                  if not c["c"].isspace()]
-        index = next(i for i, (c, _, size) in enumerate(chars) if c == "R" and size > 9 and chars[i + 1][0] == "B")
+        index = next((i for i, (c, _, size) in enumerate(chars[:-1]) if c == "R" and size > 9 and chars[i + 1][0] == "B"),
+                     None)
+        if index is None:
+            continue
         (_, main, _), (_, subscript, size) = chars[index], chars[index + 1]
-        assert size == pytest.approx(6.5, abs=.1)
-        assert subscript[1] - main[1] == pytest.approx(roles["common.subscript"]["baseline_delta_pt"], abs=.06)
-        number = next(origin for c, origin, size in chars if c == "5" and size > 9)
-        assert number[1] == pytest.approx(main[1], abs=.01)  # the label and the numbers of a row share a baseline
-        # The combination table: four header bands, then 20 rows of 14.28 pt (longitudinal.combination).
-        contract = reference["tables"]["longitudinal.combination"]
-        page = next(p for p in pdf if "変動荷重" in p.get_text() and "地盤の安定" in p.get_text())
-        rules = measure.native_rules(page)
-        top = next(s for s in samples if s.text == "安全性" and s.page == page.number + 1).baseline - 25
-        bands = [b for b in measure.painted_rule_bands(rules, axis="h", crossing=230) if b.coordinate > top][:25]
-        heights = [28.56, 14.28, 47.76, 14.28] + [contract["nominal_row_height_pt"]] * 20
-        assert measure.table_errors([b.coordinate for b in bands], heights) == []
-        assert bands[0].width == pytest.approx(contract["thick_rule_pt"], abs=.001)
-        assert bands[-1].width == pytest.approx(contract["thick_rule_pt"], abs=.001)
+        number = next(origin for c, origin, size in chars[index:] if c.isdigit() and size > 9)
+        return [error for error, ok in (
+            (f"subscript size {size}", abs(size - 6.5) < .1),
+            (f"subscript drop {subscript[1] - main[1]:.2f}", abs(subscript[1] - main[1] - 1.92) < .06),
+            (f"row baseline {number[1]:.2f} != {main[1]:.2f}", abs(number[1] - main[1]) < .01)) if not ok]
+    return ["no R_B"]
+
+
+def test_the_pages_follow_the_grid_contract(tmp_path: Path):
+    """Headings at their level's column in MS Gothic 10 pt and the body from column 4 in MS Mincho 10 pt, each line on
+    a grid row; the figure's numbers and dimensions; the result "=" of the action formulas centred on the boundary
+    before column 22; nothing beyond the body's 30 columns; and the coefficient table (8-10) in whole grid rows:
+    four header bands of 2, 1, 3 and 1 rows, then a row a basic case."""
+    with pymupdf.open(render("current", tmp_path / "0610.pdf")) as pdf:
+        found = spans(pdf)
+        placed = (("§8. 線路方向の計算（地震時以外）", 0, HEADING), ("8.1 検討モデル", 1, HEADING), ("(1) 骨組図", 2, HEADING),
+                  ("1) 柱（はり・ハンチを含む）", 3, HEADING), ("フーチングはすべて剛域とする．", 4, BODY))
+        assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
+        assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
+        for text in ("荷重名称", "5740.00"):
+            assert (first(found, text).face, first(found, text).size) == (BODY, 10.0), text
+        page_one = [span for span in found if span.page == 1]
+        assert any(span.text == "1" and (span.face, span.size) == (HEADING, 10.0) for span in page_one)  # a node
+        assert any(span.text == "1" and (span.face, span.size) == (HEADING, 8.0) for span in page_one)  # a member
+        dimension = first(found, "2.000")
+        assert (dimension.face, dimension.size, dimension.upright) == (HEADING, 10.0, False)
+        centres = relation_centres(pdf, 22)
+        assert len(centres) >= 10 and all(abs(centre) < .5 for centre in centres)
+        assert subscript_errors(pdf) == []
+        assert [error for page in pdf if not inserted(page) for error in outside_body(page)] == []
+        page = next(p for p in pdf if "縁応力度" in p.get_text())
+        top = next(span for span in found if span.text == "安全性" and span.page == page.number + 1).baseline - 25
+        rows = [2, 1, 3, 1] + [1] * len(chain("current")[2].basic_cases)
+        assert band_errors(row_bands(page, column_x(10) + 8, top)[:len(rows) + 1], rows) == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
 
 
@@ -203,11 +181,14 @@ def test_headings_stay_with_what_follows_and_tables_are_not_split():
     for number, page in enumerate(pages, 1):
         for placement in page.metadata["placements"]:
             owners.setdefault(placement["block_id"], set()).add(number)
+    from webpier.reporting.stages.frame_report import TableParts
     from webpier.reporting.stages.longitudinal import content
 
     units = content(result, reaction, pier)
     for index, unit in enumerate(units):
-        if unit.kind in ("table", "figure"):
+        if isinstance(getattr(unit.value, "block", None), TableParts):  # one page at most a part (8-10)
+            assert len(owners[unit.key]) <= len(unit.value.block.specs), unit.key
+        elif unit.kind in ("table", "figure"):
             assert len(owners[unit.key]) == 1, unit.key
         if unit.kind == "heading" and index + 1 < len(units) and units[index + 1].key in owners:
             assert max(owners[unit.key]) <= min(owners[units[index + 1].key]), unit.key

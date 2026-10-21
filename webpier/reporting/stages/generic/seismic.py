@@ -23,7 +23,7 @@ from ..frame_report import (
     Manuscript, Span, TableSpec, Unit, document, self_weight_inertia, semantic_records as records, sub, value,
     with_unit,
 )
-from ..insertion import diagrams_heading, render_with_pages
+from ..insertion import diagrams_heading, documents, render_with_pages
 from ..seismic_longitudinal import ARROWS, INCREMENTS
 from .common import bearing_table, sections
 
@@ -68,7 +68,7 @@ def _combinations(m: Manuscript, result: GenericSeismicResult, chapter: str) -> 
     for case in result.basic_cases:
         rows.append((str(case.number), case.id, Span(_ARROWS[case.direction]), Span(INCREMENTS[case.increment]),
                      case.name))
-    m.table("basic", TableSpec((39.6, 64.8, 55.2, 63.6, 208.8), tuple(rows), (14.28,) * len(rows),
+    m.table("basic", TableSpec((2, 4, 3, 3, 15), tuple(rows), (1,) * len(rows),
                                numeric=frozenset({0})))
     m.paragraph("combination.caption", "組合せCase", keep=True)
     rows = [("Case", "名称", Row(sub("α", "f"), "／", sub("ρ", "m"), gap=0), "作用方向", "基本Case", "地盤抵抗TYPE")]
@@ -78,7 +78,7 @@ def _combinations(m: Manuscript, result: GenericSeismicResult, chapter: str) -> 
                      Span(_ARROWS[combination.direction]),
                      " + ".join(str(result.basic(case).number) for case in combination.cases),
                      str(combination.ground_resistance_type)))
-    m.table("combination", TableSpec((39.6, 96, 55.2, 55.2, 130.8, 70.8), tuple(rows), (14.28,) * len(rows),
+    m.table("combination", TableSpec((2, 4, 3, 3, 10, 5), tuple(rows), (1,) * len(rows),
                                      numeric=frozenset({0, 5})))
 
 
@@ -109,4 +109,10 @@ def render_generic_seismic(result: GenericSeismicResult, pier: PierInput, path: 
     return render_with_pages(content(result, pier), train.INSERTIONS, pages, path)
 
 
-__all__ = ["build_generic_seismic", "content", "render_generic_seismic", "semantic_records"]
+def grid_documents(result: GenericSeismicResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of JRSNAP (its grid Excel workbook)."""
+    train = _STAGES[result.frame.direction][0]
+    return documents(content(result, pier), train.INSERTIONS)
+
+
+__all__ = ["build_generic_seismic", "content", "grid_documents", "render_generic_seismic", "semantic_records"]

@@ -9,25 +9,16 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import ROUND_FLOOR, Decimal
 from typing import Any
 
 from ....calc.bearing_actions import BearingTable
 from ....calc.frame import Frame, PointLoad
 from ....calc.longitudinal.combinations import EXTRACTION_NAMES
 from ....loadmodel import Paragraph, Section, bearing_label
+from ...styles import BODY_COLUMNS
 from ..frame_report import BODY_LEFT, Manuscript, Span, TableSpec, seat_moment, value
 
 NO_COMBINATION = "該当する組合せなし（断面力0）"
-GRID = Decimal("0.12")  # the layout grid of a width, pt
-_TEXT_WIDTH = 432.0  # the width of a table at the body (as top_table)
-
-
-def grid_width(width: float) -> float:
-    """*width* down to the layout grid."""
-    return float((Decimal(repr(width)) / GRID).to_integral_value(rounding=ROUND_FLOOR) * GRID)
-
-
 @dataclass(frozen=True)
 class Points:
     points: tuple[PointLoad, ...]
@@ -58,9 +49,9 @@ def sections(m: Manuscript, key: str, heading: str, items: Sequence[Section], le
             if isinstance(block, Paragraph):
                 m.paragraph(where, block.text)
             else:
-                width = grid_width(_TEXT_WIDTH / len(block.columns))
+                width = (BODY_COLUMNS - BODY_LEFT) // len(block.columns)
                 rows = (block.columns, *block.rows)
-                m.table(where, TableSpec((width,) * len(block.columns), tuple(rows), (14.28,) * len(rows),
+                m.table(where, TableSpec((width,) * len(block.columns), tuple(rows), (1,) * len(rows),
                                          left=BODY_LEFT))
 
 
@@ -72,8 +63,7 @@ def bearing_table(m: Manuscript, key: str, frame: Frame, table: BearingTable, ar
         rows.append((Span(bearing_label(row.bearing), align="left"), value(row.n), value(row.arm), value(row.nm),
                      value(row.h), value(row.y), value(row.hm), value(row.m)))
     rows.append(("合計", value(table.n), "", "", value(table.h), "", "", value(table.m)))
-    m.table(key, TableSpec((60, 52.08, 52.08, 56.04, 52.08, 52.08, 52.08, 56.04), tuple(rows),
-                           (28.56,) + (14.28,) * (len(rows) - 1),
+    m.table(key, TableSpec((3, 3, 3, 4, 3, 3, 3, 4), tuple(rows), (2,) + (1,) * (len(rows) - 1),
                            numeric=frozenset(range(1, 8)), left=BODY_LEFT, open=True))
     seat_moment(m, key + ".seat", frame, table.n, table.m, table.point)
 
@@ -86,5 +76,5 @@ def extraction_table(m: Manuscript, extractions: Sequence[Any], empty: frozenset
         numbers = [str(number) for number in extraction.combinations]
         rows.append((str(extraction.number), EXTRACTION_NAMES[extraction.group], *numbers,
                      *[""] * (width - len(numbers)), NO_COMBINATION if extraction.group in empty else ""))
-    m.table("extraction", TableSpec((28.8, 108, *(36.0,) * width, 180.0),
-                                    tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, *range(2, 2 + width)})))
+    m.table("extraction", TableSpec((2, 7, *(2,) * width, 18 - 2 * width),
+                                    tuple(rows), (1,) * len(rows), numeric=frozenset({0, *range(2, 2 + width)})))

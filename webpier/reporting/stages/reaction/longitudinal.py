@@ -15,12 +15,12 @@ from ....core.printed import Printed
 from ....inputs import BrakingRule, PierInput
 from ...numbers import decimal_constant, printed
 from .manuscript import (
-    CONCLUSION_EQUAL, DETAIL, FIXED_EQUAL, INDENTED, ITEM, MARK_EQUAL, PAIR_SECOND, SECTION, SUBSECTION,
+    CONCLUSION_EQUAL, DETAIL, INDENTED, ITEM, MARK_EQUAL, PAIR_LEFT, PAIR_SECOND, SECTION, SUBSECTION,
     VERTICAL_EQUAL, WIDE_LHS, CellSpec, Manuscript, call, cells, expr, inline, join, ratio, sub, symbols,
 )
 from .tables import header, summary
 
-WIDE_NOTE = 160.56  # labels inside a bearing derivation
+WIDE_NOTE = WIDE_LHS  # labels inside a bearing derivation
 BEARINGS = {BearingType.FIXED: "固定", BearingType.MOVABLE: "可動"}
 # (check, long rail) of each combination; γB follows the long rail in its label, and the combination is written
 # from the calculator's definition with the printed γL and γB (07 7-7: "1.0 LR + 1.23B  [1.1D1 + … の組合せ]").
@@ -191,14 +191,13 @@ def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCas
     m.formula(key + ".vertical", "", None, vertical, force.vertical, left=WIDE_LHS, equal=VERTICAL_EQUAL)
     m.paragraph(key + ".horizontal.label", ("可動" if movable else "固定") + "支承に働く水平荷重", left=WIDE_NOTE,
                 gap=True)
-    mu, equal = span.mu, None if movable else FIXED_EQUAL
+    mu = span.mu
     if not movable:
         assert force.fixed_candidate is not None
         m.formula(key + ".candidate", "T − 1/2μ・Rm", None,
                   (force.applied, "−", ratio(1, int(1 / FRICTION_SHARE)), "×", mu, "×", force.vertical),
-                  force.fixed_candidate, wide=True, equal=equal)
-    m.formula(key + ".share", "T / n", None, (ratio(force.applied, BEARING_LINES),), force.share, wide=True,
-              equal=equal)
+                  force.fixed_candidate, wide=True)
+    m.formula(key + ".share", "T / n", None, (ratio(force.applied, BEARING_LINES),), force.share, wide=True)
     if movable:
         assert force.friction is not None and force.friction_floor is not None
         m.formula(key + ".friction", "μ・Rm", None, (mu, "×", force.vertical), force.friction, wide=True)
@@ -224,7 +223,7 @@ def _seismic(m: Manuscript, field: str, title: str, lon: LongitudinalResult) -> 
             m.formula(key + ".share", "T / n", None, (ratio(bearing.applied, BEARING_LINES),), bearing.force,
                       wide=True)
         else:
-            m.value(key + ".share", "T", bearing.force, wide=True, equal=FIXED_EQUAL)
+            m.value(key + ".share", "T", bearing.force, wide=True)
         m.rule_end()
         m.value(key + ".force", "※ ∴ H", bearing.force, wide=True, left=INDENTED, equal=CONCLUSION_EQUAL,
                 gap=True)
@@ -246,7 +245,7 @@ def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
                     m.start(key)  # the combination stays with the first girder
                     if side == SIDES[0][0]:
                         m.pair(f"long.case.{name}.label", f"・{label(case, pier)}",
-                               f"[{combination(case, pier)} の組合せ]", INDENTED, PAIR_SECOND, gap=True)
+                               f"[{combination(case, pier)} の組合せ]", PAIR_LEFT, PAIR_SECOND, gap=True)
                     _bearing(m, key, getattr(case, side), which, side, MARKS[side], result, pier)
                     m.end()
     _seismic(m, "seismic_girder", f"{len(GROUPS) + 1}) 地震時慣性力", lon)
@@ -271,7 +270,7 @@ def _summary(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
         forces = getattr(lon, field)
         first = [CellSpec("地震時", rowspan=2, align="center")] if index == 0 else []
         body.append((*first, *cells(name, forces.origin.force, forces.end.force, forces.total)))
-    m.table("long.summary.table", summary((87.12, 116.16, 87.12, 87.12, 87.12), head, body, (2, 3, 4)), SUBSECTION)
+    m.table("long.summary.table", summary((6, 6, 5, 5, 5), head, body, (2, 3, 4)), SUBSECTION)
 
 
 def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:

@@ -1,9 +1,8 @@
-"""0710 PDF: the drawn text is the manuscript, bytes are deterministic, appearance meets the reference,
+"""0710 PDF: the drawn text is the manuscript, bytes are deterministic, the pages follow the common grid,
 and every printed formula and table row recomputes from the printed numbers."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from collections import Counter
@@ -19,9 +18,11 @@ from jrsnap_pages_support import (
     DATA_CHECK_PAGES, LONGITUDINAL_LOAD_CASES, data_check_page, inserted, layout, load_diagram_page,
     page_order, pages as stand_ins,
 )
-from frame_report_pdf_checks import table_checks
+from frame_report_pdf_checks import (
+    BODY, HEADING, first, outside_body, placement_errors, relation_centres, row_offset, spans, table_checks,
+)
 from pdf_handcheck import formula_checks
-from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
+from test_longitudinal_report_pdf import PAGE_NUMBER, ROOT, measure, squeeze
 from webpier.core.printed import Printed
 from webpier.reporting.stages.seismic_longitudinal import (
     INSERTIONS, content, render_seismic_longitudinal, semantic_records,
@@ -103,30 +104,25 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("asymmetric", tmp_path / "d.pdf").read_bytes() != first
 
 
-def test_typography_and_tables_match_the_independent_reference_roles(tmp_path: Path):
-    reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))
-    roles = reference["roles"]
+def test_the_pages_follow_the_grid_contract(tmp_path: Path):
+    """As 0610 (test_longitudinal_report_pdf): the heading and body columns and faces, the figure, the result "="
+    before column 22 and nothing beyond the body."""
     with pymupdf.open(render("pedestal", tmp_path / "0710.pdf")) as pdf:
-        samples = _samples(pdf)
-
-        def first(text: str):
-            found = [s for s in samples if s.text == text]
-            assert found, text
-            return found[0]
-
-        for role, text in (("common.chapter", "§10. 線路方向の計算（地震時）"), ("common.section", "10.1 検討モデル"),
-                           ("common.subsection", "(3) 自重による地震時慣性力"),
-                           ("common.subsubsection", "1) 柱下端の微小部材"),
-                           ("common.body", "柱下端の微小部材以外の部材はすべて剛域とする．")):
-            assert measure.role_errors(first(text), roles[role], anchor_x=ANCHOR) == [], role
-        assert measure.role_errors(first("荷重種別"), roles["common.table_header"]) == []
-        page_one = [s for s in samples if s.page == 1]
-        assert measure.role_errors(next(s for s in page_one if s.text == "4" and s.size > 9), roles["frame.node"]) == []
-        assert measure.role_errors(next(s for s in page_one if s.text == "4" and s.size < 9), roles["frame.member"]) == []
-        assert measure.role_errors(first("0.010"), roles["frame.dimension"]) == []
-        equals = [s for s in samples if s.text == "=" and abs(s.x - 436.44) < 3]
-        assert len(equals) >= 7
-        assert all(measure.role_errors(s, roles["horizontal.result_equals"], anchor_x=ANCHOR) == [] for s in equals)
+        found = spans(pdf)
+        placed = (("§10. 線路方向の計算（地震時）", 0, HEADING), ("10.1 検討モデル", 1, HEADING),
+                  ("(3) 自重による地震時慣性力", 2, HEADING), ("1) 柱下端の微小部材", 3, HEADING),
+                  ("柱下端の微小部材以外の部材はすべて剛域とする．", 4, BODY))
+        assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
+        assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
+        assert (first(found, "荷重種別").face, first(found, "荷重種別").size) == (BODY, 10.0)
+        page_one = [span for span in found if span.page == 1]
+        assert any(span.text == "4" and (span.face, span.size) == (HEADING, 10.0) for span in page_one)
+        assert any(span.text == "4" and (span.face, span.size) == (HEADING, 8.0) for span in page_one)
+        dimension = first(found, "0.010")
+        assert (dimension.face, dimension.size, dimension.upright) == (HEADING, 10.0, False)
+        centres = relation_centres(pdf, 22)
+        assert len(centres) >= 7 and all(abs(centre) < .5 for centre in centres)
+        assert [error for page in pdf if "FAKE" not in page.get_text() for error in outside_body(page)] == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
 
 

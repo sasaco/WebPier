@@ -9,7 +9,7 @@ from ....calc.reaction.dead import GirderDead, SupportLoads
 from .manuscript import (
     CHAPTER, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, expr, join, sub,
 )
-from .tables import GIRDER_ROW, header
+from .tables import header
 
 LOADS = (("d1", "固定死荷重 D1", "D1"), ("d2", "付加死荷重 D2", "D2"), ("snow2", "雪荷重 2年確率", "S2"),
          ("snow10", "雪荷重 10年確率", "S10"), ("snow30", "雪荷重 30年確率", "S30"))
@@ -19,8 +19,7 @@ def _support_table(supports: tuple[SupportLoads, ...]) -> TableSpec:
     rows = [header("", sub("R", "A"), sub("R", "B"), sub("R", "C"), sub("R", "D"))]
     for field, label, _ in LOADS:
         rows.append(cells(CellSpec(label, align="center"), *(getattr(support, field) for support in supports)))
-    return TableSpec((116.16, 72.6, 72.6, 72.6, 72.6), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     numeric_columns=(1, 2, 3, 4))
+    return TableSpec((8, 5, 5, 5, 5), tuple(rows), header_rows=1, numeric_columns=(1, 2, 3, 4))
 
 
 def bearing_name(slot: int) -> str:
@@ -35,8 +34,7 @@ def _bearing_table(girder: GirderDead) -> TableSpec:
         rows.append(cells(CellSpec(bearing_name(item.slot), align="center"), bearing.position, bearing.d1,
                           bearing.d2, bearing.snow2, bearing.snow10, bearing.snow30, bearing.shares.l1,
                           bearing.shares.l2))
-    return TableSpec((43.56, 50.88, 58.08, 50.88, 50.88, 50.88, 50.88, 50.88, 50.88), tuple(rows), header_rows=2,
-                     row_height=GIRDER_ROW, numeric_columns=tuple(range(1, 9)))
+    return TableSpec((2, 3, 3, 3, 3, 3, 3, 3, 3), tuple(rows), header_rows=2, numeric_columns=tuple(range(1, 9)))
 
 
 def _girder(m: Manuscript, key: str, title: str, support: str, girder: GirderDead) -> None:

@@ -158,7 +158,7 @@ def _summary(m: Manuscript, result: ReactionResult) -> None:
             first = [CellSpec(group, rowspan=span, align="center")] if group != previous else []
             body.append((*first, *cells(label, *values)))
         previous = group
-    m.table("trans.summary.table", summary((58.08, 87.12, 58.08, 50.88, 65.28, 58.08, 50.88, 65.28), head, body,
+    m.table("trans.summary.table", summary((3, 5, 3, 3, 4, 3, 3, 4), head, body,
                                            (2, 3, 4, 5, 6, 7)), SECTION)
 
 

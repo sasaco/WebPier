@@ -30,13 +30,18 @@ from .footing_figures import cases_figure, reaction_figure, weight_figure, width
 from .frame_report import Manuscript, Span, TableSpec, Unit, document, semantic_records, value
 
 PREFIX = "0800/"
-TABLE_LEFT = 80.16
-LABEL = (96.0, 163.2)  # the label and the symbol columns of 1) (as 0612)
-COLUMN = 59.04  # one design column of 1)
-WIDE_LABEL = 279.36  # the one label column of 6) and 7) (every width is on the 0.12 pt grid)
-NARROW = 54.0  # one design column of 6) and 7)
-LEADING = 14.28
-HEADER = 28.56  # a two-line header row
+# Widths in grid columns, heights in grid rows. The tables stand from body column 1 (left of the body, as 0612) so that
+# the widest, 1) with the label, the symbol and four design columns, ends at the body's right edge (column 30).
+TABLE_LEFT = 1
+LABEL = (6, 10)  # the label (設計最大地盤反力度) and the symbol (frγ・Iγ・βb・Be・γe1・Nγ) columns of 1)
+COLUMN = 3  # one design column of 1)
+REACTION = (3, 4, 4, 4, 3, 4, 3, 4)  # 3): the limit, the column, q1, q2, L1, W, x, M
+WEIGHT = (2, 7, 3, 3, 4, 3, 4)  # 4): the part, the formula, V, γ, W, x, M
+BUOYANCY = (3, 6, 3, 3, 4, 3, 4)  # 5): the water level, then as 4)
+WIDE_LABEL = 15  # the one label column of 6) and 7) (フーチング自重と上載土によるモーメント (kN・m))
+NARROW = 3  # one design column of 6) and 7)
+LEADING = 1
+HEADER = 2  # a two-line header row
 BLANK = ""
 SEISMIC = "地震時"
 DIRECTIONS = (("longitudinal", "(1) 線路方向の計算"), ("transverse", "(2) 線路直角方向の計算"))
@@ -49,7 +54,7 @@ def _title(column: FootingColumn) -> str:
     return f"{column.limit}\n{column.detail}" if column.detail else column.limit
 
 
-def _heights(rows: Sequence[Row]) -> tuple[float, ...]:
+def _heights(rows: Sequence[Row]) -> tuple[int, ...]:
     return (HEADER, *(LEADING,) * (len(rows) - 1))
 
 
@@ -134,8 +139,7 @@ def _reaction_table(found: FootingDirection) -> TableSpec:
             cells = (value(segment.q1), BLANK if segment.uniform else value(segment.q2), value(segment.length),
                      value(segment.w), value(segment.x), value(segment.m))
             rows.append((*name, *detail, *(Span(text, align="right") for text in cells)))
-    widths = (50.16, 60.0, 60.0, 60.0, 52.08, 62.04, 52.08, 69.96)
-    return TableSpec(widths, tuple(rows), _heights(rows), left=TABLE_LEFT)
+    return TableSpec(REACTION, tuple(rows), _heights(rows), left=TABLE_LEFT)
 
 
 # --- 4) 自重・上載土, 5) 浮力 ------------------------------------------------------------------------------------------
@@ -155,16 +159,14 @@ def _weight_table(side: OverhangSide) -> TableSpec:
                        (Span("①"), *_weight_row(weight.overburden)), (Span("②"), *_weight_row(weight.footing)),
                        (Span("合　　計", colspan=2), Span("－"), Span("－"), Span(value(weight.w), align="right"), BLANK,
                         Span(value(weight.m), align="right"))]
-    widths = (36.0, 130.08, 52.08, 56.04, 60.0, 52.08, 69.96)
-    return TableSpec(widths, tuple(rows), _heights(rows), numeric=frozenset(range(2, 7)), left=TABLE_LEFT)
+    return TableSpec(WEIGHT, tuple(rows), _heights(rows), numeric=frozenset(range(2, 7)), left=TABLE_LEFT)
 
 
 def _buoyancy_table(side: OverhangSide) -> TableSpec:
     rows: list[Row] = [(BLANK, "計　算　式", "V\n(m3)", "γ\n(kN/m3)", "W\n(kN)", "x\n(m)", "M = W・x\n(kN・m)")]
     for label, row in (("高水位", side.water.high), ("平水位", side.water.normal), ("低水位", side.water.low)):
         rows.append((Span(label), *_weight_row(row)))
-    widths = (56.04, 110.04, 52.08, 56.04, 60.0, 52.08, 69.96)
-    return TableSpec(widths, tuple(rows), _heights(rows), numeric=frozenset(range(2, 7)), left=TABLE_LEFT)
+    return TableSpec(BUOYANCY, tuple(rows), _heights(rows), numeric=frozenset(range(2, 7)), left=TABLE_LEFT)
 
 
 # --- 6) 設計曲げモーメント, 7) 発生せん断力 -----------------------------------------------------------------------------
@@ -272,3 +274,8 @@ def build_footing(result: FootingResult) -> Document:
 def render_footing(result: FootingResult, path: str | Path) -> Path:
     """Lay out completely, then atomically replace *path*; the same result gives the same bytes."""
     return build_footing(result).render(path, invariant=True)
+
+
+def grid_documents(result: FootingResult) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_footing(result),)

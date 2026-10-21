@@ -15,14 +15,15 @@ from ....calc.reaction.longitudinal import (ADHESION, BEARING_LINES, DEFINITIONS
 from ....core.printed import Printed
 from ....inputs import PierInput
 from ...numbers import decimal_constant, printed
-from ..reaction.manuscript import (DETAIL, INDENTED, ITEM, PAIR_SECOND, SUBSECTION, CellSpec, Manuscript, TableSpec,
-                                   cells, sub)
-from ..reaction.tables import GIRDER_ROW, header
+from ..reaction.manuscript import (DETAIL, INDENTED, ITEM, PAIR_LEFT, PAIR_SECOND, SUBSECTION, CellSpec, Manuscript,
+                                   TableSpec, cells, sub)
+from ..reaction.tables import header
 
 SNOW = {"snow2": "S2", "snow10": "S10", "snow30": "S30"}
 MARKS = {Girder.ORIGIN: "T1", Girder.END: "T2"}
 BEARINGS = {BearingType.FIXED: "固定", BearingType.MOVABLE: "可動"}
 EQ_LABEL = "1.0 EQ（桁荷重）"
+DEVICE_EQUAL = 10  # the "=" of the lines of a girder end (13-16), after its widest symbol T − 1/2μ・Rm
 
 
 def combination_text(case: LongitudinalCase, result: ReactionResult) -> str:
@@ -81,32 +82,33 @@ def _devices(m: Manuscript, key: str, devices: GirderDevices, mu: Printed, seism
     mark = sub("T", MARKS[girder][1])
     m.start(key)
     m.paragraph(f"{key}.label", f"※ {GIRDER_SIDES[girder]}（{BEARINGS[devices.bearing]}支承）", INDENTED, gap=True)
-    m.value(f"{key}.applied", mark, devices.applied, medium=True)
+    m.value(f"{key}.applied", mark, devices.applied, equal=DEVICE_EQUAL)
     if not seismic:
         m.paragraph(f"{key}.vertical.label", f"{BEARINGS[devices.bearing]}支承に働く鉛直荷重", INDENTED)
         assert devices.vertical is not None
-        m.value(f"{key}.vertical", "Rm", devices.vertical, medium=True)
+        m.value(f"{key}.vertical", "Rm", devices.vertical, equal=DEVICE_EQUAL)
     m.paragraph(f"{key}.rubber.label", "ゴム支承に働く水平荷重", INDENTED)
     if devices.friction is not None and not seismic:
         m.formula(f"{key}.rubber", sub("H", "bd"), "μ・Rm", (mu, "×", devices.vertical), devices.rubber.total,
-                  medium=True)
+                  equal=DEVICE_EQUAL)
     else:
-        m.value(f"{key}.rubber", sub("H", "bd"), devices.rubber.total, medium=True)
+        m.value(f"{key}.rubber", sub("H", "bd"), devices.rubber.total, equal=DEVICE_EQUAL)
     m.paragraph(f"{key}.stopper.label", "ストッパーに働く水平荷重", INDENTED)
     if seismic:
         if devices.bearing is BearingType.MOVABLE:
             m.formula(f"{key}.stopper", sub("H", "sd"), "T / n", (devices.applied, "/", BEARING_LINES),
-                      devices.stopper.total, medium=True)
+                      devices.stopper.total, equal=DEVICE_EQUAL)
         else:
-            m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, symbolic="T", medium=True)
+            m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, symbolic="T", equal=DEVICE_EQUAL)
     elif devices.candidate is not None:
         m.formula(f"{key}.candidate", "T − 1/2μ・Rm", None,
                   (devices.applied, "−", FRICTION_SHARE, "×", mu, "×", devices.vertical), devices.candidate,
-                  medium=True)
-        m.formula(f"{key}.share", "T / n", None, (devices.applied, "/", BEARING_LINES), devices.share, medium=True)
-        m.value(f"{key}.stopper", Row("∴ ", sub("H", "sd"), gap=0), devices.stopper.total, medium=True)
+                  equal=DEVICE_EQUAL)
+        m.formula(f"{key}.share", "T / n", None, (devices.applied, "/", BEARING_LINES), devices.share,
+                  equal=DEVICE_EQUAL)
+        m.value(f"{key}.stopper", Row("∴ ", sub("H", "sd"), gap=0), devices.stopper.total, equal=DEVICE_EQUAL)
     else:
-        m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, medium=True)
+        m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, equal=DEVICE_EQUAL)
     m.end()
 
 
@@ -118,7 +120,7 @@ def _bearing_forces(m: Manuscript, result: CantileverResult, reaction: ReactionR
         if case.case is None:
             m.heading("bearing.seismic.heading", "(b) 地震時慣性力", DETAIL)
         else:
-            m.pair(f"{key}.label", f"・{case.label}", combination_text(case.case, reaction), INDENTED, PAIR_SECOND,
+            m.pair(f"{key}.label", f"・{case.label}", combination_text(case.case, reaction), PAIR_LEFT, PAIR_SECOND,
                    gap=True)
         for devices, span in ((case.origin, pier.spans.origin), (case.end, pier.spans.end)):
             _devices(m, f"{key}.{devices.girder.name.lower()}", devices, span.mu, case.case is None)
@@ -135,8 +137,7 @@ def _summary_table(cases: tuple[BearingCase, ...], girder: Girder, pick, each_la
     seismic = next(case for case in cases if case.case is None)
     device = pick(seismic.origin if girder is Girder.ORIGIN else seismic.end)
     rows.append((CellSpec("地震時", align="center"), CellSpec(EQ_LABEL, align="left"), *cells(device.total, device.each)))
-    return TableSpec((60.0, 160.08, 96.0, 96.0), tuple(rows), header_rows=1, row_height=GIRDER_ROW * 2,
-                     header_height=GIRDER_ROW * 2, numeric_columns=(2, 3))
+    return TableSpec((4, 10, 6, 6), tuple(rows), header_rows=1, numeric_columns=(2, 3))
 
 
 def _summaries(m: Manuscript, result: CantileverResult) -> None:

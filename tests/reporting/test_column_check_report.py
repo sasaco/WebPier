@@ -127,7 +127,8 @@ def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across
         "bending_durability", "bending_restorability", "shear_restorability"]
     text = webpier_pages(across)
     shear = text.split("(2) せん断ひび割れの検討")[1].split("9.8 使用性の照査")[0]
-    assert "σsl2 ：永久作用による鉄筋応力度の制限値" in shear.replace(" :", " ：")
+    # the symbol, its "：" and its text stand in grid columns of their own (each its own text line of the PDF)
+    assert "σsl2：永久作用による鉄筋応力度の制限値" in shear.replace(" ", "").replace("\n", "")
     assert shear.rstrip().endswith("永久作用と変動作用によるせん断力が生じないため，せん断ひび割れの検討を省略する．")
     serviceability = text.split("9.8 使用性の照査")[1].split("9.9 復旧性の照査")[0].replace("\n", "")
     assert "外観に対するひび割れ幅の制限値" in serviceability
@@ -208,3 +209,13 @@ def test_a_page_range_is_cut_as_it_is():
     for first, last in ((0, 1), (2, 1), (1, 4)):
         with pytest.raises(ValueError):
             page_range(given, first, last)
+
+
+def test_the_flowchart_stands_on_the_grid_within_the_body():
+    """GridLayoutPdf's common grid: the flowchart's frame is whole grid columns and rows from the body column and
+    ends by the body's right edge (column 30)."""
+    _, result = check()
+    figures = [unit.value for part, _ in parts(result, CHAPTER_8) for unit in part if unit.kind == "figure"]
+    assert len(figures) == 2  # 8.7 (1) and 8.8 (1)
+    for spec in figures:
+        assert spec.left == 4 and spec.left + spec.block.col_span <= 30 and isinstance(spec.block.rows, int)

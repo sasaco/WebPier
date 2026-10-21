@@ -13,7 +13,7 @@ from ....core.printed import Printed
 from ....inputs import PierInput
 from ...numbers import printed
 from ..reaction.manuscript import DETAIL, INDENTED, ITEM, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, sub, sup
-from ..reaction.tables import GIRDER_ROW, header
+from ..reaction.tables import header
 from ..reaction.train import loading_lines
 
 LOADS = (("d1", "固定死荷重（D1）"), ("d2", "付加死荷重（D2）"), ("snow2", "雪荷重 S 2年確率"), ("snow10", "雪荷重 S 10年確率"),
@@ -39,8 +39,8 @@ def _dead_table(result: CantileverResult, reaction: ReactionResult) -> TableSpec
             pier_loads = reaction.dead.origin.pier if girder is Girder.ORIGIN else reaction.dead.end.pier
             first = (CellSpec(GIRDER_LABELS[girder], rowspan=len(LOADS), align="center"),) if index == 0 else ()
             rows.append((*first, CellSpec(label, align="left"), *cells(*values), *cells(getattr(pier_loads, field))))
-    widths = (62.04, 120.0, *([54.0] * columns), 60.0)
-    return TableSpec(widths, tuple(rows), header_rows=1, row_height=GIRDER_ROW,
+    widths = (3, 6, *([3] * columns), 4)
+    return TableSpec(widths, tuple(rows), header_rows=1,
                      numeric_columns=tuple(range(2, columns + 3)))
 
 

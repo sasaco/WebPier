@@ -27,18 +27,19 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from gridlayoutpdf import Connector, Document, Figure, Label, TextBox, TextDiamond
+from gridlayoutpdf import BreakHint, Connector, Document, Figure, Label, Row, TextBox, TextDiamond
 
 from ...calc.column_check import ColumnCheckResult, SafetyFactors
 from ...inputs import PierInput
 from ..document import blank
 from ..equations import Definition  # values in the text: (= …), as Example2 8-14
-from ..styles import BODY, grid_units
+from ..styles import BODY, columns_for, rows_for
 from . import insertion
-from .frame_report import FigureSpec, Manuscript, Unit, blocks, value
-from .insertion import Insertion, render_with_pages
+from .frame_report import BODY_LEFT, FigureSpec, Manuscript, Unit, blocks, value
+from .insertion import Insertion, documents, render_with_pages
 
-COLON = 211.0  # the "：" of the 0500 "ここに、" lists (reporting-style.md): room for σwpd and ε'csd
+COLON = 10  # the "：" column of the "ここに、" lists: room for "ここに、" and the widest symbol (ε'csd, Mtu.min)
+CONTINUED = BODY_LEFT + 3  # the continuation of a formula line wider than the body: under its right side
 
 
 @dataclass(frozen=True)
@@ -69,30 +70,47 @@ def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
     m.definitions(key, *items, colon=COLON)
 
 
+def wrap(*pieces: str, mode: str = "allowed") -> Row:
+    """A "ここに、" text too long for the body: it may break between *pieces*, the next line under the text. With
+    *mode* "forced" it always breaks there (a text that fits the PDF line but not Excel's wider print of it)."""
+    found: list = []
+    for piece in pieces:
+        found += [BreakHint(mode), piece] if found else [piece]
+    return Row(*found, gap=0)
+
+
+def ecsd_text(ecsd: str) -> Row:
+    return wrap("収縮・クリープ等によるひび割れ幅の増加を考慮する数値", f"(= {ecsd} ×10⁻⁶)")
+
+
+SIGMA_SE = wrap("鋼材位置のコンクリートの応力度が0の状態からの", "鉄筋応力度の増加量")
+
+
 def _factors(result: ColumnCheckResult, limit_state: int) -> SafetyFactors:
     return next(factors for factors in result.safety if factors.id == limit_state)
 
 
 # --- the flowchart of the flexural crack check (8.7 (1), 8.8 (1)) ---------------------------------------------------
 
-_WIDTH, _HEIGHT = 432.0, 252.0
+_WIDTH, _HEIGHT = 390.0, 252.0  # 25 × 17 grid cells: from the body column to column 29
+FLOWCHART_LEFT = 4
 
 
 def flowchart(key: str) -> FigureSpec:
     """START → σb → σbl → σb ≦ σbl: Yes the steel stress, No the crack width (Example2 8-18 / 8-23, completed)."""
-    boxes = (TextBox(110, 2, 80, 24, ("START",), rounded=True, style=BODY),
-             TextBox(40, 44, 220, 36, ("全断面を有効として計算したコンクリートの", "縁引張応力度 σb の算定"), style=BODY),
-             TextBox(40, 98, 220, 36, ("断面高さに応じた縁引張応力度の", "限界値 σbl の設定"), style=BODY),
-             TextDiamond(90, 152, 120, 40, ("σb ≦ σbl",), style=BODY),
-             TextBox(40, 214, 220, 36, ("永久作用による引張鉄筋の", "応力度による検討"), style=BODY),
-             TextBox(270, 214, 150, 36, ("曲げひび割れ幅による検討", "γi・Wd / Wlim ≦ 1.0"), style=BODY))
-    lines = (Connector(((150, 26), (150, 44))), Connector(((150, 80), (150, 98))),
-             Connector(((150, 134), (150, 152))), Connector(((150, 192), (150, 214))),
-             Connector(((210, 172), (345, 172), (345, 214))),
-             Label(156, 206, "Yes", style=BODY), Label(216, 168, "No", style=BODY))
+    boxes = (TextBox(80, 2, 80, 24, ("START",), rounded=True, style=BODY),
+             TextBox(10, 44, 220, 36, ("全断面を有効として計算したコンクリートの", "縁引張応力度 σb の算定"), style=BODY),
+             TextBox(10, 98, 220, 36, ("断面高さに応じた縁引張応力度の", "限界値 σbl の設定"), style=BODY),
+             TextDiamond(60, 152, 120, 40, ("σb ≦ σbl",), style=BODY),
+             TextBox(10, 214, 220, 36, ("永久作用による引張鉄筋の", "応力度による検討"), style=BODY),
+             TextBox(240, 214, 150, 36, ("曲げひび割れ幅による検討", "γi・Wd / Wlim ≦ 1.0"), style=BODY))
+    lines = (Connector(((120, 26), (120, 44))), Connector(((120, 80), (120, 98))),
+             Connector(((120, 134), (120, 152))), Connector(((120, 192), (120, 214))),
+             Connector(((180, 172), (315, 172), (315, 214))),
+             Label(126, 206, "Yes", style=BODY), Label(186, 168, "No", style=BODY))
     texts = tuple(line for box in boxes for line in box.lines) + ("Yes", "No")
-    return FigureSpec(Figure(grid_units(_WIDTH), grid_units(_HEIGHT), *boxes, *lines, block_id=key), texts,
-                      left=117.0)
+    return FigureSpec(Figure(columns_for(_WIDTH), rows_for(_HEIGHT), *boxes, *lines, block_id=key), texts,
+                      left=FLOWCHART_LEFT)
 
 
 # --- the parts ----------------------------------------------------------------------------------------------------
@@ -166,8 +184,8 @@ def _crack_width(m: Manuscript, key: str, result: ColumnCheckResult, gamma_i: st
                   Definition("k3", "引張鋼材の段数の影響を表す係数"),
                   Definition("k4", f"曲げひび割れの変動を考慮する係数(= {value(result.k4)})"),
                   Definition("c", "かぶり"), Definition("Cs", "鋼材の中心間隔"), Definition("φ", "鋼材径"),
-                  Definition("ε'csd", f"収縮・クリープ等によるひび割れ幅の増加を考慮する数値(= {value(result.ecsd)} ×10⁻⁶)"),
-                  Definition("σse", "鋼材位置のコンクリートの応力度が0の状態からの鉄筋応力度の増加量"),
+                  Definition("ε'csd", ecsd_text(value(result.ecsd))),
+                  Definition("σse", SIGMA_SE),
                   Definition("Es", "鋼材のヤング係数"), Definition("Wlim", limit))
 
 
@@ -193,7 +211,7 @@ def _durability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
                                                "を省略する．")
     m.line("durability.shear.check", "σwpd / σsl2 ≦ 1.0")
     m.line("durability.shear.formula", "σwpd = (Vpd + Vrd − kr・Vcd)・s / {Aw・z(cosθ + sinθ)}")
-    m.line("durability.shear.formula.ratio", "　　　　× (Vpd + Vcd) / (Vpd + Vrd + Vcd)")
+    m.line("durability.shear.formula.ratio", "× (Vpd + Vcd) / (Vpd + Vrd + Vcd)", left=CONTINUED)
     _definitions(m, "durability.shear.symbols",
                   Definition("σwpd", "永久作用によるせん断補強鉄筋の設計応力度"),
                   Definition("Vpd", "永久作用による設計せん断力"), Definition("Vrd", "変動作用による設計せん断力"),
@@ -290,8 +308,22 @@ def render_column_check(result: ColumnCheckResult, pier: PierInput, path: str | 
 
     WebPier's pages are the same bytes for the same input; Capacita's are its own (decision 48).
     """
+    units, insertions = _manuscript(result, chapter, pages)
+    return render_with_pages(units, insertions, pages, path, blocks=_blocks)
+
+
+def _manuscript(result: ColumnCheckResult, chapter: Chapter,
+                pages: Mapping[str, bytes]) -> tuple[tuple[Unit, ...], tuple[Insertion, ...]]:
+    """The units of the report and where Capacita's *pages* go; a section without pages that Capacita may skip
+    ends with the reason it is omitted. The report and its grid Excel workbook are laid out from the same."""
     skipped = tuple(section for section in result.sections if section not in pages and section in OMITTED)
     found = parts(result, chapter, skipped)
     units = tuple(unit for part, _ in found for unit in part)
     insertions = tuple(Insertion(section, part[-1].key, optional=section in OMITTED) for part, section in found)
-    return render_with_pages(units, insertions, pages, path, blocks=_blocks)
+    return units, insertions
+
+
+def grid_documents(result: ColumnCheckResult, pier: PierInput, pages: Mapping[str, bytes],
+                   chapter: Chapter) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of Capacita (its grid Excel workbook)."""
+    return documents(*_manuscript(result, chapter, pages), blocks=_blocks)

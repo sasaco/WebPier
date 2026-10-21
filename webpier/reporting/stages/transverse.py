@@ -38,7 +38,7 @@ from .frame_report import (
     operand, overlap_lines, seat_moment, seat_split, section_lines, semantic_records as records, spring_table, sub,
     top_table, used_concretes, value, with_unit,
 )
-from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
+from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 
 PREFIX = "0620/"
 TRACKS = {Track.UP: "上り線載荷", Track.DOWN: "下り線載荷", Track.DOUBLE: "複線載荷"}
@@ -113,12 +113,16 @@ def _footing_moment(m: Manuscript, key: str, row: Any) -> None:
         m.equation(key, "", sub("M", "P"), terms(value(row.n), "×", operand(row.arm)), row.m)
 
 
+# The bearing tables with a product (9-5, 9-6, 9-8): the bearing (起点側　R_B G1), five numbers; 26 columns from the body.
+PRODUCT_COLUMNS = (5, 4, 4, 4, 4, 5)
+
+
 def _product_table(header: tuple[str, str], rows: list[tuple[Any, ...]], total: tuple[Any, Any]) -> TableSpec:
     """Load × factor = 鉛直力 by bearing, with the lever and the moment (9-5, 9-6)."""
     body: list[tuple[Any, ...]] = [("", header[0], header[1], "鉛直力\n(kN)", "アーム\n(m)", "モーメント\n(kN・m)")]
     body += [(Span(label, align="left"), *(value(number) for number in numbers)) for label, *numbers in rows]
     body.append(("合計", "", "", value(total[0]), "", value(total[1])))
-    return TableSpec((96, 66, 60, 72, 60, 78), tuple(body), (28.56,) + (14.28,) * (len(body) - 1),
+    return TableSpec(PRODUCT_COLUMNS, tuple(body), (2,) + (1,) * (len(body) - 1),
                      numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True)
 
 
@@ -138,7 +142,7 @@ def horizontal_table(rows: tuple[HorizontalRow, ...], h: Any, moment: Any) -> Ta
     body += [("起点側　桁" if row.item is Item.ORIGIN else "終点側　桁", value(row.h), value(row.y), value(row.m))
              for row in rows]
     body.append(("合計", value(h), "", value(moment)))
-    return TableSpec((96, 96, 84, 120), tuple(body), (14.28,) * len(body), numeric=frozenset({1, 2, 3}),
+    return TableSpec((7, 6, 6, 7), tuple(body), (1,) * len(body), numeric=frozenset({1, 2, 3}),
                      left=BODY_LEFT, open=True)
 
 
@@ -280,7 +284,7 @@ def _pier_wind(m: Manuscript, key: str, wind: PierWind) -> None:
         rows.append((_PARTS[segment.region], value(segment.top), value(segment.bottom), value(segment.length),
                      value(segment.width_top), value(segment.width_bottom)))
     if wind.segments:
-        m.table(f"{key}.segments", TableSpec((60, 66, 66, 66, 84, 84), tuple(rows), (14.28,) * len(rows),
+        m.table(f"{key}.segments", TableSpec((4, 4, 4, 4, 5, 5), tuple(rows), (1,) * len(rows),
                                              numeric=frozenset(range(1, 6)), left=BODY_LEFT))
     seen: set[str] = set()
     for segment in wind.segments:
@@ -328,8 +332,8 @@ def _horizontal(m: Manuscript, result: TransverseResult, pier: PierInput) -> Non
                 rows.append(("起点側" if row.item is Item.ORIGIN else "終点側", value(row.train), value(row.coefficient),
                              value(row.h), value(row.y), value(row.m)))
             rows.append(("合計", "", "", value(table.h), "", value(table.m)))
-            m.table(f"centrifugal.{track.value}", TableSpec((96, 66, 60, 72, 60, 78), tuple(rows),
-                                                            (28.56,) + (14.28,) * (len(rows) - 1),
+            m.table(f"centrifugal.{track.value}", TableSpec(PRODUCT_COLUMNS, tuple(rows),
+                                                            (2,) + (1,) * (len(rows) - 1),
                                                             numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True))
 
 
@@ -340,7 +344,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
     for action in result.basic_cases:
         name, qualifier, _ = _BASIC[action.case]
         rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
-    m.table("basic", TableSpec((28.8, 108, 236.4, 39.6), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, 3})))
+    m.table("basic", TableSpec((2, 7, 16, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
     m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
     m.heading("define.heading", "(2) Defineケース", 2)
     width = max(len(define.cases) * len(define.signs) for define in result.define_cases)
@@ -353,7 +357,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
         labels.append((symbol(define.cases[0]), name, qualifier))
         rows.append((str(define.number), *entries, *[""] * (width - len(entries)), Span(symbol(define.cases[0])), name,
                      qualifier))
-    m.table("define", TableSpec((28.8, *(32.4,) * width, 64.8, 96, 151.2), tuple(rows), (14.28,) * len(rows),
+    m.table("define", TableSpec((2, *(2,) * width, 4, 6, 15 - 2 * width), tuple(rows), (1,) * len(rows),
                                 numeric=frozenset(range(0, 1 + width))))
     m.paragraph("define.note", "C1・C2 は同じ Define で選ぶ基本ケース（単線は上り・下りのいずれか），負の番号は"
                                "逆向きに作用させることを示す．")
@@ -362,8 +366,9 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
     table_rows = [(str(define.number), labels[index][0], labels[index][1],
                    [combination.coefficients[index] for combination in result.combinations])
                   for index, define in enumerate(result.define_cases)]
-    m.table("combination", coefficient_table([_CHECKS[c.check] for c in result.combinations],
-                                             [c.number for c in result.combinations], table_rows))
+    m.figure("combination", coefficient_table([_CHECKS[c.check] for c in result.combinations],
+                                              [c.number for c in result.combinations], table_rows,
+                                              block_id=PREFIX + "combination"))
     services = [str(c.number) for c in result.combinations
                 if any(a.basis is Basis.SERVICE_IMPACT for component in c.components for a in component.alternatives)]
     m.paragraph("combination.note",
@@ -405,3 +410,8 @@ def render_transverse(result: TransverseResult, reaction: ReactionResult, pier: 
     """
     return render_with_pages(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS),), pages,
                              path)
+
+
+def grid_documents(result: TransverseResult, reaction: ReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of FEMPython (its grid Excel workbook)."""
+    return documents(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS),))

@@ -9,7 +9,7 @@ from ....calc.reaction.longitudinal import Snow
 from ....core.printed import Printed
 from ...numbers import printed
 from ..reaction.manuscript import DETAIL, ITEM, PAIR_SECOND, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
-from ..reaction.tables import GIRDER_ROW, header
+from ..reaction.tables import header
 from .horizontal import combination_text
 
 DASH = "－"
@@ -30,8 +30,7 @@ def _self_weight_table(side: SideResult) -> TableSpec:
              *cells(haunch.force, haunch.arm, haunch.moment)),
             (CellSpec("合計", align="center", colspan=2), *cells(weight.force), CellSpec(DASH, align="center"),
              *cells(weight.moment))]
-    return TableSpec((36.0, 220.08, 72.0, 60.0, 84.0), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     header_height=GIRDER_ROW * 2, numeric_columns=(2, 3, 4))
+    return TableSpec((2, 14, 4, 3, 4), tuple(rows), header_rows=1, numeric_columns=(2, 3, 4))
 
 
 def _dash_or(value: Printed | None) -> CellSpec:
@@ -60,8 +59,7 @@ def _action_table(action: Action) -> TableSpec:
         total = (CellSpec("合計", colspan=2, align="right"), _dash_or(action.n), CellSpec(DASH, align="center"),
                  _dash_or(action.md), CellSpec(DASH, align="center"), CellSpec(DASH, align="center"), _dash_or(action.mt))
     rows.append(total)
-    return TableSpec((76.08, 86.04, 58.08, 44.04, 60.0, 50.04, 50.04, 62.04), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     header_height=GIRDER_ROW * 2, numeric_columns=(2, 3, 4, 5, 6, 7))
+    return TableSpec((5, 5, 3, 3, 3, 3, 3, 3), tuple(rows), header_rows=1, numeric_columns=(2, 3, 4, 5, 6, 7))
 
 
 def _blank(value: Printed | None) -> CellSpec:

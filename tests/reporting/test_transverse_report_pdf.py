@@ -1,9 +1,8 @@
-"""0620 PDF: the drawn text is the manuscript, bytes are deterministic, appearance meets the reference,
+"""0620 PDF: the drawn text is the manuscript, bytes are deterministic, the pages follow the common grid,
 and every printed formula and table row recomputes from the printed numbers."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from collections import Counter
@@ -15,9 +14,12 @@ import pytest
 from gridlayoutpdf import Text
 
 from frame_report_cases import TRANSVERSE_CASES, transverse_chain
-from frame_report_pdf_checks import table_checks
+from frame_report_pdf_checks import (
+    BODY, HEADING, band_errors, column_x, drawn_order_errors, first, outside_body, placement_errors, relation_centres, row_bands, row_offset,
+    spans, table_checks,
+)
 from pdf_handcheck import formula_checks
-from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
+from test_longitudinal_report_pdf import PAGE_NUMBER, ROOT, measure, squeeze
 from webpier.core.printed import Printed
 from load_diagram_support import PAGES, REPORT, inserted, layout
 from webpier.reporting.stages.transverse import PREFIX, content, render_transverse, semantic_records
@@ -35,7 +37,7 @@ def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp
     pages = before + after
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
-    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
+    assert drawn_order_errors(squeeze("".join(drawn)), content(result, reaction, pier)) == []
     with pymupdf.open(render(case, tmp_path / "0620.pdf")) as pdf:
         # Decision 44: the load diagram pages come right after 9.3, and 9.4 starts the next page.
         assert len(pdf) == len(pages) + PAGES
@@ -90,35 +92,26 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert render("curve", tmp_path / "d.pdf").read_bytes() != first
 
 
-def test_typography_tables_and_figure_match_the_independent_reference_roles(tmp_path: Path):
-    reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))
-    roles = reference["roles"]
+def test_the_pages_follow_the_grid_contract(tmp_path: Path):
+    """As 0610 (test_longitudinal_report_pdf): the heading and body columns and faces, the figure, the result "="
+    before column 22, nothing beyond the body, and the coefficient table (9-14) of whole grid rows, its Define cases
+    as rows (17 on a curve)."""
     with pymupdf.open(render("curve", tmp_path / "0620.pdf")) as pdf:
-        samples = _samples(pdf)
-
-        def first(text: str):
-            found = [s for s in samples if s.text == text]
-            assert found, text
-            return found[0]
-
-        for role, text in (("common.chapter", "§9. 線路直角方向の計算（地震時以外）"), ("common.section", "9.2 作用の計算"),
-                           ("common.subsection", "(8) 風荷重"), ("common.subsubsection", "1) 列車荷重がある場合"),
-                           ("common.body", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")):
-            assert measure.role_errors(first(text), roles[role], anchor_x=ANCHOR) == [], role
-        page_one = [s for s in samples if s.page == 1]
-        assert measure.role_errors(next(s for s in page_one if s.text == "1" and s.size > 9), roles["frame.node"]) == []
-        assert measure.role_errors(next(s for s in page_one if s.text == "1" and s.size < 9), roles["frame.member"]) == []
-        assert measure.role_errors(first("4.900"), roles["frame.dimension"]) == []
-        equals = [s for s in samples if s.text == "=" and abs(s.x - 436.44) < 3]
-        assert len(equals) >= 20
-        assert all(measure.role_errors(s, roles["horizontal.result_equals"], anchor_x=ANCHOR) == [] for s in equals)
-        # The combination table: four header bands, then the 17 Define rows (on a curve) of 14.28 pt, the rows of
-        # longitudinal.combination; this table has the Define cases as rows, as 0610 has its basic cases.
-        contract = reference["tables"]["longitudinal.combination"]
-        page = next(p for p in pdf if "車横最大" in p.get_text() and "地盤の安定" in p.get_text())
-        rules = measure.native_rules(page)
-        top = next(s for s in samples if s.text == "安全性" and s.page == page.number + 1).baseline - 25
-        bands = [b for b in measure.painted_rule_bands(rules, axis="h", crossing=230) if b.coordinate > top][:22]
-        heights = [28.56, 14.28, 47.76, 14.28] + [contract["nominal_row_height_pt"]] * 17
-        assert measure.table_errors([b.coordinate for b in bands], heights) == []
+        found = spans(pdf)
+        placed = (("§9. 線路直角方向の計算（地震時以外）", 0, HEADING), ("9.2 作用の計算", 1, HEADING), ("(8) 風荷重", 2, HEADING),
+                  ("1) 列車荷重がある場合", 3, HEADING), ("鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．", 4, BODY))
+        assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
+        assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
+        page_one = [span for span in found if span.page == 1]
+        assert any(span.text == "1" and (span.face, span.size) == (HEADING, 10.0) for span in page_one)
+        assert any(span.text == "1" and (span.face, span.size) == (HEADING, 8.0) for span in page_one)
+        dimension = first(found, "4.900")
+        assert (dimension.face, dimension.size, dimension.upright) == (HEADING, 10.0, False)
+        centres = relation_centres(pdf, 22)
+        assert len(centres) >= 20 and all(abs(centre) < .5 for centre in centres)
+        assert [error for page in pdf if not inserted(page) for error in outside_body(page)] == []
+        page = next(p for p in pdf if "車横最大" in p.get_text() and "縁応力度" in p.get_text())
+        top = next(span for span in found if span.text == "安全性" and span.page == page.number + 1).baseline - 25
+        rows = [2, 1, 3, 1] + [1] * len(transverse_chain("curve")[2].define_cases)
+        assert band_errors(row_bands(page, column_x(10) + 8, top)[:len(rows) + 1], rows) == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)

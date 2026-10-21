@@ -24,8 +24,12 @@ from ....inputs import PierInput
 from ....loadmodel import SpringTerm, pier_wind
 from ...equations import terms
 from .. import longitudinal as train_longitudinal, transverse as train_transverse
-from ..frame_report import Manuscript, Span, TableSpec, Unit, document, semantic_records as records, value
-from ..insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
+from ...styles import BODY_COLUMNS
+from ..frame_report import (
+    TABLE_LEFT, FigureSpec, Manuscript, Span, TableParts, TableSpec, Unit, document, plain,
+    semantic_records as records, value,
+)
+from ..insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 from .common import DeadView, bearing_table, extraction_table, sections
 
 _STAGES = {Direction.LONGITUDINAL: ("0610/", "8", train_longitudinal, "アーム"),
@@ -62,13 +66,38 @@ def _candidates(result: GenericFrameResult, define: Any, field: str) -> str:
     return "／".join(dict.fromkeys(getattr(result.basic(case), field) for case, _ in define.candidates))
 
 
+# The coefficients by Define: No and Define from column 3, then two columns a combination ("1.35"); a Define column of
+# at least six, so that the combinations beyond nine go on in a table of their own below, the Defines again.
+_DEFINE_COLUMNS = 6
+_PER_TABLE = (BODY_COLUMNS - TABLE_LEFT - 2 - _DEFINE_COLUMNS) // 2
+
+
+def _coefficients(result: GenericFrameResult, block_id: str) -> FigureSpec:
+    numbers = [c.number for c in result.combinations]
+    factors = {define.number: [next((t.factor for t in c.terms if t.define == define.number), None)
+                               for c in result.combinations] for define in result.define_cases}
+
+    def spec(run: range) -> TableSpec:
+        rows = [("No", "Define", *(str(numbers[index]) for index in run))]
+        for define in result.define_cases:
+            rows.append((str(define.number), _candidates(result, define, "id"),
+                         *(value(f) if (f := factors[define.number][index]) is not None else Span("－")
+                           for index in run)))
+        define = BODY_COLUMNS - TABLE_LEFT - 2 - 2 * min(len(numbers), _PER_TABLE)
+        return TableSpec((2, define, *(2,) * len(run)), tuple(rows), (1,) * len(rows),
+                         numeric=frozenset({0, *range(2, 2 + len(run))}))
+
+    runs = [range(start, min(start + _PER_TABLE, len(numbers))) for start in range(0, len(numbers), _PER_TABLE)]
+    return FigureSpec(TableParts(tuple(spec(run) for run in runs), block_id), (plain(spec(range(len(numbers)))),))
+
+
 def _combinations(m: Manuscript, result: GenericFrameResult, chapter: str) -> None:
     m.heading("combination.heading", f"{chapter}.4 設計作用の組合せ", 1)
     m.heading("basic.heading", "(1) 基本ケース", 2)
     rows: list[tuple[Any, ...]] = [("No", "記号", "荷重名称", "バネ")]
     for case in result.basic_cases:
         rows.append((str(case.number), case.id, case.name, "1" if case.spring is SpringTerm.LONG else "2"))
-    m.table("basic", TableSpec((28.8, 96, 250.8, 39.6), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, 3})))
+    m.table("basic", TableSpec((2, 6, 17, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
     m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
     if result.empty:
         m.paragraph("basic.zero", f"{ZERO} は，組合せのない抽出ケースのための荷重0のケースである．")
@@ -79,7 +108,7 @@ def _combinations(m: Manuscript, result: GenericFrameResult, chapter: str) -> No
     for define in result.define_cases:
         cells = [str(sign * number[case]) for case, sign in define.candidates]
         rows.append((str(define.number), *cells, *[""] * (width - len(cells)), _candidates(result, define, "name")))
-    m.table("define", TableSpec((28.8, *(36.0,) * width, 396 - 36.0 * width), tuple(rows), (14.28,) * len(rows),
+    m.table("define", TableSpec((2, *(2,) * width, 25 - 2 * width), tuple(rows), (1,) * len(rows),
                                 numeric=frozenset(range(0, width + 1))))
     m.paragraph("define.note", "負の番号は荷重を逆向きに作用させることを示す．番号が複数あるものは，いずれか不利な一つをとる．")
     m.heading("factors.heading", "(3) 組合せケースと荷重係数", 2)
@@ -87,18 +116,9 @@ def _combinations(m: Manuscript, result: GenericFrameResult, chapter: str) -> No
     for combination in result.combinations:
         groups = "，".join(EXTRACTION_NAMES[group] for group in sorted(combination.groups, key=lambda g: g.value))
         rows.append((str(combination.number), combination.name, groups))
-    m.table("combinations", TableSpec((28.8, 192, 194.4), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0})))
-    numbers = [c.number for c in result.combinations]
-    column = 30.0 if len(numbers) <= 12 else 22.08  # 1.35 fits 30 pt; more combinations take the narrow grid of 9-14
+    m.table("combinations", TableSpec((2, 12, 13), tuple(rows), (1,) * len(rows), numeric=frozenset({0})))
     m.paragraph("coefficients.caption", "Define ごとの荷重係数（列は組合せの番号）", keep=True)
-    rows = [("No", "Define", *(str(n) for n in numbers))]
-    for define in result.define_cases:
-        factors = [next((t.factor for t in c.terms if t.define == define.number), None) for c in result.combinations]
-        rows.append((str(define.number), _candidates(result, define, "id"),
-                     *(value(f) if f is not None else Span("－") for f in factors)))
-    m.table("coefficients", TableSpec((28.8, 480 - 28.8 - column * len(numbers), *(column,) * len(numbers)),
-                                      tuple(rows), (14.28,) * len(rows),
-                                      numeric=frozenset({0, *range(2, 2 + len(numbers))}), left=48.0))
+    m.figure("coefficients", _coefficients(result, m.prefix + "coefficients"))
     m.heading("extraction.heading", "(4) 抽出ケース", 2)
     extraction_table(m, result.extractions, result.empty)
 
@@ -137,3 +157,9 @@ def render_generic_frame(result: GenericFrameResult, reaction: DeadReactionResul
     prefix = _STAGES[result.frame.direction][0]
     return render_with_pages(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, prefix + DIAGRAMS),), pages,
                              path)
+
+
+def grid_documents(result: GenericFrameResult, reaction: DeadReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of FEMPython (its grid Excel workbook)."""
+    prefix = _STAGES[result.frame.direction][0]
+    return documents(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, prefix + DIAGRAMS),))

@@ -29,9 +29,9 @@ from ...calc.column_check import SafetyFactors
 from ...calc.footing_check import FootingCheckResult
 from ..equations import Definition
 from . import insertion
-from .column_check import COLON, _blocks, flowchart
+from .column_check import COLON, SIGMA_SE, _blocks, ecsd_text, flowchart
 from .frame_report import Manuscript, Unit, value
-from .insertion import Insertion, render_with_pages
+from .insertion import Insertion, documents, render_with_pages
 
 SAFETY, DURABILITY, SEISMIC_RESTORABILITY = 5, 0, 7  # the limit state ids of calc.column_check.SAFETY_FACTORS
 # 2) せん断ひび割れの検討 is not asked of Capacita (decision 60; the sample 262).
@@ -141,8 +141,8 @@ def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> N
                  Definition("k3", "引張鋼材の段数の影響を表す係数"),
                  Definition("k4", f"曲げひび割れの変動を考慮する係数(= {value(check.k4)})"),
                  Definition("c", "かぶり"), Definition("Cs", "鋼材の中心間隔"), Definition("φ", "鋼材径"),
-                 Definition("ε'csd", f"収縮・クリープ等によるひび割れ幅の増加を考慮する数値(= {value(check.ecsd)} ×10⁻⁶)"),
-                 Definition("σse", "鋼材位置のコンクリートの応力度が0の状態からの鉄筋応力度の増加量"),
+                 Definition("ε'csd", ecsd_text(value(check.ecsd))),
+                 Definition("σse", SIGMA_SE),
                  Definition("Es", "鋼材のヤング係数"), Definition("Wlim", "ひび割れ幅の制限値"))
 
 
@@ -205,3 +205,10 @@ def render_footing_check(check: FootingCheckResult, path: str | Path, pages: Map
     found = parts(check, chapter)
     units = tuple(unit for part, _ in found for unit in part)
     return render_with_pages(units, _insertions(found), pages, path, blocks=_blocks)
+
+
+def grid_documents(check: FootingCheckResult, chapter: Chapter) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of Capacita (its grid Excel workbook)."""
+    found = parts(check, chapter)
+    units = tuple(unit for part, _ in found for unit in part)
+    return documents(units, _insertions(found), blocks=_blocks)

@@ -30,11 +30,11 @@ from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
 from .frame_report import (
-    BODY_LEFT, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
+    BODY_LEFT, FigureSpec, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
     frame_figure, material_lines, member_table, node_table, operand, overlap_lines, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
-from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
+from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 
 PREFIX = "0610/"
 BEARING_SYMBOLS = {"可動": "M", "固定": "F"}
@@ -248,7 +248,7 @@ def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
         rows.append((Span(bearing_symbol("origin" if row.item is Item.ORIGIN else "end"), align="left"),
                      value(row.train), value(row.coefficient), value(row.n), value(row.arm), value(row.m)))
     rows.append(("合計", value(train_total), "", value(table.n), "", value(table.m)))
-    return TableSpec((84, 72, 60, 72, 60, 84), tuple(rows), (28.56,) + (14.28,) * (len(rows) - 1),
+    return TableSpec((5, 4, 4, 4, 4, 5), tuple(rows), (2,) + (1,) * (len(rows) - 1),
                      numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True)
 
 
@@ -281,7 +281,8 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
             previous = requirement
         rows.append((*lead, Span(label, align="left"),
                      *(Span(value(force), align="right") for force in (row.origin, row.end, row.total))))
-    m.table("horizontal", TableSpec((28.8, 199.2, 66, 66, 66), tuple(rows), (28.56,) + (23.04,) * (len(rows) - 1)))
+    # Two grid rows a case, as Example2's taller rows, so that 安全性（破壊） stands written down its four cases.
+    m.table("horizontal", TableSpec((2, 12, 4, 4, 4), tuple(rows), (2,) * len(rows)))
 
 
 def _service_point(result: LongitudinalResult, key: str) -> Any:
@@ -299,7 +300,7 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
     for action in result.basic_cases:
         name, _, qualifier, _ = basic_name(result, reaction, action.case)
         rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
-    m.table("basic", TableSpec((28.8, 108, 236.4, 39.6), tuple(rows), (14.28,) * len(rows), numeric=frozenset({0, 3})))
+    m.table("basic", TableSpec((2, 7, 16, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
     m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
     m.heading("define.heading", "(2) Defineケース", 2)
     rows = [("No", "C1", "C2", "C3", "記号", "荷重名称", "区分")]
@@ -308,13 +309,13 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
         second = str(-define.number) if -1 in define.signs else ""
         rows.append((str(define.number), str(result.basic(define.case).number), second, "", Span(symbol), name,
                      requirement or qualifier))
-    m.table("define", TableSpec((28.8, 32.4, 36, 28.8, 80.4, 96, 136.8), tuple(rows), (14.28,) * len(rows),
+    m.table("define", TableSpec((2, 2, 2, 2, 5, 6, 8), tuple(rows), (1,) * len(rows),
                                 numeric=frozenset({0, 1, 2})))
     m.paragraph("define.note", "C2 は水平荷重を逆向きにも作用させることを示す．")
     m.heading("factors.heading", "(3) 組合せケースと荷重係数", 2)
     factors = result.factors
     factor_lines(m, factors, pier.train, constant(float(MAXIMUM_TRAIN)), constant(float(SERVICE_IMPACT)))
-    m.table("combination", _combination_table(result, reaction))
+    m.figure("combination", _combination_table(result, reaction))
     services = [str(c.number) for c in result.combinations
                 if any(component.basis is Basis.SERVICE_IMPACT for component in c.components)]
     m.paragraph("combination.note",
@@ -325,7 +326,7 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
     extraction_table(m, result.extractions)
 
 
-def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> TableSpec:
+def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> FigureSpec:
     """Basic cases as rows and the 16 combinations as columns, the coefficients as printed (8-10)."""
     rows = []
     for index, action in enumerate(result.basic_cases):
@@ -333,7 +334,7 @@ def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> 
         rows.append((str(action.number), symbol, name,
                      [combination.coefficients[index] for combination in result.combinations]))
     return coefficient_table([_CHECKS[c.check] for c in result.combinations],
-                             [c.number for c in result.combinations], rows)
+                             [c.number for c in result.combinations], rows, block_id=PREFIX + "combination")
 
 
 def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
@@ -366,3 +367,8 @@ def render_longitudinal(result: LongitudinalResult, reaction: ReactionResult, pi
     """
     return render_with_pages(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS),), pages,
                              path)
+
+
+def grid_documents(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of FEMPython (its grid Excel workbook)."""
+    return documents(content(result, reaction, pier), (Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS),))

@@ -27,7 +27,7 @@ from ...calc.frame import Direction, Frame, NodeRole
 from ...core.printed import Printed
 from ...inputs import PierInput
 from ..numbers import printed
-from ..styles import grid_units
+from ..styles import BODY_COLUMNS, columns_for, columns_pt, rows_for, rows_pt
 from ._draw import (
     DIMENSION_STYLE, LOAD_STYLE, MEMBER_STYLE, NODE_STYLE, THIN, cap_height, horizontal_dimension, spread,
     subscripted, text_width, vertical_dimension, zigzag,
@@ -112,12 +112,12 @@ def footing_dimensions(pier: PierInput, frame: Frame, total: Printed) -> tuple[H
 
 @dataclass(frozen=True)
 class FrameFigure:
-    """The model figure as an atomic GridLayoutPdf block."""
+    """The model figure as an atomic GridLayoutPdf block, *width* × *height* pt (the body's 30 columns × 28 rows)."""
 
     frame: Frame
     outline: Outline
-    width: float = 528
-    height: float = 432
+    width: float = columns_pt(BODY_COLUMNS)
+    height: float = rows_pt(28)
     horizontal: tuple[HorizontalDimension, ...] = ()
     bearings: tuple[str, str] | None = None  # symbols at the origin side and the end side (M / F)
     springs: bool = True  # Kv, Ks, Kr at the support; 0710 and 0720 show no springs (decision 41)
@@ -284,7 +284,7 @@ class FrameFigure:
                 drawn.append(Circle(x, y, 6, stroke_width=.35))
                 width = text_width(fonts, symbol, LOAD_STYLE)
                 texts.append(Text(x - width / 2, y + cap_height(fonts, LOAD_STYLE) / 2, symbol, LOAD_STYLE))
-        figure = Figure(grid_units(self.width), grid_units(self.height), *drawn, *texts, block_id=self.block_id)
+        figure = Figure(columns_for(self.width), rows_for(self.height), *drawn, *texts, block_id=self.block_id)
         return measure_block(figure, context, available_width)
 
 

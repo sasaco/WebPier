@@ -12,7 +12,7 @@ from .manuscript import (
     BODY, DETAIL, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, join, sub,
 )
 from .figures import loading_figure
-from .tables import GIRDER_ROW, header
+from .tables import header
 
 GROUPS = (("ultimate", "(a) 安全性（破壊）および復旧性の照査に用いる列車荷重"),
           ("service", "(b) 使用性の照査に用いる列車荷重"),
@@ -64,8 +64,7 @@ def _impact_table(group: GroupTrain, result: ReactionResult) -> TableSpec:
             cells("列車荷重 L", *values(double, "load"), align="center"),
             cells("衝撃係数 i", *values(double, "coefficient"), align="center"),
             cells("衝撃荷重 I", *values(double, "impact"), align="center")]
-    return TableSpec((50.88, 87.12, 72.6, 72.6, 72.6, 72.6), tuple(rows), header_rows=1, row_height=GIRDER_ROW,
-                     numeric_columns=(2, 3, 4, 5))
+    return TableSpec((3, 6, 4, 4, 4, 4), tuple(rows), header_rows=1, numeric_columns=(2, 3, 4, 5))
 
 
 def _coefficients(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
@@ -108,7 +107,8 @@ def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     for key, title in GROUPS:
         group: GroupTrain = getattr(train, key)
         m.heading(f"train.{key}.heading", title, DETAIL)
-        m.value(f"train.{key}.factor", Row("荷重修正係数 ", "ρf", gap=0), group.load_factor, left=BODY, medium=True)
+        m.value(f"train.{key}.factor", Row("荷重修正係数 ", "ρf", gap=0), group.load_factor, left=BODY,
+                equal=BODY + 6)  # the label takes six columns
         m.table(f"train.{key}.table", _impact_table(group, result), SUBSECTION)
     seismic = train.seismic
     m.heading("train.seismic.heading", "(4) 地震時列車荷重", SUBSECTION)

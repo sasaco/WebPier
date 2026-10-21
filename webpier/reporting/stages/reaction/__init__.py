@@ -44,4 +44,9 @@ def render_reaction(result: ReactionResult, pier: PierInput, path: str | Path) -
     return build_reaction(result, pier).render(path, invariant=True)
 
 
-__all__ = ["PREFIX", "build_reaction", "content", "render_reaction", "semantic_records"]
+def grid_documents(result: ReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_reaction(result, pier),)
+
+
+__all__ = ["PREFIX", "build_reaction", "content", "grid_documents", "render_reaction", "semantic_records"]

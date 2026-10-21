@@ -8,19 +8,17 @@ schematic: the lengths across are scaled to the drawing, the heights separately,
 
 from __future__ import annotations
 
-import math
-
 from gridlayoutpdf import Arrow, Figure, Label, Line, Polyline, TextStyle
 
 from ...calc.footing import EffectiveWidth, OverhangSide
 from ...core.printed import Printed
 from ..numbers import printed
-from ..styles import BODY, PITCH
+from ..styles import BODY, DIMENSION_FONT, columns_for, rows_for
 from .frame_report import FigureSpec
 
-DIMENSION = TextStyle(font="dimension", size=8.0)  # figure.dimension (Calibri 8 pt, as the 0600 figures)
+DIMENSION = TextStyle(DIMENSION_FONT, size=8.0)  # figure.dimension (Calibri 8 pt, as the 0600 figures)
 OUTLINE, THIN = 0.96, 0.24
-FIGURE_LEFT = 117.0
+FIGURE_LEFT = 4  # the body column; every figure ends by column 30
 HEAD = {"head_length": 4, "head_width": 3, "width": THIN}
 
 
@@ -50,7 +48,7 @@ def _vertical(y1: float, y2: float, x: float, edge: float, text: str, offset: fl
 
 def _spec(key: str, width: float, height: float, items: list, texts: tuple[str, ...]) -> FigureSpec:
     """The figure of *items*; its extent (set by the scaled data) is rounded up to the layout grid."""
-    columns, rows = (math.ceil(extent / PITCH - 1e-9) for extent in (width, height))
+    columns, rows = columns_for(width), rows_for(height)
     return FigureSpec(Figure(columns, rows, *items, block_id=key), texts, left=FIGURE_LEFT)
 
 
@@ -72,7 +70,7 @@ def _pressure(points: tuple[tuple[float, float], ...], base: float, step: float 
 
 # --- 地盤反力形状 Case 1〜4 (sample 245) -----------------------------------------------------------------------------
 
-_CELL_WIDTH, _CELL_HEIGHT, _CAPTION = 200.0, 84.0, 16.0
+_CELL_WIDTH, _CELL_HEIGHT, _CAPTION = 200.0, 84.0, 26.0
 _DEPTH = 28.0  # pd1
 
 
@@ -99,13 +97,14 @@ _CASES = (
 
 def cases_figure(key: str) -> FigureSpec:
     """The four shapes of the base pressure, two by two, under the caption 地盤反力形状."""
-    items: list = [_label(0, 10, "地盤反力形状", BODY, "left")]
+    # The caption stands clear of the frame's top: the grid Excel's text box of a label reaches above its glyphs.
+    items: list = [_label(0, 22, "地盤反力形状", BODY, "left")]
     texts = ["地盤反力形状"]
     for index, (name, profile, dims, labels) in enumerate(_CASES):
-        ox, oy = (index % 2) * _CELL_WIDTH + 30, _CAPTION + (index // 2) * _CELL_HEIGHT
+        ox, oy = (index % 2) * _CELL_WIDTH + 10, _CAPTION + (index // 2) * _CELL_HEIGHT
         items += _case(ox, oy, name, profile, dims, labels)
         texts += [name, *(text for _, _, text in dims), *(text for _, _, text, _ in labels)]
-    return _spec(key, 2 * _CELL_WIDTH + 30, _CAPTION + 2 * _CELL_HEIGHT, items, tuple(texts))
+    return _spec(key, 2 * _CELL_WIDTH, _CAPTION + 2 * _CELL_HEIGHT, items, tuple(texts))
 
 
 # --- 2) 有効幅 (sample 246) --------------------------------------------------------------------------------------------

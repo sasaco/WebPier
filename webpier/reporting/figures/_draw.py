@@ -14,9 +14,9 @@ from gridlayoutpdf import FontRegistry, Line, Point, Polyline, Text, TextStyle
 
 from ..styles import BODY, HEADING, SMALL
 
-NODE_STYLE = HEADING  # frame.node: MS-Gothic 9.9 pt
+NODE_STYLE = HEADING  # frame.node: MS-Gothic 10 pt
 MEMBER_STYLE = replace(HEADING, size=8)  # frame.member: MS-Gothic 8 pt
-DIMENSION_STYLE = HEADING  # frame.dimension: MS-Gothic 9.9 pt
+DIMENSION_STYLE = HEADING  # frame.dimension: MS-Gothic 10 pt
 LOAD_STYLE = BODY  # load symbols and spring names, as Example2 08 p.8-1 / p.8-6
 THIN = .12
 

@@ -1,9 +1,8 @@
-"""0720 PDF: the drawn text is the manuscript, bytes are deterministic, appearance meets the reference,
+"""0720 PDF: the drawn text is the manuscript, bytes are deterministic, the pages follow the common grid,
 and every printed formula and table row recomputes from the printed numbers."""
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from collections import Counter
@@ -18,9 +17,11 @@ from jrsnap_pages_support import (
     DATA_CHECK_PAGES, TRANSVERSE_LOAD_CASES, data_check_page, inserted, layout, load_diagram_page,
     page_order, pages as stand_ins,
 )
-from frame_report_pdf_checks import table_checks
+from frame_report_pdf_checks import (
+    BODY, HEADING, first, outside_body, placement_errors, row_offset, spans, table_checks,
+)
 from pdf_handcheck import formula_checks
-from test_longitudinal_report_pdf import ANCHOR, APPEARANCE, PAGE_NUMBER, ROOT, _samples, measure, squeeze
+from test_longitudinal_report_pdf import PAGE_NUMBER, ROOT, measure, squeeze
 from webpier.reporting.stages.seismic_transverse import (
     INSERTIONS, content, render_seismic_transverse, semantic_records,
 )
@@ -87,19 +88,17 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
     assert other.read_bytes() == first
 
 
-def test_typography_matches_the_independent_reference_roles(tmp_path: Path):
-    roles = json.loads(APPEARANCE.read_text(encoding="utf-8"))["roles"]
+def test_the_pages_follow_the_grid_contract(tmp_path: Path):
+    """As 0610 (test_longitudinal_report_pdf): the heading columns and faces, the table and figure faces and
+    nothing beyond the body."""
     with pymupdf.open(render("pedestal", tmp_path / "0720.pdf")) as pdf:
-        samples = _samples(pdf)
-
-        def first(text: str):
-            found = [s for s in samples if s.text == text]
-            assert found, text
-            return found[0]
-
-        for role, text in (("common.chapter", "§11. 線路直角方向の計算（地震時）"), ("common.section", "11.1 検討モデル"),
-                           ("common.subsection", "(6) 地震時桁荷重慣性力"), ("common.subsubsection", "1) 柱下端の微小部材")):
-            assert measure.role_errors(first(text), roles[role], anchor_x=ANCHOR) == [], role
-        assert measure.role_errors(first("荷重種別"), roles["common.table_header"]) == []
-        assert measure.role_errors(first("0.010"), roles["frame.dimension"]) == []
+        found = spans(pdf)
+        placed = (("§11. 線路直角方向の計算（地震時）", 0, HEADING), ("11.1 検討モデル", 1, HEADING),
+                  ("(6) 地震時桁荷重慣性力", 2, HEADING), ("1) 柱下端の微小部材", 3, HEADING))
+        assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
+        assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
+        assert (first(found, "荷重種別").face, first(found, "荷重種別").size) == (BODY, 10.0)
+        dimension = first(found, "0.010")
+        assert (dimension.face, dimension.size, dimension.upright) == (HEADING, 10.0, False)
+        assert [error for page in pdf if "FAKE" not in page.get_text() for error in outside_body(page)] == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)

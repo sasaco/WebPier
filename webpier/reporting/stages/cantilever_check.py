@@ -33,11 +33,11 @@ from ...core.printed import Printed
 from ...inputs import PierInput
 from ...inputs.fields import BEAM_SURFACES
 from ..equations import Definition
-from ..styles import BODY_LEADING
 from . import insertion
-from .column_check import COLON, OMITTED as COLUMN_OMITTED, _blocks, flowchart
-from .frame_report import Manuscript, Span, TableSpec, Unit, value
-from .insertion import Insertion, render_with_pages
+from .column_check import (COLON, CONTINUED, OMITTED as COLUMN_OMITTED, SIGMA_SE, _blocks, ecsd_text, flowchart,
+                           wrap)
+from .frame_report import BODY_LEFT, Manuscript, Span, TableSpec, Unit, value
+from .insertion import Insertion, documents, render_with_pages
 
 CHAPTER = 13
 PREFIX = "0910/"
@@ -55,6 +55,7 @@ OMITTED = {
     "torsion_restorability_eq": "ねじりモーメントが生じないため，ねじりに対する照査を省略する．",
 }
 _SURFACES = {"上面": "上面", "下面": "下面", "側面": "側面"}
+MTU_MIN = wrap("設計斜め圧縮破壊耐力（Mtcud）と", "設計ねじり耐力（Mtyd）の小さいほう")
 
 
 @dataclass(frozen=True)
@@ -159,21 +160,21 @@ def _torsion_lines(m: Manuscript, key: str, factors: SafetyFactors) -> None:
                  Definition("ql", "ql = ΣAtl・flyd / u"), Definition("γb", f"部材係数(= {gamma_b})"))
     m.paragraph(f"{key}.combined.heading", "ウ) 設計曲げモーメントが同時に作用する場合の設計ねじり耐力", keep=True)
     m.line(f"{key}.combined.case1", "① Mud ≧ M'ud かつ γi・Md ≦ Mud − M'ud の場合　Mtud1 = Mtu.min")
-    m.line(f"{key}.combined.case2", "② Mud ≧ M'ud かつ Mud − M'ud ≦ γi・Md ≦ Mud の場合")
+    m.line(f"{key}.combined.case2", "② Mud ≧ M'ud かつ Mud − M'ud ≦ γi・Md ≦ Mud の場合", keep=True)
     m.line(f"{key}.combined.case2.formula",
-           "　　Mtud2 = (Mtu.min − 0.2・Mtcd)・{(Mud − γi・Md) / M'ud}^(1/2) + 0.2・Mtcd")
-    m.line(f"{key}.combined.case3", "③ Mud ＜ M'ud かつ γi・Md ≦ Mud の場合")
+           "Mtud2 = (Mtu.min − 0.2・Mtcd)・{(Mud − γi・Md) / M'ud}^(1/2) + 0.2・Mtcd", left=BODY_LEFT + 1)
+    m.line(f"{key}.combined.case3", "③ Mud ＜ M'ud かつ γi・Md ≦ Mud の場合", keep=True)
     m.line(f"{key}.combined.case3.formula",
-           "　　Mtud3 = (Mtu.min − 0.2・Mtcd)・(1 − γi・Md / Mud)^(1/2) + 0.2・Mtcd")
+           "Mtud3 = (Mtu.min − 0.2・Mtcd)・(1 − γi・Md / Mud)^(1/2) + 0.2・Mtcd", left=BODY_LEFT + 1)
     _definitions(m, f"{key}.combined.symbols",
-                 Definition("Mtu.min", "設計斜め圧縮破壊耐力（Mtcud）と設計ねじり耐力（Mtyd）の小さいほう"),
+                 Definition("Mtu.min", MTU_MIN),
                  Definition("Mtcud", "設計斜め圧縮破壊耐力"), Definition("Mtyd", "設計ねじり耐力"),
                  Definition("Mtcd", "設計純ねじり耐力"), Definition("γi", f"構造物係数(= {gamma_i})"),
                  Definition("Md", "設計曲げモーメント"), Definition("Mud", "設計曲げ耐力"))
     m.paragraph(f"{key}.combined.shear.heading", "エ) 設計せん断力が同時に作用する場合の設計ねじり耐力", keep=True)
     m.line(f"{key}.combined.shear.formula", "Mtud = Mtu.min・(1 − γi・Vd / Vud) + 0.2・Mtcd・γi・Vd / Vud")
     _definitions(m, f"{key}.combined.shear.symbols",
-                 Definition("Mtu.min", "設計斜め圧縮破壊耐力（Mtcud）と設計ねじり耐力（Mtyd）の小さいほう"),
+                 Definition("Mtu.min", MTU_MIN),
                  Definition("Mtcd", "設計純ねじり耐力"), Definition("γi", f"構造物係数(= {gamma_i})"),
                  Definition("Vd", "設計せん断力"), Definition("Vud", "設計せん断耐力"))
 
@@ -212,7 +213,7 @@ def _sn_table(m: Manuscript, key: str, title: str) -> None:
     rows = ((Span("Ｓ－Ｎ線パラメータ", rowspan=2), Span("異形鉄筋", colspan=2)),
             ("γi・σsrd / (fsr200 / γb) ≦ 1.0", "γi・σsrd / (fsr200 / γb) ＞ 1.0"),
             ("k", "0.06", "0.12"), ("αr", "2.70 − 0.003φ", "3.09 − 0.003φ"))
-    m.table(f"{key}.table", TableSpec((108, 174, 174), rows, (BODY_LEADING,) * 4, header_rows=2))
+    m.table(f"{key}.table", TableSpec((6, 11, 11), rows, (1,) * 4, header_rows=2, left=2))
 
 
 def _repetitions(m: Manuscript, key: str, title: str, result: CantileverSectionResult) -> None:
@@ -229,7 +230,7 @@ def _repetitions(m: Manuscript, key: str, title: str, result: CantileverSectionR
                  Definition("SB / SC", f"B 列車荷重と標準列車荷重の最大変動断面力比(= {value(f.sb_ratio)})"))
     rows = (("1 編成当りの等価繰返し回数", "k = 0.06", "k = 0.12"),
             ("A 列車（NA）", value(f.na06), value(f.na12)), ("B 列車（NB）", value(f.nb06), value(f.nb12)))
-    m.table(f"{key}.table", TableSpec((174, 108, 108), rows, (BODY_LEADING,) * 3, numeric=frozenset({1, 2})))
+    m.table(f"{key}.table", TableSpec((11, 7, 7), rows, (1,) * 3, numeric=frozenset({1, 2})))
 
 
 def _frd(m: Manuscript, key: str, title: str, result: CantileverSectionResult) -> None:
@@ -287,16 +288,17 @@ def _fatigue_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering)
                                              "生じる永久作用による設計応力度σwpdである．なお，σwrdおよびσwpdは，次式により"
                                              "算定する．")
     m.line("fatigue.shear.stress.wrd", "σwrd = (Vpd + Vrd − kr・Vcd)・s / {Aw・z(cosθ + sinθ)}・Vrd / (Vpd + Vrd + Vcd)")
-    m.line("fatigue.shear.stress.wpd",
-           "σwpd = (Vpd + Vrd − kr・Vcd)・s / {Aw・z(cosθ + sinθ)}・(Vpd + Vcd) / (Vpd + Vrd + Vcd)")
+    # Wider than the body: the second factor continues on the next line under the right side.
+    m.line("fatigue.shear.stress.wpd", "σwpd = (Vpd + Vrd − kr・Vcd)・s / {Aw・z(cosθ + sinθ)}", keep=True)
+    m.line("fatigue.shear.stress.wpd.ratio", "・(Vpd + Vcd) / (Vpd + Vrd + Vcd)", left=CONTINUED)
     _definitions(m, "fatigue.shear.stress.symbols", Definition("Vpd", "永久作用による設計せん断力（N）"),
                  Definition("Vrd", "変動作用による設計せん断力（N）"),
-                 Definition("Vcd", "せん断補強鋼材を用いない棒部材の設計せん断耐力（γb = 1.3）"),
+                 Definition("Vcd", wrap("せん断補強鋼材を用いない棒部材の設計せん断耐力", "（γb = 1.3）", mode="forced")),
                  Definition("kr", f"変動作用の頻度の影響を考慮するための係数(= {value(result.kr)})"),
                  Definition("s", "せん断補強鉄筋の配置間隔（mm）"),
                  Definition("Aw", "区間 s におけるせん断補強鉄筋の総断面積（mm²）"),
                  Definition("θ", "せん断補強鉄筋が部材軸となす角度"),
-                 Definition("z", "圧縮応力の合力の作用位置から引張鋼材の図心までの距離（d/1.15）"),
+                 Definition("z", wrap("圧縮応力の合力の作用位置から引張鋼材の図心までの距離", "（d/1.15）")),
                  Definition("d", "有効高さ（mm）"))
     m.heading("fatigue.shear.fsr200.heading", "4) 200万回引張疲労強度 fsr200 の算定", 3)
     m.paragraph("fatigue.shear.fsr200.text", "曲げモーメントに対する照査と同様に算定する．")
@@ -339,8 +341,8 @@ def _crack_width(m: Manuscript, key: str, result: CantileverSectionResult, gamma
                  Definition("k3", "引張鋼材の段数の影響を表す係数"),
                  Definition("k4", f"曲げひび割れの変動を考慮する係数(= {value(result.k4)})"),
                  Definition("c", "かぶり"), Definition("Cs", "鋼材の中心間隔"), Definition("φ", "鋼材径"),
-                 Definition("ε'csd", f"収縮・クリープ等によるひび割れ幅の増加を考慮する数値(= {value(result.ecsd)} ×10⁻⁶)"),
-                 Definition("σse", "鋼材位置のコンクリートの応力度が0の状態からの鉄筋応力度の増加量"),
+                 Definition("ε'csd", ecsd_text(value(result.ecsd))),
+                 Definition("σse", SIGMA_SE),
                  Definition("Es", "鋼材のヤング係数"), Definition("Wlim", limit))
 
 
@@ -357,8 +359,10 @@ def _cracking_moment(m: Manuscript, key: str, cm: CrackingMoment) -> None:
     m.line(f"{key}.area", f"A = b・h = {value(cm.width)} × {value(cm.depth)} = {scientific(cm.area)} mm²")
     m.line(f"{key}.axial", f"N'd = {value(cm.axial)} kN")
     m.line(f"{key}.ftk", f"ftk = 0.23 f'ck^(2/3) = 0.23 × {value(cm.strength)}^(2/3) = {value(cm.tensile_strength)} N/mm²")
-    m.line(f"{key}.gf", f"GF = 1/100・dmax^(1/3)・f'ck^(1/3) = 1/100 × {value(cm.aggregate_max)}^(1/3) × "
-                        f"{value(cm.strength)}^(1/3) = {value(cm.fracture_energy)} N/mm")
+    # Wider than the body: the values continue on the next line, their "=" under the formula's.
+    m.line(f"{key}.gf", "GF = 1/100・dmax^(1/3)・f'ck^(1/3)", keep=True)
+    m.line(f"{key}.gf.values", f"= 1/100 × {value(cm.aggregate_max)}^(1/3) × {value(cm.strength)}^(1/3) = "
+                               f"{value(cm.fracture_energy)} N/mm", left=BODY_LEFT + 1)
     m.line(f"{key}.ec", f"Ec = {value(cm.modulus)} kN/mm²")
     m.line(f"{key}.lch", f"lch = 1000 GF Ec / ftk² = 1000 × {value(cm.fracture_energy)} × {value(cm.modulus)} / "
                          f"{value(cm.tensile_strength)}² = {value(cm.characteristic_length)} mm")
@@ -370,7 +374,7 @@ def _cracking_moment(m: Manuscript, key: str, cm: CrackingMoment) -> None:
     m.line(f"{key}.result", f"∴ Mcrd = {value(cm.crack_stress)} × {scientific(cm.inertia)} / {value(cm.neutral_axis)}"
                             f" + {value(cm.axial)} × 10³ × {scientific(cm.inertia)} / ({scientific(cm.area)} × "
                             f"{value(cm.neutral_axis)})")
-    m.line(f"{key}.result.value", f"　　　　= {value(cm.moment)} kN・m")
+    m.line(f"{key}.result.value", f"= {value(cm.moment)} kN・m", left=BODY_LEFT + 2)
 
 
 def _ecsd(m: Manuscript, key: str, result: CantileverSectionResult) -> None:
@@ -383,13 +387,14 @@ def _ecsd(m: Manuscript, key: str, result: CantileverSectionResult) -> None:
     m.paragraph(f"{key}.ecsd.text", "曲げひび割れ幅の検討に用いるε'csdについて次表に示される中から適切なものを設定する．")
     ages = (("ひび割れ発生材齢", "ε'csd (×10⁻⁶)", "備考"),
             *((age, str(ecsd), f"{action}により曲げひび割れが発生する場合") for action, ecsd, age in AGES))
-    m.table(f"{key}.ecsd.ages", TableSpec((90, 78, 300), ages, (BODY_LEADING,) * 4, numeric=frozenset({1})))
+    # The remark takes 18 columns on one line, so the table spans the body from column 0.
+    m.table(f"{key}.ecsd.ages", TableSpec((6, 6, 18), ages, (1,) * 4, numeric=frozenset({1}), left=0))
     m.paragraph(f"{key}.ecsd.compare", "曲げひび割れモーメントを計算し，設計作用と比較することにより，ε'csdを設定する．")
     compared = (cracking.self_weight, cracking.permanent, cracking.permanent_variable)
     rows = (("作用", "Md (kN・m)", "", "Mcrd (kN・m)"),
             *((action, value(md), "＜" if abs(md.value) < cracking.cracking_moment.moment.value else "≧", moment)
               for (action, _, _), md in zip(AGES, compared)))
-    m.table(f"{key}.ecsd.table", TableSpec((174, 96, 36, 96), rows, (BODY_LEADING,) * 4, numeric=frozenset({1, 3})))
+    m.table(f"{key}.ecsd.table", TableSpec((11, 6, 2, 6), rows, (1,) * 4, numeric=frozenset({1, 3})))
     m.paragraph(f"{key}.ecsd.result", f"よって，ε'csd = {value(cracking.ecsd)} ×10⁻⁶ をひび割れの照査に用いる"
                                       f"（ひび割れ発生材齢 {cracking.age}）．")
 
@@ -516,8 +521,22 @@ def render_cantilever_check(result: CantileverSectionResult, pier: PierInput, pa
 
     WebPier's pages are the same bytes for the same input; Capacita's are its own (decision 59).
     """
+    units, insertions = _manuscript(result, pages)
+    return render_with_pages(units, insertions, pages, path, blocks=_blocks)
+
+
+def _manuscript(result: CantileverSectionResult,
+                pages: Mapping[str, bytes]) -> tuple[tuple[Unit, ...], tuple[Insertion, ...]]:
+    """The units of the report and where Capacita's *pages* go; a section without pages ends with the reason it is
+    omitted. The report and its grid Excel workbook are laid out from the same."""
     skipped = tuple(section for section in result.sections if section not in pages)
     found = parts(result, skipped)
     units = tuple(unit for part, _ in found for unit in part)
     insertions = tuple(Insertion(section, part[-1].key, optional=True) for part, section in found)
-    return render_with_pages(units, insertions, pages, path, blocks=_blocks)
+    return units, insertions
+
+
+def grid_documents(result: CantileverSectionResult, pier: PierInput,
+                   pages: Mapping[str, bytes]) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of Capacita (its grid Excel workbook)."""
+    return documents(*_manuscript(result, pages), blocks=_blocks)

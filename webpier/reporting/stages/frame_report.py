@@ -15,9 +15,8 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from gridlayoutpdf import (
-    Block, BreakHint, Cell, CellLines, Document, Equation, KeepWithNext, LayoutContext,
-    LayoutOverflowError, Literal, MathNode, MeasuredBlock, PreferKeepTogether, Root, Row, Script, TermStop, Text,
-    as_math, measure_block,
+    Block, BreakHint, Cell, CellLines, Document, Equation, KeepWithNext, LayoutContext, Literal, MathNode,
+    MeasuredBlock, PreferKeepTogether, Root, Row, Script, Spacer, Stack, TermStop, measure_block,
 )
 
 from ...calc.frame import Frame, Member, NodeRole, PointLoad, Region, Section
@@ -27,21 +26,23 @@ from ..document import blank, heading, indent_to, math_line, paragraph, report, 
 from ..equations import Definition, definitions, equation_group, script, terms
 from ..figures import FrameFigure
 from ..numbers import printed, unit
-from ..styles import BASELINE, BODY, BODY_LEADING
-from ..tables import VerticalLabel, cell, table
+from ..styles import BODY, BODY_COLUMNS, PITCH_Y
+from ..tables import CELL_PADDING, OUTER, VerticalLabel, cell, math_cell, table
 
-# Heading levels (reporting-style.md: chapter 58.92, then 14.52 steps) and the body.
-LEVELS = (58.92, 73.44, 87.96, 102.48)
-BODY_LEFT = 117.0
-TABLE_LEFT = 102.48
-# The formula columns of the action pages (Example2 08 p.8-3: label, symbol, '=' ~205, result '=' ~437).
-LABEL_LEFT = 117.0
-FIRST_EQUAL = 219.72
-SECOND_EQUAL = 436.44  # the 0600 multi-step result column (reporting-style.md)
-RESULT_RIGHT = 496.2
-UNIT_START = 500.64
+# Body columns of the grid: each heading level one column further in (the reference's 14.52 pt steps), then the body.
+LEVELS = (0, 1, 2, 3)
+BODY_LEFT = 4
+TABLE_LEFT = 3
+# The formula columns of the action pages (Example2 08 p.8-3: label, symbol, '=', result '='): the label from column 4,
+# "=" on the boundary before column 11, the result's "=" before column 22, the result ending at column 26 and the unit
+# from column 27 to the body's right edge (column 30).
+LABEL_LEFT = 4
+FIRST_EQUAL = 11
+SECOND_EQUAL = 22
+RESULT_RIGHT = 26
+UNIT_START = 27
 # The "：" of a "ここに、" list: "ここに、" and the widest symbol (Δh) start at the label column.
-DEFINITION_COLON = 178.08
+DEFINITION_COLON = 8
 
 
 def sub(base: str | MathNode, suffix: str) -> Script:
@@ -87,14 +88,14 @@ class Span:
 
 @dataclass(frozen=True)
 class TableSpec:
-    widths: tuple[float, ...]
+    widths: tuple[int, ...]  # grid columns
     rows: tuple[tuple[Any, ...], ...]
-    row_heights: tuple[float, ...]
+    row_heights: tuple[int, ...]  # grid rows
     header_rows: int = 1
     numeric: frozenset[int] = frozenset()  # body columns aligned right
-    left: float = TABLE_LEFT
+    left: int = TABLE_LEFT
     # An open table (the 鉛直力・アーム・モーメント tables, 0610 p4): no frame, no vertical rules and no rule
-    # under the header; one 0.96 pt rule across the table above its last row (合計).
+    # under the header; one medium rule across the table above its last row (合計).
     open: bool = False
 
 
@@ -102,7 +103,7 @@ class TableSpec:
 class FigureSpec:
     block: Any  # a FrameFigure
     texts: tuple[str, ...]
-    left: float = 48.0
+    left: int = 0
 
 
 @dataclass(frozen=True)
@@ -110,7 +111,7 @@ class Definitions:
     """A "ここに、" list under an equation."""
 
     items: tuple[Definition, ...]
-    colon: float = 0.0  # the "：" column; 0 is DEFINITION_COLON (a wider symbol list takes its own)
+    colon: int = 0  # the "：" column; 0 is DEFINITION_COLON (a wider symbol list takes its own)
 
 
 @dataclass(frozen=True)
@@ -118,7 +119,7 @@ class Unit:
     key: str
     value: Any
     kind: str  # heading, paragraph, line, equation, definitions, table, figure
-    left: float = BODY_LEFT
+    left: int = BODY_LEFT
     keep: bool = False  # keep with the next unit (a lead-in line)
     level: int = 0
 
@@ -162,7 +163,7 @@ class Manuscript:
         self.prefix = prefix
         self.units: list[Unit] = []
 
-    def add(self, key: str, item: Any, kind: str, *, left: float = BODY_LEFT, keep: bool = False,
+    def add(self, key: str, item: Any, kind: str, *, left: int = BODY_LEFT, keep: bool = False,
             level: int = 0) -> None:
         self.units.append(Unit(self.prefix + key, item, kind, left, keep, level))
 
@@ -170,10 +171,10 @@ class Manuscript:
         """A heading; *tag* (e.g. "【ＲＣ標準 7.2.2】") is its source on the same line."""
         self.add(key, text if tag is None else (text, tag), "heading", left=LEVELS[level], level=level)
 
-    def paragraph(self, key: str, text: str, *, left: float = BODY_LEFT, keep: bool = False) -> None:
+    def paragraph(self, key: str, text: str, *, left: int = BODY_LEFT, keep: bool = False) -> None:
         self.add(key, text, "paragraph", left=left, keep=keep)
 
-    def line(self, key: str, item: Any, *, left: float = BODY_LEFT, keep: bool = False) -> None:
+    def line(self, key: str, item: Any, *, left: int = BODY_LEFT, keep: bool = False) -> None:
         self.add(key, item, "line", left=left, keep=keep)
 
     def equation(self, key: str, label: str, lhs: Any, rhs: Any, result: Printed | None = None, *,
@@ -190,7 +191,7 @@ class Manuscript:
             item = Equation(lhs, rhs, relation=relation)
         self.add(key, Labelled(label, item), "equation", keep=keep)
 
-    def definitions(self, key: str, *items: Definition, colon: float = 0.0) -> None:
+    def definitions(self, key: str, *items: Definition, colon: int = 0) -> None:
         self.add(key, Definitions(items, colon), "definitions")
 
     def table(self, key: str, spec: TableSpec) -> None:
@@ -207,107 +208,39 @@ def semantic_records(units: Sequence[Unit]) -> list[dict[str, str]]:
 # --- layout ------------------------------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class _LabelledBlock:
-    """Draw each equation's label at *left* on the first line of that equation; never over its symbol.
-
-    *labels* has one word per equation of the equation_group *block* ("" for none). The label is not
-    an EquationGroup label column: a column shared by the group would push every symbol right of the
-    widest word (断面二次モーメント), while the reference prints each word only before its own symbol.
-    """
-
-    labels: tuple[str, ...]
-    block: Block
-    left: float
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        measured = measure_block(self.block, context, available_width)
-        x = self.left - context.profile.grid.origin_x
-        parts = list(measured.parts)
-        labelled: set[int] = set()
-        for position, part in enumerate(parts):
-            index = part.metadata["equation_index"]
-            if index in labelled or not self.labels[index]:
-                continue
-            labelled.add(index)
-            label, block_id = self.labels[index], part.metadata["equation_block_id"]
-            texts = [command for command in part.commands if isinstance(command, Text)]
-            width = context.fonts.measure(label, BODY).width
-            if x + width + 2 > min(command.x for command in texts):
-                raise LayoutOverflowError(f"{block_id}: 式の見出し「{label}」が記号に重なります",
-                                          block_id=block_id, needed=width + 2, available=texts[0].x - x)
-            relation = next((c for c in texts if c.text in ("=", "＝")), texts[0])
-            parts[position] = replace(part, commands=(Text(x, relation.y, label, BODY), *part.commands))
-        return replace(measured, parts=tuple(parts))
+# Where a plain 10 pt line centred in one grid row stands: every one-line body cell takes it (in the middle of its
+# span), so that a cell with a subscript (起点側 R_B) stands on the baseline of the numbers of its row, as GridLayoutPdf
+# would otherwise centre each cell's own envelope. Header cells stay centred: a superscript (N/mm²) needs the room.
+CELL_BASELINE = 11.33
 
 
-@dataclass(frozen=True)
-class _RowLine:
-    """One line in a one-row cell, on one baseline shared by every cell of the row.
-
-    A line with a subscript (R_B, D_1) would otherwise be centred by its own
-    taller envelope and sit off the baseline of the plain cells of its row.
-    The row baseline centres the envelope of all the row's lines together.
-    """
-
-    content: Any
-    align: str
-    height: float
-    row: tuple[Any, ...]  # the one-line contents of the row
-    # An open table puts a one-row line on the body baseline (its text reads as body lines) when the row
-    # fits there; a row with a subscript stays centred, a little higher, as in the reference (0610 p4).
-    on_body_row: bool = False
-
-    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        boxes = [as_math(item).measure(context.fonts, BODY) for item in self.row]
-        ascent, descent = max(box.ascent for box in boxes), max(box.descent for box in boxes)
-        baseline = (self.height + ascent - descent) / 2
-        if (self.on_body_row and self.height == BODY_LEADING and BASELINE - ascent >= 1.08
-                and BASELINE + descent <= self.height - 1.08):
-            baseline = BASELINE
-        lines = CellLines((self.content,), style=BODY, line_advance=12.84, inner_padding=1.08, align=self.align,
-                          min_height=self.height, first_baseline=baseline)
-        return measure_block(lines, context, available_width)
-
-
-def _one_line(span: Span) -> bool:
-    return not span.vertical and span.rowspan == 1 and not (isinstance(span.value, str) and "\n" in span.value)
-
-
-def _cell(item: Any, *, header: bool, numeric: bool, height: float, row: tuple[Any, ...],
-          open_table: bool = False) -> Cell:
+def _cell(item: Any, *, header: bool, numeric: bool, rows: int) -> Cell:
+    """A table cell: one grid row per line, or text turned in its column when the span is vertical (*rows* is the
+    height of the span in grid rows)."""
     span = item if isinstance(item, Span) else Span(item, align="center" if header else
                                                     "right" if numeric else "left")
     content = span.value
     if span.vertical:
-        return cell(VerticalLabel(content, style=BODY), colspan=span.colspan, rowspan=span.rowspan, align="center")
-    if _one_line(span):
-        return Cell(_RowLine(content, span.align, height, row, open_table), colspan=span.colspan, align=span.align,
-                    padding=0)
-    if isinstance(content, str) and open_table and span.rowspan == 1:
-        # a two-line header of an open table, on the body rows
-        lines = CellLines(tuple(content.split("\n")), style=BODY, line_advance=BODY_LEADING, inner_padding=1.08,
-                          align=span.align, min_height=height, first_baseline=BASELINE)
-        return Cell(lines, colspan=span.colspan, align=span.align, padding=0)
+        return cell(VerticalLabel(content, rows), colspan=span.colspan, rowspan=span.rowspan, align="center")
+    if not header and not (isinstance(content, str) and "\n" in content):
+        lines = CellLines((content,), style=BODY, line_advance=PITCH_Y, inner_padding=CELL_PADDING, align=span.align,
+                          first_baseline=CELL_BASELINE + (rows - 1) * PITCH_Y / 2)
+        return Cell(lines, colspan=span.colspan, rowspan=span.rowspan, align=span.align, padding=0)
     if isinstance(content, str):
         return cell(content, colspan=span.colspan, rowspan=span.rowspan, align=span.align)
-    lines = CellLines((content,), style=BODY, inner_padding=1.08, align=span.align)
-    return Cell(lines, colspan=span.colspan, rowspan=span.rowspan, align=span.align, padding=0)
+    return math_cell(content, colspan=span.colspan, rowspan=span.rowspan, align=span.align)
 
 
 def table_block(spec: TableSpec, block_id: str) -> Block:
     rows = []
     for index, row in enumerate(spec.rows):
-        spans = [item if isinstance(item, Span) else Span(item) for item in row]
-        lines = tuple(span.value for span in spans if _one_line(span))
         rows.append([_cell(item, header=index < spec.header_rows, numeric=column in spec.numeric,
-                           height=spec.row_heights[index], row=lines, open_table=spec.open)
+                           rows=sum(spec.row_heights[index:index + (item.rowspan if isinstance(item, Span) else 1)]))
                      for column, item in enumerate(row)])
     rules: dict[str, Any] = {}
     if spec.open:
         # One part (split=False) draws the rule between two rows once, not once per row.
-        rules = {"horizontal_rules": tuple(.96 if index == len(rows) - 1 else 0 for index in range(len(rows) + 1)),
-                 "vertical_rules": (0,) * (len(spec.widths) + 1), "split": False}
+        rules = {"inner": None, "outer": None, "horizontal": {len(rows) - 1: OUTER}, "split": False}
     return indent_to(table(spec.widths, rows, row_heights=spec.row_heights, header_rows=spec.header_rows,
                            block_id=block_id, **rules), spec.left)
 
@@ -322,14 +255,15 @@ def _columns(equation: Equation) -> tuple[bool, bool]:
 
 def _equations(run: Sequence[Unit]) -> Block:
     """Consecutive equations in one group, their term columns lined up across the lines (0610 p4: the
-    浮力 of the high, normal and low water levels); each keeps its word on its own first line."""
+    浮力 of the high, normal and low water levels); each keeps its word (the Equation's label) on its own first line,
+    in a label column GridLayoutPdf shares across a run."""
     result, has_unit = _columns(run[0].value.equation)
-    return _LabelledBlock(tuple(piece.value.label for piece in run), equation_group(
-        *(replace(piece.value.equation, block_id=piece.key) for piece in run),
+    return equation_group(
+        *(replace(piece.value.equation, label=piece.value.label, block_id=piece.key) for piece in run),
         left=LABEL_LEFT, first_equal=FIRST_EQUAL,
         second_equal=SECOND_EQUAL if result else None, result_right=RESULT_RIGHT if result else None,
         unit_start=UNIT_START if has_unit else None, block_id=run[0].key,
-        keep=tuple(piece.keep for piece in run)), LABEL_LEFT)
+        keep=tuple(piece.keep for piece in run))
 
 
 def _title_of(piece: Unit | None, following: Unit | None) -> bool:
@@ -416,7 +350,7 @@ def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
             # common girder level, Example2 node 1)
             names = "・".join(filter(None, (names, "制御節点")))
         rows.append((str(node.number), value(node.x), value(node.y), names))
-    return TableSpec((60, 84, 84, 204), tuple(rows), (BODY_LEADING,) * len(rows), numeric=frozenset({0, 1, 2}))
+    return TableSpec((4, 5, 5, 13), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 1, 2}))
 
 
 def _section_name(frame: Frame, member: Member) -> str:
@@ -432,8 +366,9 @@ def member_table(frame: Frame) -> TableSpec:
         rows.append((str(member.number), str(member.start), str(member.end), value(member.height),
                      value(member.offset), REGION_NAMES[member.region], _section_name(frame, member),
                      value(member.material.strength) if member.material is not None else "－"))
-    return TableSpec((48, 32.4, 32.4, 56.4, 63.6, 120, 43.2, 72), tuple(rows), (BODY_LEADING,) * len(rows),
-                     numeric=frozenset({0, 1, 2, 3, 4, 7}))
+    # 水平距離 (m) and f'ck (N/mm2) take five columns and the longest 部位 (フーチング天端～重心) seven: the body's 30.
+    return TableSpec((3, 2, 2, 3, 5, 7, 3, 5), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 1, 2, 3, 4, 7}),
+                     left=0)
 
 
 def spring_table(frame: Frame) -> TableSpec:
@@ -444,7 +379,7 @@ def spring_table(frame: Frame) -> TableSpec:
                                      ("回転ばね", sub("K", "r"), "kr")):
         a, b = getattr(long_term, field_name), getattr(short_term, field_name)
         rows.append((name, Span(symbol), value(a, thousands=True), value(b, thousands=True), Span(unit(a.unit))))
-    return TableSpec((84, 48, 108, 108, 84), tuple(rows), (BODY_LEADING,) * len(rows), header_rows=2,
+    return TableSpec((5, 3, 7, 7, 5), tuple(rows), (1,) * len(rows), header_rows=2,
                      numeric=frozenset({2, 3}))
 
 
@@ -464,9 +399,10 @@ def material_lines(m: Manuscript, key: str, label: str, concrete: Concrete) -> N
     m.equation(key + ".modulus", "", "Ec", terms(value(concrete.modulus), "×",
                                                  Row(sup("10", str(EC_EXPONENT)), " ", unit("kN/m2"), gap=0)))
     low, high = concrete.lower, concrete.upper
+    # The note is one line of 28 columns (447 pt): from the item column it ends within the body.
     m.line(key + ".table", Row("（表の f'ck = ", with_unit(low.strength), " で Ec = ", with_unit(low.modulus),
                                "，f'ck = ", with_unit(high.strength), " で Ec = ", with_unit(high.modulus),
-                               " から直線補間）", gap=0), left=LABEL_LEFT + 14.52)
+                               " から直線補間）", gap=0), left=LEVELS[2])
 
 
 def used_concretes(frame: Frame) -> list[tuple[str, str, Concrete]]:
@@ -492,7 +428,7 @@ def top_table(rows: Sequence[tuple[Any, Printed, Printed, Printed]], total: tupl
     body = [("", "鉛直力 (kN)", "アーム (m)", "モーメント (kN・m)")]
     body += [(Span(label, align="left"), value(n), value(arm), value(moment)) for label, n, arm, moment in rows]
     body.append(("合計", value(total[0]), "", value(total[1])))
-    return TableSpec((120, 96, 96, 120), tuple(body), (BODY_LEADING,) * len(body), numeric=frozenset({1, 2, 3}),
+    return TableSpec((7, 6, 6, 7), tuple(body), (1,) * len(body), numeric=frozenset({1, 2, 3}),
                      left=BODY_LEFT, open=True)
 
 
@@ -508,7 +444,9 @@ def overlap_lines(m: Manuscript, substructure: Any, fixed: Any) -> None:
     """The length where the column q runs through the beam and haunch already weighed in the table (8-3, 9-3)."""
     m.equation("fixed.overlap", "重複区間", "Δh", terms(value(substructure.h[2]), "+", value(substructure.h[3])),
                fixed.overlap)
-    m.definitions("fixed.overlap.note", Definition("Δh", "はりの高さ ＋ ハンチの高さ（柱の q と重なる長さ）"))
+    # "ここに、Δh" is 65 pt: its "：" one column right of DEFINITION_COLON's.
+    m.definitions("fixed.overlap.note", Definition("Δh", "はりの高さ ＋ ハンチの高さ（柱の q と重なる長さ）"),
+                  colon=DEFINITION_COLON + 1)
 
 
 def joined(parts: list[Any]) -> list[Any]:
@@ -568,7 +506,9 @@ def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str)
         return
     # Decision 64: the layers within the footing height H5 + H6, averaged by their thickness.
     m.definitions("inertia.footing.note", Definition("V", f"フーチングの体積（{chapter}）"),
-                  Definition("γ'", "排除した土の湿潤単位体積重量（フーチング高さの範囲の層の厚さによる平均）"))
+                  # 36 characters: the note goes on to a line of its own when the line from the "：" holds less
+                  Definition("γ'", Row("排除した土の湿潤単位体積重量", BreakHint(),
+                                       "（フーチング高さの範囲の層の厚さによる平均）", gap=0)))
     parts: list = []
     for layer, part in soil.parts:
         parts += [*(("+",) if parts else ()), value(part), "×", value(layer.unit_weight_wet)]
@@ -579,13 +519,43 @@ def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str)
 # --- combinations (8.4 / 9.4) -----------------------------------------------------------------------------
 
 
-def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
-                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]]) -> TableSpec:
-    """Cases as rows, combinations as columns, the coefficients as printed (8-10, 9-14).
+@dataclass(frozen=True)
+class TableParts:
+    """The tables *specs* one under another with a blank line between them (``<block_id>.<n>``); the page may break
+    between two of them only.
 
-    *headers* gives each combination its requirement, performance item and remark; neighbours with the
-    same text share a header cell. A missing coefficient prints '－'.
+    Each table is a part of its own, measured as a child of a Stack numbered by the empty children before it, so that
+    the grid Excel tells the tables apart by the path of their commands; every part lists the children of all
+    tables, as the one part of a Stack would (as equations._GridEquations does with its runs).
     """
+
+    specs: tuple[TableSpec, ...]
+    block_id: str
+
+    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
+        parts, children, offset = [], [], 0
+        for number, spec in enumerate(self.specs):
+            block = table_block(spec, f"{self.block_id}.{number}")
+            own = (block, *((Spacer(1),) if number < len(self.specs) - 1 else ()))
+            stack = Stack(*(Spacer(0),) * offset, *own, block_id=self.block_id)
+            (part,) = measure_block(stack, context, available_width).parts
+            parts.append(part)
+            children += part.metadata["children"][offset:offset + len(own)]
+            offset += len(own)
+        parts = [replace(part, metadata={**part.metadata, "children": tuple(children)}) for part in parts]
+        return MeasuredBlock(available_width, context.profile.grid.pitch_y, tuple(parts),
+                             break_after=tuple(range(1, len(parts))), block_id=self.block_id)
+
+
+# The coefficient table (8-10, 9-14): No, 記号 and 荷重名称 in 1 + 4 + 5 columns from the body's left edge, then two
+# columns a combination (a coefficient "1.35" does not fit one). The combinations beyond the body's 30 columns go on in
+# a table of its own below, with the cases again (Example2's 23 pt columns are not on the grid).
+_CASE_COLUMNS = (1, 4, 5)
+_COMBINATION_COLUMNS = 2
+
+
+def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
+                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]]) -> TableSpec:
     header: list[list[Any]] = [[Span("No", rowspan=4), Span("記号", rowspan=4), Span("荷重名称", rowspan=4)], [], [], []]
     for level in (0, 1):
         index = 0
@@ -600,11 +570,44 @@ def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence
     header[3] = [str(number) for number in numbers]
     body = [(number, Span(symbol), name, *(value(c) if c is not None else Span("－") for c in coefficients))
             for number, symbol, name, coefficients in rows]
-    width = 23.04 if len(headers) <= 16 else 22.08
-    widths = (19.92, 64.32, 528 - 19.92 - 64.32 - width * len(headers), *(width,) * len(headers))
-    heights = (28.56, 14.28, 47.76, 14.28) + (14.28,) * len(body)
+    widths = (*_CASE_COLUMNS, *(_COMBINATION_COLUMNS,) * len(headers))
+    heights = (2, 1, 3, 1) + (1,) * len(body)
     return TableSpec(widths, (*(tuple(row) for row in header), *body), heights, header_rows=4,
-                     numeric=frozenset({0, *range(3, 3 + len(headers))}), left=48.0)
+                     numeric=frozenset({0, *range(3, 3 + len(headers))}), left=0)
+
+
+def _coefficient_runs(headers: Sequence[tuple[str, str, str]], capacity: int) -> list[list[int]]:
+    """The combinations of each table: at most *capacity*, cut where the requirement changes unless one
+    requirement has more combinations than a table holds."""
+    groups, start = [], 0
+    for index in range(1, len(headers) + 1):
+        if index == len(headers) or headers[index][0] != headers[index - 1][0]:
+            groups.append(range(start, index))
+            start = index
+    runs: list[list[int]] = []
+    for group in groups:
+        for begin in range(group.start, group.stop, capacity):
+            piece = list(range(begin, min(begin + capacity, group.stop)))
+            if runs and len(runs[-1]) + len(piece) <= capacity:
+                runs[-1] += piece
+            else:
+                runs.append(piece)
+    return runs
+
+
+def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
+                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]], *, block_id: str) -> FigureSpec:
+    """Cases as rows, combinations as columns, the coefficients as printed (8-10, 9-14).
+
+    *headers* gives each combination its requirement, performance item and remark; neighbours with the
+    same text share a header cell. A missing coefficient prints '－'. The table is printed in parts of as many
+    combinations as the body holds (``_COMBINATION_COLUMNS`` each); its record is the whole table's text.
+    """
+    capacity = (BODY_COLUMNS - sum(_CASE_COLUMNS)) // _COMBINATION_COLUMNS
+    specs = tuple(_coefficient_spec([headers[index] for index in run], [numbers[index] for index in run],
+                                    [(*row[:3], [row[3][index] for index in run]) for row in rows])
+                  for run in _coefficient_runs(headers, capacity))
+    return FigureSpec(TableParts(specs, block_id), (plain(_coefficient_spec(headers, numbers, rows)),))
 
 
 def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_impact: Any) -> None:
@@ -629,7 +632,7 @@ def extraction_table(m: Manuscript, extractions: Sequence[Any]) -> None:
         numbers = [str(number) for number in extraction.combinations]
         rows.append((str(extraction.number), EXTRACTION_NAMES[extraction.group.value - 1], *numbers,
                      *[""] * (width - len(numbers))))
-    m.table("extraction", TableSpec((28.8, 120, *(39.6,) * width), tuple(rows), (14.28,) * len(rows),
+    m.table("extraction", TableSpec((2, 7, *(2,) * width), tuple(rows), (1,) * len(rows),
                                     numeric=frozenset({0, *range(2, 2 + width)})))
 
 
@@ -638,6 +641,7 @@ def bearing_symbol(side: str) -> MathNode:
 
 
 def frame_figure(frame: Frame, outline: Any, **options: Any) -> FigureSpec:
+    """The model figure across the body's 30 columns (``FrameFigure``'s default size), from column 0."""
     figure = FrameFigure(frame, outline, **options)
     return FigureSpec(figure, figure.texts())
 

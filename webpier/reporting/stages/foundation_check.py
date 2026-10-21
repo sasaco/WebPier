@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from gridlayoutpdf import Document
+from gridlayoutpdf import Document, Operator, Row as MathRow
 
 from ...calc.foundation_check import (FACTORS, GROUND_KINDS, ROTATION_DIVISOR, Basis, Column, FoundationCheckResult,
                                       Judged, Requirement)
@@ -30,10 +30,14 @@ from ..equations import Definition, terms
 from ..document import blank, report
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, operand, semantic_records, value
 
-COLON = 211.0  # as the column check (reporting-style.md: the 0500 "ここに、" column)
-TABLE_LEFT = 80.16
-# The label, the symbol and the four columns (Example2 8-30: 長期支持, 短期支持, 安全性 鉛直力最大 / 曲げ最大).
-WIDTHS = (96.0, 163.2, 59.04, 59.04, 59.04, 59.04)
+COLON = 10  # as the column check
+# Grid columns. The two check tables stand from body column 1 (left of the body) to its right edge (column 30).
+TABLE_LEFT = 1
+# The label, the symbol and the four columns (Example2 8-30: 長期支持, 短期支持, 安全性 鉛直力最大 / 曲げ最大); the
+# horizontal table's label (基礎中心の断面力) is one column wider and its symbols one narrower.
+WIDTHS = (5, 10, 3, 3, 4, 4)
+HORIZONTAL_WIDTHS = (6, 9, 3, 3, 4, 4)
+LIMITS_LEFT, LIMITS = 5, (10, 10)  # the table of the long term limits of qd
 BLANK = ""
 
 
@@ -103,7 +107,15 @@ def _cover(m: Manuscript, key: str, label: str, basis: Basis, cover: CoverWeight
     parts: list = []
     for segment in cover.segments:
         parts += [*(("+",) if parts else ()), operand(segment.thickness), "×", value(segment.unit_weight)]
-    m.equation(key, label, "γe2", terms("(", *parts, ")", "/", value(basis.depth)), cover.unit_weight)
+    if len(cover.segments) <= 2:
+        m.equation(key, label, "γe2", terms("(", *parts, ")", "/", value(basis.depth)), cover.unit_weight)
+        return
+    # More parts than one line of term columns holds: a plain row, which the equation wraps at a "+".
+    spaced: list = []
+    for part in parts:
+        spaced += [" ", Operator(part), " "] if part in ("+", "×") else [part]
+    m.equation(key, label, "γe2", MathRow("(", *spaced, ")", " ", Operator("/"), " ", value(basis.depth), gap=0),
+               cover.unit_weight)
 
 
 def _capacity(m: Manuscript, basis: Basis) -> None:
@@ -113,7 +125,7 @@ def _capacity(m: Manuscript, basis: Basis) -> None:
     rows = [("地盤の種類", "地盤反力度の上限値(kN/m2)")]
     rows += [(kind.name, f"{value(kind.base)} ＋ γe2・Df" if kind.with_cover else value(kind.base))
              for kind in GROUND_KINDS]
-    m.table("capacity.long.table", TableSpec((164.4, 164.4), tuple(rows), (14.28,) * len(rows), left=131.52))
+    m.table("capacity.long.table", TableSpec(LIMITS, tuple(rows), (1,) * len(rows), left=LIMITS_LEFT))
     ground, limit = basis.ground, basis.long_term_limit
     m.paragraph("capacity.long.ground", f"支持層は{basis.soil_type}なので{ground.name}とし，上限値は次のとおりとする"
                                         "（γe2 は平水位の値）．")
@@ -124,8 +136,11 @@ def _capacity(m: Manuscript, basis: Basis) -> None:
     m.paragraph("capacity.all.text", "設計鉛直支持力度 qd は次式により算定する（支持層は砂質土）．")
     m.line("capacity.qd", "qd = qvd + γe2・Df")
     m.line("capacity.qvd", "qvd = frγ・Iγ・βb・Be・γe1・Nγ + frq・Iq・γe2・Df・(Nq − 1)")
-    m.line("capacity.inclination", "Iq = (1 − δ / 90)²，Iγ = (1 − δ / φ)²（ただし，0 ≦ 1 − δ / φ），δ = tan⁻¹(Hd / Vd)")
-    m.line("capacity.shape", "βb = 0.5 − 0.2・B′ / L（B′ ＞ L ならば L / B′），Be = min(B′, L)，B′ = B − 2・ex")
+    # Each wider than the body: it continues on the next line after a "，".
+    m.line("capacity.inclination", "Iq = (1 − δ / 90)²，Iγ = (1 − δ / φ)²（ただし，0 ≦ 1 − δ / φ），")
+    m.line("capacity.inclination.delta", "δ = tan⁻¹(Hd / Vd)")
+    m.line("capacity.shape", "βb = 0.5 − 0.2・B′ / L（B′ ＞ L ならば L / B′），")
+    m.line("capacity.shape.width", "Be = min(B′, L)，B′ = B − 2・ex")
     factors = "，".join(f"{name} {_factor(requirement, 'f_gamma')}" for requirement, name in (
         (Requirement.LONG_TERM, "長期支持"), (Requirement.SHORT_TERM, "短期支持"), (Requirement.SAFETY, "安全性")))
     _definitions(m, "capacity.symbols",
@@ -240,7 +255,7 @@ def _vertical_table(result: FoundationCheckResult) -> TableSpec:
     rows = _rows(result, groups)
     rows.append((Span("判　　定", colspan=2), *(Span(_judgement(column.bearing, column.vertical, column.rotation_ex,
                                                                 column.rotation_moment)) for column in result.columns)))
-    return TableSpec(WIDTHS, tuple(rows), (14.28,) * len(rows), header_rows=2, left=TABLE_LEFT)
+    return TableSpec(WIDTHS, tuple(rows), (1,) * len(rows), header_rows=2, left=TABLE_LEFT)
 
 
 def _horizontal(m: Manuscript, result: FoundationCheckResult) -> None:
@@ -272,7 +287,7 @@ def _horizontal(m: Manuscript, result: FoundationCheckResult) -> None:
     rows = _rows(result, groups)
     rows.append((Span("判　　定", colspan=2), *(Span(_judgement(column.horizontal)) for column in result.columns)))
     m.paragraph("horizontal.table.title", "水平支持に対する検討表", left=TABLE_LEFT, keep=True)
-    m.table("horizontal.table", TableSpec(WIDTHS, tuple(rows), (14.28,) * len(rows), header_rows=2,
+    m.table("horizontal.table", TableSpec(HORIZONTAL_WIDTHS, tuple(rows), (1,) * len(rows), header_rows=2,
                                           left=TABLE_LEFT))
 
 
@@ -319,3 +334,8 @@ def build_foundation_check(result: FoundationCheckResult, chapter: Chapter) -> D
 def render_foundation_check(result: FoundationCheckResult, path: str | Path, chapter: Chapter) -> Path:
     """Lay out completely, then atomically replace *path*; the same result gives the same bytes."""
     return build_foundation_check(result, chapter).render(path, invariant=True)
+
+
+def grid_documents(result: FoundationCheckResult, chapter: Chapter) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_foundation_check(result, chapter),)

@@ -155,7 +155,7 @@ def test_a_skipped_check_keeps_its_heading_and_says_why_it_is_omitted(with_appea
     assert "torsion_durability" not in sections_of(with_appearance)
     text = webpier_pages(with_appearance)
     torsion = text.split("(3) ねじりひび割れの検討")[1].split("13.6 使用性の照査")[0]
-    assert torsion.strip().endswith(OMITTED["torsion_durability"])
+    assert torsion.replace("\n", "").strip().endswith(OMITTED["torsion_durability"])  # the reason may wrap
     assert set(OMITTED) == set(SECTIONS)
 
 
@@ -173,3 +173,18 @@ def test_webpier_pages_are_the_same_bytes_for_the_same_input():
     _, result = check()
     first, second = (tuple(document_bytes(document) for document in build_cantilever_check(result)) for _ in range(2))
     assert first == second
+
+
+def test_the_tables_and_the_flowchart_stand_on_the_grid_within_the_body():
+    """GridLayoutPdf's common grid: tables and figures take whole grid columns and end by the body's right edge
+    (column 30); every table row is one grid row."""
+    _, result = check(外観の照査="行う")
+    units = [unit for part, _ in parts(result) for unit in part]
+    tables = [unit.value for unit in units if unit.kind == "table"]
+    figures = [unit.value for unit in units if unit.kind == "figure"]
+    assert len(tables) == 4 and len(figures) == 2
+    for spec in tables:
+        assert all(isinstance(width, int) for width in (spec.left, *spec.widths))
+        assert spec.left + sum(spec.widths) <= 30 and set(spec.row_heights) == {1}
+    for spec in figures:
+        assert spec.left + spec.block.col_span <= 30

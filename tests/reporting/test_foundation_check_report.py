@@ -16,7 +16,7 @@ from foundation_check_cases import chapter, result
 from frame_report_cases import text
 from webpier.calc import foundation_check as fc
 from webpier.core.printed import Printed
-from webpier.reporting.stages.foundation_check import build_foundation_check, records, render_foundation_check
+from webpier.reporting.stages.foundation_check import build_foundation_check, content, records, render_foundation_check
 
 
 def printed(stage: str, check: fc.FoundationCheckResult | None = None) -> str:
@@ -116,3 +116,15 @@ def test_a_cover_of_several_layers_prints_each_part_of_gamma_e2(tmp_path, monkey
     text = printed("0612", check).replace(" ", "")
     assert "(1.050×18.0+0.950×17.0+0.050×7.0+2.650×10.0)/4.700" in text
     render_foundation_check(check, tmp_path / "layers.pdf", chapter("0612"))
+
+
+@pytest.mark.parametrize("stage", ["0612", "0622"])
+def test_the_tables_stand_on_the_grid_within_the_body(stage):
+    """GridLayoutPdf's common grid: a table's widths are whole grid columns and it ends by the body's right edge
+    (column 30); every row is one grid row."""
+    tables = [unit.value for unit in content(result(stage), chapter(stage)) if unit.kind == "table"]
+    assert len(tables) == 3
+    for spec in tables:
+        assert all(isinstance(width, int) for width in (spec.left, *spec.widths))
+        assert spec.left + sum(spec.widths) <= 30
+        assert set(spec.row_heights) == {1}

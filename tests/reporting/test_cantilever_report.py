@@ -288,6 +288,32 @@ def test_the_pdf_has_the_pages_of_the_sample_chapter_and_starts_at_13_1(rendered
     assert sum(text.strip().startswith("Case") for text in texts) >= 18
 
 
+def test_every_page_stands_on_the_common_grid_and_the_combination_tables_turn_within_the_body(rendered: Path):
+    """GridLayoutPdf 0.2.0's common grid (A4, 16.08 x 15.48 pt cells, 30 columns x 47 rows): nothing is drawn outside
+    the body; a combination table is turned counterclockwise (its text runs up the page) and fits the body of a page
+    of its own; the tables are framed medium and ruled hair."""
+    from gridlayoutpdf import A4_PORTRAIT_REFERENCE
+
+    grid = A4_PORTRAIT_REFERENCE.grid
+    left, top = grid.origin_x - .5, grid.origin_y - .5
+    right, bottom = grid.origin_x + grid.columns * grid.pitch_x + .5, grid.origin_y + grid.rows * grid.pitch_y + .5
+    turned = 0
+    with pymupdf.open(rendered) as pdf:
+        for page in pdf:
+            lines = [line for block in page.get_text("dict")["blocks"] for line in block.get("lines", [])]
+            assert all(left <= line["bbox"][0] and line["bbox"][2] <= right and top <= line["bbox"][1]
+                       and line["bbox"][3] <= bottom for line in lines), page.number + 1
+            assert all(left <= drawing["rect"].x0 and drawing["rect"].x1 <= right and top <= drawing["rect"].y0
+                       and drawing["rect"].y1 <= bottom for drawing in page.get_drawings()), page.number + 1
+            up = [line for line in lines if line["dir"] == (0.0, -1.0)]
+            if up:
+                turned += 1
+                assert len(up) == len(lines), page.number + 1  # nothing else on the page of a turned table
+            widths = {round(drawing.get("width") or 0, 2) for drawing in page.get_drawings() if drawing["type"] == "s"}
+            assert widths <= {.25, 1.0, .24, .96}, page.number + 1  # the tables' and the loading figures' lines
+    assert turned == 2 * 3 * 3  # each side: Md, Vd and Mt of the cases 1〜9, 10〜18 and 19〜31
+
+
 def test_the_same_input_gives_the_same_bytes(tmp_path: Path, current, rendered: Path):
     pier, reaction, result = current
     again = render_cantilever(result, reaction, pier, tmp_path / "again.pdf")

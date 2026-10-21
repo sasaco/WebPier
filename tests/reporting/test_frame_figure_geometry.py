@@ -87,7 +87,7 @@ def test_labels_and_dimension_texts_are_the_frame_values_drawn_once_without_over
     frame = by_stage[stage]
     figure = FrameFigure(frame, pier_outline(pier, frame))
     drawn = commands(figure)
-    upright = [c.text for c in texts(drawn, 9.9, turned=False) if c.style.font == "heading"]
+    upright = [c.text for c in texts(drawn, 10, turned=False) if c.style.font == "MS Gothic"]
     assert Counter(upright) == Counter(str(node.number) for node in frame.nodes)
     boxed = [c.text for c in texts(drawn, 8.0)]
     assert Counter(boxed) == Counter(str(member.number) for member in frame.members)
@@ -160,7 +160,7 @@ def test_footing_dimensions_springs_and_bearings_are_drawn_from_their_printed_va
     for d in horizontal:
         assert upright.count(d.text) == 1
     assert "Kv" not in upright and upright.count("K") == 3  # K and its 6.5 pt subscript are separate runs
-    pieces = "".join(c.text for c in drawn if isinstance(c, Text) and c.style.font == "body")
+    pieces = "".join(c.text for c in drawn if isinstance(c, Text) and c.style.font == "MS Mincho")
     assert pieces == "KvKsKrMF"
     assert figure.texts() == tuple(c.text for c in drawn if isinstance(c, Text))
 
@@ -234,7 +234,7 @@ def test_without_springs_nothing_of_a_spring_is_drawn_and_the_support_number_sta
     drawn = commands(figure)
     assert [c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3] == []
     assert "K" not in figure.texts() and figure.texts() == tuple(c.text for c in drawn if isinstance(c, Text))
-    circles, numbers = node_circles(drawn), [c for c in texts(drawn, 9.9, turned=False) if c.style.font == "heading"]
+    circles, numbers = node_circles(drawn), [c for c in texts(drawn, 10, turned=False) if c.style.font == "MS Gothic"]
 
     def offset(role: NodeRole) -> float:
         """The baseline of a node's number below its node."""
@@ -243,3 +243,20 @@ def test_without_springs_nothing_of_a_spring_is_drawn_and_the_support_number_sta
 
     # Nothing is lifted clear of a spring: the support's number sits like any other node's.
     assert offset(NodeRole.FOOTING_BOTTOM) == pytest.approx(offset(NodeRole.FOOTING_CENTROID), abs=.01)
+
+
+@pytest.mark.parametrize("stage", ["0610", "0710"])
+@pytest.mark.parametrize("case", list(CASES))
+def test_the_figure_takes_the_body_s_30_columns_and_draws_inside_them(case: str, stage: str):
+    """The figure's frame is whole grid columns and rows (30 × 28) and everything it draws lies inside the body."""
+    from webpier.reporting.styles import BODY_COLUMNS, columns_pt, rows_pt
+
+    pier, reaction, by_stage = frames(case)
+    frame = by_stage[stage]
+    options = {"bearings": ("M", "F"), "horizontal": footing_dimensions(pier, frame, reaction.self_weight.footing_length)} \
+        if stage == "0610" else {"springs": False}
+    measured = measure_block(FrameFigure(frame, pier_outline(pier, frame), **options), context(), columns_pt(BODY_COLUMNS))
+    assert sum(part.rows for part in measured.parts) == 28
+    boxes = [command_bounds(c, FONTS) for part in measured.parts for c in part.commands]
+    assert min(box.x for box in boxes) >= 0 and max(box.right for box in boxes) <= columns_pt(BODY_COLUMNS)
+    assert min(box.y for box in boxes) >= 0 and max(box.bottom for box in boxes) <= rows_pt(28)

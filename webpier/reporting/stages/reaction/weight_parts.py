@@ -10,7 +10,7 @@ from ....calc.reaction.self_weight import Body, HaunchShape, SelfWeightResult
 from ....core.printed import Printed
 from ....inputs import PierInput
 from .figures import outline_figure
-from .manuscript import ITEM, SECTION, SUBSECTION, Manuscript, expr, sub
+from .manuscript import SECTION, SUBSECTION, Manuscript, expr, sub
 from .tables import volume_table
 
 XL, XC = sub("x", "L"), sub("x", "C")
@@ -211,7 +211,7 @@ def section(m: Manuscript, sw: SelfWeightResult, pier: PierInput) -> int:
     shown = pedestal_shown(sw)
     m.heading("weight.heading", "6.2 橋脚自重", SECTION)
     m.heading("weight.shape.heading", "(1) 橋脚の形状", SUBSECTION)
-    m.figure("weight.shape.figure", outline_figure(pier, sw), ITEM)
+    m.figure("weight.shape.figure", outline_figure(pier, sw), SECTION)
     number = 2
     if shown:
         _pedestal(m, sw, pier, number)

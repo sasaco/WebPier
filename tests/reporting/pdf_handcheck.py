@@ -21,9 +21,9 @@ from typing import Any
 
 import pymupdf
 
-MAIN_SIZE = 8.0          # body text is 9.9 pt, scripts 6.5 pt
+MAIN_SIZE = 8.0          # body text is 10 pt, scripts 6.5 pt
 GAP = 1.5                # a wider horizontal gap separates two runs (a space)
-MATH_STROKE = (0.3, 0.9)  # fraction bars and radicals; table rules are 0.12/0.96 pt
+MATH_STROKE = (0.3, 0.9)  # fraction bars and radicals; table rules are 0.25 (hair) / 1.0 pt (medium)
 TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|[=×+\-−()/,]|\S")
 FUNCTIONS = {"min": min, "max": max, "sqrt": math.sqrt}
 # Evaluated in decimal arithmetic, as a person with a calculator: 14.517 × 0.5 + 0.100 is 7.3585, not 7.35849999.
@@ -274,7 +274,7 @@ def formula_checks(path: str | Path) -> list[FormulaCheck]:
 
 
 CELL_GAP = 3.0  # table cells are separated by rules and padding; words within a cell by less
-BODY_SIZE = 9.5  # body and table text is 9.9 pt; figure dimensions (8 pt) and scripts are not table cells
+BODY_SIZE = 9.5  # body and table text is 10 pt; figure dimensions (8 pt) and scripts are not table cells
 
 
 @dataclass(frozen=True)

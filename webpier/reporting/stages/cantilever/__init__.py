@@ -24,11 +24,14 @@ from . import combinations, horizontal, summary, vertical
 
 PREFIX = "0900/"
 SIDES = {Side.LEFT: "左側", Side.RIGHT: "右側"}
+# The derivations' "=" a column further left than 0600's: their widest label (最大応答震度) is shorter than 0600's
+# T − 1/2μ・Rm, and "G1桁 = M × x / ΣXi²" then keeps its result on its line (13-11).
+WIDE_EQUAL = 11
 
 
 def content(result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
     """One ordered manuscript, used by both the layout and the semantic tests."""
-    m = Manuscript(prefix=PREFIX)
+    m = Manuscript(prefix=PREFIX, wide_equal=WIDE_EQUAL)
     m.heading("title", "13.1 応答値の算定", SECTION)
     vertical.section(m, result, reaction, pier)
     horizontal.section(m, result, reaction, pier)
@@ -53,4 +56,10 @@ def render_cantilever(result: CantileverResult, reaction: ReactionResult, pier: 
     return build_cantilever(result, reaction, pier).render(path, invariant=True)
 
 
-__all__ = ["PREFIX", "SIDES", "build_cantilever", "content", "render_cantilever", "semantic_records"]
+def grid_documents(result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_cantilever(result, reaction, pier),)
+
+
+__all__ = ["PREFIX", "SIDES", "build_cantilever", "content", "grid_documents", "render_cantilever",
+           "semantic_records"]

@@ -22,26 +22,32 @@ from ...numbers import constant, decimal_constant, printed, unit
 
 PREFIX = "0600/"
 
-# Heading levels and their measured x (reporting-style.md, 0600 p1/p16).
-CHAPTER, SECTION, SUBSECTION, ITEM, DETAIL = 58.92, 73.44, 87.96, 102.48, 117.0
-BODY = 117.0
-INDENTED = 131.52
-# Formula columns: short symbols at the body, and the measured multi-step derivation of 0600 p26.
-SHORT_LHS, SHORT_EQUAL = 131.52, 160.56
-MEDIUM_EQUAL = 204.12  # a labelled symbol such as RB(D1) or iF(複線)
-WIDE_LHS, WIDE_EQUAL = 175.08, 276.72
-RESULT_EQUAL, RESULT_RIGHT, UNIT_START = 436.44, 516.48, 523.68
+# Body columns of the common grid (styles.A4_PORTRAIT_REFERENCE): each heading level one column further in, then
+# the body (the reference's 14.52 pt steps from 58.92 pt become whole columns from the body's left edge).
+CHAPTER, SECTION, SUBSECTION, ITEM, DETAIL = 0, 1, 2, 3, 4
+BODY = 4
+INDENTED = 5
+# Formula columns (EquationAnchors: a relation's centre on the boundary before its column, the terms from the column
+# after it): a symbol, also a labelled one such as RB(D1) or iF(複線), right-aligned against "=" before column 6, so
+# that the four bearings of RB(D1) = a + b + c + d keep their result on their line (the terms end before the column
+# of the result's "="); the derivations of 0600 p26 with their label from column 6 and "=" before column 12. Every
+# result's "=" stands before column 23, the result ends at column 27 and the unit takes columns 28 and 29 (to the
+# body's right edge).
+SHORT_LHS, SHORT_EQUAL = 3, 6
+MEDIUM_EQUAL = SHORT_EQUAL  # the reference's wider symbols fit the same columns
+WIDE_LHS, WIDE_EQUAL = 6, 12
+RESULT_EQUAL, RESULT_RIGHT, UNIT_START = 23, 27, 28
 DEFINITION_COLON = MEDIUM_EQUAL  # "ここに、" from the indented body, symbols ending before this colon
-# A bearing derivation of 6.4.1 (2), measured on 0600 p16: "・case" with its combination from 218.64,
-# "※ T1 =" and "※ ∴ H =", and "Rm =" right after its symbol. The movable bearing's candidates use the
-# derivation column (WIDE_EQUAL); the fixed bearing's take "=" five indents after their symbols, so that
-# "T − 1/2μ・Rm = a − 1/2 × μ × Rm = H" keeps its result on its line (07 7-5; p16 wraps it).
-PAIR_SECOND = 218.64
-MARK_EQUAL, CONCLUSION_EQUAL, VERTICAL_EQUAL, FIXED_EQUAL = 160.56, 175.08, 189.6, WIDE_LHS + 5 * 14.52
-# The rule bracketing "※ T1 … ※ ∴ H" (0600 p16): x, width, and how far it starts below the
-# bottom of the "※ T1" row and ends above the top of the "※ ∴ H" row.
-RULE_X, RULE_WIDTH, RULE_TOP, RULE_BOTTOM = 136.2, 0.72, 5.76, 1.8
-FRAME_RIGHT = 576.0
+# A bearing derivation of 6.4.1 (2) (0600 p16): "・case" from the body column with its combination from column 10
+# (both with room to spare: Excel prints a half-width character up to a twentieth wider than the PDF), "※ T1 =" and
+# "※ ∴ H =", and "Rm =" right after its symbol; the candidates of H use the derivation columns (WIDE_EQUAL), where
+# "T − 1/2μ・Rm = a − 1/2 × μ × Rm" takes more columns than its line holds and puts its result on a line of its own
+# (as p16 wraps it).
+PAIR_LEFT, PAIR_SECOND = BODY, 10
+MARK_EQUAL, CONCLUSION_EQUAL, VERTICAL_EQUAL = 7, 9, 9
+# The rule bracketing "※ T1 … ※ ∴ H" (0600 p16): on the left edge of the column of "※" (INDENTED), a column left of
+# the bracketed lines (WIDE_LHS), over whole grid rows (the grid Excel writes it as the cells' left border).
+RULE_X = 5
 
 _OPERATORS = {"+", "−", "×", "/", "=", "-"}
 _PARENTHESES = {"(", ")"}
@@ -209,13 +215,12 @@ class CellSpec:
 
 @dataclass(frozen=True)
 class TableSpec:
-    widths: tuple[float, ...]
+    """An authored table: column widths in grid columns; each row takes a grid row per line of its tallest cell."""
+
+    widths: tuple[int, ...]
     rows: tuple[tuple[CellSpec, ...], ...]
     header_rows: int
-    row_height: float = 14.88
-    header_height: float | None = None
     numeric_columns: tuple[int, ...] = ()
-    compact: bool = False  # the narrower cell clearance of the combination tables (0610 p10), not 0600's
 
 
 @dataclass(frozen=True)
@@ -240,8 +245,8 @@ class Unit:
     key: str
     kind: str  # heading, paragraph, math, pair, equation, definitions, table, figure
     value: Any
-    left: float = BODY
-    first_equal: float | None = None  # a pair: the x of its second text
+    left: int = BODY  # body column
+    first_equal: int | None = None  # a pair: the column of its second text
     group: str = ""  # consecutive units of one group are kept on one page
     checked: bool = False  # an equation whose numeric chain recomputes from the printed numbers
     gap_before: bool = False
@@ -261,6 +266,7 @@ class Manuscript:
     _ruled: bool = False
     _keys: set[str] = field(default_factory=set)
     prefix: str = PREFIX  # the stage whose units these are (0900 shares this manuscript, decision 59)
+    wide_equal: int = WIDE_EQUAL  # the "=" column of the derivations (wide equations)
 
     def start(self, name: str) -> None:
         """Following units, up to the next start, are kept together."""
@@ -282,24 +288,24 @@ class Manuscript:
         self._keys.add(unit.key)
         self.units.append(replace(unit, ruled=self._ruled, prefix=self.prefix))
 
-    def heading(self, key: str, text: str, left: float) -> None:
+    def heading(self, key: str, text: str, left: int) -> None:
         self._add(Unit(key, "heading", text, left))
 
-    def paragraph(self, key: str, text: str, left: float = BODY, *, gap: bool = False, keep: bool = True) -> None:
+    def paragraph(self, key: str, text: str, left: int = BODY, *, gap: bool = False, keep: bool = True) -> None:
         """A sentence; it introduces what follows, so it is kept on that unit's page."""
         self._add(Unit(key, "paragraph", text, left, group=self._group, gap_before=gap, keep=keep))
 
-    def math(self, key: str, node: MathNode | str, left: float = BODY, *, gap: bool = False) -> None:
+    def math(self, key: str, node: MathNode | str, left: int = BODY, *, gap: bool = False) -> None:
         self._add(Unit(key, "math", node, left, group=self._group, gap_before=gap))
 
-    def pair(self, key: str, first: str, second: str, left: float, second_left: float, *,
+    def pair(self, key: str, first: str, second: str, left: int, second_left: int, *,
              gap: bool = False) -> None:
         """Two texts on one line; it introduces what follows, so it is kept on that unit's page."""
         self._add(Unit(key, "pair", Pair(first, second), left, first_equal=second_left, group=self._group,
                        gap_before=gap, keep=True))
 
     def equation(self, key: str, lhs: Any, rhs: Any, result: Printed | None = None, *,
-                 wide: bool = False, medium: bool = False, left: float | None = None, equal: float | None = None,
+                 wide: bool = False, medium: bool = False, left: int | None = None, equal: int | None = None,
                  checked: bool = True, gap: bool = False) -> None:
         """lhs = rhs [= result unit]; a checked equation is a numeric chain the reader recomputes.
 
@@ -312,7 +318,8 @@ class Manuscript:
         node = Equation("" if wide else lhs, rhs, label=lhs if wide else "",
                         result=None if result is None else printed(result),
                         unit=None if result is None else unit_of(result), block_id=self.prefix + key)
-        first_equal = equal if equal is not None else WIDE_EQUAL if wide else MEDIUM_EQUAL if medium else SHORT_EQUAL
+        first_equal = (equal if equal is not None else self.wide_equal if wide else MEDIUM_EQUAL if medium
+                       else SHORT_EQUAL)
         self._add(Unit(key, "equation", node, left if left is not None else WIDE_LHS if wide else SHORT_LHS,
                        first_equal=first_equal, group=self._group,
                        checked=checked and result is not None, gap_before=gap))
@@ -342,14 +349,14 @@ class Manuscript:
         """"ここに、" symbol：meaning, one line each, the symbols right-aligned against one colon column."""
         self._add(Unit(key, "definitions", items, INDENTED, first_equal=DEFINITION_COLON, group=self._group))
 
-    def table(self, key: str, spec: TableSpec, left: float) -> None:
+    def table(self, key: str, spec: TableSpec, left: int) -> None:
         self._add(Unit(key, "table", spec, left, gap_before=True))
 
-    def rotated_table(self, key: str, spec: TableSpec, left: float) -> None:
+    def rotated_table(self, key: str, spec: TableSpec, left: int) -> None:
         """A table turned 90° counterclockwise on the page (the combination tables of 0900, decision 59)."""
         self._add(Unit(key, "rotated", spec, left, gap_before=True))
 
-    def figure(self, key: str, spec: FigureSpec, left: float = SUBSECTION) -> None:
+    def figure(self, key: str, spec: FigureSpec, left: int = SUBSECTION) -> None:
         self._add(Unit(key, "figure", spec, left, gap_before=True))
 
 

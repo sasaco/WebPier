@@ -42,10 +42,12 @@ def test_different_beam_and_column_concretes_are_printed_separately():
 
 
 def test_a_label_that_would_cover_its_symbol_is_a_layout_error():
+    """The word stands left of the symbol in its label column; one too wide for the columns before "=" does not
+    push the formula onto another line (a formula line is one grid row)."""
     m = Manuscript("x/")
     m.equation("long", "とても長い式の見出しの文字列", "A", "1 × 2", Printed(2.0, 2, "kN"))
     m.equation("plain", "", "B", "3")
-    with pytest.raises(LayoutOverflowError, match="重なります"):
+    with pytest.raises(LayoutOverflowError, match="x/long"):
         report(*blocks(m.units[:1])).layout()
     assert report(*blocks(m.units[1:])).layout()
 
@@ -67,6 +69,6 @@ def test_plain_reads_every_node_kind():
 
 
 def test_spanning_math_cells_are_centred_in_their_rows():
-    spec = TableSpec((60, 60), ((Span(sub("D", "1"), rowspan=2), "a"), ("b",)), (14.28, 14.28), header_rows=0)
+    spec = TableSpec((4, 4), ((Span(sub("D", "1"), rowspan=2), "a"), ("b",)), (1, 1), header_rows=0)
     drawn = measure(table_block(spec, "t"))
     assert [c.text for c in drawn if isinstance(c, Text)] == ["D", "1", "a", "b"]

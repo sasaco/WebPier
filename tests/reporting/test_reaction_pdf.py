@@ -1,25 +1,27 @@
-"""0600 PDF: the drawn text is the manuscript, pages break by content, bytes are deterministic,
-and the appearance meets the independently measured reference roles (reporting-style.md)."""
+"""0600 PDF: the drawn text is the manuscript, pages break by content, bytes are deterministic, and the pages stand
+on GridLayoutPdf's common grid (A4, 16.08 x 15.48 pt cells): every position a body column, every height whole grid
+rows, the report's faces at their sizes, tables framed medium and ruled hair (plan glp-0.2.0-grid)."""
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import re
 import subprocess
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import pymupdf
 import pytest
-from gridlayoutpdf import BreakHint, Equation, Literal, Row, Script, TermStop, Text
+from gridlayoutpdf import (A4_PORTRAIT_REFERENCE, BreakHint, Equation, FontRegistry, Literal, Row, Script,
+                           TermStop, Text)
 
 from reaction_report_cases import CASES, case
+from webpier.reporting.equations import terms
 
 ROOT = Path(__file__).parents[2]
-APPEARANCE = ROOT / "tests" / "fixtures" / "reporting" / "appearance" / "reference-style.json"
 _spec = importlib.util.spec_from_file_location("reporting_appearance_measure_0600",
                                                ROOT / "scripts" / "reporting_appearance.py")
 assert _spec is not None and _spec.loader is not None
@@ -105,14 +107,26 @@ def test_text_is_drawn_in_manuscript_order():
             position = found + len(text)
 
 
-def _placements(pages) -> list[tuple[int, str]]:
-    """Each placed block, and each equation of a group of consecutive equations, by its page."""
-    found = []
-    for number, page in enumerate(pages, 1):
-        for placement in page.metadata["placements"]:
-            ids = [placement["block_id"]] + [part["metadata"]["equation_block_id"] for part in placement["parts"]
-                                             if "equation_block_id" in part["metadata"]]
-            found.extend((number, block) for block in ids if block.startswith("0600/"))
+def _page_texts(pages) -> list[str]:
+    return [squeeze("".join(command.text for command in page.commands if isinstance(command, Text)))
+            for page in pages]
+
+
+def _text_pages(units, pages) -> dict[str, int]:
+    """The page of each unit that draws text in its own run (a heading, a sentence, a formula, a pair), found in
+    manuscript order in the drawn text: the equations of one group share one block, whatever the lines they take."""
+    texts = _page_texts(pages)
+    found: dict[str, int] = {}
+    page, position = 0, 0
+    for unit in units:
+        if unit.kind not in ("heading", "paragraph", "equation", "pair", "math"):
+            continue
+        text = squeeze(drawn(unit.value))
+        while texts[page].find(text, position) < 0:
+            page, position = page + 1, 0
+            assert page < len(texts), unit.key
+        position = texts[page].find(text, position) + len(text)
+        found[unit.identifier] = page + 1
     return found
 
 
@@ -123,7 +137,7 @@ def test_pages_break_between_groups_and_never_after_a_heading(name: str):
     result, pier = case(name)
     units = content(result, pier)
     pages = build_reaction(result, pier).layout()
-    where = {block: page for page, block in _placements(pages)}
+    where = _text_pages(units, pages)
     groups: dict[str, set[int]] = {}
     for unit in units:
         if unit.group:
@@ -132,12 +146,16 @@ def test_pages_break_between_groups_and_never_after_a_heading(name: str):
     kinds = {unit.identifier: unit.kind for unit in units}
     for number, page in enumerate(pages, 1):
         blocks = [placement["block_id"] for placement in page.metadata["placements"]
-                  if placement["block_id"].startswith("0600/")]
+                  if placement["block_id"] in kinds]
         assert kinds[blocks[-1]] != "heading", number
-    # A heading and the first unit after it are on the same page.
+    # A heading and the first unit after it are on the same page (a table or a figure: its placement).
+    placed = {placement["block_id"]: number for number, page in enumerate(pages, 1)
+              for placement in page.metadata["placements"]}
     for index, unit in enumerate(units[:-1]):
         if unit.kind == "heading":
-            assert where[unit.identifier] == where[units[index + 1].identifier], unit.key
+            following = units[index + 1]
+            assert where[unit.identifier] == where.get(following.identifier, placed.get(following.identifier)), \
+                unit.key
     # Content decides the page count: no blank page, i.e. no page without body text.
     assert all(any(isinstance(command, Text) and command.text.strip()
                    for command in page.commands) for page in pages)
@@ -179,98 +197,168 @@ def test_render_replaces_the_target_only_after_a_complete_layout(tmp_path: Path)
     assert path.read_bytes() == b"previous-published-bytes"
 
 
-ROLES = {
-    "common.chapter": "§6.",
-    "common.section": "6.1",
-    "common.subsection": "(1)",
-    "common.subsubsection": "1)",
-    "common.body": "制動荷重および始動荷重の特性値は",
-    "common.detail_heading": "(a)",
-}
+# --- the common grid (GridLayoutPdf 0.2.0: A4, 16.08 x 15.48 pt cells, 30 columns x 47 rows) --------------------------
+
+GRID = A4_PORTRAIT_REFERENCE.grid
+BASELINE = 11.0  # a body line's baseline below the top of its grid row (MS Mincho / MS Gothic 10 pt)
 
 
-def test_typography_matches_the_independent_reference_roles(tmp_path: Path):
-    from reportlab.pdfbase.ttfonts import TTFont
+def column_x(column: int) -> float:
+    return GRID.origin_x + column * GRID.pitch_x
 
-    from webpier.reporting.stages.reaction import build_reaction
 
-    reference = json.loads(APPEARANCE.read_text(encoding="utf-8"))["roles"]
-    document = build_reaction(*case("current"))
-    path = document.render(tmp_path / "appearance.pdf", invariant=True)
-    faces = {TTFont(f"verify-{name}", str(face.path), subfontIndex=face.face_index).face.name.decode("ascii"): face
-             for name in ("body", "heading", "caption", "dimension") for face in (document.fonts.resolve(name),)}
+def row_top(baseline: float) -> float:
+    """The top of the grid row whose body line has this baseline."""
+    return baseline - BASELINE
+
+
+@dataclass(frozen=True)
+class Span:
+    text: str
+    face: str
+    size: float
+    x0: float
+    x1: float
+    baseline: float
+    page: int
+
+
+def spans(pdf) -> list[Span]:
+    """Every upright text span, its face named by the hash in GridLayoutPdf's PDF font name (MS Gothic: the file that
+    also holds MS PGothic)."""
+    registry = FontRegistry()
+    faces = {"GLP_" + registry.resolve(name).sha256: name for name in ("MS Gothic", "MS Mincho", "Calibri")}
+    found = []
+    for page in pdf:
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                if abs(line["dir"][0] - 1) > 1e-6:
+                    continue
+                for span in line["spans"]:
+                    if span["text"].strip():
+                        face = next((name for prefix, name in faces.items() if prefix.startswith(span["font"])),
+                                    span["font"])
+                        found.append(Span(span["text"].strip(), face, round(span["size"], 2), span["bbox"][0],
+                                          span["bbox"][2], span["origin"][1], page.number + 1))
+    return found
+
+
+ROLES = (  # (the text a span starts with, its body column, its face)
+    ("§6.", 0, "MS Gothic"),  # chapter
+    ("6.1", 1, "MS Gothic"),  # section
+    ("(1)", 2, "MS Gothic"),  # subsection
+    ("1)", 3, "MS Gothic"),  # item
+    ("(a)", 4, "MS Gothic"),  # detail
+    ("制動荷重および始動荷重の特性値は", 4, "MS Mincho"),  # body
+    ("・1.0 LR", 4, "MS Mincho"),  # a combination of 6.4.1 (2)
+    ("※ T1", 5, "MS Mincho"),  # a bearing derivation
+)
+
+
+@pytest.fixture(scope="module")
+def current_pdf(tmp_path_factory):
+    from webpier.reporting.stages.reaction import render_reaction
+
+    path = render_reaction(*case("current"), tmp_path_factory.mktemp("grid") / "0600.pdf")
     with pymupdf.open(path) as pdf:
-        samples = [sample for page in pdf for sample in measure.text_samples(page)]
-        for role, selector in ROLES.items():
-            sample = next(sample for sample in samples if sample.text.startswith(selector))
-            face = faces[reference[role]["font"]]
-            assert face.pdf_name.startswith(sample.font), role
-            assert measure.role_errors(sample.__class__(**{**sample.__dict__, "font": reference[role]["font"]}),
-                                       reference[role], anchor_x=58.92) == [], role
-        # The bearing derivations use the measured equals columns of 0600 p26.
-        for role in ("horizontal.first_equals", "horizontal.result_equals"):
-            contract = reference[role]
-            matches = [sample for sample in samples if sample.text.startswith("=")
-                       and abs(sample.x - contract["source"]["selector_x_pt"]) < .5]
-            assert matches, role
-            assert measure.role_errors(sample.__class__(**{**matches[0].__dict__, "font": contract["font"]}),
-                                       {**contract, "font": contract["font"]}, anchor_x=58.92) == [], role
-        lhs = next(sample for sample in samples if sample.text.startswith("T / n"))
-        assert measure.role_errors(lhs.__class__(**{**lhs.__dict__, "font": "MS-Mincho"}),
-                                   reference["horizontal.formula_lhs"], anchor_x=58.92) == []
-        # Figure caption and dimensions: MS PGothic 9.9 pt and Calibri 8 pt.
-        caption = next(sample for sample in samples if sample.text.replace(" ", "") == "側面図")
-        assert faces[reference["figure.caption"]["font"]].pdf_name.startswith(caption.font)
-        assert caption.size == pytest.approx(reference["figure.caption"]["size_pt"], abs=.1)
-        dimension = next(sample for sample in samples if sample.text == "9.000" and sample.size < 9)
-        assert faces[reference["figure.dimension"]["font"]].pdf_name.startswith(dimension.font)
-        assert dimension.size == pytest.approx(reference["figure.dimension"]["size_pt"], abs=.1)
-        assert all(measure.monochrome_errors(page) == [] for page in pdf)
+        yield pdf
 
 
-def _table_bands(page: pymupdf.Page, x: float, y: float) -> list[float]:
-    """Horizontal rule bands of the table that contains (x, y): the run of bands less than 30 pt apart."""
-    bands = [band.coordinate for band in measure.painted_rule_bands(measure.native_rules(page), axis="h", crossing=x)]
-    below = next(index for index, coordinate in enumerate(bands) if coordinate > y)
-    first = below - 1
-    while first > 0 and bands[first] - bands[first - 1] < 30:
-        first -= 1
-    last = below
-    while last + 1 < len(bands) and bands[last + 1] - bands[last] < 30:
-        last += 1
-    return bands[first:last + 1]
+def test_the_text_stands_in_grid_columns_and_rows_in_the_named_faces(current_pdf):
+    found = spans(current_pdf)
+    for start, column, face in ROLES:
+        sample = next(span for span in found if span.text.startswith(start))
+        assert (sample.face, sample.size) == (face, 10.0), start
+        # A glyph's ink may start a little inside its column ("(" and "1" have side bearings).
+        assert column_x(column) - .01 <= sample.x0 < column_x(column) + 2.5, start
+        assert (sample.baseline - GRID.origin_y) % GRID.pitch_y == pytest.approx(BASELINE, abs=.01), start
+    # Every face is one of the report's: 10 pt text, 6.5 pt scripts, the figure titles in MS PGothic 10 pt and the
+    # dimensions in Calibri 8 pt.
+    assert {(span.face, span.size) for span in found} <= {("MS Mincho", 10.0), ("MS Mincho", 6.5),
+                                                          ("MS Gothic", 10.0), ("Calibri", 8.0)}
+    caption = next(span for span in found if span.text.replace(" ", "") == "側面図")
+    dimension = next(span for span in found if span.text == "9.000" and span.size < 9)
+    assert (caption.face, caption.size) == ("MS Gothic", 10.0)
+    assert (dimension.face, dimension.size) == ("Calibri", 8.0)
+    assert all(measure.monochrome_errors(page) == [] for page in current_pdf)
 
 
-@pytest.mark.parametrize("contract_name,first_cell,rows", [
-    ("reaction.girder", "固定死荷重", 6),     # the support table: header + 5 loads
-    ("reaction.impact", "列車反力", 9),        # the impact table: header + R + 3 single + 4 double
+def test_nothing_is_drawn_outside_the_body_columns(current_pdf):
+    left, right = column_x(0) - .5, column_x(GRID.columns) + .5
+    for page in current_pdf:
+        assert [span.text for span in spans([page]) if span.x0 < left or span.x1 > right] == [], page.number + 1
+        assert [drawing["rect"] for drawing in page.get_drawings()
+                if drawing["rect"].x0 < left or drawing["rect"].x1 > right] == [], page.number + 1
+
+
+def _relations(pdf) -> Counter:
+    """The 10 pt "=" whose centre stands on a body column boundary, by that boundary."""
+    found: Counter = Counter()
+    for page in pdf:
+        for block in page.get_text("rawdict")["blocks"]:
+            for line in block.get("lines", []):
+                for span in line["spans"]:
+                    for char in span["chars"]:
+                        if char["c"] == "=" and abs(span["size"] - 10) < .01:
+                            boundary = ((char["bbox"][0] + char["bbox"][2]) / 2 - GRID.origin_x) / GRID.pitch_x
+                            if abs(boundary - round(boundary)) < .01:
+                                found[round(boundary)] += 1
+    return found
+
+
+def test_the_relations_stand_on_the_formula_columns(current_pdf):
+    from webpier.reporting.stages.reaction.manuscript import (
+        BODY, CONCLUSION_EQUAL, MARK_EQUAL, RESULT_EQUAL, SHORT_EQUAL, UNIT_START, VERTICAL_EQUAL, WIDE_EQUAL,
+    )
+
+    relations = _relations(current_pdf)
+    # Every "=" on a column boundary is on a formula column (荷重修正係数 ρf takes six columns before its "=").
+    assert set(relations) <= {SHORT_EQUAL, MARK_EQUAL, CONCLUSION_EQUAL, VERTICAL_EQUAL, WIDE_EQUAL, RESULT_EQUAL,
+                              BODY + 6}
+    assert relations[RESULT_EQUAL] > 200 and relations[SHORT_EQUAL] > 200 and relations[WIDE_EQUAL] > 40
+    # The unit of a result starts at its column.
+    units = [span for span in spans(current_pdf) if span.text in ("kN", "m", "kN・m")
+             and abs(span.x0 - column_x(UNIT_START)) < 1]
+    assert len(units) > 200
+
+
+def _rows(page: pymupdf.Page, x: float, top: float) -> list[float]:
+    """The horizontal rules of the table under *top* crossing the paper x *x*: their centres, top down."""
+    found = set()
+    for drawing in page.get_drawings():
+        for item in drawing["items"]:
+            if item[0] == "l":
+                (x0, y0), (x1, y1) = (item[1].x, item[1].y), (item[2].x, item[2].y)
+                if abs(y0 - y1) < .01 and min(x0, x1) <= x <= max(x0, x1) and y0 > top:
+                    found.add(round(y0, 2))
+    bands: list[float] = []
+    for y in sorted(found):
+        if bands and y - bands[-1] > 2 * GRID.pitch_y + 1:
+            break  # the next table
+        if not bands or y - bands[-1] > .6:
+            bands.append(y)
+    return bands
+
+
+@pytest.mark.parametrize("first_cell,rows", [
+    ("固定死荷重", 6),  # the support table: header + 5 loads
+    ("列車反力", 9),  # the impact table: header + R + 3 single + 4 double
+    ("荷重種別", 11),  # the horizontal summary along the track: header + 8 combinations + 2 seismic
 ])
-def test_reaction_tables_have_the_measured_row_height(tmp_path: Path, contract_name: str, first_cell: str, rows: int):
-    from webpier.reporting.stages.reaction import render_reaction
-
-    contract = json.loads(APPEARANCE.read_text(encoding="utf-8"))["tables"][contract_name]
-    path = render_reaction(*case("current"), tmp_path / "rows.pdf")
-    with pymupdf.open(path) as pdf:
-        page = next(page for page in pdf if page.search_for(first_cell))
-        anchor = page.search_for(first_cell)[0]
-        bands = _table_bands(page, anchor.x1 + 150, anchor.y1)
-        assert measure.table_errors(bands, [contract["nominal_row_height_pt"]] * rows) == []
-        widths = {round(band.width, 2) for band in measure.painted_rule_bands(
-            measure.native_rules(page), axis="h", crossing=anchor.x1 + 150)}
-        assert widths <= {contract["thin_rule_pt"], 2 * contract["thin_rule_pt"], contract["thick_rule_pt"]}
-
-
-def test_the_horizontal_summary_has_the_measured_row_and_header_heights(tmp_path: Path):
-    from webpier.reporting.stages.reaction import render_reaction
-
-    contract = json.loads(APPEARANCE.read_text(encoding="utf-8"))["tables"]["reaction.horizontal_summary"]
-    path = render_reaction(*case("current"), tmp_path / "summary.pdf")
-    with pymupdf.open(path) as pdf:
-        page = next(page for page in pdf if page.search_for("起点桁"))
-        anchor = page.search_for("荷重種別")[0]
-        bands = _table_bands(page, anchor.x1 + 200, anchor.y1)
-        heights = [28.56] + [contract["nominal_row_height_pt"]] * 10
-        assert measure.table_errors(bands, heights) == []
+def test_a_table_row_is_a_grid_row_framed_medium_and_ruled_hair(current_pdf, first_cell: str, rows: int):
+    page = next(page for page in current_pdf if page.search_for(first_cell))
+    anchor = page.search_for(first_cell)[0]
+    crossing = column_x(26) - 2  # a column of numbers of each table, where every row has its rules
+    bands = _rows(page, crossing, anchor.y0 - 2 * GRID.pitch_y)
+    # The frame's medium rule lies inside the table's boundary (half its 1.0 pt), the hair rules on the boundaries.
+    tops = [bands[0] - .5, *bands[1:rows], bands[rows] + .5]
+    assert [round((low - high) / GRID.pitch_y, 3) for high, low in zip(tops, tops[1:])] == [1] * rows
+    offset = (tops[0] - GRID.origin_y) / GRID.pitch_y
+    assert offset == pytest.approx(round(offset), abs=1e-3)
+    widths = {round(drawing.get("width") or 0, 2) for drawing in page.get_drawings() if drawing["type"] == "s"
+              and drawing["rect"].height < .01 and tops[0] - 1 <= drawing["rect"].y0 <= tops[-1] + 1
+              and drawing["rect"].x0 <= crossing <= drawing["rect"].x1}
+    assert widths == {.25, 1.0}
 
 
 def _baselines(page: Any, test) -> list[float]:
@@ -279,40 +367,85 @@ def _baselines(page: Any, test) -> list[float]:
 
 
 @pytest.mark.parametrize("name", ["current", "ea17"])
-def test_each_bearing_derivation_is_bracketed_by_the_measured_rule(tmp_path: Path, name: str):
-    """0600 p16: a 0.72 pt rule at x = 136.2 from 8.52 pt below the "※ T1" baseline (5.76 pt below its row)
-    to 13.32 pt above the "※ ∴ H" baseline (1.8 pt above its row); one per girder and combination."""
+def test_each_bearing_derivation_is_bracketed_by_the_rule(tmp_path: Path, name: str):
+    """0600 p16: a medium rule on the left edge of the column of "※", from the row under "※ T1" to the row above
+    "※ ∴ H" (whole grid rows: the grid Excel writes it as the cells' left border); one per girder and combination."""
     from webpier.reporting.stages.reaction import render_reaction
+    from webpier.reporting.stages.reaction.manuscript import RULE_X
 
     rules = 0
     with pymupdf.open(render_reaction(*case(name), tmp_path / "rule.pdf")) as pdf:
         for page in pdf:
             bars = sorted((drawing["rect"] for drawing in page.get_drawings()
-                           if abs(drawing["rect"].width - .72) < .01), key=lambda rect: rect.y0)
+                           if drawing["type"] == "f" and abs(drawing["rect"].width - 1.0) < .01),
+                          key=lambda rect: rect.y0)
             runs: list[list[float]] = []
             for bar in bars:
-                assert (bar.x0 + bar.x1) / 2 == pytest.approx(136.2, abs=.01)
+                assert (bar.x0 + bar.x1) / 2 == pytest.approx(column_x(RULE_X), abs=.01)
                 if runs and abs(runs[-1][1] - bar.y0) < .01:
                     runs[-1][1] = bar.y1
                 else:
                     runs.append([bar.y0, bar.y1])
             marks = _baselines(page, lambda text: text.startswith("※"))
             for top, bottom in runs:
-                assert top == pytest.approx(max(mark for mark in marks if mark < top) + 8.52, abs=.01)
-                assert bottom == pytest.approx(min(mark for mark in marks if mark > bottom) - 13.32, abs=.01)
+                above = max(mark for mark in marks if mark < top)
+                below = min(mark for mark in marks if mark > bottom)
+                assert top == pytest.approx(row_top(above) + GRID.pitch_y, abs=.01)
+                assert bottom == pytest.approx(row_top(below), abs=.01)
                 rules += 1
     assert rules == 2 * 8 + 2 * 2  # both girders of the eight combinations and of the two seismic actions
 
 
-def test_the_fixed_bearing_candidate_keeps_its_result_on_its_line(tmp_path: Path):
-    """07 7-5: "T − 1/2μ・Rm = 160.00 − 1/2 × 0.10 × 2370.00 = 41.50 kN" is one line."""
-    from webpier.reporting.stages.reaction import render_reaction
+def test_the_fixed_bearing_candidate_puts_its_result_in_the_result_column(current_pdf):
+    """07 7-5: "T − 1/2μ・Rm = 160.00 − 1/2 × 0.10 × 2370.00 = 41.50 kN": its terms take more columns than its
+    line holds, and its result stands on the next row, in the result column."""
+    from webpier.reporting.stages.reaction.manuscript import UNIT_START
 
     found = 0
-    with pymupdf.open(render_reaction(*case("current"), tmp_path / "fixed.pdf")) as pdf:
-        for page in pdf:
-            units = _baselines(page, lambda text: text.strip() == "kN")
-            for baseline in _baselines(page, lambda text: text.startswith("T - 1/2") or text.startswith("T − 1/2")):
-                assert any(abs(unit - baseline) < .01 for unit in units), baseline
-                found += 1
+    for page in current_pdf:
+        units = [span.baseline for span in spans([page]) if span.text == "kN"
+                 and abs(span.x0 - column_x(UNIT_START)) < 1]
+        for baseline in _baselines(page, lambda text: text.startswith("T - 1/2") or text.startswith("T − 1/2")):
+            assert any(abs(unit - baseline - GRID.pitch_y) < .01 for unit in units), baseline
+            found += 1
     assert found == 8
+
+
+def test_a_long_formula_continues_with_its_operator_in_the_relation_column(current_pdf):
+    """Rm = 1.1 × 5740.00 + … wraps before "+": the next line takes "+" in the "=" column and its terms from the
+    column after it; the result stands on the last line."""
+    from webpier.reporting.stages.reaction.manuscript import VERTICAL_EQUAL
+
+    continued = 0
+    for page in current_pdf:
+        for block in page.get_text("rawdict")["blocks"]:
+            for line in block.get("lines", []):
+                for span in line["spans"]:
+                    chars = [char for char in span["chars"] if not char["c"].isspace()]
+                    if chars and chars[0]["c"] == "+" and abs(span["size"] - 10) < .01:
+                        centre = (chars[0]["bbox"][0] + chars[0]["bbox"][2]) / 2
+                        if abs(centre - column_x(VERTICAL_EQUAL)) < .01:
+                            continued += 1
+    assert continued >= 2 * 8  # each Rm with the train, at least one further line
+
+
+def test_the_table_rows_take_a_grid_row_per_line_of_their_tallest_cell():
+    from webpier.reporting.stages.reaction.layout import _heights
+    from webpier.reporting.stages.reaction.manuscript import CellSpec, TableSpec
+
+    spec = TableSpec((2, 2, 2), ((CellSpec("a\nb\nc\nd", rowspan=2), CellSpec("x"), CellSpec("y\nz")),
+                                 (CellSpec("1"), CellSpec("2"))), header_rows=0)
+    # The first row holds two lines; the spanning cell's fourth line goes to the last row it spans.
+    assert _heights(spec) == [2, 2]
+
+
+def test_a_formula_whose_terms_cannot_break_is_reported():
+    from gridlayoutpdf import LayoutOverflowError
+
+    from webpier.reporting.stages.reaction.layout import document
+    from webpier.reporting.stages.reaction.manuscript import Manuscript
+
+    m = Manuscript()
+    m.equation("long", "x", terms(*["123456.789"] * 12), checked=False)  # no operator to break before
+    with pytest.raises(LayoutOverflowError):
+        document(m.units).layout()

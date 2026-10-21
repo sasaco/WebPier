@@ -21,15 +21,14 @@ from ...numbers import printed
 from ..cantilever import SIDES
 from ..cantilever.summary import _action_table, _self_weight_table
 from ..reaction.layout import document
-from .common import grid_width
 from ..reaction.manuscript import (
     ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, Unit, cells, plain,
 )
-from ..reaction.tables import GIRDER_ROW, header
+from ..reaction.tables import header
 
 PREFIX = "0900/"
 ZERO = "－"  # the side and the case of a row without a combination, in the table of the governing cases
-HEADER_ROW = 28.56
+LOADMODEL_COLUMNS = 26  # the grid columns a table of the load model's sections spreads its columns over
 
 
 def _sections(m: Manuscript, items: tuple[Section, ...]) -> None:
@@ -43,11 +42,10 @@ def _sections(m: Manuscript, items: tuple[Section, ...]) -> None:
             if isinstance(block, Paragraph):
                 m.paragraph(where, block.text, gap=True)
             else:
-                width = grid_width(432.0 / len(block.columns))
+                width = LOADMODEL_COLUMNS // len(block.columns)
                 rows = (header(*block.columns), *(tuple(CellSpec(text, align="left") for text in row)
                                                    for row in block.rows))
-                m.table(where, TableSpec((width,) * len(block.columns), tuple(rows), header_rows=1,
-                                         row_height=GIRDER_ROW), SUBSECTION)
+                m.table(where, TableSpec((width,) * len(block.columns), tuple(rows), header_rows=1), SUBSECTION)
 
 
 def _responses(m: Manuscript, result: GenericCantileverResult, number: int) -> None:
@@ -82,8 +80,7 @@ def _combinations(m: Manuscript, side: Side, result: GenericSide) -> None:
                          *cells(part.md, part.n, part.mt)))
         rows.append((CellSpec("", align="center"), CellSpec("", align="left"), CellSpec("合計", align="left"),
                      CellSpec("", align="right"), *cells(case.md, case.n, case.mt)))
-    m.table(f"{key}.combinations.table", TableSpec((36.0, 132.0, 72.0, 48.0, 64.08, 58.08, 64.08), tuple(rows),
-                                                   header_rows=1, row_height=GIRDER_ROW, header_height=HEADER_ROW,
+    m.table(f"{key}.combinations.table", TableSpec((2, 7, 5, 3, 3, 3, 3), tuple(rows), header_rows=1,
                                                    numeric_columns=(3, 4, 5, 6)), SUBSECTION)
 
 
@@ -99,8 +96,7 @@ def _adopted(m: Manuscript, result: GenericCantileverResult) -> None:
                      CellSpec(ZERO if zero else SIDES[selection.side], align="center"),
                      CellSpec(ZERO if zero else str(selection.case.number), align="center"),
                      *cells(selection.md, selection.vd, selection.mt)))
-    m.table("adopted.table", TableSpec((160.08, 50.04, 40.08, 40.08, 62.04, 56.04, 62.04), tuple(rows), header_rows=1,
-                                       row_height=14.88, header_height=HEADER_ROW, numeric_columns=(4, 5, 6)),
+    m.table("adopted.table", TableSpec((10, 3, 2, 2, 4, 3, 4), tuple(rows), header_rows=1, numeric_columns=(4, 5, 6)),
             SUBSECTION)
     if any(selection.case.name == NO_COMBINATION for selection in result.selections):
         m.paragraph("adopted.zero", f"{ZERO}：{NO_COMBINATION}．Capacita はその照査を省略する．", gap=True)
@@ -135,3 +131,6 @@ def render_generic_cantilever(result: GenericCantileverResult, pier: PierInput, 
     return build_generic_cantilever(result, pier).render(path, invariant=True)
 
 
+def grid_documents(result: GenericCantileverResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
+    return (build_generic_cantilever(result, pier),)

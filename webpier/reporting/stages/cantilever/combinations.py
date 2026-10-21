@@ -17,20 +17,20 @@ from ....calc.cantilever.combinations import COLUMNS, CaseResult, LimitState, Qu
 from ....core.printed import Printed
 from ....inputs import PierInput
 from ...numbers import printed
-from ..reaction.manuscript import SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
+from ..reaction.manuscript import CHAPTER, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
 
-CASE_ROW = 23.04  # two lines: the factor and the value
-HEADER_ROW = 28.56
 STATES = {LimitState.SAFETY: "安全性\n(破壊)", LimitState.RESTORABILITY: "復旧性\n地震時以外",
           LimitState.RESTORABILITY_EQ: "復旧性\n地震時", LimitState.DURABILITY: "耐久性",
           LimitState.FATIGUE: "安全性\n(疲労)"}
 QUANTITIES = {Quantity.BENDING: ("曲げモーメント", "Md", "kN・m"), Quantity.SHEAR: ("せん断力", "Vd", "kN"),
               Quantity.TORSION: ("ねじりモーメント", "Mt", "kN・m")}
-# The column widths of a rotated table (its height on the page): the case, the nine action columns, the result(s),
-# the performance item, the remark and the loading.
-CASE_WIDTH, ACTION_WIDTH, RESULT_WIDTH, STATE_WIDTH, REMARK_WIDTH, NOTE_WIDTH = 32.04, 44.04, 54.0, 58.08, 58.08, 68.04
-WIDE_ACTIONS = {"D1": 48.0, "S": 48.0, "LR+B": 70.08, "EQ": 48.0}
-SUMMARY_RESULT_WIDTH = 58.08
+# The column widths of a rotated table in grid columns of its turned grid (15.48 pt each; 46 of them make its height
+# on the page, of the page's 47 rows): the case, the nine action columns, the result, the performance item, the
+# remark and the loading. Each case takes two grid rows (16.08 pt each on the page), so that the 13 cases of 19〜31
+# and the header take 28 of the page's 30 columns.
+CASE_WIDTH, ACTION_WIDTH, RESULT_WIDTH, STATE_WIDTH, REMARK_WIDTH, NOTE_WIDTH = 2, 3, 3, 4, 4, 5
+WIDE_ACTIONS = {"LR+B": 4}
+SUMMARY_RESULT_WIDTH = 4  # the upright summary (grid columns of the page)
 GROUPS = ((1, 9), (10, 18), (19, 31))
 
 
@@ -65,8 +65,7 @@ def _table(cases: Sequence[CaseResult], quantity: Quantity) -> TableSpec:
              *cells(_value_of(case, quantity)), *_tail(case)) for case in cases]
     widths = (CASE_WIDTH, *(WIDE_ACTIONS.get(column, ACTION_WIDTH) for column in COLUMNS), RESULT_WIDTH, STATE_WIDTH,
               REMARK_WIDTH, NOTE_WIDTH)
-    return TableSpec(widths, (*head, *rows), header_rows=2, row_height=HEADER_ROW, header_height=HEADER_ROW,
-                     numeric_columns=tuple(range(1, len(COLUMNS) + 2)), compact=True)
+    return TableSpec(widths, (*head, *rows), header_rows=2, numeric_columns=tuple(range(1, len(COLUMNS) + 2)))
 
 
 def _summary(cases: Sequence[CaseResult]) -> TableSpec:
@@ -78,8 +77,7 @@ def _summary(cases: Sequence[CaseResult]) -> TableSpec:
     rows = [(CellSpec(str(case.number), align="center"), *cells(case.md, case.n, case.mt), *_tail(case))
             for case in cases]
     return TableSpec((CASE_WIDTH, *([SUMMARY_RESULT_WIDTH] * 3), STATE_WIDTH, REMARK_WIDTH, NOTE_WIDTH), (*head, *rows),
-                     header_rows=2, row_height=HEADER_ROW, header_height=HEADER_ROW, numeric_columns=(1, 2, 3),
-                     compact=True)
+                     header_rows=2, numeric_columns=(1, 2, 3))
 
 
 def section(m: Manuscript, side: Side, side_name: str, result: SideResult, pier: PierInput) -> None:
@@ -91,7 +89,7 @@ def section(m: Manuscript, side: Side, side_name: str, result: SideResult, pier:
     for quantity in Quantity:
         for first, last in GROUPS:
             cases = [case for case in result.cases if first <= case.number <= last]
-            m.rotated_table(f"{key}.combinations.{quantity.name.lower()}.{first}", _table(cases, quantity), 48.0)
+            m.rotated_table(f"{key}.combinations.{quantity.name.lower()}.{first}", _table(cases, quantity), CHAPTER)
 
 
 def adopted(m: Manuscript, result: CantileverResult, names: dict[Side, str]) -> None:
@@ -107,6 +105,5 @@ def adopted(m: Manuscript, result: CantileverResult, names: dict[Side, str]) -> 
         rows.append((CellSpec(title, align="left"), CellSpec(selection.quantity.value, align="center"),
                      CellSpec(names[selection.side], align="center"), CellSpec(str(selection.case.number), align="center"),
                      *cells(selection.md, selection.vd, selection.mt)))
-    m.table("adopted.table", TableSpec((160.08, 50.04, 40.08, 40.08, 62.04, 56.04, 62.04), tuple(rows), header_rows=1,
-                                       row_height=14.88, header_height=HEADER_ROW, numeric_columns=(4, 5, 6)),
+    m.table("adopted.table", TableSpec((10, 3, 2, 2, 4, 3, 4), tuple(rows), header_rows=1, numeric_columns=(4, 5, 6)),
             SUBSECTION)

@@ -37,7 +37,7 @@ from .frame_report import (
     member_table, node_table, seat_moment, section_lines, self_weight_inertia, semantic_records as records,
     sub, used_concretes, value, with_unit,
 )
-from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, render_with_pages
+from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 from .seismic_longitudinal import INCREMENTS
 from .transverse import _train_table, action_item, horizontal_table
 
@@ -128,7 +128,7 @@ def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
     for action in result.basic_cases:
         rows.append((str(action.number), Span(case_symbol(action.case)), Span(ARROWS[action.direction]),
                      Span(INCREMENTS[action.increment]), case_name(result, action.case)))
-    m.table("basic", TableSpec((39.6, 48, 55.2, 63.6, 225.6), tuple(rows), (14.28,) * len(rows),
+    m.table("basic", TableSpec((2, 3, 3, 3, 14), tuple(rows), (1,) * len(rows),
                                numeric=frozenset({0})))
     m.paragraph("combination.caption", "組合せCase", keep=True)
     rows = [("Case", "列車", Row(sub("α", "f"), "／", sub("ρ", "m"), gap=0), "作用方向", "荷重補正係数＋基本Case",
@@ -138,7 +138,7 @@ def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
                      Span(f"{value(combination.alpha_f)}／{value(combination.rho_m)}"), Span(ARROWS[combination.direction]),
                      " + ".join(str(result.basic(case).number) for case in combination.cases),
                      str(combination.ground_resistance_type)))
-    m.table("combination", TableSpec((39.6, 39.6, 55.2, 55.2, 171.6, 70.8), tuple(rows), (14.28,) * len(rows),
+    m.table("combination", TableSpec((2, 2, 3, 3, 11, 5), tuple(rows), (1,) * len(rows),
                                      numeric=frozenset({0, 5})))
     m.paragraph("combination.note", "上り線・下り線の列車荷重をそれぞれ組み合わせる．")
 
@@ -170,3 +170,8 @@ def render_seismic_transverse(result: SeismicTransverseResult, pier: PierInput, 
     WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decisions 50, 51).
     """
     return render_with_pages(content(result, pier), INSERTIONS, pages, path)
+
+
+def grid_documents(result: SeismicTransverseResult, pier: PierInput) -> tuple[Document, ...]:
+    """The documents of the report WebPier lays out, without the pages of JRSNAP (its grid Excel workbook)."""
+    return documents(content(result, pier), INSERTIONS)

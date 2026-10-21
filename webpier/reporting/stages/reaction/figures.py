@@ -24,11 +24,11 @@ from ....core.printed import Printed
 from ....inputs import PierInput
 from ....inputs.model import Span
 from ...numbers import printed
-from ...styles import grid_units
+from ...styles import CAPTION_FONT, DIMENSION_FONT, columns_for, rows_for
 from .manuscript import FigureSpec
 
-DIMENSION = TextStyle(font="dimension", size=8.0)  # figure.dimension (Calibri 8 pt, 0600 p3)
-CAPTION = TextStyle(font="caption", size=9.9)  # figure.caption (MS PGothic 9.9 pt, 0600 p3)
+DIMENSION = TextStyle(DIMENSION_FONT, size=8.0)  # figure.dimension (Calibri 8 pt, 0600 p3)
+CAPTION = TextStyle(CAPTION_FONT, size=10)  # figure.caption (MS PGothic 10 pt; 9.9 pt in 0600 p3)
 OUTLINE, THIN = 0.96, 0.24
 WIDTH, HEIGHT = 458.64, 300.0
 VIEW_WIDTH, VIEW_HEIGHT = 120.0, 190.0
@@ -73,7 +73,7 @@ class OutlineFigure:
         items: list = []
         for index, view in enumerate(self.views):
             items.extend(_draw(view, index * WIDTH / 2))
-        return measure_block(Figure(grid_units(WIDTH), grid_units(HEIGHT), *items, block_id=self.block_id),
+        return measure_block(Figure(columns_for(WIDTH), rows_for(HEIGHT), *items, block_id=self.block_id),
                              context, available_width)
 
 
@@ -205,7 +205,7 @@ class LoadingFigure:
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
         items = _loading(self.data, lambda text: context.fonts.measure(text, DIMENSION).width)
-        return measure_block(Figure(grid_units(LOADING_WIDTH), grid_units(LOADING_HEIGHT), *items,
+        return measure_block(Figure(columns_for(LOADING_WIDTH), rows_for(LOADING_HEIGHT), *items,
                                     block_id=self.block_id), context, available_width)
 
 
