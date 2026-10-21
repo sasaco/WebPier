@@ -1,8 +1,9 @@
 """0400 照査の前提 (decision 73, ADR-0012): what the report prints, from the calc result as printed.
 
-The sections the checks with section forces refer to follow the numbering of 0611 / 0621, 0810 / 0820 and 0910
-(n.10 and n.7; the section after 0810's and 0820's three and their second; 13.7 or, with 0910's appearance check,
-13.8, and 13.5). The judgements follow the result; the PDF is the same bytes for the same result.
+The sections the checks with section forces refer to are those of 0611 / 0621, 0810 / 0820 and 0910 after the switch
+to R5 (orchestrator 2026-10-21, sasa/0400-r5 eca5fcd): 8.10・8.7 and 9.10・9.7; 12.5・12.3 and 12.9・12.7; 13.8 or, with
+0910's appearance check, 13.9, and 13.5. The judgements follow the result; the PDF is the same bytes for the same
+result.
 """
 
 import json
@@ -36,9 +37,9 @@ def texts(document=None) -> dict[str, str]:
 def test_the_sections_referred_to():
     refs = references(False)
     assert dict(refs.column) == {"線路": ("8.10", "8.7"), "直角": ("9.10", "9.7")}
-    assert refs.beam == ("13.7", "13.5")
-    assert dict(refs.footing) == {"線路": ("12.5", "12.3"), "直角": ("12.8", "12.6")}
-    assert references(True).beam == ("13.8", "13.5")
+    assert refs.beam == ("13.8", "13.5")
+    assert dict(refs.footing) == {"線路": ("12.5", "12.3"), "直角": ("12.9", "12.7")}
+    assert references(True).beam == ("13.9", "13.5")
 
 
 def test_the_report_prints_the_chapter_and_the_references():
@@ -52,13 +53,14 @@ def test_the_report_prints_the_chapter_and_the_references():
     assert found["column.線路.minimum.crack.reference"] == "照査は「8.10 最小鉄筋量及び最大鉄筋量」に示す。"
     assert found["column.直角.maximum.reference"] == "照査は「9.10 最小鉄筋量及び最大鉄筋量」に示す。"
     assert found["column.直角.stress.reference"] == "照査は「9.7 耐久性の照査」に示す。"
-    assert found["beam.minimum.axial.reference"] == "照査は「13.7 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert found["beam.minimum.axial.reference"] == "照査は「13.8 最小鉄筋量及び最大鉄筋量」に示す。"
     assert found["beam.stress.reference"] == "照査は「13.5 耐久性の照査」に示す。"
-    assert found["footing.直角.maximum.reference"] == "照査は「12.8 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert found["footing.直角.maximum.reference"] == "照査は「12.9 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert found["footing.直角.stress.reference"] == "照査は「12.7 耐久性の照査」に示す。"
     assert found["footing.線路.stress.reference"] == "照査は「12.3 耐久性の照査」に示す。"
     document = data()
     document["片持ち梁の照査"]["外観の照査"] = "行う"
-    assert texts(document)["beam.maximum.reference"] == "照査は「13.8 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert texts(document)["beam.maximum.reference"] == "照査は「13.9 最小鉄筋量及び最大鉄筋量」に示す。"
 
 
 def test_the_whole_section_items_are_in_the_first_direction_only():

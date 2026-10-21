@@ -10,9 +10,9 @@ its formulas and its tables) and, for what the sample has not, Example2 06_照�
 - 4.3 梁の構造細目 and 4.4 フーチングの構造細目 ((1) 線路方向, (2) 線路直角方向).
 
 The checks that use section forces (Mcrd, 0.008Ac, the maximum reinforcement, σc) print only the section of the check
-that has them (ADR-0012), whether that is made or not: 0611 / 0621 n.10 and n.7, 0810 / 0820 the section after their
-seismic restorability and their durability, 0910 the section after its restorability and its durability. 9) prints its
-value and its sign without a judgement. Every number is a Printed value of the calc result (ADR-0003).
+that has them (ADR-0012), whether that is made or not (``references``): 0611 / 0621 n.10 and n.7, 0810 / 0820 the
+section after their seismic restorability and their durability, 0910 the section after its restorability and its
+durability. 9) prints its value and its sign without a judgement. Every number is a Printed value of the calc result (ADR-0003).
 
 Not reproduced from the sample (ADR-0001): the #REF! of its (2), its duplicated pages, its b = 1140 of 6), the
 footing's N'd of the column and the column's limits of the clear spacing in the footing, the "小判形" sentence of its
@@ -37,7 +37,6 @@ from ...calc.detailing.footing import FootingDetailing, FootingDirection
 from ...core.printed import Printed
 from ..document import blank, heading, indent_to, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
-from . import cantilever_check, column_check, footing_check
 from .frame_report import (Definitions, FigureSpec, Labelled, Span, TableSpec, Unit, plain, sub, sup, table_block,
                            value)
 
@@ -71,18 +70,19 @@ class References:
     footing: Mapping[str, tuple[str, str]]
 
 
+# The sections of the checks with section forces after the switch to R5 (decision 73, Phase 3: sasa/0400-r5
+# eca5fcd), as (最小鉄筋量及び最大鉄筋量, 耐久性の照査): 0611 / 0621 n.10 (the 基礎の照査 n.11) and n.7; 0810 12.2〜12.5
+# and 0820 12.6〜12.9, each 安全性, 耐久性, 復旧性（地震時）, 最小鉄筋量及び最大鉄筋量.
+COLUMN_SECTIONS = {"線路": ("8.10", "8.7"), "直角": ("9.10", "9.7")}
+FOOTING_SECTIONS = {"線路": ("12.5", "12.3"), "直角": ("12.9", "12.7")}
+# 0910: 13.5 耐久性, then 13.6 使用性（損傷）, 13.7 復旧性, 13.8 最小鉄筋量及び最大鉄筋量; with the appearance check of
+# the input 13.6 使用性 comes first and the rest move by one (13.9).
+CANTILEVER_SECTIONS = {False: ("13.8", "13.5"), True: ("13.9", "13.5")}
+
+
 def references(appearance: bool) -> References:
-    """The section numbers of 0611 / 0621 (n.10, n.7), 0810 / 0820 (the section after their three, and their second)
-    and 0910 (the section after its restorability, and its durability; 13.6 使用性 only with the appearance check)."""
-    numbering = cantilever_check.Numbering(serviceability=6, restorability=7) if appearance \
-        else cantilever_check.Numbering()
-    return References(
-        column={"線路": (f"{column_check.LONGITUDINAL.number}.10", f"{column_check.LONGITUDINAL.number}.7"),
-                "直角": (f"{column_check.TRANSVERSE.number}.10", f"{column_check.TRANSVERSE.number}.7")},
-        beam=(f"{cantilever_check.CHAPTER}.{numbering.restorability + 1}",
-              f"{cantilever_check.CHAPTER}.{numbering.durability}"),
-        footing={"線路": (footing_check.LONGITUDINAL.section(3), footing_check.LONGITUDINAL.section(1)),
-                 "直角": (footing_check.TRANSVERSE.section(3), footing_check.TRANSVERSE.section(1))})
+    """The sections 0400 refers to; 0910's follow the appearance check of the input (片持ち梁の照査.外観の照査)."""
+    return References(column=COLUMN_SECTIONS, beam=CANTILEVER_SECTIONS[appearance], footing=FOOTING_SECTIONS)
 
 
 class _Manuscript:
