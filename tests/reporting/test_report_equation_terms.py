@@ -21,13 +21,14 @@ def _walk(node: Any):
 
 def test_term_columns_align_numbers_right_and_operators_center_across_equations():
     from gridlayoutpdf import Equation
+    from gridlayoutpdf.equations import EXCEL_CELL_PADDING_PT
     from webpier.reporting import document, equations, fonts as font_module, styles
 
     fonts = font_module.load_fonts()
     page = document.report(equations.equation_group(
         Equation("W", equations.terms("5.1", "×", "0.5", "×", "68600")),
         Equation("H", equations.terms("12.25", "×", "3", "×", "(", "1", "+", "0.222", ")")),
-    ), fonts=fonts).layout()[0]
+    )).layout()[0]
     lines: dict[float, list[Any]] = {}
     for command in _texts(page.commands):
         lines.setdefault(round(command.y, 2), []).append(command)
@@ -52,11 +53,14 @@ def test_term_columns_align_numbers_right_and_operators_center_across_equations(
     for upper, lower in zip(w_operators, h_operators):
         assert upper.text == lower.text == "×"
         assert center(upper) == pytest.approx(center(lower), abs=.01)
+    # Each term takes whole grid columns: a number ends Excel's cell padding before a column boundary.
+    grid = styles.report_profile().grid
+    for number in (*w_numbers, *h_numbers[:2]):
+        columns = (right(number) + EXCEL_CELL_PADDING_PT - grid.origin_x) / grid.pitch_x
+        assert columns == pytest.approx(round(columns), abs=1e-6)
     for line in (first[2:7], second[2:6]):
         for left, following in zip(line, line[1:]):
-            assert following.x - right(left) >= equations.TERM_GAP - .01
-    # 0500 p1 keeps 9.2-9.4 pt, 0600 p16's derivation columns 5.8-8.7 pt: one gap for every report.
-    assert equations.TERM_GAP == pytest.approx(62 * .12)
+            assert following.x - right(left) >= 2 * EXCEL_CELL_PADDING_PT - .01
 
 
 def test_equations_of_another_term_shape_do_not_share_term_columns():
@@ -86,11 +90,11 @@ def test_equations_of_another_term_shape_do_not_share_term_columns():
 
 
 def test_parenthesized_terms_are_one_unbroken_term():
-    from gridlayoutpdf import Equation, LayoutContext, Literal, Operator, Row, TermStop, measure_block
+    from gridlayoutpdf import Equation, LayoutContext, LayoutOverflowError, Literal, Operator, Row, TermStop, measure_block
     from webpier.reporting import equations, fonts as font_module, styles
 
     row = equations.terms("(", "1", "+", "(", "0.2", "−", "c", ")", ")", "×", Operator("/"), "2")
-    assert row.gap == equations.TERM_SPACE == 4.95
+    assert row.gap == equations.TERM_SPACE == 5.0
     assert [type(item) for item in row.items[::2]] == [TermStop] * 4
     assert [item.align for item in row.items[::2]] == ["right", "center", "center", "right"]
     group = row.items[1]
@@ -98,17 +102,18 @@ def test_parenthesized_terms_are_one_unbroken_term():
     assert group == Row("(", "1", " ", Operator("+"), " ", inner, ")", gap=0)
     assert row.items[3] == Operator("×") and row.items[5] == Operator("/") and row.items[7] == Literal("2")
 
-    # Too wide for one line: the RHS falls back to wrapping only between terms.
+    # A parenthesized term stays one term in one grid term column.
+    context = LayoutContext(font_module.load_fonts(), styles.report_profile(), styles.REPORT_STYLE)
+    measured = measure_block(equations.equation_group(Equation("X", equations.terms("(", "1.000", "+", "0.222", ")",
+                                                                                     "×", "2"))), context, 400)
+    (line,) = ["".join(command.text for command in sorted(_texts(part.commands), key=lambda c: c.x))
+               for part in measured.parts]
+    assert "(1.000+0.222)" in line
+    # Too wide for its grid columns: an overflow, never a fallback to packed terms broken inside a parenthesis.
     long = equations.terms(*(part for index in range(8)
                              for part in ((("×",) if index else ()) + ("(", "1.000", "+", "0.222", ")"))))
-    context = LayoutContext(font_module.load_fonts(), styles.report_profile(), styles.REPORT_STYLE)
-    measured = measure_block(equations.equation_group(Equation("X", long)), context, 300)
-    lines = ["".join(command.text for command in sorted(_texts(part.commands), key=lambda c: c.x))
-             for part in measured.parts]
-    assert len(lines) > 1
-    for line in lines:
-        assert line.count("(") == line.count(")")
-        assert "(1.000+0.222)" in line
+    with pytest.raises(LayoutOverflowError, match="term_fallback"):
+        measure_block(equations.equation_group(Equation("X", long)), context, 300)
 
     for unbalanced in (("(", "1"), ("1", ")"), ("(", "(", "1", ")")):
         with pytest.raises(ValueError, match="unmatched"):
@@ -200,7 +205,7 @@ def test_consecutive_0610_actions_share_term_columns_and_keep_their_words(tmp_pa
             start = words.index("高水位")
             assert words[start:start + 3] == ["高水位", "平水位", "低水位"]
             group = lines[start:start + 3]
-            assert all(line[0][0] == pytest.approx(117.0, abs=.01) for line in group)
+            assert all(line[0][0] == pytest.approx(50.88 + 4 * 16.08, abs=.01) for line in group)
             _assert_columns_line_up(group)
             break
     else:
@@ -212,26 +217,36 @@ def test_equation_group_breaks_pages_only_between_equations_not_kept():
     from webpier.reporting import equations, fonts as font_module, styles
 
     context = LayoutContext(font_module.load_fonts(), styles.report_profile(), styles.REPORT_STYLE)
-    items = [Equation("X", equations.terms("1.0", "×", "2.0"), label="語" if index == 1 else "",
+    # Three shapes: three runs, each a part of its own; a page breaks only after a run not kept with the next.
+    items = [Equation("X", equations.terms(*("1.0", "×") * index, "2.0"), label="語" if index == 1 else "",
                       block_id=f"e{index}") for index in range(3)]
     measured = measure_block(equations.equation_group(*items, keep=(True, False, False), block_id="g"),
                              context, 400)
-    assert [part.metadata["equation_block_id"] for part in measured.parts] == ["e0", "e1", "e2"]
+    assert len(measured.parts) == 3
     assert measured.break_after == (2,) and not measured.prefer_keep
     kept = measure_block(equations.equation_group(*items, keep=(True, True, False)), context, 400)
     assert kept.break_after == () and kept.prefer_keep
+    # One shape: one run, whose lines share their term columns and never part.
+    same = [Equation("X", equations.terms("1.0", "×", "2.0")) for _ in range(3)]
+    shared = measure_block(equations.equation_group(*same, keep=(False, False, False)), context, 400)
+    assert len(shared.parts) == 1 and shared.break_after == ()
     single = measure_block(equations.equation_group(items[0], keep=(False,)), context, 400)
-    assert single.break_after is None and single.prefer_keep
+    assert single.break_after == () and single.prefer_keep
     with pytest.raises(ValueError, match="one flag per equation"):
         equations.equation_group(*items, keep=(True,))
 
 
 def test_a_frame_equation_word_never_covers_its_symbol():
-    from gridlayoutpdf import Equation, LayoutOverflowError
-    from webpier.reporting import document, equations
+    from gridlayoutpdf import Text
+    from webpier.reporting import document, fonts as font_module, styles
     from webpier.reporting.stages import frame_report
 
-    block = frame_report._LabelledBlock(("断面二次モーメントの見出し",), equations.equation_group(
-        Equation("I", "1", block_id="frame/inertia"), left=117, first_equal=frame_report.FIRST_EQUAL), 117)
-    with pytest.raises(LayoutOverflowError, match="frame/inertia"):
-        document.report(block).layout()
+    fonts = font_module.load_fonts()
+    m = frame_report.Manuscript("frame/")
+    m.equation("inertia", "断面二次モーメント", "I", "1")
+    m.equation("area", "断面積", "A", "2")
+    page = document.report(*frame_report.blocks(m.units)).layout()[0]
+    texts = {command.text: command for command in page.commands if isinstance(command, Text)}
+    for word, symbol in (("断面二次モーメント", "I"), ("断面積", "A")):
+        assert texts[word].x == pytest.approx(styles.column_x(frame_report.LABEL_LEFT), abs=.01)
+        assert texts[word].x + fonts.measure(word, styles.BODY).width < texts[symbol].x

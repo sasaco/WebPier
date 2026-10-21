@@ -18,6 +18,7 @@ from reportlab.pdfbase import pdfmetrics
 import webpier
 from webpier.pipeline import runtime
 from webpier.reporting.fonts import font_files, load_fonts
+from webpier.reporting.styles import BODY_FONT
 
 PACKAGE = Path(webpier.__file__).resolve().parent
 
@@ -122,15 +123,16 @@ def test_registered_font_cache_cannot_hide_changed_font_bytes(tmp_path: Path, mo
     directory.mkdir(parents=True)
     for original in font_files().values():
         shutil.copyfile(original, directory / original.name)
-    registry = load_fonts(directory)
-    registered = registry.resolve("body").sha256
     monkeypatch.setenv("WINDIR", str(directory.parent))
+    registry = load_fonts()
+    registered = registry.resolve(BODY_FONT).sha256
+    assert registry.resolve(BODY_FONT).path.parent == directory
     before = runtime.dependency_hashes()
     body = (directory / "msmincho.ttc").resolve()
     with body.open("ab") as stream:
         stream.write(b"\0")
     after = runtime.dependency_hashes()
-    assert registry.resolve("body").sha256 == registered
+    assert registry.resolve(BODY_FONT).sha256 == registered
     assert before != after and after[body] == sha256(body)
 
 

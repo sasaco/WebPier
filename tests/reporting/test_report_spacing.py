@@ -1,10 +1,10 @@
-"""Blank lines in every report follow the reference (.claude/docs/Example橋脚/output, measured):
+"""Blank lines in every report follow the reference (.claude/docs/Example橋脚/output) on the common grid:
 
-body rows advance 14.28 pt and the first row's baseline is 97.80 pt on every page (no blank line is
-left at a page top); a heading has exactly one blank line before and after it (baseline difference
-28.56 pt), also between two headings (blank lines never stack, so no 42.84 pt gap).
+body rows advance one grid row (15.48 pt) and the first row's baseline is that of the grid's first row on every
+page (no blank line is left at a page top); a heading has exactly one blank line before and after it (two grid
+rows between the baselines), also between two headings (blank lines never stack, so never three grid rows).
 
-A body baseline is the baseline of 9.9 pt text that lies on the 14.28 pt rows from 97.80 pt; the
+A body baseline is the baseline of 10 pt text that lies on the grid rows from the first one; the
 off-row baselines of fraction numerators, table cells and figure labels are not body baselines.
 Table rows are not on the body rows in the reference either (an open table's rows can fall on them by
 chance), so a table's extent is taken from the same Document's layout: a placement whose parts carry
@@ -30,6 +30,7 @@ from foundation_report_cases import case as foundation_case
 from foundation_check_cases import chapter as foundation_chapter, result as foundation_result
 from frame_report_cases import chain, transverse_chain
 from reaction_report_cases import case as reaction_case
+from webpier.reporting.document import paragraph, report
 from webpier.reporting.fonts import load_fonts
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
 from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
@@ -41,9 +42,12 @@ from webpier.reporting.stages.reaction import build_reaction
 from webpier.reporting.stages.seismic_longitudinal import build_seismic_longitudinal
 from webpier.reporting.stages.seismic_transverse import build_seismic_transverse
 from webpier.reporting.stages.transverse import build_transverse
+from webpier.reporting.styles import HEADING_FONT
 
-FIRST = 97.80
-ROW = 14.28
+FIRST = next(command.y for command in report(paragraph("本文", left=0)).layout()[0].commands
+             if getattr(command, "text", "") == "本文")
+ROW = 15.48
+SIZE = 10
 BLANK = 2 * ROW  # a line, one blank line, a line
 TWO_BLANKS = 3 * ROW
 # §5. / 5.1 / 6.4.1 / (1) / 1) / (a) followed by the heading text.
@@ -78,7 +82,7 @@ def _on_row(y: float, origin: float = FIRST) -> bool:
     return abs(rows - round(rows)) * ROW < 0.02
 
 
-HEADING_PDF_NAME = load_fonts().resolve("heading").pdf_name
+HEADING_PDF_NAME = load_fonts().resolve(HEADING_FONT).pdf_name
 
 
 def _heading_font(font: str) -> bool:
@@ -94,7 +98,7 @@ def _tables(page: Any) -> list[tuple[float, float]]:
 
 
 def _pages(path: Path, laid_out: Any) -> list[dict]:
-    """Per page: 9.9 pt baselines (all), body baselines, numbered heading baselines, float and table extents.
+    """Per page: 10 pt baselines (all), body baselines, numbered heading baselines, float and table extents.
 
     *laid_out* are the same Document's ScenePages, one per PDF page."""
     found = []
@@ -105,7 +109,7 @@ def _pages(path: Path, laid_out: Any) -> list[dict]:
             for block in page.get_text("dict")["blocks"]:
                 for line in block.get("lines", []):
                     for span in line["spans"]:
-                        if abs(span["size"] - 9.9) < .05 and span["text"].strip():
+                        if abs(span["size"] - SIZE) < .05 and span["text"].strip():
                             spans.setdefault(round(span["origin"][1], 2), []).append(span)
             tables = _tables(scene)
             body = sorted(y for y in spans if _on_row(y) and not any(top < y <= bottom for top, bottom in tables))
@@ -133,12 +137,13 @@ def pages(request, tmp_path_factory) -> tuple[str, list[dict]]:
 
 def test_every_page_starts_on_its_first_row(pages):
     """No blank line is left at a page top. A page that begins with a table or figure (a drawing above its
-    first 9.9 pt baseline) is excluded: its first text is a cell or a label, not a body row."""
+    first 10 pt baseline, or a laid-out table around it: an open table has no rule above) is excluded: its first
+    text is a cell or a label, not a body row."""
     _, found = pages
     checked = 0
     for number, page in enumerate(found, 1):
         first = page["all"][0]
-        if any(top < first for top in page["rules"]):
+        if any(top < first for top in page["rules"]) or any(top < first <= bottom for top, bottom in page["tables"]):
             continue
         checked += 1
         assert first == pytest.approx(FIRST, abs=.01), f"page {number}"
@@ -146,8 +151,9 @@ def test_every_page_starts_on_its_first_row(pages):
 
 
 def test_a_heading_has_one_blank_line_before_and_after_it(pages):
-    """The body baselines next to a heading are 28.56 pt away. Excluded: a heading first or last on its page
-    (no neighbour there), and a neighbour across a table, figure or load diagram (a drawing between them)."""
+    """The body baselines next to a heading are two grid rows away. Excluded: a heading first or last on its page
+    (no neighbour there), and a neighbour across a table, figure or load diagram (a drawing or a laid-out table
+    between them)."""
     stage, found = pages
     checked = 0
     for number, page in enumerate(found, 1):
@@ -157,7 +163,7 @@ def test_a_heading_has_one_blank_line_before_and_after_it(pages):
             neighbours = ([rows[index - 1]] if index else []) + ([rows[index + 1]] if index + 1 < len(rows) else [])
             for neighbour in neighbours:
                 low, high = sorted((heading, neighbour))
-                if any(top < high and bottom > low for top, bottom in page["floats"]):
+                if any(top < high and bottom > low for top, bottom in (*page["floats"], *page["tables"])):
                     continue
                 checked += 1
                 assert high - low == pytest.approx(BLANK, abs=.02), f"{stage} page {number}: {low} → {high}"
@@ -165,7 +171,7 @@ def test_a_heading_has_one_blank_line_before_and_after_it(pages):
 
 
 def test_blank_lines_never_stack(pages):
-    """Two body baselines are never 42.84 pt apart (a blank line after one heading and before the next).
+    """Two body baselines are never three grid rows apart (a blank line after one heading and before the next).
 
     Excluded: baselines inside a table (its laid-out extent, see the module docstring), and two body
     baselines with a table between them (the table's rows, not blank lines, separate them)."""

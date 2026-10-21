@@ -27,7 +27,7 @@ from .stages import ALL, FRAME_ANALYSIS, NONLINEAR_ANALYSIS, STAGES, Registry, f
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 EXIT_ERROR = 2
 EXIT_RECOVERY = 3
-_REPORT_LABELS = {"pdf": "計算書", "json": "計算結果"}
+_REPORT_LABELS = {"pdf": "計算書", "xlsx": "方眼Excel", "json": "計算結果"}
 
 
 def parser(registry: Registry) -> argparse.ArgumentParser:
@@ -36,6 +36,7 @@ def parser(registry: Registry) -> argparse.ArgumentParser:
     result.add_argument("--input", type=Path, default=PROJECT_DIR / "pre" / "input.json", help="入力JSON")
     result.add_argument("--output-dir", type=Path, default=PROJECT_DIR / "output", help="計算書・計算結果の出力先")
     result.add_argument("--post-dir", type=Path, help="解析入力と付帯JSONの出力先（既定: 出力先と並ぶ post）")
+    result.add_argument("--export-dir", type=Path, help="方眼Excel の出力先（既定: 出力先と並ぶ export）")
     result.add_argument("--stage", choices=registry.choices, default=ALL, help=f"計算段階（既定: {ALL}）")
     result.add_argument(flag(FRAME_ANALYSIS), action="store_true",
                         help=f"--stage {ALL} に選択式の段階（{'・'.join(registry.opt_in(FRAME_ANALYSIS))}）を加える。"
@@ -71,7 +72,7 @@ def main(argv: list[str] | None = None, *, registry: Registry = STAGES) -> int:
     options = GenerationOptions(
         arguments.input, arguments.output_dir, post_dir(arguments.output_dir, arguments.post_dir),
         stage=arguments.stage, overwrite=arguments.overwrite, frame_analysis=arguments.frame_analysis,
-        nonlinear_analysis=arguments.nonlinear_analysis, addin=arguments.addin)
+        nonlinear_analysis=arguments.nonlinear_analysis, addin=arguments.addin, export_dir=arguments.export_dir)
     try:
         generation = generate(options, registry=registry)
     except RecoveryError as exc:

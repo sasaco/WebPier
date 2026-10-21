@@ -21,8 +21,9 @@
    once, so the file
    analyzed is the bytes staged, even when the dependency's own files are not published. The runners are looked
    up before anything is read, and a missing or failing runner stops the generation.
-4. Reports, result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are written to
-   staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
+4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
+   sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
+   written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
    replaced whole). A final validator checks the published bytes, the files that were displaced, the input and
    the implementation identity, and any mismatch restores every old file.
 
@@ -41,7 +42,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from gridlayoutpdf import LayoutError
+from gridlayoutpdf import LayoutError, XlsxError
 
 from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
@@ -51,6 +52,7 @@ from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
 from ..inputs import PierInput, parse_input
+from ..reporting.workbook import write_workbook
 from . import aggrese, capacita, fempython, jrsnap
 from .addin import load_addin
 from .fempython import ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram
@@ -77,6 +79,14 @@ class GenerationOptions:
     frame_analysis: bool = False  # add the opt-in stages to all: FEMPython analyzes the frames (decision 46)
     nonlinear_analysis: bool = False  # add the opt-in stages to all: JRSNAP analyzes the NDU (decision 47)
     addin: Path | None = None  # the folder of a load model's add-in (decision 70); none: the train's
+    export_dir: Path | None = None  # the grid Excel workbooks; none: export beside the output folder
+
+    @property
+    def workbook_dir(self) -> Path:
+        """Where the grid Excel workbooks go: ``export_dir``, or the folder export beside ``output_dir``."""
+        if self.export_dir is not None:
+            return Path(self.export_dir)
+        return Path(self.output_dir).resolve().parent / "export"
 
     @property
     def switches(self) -> frozenset[str]:
@@ -86,9 +96,9 @@ class GenerationOptions:
 
 @dataclass(frozen=True)
 class Artifact:
-    role: str  # "0610.pdf", "0610.json", "0610.frameweb", "0610.frameweb.provenance", "0611.pik", "0711.jrsnap"
+    role: str  # "0610.pdf", "0610.xlsx", "0610.json", "0610.frameweb", "0610.frameweb.provenance", "0711.jrsnap"
     path: Path  # the destination
-    directory: str  # "output" or "post", as recorded in the sidecars
+    directory: str  # "output", "export" or "post", as recorded in the sidecars
     folder: bool = False  # a folder replaced whole (the JRSNAP analysis, decision 47); its SHA256 is content_sha256
 
 
@@ -134,6 +144,8 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
             for suffix in ("pdf", "json"):
                 reports.append(Artifact(f"{stage_id}.{suffix}", Path(options.output_dir) / f"{stage.stem}.{suffix}",
                                         "output"))
+        if stage.grid_documents is not None:
+            reports.append(Artifact(f"{stage_id}.xlsx", options.workbook_dir / f"{stage.stem}.xlsx", "export"))
         files = [(item.kind, item.file_name, item, False, None, None, None) for item in stage.exports]
         if stage.frame_analysis is not None and _analysis_key(stage.frame_analysis) not in analyzed:
             analyzed.add(_analysis_key(stage.frame_analysis))
@@ -712,10 +724,14 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             # The pages of other programs, by the name the report takes them: none, or those of one runner.
             pages = {name: content for drawn_by in (drawn, figures, inspected, checked) if stage_id in drawn_by
                      for name, content in drawn_by[stage_id].pages.items()}
+            spec = registry.get(stage_id)
             try:
-                registry.get(stage_id).render(_own(registry, results, stage_id), pier,
-                                              staging.path_for(by_role[f"{stage_id}.pdf"].path), pages)
-            except LayoutError as exc:
+                spec.render(_own(registry, results, stage_id), pier, staging.path_for(by_role[f"{stage_id}.pdf"].path),
+                            pages)
+                if spec.grid_documents is not None:
+                    write_workbook(spec.grid_documents(_own(registry, results, stage_id), pier, pages),
+                                   staging.path_for(by_role[f"{stage_id}.xlsx"].path), spec.stem)
+            except (LayoutError, XlsxError) as exc:
                 raise GenerationError(f"{stage_id}の帳票を作成できません: {exc}") from exc
             # A stage whose report is Aggre-SE's has no result of its own (decision 56).
             document = result_document(stage_id, results.get(stage_id), input_file=common["input"]["file"],

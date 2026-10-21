@@ -27,13 +27,31 @@ def test_the_planned_files_of_a_fake_registry():
 
 
 def test_the_real_registry_plans_every_report_and_every_export():
-    names = [artifact.path.name for artifact in planned(options())]
-    assert names[:12:2] == [f"{stage.stem}.pdf" for stage in STAGES.stages if stage.has_report and not stage.opt_in]
-    assert names[12:] == ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu",
+    found = planned(options())
+    names = [artifact.path.name for artifact in found]
+    reports = [stage for stage in STAGES.stages if stage.has_report and not stage.opt_in]
+    assert names[:18] == [f"{stage.stem}.{suffix}" for stage in reports for suffix in ("pdf", "json", "xlsx")]
+    assert names[18:] == ["線路方向.json", "線路直角方向.json", "線路方向.ndu", "線路直角方向.ndu",
                           "線路方向.json.provenance.json", "線路直角方向.json.provenance.json",
                           "線路方向.ndu.provenance.json", "線路直角方向.ndu.provenance.json"]
-    assert [artifact.path.name for artifact in planned(options("0720"))][2:] == [
+    assert [artifact.path.name for artifact in planned(options("0720"))][3:] == [
         "線路直角方向.ndu", "線路直角方向.ndu.provenance.json"]
+
+
+def test_the_grid_excel_workbooks_go_to_export_beside_the_output_or_where_given():
+    workbooks = [artifact for artifact in planned(options()) if artifact.role.endswith(".xlsx")]
+    assert {(artifact.directory, artifact.path.parent) for artifact in workbooks} == {
+        ("export", Path("out").resolve().parent / "export")}
+    given = GenerationOptions(Path("pre/input.json"), Path("out"), Path("post"), stage="0500",
+                              export_dir=Path("book"))
+    assert [(artifact.role, artifact.path) for artifact in planned(given)] == [
+        ("0500.pdf", Path("out") / "0500_直接基礎.pdf"), ("0500.json", Path("out") / "0500_直接基礎.json"),
+        ("0500.xlsx", Path("book") / "0500_直接基礎.xlsx")]
+
+
+def test_a_report_of_another_program_plans_no_workbook():
+    assert [artifact.role for artifact in planned(options("0711")) if artifact.role.startswith("0711.")][:3] == [
+        "0711.pdf", "0711.json", "0711.jrsnap"]
 
 
 def test_an_invalid_selection_is_an_input_error():

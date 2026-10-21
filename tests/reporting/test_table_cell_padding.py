@@ -1,98 +1,72 @@
-"""The table cell clearance of the shared table style, measured in the reference PDFs.
+"""The table cell clearance on the common grid: Excel's cell padding plus half a medium rule.
 
-The appearance fixture records rule widths and row heights but no cell clearance, so it is
-measured here from the reference sample itself (never from our output): the gap between a
-right-aligned number's advance box and the ink of the thin rule after it. Our 0600 tables
-are then measured the same way and must show the same gap.
+The reference's clearances (6.93 pt in 0600, 4.05 pt in the combination tables) are not kept: a cell of the grid
+Excel holds its text Excel's padding (gridlayoutpdf.equations.EXCEL_CELL_PADDING_PT) from each edge, and a number
+must not touch the medium frame either. The 0600 and 0500 tables are measured from our own PDFs: the gap between a
+right-aligned number's advance box and the centre of the vertical rule after it.
 """
 
 from __future__ import annotations
 
-import importlib.util
-import re
-import sys
 from collections import Counter
 from pathlib import Path
+import re
 
 import pymupdf
 import pytest
 
-ROOT = Path(__file__).parents[2]
-REFERENCE = ROOT / ".claude" / "docs" / "Example橋脚" / "output"
-_spec = importlib.util.spec_from_file_location("reporting_appearance_measure_padding",
-                                               ROOT / "scripts" / "reporting_appearance.py")
-assert _spec is not None and _spec.loader is not None
-measure = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = measure
-_spec.loader.exec_module(measure)
-
-NUMBER = re.compile(r"-?[\d ]*\d(?:\.\d+)?")
-THIN = 0.2  # a 0.12 pt rule (the thick rules are 0.96 pt)
+NUMBER = re.compile(r"-?[\d,]*\d(?:\.\d+)?")
 
 
 def number_clearances(page: pymupdf.Page) -> Counter[float]:
-    """Gaps (pt, 2 decimals) from right-aligned 9.9 pt numbers to the next thin vertical rule's ink."""
-    rules = [rule for rule in measure.native_rules(page) if rule.axis == "v" and rule.width < THIN]
+    """Gaps (pt, 2 decimals) from right-aligned 10 pt numbers to the centre of the next vertical rule beside them."""
+    rules = [((drawing["rect"].x0 + drawing["rect"].x1) / 2, drawing["rect"].y0, drawing["rect"].y1)
+             for drawing in page.get_drawings() if drawing["rect"].height > 10 and drawing["rect"].width < 2]
     found: Counter[float] = Counter()
     for block in page.get_text("rawdict")["blocks"]:
         for line in block.get("lines", []):
             for span in line["spans"]:
                 chars = [char for char in span["chars"] if not char["c"].isspace()]
                 text = "".join(char["c"] for char in chars)
-                if span["size"] < 9 or not chars or not NUMBER.fullmatch(text):
+                if abs(span["size"] - 10) > .05 or not chars or not NUMBER.fullmatch(text):
                     continue
-                right, baseline = chars[-1]["bbox"][2], chars[-1]["origin"][1]
-                gaps = [rule.coordinate - rule.width / 2 - right for rule in rules
-                        if rule.start <= baseline - 3 <= rule.end and 0 <= rule.coordinate - right < 15]
+                right = chars[-1]["origin"][0] + (chars[-1]["bbox"][2] - chars[-1]["bbox"][0])
+                baseline = chars[-1]["origin"][1]
+                gaps = [x - right for x, top, bottom in rules if 0 <= x - right < 8 and top <= baseline - 3 <= bottom]
                 if gaps:
                     found[round(min(gaps), 2)] += 1
     return found
 
 
-def reference_clearance(name: str, *pages: int) -> float:
-    with pymupdf.open(REFERENCE / name) as pdf:
-        counts = sum((number_clearances(pdf[page - 1]) for page in pages), Counter())
-    return counts.most_common(1)[0][0]
+def test_the_cell_padding_is_excel_s_with_room_for_a_medium_rule():
+    from gridlayoutpdf import BorderStyle
+    from gridlayoutpdf.equations import EXCEL_CELL_PADDING_PT
+    from webpier.reporting.tables import CELL_PADDING, INNER, OUTER
+
+    assert (OUTER, INNER) == (BorderStyle.MEDIUM, BorderStyle.HAIR)
+    assert CELL_PADDING.left == CELL_PADDING.right == 3.0
+    assert CELL_PADDING.right >= EXCEL_CELL_PADDING_PT + BorderStyle.MEDIUM.thickness / 2
 
 
-def test_the_reaction_tables_use_the_clearance_of_the_reference_0600_tables():
-    from webpier.reporting.tables import REACTION_CELL_PADDING
-
-    clearance = reference_clearance("0600_上部工反力.pdf", 12, 32, 37)
-    assert clearance == pytest.approx(6.93, abs=.005)
-    # The padding is measured from the rule centre: half the thin rule further.
-    assert REACTION_CELL_PADDING.right == pytest.approx(clearance + .06, abs=.01)
-    assert REACTION_CELL_PADDING.left == REACTION_CELL_PADDING.right
-
-
-def test_the_soil_table_of_0500_uses_the_same_clearance_as_0600(tmp_path: Path):
-    from foundation_report_cases import case as foundation_case
-    from webpier.reporting.stages.foundation import render_foundation
-
-    reference = reference_clearance("0500_直接基礎.pdf", 1)
-    assert reference == reference_clearance("0600_上部工反力.pdf", 12, 32, 37)
-    path = render_foundation(*foundation_case("current"), tmp_path / "0500.pdf")
-    with pymupdf.open(path) as pdf:
-        assert number_clearances(pdf[0]).most_common(1)[0][0] == pytest.approx(reference, abs=.1)
-
-
-def test_the_default_cell_uses_the_clearance_of_the_reference_combination_tables():
+@pytest.mark.parametrize("stage", ["0500", "0600"])
+def test_our_tables_keep_the_cell_padding_before_a_rule(stage: str, tmp_path: Path):
+    from gridlayoutpdf import BorderStyle
     from webpier.reporting.tables import CELL_PADDING
 
-    for name, page in (("0610_線路方向荷重.pdf", 10), ("0620_直角方向荷重.pdf", 17)):
-        clearance = reference_clearance(name, page)
-        assert clearance == pytest.approx(4.05, abs=.005), name
-        assert CELL_PADDING.right == pytest.approx(clearance + .06, abs=.01)
-    assert CELL_PADDING.left == CELL_PADDING.right
+    if stage == "0500":
+        from foundation_report_cases import case as foundation_case
+        from webpier.reporting.stages.foundation import render_foundation
 
+        path = render_foundation(*foundation_case("current"), tmp_path / "0500.pdf")
+    else:
+        from reaction_report_cases import case
+        from webpier.reporting.stages.reaction import render_reaction
 
-def test_our_0600_tables_show_the_reference_clearance(tmp_path: Path):
-    sys.path.insert(0, str(Path(__file__).parent))
-    from reaction_report_cases import case
-    from webpier.reporting.stages.reaction import render_reaction
-
-    path = render_reaction(*case("current"), tmp_path / "0600.pdf")
+        path = render_reaction(*case("current"), tmp_path / "0600.pdf")
     with pymupdf.open(path) as pdf:
         counts = sum((number_clearances(page) for page in pdf), Counter())
-    reference = reference_clearance("0600_上部工反力.pdf", 12, 32, 37)
-    assert counts.most_common(1)[0][0] == pytest.approx(reference, abs=.1)
+    assert counts, stage
+    # 3 pt from a hair rule's centre (on the column boundary); the medium frame lies inside the table, its centre
+    # half its thickness in from the boundary, so a number before it is 2.5 pt from that centre.
+    assert counts.most_common(1)[0][0] == pytest.approx(CELL_PADDING.right, abs=.02)
+    assert set(counts) <= {CELL_PADDING.right, CELL_PADDING.right - BorderStyle.MEDIUM.thickness / 2}

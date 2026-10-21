@@ -291,7 +291,8 @@ def test_the_contract_is_the_registry(capsys):
     assert selections[("0500", False, False)] == {
         "stage": "0500", "frameAnalysis": False, "nonlinearAnalysis": False, "stages": ["0500"], "runners": [],
         "files": [{"role": "0500.pdf", "path": "output/0500_直接基礎.pdf", "folder": False},
-                  {"role": "0500.json", "path": "output/0500_直接基礎.json", "folder": False}]}
+                  {"role": "0500.json", "path": "output/0500_直接基礎.json", "folder": False},
+                  {"role": "0500.xlsx", "path": "export/0500_直接基礎.xlsx", "folder": False}]}
     assert selections[("0800", False, False)]["stages"] == ["0612", "0622", "0711", "0721", "0800"]
     assert selections[("0800", False, False)]["runners"] == ["fempython", "jrsnap", "aggrese"]
     folder = [item for item in selections[("all", True, True)]["files"] if item["folder"]]

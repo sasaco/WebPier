@@ -57,10 +57,16 @@ def test_all_publishes_a_report_and_result_for_every_stage_and_every_export(all_
         document = load_json(output[f"{stage.stem}.json"])
         assert (document["schema_version"], document["stage"]) == (1, stage.id)
         assert document["input"] == {"file": "input.json", "sha256": sha256(source.read_bytes())}
+    # the grid Excel workbook of every report WebPier lays out, in export/ beside output/
+    export = tree(root / "export")
+    assert sorted(export) == sorted(f"{stage.stem}.xlsx" for stage in reports)
+    assert all(content.startswith(b"PK") for content in export.values())
     sidecar = load_json(post["線路方向.json.provenance.json"])
     assert sidecar["sha256"] == sha256(post["線路方向.json"])
     assert {item["file"]: item["sha256"] for item in sidecar["artifacts"]} == {
-        name: sha256(content) for name, content in {**output, **post}.items() if not name.endswith(".provenance.json")}
+        name: sha256(content) for name, content in {**output, **post, **export}.items()
+        if not name.endswith(".provenance.json")}
+    assert {item["directory"] for item in sidecar["artifacts"] if item["file"].endswith(".xlsx")} == {"export"}
     assert load_json(post["線路方向.json"])  # strict JSON for FrameWeb
     assert generation.published
 

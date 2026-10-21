@@ -1,32 +1,28 @@
-"""Structured formula helpers with paper-coordinate equal/result anchors."""
+"""Structured formula helpers with equal/result anchors in grid columns and grid term columns (GridLayoutPdf FR-025)."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from gridlayoutpdf import (
-    Block, Equation, EquationAnchors, EquationGroup, LayoutContext, Leading, MathNode,
-    MeasuredBlock, Operator, Row, Script, TermStop, measure_block,
+    Block, Equation, EquationAnchors, EquationGroup, LayoutContext, LayoutOverflowError, Leading, MathNode,
+    MeasuredBlock, Operator, Row, Script, Spacer, Stack, TermStop, measure_block,
 )
 
 from .document import indent_to
-from .styles import BODY, BODY_LEADING, finite, grid_units
+from .styles import BODY, count
 
-# Between a number and an operator the reference keeps 9.2-9.4 pt on 0500 p1 ("5.1 × 0.5 × 68600")
-# and 5.8-8.7 pt in the narrow derivation columns of 0600 p16. One gap serves every report:
-# 7.44 pt keeps "T = 1.0 × LR = 1.0 × 200.00" on its result's line between 0600's first equal
-# (276.72) and result equal (436.44).
-TERM_GAP = 7.44
-# The gap of a terms() Row: one half-width space of the 9.9 pt body. Laid out in term columns each
-# column holds one term, so it changes nothing there; a row too long for its columns falls back to
-# ordinary wrapping, and then it separates the terms and operators as in "(1 + 0.222)".
-TERM_SPACE = 4.95
+# The gap of a terms() Row: one half-width space of the 10 pt body. Laid out in grid term columns each
+# term takes whole grid columns of its own, so it changes nothing there; a row too long for its columns
+# falls back to ordinary wrapping, and then it separates the terms and operators as in "(1 + 0.222)".
+TERM_SPACE = 5.0
 _OPERATORS = frozenset(("+", "−", "-", "×", "/", "="))
 
 
 def script(base: str | MathNode, *, superscript: str | MathNode | None = None,
            subscript: str | MathNode | None = None) -> Script:
-    return Script(base, superscript=superscript, subscript=subscript, scale=6.5 / 9.9,
+    return Script(base, superscript=superscript, subscript=subscript, scale=6.5 / BODY.size,
                   superscript_rise=4.92 if superscript is not None else None,
                   subscript_drop=1.92 if subscript is not None else None)
 
@@ -43,7 +39,7 @@ def terms(*parts: str | MathNode) -> Row:
     """An equation RHS in term columns: numbers right-aligned, operators centered.
 
     "(" ... ")" (nested allowed) form one term printed as "(1 + 0.222)"; it is
-    never broken inside. Column spacing belongs to TermStop and TERM_GAP; the
+    never broken inside. Each term takes whole grid columns (term_columns="grid"); the
     Row gap (TERM_SPACE) only spaces a row that falls back to ordinary wrapping.
     """
     items: list[MathNode] = []
@@ -89,47 +85,24 @@ def _term_shape(rhs: object) -> tuple[str, ...] | None:
 
 
 @dataclass(frozen=True)
-class _PaperEquations:
+class _GridEquations:
+    """Equations whose anchors are grid columns from the block's left edge (relation centres on column
+    boundaries, as EquationAnchors), one grid row per display line."""
+
     equations: tuple[Equation, ...]
-    left: float
-    first_equal: float
-    second_equal: float | None
-    result_right: float | None
-    unit_start: float | None
+    anchors: EquationAnchors
     block_id: str
-    gap: float = 4.08
-    # Per equation: kept on the page of the next one (no page break after it). None: the block
-    # breaks between any two display lines, as one prefer-keep equation block.
+    gap: float = 4.0
+    label_columns: int | None = None
+    # Per equation: kept on the page of the next one. None: the block moves to a new page whole when it fits one.
     keep: tuple[bool, ...] | None = None
 
+    def _group(self, indices: list[int]) -> EquationGroup:
+        return EquationGroup(*(self.equations[index] for index in indices), anchors=self.anchors, style=BODY,
+                             gap=self.gap, term_columns="grid", label_columns=self.label_columns,
+                             block_id=f"{self.block_id}-run{indices[0]}")
+
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        pitch = context.profile.grid.pitch_x
-
-        def relative(value: float | None) -> int | None:
-            return None if value is None else grid_units(value - self.left, pitch)
-
-        def anchors(equation: Equation) -> EquationAnchors:
-            style = equation.style or BODY
-
-            def relation_center(value: float | None, relation: str) -> int | None:
-                if value is None:
-                    return None
-                # EquationAnchors uses relation centers; the application API
-                # accepts native PDF text origins (left edges) from the reference.
-                center = finite(value - self.left, "relation offset") + context.fonts.measure(relation, style).width / 2
-                # Nearest fine-grid center introduces at most half a pitch.
-                return round(center / pitch)
-
-            first = relation_center(self.first_equal, equation.relation)
-            assert first is not None
-            return EquationAnchors(first, relation_center(self.second_equal, equation.result_relation),
-                                   relative(self.result_right), relative(self.unit_start))
-
-        def group(key: tuple, indices: list[int]) -> MeasuredBlock:
-            return measure_block(EquationGroup(*(self.equations[index] for index in indices),
-                                               anchors=key[0], style=BODY, gap=self.gap, term_gap=TERM_GAP,
-                                               block_id=self.block_id), context, available_width)
-
         def lines(measured: MeasuredBlock, count: int) -> list[int]:
             found = [0] * count
             for part in measured.parts:
@@ -142,66 +115,77 @@ class _PaperEquations:
         # group, and each lhs stays right-aligned against its relation. Rows of
         # another shape (column count or align order) never share columns: a short
         # "200.00 / 2" must not be spread over the columns of a longer row. An
-        # equation joins the group only when no equation of it takes more lines than
-        # alone: a wide term of another row (a symbolic min/max) must not spread a
-        # short row nor push its result to a line of its own.
+        # equation joins the group only when its terms still fit their grid columns and
+        # no equation of it takes more lines than alone: a wide term of another row (a
+        # symbolic min/max) must not spread a short row nor push its result to a line of
+        # its own.
         runs: list[tuple[tuple, list[int], MeasuredBlock]] = []
         alone: dict[int, int] = {}
         for index, equation in enumerate(self.equations):
-            key = (anchors(equation), equation.style or BODY, equation.relation, equation.result_relation,
-                   _term_shape(equation.rhs))
-            measured = group(key, [index])
+            key = (equation.style or BODY, equation.relation, equation.result_relation, _term_shape(equation.rhs))
+            measured = measure_block(self._group([index]), context, available_width)
             alone[index] = len(measured.parts)
             if runs and runs[-1][0] == key:
                 trial = [*runs[-1][1], index]
-                joined = group(key, trial)
-                if all(count <= alone[member] for member, count in zip(trial, lines(joined, len(trial)))):
+                joined = measure_block(self._group(trial), context, available_width)
+                fits = not any(part.metadata.get("term_fallback") for part in joined.parts)
+                if fits and all(count <= alone[member] for member, count in zip(trial, lines(joined, len(trial)))):
                     runs[-1] = (key, trial, joined)
                     continue
             runs.append((key, [index], measured))
+        for _, _, measured in runs:
+            if any(part.metadata.get("term_fallback") for part in measured.parts):
+                raise LayoutOverflowError(f"{self.block_id}: the terms of an equation do not fit its grid columns "
+                                          "(term_fallback); move the anchors or split the equation",
+                                          block_id=self.block_id)
+        # Each run is a child of its own Stack, numbered by the empty children before it: the grid Excel tells the
+        # lines of two groups apart by the path of their commands (the Stack child), not by the group's id. Each run
+        # is a part of its own, so that a page breaks only between two runs, after one whose last equation is not
+        # kept with the next; every part lists the children of all runs, as the one part of a Stack would, since the
+        # grid Excel follows a Stack child through the first part of the placement that has children.
         parts = []
-        for _, indices, measured in runs:
-            for part in measured.parts:
-                index = indices[part.metadata["equation_index"]]
-                parts.append(replace(part, metadata={
-                    **part.metadata, "equation_index": index,
-                    "equation_block_id": self.equations[index].block_id or self.block_id}))
-        if self.keep is None or len(self.equations) == 1:
-            return MeasuredBlock(available_width, context.profile.grid.pitch_y, tuple(parts),
-                                 prefer_keep=True, block_id=self.block_id)
-        # A page breaks only between two equations, never inside one (each was one prefer-keep
-        # block) nor after an equation kept with the next.
-        cuts = tuple(position for position in range(1, len(parts))
-                     if parts[position].metadata["equation_index"] != parts[position - 1].metadata["equation_index"]
-                     and not self.keep[parts[position - 1].metadata["equation_index"]])
+        for number, (_, indices, _) in enumerate(runs):
+            stack = Stack(*(Spacer(0),) * number, Leading(self._group(indices), 1), block_id=self.block_id)
+            parts += measure_block(stack, context, available_width).parts
+        children = tuple(part.metadata["children"][number] for number, part in enumerate(parts))
+        parts = [replace(part, metadata={**part.metadata, "children": children}) for part in parts]
+        if self.keep is None:
+            return MeasuredBlock(available_width, context.profile.grid.pitch_y, tuple(parts), prefer_keep=True,
+                                 block_id=self.block_id)
+        cuts = tuple(position + 1 for position, (_, indices, _) in enumerate(runs[:-1]) if not self.keep[indices[-1]])
         return MeasuredBlock(available_width, context.profile.grid.pitch_y, tuple(parts), break_after=cuts,
                              prefer_keep=not cuts, block_id=self.block_id)
 
 
-def equation_group(*equations: Equation, left: float = 117, first_equal: float = 169.92,
-                   second_equal: float | None = None, result_right: float | None = None,
-                   unit_start: float | None = None, block_id: str = "",
-                   keep: tuple[bool, ...] | None = None) -> Block:
-    """Use paper text-origin x values for relations, and right edges for results.
+def _anchors(left: int, first_equal: int, second_equal: int | None, result_right: int | None,
+             unit_start: int | None) -> EquationAnchors:
+    """EquationAnchors from body columns: the relations' centres on the boundaries before the columns
+    *first_equal* and *second_equal*, the result ending at *result_right* and the unit from *unit_start*."""
+    def relative(value: int | None, name: str) -> int | None:
+        return None if value is None else count(value, name) - count(left, "left")
+    return EquationAnchors(relative(first_equal, "first_equal"), relative(second_equal, "second_equal"),
+                           relative(result_right, "result_right"), relative(unit_start, "unit_start"))
 
-    Consecutive equations of one call share their term columns across lines. With
-    *keep* (one flag per equation: kept with the next) the page breaks only between
-    two equations not kept together; each equation's parts carry its block_id as
-    "equation_block_id".
 
-    Relation centers are rounded to the nearest 0.12 pt grid column at measure
-    time, so their native text origins differ by at most 0.06 pt from the target.
-    Each equation resolves its own relation font/width; no text is resized.
-    Every display line advances exactly the body's 14.28 pt row (a taller line raises
-    LayoutOverflowError); a 6.5 pt subscript's 0.07 pt reach below it stays within the
-    0.12 pt overhang.
+def equation_group(*equations: Equation, left: int = 4, first_equal: int = 7,
+                   second_equal: int | None = None, result_right: int | None = None,
+                   unit_start: int | None = None, label_columns: int | None = None, block_id: str = "",
+                   keep: Sequence[bool] | None = None) -> Block:
+    """Equations from the body column *left*, their anchors body columns (see ``_anchors``).
+
+    Consecutive equations of one call share their grid term columns across lines when
+    they have the same shape. Every display line takes exactly one grid row (a taller
+    line raises LayoutOverflowError), and an equation whose terms do not fit their grid
+    columns raises LayoutOverflowError instead of falling back to packed terms. An
+    equation's ``label`` stands in *label_columns* columns at the block's left edge
+    (None: its measured width). With *keep* (one flag per equation: kept with the next)
+    the page may break between two runs of equations after one not kept with the next.
     """
     if keep is not None and len(keep) != len(equations):
         raise ValueError("equation_group: keep needs one flag per equation")
-    return indent_to(Leading(_PaperEquations(equations, left, first_equal, second_equal,
-                                             result_right, unit_start, block_id,
-                                             keep=None if keep is None else tuple(keep)),
-                             grid_units(BODY_LEADING), minimum=False, overhang=0.12), left)
+    return indent_to(_GridEquations(equations, _anchors(left, first_equal, second_equal, result_right, unit_start),
+                                    block_id, label_columns=label_columns,
+                                    keep=None if keep is None else tuple(keep)), left)
 
 
 @dataclass(frozen=True)
@@ -214,16 +198,16 @@ class Definition:
     unit: str | MathNode | None = None
 
 
-def definitions(*items: Definition, left: float, colon: float, value_equal: float | None = None,
-                value_right: float | None = None, unit_start: float | None = None,
+def definitions(*items: Definition, left: int, colon: int, value_equal: int | None = None,
+                value_right: int | None = None, unit_start: int | None = None,
                 label: str = "ここに、", block_id: str = "") -> Block:
     """A "ここに、" list: symbols right-aligned against one "：" column, then the text.
 
     Reference 0500 p1/p2: "ここに、" opens the first line only; each symbol ends
-    one half-width space before the "：" at *colon* (a text origin, like the
-    relations of equation_group) and the text follows the colon directly. A
-    value takes "(=" at *value_equal*, ends at *value_right* and is closed by
-    its unit and ")" from *unit_start*.
+    one half-width space before the "：" centred on the boundary before the body
+    column *colon* (like the relations of equation_group) and the text follows the
+    colon directly. A value takes "(=" at *value_equal*, ends at *value_right* and is
+    closed by its unit and ")" from *unit_start* (body columns).
 
     The label leads the first symbol directly ("ここに、k" is one run in the
     reference) instead of taking an EquationGroup label column: such a column
@@ -243,6 +227,5 @@ def definitions(*items: Definition, left: float, colon: float, value_equal: floa
         lead = (label,) if index == 0 and label else ()
         equations.append(Equation(Row(*lead, item.symbol, " ", gap=0), item.text, relation="：",
                                   result=item.value, result_relation="(=", unit=unit))
-    return indent_to(Leading(_PaperEquations(tuple(equations), left, colon, value_equal, value_right,
-                                             unit_start, block_id, gap=0),
-                             grid_units(BODY_LEADING), minimum=False, overhang=0.12), left)
+    return indent_to(_GridEquations(tuple(equations), _anchors(left, colon, value_equal, value_right,
+                                                                unit_start), block_id, gap=0), left)

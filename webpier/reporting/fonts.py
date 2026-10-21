@@ -1,41 +1,26 @@
-"""Explicit MS Mincho/Gothic font assets, also used by dependency identity."""
+"""The report's fonts by name (GridLayoutPdf FR-024), and the files they resolve to for dependency identity."""
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from gridlayoutpdf import FontError, FontRegistry
+from gridlayoutpdf.fontfinder import find_font
+
+from .styles import BODY_FONT, CAPTION_FONT, DIMENSION_FONT, HEADING_FONT
+
+FONT_NAMES = {"body": BODY_FONT, "heading": HEADING_FONT, "caption": CAPTION_FONT, "dimension": DIMENSION_FONT}
 
 
-FONT_FACES = {
-    "body": ("msmincho.ttc", 0),
-    "heading": ("msgothic.ttc", 0),
-    "symbol": ("msmincho.ttc", 1),
-    "caption": ("msgothic.ttc", 2),
-    "dimension": ("calibri.ttf", 0),
-    "italic": ("timesi.ttf", 0),
-}
+def font_files() -> dict[str, Path]:
+    """The file each report font resolves to; a missing font raises FontError (no fallback face)."""
+    return {role: find_font(name).path for role, name in FONT_NAMES.items()}
 
 
-def font_files(directory: str | Path | None = None) -> dict[str, Path]:
-    """Resolve required font files without a CID or alternate-face fallback."""
-    if directory is None:
-        windows = os.environ.get("WINDIR")
-        if not windows:
-            raise FontError("WINDIR is absent; an explicit font directory is required")
-        directory = Path(windows) / "Fonts"
-    root = Path(directory)
-    files = {name: root / filename for name, (filename, _) in FONT_FACES.items()}
-    for path in files.values():
-        if not path.is_file():
-            raise FontError(f"Required report font is missing: {path}")
-    return files
+def load_fonts() -> FontRegistry:
+    """A registry that resolves the report fonts by name on first use (missing ones raise FontError)."""
+    font_files()
+    return FontRegistry()
 
 
-def load_fonts(directory: str | Path | None = None) -> FontRegistry:
-    """Register explicit reference roles, including the measured TTC face indices."""
-    registry = FontRegistry()
-    for name, path in font_files(directory).items():
-        registry.register(name, path, face_index=FONT_FACES[name][1])
-    return registry
+__all__ = ["FONT_NAMES", "FontError", "font_files", "load_fonts"]

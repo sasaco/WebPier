@@ -9,6 +9,7 @@ tmp/
 # 生成物（python -m webpier の出力。追跡しない）
 output/
 post/
+export/
 
 # エディタの退避ファイルとカバレッジ
 *.bak

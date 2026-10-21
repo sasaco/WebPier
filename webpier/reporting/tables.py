@@ -1,35 +1,30 @@
-"""Measured point widths and heights around the public native table API."""
+"""Tables on the common grid: column widths in grid columns, row heights in grid rows, rules as border styles."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass, replace
-from numbers import Real
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from numbers import Integral
 
 from gridlayoutpdf import (
-    Block, Cell, CellLines, Insets, LayoutContext, LayoutPart, MathNode, MeasuredBlock,
-    Table, Text, TextStyle, command_bounds,
+    BorderStyle, Block, Cell, CellLines, GridSpec, Insets, LayoutContext, MathNode, MeasuredBlock, Paragraph,
+    QuarterTurn, Table, TableBorders, TextStyle, measure_block,
 )
 
-from .styles import BODY, SMALL, grid_units
+from .styles import BODY, PITCH_X, PITCH_Y, count
 
-# Inner clearance of a table cell from the cell boundary (the rule centre), measured in the references
-# (tests/reporting/test_table_cell_padding.py) as the gap between a right-aligned number's advance
-# box and the ink of the rule after it, plus half the thin 0.12 pt rule. Vertical: 1.08 pt, so that the
-# measured 12.84-14.88 pt rows hold a 9.9 pt line.
-#   CELL_PADDING: the combination tables of 0610 p10 / 0620 p17, 4.05 pt -> 4.11 pt (the default).
-#   REACTION_CELL_PADDING: the reaction tables of 0600 p12/p32/p37, 6.93 pt -> 6.99 pt
-#   (and 6.45 pt next to a 0.96 pt rule: 6.45 + 0.48 = 6.99 pt).
-CELL_PADDING = Insets(1.08, 4.11, 1.08, 4.11)
-REACTION_CELL_PADDING = Insets(1.08, 6.99, 1.08, 6.99)
+# Inner clearance of a cell's text from its boundary (the rule's centre): the 2.4 pt Excel keeps on each side of a
+# cell's text (gridlayoutpdf.equations.EXCEL_CELL_PADDING_PT) plus room for a medium rule's half width.
+CELL_PADDING = Insets(0, 3.0, 0, 3.0)
+# The reference's outer .96 pt and inner .12 pt rules become medium and hair (GridLayoutPdf FR-022).
+OUTER, INNER = BorderStyle.MEDIUM, BorderStyle.HAIR
 
 
 def cell(content: str | Block, *, colspan: int = 1, rowspan: int = 1,
-         align: str | None = None, style: TextStyle = BODY,
-         line_advance: float = 12.84, padding: Insets = CELL_PADDING) -> Cell:
-    """Use internal clearance before one rounding, never the default outer 3 pt."""
+         align: str | None = None, style: TextStyle = BODY, padding: Insets = CELL_PADDING) -> Cell:
+    """A cell of text lines ("\\n" separated), one grid row per line."""
     if isinstance(content, str):
-        content = CellLines(tuple(content.split("\n")), style=style, line_advance=line_advance,
+        content = CellLines(tuple(content.split("\n")), style=style, line_advance=PITCH_Y,
                             inner_padding=padding, align=align or "left")
     return Cell(content, colspan=colspan, rowspan=rowspan, align=align, padding=0)
 
@@ -37,41 +32,47 @@ def cell(content: str | Block, *, colspan: int = 1, rowspan: int = 1,
 def math_cell(content: MathNode, *, colspan: int = 1, rowspan: int = 1,
               align: str | None = None, style: TextStyle = BODY, padding: Insets = CELL_PADDING) -> Cell:
     """Keep MathNode.measure and Block.measure protocols unambiguous."""
-    lines = CellLines((content,), style=style, inner_padding=padding)
+    lines = CellLines((content,), style=style, line_advance=PITCH_Y, inner_padding=padding, align=align or "left")
     return Cell(lines, colspan=colspan, rowspan=rowspan, align=align, padding=0)
 
 
-def table(widths: Sequence[float], rows: Sequence[Sequence[Cell | str]], *,
-          row_heights: float | Sequence[float] | None = 14.28, header_rows: int = 0,
-          numeric_columns: Sequence[int] = (), horizontal_rules: Sequence[float] | None = None,
-          vertical_rules: Sequence[float] | None = None, split: bool = True,
-          block_id: str = "") -> Table:
+def table(widths: Sequence[int], rows: Sequence[Sequence[Cell | str]], *,
+          row_heights: int | Sequence[int] | None = 1, header_rows: int = 0,
+          numeric_columns: Sequence[int] = (), horizontal: Mapping[int, BorderStyle | None] | None = None,
+          vertical: Mapping[int, BorderStyle | None] | None = None, inner: BorderStyle | None = INNER,
+          outer: BorderStyle | None = OUTER, split: bool = True, block_id: str = "") -> Table:
+    """A table of *widths* grid columns and *row_heights* grid rows, framed medium with hair rules inside.
+
+    *horizontal* / *vertical* override the rule at a boundary (0 is the top / left edge; None draws no rule);
+    *inner* / *outer* None draw no rules inside / no frame (an open table).
+    """
     authored = tuple(tuple(value if isinstance(value, Cell) else cell(value) for value in row) for row in rows)
     heights = None
     if row_heights is not None:
-        source = [row_heights] * len(authored) if isinstance(row_heights, Real) else row_heights
-        heights = tuple(grid_units(value) for value in source)
-    horizontal = (tuple(horizontal_rules) if horizontal_rules is not None else
-                  (.96, *([.12] * max(0, len(authored) - 1)), .96))
-    vertical = (tuple(vertical_rules) if vertical_rules is not None else
-                (.96, *([.12] * max(0, len(widths) - 1)), .96))
-    return Table(tuple(grid_units(width) for width in widths), authored, row_heights=heights,
-                 header_rows=header_rows, numeric_columns=tuple(numeric_columns), split=split,
-                 horizontal_rules=horizontal, vertical_rules=vertical, block_id=block_id)
+        source = [row_heights] * len(authored) if isinstance(row_heights, Integral) else row_heights
+        heights = tuple(count(value, "row height", minimum=1) for value in source)
+    borders = TableBorders(inner, outer=outer, horizontal=dict(horizontal or {}), vertical=dict(vertical or {}))
+    return Table(tuple(count(width, "column width", minimum=1) for width in widths), authored, row_heights=heights,
+                 header_rows=header_rows, numeric_columns=tuple(numeric_columns), split=split, borders=borders,
+                 block_id=block_id)
 
 
 @dataclass(frozen=True)
 class VerticalLabel:
-    """Native rotated text with conservative bounds, for tall merged cells."""
+    """Text turned counterclockwise in one grid column, *length* grid rows long, for a tall merged cell.
+
+    The text is laid out on a local grid with the page's pitches swapped (GridLayoutPdf QuarterTurn), so that the grid
+    Excel writes it as a cell whose text runs at 90 degrees.
+    """
 
     text: str
-    style: TextStyle = SMALL
+    length: int
+    style: TextStyle = BODY
     block_id: str = ""
 
     def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
-        command = Text(0, 0, self.text, self.style, quarter_turns=1)
-        bounds = command_bounds(command, context.fonts)
-        command = replace(command, x=1.08 - bounds.x, y=1.08 - bounds.y)
-        rows = context.rows_for(bounds.height + 2.16)
-        return MeasuredBlock(bounds.width + 2.16, context.profile.grid.pitch_y,
-                             (LayoutPart(rows, (command,)),), keep_together=True, block_id=self.block_id)
+        turned = QuarterTurn(Paragraph(self.text, style=self.style, align="center", block_id=self.block_id + ".text"),
+                             turns=1, local_grid=GridSpec(0, 0, PITCH_Y, PITCH_X, count(self.length, "length", minimum=1),
+                                                          max(1, int(available_width / PITCH_X + 1e-9))),
+                             block_id=self.block_id)
+        return measure_block(turned, context, available_width)

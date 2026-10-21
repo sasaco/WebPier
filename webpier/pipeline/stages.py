@@ -82,6 +82,18 @@ from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
 from ..inputs import PierInput
+from ..reporting.stages import cantilever as cantilever_report
+from ..reporting.stages import cantilever_check as cantilever_check_report
+from ..reporting.stages import column_check as column_check_report
+from ..reporting.stages import footing as footing_report
+from ..reporting.stages import footing_check as footing_check_report
+from ..reporting.stages import foundation as foundation_report
+from ..reporting.stages import foundation_check as foundation_check_report
+from ..reporting.stages import longitudinal as longitudinal_report
+from ..reporting.stages import reaction as reaction_report
+from ..reporting.stages import seismic_longitudinal as seismic_longitudinal_report
+from ..reporting.stages import seismic_transverse as seismic_transverse_report
+from ..reporting.stages import transverse as transverse_report
 from ..reporting.stages.cantilever import render_cantilever
 from ..reporting.stages.cantilever_check import render_cantilever_check
 from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
@@ -94,6 +106,10 @@ from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.foundation_check import LONGITUDINAL as FOUNDATION_CHAPTER_8
 from ..reporting.stages.foundation_check import TRANSVERSE as FOUNDATION_CHAPTER_9
 from ..reporting.stages.foundation_check import Chapter as FoundationChapter, render_foundation_check
+from ..reporting.stages.generic import cantilever as generic_cantilever_report
+from ..reporting.stages.generic import frame as generic_frame_report
+from ..reporting.stages.generic import reaction as generic_reaction_report
+from ..reporting.stages.generic import seismic as generic_seismic_report
 from ..reporting.stages.generic.cantilever import render_generic_cantilever
 from ..reporting.stages.generic.frame import render_generic_frame
 from ..reporting.stages.generic.reaction import render_dead_reaction
@@ -253,6 +269,9 @@ class StageSpec:
     # (decisions 54, 59), or none. The files are those of the stage's frame analysis by kind, and those of the seismic
     # checks of its dependencies by seismic_file(stage, kind).
     complete: Callable[[Any, Mapping[str, bytes], PierInput, Results], Any] | None = None
+    # (results, pier, pages) → the documents of the report WebPier lays out, in order, without the pages of other
+    # programs: its grid Excel workbook (export/). None: a report with none of WebPier's pages (0711, 0721)
+    grid_documents: Callable[[Results, PierInput, Mapping[str, bytes]], Sequence[Any]] | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.opt_in, str):
@@ -491,7 +510,9 @@ def _column_check(stage_id: str, stem: str, source: str, name: str, direction: D
                      lambda results, pier, path, pages: render_column_check(results[stage_id], pier, path, pages,
                                                                             chapter),
                      opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
-                     section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections))
+                     section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections),
+                     grid_documents=lambda results, pier, pages: column_check_report.grid_documents(
+                         results[stage_id], pier, pages, chapter))
 
 
 def _foundation_check(stage_id: str, stem: str, source: str, name: str, direction: FoundationDirection,
@@ -503,7 +524,9 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
                      lambda results, pier, path, pages: render_foundation_check(results[stage_id], path, chapter),
                      opt_in=FRAME_ANALYSIS, frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
                      complete=lambda basis, files, pier, results: check_foundation(
-                         basis, support_reactions(files["reaction"], basis.node)))
+                         basis, support_reactions(files["reaction"], basis.node)),
+                     grid_documents=lambda results, pier, pages: foundation_check_report.grid_documents(
+                         results[stage_id], chapter))
 
 
 def _footing(stem: str) -> StageSpec:
@@ -520,7 +543,8 @@ def _footing(stem: str) -> StageSpec:
     return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
                      lambda pier, results: calculate_footing(pier, results["0500"], results["0610"], results["0620"]),
                      lambda results, pier, path, pages: render_footing(results["0800"], path),
-                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS), complete=complete)
+                     opt_in=(FRAME_ANALYSIS, NONLINEAR_ANALYSIS), complete=complete,
+                     grid_documents=lambda results, pier, pages: footing_report.grid_documents(results["0800"]))
 
 
 def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter: FootingChapter) -> StageSpec:
@@ -534,7 +558,9 @@ def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter:
                                                     build_footing_wdj(results[stage_id])),
                                                 lambda results: results[stage_id].sections),
                      complete=lambda result, files, pier, results: calculate_footing_check(
-                         pier, getattr(results["0800"], direction)))
+                         pier, getattr(results["0800"], direction)),
+                     grid_documents=lambda results, pier, pages: footing_check_report.grid_documents(
+                         results[stage_id], chapter))
 
 
 def _max_responses(files: Mapping[str, bytes], *stages: str) -> list[Any]:
@@ -552,7 +578,9 @@ def _cantilever(stem: str, longitudinal: str, transverse: str) -> StageSpec:
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_cantilever(pier, results["0600"]),
                      lambda results, pier, path, pages: render_cantilever(results["0900"], results["0600"], pier, path),
-                     opt_in=NONLINEAR_ANALYSIS, complete=complete)
+                     opt_in=NONLINEAR_ANALYSIS, complete=complete,
+                     grid_documents=lambda results, pier, pages: cantilever_report.grid_documents(
+                         results["0900"], results["0600"], pier))
 
 
 def _cantilever_check(stem: str, name: str) -> StageSpec:
@@ -563,7 +591,9 @@ def _cantilever_check(stem: str, name: str) -> StageSpec:
                      section_check=SectionCheck("wdj", f"{name}.wdj",
                                                 lambda results, pier, pik: write_wdj(build_cantilever_wdj(results["0910"])),
                                                 lambda results: results["0910"].sections),
-                     complete=lambda result, files, pier, results: calculate_cantilever_section(pier, results["0900"]))
+                     complete=lambda result, files, pier, results: calculate_cantilever_section(pier, results["0900"]),
+                     grid_documents=lambda results, pier, pages: cantilever_check_report.grid_documents(
+                         results["0910"], pier, pages))
 
 
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
@@ -575,15 +605,20 @@ STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
               lambda results, pier, path, pages: render_foundation(
-                  results["0500"], pier, applicable_embedment(pier, results["0500"]), path)),
+                  results["0500"], pier, applicable_embedment(pier, results["0500"]), path),
+              grid_documents=lambda results, pier, pages: foundation_report.grid_documents(
+                  results["0500"], pier, applicable_embedment(pier, results["0500"]))),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
-              lambda results, pier, path, pages: render_reaction(results["0600"], pier, path)),
+              lambda results, pier, path, pages: render_reaction(results["0600"], pier, path),
+              grid_documents=lambda results, pier, pages: reaction_report.grid_documents(results["0600"], pier)),
     StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
-              (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb"),
+              (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb",
+              grid_documents=lambda results, pier, pages: longitudinal_report.grid_documents(
+                  results["0610"], results["0600"], pier)),
     _column_check("0611", "0611_線路方向照査", "0610", "線路方向", COLUMN_LONGITUDINAL, CHAPTER_8),
     _foundation_check("0612", "0612_線路方向基礎", "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
     StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
@@ -591,7 +626,9 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
                                                                    pages),
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
-              load_diagram="frameweb"),
+              load_diagram="frameweb",
+              grid_documents=lambda results, pier, pages: transverse_report.grid_documents(
+                  results["0620"], results["0600"], pier)),
     _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
     _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
@@ -599,7 +636,9 @@ STAGES = Registry((
                                                                    results["0610"]),
               lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], pier, path, pages),
               (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
-              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL))),
+              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
+              grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
+                  results["0710"], pier)),
     StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
@@ -610,7 +649,9 @@ STAGES = Registry((
                                                                  results["0620"]),
               lambda results, pier, path, pages: render_seismic_transverse(results["0720"], pier, path, pages),
               (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
-              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE))),
+              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE)),
+              grid_documents=lambda results, pier, pages: seismic_transverse_report.grid_documents(
+                  results["0720"], pier)),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
     StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check, opt_in=NONLINEAR_ANALYSIS,
               nonlinear_analysis=NonlinearAnalysis(
@@ -643,7 +684,9 @@ def _generic_seismic_stage(stage_id: str, stem: str, frame: str, base: NduProfil
                      lambda results, pier, path, pages: render_generic_seismic(results[stage_id], pier, path, pages),
                      (Export("jrsnap", file_name, lambda results, pier: write_ndu(ndu(results, pier)), metadata=_NDU),),
                      jrsnap_figures=JrsnapFigures("jrsnap", lambda results, pier: diagram_combinations(
-                         ndu(results, pier))))
+                         ndu(results, pier))),
+                     grid_documents=lambda results, pier, pages: generic_seismic_report.grid_documents(
+                         results[stage_id], pier))
 
 
 def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) -> StageSpec:
@@ -667,7 +710,9 @@ def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: L
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_generic_cantilever(pier, results["0600"], source.result(pier)),
                      lambda results, pier, path, pages: render_generic_cantilever(results["0900"], pier, path),
-                     opt_in=NONLINEAR_ANALYSIS, complete=complete)
+                     opt_in=NONLINEAR_ANALYSIS, complete=complete,
+                     grid_documents=lambda results, pier, pages: generic_cantilever_report.grid_documents(
+                         results["0900"], pier))
 
 
 def stages_for(source: LoadModelSource) -> Registry:
@@ -677,7 +722,9 @@ def stages_for(source: LoadModelSource) -> Registry:
     generic = {
         "0600": StageSpec("0600", STAGES.get("0600").stem, (),
                           lambda pier, results: calculate_dead_reaction(pier),
-                          lambda results, pier, path, pages: render_dead_reaction(results["0600"], pier, path)),
+                          lambda results, pier, path, pages: render_dead_reaction(results["0600"], pier, path),
+                          grid_documents=lambda results, pier, pages: generic_reaction_report.grid_documents(
+                              results["0600"], pier)),
         "0610": StageSpec("0610", STAGES.get("0610").stem, ("0500", "0600"),
                           lambda pier, results: calculate_generic_frame(pier, results["0500"], results["0600"],
                                                                         source.result(pier), FrameDirection.LONGITUDINAL,
@@ -685,7 +732,9 @@ def stages_for(source: LoadModelSource) -> Registry:
                           lambda results, pier, path, pages: render_generic_frame(results["0610"], results["0600"],
                                                                                   pier, path, pages),
                           (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb_generic)),),
-                          load_diagram="frameweb"),
+                          load_diagram="frameweb",
+                          grid_documents=lambda results, pier, pages: generic_frame_report.grid_documents(
+                              results["0610"], results["0600"], pier)),
         "0620": StageSpec("0620", STAGES.get("0620").stem, ("0500", "0600"),
                           lambda pier, results: calculate_generic_frame(pier, results["0500"], results["0600"],
                                                                         source.result(pier), FrameDirection.TRANSVERSE,
@@ -693,7 +742,9 @@ def stages_for(source: LoadModelSource) -> Registry:
                           lambda results, pier, path, pages: render_generic_frame(results["0620"], results["0600"],
                                                                                   pier, path, pages),
                           (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_generic)),),
-                          load_diagram="frameweb"),
+                          load_diagram="frameweb",
+                          grid_documents=lambda results, pier, pages: generic_frame_report.grid_documents(
+                              results["0620"], results["0600"], pier)),
         "0710": _generic_seismic_stage("0710", STAGES.get("0710").stem, "0610", NDU_LONGITUDINAL, "線路方向.ndu",
                                        FrameDirection.LONGITUDINAL, source),
         "0711": _generic_nonlinear(STAGES.get("0711"), "0710", NDU_LONGITUDINAL),
