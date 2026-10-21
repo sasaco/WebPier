@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "jrsnap_figures_acceptance",
   "date": "2026-10-21",
-  "verified_at": "2026-10-21T14:04:18+09:00",
+  "verified_at": "2026-10-21T19:02:45+09:00",
   "method": "WebPier が 0710・0720 で書く NDU を本物の JRSNAP 5.2-L03 の runner（JRSNAPHeadless の figures）に渡してデータ確認図と荷重図を描かせ、WebPier が受け取るページ（draw_figures）を pymupdf で測った。",
   "analysis_run": false,
   "runner": {
@@ -12,9 +12,9 @@
   },
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "047dd1cf20fa78642af8da543629530eba81805a1162df566cfae510fa1b982a"
+    "sha256": "f2c1e34271748aaeba821506ace7aceba32c37f57499b3cdf30c1fa87e16cd01"
   },
-  "implementation_sha256": "d3223aa2d253b6583d365c3d56ba83a940392fe8ea550497d434273f69fa0abe",
+  "implementation_sha256": "70ffac68da391c5f2594c0378b47133af29978e3f4cfa76b9aad73e852c3386d",
   "stages": {
     "0710": {
       "ndu": {

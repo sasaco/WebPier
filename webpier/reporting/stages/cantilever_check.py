@@ -1,4 +1,5 @@
-"""0910 片持ち梁の断面照査 (13.3〜13.6): the explanations before Capacita's pages (decision 59, ADR-0008).
+"""0910 片持ち梁の断面照査 (13.3〜13.8, 13.9 with the appearance check): the explanations before Capacita's pages
+(decisions 59, 73, ADR-0008).
 
 WebPier lays out only the headings and the explanations (the check formulas, the symbols, the flowchart of the
 flexural crack check, the fatigue conditions and the cracking moment with ε'csd). Each part is followed by
@@ -76,7 +77,12 @@ class Numbering:
 
     @staticmethod
     def of(result: CantileverSectionResult) -> Numbering:
-        if result.appearance:
+        return Numbering.with_appearance(result.appearance)
+
+    @staticmethod
+    def with_appearance(appearance: bool) -> Numbering:
+        """The numbers by the appearance check of the input (片持ち梁の照査.外観の照査); 0400 refers to them."""
+        if appearance:
             return Numbering(serviceability=6, damage=7, restorability=8, rebar_amount=9)
         return Numbering()
 
@@ -331,14 +337,13 @@ def _crack_method(m: Manuscript, key: str) -> None:
                  Definition("σsl1", "永久作用による引張鉄筋応力度の制限値"))
 
 
-def _crack_width(m: Manuscript, key: str, result: CantileverSectionResult, gamma_i: str, limit: str) -> None:
+def _crack_width(m: Manuscript, key: str, result: CantileverSectionResult, limit: str) -> None:
     m.heading(f"{key}.width.heading", "3) 曲げひび割れ幅の検討", 3)
     m.paragraph(f"{key}.width.text", f"曲げひび割れの検討は，コンクリート表面の設計曲げひび割れ幅Wdが{limit}Wlimに"
                                      "対して，次式を満たす方法により行う．")
-    m.line(f"{key}.width.check", "γi・Wd / Wlim ≦ 1.0")
+    m.line(f"{key}.width.check", "Wd / Wlim ≦ 1.0")
     m.line(f"{key}.width.formula", "Wd = 1.1・k1・k2・k3・k4{4c + 0.7(Cs − φ)}(σse / Es + ε'csd)")
-    _definitions(m, f"{key}.width.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
-                 Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
+    _definitions(m, f"{key}.width.symbols", Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
                  Definition("k1", "鋼材の表面形状がひび割れ幅に及ぼす影響を表す係数"),
                  Definition("k2", "コンクリートの品質がひび割れ幅に及ぼす影響を表す係数"),
                  Definition("k3", "引張鋼材の段数の影響を表す係数"),
@@ -408,7 +413,7 @@ def _durability_flexure(m: Manuscript, result: CantileverSectionResult, n: Numbe
     m.paragraph("durability.environment", f"水掛かりの程度は，{faces}とする．")
     m.heading("durability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "durability.flexure")
-    _crack_width(m, "durability.flexure", result, value(_factors(result, 0).ri), "ひび割れ幅の制限値")
+    _crack_width(m, "durability.flexure", result, "ひび割れ幅の制限値")
     _cracking_moment(m, "durability.flexure.mcrd", result.cracking.cracking_moment)
     _ecsd(m, "durability.flexure", result)
 
@@ -436,7 +441,7 @@ def _serviceability(m: Manuscript, result: CantileverSectionResult, n: Numbering
     m.heading("serviceability.heading", f"{CHAPTER}.{n.serviceability} 使用性の照査", 1)
     m.heading("serviceability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "serviceability.flexure")
-    _crack_width(m, "serviceability.flexure", result, value(_factors(result, 0).ri), "外観に対するひび割れ幅の制限値")
+    _crack_width(m, "serviceability.flexure", result, "外観に対するひび割れ幅の制限値")
 
 
 # --- 使用性（損傷），復旧性（地震時） ----------------------------------------------------------------------------------

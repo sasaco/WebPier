@@ -23,7 +23,7 @@ class DetailingResult:
     column: ColumnDetailing
     beam: BeamDetailing
     footing: FootingDetailing
-    # 片持ち梁の照査.外観の照査: whether 0910 has 13.6 使用性, which moves the section 4.3 refers to (13.7 or 13.8)
+    # 片持ち梁の照査.外観の照査: whether 0910 has 13.6 使用性, which moves the section 4.3 refers to (13.8 or 13.9)
     cantilever_appearance: bool
     engineering_status: str  # "ok" or "not_ok"
 

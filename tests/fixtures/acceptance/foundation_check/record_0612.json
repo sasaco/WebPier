@@ -2,13 +2,13 @@
   "schema_version": 1,
   "kind": "foundation_check_acceptance",
   "stage": "0612",
-  "verified_at": "2026-10-21T14:03:20+09:00",
+  "verified_at": "2026-10-21T19:01:20+09:00",
   "method": "WebPier が 0610 で書く FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0612 が読む作用を Example2 8-30 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "047dd1cf20fa78642af8da543629530eba81805a1162df566cfae510fa1b982a"
+    "sha256": "f2c1e34271748aaeba821506ace7aceba32c37f57499b3cdf30c1fa87e16cd01"
   },
-  "implementation_sha256": "d3223aa2d253b6583d365c3d56ba83a940392fe8ea550497d434273f69fa0abe",
+  "implementation_sha256": "70ffac68da391c5f2594c0378b47133af29978e3f4cfa76b9aad73e852c3386d",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
