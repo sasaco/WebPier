@@ -128,11 +128,11 @@ def test_the_beam_concrete_has_its_own_aggregate_size():
 
 def test_the_footing_concrete_has_its_own_aggregate_size():
     """Decision 60 (owner 2026-10-19): the footing's Dmax is the footing concrete's, not the column's; the fixture
-    keeps it blank and the footing tests give the sample's 25."""
-    assert parse_input(data()).rebar.footing.aggregate_max is None
+    has the 25 of pre/input.json (decision 73: the footing bars of 0400) and may leave it blank."""
+    assert parse_input(data()).rebar.footing.aggregate_max == Printed(25, 1, "mm")
     document = data()
-    document["鉄筋"]["フーチング"]["aggregate_max_mm"] = 25
-    assert parse_input(document).rebar.footing.aggregate_max == Printed(25, 1, "mm")
+    document["鉄筋"]["フーチング"]["aggregate_max_mm"] = None
+    assert parse_input(document).rebar.footing.aggregate_max is None
     document = data()
     del document["鉄筋"]["フーチング"]["aggregate_max_mm"]
     fails(document, "入力項目がありません: 鉄筋.フーチング.aggregate_max_mm")

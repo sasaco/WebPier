@@ -52,9 +52,11 @@ def test_the_column_of_the_current_input():
     assert (hoop_cross.direction, hoop_cross.effective_legs, hoop_cross.start, hoop_cross.end) == ("直角", 6, None, None)
 
 
-def test_the_beam_bars_of_the_current_input_and_the_footing_draft():
+def test_the_beam_and_the_footing_bars_of_the_current_input():
     """Example2 13_片持ち梁照査/WebDan.wdj: 上側 D32 × 25 in two layers (17 at 108, 8 at 172), 下側 D19 × 18 at 121,
-    side bars D22 × 17 from 350 at 125, stirrups D22 with 4 legs at 125 (decision 59)."""
+    side bars D22 × 17 from 350 at 125, stirrups D22 with 4 legs at 125 (decision 59). The footing is Example2 06 6.1
+    and 6.2 (decision 73): 上 線路 D25 at 125 with its centre at 78.5, 直角 D25 at 103.5; 下 線路 D25 at 100, 直角 D29
+    at 127; stirrups D16, 2 per 1 m, at 250."""
     rebar = parse_input(data()).rebar
     beam = rebar.beam
     upper, lower = beam.faces["上"], beam.faces["下"]
@@ -70,9 +72,14 @@ def test_the_beam_bars_of_the_current_input_and_the_footing_draft():
     assert (beam.stirrups.diameter, beam.stirrups.effective_legs, beam.stirrups.pitch) == (mm(22, 0), 4, mm(125))
     footing = rebar.footing
     assert [footing.faces[face].outer_direction for face in ("上", "下")] == ["線路", "線路"]
-    lower = footing.faces["下"].bars["線路"]
-    assert (lower.diameter, lower.pitch, lower.cover_mode, lower.inner_layers) == (None, None, "自動", ())
-    assert footing.stirrups["直角"].width_mode is None
+    bars = {(face, direction): footing.faces[face].bars[direction] for face in ("上", "下") for direction in ("線路", "直角")}
+    assert {key: (item.diameter, item.pitch, item.cover_mode, item.center, item.inner_layers)
+            for key, item in bars.items()} == {
+        ("上", "線路"): (mm(25, 0), mm(125), "指定", mm(78.5), ()), ("上", "直角"): (mm(25, 0), mm(125), "指定", mm(103.5), ()),
+        ("下", "線路"): (mm(25, 0), mm(125), "指定", mm(100), ()), ("下", "直角"): (mm(29, 0), mm(125), "指定", mm(127), ())}
+    stirrups = footing.stirrups["直角"]
+    assert (stirrups.diameter, stirrups.pitch, stirrups.width_mode, stirrups.density) == (
+        mm(16, 0), mm(250), "密度", Printed(2, 1, "本/m"))
 
 
 def test_the_jrsnap_conditions_of_each_direction():
