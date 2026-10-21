@@ -301,7 +301,9 @@ def test_the_contract_is_the_registry(capsys):
     assert code == 0 and list(contract) == ["command", "stages", "runners", "outputs"]
     assert contract["command"] == "contract"
     assert [stage["id"] for stage in contract["stages"]] == list(STAGES.ids)
-    assert contract["stages"][2] == {"id": "0610", "stem": "0610_線路方向荷重", "dependsOn": ["0500", "0600"],
+    assert contract["stages"][0] == {"id": "0400", "stem": "0400_照査の前提", "dependsOn": [], "output": "detailing",
+                                     "hasReport": True}
+    assert contract["stages"][3] == {"id": "0610", "stem": "0610_線路方向荷重", "dependsOn": ["0500", "0600"],
                                      "output": "longitudinal", "hasReport": True}
     assert [runner["engine"] for runner in contract["runners"]] == ["fempython", "jrsnap", "webdan2", "aggrese"]
     outputs = {item["key"]: item for item in contract["outputs"]}
@@ -312,6 +314,8 @@ def test_the_contract_is_the_registry(capsys):
         "files": [{"role": "0500.pdf", "path": "output/0500_直接基礎.pdf", "folder": False},
                   {"role": "0500.json", "path": "output/0500_直接基礎.json", "folder": False},
                   {"role": "0500.xlsx", "path": "export/0500_直接基礎.xlsx", "folder": False}]}
+    assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (
+        [], ["0400"], [])  # decision 73: the input alone
     assert (outputs["longitudinal"]["requires"], outputs["longitudinal"]["runners"]) == (
         ["ground_model", "reactions"], ["fempython"])
     assert outputs["longitudinal_frame_analysis"]["stages"] == ["0611", "0612"]

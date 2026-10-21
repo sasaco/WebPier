@@ -58,6 +58,7 @@ from ..calc.cantilever.check import calculate_cantilever_section
 from ..calc.column_check import LONGITUDINAL as COLUMN_LONGITUDINAL, TRANSVERSE as COLUMN_TRANSVERSE
 from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
+from ..calc.detailing import calculate_detailing
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.footing import calculate_footing, complete_footing
 from ..calc.footing_check import calculate_footing_check
@@ -89,6 +90,7 @@ from ..inputs.outputs import OUTPUT_KEYS, uses
 from ..reporting.stages import cantilever as cantilever_report
 from ..reporting.stages import cantilever_check as cantilever_check_report
 from ..reporting.stages import column_check as column_check_report
+from ..reporting.stages import detailing as detailing_report
 from ..reporting.stages import footing as footing_report
 from ..reporting.stages import footing_check as footing_check_report
 from ..reporting.stages import foundation as foundation_report
@@ -102,6 +104,7 @@ from ..reporting.stages.cantilever import render_cantilever
 from ..reporting.stages.cantilever_check import render_cantilever_check
 from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
 from ..reporting.stages.column_check import Chapter, render_column_check
+from ..reporting.stages.detailing import render_detailing
 from ..reporting.stages.footing import render_footing
 from ..reporting.stages.footing_check import LONGITUDINAL as FOOTING_CHAPTER_LONGITUDINAL
 from ..reporting.stages.footing_check import TRANSVERSE as FOOTING_CHAPTER_TRANSVERSE
@@ -131,6 +134,7 @@ Results = Mapping[str, Any]
 # The stages of each 出力項目 (decision 72): the frame analysis (decisions 46, 54), the static nonlinear analysis
 # (decision 47), the footing (decision 60) and the cantilever (decision 59) are items of their own.
 OUTPUT_STAGES: Mapping[str, tuple[str, ...]] = MappingProxyType({
+    "detailing": ("0400",),
     "ground_model": ("0500",), "reactions": ("0600",),
     "longitudinal": ("0610",), "longitudinal_frame_analysis": ("0611", "0612"),
     "transverse": ("0620",), "transverse_frame_analysis": ("0621", "0622"),
@@ -584,6 +588,11 @@ _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_
 _PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION}
 
 STAGES = Registry((
+    # 照査の前提 (decision 73): the input alone; its 配筋図 of 4.1 are not drawn yet (decision 73, Phase 6)
+    StageSpec("0400", "0400_照査の前提", (),
+              lambda pier, results: calculate_detailing(pier),
+              lambda results, pier, path, pages: render_detailing(results["0400"], path),
+              grid_documents=lambda results, pier, pages: detailing_report.grid_documents(results["0400"])),
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
               lambda results, pier, path, pages: render_foundation(

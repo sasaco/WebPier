@@ -121,14 +121,17 @@ def tree(root: Path) -> dict[str, bytes]:
 
 
 # The sample's footing bars (12_フーチング.pdf 255・258) with the footing concrete's Dmax 25: 0800 needs 鉄筋.フーチング
-# (decision 60); current.json itself keeps them blank.
+# (decision 60), and 0400 the upper bars too (decision 73: Example2 06 6.1・6.2), as current.json has them.
 _FOOTING_BARS = {"diameter_mm": None, "pitch_mm": None, "cover_mode": "自動", "center_mm": None, "inner_layers": []}
 _FOOTING_STIRRUP = {"diameter_mm": 16, "pitch_mm": 250, "distribution_mode": "密度", "width_pitch_mm": None,
                     "density_per_m": 2}
 SAMPLE_FOOTING = {
     "materials": {"main": "SD390", "transverse": "SD390"}, "concrete_strength_mpa": 27, "aggregate_max_mm": 25,
     "pure_cover_mm": None,
-    "faces": {"上": {"outer_direction": "線路", "線路": _FOOTING_BARS, "直角": _FOOTING_BARS},
+    "faces": {"上": {"outer_direction": "線路",
+                     "線路": {**_FOOTING_BARS, "diameter_mm": 25, "pitch_mm": 125, "cover_mode": "指定", "center_mm": 78.5},
+                     "直角": {**_FOOTING_BARS, "diameter_mm": 25, "pitch_mm": 125, "cover_mode": "指定",
+                              "center_mm": 103.5}},
               "下": {"outer_direction": "線路",
                      "線路": {**_FOOTING_BARS, "diameter_mm": 25, "pitch_mm": 125, "cover_mode": "指定", "center_mm": 100},
                      "直角": {**_FOOTING_BARS, "diameter_mm": 29, "pitch_mm": 125, "cover_mode": "指定",

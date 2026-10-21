@@ -20,6 +20,7 @@ _FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
 _NONLINEAR = ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
 
 OUTPUT_ITEMS = (
+    OutputItem("detailing", ()),  # 0400 (decision 73: the input alone)
     OutputItem("ground_model", ()),  # 0500
     OutputItem("reactions", ()),  # 0600
     OutputItem("longitudinal", ("ground_model", "reactions")),  # 0610

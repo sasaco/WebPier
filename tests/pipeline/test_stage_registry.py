@@ -53,8 +53,8 @@ def project(kind="aggrese", file_name="x.xml"):
 
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
     ids = STAGES.ids
-    assert ids[:2] == ("0500", "0600")
-    assert ids == ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
+    assert ids[:3] == ("0400", "0500", "0600")
+    assert ids == ("0400", "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
                    "0800", "0810", "0820", "0900", "0910")
     for position, stage in enumerate(STAGES.stages):
         assert set(stage.depends_on) <= set(ids[:position])
@@ -63,7 +63,7 @@ def test_the_registry_lists_every_wired_stage_in_dependency_order():
 
 def test_report_stems_are_the_japanese_stage_names():
     stems = {stage.id: stage.stem for stage in STAGES.stages}
-    expected = {"0500": "0500_直接基礎", "0600": "0600_上部工反力", "0610": "0610_線路方向荷重",
+    expected = {"0400": "0400_照査の前提", "0500": "0500_直接基礎", "0600": "0600_上部工反力", "0610": "0610_線路方向荷重",
                 "0620": "0620_直角方向荷重", "0710": "0710_線路方向荷重", "0720": "0720_線路直角方向荷重",
                 "0611": "0611_線路方向照査", "0621": "0621_直角方向照査", "0612": "0612_線路方向基礎",
                 "0622": "0622_直角方向基礎", "0711": "0711_線路方向非線形解析",
@@ -74,7 +74,7 @@ def test_report_stems_are_the_japanese_stage_names():
 
 def test_declared_dependencies_of_the_real_stages():
     depends = {stage.id: stage.depends_on for stage in STAGES.stages}
-    expected = {"0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
+    expected = {"0400": (), "0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
                 "0710": ("0500", "0600", "0610"), "0720": ("0500", "0600", "0620"), "0611": ("0610",),
                 "0621": ("0620",), "0612": ("0500", "0610"), "0622": ("0500", "0620"), "0711": ("0710",),
                 "0721": ("0720",), "0800": ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
@@ -103,7 +103,7 @@ def test_each_output_item_makes_its_stages():
     """Decision 72: the stages of each 出力項目, in registry order; the input's six default items are the stages the
     switches used to leave out of all."""
     assert dict(STAGES.outputs) == {
-        "ground_model": ("0500",), "reactions": ("0600",), "longitudinal": ("0610",),
+        "detailing": ("0400",), "ground_model": ("0500",), "reactions": ("0600",), "longitudinal": ("0610",),
         "longitudinal_frame_analysis": ("0611", "0612"), "transverse": ("0620",),
         "transverse_frame_analysis": ("0621", "0622"), "longitudinal_seismic": ("0710",),
         "longitudinal_nonlinear_analysis": ("0711",), "transverse_seismic": ("0720",),
@@ -114,8 +114,9 @@ def test_each_output_item_makes_its_stages():
     assert STAGES.selected(("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic",
                             "transverse_seismic")) == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert STAGES.selected(("transverse_frame_analysis", "ground_model")) == ("0500", "0621", "0622")
-    assert [STAGES.item(stage_id) for stage_id in ("0500", "0612", "0721", "0820", "0910")] == [
-        "ground_model", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]
+    assert STAGES.selected(("detailing",)) == ("0400",)
+    assert [STAGES.item(stage_id) for stage_id in ("0400", "0500", "0612", "0721", "0820", "0910")] == [
+        "detailing", "ground_model", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]
 
 
 def test_an_item_with_every_item_it_uses_has_every_stage_its_stages_read():

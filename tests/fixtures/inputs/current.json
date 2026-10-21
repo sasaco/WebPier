@@ -600,6 +600,7 @@
     "target_displacement_m": 0.35
   },
   "outputs": {
+    "detailing": false,
     "ground_model": true,
     "reactions": true,
     "longitudinal": true,
