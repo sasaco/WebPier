@@ -87,7 +87,8 @@ def test_the_forces_are_the_hand_calculation_by_capacitas_case_ids(direction, sa
          "Md0_Md": columns["short_term"]["Md_design"], "Md0_Nd": 0,
          "Md1_Md": columns["long_term"]["Md_design"], "Md1_Nd": 0,
          "Md5_Md": columns[safety]["Md_design"], "Md5_Nd": 0,
-         "Vd5_Vd": columns[safety]["Vd_design"], "Vd5_Md": columns[safety]["Md_design"], "Vd5_Nd": 0},
+         "Vd5_Vd": columns[safety]["Vd_design"], "Vd5_Md": columns[safety]["Md_design"], "Vd5_Nd": 0,
+         "Md8_Md": columns["long_term"]["Md_design"], "Md8_Nd": 0},
         {"index": 2,
          "Md7_Md": seismic["Md_design"], "Md7_Nd": 0,
          "Vd7_Vd": seismic["Vd_design"], "Vd7_Md": seismic["Md_design"], "Vd7_Nd": 0}]
@@ -102,14 +103,14 @@ def test_the_basic_lists_name_capacitas_cases_without_pickup_numbers():
     basic = document()["basic"]
     assert [(item["id"], item["title"], item["no"]) for item in basic["pickup_moment"]] == [
         (0, "耐久性 応力度", None), (1, "耐久性 永久荷重", None), (2, "安全性 疲労限", None), (3, "安全性 永久作用", None),
-        (4, "安全性 永久＋変動", None), (5, "安全性 破壊", None), (6, "復旧性 地震時以外", None), (7, "復旧性 地震時", None),
+        (4, "安全性 永久＋変動", None), (5, "安全性 破壊", None), (6, "使用性（損傷）", None), (7, "復旧性 地震時", None),
         (8, "最小鉄筋量", None)]
     assert [(item["id"], item["title"]) for item in basic["pickup_shear_force"]] == [
         (0, "耐久性 ひび割れ判定"), (1, "耐久性 永久荷重"), (2, "耐久性 変動荷重"), (3, "安全性 永久作用"),
-        (4, "安全性 永久＋変動"), (5, "安全性 破壊"), (6, "復旧性 地震時以外"), (7, "復旧性 地震時")]
+        (4, "安全性 永久＋変動"), (5, "安全性 破壊"), (6, "使用性（損傷）"), (7, "復旧性 地震時")]
     assert all(item["no"] is None for item in basic["pickup_shear_force"] + basic["pickup_torsional_moment"])
     assert [(item["id"], item["selected"]) for item in basic["specification2_list"]] == [
-        (0, False), (1, True), (2, False), (3, False), (4, False), (8, False)]
+        (0, False), (1, False), (2, False), (3, False), (4, True), (8, False)]  # R5_Shinkansen (decision 73)
     assert [(item["id"], item["selected"]) for item in basic["conditions_list"]] == [("JR-001", True),
                                                                                        ("JR-004", False)]
 

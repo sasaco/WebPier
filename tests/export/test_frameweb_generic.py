@@ -58,7 +58,7 @@ def test_the_defines_combines_and_pickups(longitudinal):
     assert longitudinal["combine"]["7"] == {"row": 7, "name": "該当する組合せなし（断面力0）", "C7": 1}
     pickups = longitudinal["pickup"]
     assert [pickups[n]["name"] for n in sorted(pickups, key=int)] == [
-        "安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）", "長期支持性能", "短期支持性能"]
+        "安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能", "短期支持性能"]
     assert pickups["4"] == {"row": 4, "name": "変動作用", "C1": 7}
 
 

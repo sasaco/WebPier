@@ -63,14 +63,15 @@ def test_the_bars_of_the_beam(current):
 
 def test_the_conditions_of_the_check(current):
     _, _, section = current
-    assert section.environments == {"上面": "腐食性環境", "下面": "一般の環境", "側面": "腐食性環境"}
+    assert section.environments == {"上面": "乾湿繰返し", "下面": "常時乾燥", "側面": "乾湿繰返し"}
     assert section.environment_numbers == {"上面": 2, "下面": 1, "側面": 2}
     assert section.appearance is False
     assert (section.body, section.jr001, section.jr004) == ("運輸機構", True, False)
     assert section.safety == SAFETY_FACTORS and [factors.id for factors in section.safety] == [0, 2, 5, 6, 7, 8]
     fatigue = next(factors for factors in section.safety if factors.id == 2)
-    assert (fatigue.m_rs.value, fatigue.ri.value, fatigue.t_rbt.value) == (1.05, 1.1, 1.0)
-    assert all(factors.t_rbt is not None and factors.t_rbt.value == 1.0 for factors in section.safety if factors.id != 8)
+    assert (fatigue.m_rs.value, fatigue.ri.value, fatigue.t_rbt) == (1.05, 1.1, None)
+    assert {factors.id: factors.t_rbt.value for factors in section.safety if factors.t_rbt is not None} == {
+        0: 1.0, 5: 1.3, 6: 1.3, 7: 1.3}  # the R5 defaults (decision 73)
     assert (section.kr.value, section.k4.value) == (0.5, 0.85)
 
 
@@ -87,7 +88,7 @@ def test_the_fatigue_trains(current):
 def test_the_sections_capacita_is_asked_for(current):
     _, _, section = current
     assert section.sections == tuple(name for name in SECTIONS if name != "bending_serviceability")
-    assert len(section.sections) == 14 and "torsion_restorability_eq" in section.sections
+    assert len(section.sections) == 15 and section.sections[-1] == "bending_rebar_amount"
     with_appearance = section_of(**{f"{CHECK}/外観の照査": "行う"})
     assert with_appearance.sections == SECTIONS and with_appearance.appearance is True
     assert SECTIONS.index("bending_serviceability") == 8  # Capacita's report order
@@ -145,7 +146,7 @@ def test_the_steels_are_the_members():
     ({f"{BEAM}/side_bars/per_face_count": None}, "鉄筋.梁.side_bars.per_face_count: 値が必要です"),
     ({f"{BEAM}/side_bars/start_mm": None}, "鉄筋.梁.side_bars.start_mm: 値が必要です"),
     ({f"{BEAM}/stirrups/effective_legs": None}, "鉄筋.梁.stirrups.effective_legs: 値が必要です"),
-    ({f"{CHECK}/鋼材の腐食に対する環境条件/側面": None}, "片持ち梁の照査.鋼材の腐食に対する環境条件.側面: 値が必要です"),
+    ({f"{CHECK}/水掛かりの程度/側面": None}, "片持ち梁の照査.水掛かりの程度.側面: 値が必要です"),
     ({f"{CHECK}/外観の照査": None}, "片持ち梁の照査.外観の照査: 値が必要です"),
     ({"柱の断面照査/適用基準の機関": None}, "柱の断面照査.適用基準の機関: 値が必要です"),
     ({"柱の断面照査/JR-001": None}, "柱の断面照査.JR-001: 値が必要です"),

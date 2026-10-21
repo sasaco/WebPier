@@ -250,7 +250,7 @@ def _seismic_design(root: Reader) -> SeismicDesign:
     return SeismicDesign(region=read(node.at("地域別")), ground_class=read(node.at("地盤区分")))
 
 
-COLUMN_CHECK_KEYS = ("鋼材の腐食に対する環境条件", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")
+COLUMN_CHECK_KEYS = ("水掛かりの程度", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")
 
 
 def _column_check(root: Reader) -> ColumnCheck:
@@ -265,8 +265,8 @@ FATIGUE_KEYS = ("旅客列車本数", "貨物列車本数", "設計耐用年数"
 
 
 def _cantilever_check(root: Reader) -> CantileverCheck:
-    node = root.at(CANTILEVER_CHECK).only("鋼材の腐食に対する環境条件", "外観の照査", "疲労")
-    environments = node.at("鋼材の腐食に対する環境条件").only(*BEAM_SURFACES)
+    node = root.at(CANTILEVER_CHECK).only("水掛かりの程度", "外観の照査", "疲労")
+    environments = node.at("水掛かりの程度").only(*BEAM_SURFACES)
     fatigue = node.at("疲労").only(*FATIGUE_KEYS)
     repetitions = fatigue.at("等価繰返し回数").only("A列車", "B列車")
     counts = {}

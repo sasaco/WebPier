@@ -241,6 +241,12 @@ def test_validate_reports_a_missing_input_file(tmp_path: Path, capsys):
     assert code == 2 and envelope["errors"][0]["code"] == "IO_ERROR"
 
 
+def test_run_reports_a_missing_input_file(tmp_path: Path, capsys):
+    code, envelope = call(capsys, "run", "--input", tmp_path / "missing.json", "--output-dir", tmp_path / "out")
+    assert code == 2 and (envelope["errors"][0]["code"], envelope["errors"][0]["category"]) == ("IO_ERROR",
+                                                                                               "file_system")
+
+
 def test_a_frame_analysis_reports_its_runners_and_the_foundation_check(tmp_path: Path, capsys):
     source = copy_input(tmp_path / "pre", *LONGITUDINAL, "longitudinal_frame_analysis")
     code, envelope = call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out")

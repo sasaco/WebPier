@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "footing_acceptance",
-  "verified_at": "2026-10-19T15:56:30+09:00",
-  "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で --frame-analysis --nonlinear-analysis の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
+  "verified_at": "2026-10-21T14:34:53+09:00",
+  "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
     "footing_bars": {
@@ -13,96 +13,63 @@
       "concrete_strength_mpa": 27,
       "aggregate_max_mm": 25,
       "pure_cover_mm": null,
-      "main_rows": [
-        {
-          "diameter_mm": null,
-          "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
-          "clear_gap_mm": null,
-          "direction": "線路",
-          "face": "上",
-          "pitch_mm": null,
-          "layers": 1,
-          "stack_order": 1
+      "faces": {
+        "上": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": "自動",
+            "center_mm": null,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": "自動",
+            "center_mm": null,
+            "inner_layers": []
+          }
         },
-        {
-          "diameter_mm": 25,
-          "material": null,
-          "cover_mode": "指定",
-          "center_mm": 100,
-          "clear_gap_mm": null,
-          "direction": "線路",
-          "face": "下",
-          "pitch_mm": 125,
-          "layers": 1,
-          "stack_order": 1
-        },
-        {
-          "diameter_mm": null,
-          "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
-          "clear_gap_mm": null,
-          "direction": "直角",
-          "face": "上",
-          "pitch_mm": null,
-          "layers": 1,
-          "stack_order": 2
-        },
-        {
-          "diameter_mm": 29,
-          "material": null,
-          "cover_mode": "指定",
-          "center_mm": 127,
-          "clear_gap_mm": null,
-          "direction": "直角",
-          "face": "下",
-          "pitch_mm": 125,
-          "layers": 1,
-          "stack_order": 2
+        "下": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 100,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": 29,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 127,
+            "inner_layers": []
+          }
         }
-      ],
-      "side_rows": [],
-      "band_rows": [
-        {
-          "type": "内側",
-          "direction": "線路",
+      },
+      "stirrups": {
+        "線路": {
           "diameter_mm": 16,
-          "material": null,
-          "sets": null,
           "pitch_mm": 250,
-          "start_mm": null,
-          "end_mm": null,
-          "legs_mode": "指定",
-          "effective_legs": null,
           "distribution_mode": "密度",
           "width_pitch_mm": null,
           "density_per_m": 2
         },
-        {
-          "type": "内側",
-          "direction": "直角",
+        "直角": {
           "diameter_mm": 16,
-          "material": null,
-          "sets": null,
           "pitch_mm": 250,
-          "start_mm": null,
-          "end_mm": null,
-          "legs_mode": "指定",
-          "effective_legs": null,
           "distribution_mode": "密度",
           "width_pitch_mm": null,
           "density_per_m": 2
         }
-      ],
-      "manual_positions": [],
-      "position_mode": "基本"
+      }
     },
     "file": "input.json",
-    "sha256": "2198f55ceb0a4cb1f66ce1792b7e62637348d1d03a6cda876bd234b6dee2bd2e"
+    "sha256": "c525986407504f65cf159f3e408435c5013397fa05dfc3ae2790ceadbcc6da01"
   },
-  "implementation_sha256": "9b8e77bc530be2b81b2f7f8ecb328c0eba7172e0423cc337b1f594eed43bc297",
+  "implementation_sha256": "3f6f9e6fb6b44815ec5d8d03a334038ebeab569e91af4c22e11f1257ddf4d27c",
   "runners": {
     "fempython": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "jrsnap": "C:\\Users\\sasai\\Documents\\structural-mcp\\JRSNAPHeadless\\bin\\Release\\JRSNAP.Headless.exe",
@@ -111,8 +78,8 @@
   },
   "engines": {
     "frameweb": {
-      "線路方向.json": "c3c6350cdc61ecb723f0ce968319c6afb0d498c8a88335f77c0f3d2753246d81",
-      "線路直角方向.json": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df"
+      "線路方向.json": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+      "線路直角方向.json": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c"
     },
     "reaction": {
       "線路方向_ピックアップ反力.csv": "0c017670dae4c60f38821d36d0c45744e1a14d579c149b73bf8b221040cb18ce",
@@ -267,7 +234,7 @@
         "stage": "0810",
         "wdj": {
           "file": "線路方向フーチング.wdj",
-          "sha256": "f26b324593a3ef6b17505c383b13af9c69731ef3803e46a8679d895ec429dacd"
+          "sha256": "666da4c9a41d79a2615f8fe89f6e3691c3bf9a8aca24ff8430aab002c4ba2413"
         },
         "engine_version": "1.0.0",
         "sections": {
@@ -415,7 +382,7 @@
         "stage": "0820",
         "wdj": {
           "file": "線路直角方向フーチング.wdj",
-          "sha256": "ad93fd7a8ca7f276a3f8c786054c334aa6c081d53960937ca25dc038ac4d64bd"
+          "sha256": "4179ffcb070acced0de522b28452f45007b1f0e5c329b90ddbcb52d88ea4d5d1"
         },
         "engine_version": "1.0.0",
         "sections": {

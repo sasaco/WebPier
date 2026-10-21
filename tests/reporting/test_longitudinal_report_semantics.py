@@ -304,7 +304,7 @@ def expected(case: str) -> dict[str, str]:
                             f"ρ={t(f.service)}を乗じる．")
     add("extraction.heading", "(4)抽出ケース")
     width = max(len(e.combinations) for e in result.extractions)
-    labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）", "長期支持性能",
+    labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",
               "短期支持性能"]
     add("extraction", "No名称" + "".join(f"C{i}" for i in range(1, width + 1)) + "".join(
         f"{e.number}{labels[e.number - 1]}" + "".join(map(str, e.combinations)) for e in result.extractions))
@@ -312,7 +312,7 @@ def expected(case: str) -> dict[str, str]:
 
 
 def combination_text(result, symbols, names) -> str:
-    header = ("No記号荷重名称安全性耐久性・使用性復旧性安全性使用性破壊ひび割れ損傷地盤の安定長期短期"
+    header = ("No記号荷重名称安全性耐久性・使用性使用性安全性使用性破壊ひび割れ損傷地盤の安定長期短期"
               "列車最大制動最大ﾛﾝｸﾞ最大雪最大縁応力度永久荷重変動荷重列車最大雪最大列車最大制動最大ﾛﾝｸﾞ最大雪最大"
               + "".join(str(c.number) for c in result.combinations))
     body = ""

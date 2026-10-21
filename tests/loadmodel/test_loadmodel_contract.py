@@ -24,8 +24,11 @@ def test_the_application_cases():
 
 
 def test_the_cantilever_rows_are_capacita_s_force_table():
+    """All but 最小鉄筋量, which takes the combinations of 耐久性（永久荷重） (decision 73)."""
     from webpier.calc.cantilever.combinations import FORCE_ROWS
-    assert [row.value for row in loadmodel.CantileverRow] == [row.id for row in FORCE_ROWS]
+    from webpier.calc.generic.cantilever import POOLED_AS
+    assert POOLED_AS == {8: 1}
+    assert [row.value for row in loadmodel.CantileverRow] == [row.id for row in FORCE_ROWS if row.id not in POOLED_AS]
 
 
 def test_every_name_of_the_package_is_exported():

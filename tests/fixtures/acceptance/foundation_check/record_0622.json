@@ -2,18 +2,18 @@
   "schema_version": 1,
   "kind": "foundation_check_acceptance",
   "stage": "0622",
-  "verified_at": "2026-10-19T17:22:04+09:00",
+  "verified_at": "2026-10-21T14:03:23+09:00",
   "method": "WebPier が 0620 で書く FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を Example2 9-27 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "99569a68707df6eab1742b22bda0fab56a054243e5d1eddc37e9ef07f1275717"
+    "sha256": "047dd1cf20fa78642af8da543629530eba81805a1162df566cfae510fa1b982a"
   },
-  "implementation_sha256": "9b8e77bc530be2b81b2f7f8ecb328c0eba7172e0423cc337b1f594eed43bc297",
+  "implementation_sha256": "d3223aa2d253b6583d365c3d56ba83a940392fe8ea550497d434273f69fa0abe",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358"
+    "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
   },
-  "frameweb_sha256": "56334274e7820b52105fd4cfb6d6ba1d6d62f91725e336520404068ca09ed6df",
+  "frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
   "reaction": {
     "file": "線路直角方向_ピックアップ反力.csv",
     "sha256": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"

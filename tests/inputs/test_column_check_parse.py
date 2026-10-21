@@ -21,7 +21,7 @@ from webpier.inputs import choices, parse_input
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 SECTION = "柱の断面照査"
-KEYS = ("鋼材の腐食に対する環境条件", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")
+KEYS = ("水掛かりの程度", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")
 
 
 def data():
@@ -34,9 +34,9 @@ def fails(document, message):
 
 
 def test_the_column_check_conditions_of_the_current_input():
-    """Example2 08_線路/WebDan.wdj: con 1 (一般の環境), vis true, ecsd 300, 運輸機構, JR-001 yes, JR-004 no."""
+    """Example2 08_線路/WebDan.wdj: con 1 (H16 の一般の環境; R5 では常時乾燥), vis true, ecsd 300, 運輸機構, JR-001 yes, JR-004 no."""
     check = parse_input(data()).column_check
-    assert check.environment == "一般の環境"
+    assert check.environment == "常時乾燥"
     assert check.appearance == "行う"
     assert check.ecsd == Printed(300, 0, "×10⁻⁶")
     assert check.body == "運輸機構"
@@ -44,7 +44,7 @@ def test_the_column_check_conditions_of_the_current_input():
 
 
 def test_the_choices_belong_to_the_program():
-    assert choices.CORROSION_ENVIRONMENTS == ("一般の環境", "腐食性環境", "特に厳しい腐食性環境")
+    assert choices.WATER_EXPOSURES == ("常時乾燥", "乾湿繰返し", "常時湿潤")
     assert choices.APPEARANCE_CHECKS == ("行う", "行わない")
     assert choices.STANDARD_BODIES == ("運輸機構", "JR各社", "JR東日本")
     assert choices.ADOPTIONS == ("適用する", "適用しない")
@@ -58,7 +58,7 @@ def test_the_conditions_may_be_blank_until_the_column_is_checked():
 
 
 @pytest.mark.parametrize("key,value,message", [
-    ("鋼材の腐食に対する環境条件", "厳しい環境", "「一般の環境」「腐食性環境」「特に厳しい腐食性環境」のいずれかを選んでください"),
+    ("水掛かりの程度", "厳しい環境", "「常時乾燥」「乾湿繰返し」「常時湿潤」のいずれかを選んでください"),
     ("外観の照査", True, "空でない文字列が必要です"),  # a choice, not a boolean
     ("適用基準の機関", "JR西日本", "「運輸機構」「JR各社」「JR東日本」のいずれかを選んでください"),
     ("JR-001", "する", "「適用する」「適用しない」のいずれかを選んでください"),

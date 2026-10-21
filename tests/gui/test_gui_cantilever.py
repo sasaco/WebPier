@@ -73,9 +73,9 @@ def test_the_beam_check_group_holds_the_cantilever_conditions(editor):
     paths = [(CHECK, *tail) for tail, _ in rebar_page.CANTILEVER_LABELS]
     assert all(path in editor.bindings.items for path in paths)
     assert len(paths) == 11
-    upper = cell(editor, CHECK, "鋼材の腐食に対する環境条件", "上面")
-    assert upper.get() == "腐食性環境"
-    assert upper.sheet.get_dropdown_values(upper.row, upper.column) == ["", "一般の環境", "腐食性環境", "特に厳しい腐食性環境"]
+    upper = cell(editor, CHECK, "水掛かりの程度", "上面")
+    assert upper.get() == "乾湿繰返し"
+    assert upper.sheet.get_dropdown_values(upper.row, upper.column) == ["", "常時乾燥", "乾湿繰返し", "常時湿潤"]
     appearance = cell(editor, CHECK, "外観の照査")
     assert appearance.sheet.get_dropdown_values(appearance.row, appearance.column) == ["", "行う", "行わない"]
     assert cell(editor, CHECK, "疲労", "旅客列車本数").get() == "60"

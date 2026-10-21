@@ -22,14 +22,16 @@ from webpier.pipeline.capacita import RUNNER_KEY, check_column, check_section, r
 from webpier.pipeline.fempython import RunnerError
 
 SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-            "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
+            "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability",
+            "bending_rebar_amount")
 WDJ = json.dumps({"crack": [{"vis_u": True}], "points": []}).encode("utf-8")
 PIK = b"PickUpNo\n    1    M    1\n"
 FOOTING_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-                    "bending_restorability_eq", "shear_restorability_eq")
+                    "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
 # The force table asks for the footing's sections (the stand-in derives them from the rows, as the real runner does).
 FOOTING_WDJ = json.dumps({"pickup_filename": "", "crack": [{"vis_u": False}],
-                          "force": [{"index": 1, "Md0_Md": -100.0, "Md5_Md": 799.16, "Vd5_Vd": 500.0},
+                          "force": [{"index": 1, "Md0_Md": -100.0, "Md5_Md": 799.16, "Vd5_Vd": 500.0,
+                                     "Md8_Md": -100.0},
                                     {"index": 2, "Md7_Md": -900.0, "Vd7_Vd": 600.0}]}).encode("utf-8")
 
 
@@ -90,7 +92,7 @@ def test_the_stand_in_checks_the_given_wdj_with_the_given_pik(fake_capacita_runn
     assert [section.id for section in checked.sections] == list(SECTIONS)
     assert [(section.first, section.last) for section in checked.sections][:2] == [(1, 2), (3, 3)]
     pages = texts(checked.pdf)
-    assert len(pages) == 9
+    assert len(pages) == 10
     digest = hashlib.sha256(WDJ).hexdigest()[:16]
     assert pages[0] == f"FAKE CAPACITA section_forces 1/2 {digest}"
     assert checked.section("shear_restorability") == (9, 9)
@@ -98,7 +100,7 @@ def test_the_stand_in_checks_the_given_wdj_with_the_given_pik(fake_capacita_runn
 
 def test_a_section_capacita_skipped_for_zero_forces_is_missing_with_its_code(fake_capacita_runner: Path,
                                                                            monkeypatch: pytest.MonkeyPatch):
-    """WD-1906 (耐久性せん断) and WD-1901 (使用性曲げ): RcDan CheckValidation, as Example2 across the track."""
+    """WD-1919 (耐久性せん断) and WD-1914 (使用性曲げ): RcDan CheckValidation, as Example2 across the track."""
     monkeypatch.setenv("FAKE_CAPACITA", "skip")
     checked = check_column(WDJ, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS)
     assert checked.skipped == ("shear_durability", "bending_serviceability")
@@ -124,14 +126,14 @@ def test_the_report_takes_the_pages_of_each_returned_section_by_its_id(fake_capa
 
 
 def test_the_codes_of_the_skipped_checks_are_capacitas():
-    """RcDan ErrorMessage_1000_1999 (ZeroForce_RailH16_*): the H16 messages of every body."""
-    assert capacita.SKIPPED == {"bending_serviceability": "WD-1901", "bending_safety_destruction": "WD-1902",
-                                "bending_safety_fatigue": "WD-1903", "bending_restorability": "WD-1904",
-                                "bending_restorability_eq": "WD-1905", "shear_durability": "WD-1906",
-                                "shear_safety_destruction": "WD-1907", "shear_restorability": "WD-1908",
-                                "shear_restorability_eq": "WD-1909", "torsion_durability": "WD-1910",
-                                "torsion_safety_destruction": "WD-1911", "torsion_restorability": "WD-1912",
-                                "torsion_restorability_eq": "WD-1913"}
+    """RcDan ErrorMessage_1000_1999 (ZeroForce_RailR5_*): the R5 messages of every body (decision 73)."""
+    assert capacita.SKIPPED == {"bending_serviceability": "WD-1914", "bending_safety_destruction": "WD-1915",
+                                "bending_safety_fatigue": "WD-1916", "bending_restorability": "WD-1917",
+                                "bending_restorability_eq": "WD-1918", "shear_durability": "WD-1919",
+                                "shear_safety_destruction": "WD-1920", "shear_restorability": "WD-1921",
+                                "shear_restorability_eq": "WD-1922", "torsion_durability": "WD-1923",
+                                "torsion_safety_destruction": "WD-1924", "torsion_restorability": "WD-1925",
+                                "torsion_restorability_eq": "WD-1926"}
 
 
 def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
@@ -180,11 +182,12 @@ def _timeout(*args, **kwargs):
 
 def test_the_stand_in_checks_a_footing_wdj_without_a_pickup(fake_capacita_runner: Path):
     """Decision 60: run-rc without --pickup (the WDJ holds the forces); result.json and report.pdf come back, with the
-    five sections of the footing check in order (the real runner's page counts: 1, 2, 2, 1, 2)."""
+    six sections of the footing check in order (the real runner's page counts: 1, 2, 2, 1, 2, 3)."""
     checked = check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS)
     assert checked.engine_version == "fake-1"
     assert [section.id for section in checked.sections] == list(FOOTING_SECTIONS)
-    assert [(section.first, section.last) for section in checked.sections] == [(1, 1), (2, 3), (4, 5), (6, 6), (7, 8)]
+    assert [(section.first, section.last) for section in checked.sections] == [(1, 1), (2, 3), (4, 5), (6, 6), (7, 8),
+                                                                                (9, 11)]
     assert checked.skipped == ()
     pages = texts(checked.pdf)
     digest = hashlib.sha256(FOOTING_WDJ).hexdigest()[:16]
@@ -193,7 +196,7 @@ def test_the_stand_in_checks_a_footing_wdj_without_a_pickup(fake_capacita_runner
     assert checked.section("shear_restorability_eq") == (7, 8)
     assert {section: len(texts(content)) for section, content in checked.pages.items()} == {
         "bending_safety_destruction": 1, "shear_safety_destruction": 2, "bending_durability": 2,
-        "bending_restorability_eq": 1, "shear_restorability_eq": 2}
+        "bending_restorability_eq": 1, "shear_restorability_eq": 2, "bending_rebar_amount": 3}
     with pytest.raises(RunnerError, match="計算書の節が違います"):
         check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS[:4])
 
@@ -268,7 +271,7 @@ def _footing_wdj() -> bytes:
 
 
 def test_the_real_runner_checks_the_footing_of_the_sample_bars(real_capacita_runner: Path):
-    """The WDJ of calc.footing_check / export.capacita.footing_wdj on the real runner (2026-10-19: five sections)."""
+    """The WDJ of calc.footing_check / export.capacita.footing_wdj on the real runner (2026-10-21: six sections)."""
     wdj = _footing_wdj()
     checked = check_section(wdj, "線路方向フーチング.wdj", real_capacita_runner, FOOTING_SECTIONS)
     assert [section.id for section in checked.sections] == list(FOOTING_SECTIONS)
@@ -289,7 +292,7 @@ def test_the_real_runner_checks_the_example2_column(real_capacita_runner: Path):
 
 def test_the_real_runner_skips_the_zero_force_checks_across_the_track(real_capacita_runner: Path):
     """Across the track the permanent actions are symmetric: the real Capacita skips the serviceability and the
-    shear durability checks with WD-1901 and WD-1906 (column_section_check_09.json, skipped_by_capacita)."""
+    shear durability checks with WD-1914 and WD-1919 (column_section_check_09.json, skipped_by_capacita)."""
     checked = _real(real_capacita_runner, "09_直角", "線路直角方向.pik", transverse=True)
     sample = json.loads((Path(__file__).parents[1] / "fixtures" / "example2" / "column_section_check_09.json")
                         .read_text(encoding="utf-8"))

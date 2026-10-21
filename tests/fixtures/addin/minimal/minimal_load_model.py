@@ -78,7 +78,7 @@ TRANSVERSE = (
                          _term("1.0", pier_wind(1), both=True)), frozenset({G.SUPPORT_SHORT_TERM})),
 )
 SEISMIC = (SeismicCombination("地震時", (D1, D2, WP_NORMAL, "LE", "EQ1", "EQL", EQ2)),)
-CANTILEVER = (  # no combination of 復旧性（損傷）地震時以外 (R.RESTORABILITY): its forces are 0
+CANTILEVER = (  # no combination of 使用性（損傷） (R.SERVICEABILITY_DAMAGE): its forces are 0
     CantileverCombination("破壊 車最大", (CantileverTerm(D1, _d("1.1")), CantileverTerm(D2, _d("1.2")),
                                       CantileverTerm("L", _d("1.35")), CantileverTerm("BR", _d("1.0"))),
                           frozenset({R.SAFETY})),

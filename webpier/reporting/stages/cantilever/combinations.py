@@ -19,7 +19,7 @@ from ....inputs import PierInput
 from ...numbers import printed
 from ..reaction.manuscript import CHAPTER, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
 
-STATES = {LimitState.SAFETY: "安全性\n(破壊)", LimitState.RESTORABILITY: "復旧性\n地震時以外",
+STATES = {LimitState.SAFETY: "安全性\n(破壊)", LimitState.SERVICEABILITY_DAMAGE: "使用性\n(損傷)",
           LimitState.RESTORABILITY_EQ: "復旧性\n地震時", LimitState.DURABILITY: "耐久性",
           LimitState.FATIGUE: "安全性\n(疲労)"}
 QUANTITIES = {Quantity.BENDING: ("曲げモーメント", "Md", "kN・m"), Quantity.SHEAR: ("せん断力", "Vd", "kN"),

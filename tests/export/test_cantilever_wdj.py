@@ -137,15 +137,18 @@ def test_the_safety_tables_and_the_standard(built):
     rows = document["safety"]["safety_factor"]["1"]
     assert [row["id"] for row in rows] == expected["safety_factor_ids"]
     fatigue = next(row for row in rows if row["id"] == 2)
-    assert {key: fatigue[key] for key in SAFETY_KEYS} == expected["fatigue_row"]
-    assert all(row["T_rbt"] == 1 for row in rows if row["id"] != 8)
+    # the sample's H16 row but γb of torsion, which the R5 default leaves blank (decision 73)
+    assert {key: fatigue[key] for key in SAFETY_KEYS} == {**expected["fatigue_row"], "T_rbt": None}
+    assert {row["id"]: row["T_rbt"] for row in rows} == {0: 1, 2: None, 5: 1.3, 6: 1.3, 7: 1.3, 8: None}
     assert document["safety"]["material_concrete"]["1"] == expected["material_concrete"]
     bars = document["safety"]["material_bar"]["1"]
     assert [row["separate"] for row in bars] == [25, 29]
     assert all(row[kind] == {"fsy": 390, "fsu": 560} for row in bars for kind in ("tensionBar", "sidebar", "stirrup"))
     assert document["safety"]["pile_factor"]["1"][0]["id"] == "pile-000"
     basic = document["basic"]
-    assert [item["id"] for item in basic["specification2_list"] if item["selected"]] == [expected["specification2_selected"]]
+    # the sample's H16_Shinkansen (1) is R5_Shinkansen (4) now (decision 73)
+    assert expected["specification2_selected"] == 1
+    assert [item["id"] for item in basic["specification2_list"] if item["selected"]] == [4]
     assert basic["specification1_list"][0]["selected"] is True
     assert [item["selected"] for item in basic["conditions_list"]] == [True, False]
     assert all(item["no"] is None for key in ("pickup_moment", "pickup_shear_force", "pickup_torsional_moment")
@@ -180,8 +183,12 @@ def test_the_force_table_holds_the_governing_cases_of_0900(built):
         assert (force[f"Mt{row}_Md"], force[f"Mt{row}_Vd"], force[f"Mt{row}_Nd"]) == (-selected.md.value,
                                                                                       selected.vd.value, None)
     expected = SAMPLE["wdj_forces"]
-    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is not None] == expected["filled_moment_rows"]
-    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is None] == expected["blank_moment_rows"]
+    # the sample's, and Md8 (最小鉄筋量, blank in the sample) the permanent action as Md1 (decision 73)
+    assert 8 in expected["blank_moment_rows"]
+    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is not None] == [*expected["filled_moment_rows"], 8]
+    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is None] == [
+        row for row in expected["blank_moment_rows"] if row != 8]
+    assert force["Md8_Md"] == force["Md1_Md"] and force["Md8_Nd"] is None
     assert all(force[f"Vd{row}_Vd"] is not None for row in SHEAR_ROWS)  # Vd6 too (the sample leaves it blank)
     assert all(force[f"Mt{row}_Mt"] is not None for row in TORSION_ROWS)
     # the shear row of a limit state carries its own case's Md: the sample's Vd5 (5096.14) has Md −5576.6, not −5654.81

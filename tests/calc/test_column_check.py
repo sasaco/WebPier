@@ -121,7 +121,7 @@ def test_the_tensile_strength_of_each_grade():
 
 def test_the_crack_conditions_and_the_standard(example):
     crack, standard = SAMPLE["crack"], SAMPLE["standard"]
-    assert (example.environment, example.environment_number) == ("一般の環境", crack["con_u"])
+    assert (example.environment, example.environment_number) == ("常時乾燥", crack["con_u"])
     assert example.appearance is crack["vis_u"]
     assert example.ecsd == Printed(crack["ecsd_u"], 0, "×10⁻⁶")
     assert (example.kr, example.k4) == (KR, K4) and (KR.value, K4.value) == (crack["kr"], crack["k4"])
@@ -130,19 +130,42 @@ def test_the_crack_conditions_and_the_standard(example):
 
 
 def test_the_extraction_cases_follow_the_extraction_groups_of_0610(example):
+    """The sample's, and the row 8 (最小鉄筋量, blank in the sample) the permanent action 3 (decision 73)."""
     pickup = SAMPLE["pickup"]
+    assert pickup["moment"]["8"] is None and pickup["moment"]["1"] == 3
     for name, cases in (("moment", example.moment_cases), ("shear_force", example.shear_cases),
                         ("torsional_moment", example.torsion_cases)):
-        assert dict(cases) == {int(key): value for key, value in pickup[name].items()}, name
+        expected = {int(key): value for key, value in pickup[name].items()}
+        assert dict(cases) == (expected | {8: 3} if name == "moment" else expected), name
 
 
-def test_the_safety_factors_are_the_constants_of_the_sample():
-    assert [factors.id for factors in SAFETY_FACTORS] == [row["id"] for row in SAMPLE["safety_factor"]]
-    for factors, row in zip(SAFETY_FACTORS, SAMPLE["safety_factor"]):
+# WebDanforJS safety-factors-material-strengths.service.ts default_safety_factor for the railway bodies (decision 73,
+# transcribed from the source): id: (M_rc, M_rs, M_rbs, V_rc, V_rs, V_rbc, V_rbs, V_rbv, T_rbt, ri, range).
+R5_DEFAULTS = {0: (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, None, 1.0, 1.0, 1),
+               2: (1.3, 1.05, 1.0, 1.3, 1.05, 1.3, 1.0, None, None, 1.1, 2),
+               5: (1.3, 1.0, 1.1, 1.3, 1.0, 1.3, 1.1, 1.2, 1.3, 1.2, 2),
+               6: (1.3, 1.0, 1.0, 1.3, 1.0, 1.3, 1.1, 1.2, 1.3, 1.2, 3),
+               7: (1.3, 1.0, 1.0, 1.3, 1.0, 1.3, 1.1, 1.2, 1.3, 1.0, 3),
+               8: (1.3, 1.0, 1.0, None, None, None, None, None, None, 1.0, 3)}
+
+
+def test_the_safety_factors_are_the_r5_defaults_of_webdanforjs():
+    assert [factors.id for factors in SAFETY_FACTORS] == list(R5_DEFAULTS)
+    for factors in SAFETY_FACTORS:
         values = [None if getattr(factors, key.lower()) is None else getattr(factors, key.lower()).value
                   for key in SAFETY_KEYS]
-        assert values == [row[key] for key in SAFETY_KEYS], factors.id
-        assert factors.range == row["range"] and factors.title
+        assert (*values, factors.range) == R5_DEFAULTS[factors.id], factors.id
+        assert factors.title
+    assert [factors.title for factors in SAFETY_FACTORS if factors.id in (6, 7)] == ["使用性（損傷）", "復旧性（損傷）地震時"]
+
+
+def test_the_r5_factors_differ_from_the_samples_h16_only_by_torsion_and_the_seismic_vsd():
+    """Example2 08_線路/WebDan.wdj (H16): γb of torsion 1.0 (none for fatigue in R5) and γb of Vsd 1.0 of the row 7."""
+    for factors, row in zip(SAFETY_FACTORS, SAMPLE["safety_factor"]):
+        values = dict(zip(SAFETY_KEYS, R5_DEFAULTS[factors.id]))
+        changed = {key for key in SAFETY_KEYS if values[key] != row[key]}
+        expected = ({"T_rbt"} if factors.id in (2, 5, 6, 7) else set()) | ({"V_rbs"} if factors.id == 7 else set())
+        assert changed == expected, factors.id
 
 
 @pytest.mark.parametrize("body,gamma_i", [("運輸機構", 1.2), ("JR各社", 1.2), ("JR東日本", 1.0)])
@@ -159,8 +182,8 @@ def test_the_restorability_structure_factor_of_each_body(body, gamma_i):
 
 
 @pytest.mark.parametrize("key,value,attribute,expected", [
-    ("鋼材の腐食に対する環境条件", "特に厳しい腐食性環境", "environment_number", 3),
-    ("鋼材の腐食に対する環境条件", "腐食性環境", "environment_number", 2),
+    ("水掛かりの程度", "常時湿潤", "environment_number", 3),
+    ("水掛かりの程度", "乾湿繰返し", "environment_number", 2),
     ("外観の照査", "行わない", "appearance", False),
     ("適用基準の機関", "JR東日本", "body", "JR東日本"),
     ("JR-001", "適用しない", "jr001", False),
@@ -170,7 +193,7 @@ def test_the_conditions_are_the_input(key, value, attribute, expected):
     assert getattr(check(**{f"{CHECK}/{key}": value}), attribute) == expected
 
 
-@pytest.mark.parametrize("path", [f"{CHECK}/鋼材の腐食に対する環境条件", f"{CHECK}/外観の照査", f"{CHECK}/ε'csd",
+@pytest.mark.parametrize("path", [f"{CHECK}/水掛かりの程度", f"{CHECK}/外観の照査", f"{CHECK}/ε'csd",
                                   f"{CHECK}/適用基準の機関", f"{CHECK}/JR-001", f"{CHECK}/JR-004",
                                   "鉄筋/柱/aggregate_max_mm"])
 def test_a_blank_condition_is_an_input_error(path):
@@ -276,7 +299,7 @@ def test_the_report_sections_follow_the_checks_asked_for(example):
     """Capacita's section ids (Capacita README); 使用性（外観） only with the appearance check (owner: no 8.8 without)."""
     assert example.sections == ("section_forces", "bending_safety_destruction", "shear_safety_destruction",
                                 "bending_durability", "shear_durability", "bending_serviceability",
-                                "bending_restorability", "shear_restorability")
+                                "bending_restorability", "shear_restorability", "bending_rebar_amount")
     without = check(**{f"{CHECK}/外観の照査": "行わない"}).sections
     assert without == tuple(section for section in example.sections if section != "bending_serviceability")
 

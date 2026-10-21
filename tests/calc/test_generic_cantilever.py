@@ -92,7 +92,9 @@ def test_the_max_response_term():
 def test_the_rows_of_the_force_table():
     _, result = completed()
     by_row = {(s.row, s.quantity): s for s in result.selections}
-    assert sorted({row for row, _ in by_row}) == list(range(8))
+    assert sorted({row for row, _ in by_row}) == list(range(9))
+    # 最小鉄筋量 takes the combinations of 耐久性（永久荷重） (decision 73)
+    assert by_row[(8, Quantity.BENDING)].case == by_row[(1, Quantity.BENDING)].case
     failure = by_row[(5, Quantity.BENDING)]
     assert failure.case.name == "破壊 車最大"
     # the larger |Md| of the two sides

@@ -2,30 +2,30 @@
   "schema_version": 1,
   "kind": "capacita_column_check_acceptance",
   "stage": "0621",
-  "date": "2026-10-19",
-  "verified_at": "2026-10-19T17:22:12+09:00",
+  "date": "2026-10-21",
+  "verified_at": "2026-10-21T14:32:30+09:00",
   "method": "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "99569a68707df6eab1742b22bda0fab56a054243e5d1eddc37e9ef07f1275717"
+    "sha256": "047dd1cf20fa78642af8da543629530eba81805a1162df566cfae510fa1b982a"
   },
-  "implementation_sha256": "9b8e77bc530be2b81b2f7f8ecb328c0eba7172e0423cc337b1f594eed43bc297",
+  "implementation_sha256": "3f6f9e6fb6b44815ec5d8d03a334038ebeab569e91af4c22e11f1257ddf4d27c",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",
-    "runner_dll_sha256": "7cc601743731432b0e85299583ca365e90a5e20d91d8f3d750f4da331a8693be"
+    "runner_dll_sha256": "0043fa3411f135a44b35410fada15b1399b836a7aee403b352f27901232103ac"
   },
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+7488c8fb4d6c100438a9691747ceb11fd9e66358"
+    "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
   },
   "point_index": 7,
-  "wdj_given_sha256": "3de3bb35655f12c4b91941000e7c8a0e2b4a0151d741d2a7cdb60bc4a5ed7880",
+  "wdj_given_sha256": "8bd7f20c22422c8d55842cddd30b5f57b425cd5ad141a1fa8d33191f2c5284d7",
   "pik_sha256": "17af7fb3371d404dfc4f82cc17f268c3429c1566a6ddaad1367be2b84fdd4ecc",
-  "completed_wdj_sha256": "1663b6a22dfd7c3fd85cb83f98c73c552b90d54dcfd4e467524525504c203a72",
+  "completed_wdj_sha256": "9d490dfc64d6df63d5dece81a7ec50d4602a9b0aa6f767560123bdb79c1c75dc",
   "report": {
-    "pages": 10,
+    "pages": 13,
     "sections": [
       {
         "id": "section_forces",
@@ -56,6 +56,11 @@
         "id": "shear_restorability",
         "first": 9,
         "last": 10
+      },
+      {
+        "id": "bending_rebar_amount",
+        "first": 11,
+        "last": 13
       }
     ],
     "skipped": [
@@ -88,9 +93,10 @@
   "expected_differences": [
     "照査値は見本と比べない。WebPier の 0620 の風荷重は見本と違う（決定12・35）ので Md が違う（安全性（破壊）の Md 10939.1／見本 8256.6）。軸力 N'd は見本と同じなので、耐力（Mud・Myd）を比べる。",
     "耐力は見本の WebDan といまの Capacita で 0.2% 未満違う（見本自身の WDJ をいまの Capacita で計算すると Mud 29326.7、Myd 48634.5）。",
-    "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1901）と耐久性のせん断（WD-1906）を飛ばす。見本に 9.7・9.8 がないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
+    "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1914）と耐久性のせん断（WD-1919）を飛ばす。見本に 9.7・9.8 がないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
     "柱下端の着目点は PIK の 7 番目（柱に風荷重の区間の端の着目点がある）。見本は 6。",
     "側方鉄筋 D32×29 は見本どおり位置を書かず、Capacita が等分に配置する。",
-    "復旧性のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。"
+    "基準は RC標準 R5（見本は H16。決定73）で、耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節（bending_rebar_amount、行8 に永久作用）のページが加わる。",
+    "使用性（損傷）のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。"
   ]
 }

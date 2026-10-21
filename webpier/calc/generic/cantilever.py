@@ -14,7 +14,9 @@ The application's D1 is the train path's (the bearings' D1 with the self weight 
 combination multiplies the totals of each action by its factor, the 最大応答震度 of the direction it names read from
 Aggre-SE (``complete_generic_cantilever``), and sums the printed products (ADR-0003). A row of the force table takes,
 for each check, the governing combination of either cantilever among those the load model assigns to it (as
-``adopt``); a row without one is the zero case 該当する組合せなし（断面力0）, which Capacita skips.
+``adopt``); a row without one is the zero case 該当する組合せなし（断面力0）, which Capacita skips. The row 8 最小鉄筋量
+(decision 73) has no CantileverRow of its own: it takes the combinations of 耐久性（永久荷重） (the row 1), the
+permanent action as the train path's case 28.
 """
 
 from __future__ import annotations
@@ -152,12 +154,17 @@ def _case(number: int, combination: CantileverCombination, by_id: Mapping[str, A
 ZERO = GenericCase(0, NO_COMBINATION, frozenset(), (), FORCE(0), MOMENT(0), MOMENT(0))
 
 
+# The rows pooled from another row's combinations: 最小鉄筋量 from 耐久性（永久荷重） (decision 73).
+POOLED_AS = {8: 1}
+
+
 def adopt_generic(cases: Mapping[Side, Sequence[GenericCase]]) -> tuple[Selection, ...]:
     """For each row and check the governing case of either cantilever among those assigned to the row (the left
     side and the earlier case win ties); the zero case for a row without one."""
     found = []
     for row in FORCE_ROWS:
-        pooled = [(side, case) for side in Side if side in cases for case in cases[side] if row.id in case.rows]
+        assigned = POOLED_AS.get(row.id, row.id)
+        pooled = [(side, case) for side in Side if side in cases for case in cases[side] if assigned in case.rows]
         for quantity in row.quantities:
             side, case = max(pooled, key=lambda item: _measure(quantity, item[1])) if pooled else (Side.LEFT, ZERO)
             found.append(Selection(row.id, row.title, quantity, side, case))  # type: ignore[arg-type]

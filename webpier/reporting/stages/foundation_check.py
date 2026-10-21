@@ -1,8 +1,8 @@
-"""0612 線路方向の基礎の照査 (8.10) and 0622 直角方向の基礎の照査 (9.10) (decision 54).
+"""0612 線路方向の基礎の照査 (8.11) and 0622 直角方向の基礎の照査 (9.11) (decisions 54, 73).
 
 WebPier lays out every page: the check formulas and their symbols, then the table of each check, as Example2 08
 pp.8-27 to 8-32 (09 pp.9-24 to 9-29 are the same pages). The section continues the column check of the same direction
-(n.5 to n.9, decision 48) as n.10, n = 8 for 0612 and 9 for 0622; the chapter heading is not printed, and the
+(n.5 to n.10, decisions 48 and 73) as n.11, n = 8 for 0612 and 9 for 0622; the chapter heading is not printed, and the
 sample's duplicated "8.7" (and 09's copy of it) is not reproduced. Every number is a Printed value of the calc result
 (ADR-0003); nothing is calculated here.
 
@@ -45,7 +45,7 @@ BLANK = ""
 class Chapter:
     """Where a stage's foundation check stands: its section number and the prefix of its block ids."""
 
-    number: int  # n of n.10, continuing the column check of the same direction
+    number: int  # n of n.11, continuing the column check of the same direction
     prefix: str
 
 
@@ -62,7 +62,7 @@ def _factor(requirement: Requirement, name: str) -> str:
 
 
 def _requirements(m: Manuscript, n: int) -> None:
-    m.heading("heading", f"{n}.10 基礎の照査", 1)
+    m.heading("heading", f"{n}.11 基礎の照査", 1)
     m.heading("vertical.heading", "(1) 鉛直支持に対する検討", 2)
     m.paragraph("vertical.text", "鉛直支持に対する検討においては，次式を満足することを確かめる．")
     for requirement, lead, check, items in (

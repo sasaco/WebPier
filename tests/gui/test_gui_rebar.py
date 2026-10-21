@@ -190,10 +190,10 @@ def test_the_column_check_conditions_group(editor):
     """Decision 48: the 柱の断面照査 conditions are entered with the column; one set for both directions."""
     assert tuple(page(editor).group_buttons) == ("main", "hoops", "check")
     assert page(editor).select_group("check")
-    environment = cell(editor, "柱の断面照査", "鋼材の腐食に対する環境条件")
-    assert environment.get() == "一般の環境"
+    environment = cell(editor, "柱の断面照査", "水掛かりの程度")
+    assert environment.get() == "常時乾燥"
     assert environment.sheet.get_dropdown_values(environment.row, environment.column) == [
-        "", "一般の環境", "腐食性環境", "特に厳しい腐食性環境"]
+        "", "常時乾燥", "乾湿繰返し", "常時湿潤"]
     shrinkage = cell(editor, "柱の断面照査", "ε'csd")
     assert shrinkage.get() == "300" and shrinkage.sheet.get_cell_data(shrinkage.row, 2) == "×10⁻⁶"
     assert cell(editor, "柱の断面照査", "外観の照査").get() == "行う"

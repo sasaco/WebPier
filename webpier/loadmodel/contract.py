@@ -77,7 +77,7 @@ class CantileverRow(Enum):
     FATIGUE_PERMANENT = 3  # 安全性（疲労破壊）永久作用
     FATIGUE_VARIABLE = 4  # 安全性（疲労破壊）永久＋変動
     SAFETY = 5  # 安全性（破壊）
-    RESTORABILITY = 6  # 復旧性（損傷）地震時以外
+    SERVICEABILITY_DAMAGE = 6  # 使用性（損傷）
     RESTORABILITY_EQ = 7  # 復旧性（損傷）地震時
 
 

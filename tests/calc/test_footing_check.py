@@ -46,7 +46,7 @@ def test_the_bars_and_materials_are_the_footings():
 def test_the_conditions_are_the_column_checks():
     check = checked()
     assert (check.environment, check.environment_number, check.ecsd.value, check.body, check.jr001, check.jr004) == (
-        "一般の環境", 1, 300, "運輸機構", True, False)
+        "常時乾燥", 1, 300, "運輸機構", True, False)
     assert check.safety_factors == SAFETY_FACTORS_OF_BODY["運輸機構"]
     assert (check.kr, check.k4) == (KR, K4)
 
@@ -86,14 +86,14 @@ def test_across_the_track_the_point_and_bars_are_the_other_direction():
     assert (check.bars.diameter.value, check.bars.cover.value) == (29, 127)
 
 
-def test_the_report_sections_are_the_five_of_the_sample():
+def test_the_report_sections_are_the_five_of_the_sample_and_the_rebar_amount():
     assert checked().sections == REPORT_SECTIONS == (
         "bending_safety_destruction", "shear_safety_destruction", "bending_durability", "bending_restorability_eq",
-        "shear_restorability_eq")
+        "shear_restorability_eq", "bending_rebar_amount")
 
 
 @pytest.mark.parametrize("path,message", [
-    ("柱の断面照査/鋼材の腐食に対する環境条件", "柱の断面照査.鋼材の腐食に対する環境条件: 値が必要です"),
+    ("柱の断面照査/水掛かりの程度", "柱の断面照査.水掛かりの程度: 値が必要です"),
     ("柱の断面照査/ε'csd", "柱の断面照査.ε'csd: 値が必要です"),
     ("柱の断面照査/適用基準の機関", "柱の断面照査.適用基準の機関: 値が必要です"),
     ("柱の断面照査/JR-001", "柱の断面照査.JR-001: 値が必要です"),

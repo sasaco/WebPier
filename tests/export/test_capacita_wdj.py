@@ -125,29 +125,40 @@ def test_the_bars(document):
 
 
 def test_the_extraction_cases(document):
+    """The sample's, and the row 8 (最小鉄筋量, blank in the sample) the permanent action 3 (decision 73)."""
     basic = document["basic"]
     for name in ("moment", "shear_force", "torsional_moment"):
-        assert {row["id"]: row["no"] for row in basic[f"pickup_{name}"]} == {
-            int(key): value for key, value in SAMPLE["pickup"][name].items()}, name
+        expected = {int(key): value for key, value in SAMPLE["pickup"][name].items()}
+        assert {row["id"]: row["no"] for row in basic[f"pickup_{name}"]} == (
+            expected | {8: 3} if name == "moment" else expected), name
 
 
 def test_the_standard_and_its_conditions(document):
     basic, standard = document["basic"], SAMPLE["standard"]
     assert [row["id"] for row in basic["specification1_list"] if row["selected"]] == [standard["specification1"]]
-    assert [row["id"] for row in basic["specification2_list"] if row["selected"]] == [standard["specification2"]]
+    # the sample's H16_Shinkansen (1) is R5_Shinkansen (4) now (decision 73)
+    assert standard["specification2"] == 1
+    assert [row["id"] for row in basic["specification2_list"] if row["selected"]] == [4]
     assert {row["id"]: row["selected"] for row in basic["conditions_list"]} == standard["conditions"]
 
 
-@pytest.mark.parametrize("body,selected", [("JR各社", 0), ("運輸機構", 1), ("JR東日本", 2)])
-def test_the_body_selects_the_h16_base_of_its_standard(body, selected):
+@pytest.mark.parametrize("body,selected", [("JR各社", 3), ("運輸機構", 4), ("JR東日本", 8)])
+def test_the_body_selects_the_r5_base_of_its_standard(body, selected):
     rows = wdj(適用基準の機関=body)["basic"]["specification2_list"]
     assert [row["id"] for row in rows if row["selected"]] == [selected]
 
 
 def test_the_safety_tables(document):
     safety = document["safety"]
+    # the sample's H16 rows with the R5 defaults of WebDanforJS (decision 73): γb of torsion 1.3 (none for fatigue),
+    # γb of Vsd 1.1 of the row 7, and the R5 name of the row 6
+    r5 = {2: {"T_rbt": None}, 5: {"T_rbt": 1.3}, 6: {"T_rbt": 1.3, "title": "使用性（損傷）"},
+          7: {"T_rbt": 1.3, "V_rbs": 1.1}}
     assert [{key: row[key] for key in SAFETY_KEYS} for row in safety["safety_factor"]["1"]] == [
-        {key: row[key] for key in SAFETY_KEYS} for row in SAMPLE["safety_factor"]]
+        {key: row[key] for key in SAFETY_KEYS} | {key: value for key, value in r5.get(row["id"], {}).items()
+                                                  if key in SAFETY_KEYS}
+        for row in SAMPLE["safety_factor"]]
+    assert [row["title"] for row in safety["safety_factor"]["1"] if row["id"] == 6] == ["使用性（損傷）"]
     steel = SAMPLE["material_bar"]
     for row in safety["material_bar"]["1"]:
         assert {key: row[key] for key in ("tensionBar", "sidebar", "stirrup")} == {
@@ -164,7 +175,7 @@ def test_the_crack_conditions(document):
 
 
 def test_the_appearance_and_the_environment_are_the_input():
-    (crack,) = wdj(外観の照査="行わない", 鋼材の腐食に対する環境条件="特に厳しい腐食性環境")["crack"]
+    (crack,) = wdj(外観の照査="行わない", 水掛かりの程度="常時湿潤")["crack"]
     assert (crack["vis_u"], crack["vis_l"], crack["con_u"], crack["con_l"], crack["con_s"]) == (False, False, 3, 3, 3)
 
 

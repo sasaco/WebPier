@@ -621,7 +621,7 @@ def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_
                terms(service_impact, "×", value(train.factor_service)), factors.service_impact)
 
 
-EXTRACTION_NAMES = ("安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）",
+EXTRACTION_NAMES = ("安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）",
                     "長期支持性能", "短期支持性能")
 
 

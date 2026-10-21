@@ -1,5 +1,6 @@
-"""The 0810 / 0820 report (decision 60, ADR-0008): WebPier's headings and explanations of 12.2〜12.4 (0810) and
-12.5〜12.7 (0820), each followed by Capacita's pages of its section, in the order of the five sections asked of it;
+"""The 0810 / 0820 report (decision 60, ADR-0008): WebPier's headings and explanations of 12.2〜12.5 (0810) and
+12.6〜12.9 (0820), each followed by Capacita's pages of its section, in the order of the six sections asked of it
+(the five of the sample and 最小鉄筋量及び最大鉄筋量, decision 73);
 the shear crack check is not asked of Capacita and its omission (面部材のため省略) is printed after the durability
 pages, before the restorability chapter; the values written to the WDJ are printed from the same result.
 
@@ -23,14 +24,15 @@ from webpier.reporting.stages.footing_check import (LONGITUDINAL, TRANSVERSE, bu
 
 MARK = "FAKE CAPACITA"
 SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-            "bending_restorability_eq", "shear_restorability_eq")
+            "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
 # The headings of WebPier's part before each section, in order (0810).
 HEADINGS = {"bending_safety_destruction": ("12.2 安全性の照査", "1) 曲げモーメントと軸方向力に対する照査"),
             "shear_safety_destruction": ("2) せん断力に対する照査",),
             "bending_durability": ("12.3 耐久性の照査", "1) 曲げモーメントと軸方向力に対する照査"),
             "bending_restorability_eq": ("2) せん断ひび割れの検討", "12.4 復旧性（地震時）の照査",
                                          "1) 曲げモーメントと軸方向力に対する照査"),
-            "shear_restorability_eq": ("2) せん断力に対する照査",)}
+            "shear_restorability_eq": ("2) せん断力に対する照査",),
+            "bending_rebar_amount": ("12.5 最小鉄筋量及び最大鉄筋量",)}
 OMISSION = ("本構造物のフーチングは，ディープビーム的な耐荷機構を有する面部材である．このため，せん断補強鋼材の役割が通常の"
             "棒部材と異なり，さらにひび割れ性状も異なると考えられる．したがって，せん断力によって耐久性に問題を生じることは"
             "少ないと考え，検討を省略する．")
@@ -90,7 +92,7 @@ def test_each_section_follows_its_headings_in_report_order(pages):
         positions = [before.index(heading) for heading in headings]
         assert positions == sorted(positions), section
     assert pages[0].strip().startswith("12.2 安全性の照査")
-    assert order[-1] == "shear_restorability_eq"
+    assert order[-1] == "bending_rebar_amount"
 
 
 def test_the_shear_crack_omission_follows_the_durability_pages(pages):
@@ -102,25 +104,25 @@ def test_the_shear_crack_omission_follows_the_durability_pages(pages):
     assert text.index("検討を省略する．") < text.index("12.4 復旧性（地震時）の照査")
 
 
-def test_across_the_track_the_sections_are_numbered_12_5_to_12_7(across):
+def test_across_the_track_the_sections_are_numbered_12_6_to_12_9(across):
     text = webpier_pages(across)
-    for heading in ("12.5 安全性の照査", "12.6 耐久性の照査", "12.7 復旧性（地震時）の照査"):
+    for heading in ("12.6 安全性の照査", "12.7 耐久性の照査", "12.8 復旧性（地震時）の照査", "12.9 最小鉄筋量及び最大鉄筋量"):
         assert heading in text, heading
-    assert not any(number in text for number in ("12.2", "12.3", "12.4"))
+    assert not any(number in text for number in ("12.2", "12.3", "12.4", "12.5"))
     assert [section for section in order_of(across) if section] == list(SECTIONS)
 
 
 def test_the_values_written_to_the_wdj_are_printed(pages):
     text = webpier_pages(pages).replace(" ", "")
     for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "構造物係数(=1.0)", "(=0.85)", "(=300×10⁻⁶)",
-                    "部材係数(=1.0)", "「一般の環境」"):
+                    "部材係数(=1.0)", "「常時乾燥」"):
         assert printed in text, printed
 
 
 def test_the_values_only_capacita_holds_are_not_printed(pages):
     """RC標準's tables and formulas Capacita evaluates (σsl1 140/120/100, Wlim 0.005c, fvcd ≧ 0.72, fwcd ≧ 7.8, γc)."""
     text = webpier_pages(pages)
-    for absent in ("腐食性環境", "0.005c", "140", "0.72", "7.8", "γc＝1.3", "1.15"):
+    for absent in ("乾湿繰返し", "0.005c", "140", "0.72", "7.8", "γc＝1.3", "1.15"):
         assert absent not in text, absent
 
 
@@ -139,7 +141,7 @@ def test_the_seismic_restorability_prints_its_own_factors(pages):
 def test_webpier_pages_are_the_same_bytes_for_the_same_input():
     _, check = footing_check()
     first = [document_bytes(document) for document in build_footing_check(check, LONGITUDINAL)]
-    assert len(first) == len(parts(check, LONGITUDINAL)) == 5
+    assert len(first) == len(parts(check, LONGITUDINAL)) == 6
     assert [document_bytes(document) for document in build_footing_check(footing_check()[1], LONGITUDINAL)] == first
 
 

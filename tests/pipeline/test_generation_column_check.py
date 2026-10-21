@@ -29,7 +29,8 @@ WDJ = json.dumps({"crack": [{"vis_u": True}]}).encode()
 # A and B are the 線路方向's items; D, with its frame analysis, its own (decision 72)
 OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_frame_analysis": ("D",)}
 SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-            "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
+            "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability",
+            "bending_rebar_amount")
 
 
 def sha(data: bytes) -> str:
