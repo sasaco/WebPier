@@ -18,6 +18,7 @@ The PDFs are WebPier's own pages (build_*(...).render()); the FEMPython load dia
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -33,8 +34,11 @@ from reaction_report_cases import case as reaction_case
 from webpier.reporting.document import paragraph, report
 from webpier.reporting.fonts import load_fonts
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
+from webpier.calc.detailing import calculate_detailing
+from webpier.inputs import parse_input
 from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
 from webpier.reporting.stages.column_check import build_column_check
+from webpier.reporting.stages.detailing import build_detailing
 from webpier.reporting.stages.foundation import build_foundation
 from webpier.reporting.stages.foundation_check import build_foundation_check
 from webpier.reporting.stages.longitudinal import build_longitudinal
@@ -44,6 +48,7 @@ from webpier.reporting.stages.seismic_transverse import build_seismic_transverse
 from webpier.reporting.stages.transverse import build_transverse
 from webpier.reporting.styles import HEADING_FONT
 
+CURRENT = Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json"
 FIRST = next(command.y for command in report(paragraph("本文", left=0)).layout()[0].commands
              if getattr(command, "text", "") == "本文")
 ROW = 15.48
@@ -55,6 +60,9 @@ NUMBERED = re.compile(r"^\s*(§\d+\.|\d+(\.\d+)+ |\(\d+\) |\d+\) |\([a-z]\) )")
 FLOAT_HEIGHT = 12.0  # table rules and figures are taller; a fraction bar is a flat line
 
 BUILDERS: dict[str, Callable[[str], Any]] = {
+    # decision 73: the input alone
+    "0400": lambda name: build_detailing(calculate_detailing(parse_input(json.loads(
+        CURRENT.read_text(encoding="utf-8"))))),
     "0500": lambda name: build_foundation(*foundation_case(name)),
     "0600": lambda name: build_reaction(*reaction_case(name)),
     "0610": lambda name: build_longitudinal(chain(name)[2], chain(name)[1], chain(name)[0]),

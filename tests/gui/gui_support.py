@@ -84,3 +84,17 @@ def wait(controller, timeout: float = 30):
         assert time.monotonic() < deadline, "the calculation did not finish"
         time.sleep(0.01)
     return result
+
+
+def blank_footing() -> dict:
+    """鉄筋.フーチング with every bar blank and every cover 自動 (current.json has Example2's bars since decision 73): the
+    footing tests of the editor enter their own bars on it."""
+    def bars() -> dict:
+        return {"diameter_mm": None, "pitch_mm": None, "cover_mode": "自動", "center_mm": None, "inner_layers": []}
+
+    stirrups = {"diameter_mm": None, "pitch_mm": None, "distribution_mode": None, "width_pitch_mm": None,
+                "density_per_m": None}
+    return {"materials": {"main": None, "transverse": None}, "concrete_strength_mpa": 27, "aggregate_max_mm": None,
+            "pure_cover_mm": None,
+            "faces": {face: {"outer_direction": "線路", "線路": bars(), "直角": bars()} for face in ("上", "下")},
+            "stirrups": {direction: dict(stirrups) for direction in ("線路", "直角")}}

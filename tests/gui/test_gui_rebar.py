@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from gui_support import blank_footing
 from webpier.gui import app as gui
 from webpier.gui import beam_cards, column_cards, footing_cards, rebar_page
 
@@ -405,7 +406,7 @@ F_LOWER, F_UPPER = (*FOOTING, "faces", "下"), (*FOOTING, "faces", "上")
 def footing(editor):
     """The footing page with 純かぶり 70, on the lower face 線路 D25@125 and 直角 D29@125 (自動, 線路 outside), the
     upper face blank, and the stirrups D16 @250: 線路 at 130 across the width, 直角 2 per 1 m."""
-    data = editor.document.data["鉄筋"]["フーチング"]
+    data = editor.document.data["鉄筋"]["フーチング"] = blank_footing()
     data["pure_cover_mm"] = 70
     data["faces"]["下"]["線路"].update(diameter_mm=25, pitch_mm=125)
     data["faces"]["下"]["直角"].update(diameter_mm=29, pitch_mm=125)

@@ -34,6 +34,7 @@ NOT_RUN = "未実行 — 表示できるPDFは今回の計算結果ではあり�
 _JRSNAP = "数分かかり、JRSNAP の画面が出ます"
 # The 出力項目 as the page lists them (decision 72): (key, caption, note, indented under the item it adds to).
 OUTPUT_ROWS = (
+    ("detailing", "照査の前提", "", False),
     ("ground_model", "地盤のモデル化", "", False),
     ("reactions", "上部工反力及び橋脚自重", "", False),
     ("longitudinal", "線路方向の計算（地震時以外）", "", False),

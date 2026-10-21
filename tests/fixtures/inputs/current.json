@@ -443,62 +443,62 @@
     },
     "フーチング": {
       "materials": {
-        "main": null,
-        "transverse": null
+        "main": "SD390",
+        "transverse": "SD390"
       },
       "concrete_strength_mpa": 27,
-      "aggregate_max_mm": null,
+      "aggregate_max_mm": 25,
       "pure_cover_mm": null,
       "faces": {
         "上": {
           "outer_direction": "線路",
           "線路": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 78.5,
             "inner_layers": []
           },
           "直角": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 103.5,
             "inner_layers": []
           }
         },
         "下": {
           "outer_direction": "線路",
           "線路": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 100,
             "inner_layers": []
           },
           "直角": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 29,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 127,
             "inner_layers": []
           }
         }
       },
       "stirrups": {
         "線路": {
-          "diameter_mm": null,
-          "pitch_mm": null,
-          "distribution_mode": null,
+          "diameter_mm": 16,
+          "pitch_mm": 250,
+          "distribution_mode": "密度",
           "width_pitch_mm": null,
-          "density_per_m": null
+          "density_per_m": 2
         },
         "直角": {
-          "diameter_mm": null,
-          "pitch_mm": null,
-          "distribution_mode": null,
+          "diameter_mm": 16,
+          "pitch_mm": 250,
+          "distribution_mode": "密度",
           "width_pitch_mm": null,
-          "density_per_m": null
+          "density_per_m": 2
         }
       }
     },
@@ -600,6 +600,7 @@
     "target_displacement_m": 0.35
   },
   "outputs": {
+    "detailing": false,
     "ground_model": true,
     "reactions": true,
     "longitudinal": true,

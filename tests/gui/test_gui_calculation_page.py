@@ -145,7 +145,8 @@ def test_the_page_lists_the_output_items_with_their_stages(editor):
     item they add to, and nothing about switches or the files under post."""
     view = page(editor)
     shown = list(texts(view.frame))
-    for text in ("出力項目", "地盤のモデル化（0500）", "上部工反力及び橋脚自重", "線路方向の計算（地震時以外）（0610）",
+    for text in ("出力項目", "照査の前提", "地盤のモデル化（0500）", "上部工反力及び橋脚自重",
+                 "線路方向の計算（地震時以外）（0610）",
                  "骨組解析も行う（0611）", "線路方向の計算（地震時）（0710）", "静的非線形解析も行う（0711）",
                  "　数分かかり、JRSNAP の画面が出ます", "フーチングの計算", "　両方向の骨組解析と静的非線形解析が必要です",
                  "片持ち梁の計算", "　両方向の静的非線形解析が必要です"):
@@ -164,7 +165,7 @@ def test_the_checkboxes_show_the_input_and_an_item_waits_for_the_items_it_uses(e
     assert {key for key, variable in view.outputs.items() if variable.get()} == {
         key for key, value in chosen(editor).items() if value}
     enabled = {key for key in OUTPUT_KEYS if box(editor, key).instate(["!disabled"])}
-    assert enabled == {"ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
+    assert enabled == {"detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
                        "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
                        "transverse_seismic", "transverse_nonlinear_analysis"}
     for key in ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"):
@@ -191,8 +192,8 @@ def test_a_checkbox_writes_its_item_into_the_input(editor, runner, tmp_path):
 
 
 def test_unchecking_an_item_unchecks_every_item_that_uses_it(editor):
-    for key in ("longitudinal_frame_analysis", "longitudinal_nonlinear_analysis", "transverse_frame_analysis",
-                "transverse_nonlinear_analysis", "footing", "cantilever"):
+    for key in ("detailing", "longitudinal_frame_analysis", "longitudinal_nonlinear_analysis",
+                "transverse_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"):
         box(editor, key).invoke()
     assert all(chosen(editor).values())
     box(editor, "longitudinal").invoke()

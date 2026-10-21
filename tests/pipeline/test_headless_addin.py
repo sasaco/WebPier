@@ -51,7 +51,7 @@ def test_every_stage_is_generated(generation):
     assert code == 0, envelope["errors"]
     assert envelope["summary"]["outputs"] == list(OUTPUT_KEYS)
     assert [stage["id"] for stage in envelope["summary"]["stages"]] == [
-        "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721", "0800", "0810",
+        "0400", "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721", "0800", "0810",
         "0820", "0900", "0910"]
 
 
@@ -61,7 +61,7 @@ def test_the_addin_is_recorded_alike_everywhere(generation):
     files = tree(out)
     results = [name for name in files if name.startswith("output/") and name.endswith(".json")]
     sidecars = [name for name in files if name.endswith(".provenance.json")]
-    assert len(results) == 17 and len(sidecars) > 17  # a result JSON per stage, a sidecar per file under post/
+    assert len(results) == 18 and len(sidecars) > 18  # a result JSON per stage, a sidecar per file under post/
     for name in (*results, *sidecars):
         assert json.loads(files[name])["addin"] == RECORD, name
 

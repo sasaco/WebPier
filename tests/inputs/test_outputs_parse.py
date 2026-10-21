@@ -32,12 +32,12 @@ def fails(document, message):
 
 
 def test_the_items_and_what_each_uses():
-    """The table of decision 72, in the order of the screen."""
-    assert OUTPUT_KEYS == ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
+    """The table of decision 72 with the 照査の前提 of decision 73 first, in the order of the screen."""
+    assert OUTPUT_KEYS == ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
                            "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
                            "transverse_seismic", "transverse_nonlinear_analysis", "footing", "cantilever")
     assert {key: requires(key) for key in OUTPUT_KEYS} == {
-        "ground_model": (), "reactions": (), "longitudinal": ("ground_model", "reactions"),
+        "detailing": (), "ground_model": (), "reactions": (), "longitudinal": ("ground_model", "reactions"),
         "longitudinal_frame_analysis": ("longitudinal",), "transverse": ("ground_model", "reactions"),
         "transverse_frame_analysis": ("transverse",), "longitudinal_seismic": ("longitudinal",),
         "longitudinal_nonlinear_analysis": ("longitudinal_seismic",), "transverse_seismic": ("transverse",),
@@ -53,7 +53,9 @@ def test_uses_and_users_follow_the_table_through_other_items():
                                   "ground_model", "reactions"}
     assert uses("ground_model") == frozenset()
     assert users("longitudinal_seismic") == ("longitudinal_nonlinear_analysis", "footing", "cantilever")
-    assert users("reactions") == tuple(key for key in OUTPUT_KEYS if key not in ("ground_model", "reactions"))
+    assert users("reactions") == tuple(key for key in OUTPUT_KEYS
+                                       if key not in ("detailing", "ground_model", "reactions"))
+    assert uses("detailing") == frozenset() and users("detailing") == ()
     assert users("cantilever") == ()
 
 

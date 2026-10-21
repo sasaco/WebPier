@@ -453,17 +453,17 @@
         "上": {
           "outer_direction": "線路",
           "線路": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 78.5,
             "inner_layers": []
           },
           "直角": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": "自動",
-            "center_mm": null,
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 103.5,
             "inner_layers": []
           }
         },
@@ -600,6 +600,7 @@
     "target_displacement_m": 0.35
   },
   "outputs": {
+    "detailing": true,
     "ground_model": true,
     "reactions": true,
     "longitudinal": true,

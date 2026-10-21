@@ -1,0 +1,75 @@
+{
+  "basis": "Independently transcribed from the sample PDFs (read as page images); never generated from the application.",
+  "notes": [
+    "example2_06 is compared with tests/fixtures/inputs/current.json (the Example2 pier). Example2 rounds its percentages to 2 places and prints some lengths to 0.5 mm (1099.5, 1286.5); WebPier prints Pc, Ps to 0.001 % and the bounds of the stirrup spacing to 1 mm.",
+    "Example2 6.3 counts one face of the column (D32 x 29, D19 x 9) in its table rows but sums both faces (51220.6).",
+    "sample_0400 is compared with an input made like the sample's column (W6 3.94 m, B6 1.70 m, D38: 16 bars a face along the track and 13 across it sharing the corners, hoops D22 10 and 6 legs at 150, f'ck 24) and footing (H6 1.80 m; 線路 upper D32 at 150, lower D29 at 150; 直角 D16 at 200 on both faces; stirrups D22 2.32 a metre at 150).",
+    "Not reproduced (ADR-0001): the sample's 6) of (1) divides by b = 1140 (2.264 %): its 8) has 3871 / (3940 x 150) = 0.655 %. Its footing 9) prints 0.126 from the unrounded pw; with the printed pw 0.00599 the value is 0.127 (ADR-0003)."
+  ],
+  "example2_06": {
+    "source": ".claude/docs/Example橋脚2/06_照査の前提.pdf",
+    "6.3_axial_ratio": {
+      "beam": {"upper": {"diameter": 32, "count": 25, "area": 19855.0}, "lower": {"diameter": 19, "count": 18, "area": 5157.0}, "total": 25012.0, "b": 2700, "h": 2700, "pc_percent": 0.34},
+      "column": {"total": 51220.6, "b": 4500, "h": 2700, "pc_percent": 0.42},
+      "footing_longitudinal": {"upper": {"diameter": 25, "count": 8, "area": 4053.6}, "lower": {"diameter": 25, "count": 8, "area": 4053.6}, "total": 8107.2, "b": 1000, "h": 2700, "pc_percent": 0.30},
+      "footing_transverse": {"upper": {"diameter": 25, "count": 8, "area": 4053.6}, "lower": {"diameter": 29, "count": 8, "area": 5139.2}, "total": 9192.8, "b": 1000, "h": 2700, "pc_percent": 0.34}
+    },
+    "6.3_4_beam": {
+      "horizontal": {"diameter": 22, "pitch": 125, "count": 17, "unit_area": 387.1, "b": 2700, "h": 2700, "percent": 0.090, "limit_percent": 0.080},
+      "corbel": {"tension": 19855.0, "required": 7942.0, "provided": 13161.4},
+      "compression": {"provided": 5157.0, "required": 3309.2}
+    },
+    "6.9_shear_ratio": {
+      "column_longitudinal": {"diameter": 22, "area": 3871, "b": 4500, "s": 150, "ps_percent": 0.57},
+      "column_transverse": {"diameter": 22, "area": 2322.6, "b": 2700, "s": 150, "ps_percent": 0.57},
+      "footing": {"diameter": 16, "area": 397.2, "b": 1000, "s": 250, "ps_percent": 0.16}
+    },
+    "6.12_stirrup_spacing": {
+      "column_longitudinal": {"d": 2592, "compression": 32, "half_d": 1296, "compression_15": 480},
+      "column_transverse": {"d": 4398, "compression": 19, "half_d": 2199, "compression_15": 285},
+      "footing_longitudinal_lower": {"d": 2600, "half_d": 1300, "compression_15": 375},
+      "footing_transverse_lower": {"d": 2573, "half_d": 1286.5}
+    },
+    "6.13_confinement": {
+      "column_longitudinal": {"d": 2592, "main": 32, "stirrup": 22, "half_d": 1296, "stirrup_48": 1056, "main_12": 384, "quarter_d": 648, "stirrup_24": 528, "main_8": 256},
+      "column_transverse": {"d": 4398, "main": 19, "stirrup": 22, "half_d": 2199, "stirrup_48": 1056, "main_12": 228, "quarter_d": 1099.5, "stirrup_24": 528, "main_8": 152}
+    }
+  },
+  "sample_0400": {
+    "source": ".claude/docs/Example橋脚/output/0400_照査の前提.pdf",
+    "column": {
+      "fck": 24.0,
+      "b": 3940.0, "h": 1700.0, "area": 6698000,
+      "as": 61560.0, "main": {"diameter": 38, "count": 32, "area": 36480.0}, "side": {"diameter": 38, "count": 22, "area": 25080.0},
+      "pc_percent": 0.919, "pc_max_percent": 6.0,
+      "longitudinal": {
+        "d": 1558.4, "quarter_d": 390, "main_8": 304, "stirrup_24": 528, "stirrup_48": 1056, "pitch": 150,
+        "outer_sets": 1.0, "intermediate_sets": 4.0,
+        "aw_total": 3871, "pw_percent": 0.655, "kwo": 1.15, "ductility": 0.029, "ductility_limit": 0.040,
+        "pw_fraction": 0.00655, "fwyd": 390, "capacity": 0.138
+      },
+      "transverse": {
+        "d": 3834.0, "quarter_d": 959,
+        "outer_sets": 1.0, "intermediate_sets": 2.0,
+        "aw_total": 2322.6, "b": 1700.0, "pw_percent": 0.911, "ductility": 0.035,
+        "pw_fraction": 0.00911, "capacity": 0.192
+      },
+      "clear_limits": {"minimum": 40, "bar_limit": 57.0, "aggregate_limit": 33.3}
+    },
+    "footing_longitudinal": {
+      "upper": {"diameter": 32, "count": 6.67, "area": 5297.3},
+      "lower": {"diameter": 29, "count": 6.67, "area": 4284.8},
+      "as": 9582.1, "b": 1000.0, "h": 1800.0, "area": 1800000, "pc_percent": 0.532,
+      "ductility": {"aw_total": 898.1, "s": 150, "pw_percent": 0.599, "value": 0.027},
+      "capacity_sample": 0.126,
+      "faces": {
+        "upper": {"as": 5297.3, "required": 882.9, "distribution": 993.0, "compression": 4284.8},
+        "lower": {"as": 4284.8, "required": 714.1, "distribution": 993.0, "compression": 5297.3}
+      },
+      "transverse_faces": {
+        "upper": {"diameter": 16, "count": 5, "as": 993.0, "required": 165.5, "distribution": 5297.3, "compression": 993.0},
+        "lower": {"diameter": 16, "count": 5, "as": 993.0, "required": 165.5, "distribution": 4284.8, "compression": 993.0}
+      }
+    }
+  }
+}

@@ -76,12 +76,12 @@ class AcceptanceError(RuntimeError):
 
 def footing_input(directory: Path) -> tuple[Path, bytes]:
     """current.json with the sample's footing bars, written as the generation's input with every 出力項目 but the
-    cantilever; and the recorded input, the same without the 出力項目 (no condition of the calculation, ADR-0011)."""
+    cantilever and the 照査の前提; and the recorded input, the same without the 出力項目 (no condition of the calculation, ADR-0011)."""
     data = load_json((PROJECT / INPUT).read_bytes())
     del data["outputs"]
     data["鉄筋"]["フーチング"] = FOOTING
     recorded = dump_json(data)
-    data["outputs"] = {key: key != "cantilever" for key in OUTPUT_KEYS}
+    data["outputs"] = {key: key not in ("cantilever", "detailing") for key in OUTPUT_KEYS}
     directory.mkdir(parents=True)
     path = directory / "input.json"
     path.write_bytes(dump_json(data))
