@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from gui_support import blank_footing
 from webpier.calc.column_rebar import table
 from webpier.core.reader import Reader
 from webpier.gui import rebar_edit
@@ -159,7 +160,7 @@ def automatic_footing():
     """current.json with the footing's lower face filled: 純かぶり 70, 線路 D25@125 outside, 直角 D29@125, and the
     stirrups of 線路 at 130 across the width; the upper face and the stirrups of 直角 blank."""
     document = data()
-    footing = document["鉄筋"]["フーチング"]
+    footing = document["鉄筋"]["フーチング"] = blank_footing()
     footing["pure_cover_mm"] = 70
     footing["faces"]["下"]["線路"].update(diameter_mm=25, pitch_mm=125)
     footing["faces"]["下"]["直角"].update(diameter_mm=29, pitch_mm=125)
