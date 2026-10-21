@@ -3,6 +3,7 @@ zoom at true scale and what cannot be drawn."""
 
 import pytest
 
+from gui_support import blank_footing
 from webpier.gui import app as gui
 from webpier.gui.footing_window import CROSSING, ZOOM_SCALE, ZOOM_X, FootingWindow
 
@@ -14,7 +15,7 @@ def editor(tk_root, input_path, quiet):
     """純かぶり 70; on the lower face 線路 D25@125 (outside) and 直角 D29@125, on the upper face 線路 D19@250 (outside)
     and 直角 D19@250, all 自動; the stirrups at 250 along the overhang."""
     editor = gui.InputEditor(tk_root, input_path)
-    data = editor.document.data["鉄筋"]["フーチング"]
+    data = editor.document.data["鉄筋"]["フーチング"] = blank_footing()
     data["pure_cover_mm"] = 70
     data["faces"]["下"]["線路"].update(diameter_mm=25, pitch_mm=125)
     data["faces"]["下"]["直角"].update(diameter_mm=29, pitch_mm=125)
