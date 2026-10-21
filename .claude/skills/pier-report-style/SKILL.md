@@ -48,6 +48,8 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 - フローチャート：GridLayoutPdf の `TextBox`（`rounded=True` で角丸の端子）・`TextDiamond`（判定）・`Connector`（折れ線＋矢じり）を `Figure` に置き、Yes/No は `Label`。図の枠はマスの数（`styles.columns_for`・`rows_for`）。方眼Excel では図形になる。例は `reporting/stages/column_check.py`。
 - 括り線：0600 の `Manuscript.rule_start()`／`rule_end()`、layout が GridLayoutPdf の `SideRule`（中の線、行全体）で包む。
 - 回した表：0600・0900 の `_rotated`（縦横を入れ替えた局所グリッドの `QuarterTurn`。方眼Excel では回転したセルになる）。
+- ベクターの図（0400 の 4.1 配筋図、決定73）：GridLayoutPdf の `PdfFigure(col_span, rows, data, *, page=0, preview=…, align="center", valign="middle", block_id=…)` で、別に描いた PDF の頁をベクターのまま枠に置く（2026-10-21 は GridLayoutPdf `sasa/pdf-figure` の f2e618b で未 Release。API は計画書 `phase-0400-detailing.md` の Phase 5）。`data` は PDF のバイト列、`preview` は同じ頁の PNG（方眼Excel はそれを画像で置く。WebPier は `render_xlsx(strict=True)` なので `preview` がないと止まる）。`QuarterTurn` には入れられない。図は `webpier.export.drawing.drawing_figures(pier)` の (PDF, PNG) をそのまま渡し、WebPier で PDF を重ね書きしない。
+- 0400 照査の前提（`reporting/stages/detailing.py`）：文言・式・表は見本 `0400_照査の前提.pdf`、見本にない項目は Example2 06 6.3〜6.8。見出しの条文番号（出典）は見本どおり印刷する。見出しと出典が1行に入らない (b)・(c) は出典を本文の末尾に置く（Ex2 6.3(2) の書き方）、6) の2つの出典は列14 から。断面力を使う照査は参照先の節の文だけ（番号は `COLUMN_SECTIONS`・`FOOTING_SECTIONS`・`CANTILEVER_SECTIONS` の表）。4.1 の図は `render_detailing`・`grid_documents`・`content` の `figures`（`{"beam"|"column"|"footing": FigureSpec}`）で渡し、なければ見出しだけ。
 - 他のエンジンのページの差し込み（0610・0620 の荷重図＝FEMPython、0611・0621・0810・0820・0910 の節＝Capacita、0710・0720 のデータ確認図と荷重図＝JRSNAP）：`reporting/stages/insertion.py` の1つの仕組みで行う。段階は差し込む場所を `Insertion(<ページの名前>, <単位のキー>, before=…, optional=…)` で宣言し、`render_with_pages` が原稿をその位置で文書に分けて描き、`assembly.join` でつなぐ。`documents(...)` は同じ分け方で WebPier の文書だけを返し、各段階の `grid_documents` が方眼Excel に使う。`render_*` と `grid_documents` は同じ原稿を作ること（Capacita が飛ばした節で原稿が変わる段階は、`pages` を両方に渡す）。エンジンのページは書き換えず、決定性も求めない。エンジンの中にだけある値は解説に印刷しない（ADR-0008）。
 
 ## 4. 手順
@@ -72,7 +74,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 3. 試すときは、手元の作業ツリーを venv に入れて `--no-sync` で走らせる（CLAUDE.md の「手元の GridLayoutPdf の作業ツリーを試す」）。`--locked` の実行は venv を lock の版に戻す。
 4. 取り込むときは、GridLayoutPdf の版を上げてコミット・push し、タグと再現できる wheel の Release を作ってから、WebPier の `url` を差し替えて `uv lock`・`uv sync --locked` する（CLAUDE.md の手順。v0.2.1 の例：版上げ b9e86c3、wheel を2回作って SHA-256 が同じことを確かめてから載せる）。Release の作成は外への公開なので利用者の承認を得る。手元の path 依存は一時的なもので、push しない。
 
-これまでに足した汎用機能：`TermStop`／`EquationGroup(term_columns="grid")`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）、`SideRule`（式のまとまりを括る左の縦線。FR-020）、方眼Excel `render_xlsx`（FR-021）、罫線の種類 `BorderStyle`／`TableBorders`（FR-022）、書体を名前で引く（FR-024）。方眼Excel の左辺を等号の境目の左の列まで届かせる直し（「B′」のように字形が左に寄った記号。2026-10-21）。
+これまでに足した汎用機能：`TermStop`／`EquationGroup(term_columns="grid")`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）、`SideRule`（式のまとまりを括る左の縦線。FR-020）、方眼Excel `render_xlsx`（FR-021）、罫線の種類 `BorderStyle`／`TableBorders`（FR-022）、書体を名前で引く（FR-024）。方眼Excel の左辺を等号の境目の左の列まで届かせる直し（「B′」のように字形が左に寄った記号。2026-10-21）。ベクター PDF の図 `PdfFigure`（FR-028、依存に pypdf>=6,<7。2026-10-21 は未 Release）。
 
 GridLayoutPdf の部品を足すときの注意：`measure_block` は `Line` のインクの範囲を線幅の半分だけ四方に広げて数える（butt cap でも長さの方向にも広げる）。part の高さいっぱいの縦線を `Line` で引くと part からはみ出して `LayoutOverflowError` になるので、part をまたいでつながる線は塗りの `Rectangle(stroke=False)` で描く（範囲がちょうど箱になる）。全体のカバレッジは `run_tests.py --target tests --cov gridlayoutpdf --min-coverage 90` で確かめる。
 

@@ -42,9 +42,9 @@
 - [x] ✅ 決定73（`refactoring-decisions.md`）
 - [x] ✅ ADR-0012（`docs/adr/0012-detailing-split-by-section-forces.md`）
 - [x] ✅ CONTEXT.md：照査の前提（構造細目）・配筋図・水掛かりの程度（「鋼材の腐食に対する環境条件」を置換）・使用性（損傷）・中間帯鉄筋を足し、帯鉄筋の方向別有効本数・柱の断面照査・片持ち梁の照査を改めた
-- [ ] 決定48・54・59・60 の「H16」と節番号（8.10・9.10 → 8.11・9.11）を直す
-- [ ] README・CLAUDE.md
-- [ ] スキル：webpier-capacita・webpier-cantilever・webpier-footing・webpier-foundation・structural-capacita・structural-webpier・pier-report-style
+- [x] ✅ 決定48・54・59・60 の「H16」と節番号（8.10・9.10 → 8.11・9.11）を直す（各決定に「決定73で改めたこと」）。決定72 の出力項目の表に `detailing`（13項目）、決定73 に実装で決まった細目（担当 F、2026-10-21）
+- [x] ✅ README・CLAUDE.md・CONTEXT.md（フーチングの断面照査に最小鉄筋量・最大鉄筋量、水掛かりの程度のフーチング、使用性（損傷）のねじり）（担当 F）
+- [x] ✅ スキル：webpier-capacita・webpier-cantilever・webpier-footing・webpier-foundation・pier-report-style（WebPier）、structural-capacita（structural-mcp の `sasa/glp`）、structural-webpier（structural-mcp の `sasa/webpier-outputs`。決定72 の出力項目の書き方がそのブランチにだけあるため）（担当 F）
 
 ## Phase 1　R5 への切替（WebPier、担当 C）
 
