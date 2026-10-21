@@ -16,7 +16,8 @@ The explanations keep the structure of Example2 08 pp.8-14, 8-16, 8-18, 8-19, 8-
 and 9-22 are the same text), written for the method of RC標準 R5 as Capacita checks it (decision 73): the headings
 carry no clause numbers; the flexural crack width is checked unless σb ≦ σbl and σs ≦ σsl1 both hold (RcDan
 CalcResult_BendingCrack Analyze_WdOmit.Verify: in R5 an exceeded σsl1 leads to the crack width, not to NG); Vyd is
-Vcd + Vsd (CalcResult_ShearCapacityR5); the condition is the 水掛かりの程度 of the input. The values WebPier writes to
+Vcd + Vsd (CalcResult_ShearCapacityR5); the crack width is checked as Wd / Wlim, without γi (Analyze_Wd; owner
+2026-10-21); the condition is the 水掛かりの程度 of the input. The values WebPier writes to
 the WDJ (γi, γb, kr, k4, ε'csd) and the 水掛かりの程度 are printed from the same result; the values of RC標準 that
 only Capacita holds (σsl1, σsl2 and Wlim by 水掛かりの程度, σbl, the coefficients of k1 to k3 and of z, γb of Vcd
 here) are not: the inserted result pages show the values used. Not reproduced from the reference: its 1.0 for γi of
@@ -56,6 +57,8 @@ class Chapter:
 
 LONGITUDINAL = Chapter(8, "0611/")  # after 0610 (8.1 〜 8.4)
 TRANSVERSE = Chapter(9, "0621/")  # after 0620 (9.1 〜 9.4)
+# The section numbers n.x of the parts 0400 refers to (reporting.stages.detailing, decision 73).
+DURABILITY_SECTION, REBAR_AMOUNT_SECTION = 7, 10
 
 # Why a check Capacita skipped for zero section forces is omitted (pipeline.capacita.SKIPPED: RcDan CheckValidation),
 # by its section.
@@ -115,7 +118,7 @@ def flowchart(key: str) -> FigureSpec:
              TextDiamond(60, 152, 120, 40, ("σb ≦ σbl",), style=BODY),
              TextDiamond(60, 214, 120, 40, ("σs ≦ σsl1",), style=BODY),
              TextBox(10, 276, 220, 36, ("曲げひび割れ幅の検討を省略",), style=BODY),
-             TextBox(240, 216, 150, 36, ("曲げひび割れ幅による検討", "γi・Wd / Wlim ≦ 1.0"), style=BODY))
+             TextBox(240, 216, 150, 36, ("曲げひび割れ幅による検討", "Wd / Wlim ≦ 1.0"), style=BODY))
     lines = (Connector(((120, 26), (120, 44))), Connector(((120, 80), (120, 98))),
              Connector(((120, 134), (120, 152))), Connector(((120, 192), (120, 214))),
              Connector(((120, 254), (120, 276))),
@@ -181,14 +184,13 @@ def _crack_method(m: Manuscript, key: str) -> None:
                   Definition("σsl1", "永久作用による引張鉄筋応力度の制限値"))
 
 
-def _crack_width(m: Manuscript, key: str, result: ColumnCheckResult, gamma_i: str, limit: str) -> None:
+def _crack_width(m: Manuscript, key: str, result: ColumnCheckResult, limit: str) -> None:
     m.heading(f"{key}.width.heading", "3) 曲げひび割れ幅の検討", 3)
     m.paragraph(f"{key}.width.text", f"曲げひび割れの検討は，コンクリート表面の設計曲げひび割れ幅Wdが{limit}Wlimに"
                                      "対して，次式を満たす方法により行う．")
-    m.line(f"{key}.width.check", "γi・Wd / Wlim ≦ 1.0")
+    m.line(f"{key}.width.check", "Wd / Wlim ≦ 1.0")
     m.line(f"{key}.width.formula", "Wd = 1.1・k1・k2・k3・k4{4c + 0.7(Cs − φ)}(σse / Es + ε'csd)")
-    _definitions(m, f"{key}.width.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
-                  Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
+    _definitions(m, f"{key}.width.symbols", Definition("Wd", "コンクリート表面の設計曲げひび割れ幅"),
                   Definition("k1", "鋼材の表面形状がひび割れ幅に及ぼす影響を表す係数"),
                   Definition("k2", "コンクリートの品質がひび割れ幅に及ぼす影響を表す係数"),
                   Definition("k3", "引張鋼材の段数の影響を表す係数"),
@@ -200,11 +202,11 @@ def _crack_width(m: Manuscript, key: str, result: ColumnCheckResult, gamma_i: st
 
 
 def _durability_flexure(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
-    m.heading("durability.heading", f"{n}.7 耐久性の照査", 1)
+    m.heading("durability.heading", f"{n}.{DURABILITY_SECTION} 耐久性の照査", 1)
     m.paragraph("durability.environment", f"水掛かりの程度は「{result.environment}」とする．")
     m.heading("durability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "durability.flexure")
-    _crack_width(m, "durability.flexure", result, value(_factors(result, 0).ri), "ひび割れ幅の制限値")
+    _crack_width(m, "durability.flexure", result, "ひび割れ幅の制限値")
 
 
 def _durability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
@@ -237,7 +239,7 @@ def _serviceability(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
     m.heading("serviceability.heading", f"{n}.8 使用性の照査", 1)
     m.heading("serviceability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "serviceability.flexure")
-    _crack_width(m, "serviceability.flexure", result, value(_factors(result, 0).ri), "外観に対するひび割れ幅の制限値")
+    _crack_width(m, "serviceability.flexure", result, "外観に対するひび割れ幅の制限値")
 
 
 def _restorability_moment(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
@@ -263,7 +265,7 @@ def _restorability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> No
 
 
 def _rebar_amount(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
-    m.heading("rebar_amount.heading", f"{n}.10 最小鉄筋量及び最大鉄筋量", 1)
+    m.heading("rebar_amount.heading", f"{n}.{REBAR_AMOUNT_SECTION} 最小鉄筋量及び最大鉄筋量", 1)
 
 
 _PARTS = {"section_forces": _forces, "bending_safety_destruction": _safety_moment,

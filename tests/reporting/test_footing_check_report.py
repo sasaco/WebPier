@@ -128,8 +128,9 @@ def test_the_values_only_capacita_holds_are_not_printed(pages):
 
 def test_the_flowchart_writes_the_decision_correctly(pages):
     text = webpier_pages(pages)
-    for printed in ("START", "σb ≦ σbl", "Yes", "No", "γi・Wd / Wlim ≦ 1.0"):
+    for printed in ("START", "σb ≦ σbl", "Yes", "No", "Wd / Wlim ≦ 1.0"):
         assert printed in text, printed
+    assert "γi・Wd" not in text and "σs ≦ σsl1" in text  # R5 as Capacita checks it (decision 73, owner 2026-10-21)
 
 
 def test_the_seismic_restorability_prints_its_own_factors(pages):

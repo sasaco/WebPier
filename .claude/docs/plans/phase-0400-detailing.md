@@ -126,6 +126,10 @@
 - （事実）0910 の生成（本物の FEMPython・JRSNAP・Aggre-SE・Capacita）で 13.6 使用性（損傷）→13.7 復旧性（地震時）→13.8 最小鉄筋量及び最大鉄筋量の順に Capacita の頁が入り、0611 は 8.10 の後に 3 頁、0612 は 8.11。
 - （決め、担当 C）新しい節は見出しだけ（説明文なし）。見本に R5 の最小鉄筋量・最大鉄筋量の解説がなく、式と値は Capacita の頁にあるため（スキル pier-report-style の「見本にない説明文は足さない」）。
 - （注意）0820 の節番号が 12.5〜12.7 から 12.6〜12.9 に、0910 の最後が 13.6 から 13.8（外観ありは 13.9）に変わった。0400（担当 D）の参照先、決定59・60、スキル webpier-footing・webpier-cantilever・webpier-capacita、structural-webpier の checks.md を合わせる必要がある。
+- （統合後 2026-10-21、bb4a2cf の上で）入力（D の `outputs.detailing` とフーチング上面の配筋）が変わったので、受入をすべて取り直した：`check_frameweb_headless.py`、`accept_foundation_check.py 0612/0622`、`accept_jrsnap_ndu.py`、`accept_jrsnap_figures.py`、`accept_aggrese_project.py --batch <絶対パス>`、`accept_aggrese_report.py`、`accept_capacita_column.py 0611/0621`（0.132／0.114、Mud 37426.2、Myd 38200.7／0621 Mud 29326.7、Myd 48634.5）、`accept_footing.py`（accepted）。
+- （決め、オーナー 2026-10-21）曲げひび割れ幅の照査式は Capacita に合わせて「Wd / Wlim ≦ 1.0」（γi とその定義を消した。0611/0621・0810/0820・0910、流れ図も）。σsl1・σsl2 の記号、k4 0.85、使用性（損傷）のせん断の解説、ねじりの ftd は今のまま。水掛かりの値の対応（柱 常時乾燥、片持ち梁 上面・側面 乾湿繰返し・下面 常時乾燥）は確定。
+- （統合後）0400 が参照する節番号を、それを印刷する帳票の定数から作るようにした（重複を消した）：`column_check.DURABILITY_SECTION`・`REBAR_AMOUNT_SECTION`（7・10）、`footing_check.DURABILITY_SECTION`・`REBAR_AMOUNT_SECTION`（`Chapter.section` の 1・3）、`cantilever_check.Numbering.with_appearance(appearance)`。`detailing.references` はこれらを読む（reporting 同士の import）。
+- （事実、失敗の記録）一度 `footing_check` に `DURABILITY` という名前で節の位置を足したところ、限界状態 id の `DURABILITY`（0）を上書きして `_factors` が StopIteration になり、`accept_footing.py` が落ちた。名前を `*_SECTION` に変えて直した（commit 前）。
 
 ## Phase 4　0400 の計算と計算書（担当 D）
 

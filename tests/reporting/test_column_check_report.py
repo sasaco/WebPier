@@ -139,15 +139,18 @@ def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across
 
 def test_the_values_written_to_the_wdj_are_printed(pages):
     text = webpier_pages(pages).replace(" ", "")
-    for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "構造物係数(=1.0)", "(=0.85)", "(=0.5)", "(=300×10⁻⁶)",
+    for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "(=0.85)", "(=0.5)", "(=300×10⁻⁶)",
                     "部材係数(=1.0)", "「常時乾燥」"):
         assert printed in text, printed
+    # the crack width is checked as Capacita checks it, without γi (owner 2026-10-21)
+    assert "γi・Wd" not in text and "構造物係数(=1.0)" not in text
 
 
 def test_the_flowchart_writes_the_decision_correctly(pages):
     text = webpier_pages(pages)
-    for printed in ("START", "σb ≦ σbl", "Yes", "No", "γi・Wd / Wlim ≦ 1.0"):
+    for printed in ("START", "σb ≦ σbl", "Yes", "No", "Wd / Wlim ≦ 1.0"):
         assert printed in text, printed
+    assert "γi・Wd" not in text and "σs ≦ σsl1" in text  # R5 as Capacita checks it (decision 73, owner 2026-10-21)
 
 
 def test_the_values_only_capacita_holds_are_not_printed(pages):
