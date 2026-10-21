@@ -6,8 +6,9 @@ flexural crack check, as 0611's); each part is followed by Capacita's pages of i
 cut from Capacita's report by the page ranges it returns: n.a 安全性の照査 1) bending, 2) shear; n.b 耐久性の照査
 1) the flexural crack check, 2) the shear crack check, which is not asked of Capacita (面部材のため省略: the
 sample's sentence, 12_フーチング.pdf 262, printed after the durability pages); n.c 復旧性（地震時）の照査 1) bending,
-2) shear, with a, b, c the three section numbers of the ``Chapter`` (12.2〜12.4 for 0810, 12.5〜12.7 for 0820). The
-chapter heading (§12) and 12.1 are 0800's and not printed here.
+2) shear; n.d 最小鉄筋量及び最大鉄筋量 (the row 8 of the long-term Md, decision 73; the heading only), with a, b, c, d
+the four section numbers of the ``Chapter`` (12.2〜12.5 for 0810, 12.6〜12.9 for 0820). The chapter heading (§12) and
+12.1 are 0800's and not printed here.
 
 The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as 0611 writes them
 (decision 48), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5
@@ -56,7 +57,7 @@ class Chapter:
 
 
 LONGITUDINAL = Chapter(12, 2, "0810/")
-TRANSVERSE = Chapter(12, 5, "0820/")
+TRANSVERSE = Chapter(12, 6, "0820/")
 
 
 def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
@@ -169,9 +170,13 @@ def _restorability_shear(m: Manuscript, check: FootingCheckResult, chapter: Chap
     _shear(m, "restorability.shear", _factors(check, SEISMIC_RESTORABILITY))
 
 
+def _rebar_amount(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
+    m.heading("rebar_amount.heading", f"{chapter.section(3)} 最小鉄筋量及び最大鉄筋量", 1)
+
+
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
           "bending_durability": _durability, "bending_restorability_eq": _restorability_moment,
-          "shear_restorability_eq": _restorability_shear}
+          "shear_restorability_eq": _restorability_shear, "bending_rebar_amount": _rebar_amount}
 
 
 def parts(check: FootingCheckResult, chapter: Chapter) -> tuple[tuple[tuple[Unit, ...], str], ...]:

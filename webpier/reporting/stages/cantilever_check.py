@@ -8,7 +8,7 @@ report by the page ranges Capacita returns: 13.3 安全性（破壊） (bending,
 13.6 使用性 (appearance; only with the appearance check: without it there is no 13.6 and the next sections move up,
 as the sample), then 使用性（損傷） (the row 6: bending, shear, torsion) and 復旧性（地震時） (the row 7: bending, shear,
 torsion) in sections of their own, as RC標準 R5 names them (decision 73; the sample's one 復旧性 section with 地震時以外
-and 地震時 is H16's). The chapter heading (§13) is not printed. A check Capacita skipped for zero section forces
+and 地震時 is H16's), and 最小鉄筋量及び最大鉄筋量 (the row 8 of the permanent case 28; the heading only). The chapter heading (§13) is not printed. A check Capacita skipped for zero section forces
 (pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by the reason it is omitted instead of
 Capacita's pages.
 
@@ -72,11 +72,12 @@ class Numbering:
     serviceability: int | None = None
     damage: int = 6
     restorability: int = 7
+    rebar_amount: int = 8
 
     @staticmethod
     def of(result: CantileverSectionResult) -> Numbering:
         if result.appearance:
-            return Numbering(serviceability=6, damage=7, restorability=8)
+            return Numbering(serviceability=6, damage=7, restorability=8, rebar_amount=9)
         return Numbering()
 
 
@@ -481,6 +482,10 @@ def _restorability_eq_torsion(m: Manuscript, result: CantileverSectionResult, n:
     _torsion_lines(m, "restorability.torsion", _factors(result, 7))
 
 
+def _rebar_amount(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
+    m.heading("rebar_amount.heading", f"{CHAPTER}.{n.rebar_amount} 最小鉄筋量及び最大鉄筋量", 1)
+
+
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
           "torsion_safety_destruction": _safety_torsion, "bending_safety_fatigue": _fatigue_moment,
           "shear_safety_fatigue": _fatigue_shear, "bending_durability": _durability_flexure,
@@ -488,7 +493,7 @@ _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destructio
           "bending_serviceability": _serviceability, "bending_restorability": _damage,
           "shear_restorability": _damage_shear, "torsion_restorability": _damage_torsion,
           "bending_restorability_eq": _restorability_eq, "shear_restorability_eq": _restorability_eq_shear,
-          "torsion_restorability_eq": _restorability_eq_torsion}
+          "torsion_restorability_eq": _restorability_eq_torsion, "bending_rebar_amount": _rebar_amount}
 
 
 def parts(result: CantileverSectionResult, skipped: Sequence[str] = ()) -> tuple[tuple[tuple[Unit, ...], str], ...]:

@@ -5,8 +5,9 @@ flexural crack check). Each part is followed by Capacita's pages of its section 
 report receives by section id, cut from Capacita's report by the page ranges Capacita returns: n.5 the section force
 list, n.6 safety (bending, shear), n.7 durability (flexural, shear cracks), n.8 serviceability (appearance; only
 with the appearance check: without it there is no n.8 and n.9 keeps its number), n.9 使用性（損傷） (bending, shear),
-with n the ``Chapter`` of the stage (8 for 0611, 9 for 0621; the two directions differ by nothing else). The chapter
-heading (§8, §9) is not printed; the foundation check will be n.10. A check Capacita skipped for zero section forces
+n.10 最小鉄筋量及び最大鉄筋量 (the row 8 of the permanent action, decision 73; the heading only, as n.5), with n the
+``Chapter`` of the stage (8 for 0611, 9 for 0621; the two directions differ by nothing else). The chapter heading
+(§8, §9) is not printed; the foundation check is n.11. A check Capacita skipped for zero section forces
 (pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by the reason it is omitted instead of
 Capacita's pages (decision 48, owner 2026-10-18; Example2 across the track: the serviceability and the shear
 durability checks).
@@ -261,10 +262,15 @@ def _restorability_shear(m: Manuscript, result: ColumnCheckResult, n: int) -> No
                   Definition("Vd", "設計せん断力"), Definition("Vyd", "設計せん断耐力"))
 
 
+def _rebar_amount(m: Manuscript, result: ColumnCheckResult, n: int) -> None:
+    m.heading("rebar_amount.heading", f"{n}.10 最小鉄筋量及び最大鉄筋量", 1)
+
+
 _PARTS = {"section_forces": _forces, "bending_safety_destruction": _safety_moment,
           "shear_safety_destruction": _safety_shear, "bending_durability": _durability_flexure,
           "shear_durability": _durability_shear, "bending_serviceability": _serviceability,
-          "bending_restorability": _restorability_moment, "shear_restorability": _restorability_shear}
+          "bending_restorability": _restorability_moment, "shear_restorability": _restorability_shear,
+          "bending_rebar_amount": _rebar_amount}
 
 
 def parts(result: ColumnCheckResult, chapter: Chapter,

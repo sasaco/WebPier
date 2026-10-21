@@ -130,7 +130,8 @@ K4 = _factor("0.85")
 _TENSILE = {"SD295": 440, "SD345": 490, "SD390": 560}
 
 # The extraction case of each of Capacita's rows (WDJ basic.pickup_*), by row id; None leaves the row blank
-# (decision 48: fatigue, the seismic restorability and the minimum reinforcement are not checked).
+# (decision 48: fatigue and the seismic restorability are not checked; decision 73: the minimum and maximum
+# reinforcement of the row 8 from the permanent action).
 MOMENT_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
     (0, ExtractionGroup.PERMANENT_VARIABLE),  # 耐久性 縁引張応力度検討用
     (1, ExtractionGroup.PERMANENT),  # 耐久性（永久作用）
@@ -138,7 +139,7 @@ MOMENT_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
     (5, ExtractionGroup.FAILURE),  # 安全性（破壊）
     (6, ExtractionGroup.DAMAGE),  # 使用性（損傷）
     (7, None),  # 復旧性（損傷）地震時
-    (8, None),  # 最小鉄筋量
+    (8, ExtractionGroup.PERMANENT),  # 最小鉄筋量（最大鉄筋量も。決定73）
 )
 SHEAR_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
     (0, ExtractionGroup.PERMANENT_VARIABLE),  # 耐久性 せん断ひび割れ検討判定用
@@ -155,7 +156,8 @@ TORSION_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = ((0, None), (1, 
 # and the checks this column asks for. 使用性（外観） is checked only with the appearance check (owner: without it
 # 0611 has no 8.8, 0621 no 9.8).
 REPORT_SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-                   "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability")
+                   "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability",
+                   "bending_rebar_amount")
 
 
 def tensile_strength(grade: str) -> Printed:

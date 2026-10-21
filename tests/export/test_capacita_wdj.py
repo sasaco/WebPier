@@ -125,10 +125,12 @@ def test_the_bars(document):
 
 
 def test_the_extraction_cases(document):
+    """The sample's, and the row 8 (最小鉄筋量, blank in the sample) the permanent action 3 (decision 73)."""
     basic = document["basic"]
     for name in ("moment", "shear_force", "torsional_moment"):
-        assert {row["id"]: row["no"] for row in basic[f"pickup_{name}"]} == {
-            int(key): value for key, value in SAMPLE["pickup"][name].items()}, name
+        expected = {int(key): value for key, value in SAMPLE["pickup"][name].items()}
+        assert {row["id"]: row["no"] for row in basic[f"pickup_{name}"]} == (
+            expected | {8: 3} if name == "moment" else expected), name
 
 
 def test_the_standard_and_its_conditions(document):

@@ -239,12 +239,19 @@ def test_the_cases_with_a_bearing_force_or_an_earthquake(current):
         + q(value(tables[ActionKey.impact(Group.ULTIMATE, Loading.END_MAX)].mt) * D("1.35"), 2) + D(289.48)
 
 
+def by_row_8(selections):
+    (selected,) = [item for item in selections if item.row == 8]
+    return selected
+
+
 def test_the_sample_rows_of_the_force_table_and_the_governing_cases(current):
     _, _, result = current
     selections = result.selections
     assert [(item.row, item.quantity) for item in selections] == [
         (row.id, quantity) for row in FORCE_ROWS for quantity in row.quantities]
-    assert [row.id for row in FORCE_ROWS] == [0, 1, 2, 3, 4, 5, 6, 7]
+    assert [row.id for row in FORCE_ROWS] == [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    assert FORCE_ROWS[8].quantities == (Quantity.BENDING,)  # 最小鉄筋量: the permanent case 28 (decision 73)
+    assert by_row_8(selections).case.definition.number == 28
     assert FORCE_ROWS[2].quantities == (Quantity.SHEAR,) and FORCE_ROWS[3].quantities == FORCE_ROWS[4].quantities == (
         Quantity.BENDING, Quantity.SHEAR)
     by = {(item.row, item.quantity): item for item in selections}

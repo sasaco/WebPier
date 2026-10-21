@@ -378,7 +378,7 @@
     ]
   },
   "鉄筋": {
-    "version": 2,
+    "version": 3,
     "柱": {
       "materials": {
         "main": "SD390",
@@ -387,47 +387,44 @@
       "concrete_strength_mpa": 27,
       "aggregate_max_mm": 25,
       "pure_cover_mm": 70,
-      "main_rows": [
-        {
+      "main_bars": {
+        "線路": {
           "diameter_mm": 32,
-          "material": null,
+          "per_face_count": 29,
           "cover_mode": "自動",
           "center_mm": null,
-          "clear_gap_mm": null,
-          "face_direction": "線路",
-          "layer": 1,
-          "per_face_count": 29,
           "endpoints": "含む",
           "distribution": {
             "mode": "両端＋中央ピッチ",
             "edge_center_mm": 108,
             "pitch_mm": 150
-          }
+          },
+          "inner_layers": []
         },
-        {
+        "直角": {
           "diameter_mm": 19,
-          "material": null,
+          "per_face_count": 9,
           "cover_mode": "指定",
           "center_mm": 102,
-          "clear_gap_mm": null,
-          "face_direction": "直角",
-          "layer": 1,
-          "per_face_count": 9,
           "endpoints": "含む",
           "distribution": {
             "mode": "中央ピッチ",
             "edge_center_mm": null,
             "pitch_mm": 250
-          }
+          },
+          "inner_layers": []
         }
-      ],
+      },
+      "table_overrides": {
+        "線路": [],
+        "直角": []
+      },
       "column_hoops": {
         "enclosing_diameter_mm": 22,
         "direction_rows": [
           {
             "direction": "線路",
             "diameter_mm": 22,
-            "material": "SD390",
             "effective_legs": 10,
             "pitch_mm": 150,
             "start_mm": null,
@@ -436,18 +433,13 @@
           {
             "direction": "直角",
             "diameter_mm": 22,
-            "material": "SD390",
             "effective_legs": 6,
             "pitch_mm": 150,
             "start_mm": null,
             "end_mm": null
           }
         ]
-      },
-      "side_rows": [],
-      "band_rows": [],
-      "manual_positions": [],
-      "position_mode": "基本"
+      }
     },
     "フーチング": {
       "materials": {
@@ -457,91 +449,58 @@
       "concrete_strength_mpa": 27,
       "aggregate_max_mm": 25,
       "pure_cover_mm": null,
-      "main_rows": [
-        {
-          "diameter_mm": null,
-          "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
-          "clear_gap_mm": null,
-          "direction": "線路",
-          "face": "上",
-          "pitch_mm": null,
-          "layers": 1,
-          "stack_order": 1
+      "faces": {
+        "上": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": "自動",
+            "center_mm": null,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": "自動",
+            "center_mm": null,
+            "inner_layers": []
+          }
         },
-        {
-          "diameter_mm": 25,
-          "material": null,
-          "cover_mode": "指定",
-          "center_mm": 100,
-          "clear_gap_mm": null,
-          "direction": "線路",
-          "face": "下",
-          "pitch_mm": 125,
-          "layers": 1,
-          "stack_order": 1
-        },
-        {
-          "diameter_mm": null,
-          "material": null,
-          "cover_mode": "自動",
-          "center_mm": null,
-          "clear_gap_mm": null,
-          "direction": "直角",
-          "face": "上",
-          "pitch_mm": null,
-          "layers": 1,
-          "stack_order": 2
-        },
-        {
-          "diameter_mm": 29,
-          "material": null,
-          "cover_mode": "指定",
-          "center_mm": 127,
-          "clear_gap_mm": null,
-          "direction": "直角",
-          "face": "下",
-          "pitch_mm": 125,
-          "layers": 1,
-          "stack_order": 2
+        "下": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": 25,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 100,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": 29,
+            "pitch_mm": 125,
+            "cover_mode": "指定",
+            "center_mm": 127,
+            "inner_layers": []
+          }
         }
-      ],
-      "side_rows": [],
-      "band_rows": [
-        {
-          "type": "内側",
-          "direction": "線路",
+      },
+      "stirrups": {
+        "線路": {
           "diameter_mm": 16,
-          "material": null,
-          "sets": null,
           "pitch_mm": 250,
-          "start_mm": null,
-          "end_mm": null,
-          "legs_mode": "指定",
-          "effective_legs": null,
           "distribution_mode": "密度",
           "width_pitch_mm": null,
           "density_per_m": 2
         },
-        {
-          "type": "内側",
-          "direction": "直角",
+        "直角": {
           "diameter_mm": 16,
-          "material": null,
-          "sets": null,
           "pitch_mm": 250,
-          "start_mm": null,
-          "end_mm": null,
-          "legs_mode": "指定",
-          "effective_legs": null,
           "distribution_mode": "密度",
           "width_pitch_mm": null,
           "density_per_m": 2
         }
-      ],
-      "manual_positions": [],
-      "position_mode": "基本"
+      }
     },
     "梁": {
       "materials": {
@@ -551,71 +510,42 @@
       "concrete_strength_mpa": 27,
       "aggregate_max_mm": 25,
       "pure_cover_mm": null,
-      "main_rows": [
-        {
+      "faces": {
+        "上": {
           "diameter_mm": 32,
-          "material": null,
+          "count": 17,
+          "bar_type": "直筋",
           "cover_mode": "指定",
           "center_mm": 108,
-          "clear_gap_mm": null,
-          "face": "上",
-          "bar_type": "直筋",
-          "layer": 1,
-          "count": 17
+          "inner_layers": [
+            {
+              "count": 8,
+              "clear_gap_mm": 32
+            }
+          ]
         },
-        {
-          "diameter_mm": 32,
-          "material": null,
-          "cover_mode": "指定",
-          "center_mm": 172,
-          "clear_gap_mm": null,
-          "face": "上",
-          "bar_type": "直筋",
-          "layer": 2,
-          "count": 8
-        },
-        {
+        "下": {
           "diameter_mm": 19,
-          "material": null,
+          "count": 18,
           "cover_mode": "指定",
           "center_mm": 121,
-          "clear_gap_mm": null,
-          "face": "下",
-          "bar_type": "直筋",
-          "layer": 1,
-          "count": 18
+          "inner_layers": []
         }
-      ],
-      "side_rows": [
-        {
-          "diameter_mm": 22,
-          "material": null,
-          "per_face_count": 17,
-          "columns": 1,
-          "column_pitch_mm": null,
-          "start_mm": 350,
-          "pitch_mm": 125,
-          "stirrup_position": "内側",
-          "cover_mode": "指定",
-          "center_mm": 184
-        }
-      ],
-      "band_rows": [
-        {
-          "type": "外巻き",
-          "direction": "線路",
-          "diameter_mm": 22,
-          "material": null,
-          "sets": 1,
-          "pitch_mm": 125,
-          "start_mm": null,
-          "end_mm": null,
-          "legs_mode": "指定",
-          "effective_legs": 4
-        }
-      ],
-      "manual_positions": [],
-      "position_mode": "基本"
+      },
+      "side_bars": {
+        "diameter_mm": 22,
+        "per_face_count": 17,
+        "start_mm": 350,
+        "pitch_mm": 125,
+        "stirrup_position": "内側",
+        "cover_mode": "指定",
+        "center_mm": 184
+      },
+      "stirrups": {
+        "diameter_mm": 22,
+        "effective_legs": 4,
+        "pitch_mm": 125
+      }
     }
   },
   "耐震設計条件": {

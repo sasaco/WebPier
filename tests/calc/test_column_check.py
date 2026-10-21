@@ -130,10 +130,13 @@ def test_the_crack_conditions_and_the_standard(example):
 
 
 def test_the_extraction_cases_follow_the_extraction_groups_of_0610(example):
+    """The sample's, and the row 8 (最小鉄筋量, blank in the sample) the permanent action 3 (decision 73)."""
     pickup = SAMPLE["pickup"]
+    assert pickup["moment"]["8"] is None and pickup["moment"]["1"] == 3
     for name, cases in (("moment", example.moment_cases), ("shear_force", example.shear_cases),
                         ("torsional_moment", example.torsion_cases)):
-        assert dict(cases) == {int(key): value for key, value in pickup[name].items()}, name
+        expected = {int(key): value for key, value in pickup[name].items()}
+        assert dict(cases) == (expected | {8: 3} if name == "moment" else expected), name
 
 
 # WebDanforJS safety-factors-material-strengths.service.ts default_safety_factor for the railway bodies (decision 73,
@@ -296,7 +299,7 @@ def test_the_report_sections_follow_the_checks_asked_for(example):
     """Capacita's section ids (Capacita README); 使用性（外観） only with the appearance check (owner: no 8.8 without)."""
     assert example.sections == ("section_forces", "bending_safety_destruction", "shear_safety_destruction",
                                 "bending_durability", "shear_durability", "bending_serviceability",
-                                "bending_restorability", "shear_restorability")
+                                "bending_restorability", "shear_restorability", "bending_rebar_amount")
     without = check(**{f"{CHECK}/外観の照査": "行わない"}).sections
     assert without == tuple(section for section in example.sections if section != "bending_serviceability")
 

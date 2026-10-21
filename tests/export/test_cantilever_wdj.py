@@ -183,8 +183,12 @@ def test_the_force_table_holds_the_governing_cases_of_0900(built):
         assert (force[f"Mt{row}_Md"], force[f"Mt{row}_Vd"], force[f"Mt{row}_Nd"]) == (-selected.md.value,
                                                                                       selected.vd.value, None)
     expected = SAMPLE["wdj_forces"]
-    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is not None] == expected["filled_moment_rows"]
-    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is None] == expected["blank_moment_rows"]
+    # the sample's, and Md8 (最小鉄筋量, blank in the sample) the permanent action as Md1 (decision 73)
+    assert 8 in expected["blank_moment_rows"]
+    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is not None] == [*expected["filled_moment_rows"], 8]
+    assert [row for row in MOMENT_ROWS if force[f"Md{row}_Md"] is None] == [
+        row for row in expected["blank_moment_rows"] if row != 8]
+    assert force["Md8_Md"] == force["Md1_Md"] and force["Md8_Nd"] is None
     assert all(force[f"Vd{row}_Vd"] is not None for row in SHEAR_ROWS)  # Vd6 too (the sample leaves it blank)
     assert all(force[f"Mt{row}_Mt"] is not None for row in TORSION_ROWS)
     # the shear row of a limit state carries its own case's Md: the sample's Vd5 (5096.14) has Md −5576.6, not −5654.81

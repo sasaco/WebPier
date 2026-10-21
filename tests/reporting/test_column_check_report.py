@@ -33,7 +33,8 @@ MARK = "FAKE CAPACITA"
 HEADINGS = {"section_forces": "8.5 断面力の総括", "bending_safety_destruction": "8.6 安全性（破壊）の照査",
             "shear_safety_destruction": "(2) せん断に対する照査", "bending_durability": "8.7 耐久性の照査",
             "shear_durability": "(2) せん断ひび割れの検討", "bending_serviceability": "8.8 使用性の照査",
-            "bending_restorability": "8.9 使用性（損傷）の照査", "shear_restorability": "(2) せん断に対する照査"}
+            "bending_restorability": "8.9 使用性（損傷）の照査", "shear_restorability": "(2) せん断に対する照査",
+            "bending_rebar_amount": "8.10 最小鉄筋量及び最大鉄筋量"}
 # Capacita skips these across the track for Example2 (column_section_check_09.json, skipped_by_capacita)
 SKIPPED = ("shear_durability", "bending_serviceability")
 
@@ -100,7 +101,7 @@ def test_each_section_follows_its_heading_in_report_order(pages):
     sections = [section for section in order if section]
     assert sections == ["section_forces", "section_forces", "bending_safety_destruction", "shear_safety_destruction",
                         "bending_durability", "shear_durability", "bending_serviceability", "bending_restorability",
-                        "shear_restorability"]
+                        "shear_restorability", "bending_rebar_amount"]
     for section, heading in HEADINGS.items():
         first = order.index(section)
         before = pages[first - 1]
@@ -115,7 +116,7 @@ def test_across_the_track_the_sections_are_numbered_9(across):
     text = webpier_pages(across)
     for heading in HEADINGS.values():
         assert heading.replace("8.", "9.", 1) in text, heading
-    assert across[0].strip().startswith("9.5 断面力の総括") and "8." not in text.replace("0.85", "")
+    assert across[0].strip().startswith("9.5 断面力の総括") and "8." not in text.replace("0.85", "").replace("9.10", "")
 
 
 def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across):
@@ -124,7 +125,7 @@ def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across
     order = [text.split()[2] if MARK in text else None for text in across]
     assert [section for section in order if section] == [
         "section_forces", "section_forces", "bending_safety_destruction", "shear_safety_destruction",
-        "bending_durability", "bending_restorability", "shear_restorability"]
+        "bending_durability", "bending_restorability", "shear_restorability", "bending_rebar_amount"]
     text = webpier_pages(across)
     shear = text.split("(2) せん断ひび割れの検討")[1].split("9.8 使用性の照査")[0]
     # the symbol, its "：" and its text stand in grid columns of their own (each its own text line of the PDF)
@@ -175,7 +176,7 @@ def test_without_the_appearance_check_there_is_no_8_8(tmp_path):
 def test_webpier_pages_are_the_same_bytes_for_the_same_input():
     _, result = check()
     first = [document_bytes(document) for document in build_column_check(result, CHAPTER_8)]
-    assert len(first) == len(parts(result, CHAPTER_8)) == 8
+    assert len(first) == len(parts(result, CHAPTER_8)) == 9
     assert [document_bytes(document) for document in build_column_check(check()[1], CHAPTER_8)] == first
     _, across = check(transverse=True)
     assert [document_bytes(document) for document in build_column_check(across, CHAPTER_9, SKIPPED)] == [

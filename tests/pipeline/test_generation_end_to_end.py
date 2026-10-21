@@ -300,7 +300,7 @@ def test_the_column_section_check_of_0611(analysis_generation):
     with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
         texts = [page.get_text() for page in pdf]
     assert texts[0].strip().startswith("8.5 断面力の総括") and "FAKE CAPACITA section_forces 1/2" in texts[1]
-    assert sum("FAKE CAPACITA" in text for text in texts) == 9 and "8.9 使用性（損傷）の照査" in "".join(texts)
+    assert sum("FAKE CAPACITA" in text for text in texts) == 10 and "8.10 最小鉄筋量及び最大鉄筋量" in "".join(texts)
 
 
 def test_the_column_section_check_of_0621(analysis_generation):

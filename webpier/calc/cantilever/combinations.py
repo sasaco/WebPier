@@ -254,6 +254,7 @@ FORCE_ROWS = (
     ForceRow(5, "安全性（破壊）", ALL, _state(LimitState.SAFETY)),
     ForceRow(6, "使用性（損傷）", ALL, _state(LimitState.SERVICEABILITY_DAMAGE)),
     ForceRow(7, "復旧性（損傷）地震時", ALL, _state(LimitState.RESTORABILITY_EQ)),
+    ForceRow(8, "最小鉄筋量", (Quantity.BENDING,), _permanent),  # the permanent action, case 28 (decision 73)
 )
 
 

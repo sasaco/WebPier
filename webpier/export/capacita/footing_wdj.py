@@ -1,7 +1,7 @@
 """The WDJ WebPier gives Capacita for the 0810 / 0820 フーチングの断面照査 (decision 60, ADR-0008), in its section
 force input mode: no pickup (``pickup_filename`` empty), the forces of each check written in ``force`` by Capacita's
-case id (DocumentEditor.PickupDefaults: Md0 耐久性 応力度, Md1 耐久性 永久荷重, Md5 安全性 破壊, Md7 復旧性 地震時;
-Vd5, Vd7 with their Md; N′d 0) and the shear span La of each point in ``shear`` (mm). The runner is called without
+case id (DocumentEditor.PickupDefaults: Md0 耐久性 応力度, Md1 耐久性 永久荷重, Md5 安全性 破壊, Md7 復旧性 地震時,
+Md8 最小鉄筋量 the long-term Md as Md1, decision 73; Vd5, Vd7 with their Md; N′d 0) and the shear span La of each point in ``shear`` (mm). The runner is called without
 ``--pickup`` (pipeline.capacita.check_footing) and returns the report only.
 
 One member フーチング (1 m of width by H6, shape 1) and two points per direction, because Capacita keeps one La per
@@ -26,7 +26,7 @@ from .wdj import (_CONDITIONS, _MOMENT_TITLES, _PILE_FACTORS, _SEPARATE, _SHEAR_
 POINT_ID = "ITAN"
 SEISMIC_SUFFIX = "（地震時）"
 # Capacita's case ids the footing's forces are given as (the titles of _MOMENT_TITLES / _SHEAR_TITLES).
-SHORT_TERM, LONG_TERM, SAFETY, SEISMIC = 0, 1, 5, 7
+SHORT_TERM, LONG_TERM, SAFETY, SEISMIC, MINIMUM_REBAR = 0, 1, 5, 7, 8
 
 
 def _cases(titles) -> list[dict[str, Any]]:
@@ -99,7 +99,8 @@ def _shear_force(id_: int, forces: Forces) -> dict[str, Any]:
 
 def _force(check: FootingCheckResult) -> list[dict[str, Any]]:
     return [{"index": 1, **_moment(SHORT_TERM, check.durability_short), **_moment(LONG_TERM, check.durability_long),
-             **_moment(SAFETY, check.safety), **_shear_force(SAFETY, check.safety)},
+             **_moment(SAFETY, check.safety), **_shear_force(SAFETY, check.safety),
+             **_moment(MINIMUM_REBAR, check.durability_long)},
             {"index": 2, **_moment(SEISMIC, check.seismic), **_shear_force(SEISMIC, check.seismic)}]
 
 

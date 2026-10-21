@@ -86,10 +86,10 @@ def test_across_the_track_the_point_and_bars_are_the_other_direction():
     assert (check.bars.diameter.value, check.bars.cover.value) == (29, 127)
 
 
-def test_the_report_sections_are_the_five_of_the_sample():
+def test_the_report_sections_are_the_five_of_the_sample_and_the_rebar_amount():
     assert checked().sections == REPORT_SECTIONS == (
         "bending_safety_destruction", "shear_safety_destruction", "bending_durability", "bending_restorability_eq",
-        "shear_restorability_eq")
+        "shear_restorability_eq", "bending_rebar_amount")
 
 
 @pytest.mark.parametrize("path,message", [

@@ -16,8 +16,9 @@ response values of 0800 (calc.footing). The two directions differ only by the Fo
 - the 柱の断面照査 conditions of the input (環境条件, ε'csd, 機関, JR-001/004; the appearance check is not made), the
   safety factors of the body, kr and k4: the same constants as 0611.
 
-The sections asked of Capacita's report are the five of the sample (12.2〜12.4): 耐久性 shear is not asked for (面部材
-のため省略, the report prints the sample's sentence), 使用性（外観） and 使用性（損傷） are not given forces.
+The sections asked of Capacita's report are the five of the sample (12.2〜12.4) and the minimum and maximum
+reinforcement of the long-term Md (the row 8, decision 73): 耐久性 shear is not asked for (面部材のため省略, the report
+prints the sample's sentence), 使用性（外観） and 使用性（損傷） are not given forces.
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ NAMES = {"線路": "線路方向", "直角": "線路直角方向"}
 LENGTH_MM = Precision(0, "mm")
 WIDTH = LENGTH_MM(1000)  # the overhang per metre of width
 REPORT_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
-                   "bending_restorability_eq", "shear_restorability_eq")
+                   "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
 
 
 @dataclass(frozen=True)

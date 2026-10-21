@@ -88,7 +88,7 @@ def test_the_fatigue_trains(current):
 def test_the_sections_capacita_is_asked_for(current):
     _, _, section = current
     assert section.sections == tuple(name for name in SECTIONS if name != "bending_serviceability")
-    assert len(section.sections) == 14 and "torsion_restorability_eq" in section.sections
+    assert len(section.sections) == 15 and section.sections[-1] == "bending_rebar_amount"
     with_appearance = section_of(**{f"{CHECK}/外観の照査": "行う"})
     assert with_appearance.sections == SECTIONS and with_appearance.appearance is True
     assert SECTIONS.index("bending_serviceability") == 8  # Capacita's report order

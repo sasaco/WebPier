@@ -157,14 +157,15 @@ def test_a_skipped_check_keeps_its_heading_and_says_why_it_is_omitted(with_appea
     text = webpier_pages(with_appearance)
     torsion = text.split("(3) ねじりひび割れの検討")[1].split("13.6 使用性の照査")[0]
     assert torsion.replace("\n", "").strip().endswith(OMITTED["torsion_durability"])  # the reason may wrap
-    assert set(OMITTED) == set(SECTIONS)
+    # Capacita skips no 最小鉄筋量 for zero forces (no R5 code; decision 73)
+    assert set(OMITTED) == set(SECTIONS) - {"bending_rebar_amount"}
 
 
 def test_parts_and_documents_are_one_per_section():
     _, result = check()
     found = parts(result, skipped=("shear_restorability_eq",))
     assert [section for _, section in found] == list(result.sections)
-    assert found[-2][0][-1].key == "0910/shear_restorability_eq.omitted"
+    assert found[-3][0][-1].key == "0910/shear_restorability_eq.omitted"
     documents = build_cantilever_check(result, skipped=("shear_restorability_eq",))
     assert len(documents) == len(result.sections)
     assert len({unit.key for part, _ in found for unit in part}) == sum(len(part) for part, _ in found)

@@ -87,7 +87,8 @@ def test_the_forces_are_the_hand_calculation_by_capacitas_case_ids(direction, sa
          "Md0_Md": columns["short_term"]["Md_design"], "Md0_Nd": 0,
          "Md1_Md": columns["long_term"]["Md_design"], "Md1_Nd": 0,
          "Md5_Md": columns[safety]["Md_design"], "Md5_Nd": 0,
-         "Vd5_Vd": columns[safety]["Vd_design"], "Vd5_Md": columns[safety]["Md_design"], "Vd5_Nd": 0},
+         "Vd5_Vd": columns[safety]["Vd_design"], "Vd5_Md": columns[safety]["Md_design"], "Vd5_Nd": 0,
+         "Md8_Md": columns["long_term"]["Md_design"], "Md8_Nd": 0},
         {"index": 2,
          "Md7_Md": seismic["Md_design"], "Md7_Nd": 0,
          "Vd7_Vd": seismic["Vd_design"], "Vd7_Md": seismic["Md_design"], "Vd7_Nd": 0}]

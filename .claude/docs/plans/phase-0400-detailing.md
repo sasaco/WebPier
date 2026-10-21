@@ -83,12 +83,20 @@
 
 ## Phase 3　WebPier：行8 と新しい節（担当 C、A の後）
 
-- [ ] `calc/column_check.py`：`MOMENT_CASES` に (8, PERMANENT)、`REPORT_SECTIONS` の末尾に `bending_rebar_amount`
-- [ ] `reporting/stages/column_check.py`：n.10「最小鉄筋量及び最大鉄筋量」、`foundation_check.py`：8.10・9.10 → 8.11・9.11
-- [ ] `export/capacita/footing_wdj.py`：行8 に 0800 の `long_term`（Nd＝0）、0810/0820 の節の最後に差込み
-- [ ] `export/capacita/cantilever.py`：行8 にケース 28、0910 の節の最後に差込み
-- [ ] 代役の runner が `bending_rebar_amount` を返す
-- [ ] 本物の runner の受入を取り直す：`accept_capacita_column.py`・`accept_footing.py`・片持ち梁
+- [x] ✅ `calc/column_check.py`：`MOMENT_CASES` に (8, PERMANENT)、`REPORT_SECTIONS` の末尾に `bending_rebar_amount`
+- [x] ✅ `reporting/stages/column_check.py`：n.10「最小鉄筋量及び最大鉄筋量」（見出しだけ。n.5 と同じ形）、`foundation_check.py`：8.10・9.10 → 8.11・9.11
+- [x] ✅ `export/capacita/footing_wdj.py`：行8（Md8_Md・Md8_Nd）に 0800 の `long_term`（Nd＝0、点1）。`calc/footing_check.REPORT_SECTIONS` の末尾に `bending_rebar_amount`、帳票は節を1つ足す：0810 12.2〜12.5、0820 12.6〜12.9（`footing_check.TRANSVERSE` は `Chapter(12, 6)`）
+- [x] ✅ 0910：`calc/cantilever/combinations.FORCE_ROWS` に `ForceRow(8, "最小鉄筋量", (曲げ,), _permanent)`（ケース 28）、`export/capacita/cantilever.py` は `MOMENT_ROWS` の Md8 にそれを書く、`calc/cantilever/check.SECTIONS` の末尾に `bending_rebar_amount`、帳票は最後の節 13.8（外観の照査ありは 13.9）。荷重モデル（`calc/generic/cantilever.py`）は行8 に行1（耐久性（永久荷重））の組合せを使う（`POOLED_AS = {8: 1}`。`loadmodel.CantileverRow` は変えない）
+- [x] ✅ 代役の runner が `bending_rebar_amount` を返す（`--pickup` は 1 頁、断面力入力は行 Md8 から 3 頁。WD-408/409 は曲げ・せん断の行が欠けるときだけ）
+- [x] ✅ 本物の runner の受入を取り直した：`accept_capacita_column.py 0611`・`0621`（`tests/fixtures/acceptance/capacita/record.json`・`record_0621.json`）、`accept_footing.py`（`tests/fixtures/acceptance/footing/record.json`・`input.json`）。片持ち梁の受入スクリプトはないので、scratch で current.json（footing 以外の出力項目）を本物の4つの runner で生成して 0910 を確かめた
+
+### Phase 3 の知見（2026-10-21、担当 C）
+
+- （事実、本物の runner、Capacita 5104588 の bin\Release）R5 の `bending_rebar_amount` は `--pickup`（0611/0621）でも断面力入力（0810/0820・0910）でも最後の節で 3 頁（最小鉄筋量の照査結果 2 頁、最大鉄筋量の照査結果 1 頁）。フーチングの Nd＝0 でも計算する（0.008Ac＝0、pt/0.75pb 0.089）。行8 を書くと 0910 の WD-408 は出なくなる（0810/0820 は他の空の行で出る）。R5 に最小鉄筋量の断面力0の省略コードはないので、`OMITTED` に入れない（省略不可の節）。
+- （事実、本物の runner）受入：0611 は照査値 0.132／0.114、Mud 37426.2、Myd 38200.7（見本と同じ判定。H16 のときと同じ値）、0621 は Mud 29326.7、Myd 48634.5、省略は shear_durability・bending_serviceability。フーチングは許容差の範囲で accepted。
+- （事実）0910 の生成（本物の FEMPython・JRSNAP・Aggre-SE・Capacita）で 13.6 使用性（損傷）→13.7 復旧性（地震時）→13.8 最小鉄筋量及び最大鉄筋量の順に Capacita の頁が入り、0611 は 8.10 の後に 3 頁、0612 は 8.11。
+- （決め、担当 C）新しい節は見出しだけ（説明文なし）。見本に R5 の最小鉄筋量・最大鉄筋量の解説がなく、式と値は Capacita の頁にあるため（スキル pier-report-style の「見本にない説明文は足さない」）。
+- （注意）0820 の節番号が 12.5〜12.7 から 12.6〜12.9 に、0910 の最後が 13.6 から 13.8（外観ありは 13.9）に変わった。0400（担当 D）の参照先、決定59・60、スキル webpier-footing・webpier-cantilever・webpier-capacita、structural-webpier の checks.md を合わせる必要がある。
 
 ## Phase 4　0400 の計算と計算書（担当 D）
 

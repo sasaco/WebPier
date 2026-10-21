@@ -8,7 +8,7 @@ engine webdan2, engineeringStatus not_evaluated) on stdout. Instead of calculati
 
 - ``report.pdf``: the sections section_forces (2 pages), bending_safety_destruction, shear_safety_destruction,
   bending_durability, shear_durability, bending_serviceability (only when the WDJ's crack row has ``vis_u`` true),
-  bending_restorability and shear_restorability (1 page each), in that order, each page saying
+  bending_restorability, shear_restorability and bending_rebar_amount (1 page each), in that order, each page saying
   ``FAKE CAPACITA <id> <page>/<pages> <SHA256 of the WDJ, 16 hex>`` so a test can find the pages in a report;
   ``summary.reportSections`` gives their page ranges;
 - ``model.wdj``: the given WDJ with ``pickup_filename`` the PIK's file name and ``pickup_data``
@@ -18,10 +18,11 @@ engine webdan2, engineeringStatus not_evaluated) on stdout. Instead of calculati
 Without ``--pickup`` (``run-rc --input <wdj> --output-dir <dir> --output-format pdf``, the WDJ holding its forces), it
 writes ``result.json`` and a ``report.pdf`` of the sections the force table asks for, as the real runner of 2026-10-19
 does: a row of the table (Md<id>_Md, Vd<id>_Vd, Mt<id>_Mt, by limit state id) gives its section (SECTION_OF_ROW), the
-appearance check only with ``vis_u``, with the real runner's page counts (FORCE_SECTIONS; the footing WDJ of 0810 and
-0820 gives bending_safety_destruction, shear_safety_destruction, bending_durability, bending_restorability_eq and
-shear_restorability_eq, the beam WDJ of 0910 every section but the appearance), with the warnings WD-408 / WD-409 the
-real runner gives for the rows without forces; no ``model.wdj`` comes back.
+appearance check only with ``vis_u``, with the real runner's page counts (FORCE_SECTIONS, R5 of 2026-10-21; the footing
+WDJ of 0810 and 0820 gives bending_safety_destruction, shear_safety_destruction, bending_durability,
+bending_restorability_eq, shear_restorability_eq and bending_rebar_amount, the beam WDJ of 0910 every section but the
+appearance), with the warnings WD-408 / WD-409 the real runner gives for the bending / shear rows without forces (the
+beam's table has them all: none); no ``model.wdj`` comes back.
 
 When the real runner's protocol changes, change this too (the real-runner test is the signal). ``FAKE_CAPACITA`` makes
 it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
@@ -44,17 +45,19 @@ from reportlab.pdfgen import canvas
 
 SECTIONS = (("section_forces", 2), ("bending_safety_destruction", 1), ("shear_safety_destruction", 1),
             ("bending_durability", 1), ("shear_durability", 1), ("bending_serviceability", 1),
-            ("bending_restorability", 1), ("shear_restorability", 1))
+            ("bending_restorability", 1), ("shear_restorability", 1), ("bending_rebar_amount", 1))
 # The sections of a WDJ calculated as given, in the real runner's order with its page counts (2026-10-19).
 FORCE_SECTIONS = (("bending_safety_destruction", 1), ("shear_safety_destruction", 2), ("torsion_safety_destruction", 3),
                   ("bending_safety_fatigue", 1), ("shear_safety_fatigue", 2), ("bending_durability", 2),
                   ("shear_durability", 2), ("torsion_durability", 2), ("bending_serviceability", 1),
                   ("bending_restorability", 1), ("shear_restorability", 2), ("torsion_restorability", 3),
-                  ("bending_restorability_eq", 1), ("shear_restorability_eq", 2), ("torsion_restorability_eq", 3))
+                  ("bending_restorability_eq", 1), ("shear_restorability_eq", 2), ("torsion_restorability_eq", 3),
+                  ("bending_rebar_amount", 3))
 # The section each row of the force table asks for, by the row's prefix and limit state id.
 SECTION_OF_ROW = {("Md", 0): "bending_durability", ("Md", 1): "bending_durability", ("Md", 3): "bending_safety_fatigue",
                   ("Md", 4): "bending_safety_fatigue", ("Md", 5): "bending_safety_destruction",
                   ("Md", 6): "bending_restorability", ("Md", 7): "bending_restorability_eq",
+                  ("Md", 8): "bending_rebar_amount",
                   ("Vd", 0): "shear_durability", ("Vd", 1): "shear_durability", ("Vd", 2): "shear_durability",
                   ("Vd", 3): "shear_safety_fatigue", ("Vd", 4): "shear_safety_fatigue",
                   ("Vd", 5): "shear_safety_destruction", ("Vd", 6): "shear_restorability",
@@ -132,8 +135,12 @@ def main(argv):
                "skipnocode": {"shear_durability": None}}.get(mode, {})
     if pickup is None:
         shown = force_sections(document)
+        row = (document.get("force") or [{}])[0]
+        missing = {"WD-408": any(row.get(f"Md{id_}_Md") is None for id_ in (0, 1, 3, 4, 5, 6, 7, 8)),
+                   "WD-409": any(row.get(f"Vd{id_}_Vd") is None for id_ in range(8))}
         messages = [{"level": "warn", "code": code, "text": text} for code, text in (
-            ("WD-408", "曲げ照査用断面力データが見つかりませんでした。"), ("WD-409", "せん断照査用断面力データが見つかりませんでした。"))]
+            ("WD-408", "曲げ照査用断面力データが見つかりませんでした。"), ("WD-409", "せん断照査用断面力データが見つかりませんでした。"))
+            if missing[code]]
     else:
         shown = [(name, pages) for name, pages in SECTIONS
                  if (name != "bending_serviceability" or document["crack"][0]["vis_u"]) and name not in skipped]

@@ -45,7 +45,8 @@ RATIO = Precision(2, "")
 SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "torsion_safety_destruction",
             "bending_safety_fatigue", "shear_safety_fatigue", "bending_durability", "shear_durability",
             "torsion_durability", "bending_serviceability", "bending_restorability", "shear_restorability",
-            "torsion_restorability", "bending_restorability_eq", "shear_restorability_eq", "torsion_restorability_eq")
+            "torsion_restorability", "bending_restorability_eq", "shear_restorability_eq", "torsion_restorability_eq",
+            "bending_rebar_amount")
 SA_RATIO = RATIO.exact(1.0)  # SA/SC: the A train is the standard train
 SB_RATIO = RATIO.exact(1.0)
 GAMMA1_MAIN = RATIO.exact(1.0)  # γ1 of the main bars: no joint, no bend
