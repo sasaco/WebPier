@@ -129,12 +129,12 @@ def test_the_folder_is_replaced_whole(env):
         ["model.ndu", "model.ndu.provenance.json", FOLDER, f"{FOLDER}.provenance.json"])
 
 
-def test_a_generation_without_the_analysis_keeps_the_old_folder(env):
+def test_a_generation_without_the_analysis_removes_the_old_folder(env):
     options, _, stages = env
     generate.generate(analyzed(options), registry=stages)
     choose(Path(options.input_path), *SEISMIC)
     generate.generate(with_(options, overwrite=True), registry=stages)
-    assert folder(options) == expected()
+    assert not (Path(options.post_dir) / FOLDER).exists()  # decision 74
 
 
 def test_the_analysis_is_chosen_only_with_the_items_it_reads(env):

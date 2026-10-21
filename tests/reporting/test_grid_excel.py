@@ -56,7 +56,7 @@ def generations(tmp_path_factory):
                 written[sheet] = list(documents)
                 return original(documents, path, sheet)
 
-            options = GenerationOptions(source, root / "output", root / "post",
+            options = GenerationOptions(source, root / "output", root / "post", export_dir=root / "export",
                                         addin=ADDIN if model == "addin" else None)
             with pytest.MonkeyPatch.context() as patch:
                 patch.setattr(generate_module, "write_workbook", record)

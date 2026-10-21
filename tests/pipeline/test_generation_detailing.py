@@ -16,7 +16,7 @@ STEM = "0400_照査の前提"
 
 def make(root, *items):
     source = copy_input(root / "pre", *items)
-    return source, generate(GenerationOptions(source, root / "output", root / "post"))
+    return source, generate(GenerationOptions(source, root / "output", root / "post", export_dir=root / "export"))
 
 
 def test_the_detailing_alone_from_the_input(tmp_path):

@@ -83,7 +83,8 @@ def test_run_gives_the_bytes_of_the_cli(tmp_path: Path, capsys):
     """The same generation as python -m webpier: the real 0500 report and result, byte for byte."""
     source = copy_input(tmp_path / "pre", "ground_model")
     assert call(capsys, "run", "--input", source, "--output-dir", tmp_path / "out")[0] == 0
-    generate.generate(GenerationOptions(source, tmp_path / "cli" / "output", tmp_path / "cli" / "post"))
+    generate.generate(GenerationOptions(source, tmp_path / "cli" / "output", tmp_path / "cli" / "post",
+                                                  export_dir=tmp_path / "cli" / "export"))
     assert tree(tmp_path / "out") == tree(tmp_path / "cli")
 
 
@@ -264,7 +265,7 @@ def test_a_frame_analysis_reports_its_runners_and_the_foundation_check(tmp_path:
     assert all(runner["engineVersions"] and all(runner["engineVersions"]) for runner in summary["runners"])
     assert [item["relativePath"] for item in envelope["artifacts"]] == [
         f"{artifact.directory}/{artifact.path.name}" for artifact in planned(GenerationOptions(
-            Path("input.json"), Path("output"), Path("post")), list(stages))]
+            Path("input.json"), Path("output"), Path("post"), export_dir=Path("export")), list(stages))]
     assert {item["mediaType"] for item in envelope["artifacts"] if item["relativePath"].endswith(".csv")} == {
         "text/csv; charset=utf-8"}
 

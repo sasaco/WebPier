@@ -46,7 +46,7 @@ def without_input(output):
 def all_generation(tmp_path_factory):
     root = tmp_path_factory.mktemp("all")
     source = copy_input(root / "pre")
-    generation = generate(GenerationOptions(source, root / "output", root / "post"))
+    generation = generate(GenerationOptions(source, root / "output", root / "post", export_dir=root / "export"))
     return root, source, generation
 
 
@@ -54,7 +54,7 @@ def all_generation(tmp_path_factory):
 def analysis_generation(tmp_path_factory):
     root = tmp_path_factory.mktemp("analysis")
     source = copy_input(root / "pre", *DEFAULT, *FRAMES)
-    generation = generate(GenerationOptions(source, root / "output", root / "post"))
+    generation = generate(GenerationOptions(source, root / "output", root / "post", export_dir=root / "export"))
     return root, source, generation
 
 

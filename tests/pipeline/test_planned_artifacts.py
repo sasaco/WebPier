@@ -16,7 +16,7 @@ DEFAULT = ("ground_model", "reactions", "longitudinal", "transverse", "longitudi
 
 
 def options():
-    return GenerationOptions(Path("pre/input.json"), Path("out"), Path("post"))
+    return GenerationOptions(Path("pre/input.json"), Path("out"), Path("post"), export_dir=Path("export"))
 
 
 def test_the_planned_files_of_a_fake_registry():
@@ -44,11 +44,13 @@ def test_the_real_registry_plans_every_report_and_every_export():
         "線路直角方向.ndu", "線路直角方向.ndu.provenance.json"]
 
 
-def test_the_grid_excel_workbooks_go_to_export_beside_the_output_or_where_given():
+def test_the_grid_excel_workbooks_are_planned_only_where_given():
     workbooks = [artifact for artifact in planned(options(), STAGES.selected(DEFAULT))
                  if artifact.role.endswith(".xlsx")]
     assert {(artifact.directory, artifact.path.parent) for artifact in workbooks} == {
-        ("export", Path("out").resolve().parent / "export")}
+        ("export", Path("export"))}
+    bare = GenerationOptions(Path("pre/input.json"), Path("out"), Path("post"))  # decision 75: no workbook
+    assert not [artifact for artifact in planned(bare, STAGES.selected(DEFAULT)) if artifact.role.endswith(".xlsx")]
     given = GenerationOptions(Path("pre/input.json"), Path("out"), Path("post"), export_dir=Path("book"))
     assert [(artifact.role, artifact.path) for artifact in planned(given, STAGES.selected(("ground_model",)))] == [
         ("0500.pdf", Path("out") / "0500_直接基礎.pdf"), ("0500.json", Path("out") / "0500_直接基礎.json"),

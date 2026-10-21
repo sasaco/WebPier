@@ -280,7 +280,8 @@ def _declared(arguments: argparse.Namespace, registry: Registry) -> tuple[Regist
     """For contract and schema: the registry of the add-in of ``--addin``, and its declaration for the summary."""
     if arguments.addin is None:
         return registry, {}
-    bound = with_addin(GenerationOptions(Path("input.json"), Path("output"), Path("post"), addin=arguments.addin),
+    bound = with_addin(GenerationOptions(Path("input.json"), Path("output"), Path("post"), addin=arguments.addin,
+                                      export_dir=Path("export")),
                        registry)
     addin = bound.load_model.addin  # type: ignore[union-attr]
     return bound, {"addin": {"name": addin.name, "version": addin.version, "contract": addin.contract}}
@@ -305,7 +306,7 @@ def _schema(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dic
 def contract(registry: Registry = STAGES) -> dict[str, Any]:
     """The stages, and for each 出力項目 (decision 72) its stages, the items it uses, the runners choosing it calls
     (with the items it uses, which are chosen with it) and the files it publishes (``planned``), from the registry."""
-    options = GenerationOptions(Path("input.json"), Path("output"), Path("post"))
+    options = GenerationOptions(Path("input.json"), Path("output"), Path("post"), export_dir=Path("export"))
 
     def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
         stages = registry.outputs.get(key, ())
