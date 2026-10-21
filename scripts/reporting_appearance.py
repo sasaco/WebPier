@@ -236,8 +236,17 @@ def measure_page(page: pymupdf.Page) -> dict[str, Any]:
     }
 
 
+# The samples measured for the appearance record; the folder also holds samples added later (0400, 0440, 最大鉄筋量)
+# that the record never measured.
+MEASURED_STAGES = ("0500", "0600", "0610", "0620")
+
+
+def _measured(reference_directory: Path) -> list[Path]:
+    return sorted(path for path in reference_directory.glob("*.pdf") if path.name[:4] in MEASURED_STAGES)
+
+
 def census(reference_directory: Path) -> dict[str, Any]:
-    paths = sorted(reference_directory.glob("*.pdf"))
+    paths = _measured(reference_directory)
     if len(paths) != 4:
         raise ValueError(f"Expected 4 reference PDFs, found {len(paths)}")
     documents = []
@@ -278,7 +287,7 @@ def build_style_contract(reference_directory: Path) -> dict[str, Any]:
         "frame.member": ("0610", 1, "4", None),
         "frame.dimension": ("0610", 1, "16.000", None),
     }
-    files = {path.name[:4]: path for path in reference_directory.glob("*.pdf")}
+    files = {path.name[:4]: path for path in _measured(reference_directory)}
     documents = {stage: pymupdf.open(path) for stage, path in files.items()}
     roles: dict[str, Any] = {}
     try:
