@@ -47,7 +47,7 @@ uv pip install --python ".venv" --no-deps --reinstall "C:\Users\sasai\Documents\
 uv run --project "." --no-sync --group dev python -X utf8 -m pytest tests -q
 ```
 
-Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calibri・Times Italic が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図と荷重図（決定50・51、`figures`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721（と 0900・0910）を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。0611・0621 の柱の断面照査は Capacita の Headless runner（`run-rc --pickup`、ADR-0008、`webpier/pipeline/capacita.py`）で行い、`.env` に `STRUCTURAL_MCP_WEBDAN_RUNNER='<Capacita>\WebDanforCS\Headless\bin\Release\net8.0\WebDanforCS.Headless.exe'` を書く（未設定なら 0611・0621・0810・0820・0910 を含む生成は停止する。Capacita を直したら `dotnet build .\Capacita\WebDanforCS\Headless\WebDanforCS.Headless.csproj -c Release` を structural-mcp のルートで）。0711・0721 の耐震性能照査は Aggre-SE の Headless runner（`run --snap-map`、ADR-0009、`webpier/pipeline/aggrese.py`）で行い、`.env` に `STRUCTURAL_MCP_AGGRESE_RUNNER='<Batch>\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe'` を書く（未設定なら 0711・0721・0800・0810・0820・0900・0910 を含む生成は停止する。Batch は Visual Studio の MSBuild でビルドする）。テストは `tests/conftest.py` が4つの代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
+Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・MS Pゴシック・Calibri（名前で引く。`webpier/reporting/fonts.py`）が必須で、書体がなければ生成を停止する。0610・0620 の荷重図は FEMPython の Headless runner で描くので（ADR-0005、`webpier/pipeline/fempython.py`）、リポジトリのルートの `.env`（追跡しない）に `STRUCTURAL_MCP_FEMPYTHON_RUNNER='<FEMPython>\FrameWebforCS\Headless\bin\Release\net10.0-windows\FrameWebforCS.Headless.exe'` を書く（プロセスの環境変数が優先）。未設定なら 0610・0611・0620・0621 を含む生成は停止する（0611・0621 の骨組解析も同じ runner、ADR-0006）。0711・0721 の静的非線形解析は structural-mcp の JRSNAPHeadless の runner で行い（ADR-0007）、`.env` に `STRUCTURAL_MCP_JRSNAP_RUNNER='<JRSNAPHeadless>\bin\Release\JRSNAP.Headless.exe'` を書く。0710・0720 の計算書に差し込むデータ確認図と荷重図（決定50・51、`figures`）も同じ runner が描くので、未設定なら 0710・0711・0720・0721（と 0900・0910）を含む生成は停止する。JRSNAP のインストール先は runner の横の `jrsnap-headless.json` が持ち、WebPier は JRSNAP を直接起動しない。0611・0621 の柱の断面照査は Capacita の Headless runner（`run-rc --pickup`、ADR-0008、`webpier/pipeline/capacita.py`）で行い、`.env` に `STRUCTURAL_MCP_WEBDAN_RUNNER='<Capacita>\WebDanforCS\Headless\bin\Release\net8.0\WebDanforCS.Headless.exe'` を書く（未設定なら 0611・0621・0810・0820・0910 を含む生成は停止する。Capacita を直したら `dotnet build .\Capacita\WebDanforCS\Headless\WebDanforCS.Headless.csproj -c Release` を structural-mcp のルートで）。0711・0721 の耐震性能照査は Aggre-SE の Headless runner（`run --snap-map`、ADR-0009、`webpier/pipeline/aggrese.py`）で行い、`.env` に `STRUCTURAL_MCP_AGGRESE_RUNNER='<Batch>\Aggre-SE\Headless\bin\Release\AggreSE.Headless.exe'` を書く（未設定なら 0711・0721・0800・0810・0820・0900・0910 を含む生成は停止する。Batch は Visual Studio の MSBuild でビルドする）。テストは `tests/conftest.py` が4つの代役の runner に置き換える。テストは `webpier` のソースもハッシュするので、テスト実行中にソースを編集しない（生成中の実装変更として失敗する）。
 
 ## アーキテクチャ
 
@@ -70,7 +70,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 
 1. 入力を一度だけバイト列で読み、厳密に解析する。そのSHA256を全ての結果JSONと付帯JSONに記録する。
 2. 選択した段階と依存段階をすべて計算してから描画する（0610/0620は0500と0600、0710は0610、0720は0620も使う）。保存済みの結果JSONは読まない。
-3. 成果物を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。0711・0721 の JRSNAP の結果はそれぞれフォルダー1つの成果物で、丸ごと置き換え、SHA は中の全ファイルから求める（`core.integrity.content_sha256`）。
+3. 成果物（計算書、WebPier が組む頁の方眼Excel `export/<stem>.xlsx`、結果JSON、外部出力）を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。0711・0721 の JRSNAP の結果はそれぞれフォルダー1つの成果物で、丸ごと置き換え、SHA は中の全ファイルから求める（`core.integrity.content_sha256`）。
 
 ### 決定性と実装の同一性
 - PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。例外は 0610・0620 に差し込む FEMPython の荷重図のページと、0710・0720 に差し込む JRSNAP のデータ確認図と荷重図のページで、その中身はそれぞれの責務として決定性を求めない（ADR-0005、決定50・51）。WebPier が描く部分は決定的にし、テストは代役の runner で確かめる。FEMPython の runner は `dependency_hashes` に入れず、付帯JSONに `engineVersion` を記録する。JRSNAP の runner と結果も同じ（決定47）。
@@ -78,10 +78,10 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・Calib
 - ハッシュするソースと受入記録の補助スクリプトは `.gitattributes` で LF に固定している（`*.py`、`scripts/*.cs`、jrsnap-input-open-save の `scripts/*.ps1`・`*.cs`）。`core.autocrlf` で CRLF になると実装の同一性や受入記録の SHA が変わる。
 
 ### 帳票の基準とテスト用データ
-- 体裁の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。
+- 帳票は GridLayoutPdf 0.2.0 の共通グリッドに組み、位置はマスの数で持つ（2026-10-21、`.claude/docs/plans/glp-0.2.0-grid.md`）。構成・文言・式の書き方の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。各段階の `grid_documents` が方眼Excel の頁で、`render` と同じ文書を作る。
 - テストは層ごとに `tests/<層>/`。期待値は、Example2 原資料から独立に転記した値（`tests/fixtures/example2/`）と、実装を使わない手計算だけ。入力は `tests/fixtures/inputs/current.json` を基に変えたい項目だけ書き換える。テストの補助モジュール（`*_support.py`）は `from <名前> import` で読むので、層をまたいでも同じ名前にしない（先に読んだほうが使われる）。
 - 性質テスト（hypothesis、`tests/*/test_*_properties.py`）は式から言える恒等式・順序だけを確かめる。`tests/conftest.py` のプロファイルで `derandomize=True`（毎回同じ例）にしている。
-- `tests/fixtures/reporting/appearance` は見本PDFから独立に測った体裁値（測定器は `scripts/reporting_appearance.py`）。新しい描画結果から作り直さない。
+- `tests/fixtures/reporting/appearance` は見本PDFから独立に測った体裁値（測定器は `scripts/reporting_appearance.py`）。共通グリッドへの移行で位置の基準ではなくなったが、見本の記録として残す。新しい描画結果から作り直さない。
 - 文字の縮小や伸縮で固定ページ数に収めない。式・表・図のまとまりを保ち、内容に応じて改ページする。
 
 ### 入力の扱い（schema 2）

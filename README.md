@@ -52,7 +52,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | 0900（選択式） | 0600, 0711, 0721 | `0900_片持ち梁.pdf` / `.json`（片持ち梁の応答値の算定・設計作用の組合せ） | — |
 | 0910（選択式） | 0900 | `0910_片持ち梁照査.pdf` / `.json`（片持ち梁の断面照査） | `片持ち梁.wdj` と付帯JSON |
 
-`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図と荷重図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/` は生成物なので git で追跡しません。
+`--stage all` は12の計算書・結果JSONと、FrameWeb入力2つ・JRSNAP入力（NDU）2つ・付帯JSON4つの計20ファイルをまとめて更新します。外部ソフト向けの入力は段階の成果物なので、その段階を選べば常に書きます（決定42）。0710・0720 を含む生成は JRSNAP の解析設定と JRSNAP の runner（データ確認図と荷重図、下記）が必須で、解析設定に空欄や誤りがあれば入力エラーで止まります。入力エラーは計算書を描く前に出ます。付帯JSONは `<ファイル名>.provenance.json` です。`output/`・`post/`・`export/` は生成物なので git で追跡しません。
 
 0611・0612・0621・0622 は骨組解析の段階です（決定46、ADR-0006）。0611・0621 は骨組解析に続けて柱の断面照査を行い（決定48、下記）、0612・0622 は同じ骨組解析の反力で基礎の照査を行います（決定54、下記）。同じ FrameWeb 入力を解析する段階（0611 と 0612、0621 と 0622）は解析を共有し、1回の生成で FEMPython を1回だけ呼び、ピックアップのファイルも1組だけ公開します（付帯JSONの `stage` は先の段階、`frame_analysis.stages` に使った段階）。選択式（opt-in）なので `--stage all` には含まれず、`--stage all --frame-analysis` で加わります（上の20ファイルに、0611・0612・0621・0622 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`・`線路直角方向.wdj`、付帯JSON8つが加わります）。`--stage 0611` のように直接選べば、依存する 0610 を内部で計算し、0611 のファイルだけを書きます。`--stage 0612` も同じで、0611 を選ばずに基礎の照査だけを作れます（骨組解析は自分で行い、ピックアップのファイルも書きます）。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
@@ -122,7 +122,7 @@ STRUCTURAL_MCP_AGGRESE_RUNNER='C:\Users\<user>\Documents\structural-mcp\Batch\Ag
 
 JRSNAP の runner がない・データ確認図・荷重図を描けない・解析できないときは、0710・0720（0711・0721）を含む生成は何も公開せずに止まります（終了コード 2）。JRSNAP の結果の中身・決定性は JRSNAP の責務で、実装の同一性（`dependency_hashes`）には含めません。
 
-書体は `%WINDIR%/Fonts` の `msmincho.ttc`・`msgothic.ttc`・`calibri.ttf`・`timesi.ttf` を使います。本文はMS明朝9.9pt、見出しはMSゴシック9.9pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
+書体は MS明朝・MSゴシック・MS Pゴシック・Calibri を名前で引きます（Windows の `%WINDIR%/Fonts`）。本文はMS明朝10pt、見出しはMSゴシック10pt、添字は6.5ptです。必要な書体や文字がなければ生成を停止します。
 
 ### 片持ち梁の照査（0900・0910）
 
@@ -154,7 +154,7 @@ structural-mcp（MCP の `webpier_get_input_schema`・`webpier_get_contract`・`
 .venv\Scripts\python.exe -X utf8 .\run_headless.py schema
 ```
 
-- stdout は JSON 1つ（protocol v1 の envelope、`engine: "webpier"`）。`run` は `--output-dir` の下に `output/`・`post/` を CLI と同じ配置・同じバイトで書き、`artifacts` に全ファイルの相対パス・SHA-256・サイズを返します（JRSNAP の結果フォルダーは中のファイルを1つずつ）。
+- stdout は JSON 1つ（protocol v1 の envelope、`engine: "webpier"`）。`run` は `--output-dir` の下に `output/`・`post/`・`export/` を CLI と同じ配置・同じバイトで書き、`artifacts` に全ファイルの相対パス・SHA-256・サイズを返します（JRSNAP の結果フォルダーは中のファイルを1つずつ）。
 - runner は**環境変数だけ**から読みます（`.env` は読みません）。選んだ段階が要る runner がなければ何も書かずに `RUNNER_UNAVAILABLE` で終わります。
 - 終了コードは CLI と同じ（0・2・3）。失敗の種類は `errors[0].code`（`INVALID_ARGUMENT`・`INPUT_ERROR`（入力のパス付き）・`ADDIN_ERROR`（下の「荷重モデルのアドイン」）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`・`GENERATION_FAILED`・`IO_ERROR`・`RECOVERY_REQUIRED`）。
 - `engineeringStatus` は段階ごと（0612・0622 は ok／not_ok、ほかは not_evaluated）と全体（not_ok が1つでもあれば not_ok、判定した段階がすべて ok なら ok）。実行の成否（`ok`）とは別です。
@@ -282,7 +282,9 @@ PDFは作成日時を含まないので、同じ入力・書体・ライブラ�
 
 ## 計算書
 
-全6帳票はA4縦・白黒で、体裁は `.claude/docs/Example橋脚/output` の書体・字下げ・等号の位置・表の行高を基準にし、数値・式・ケースは現在の入力から計算します。計算内容の見本は `.claude/docs/Example橋脚2` です。式・表・図のまとまりを保って改ページするので、ページ数は内容に応じて変わります。文字の縮小や伸縮で固定ページ数に収めることはしません。体裁の契約と測定方法は [.claude/docs/reporting-style.md](.claude/docs/reporting-style.md) にあります。
+計算書はA4縦・白黒で、GridLayoutPdf 0.2.0 の共通グリッド（16.08×15.48pt のマス、30列×47行）に組みます。字下げ・等号・表の列幅と行高はマスの数で決まり、構成・文言・式の書き方は `.claude/docs/Example橋脚/output` に合わせます。数値・式・ケースは現在の入力から計算します。計算内容の見本は `.claude/docs/Example橋脚2` です。式・表・図のまとまりを保って改ページするので、ページ数は内容に応じて変わります。文字の縮小や伸縮で固定ページ数に収めることはしません。体裁の契約は [.claude/docs/reporting-style.md](.claude/docs/reporting-style.md) にあります。
+
+WebPier が組む頁は、同じものを方眼Excel `export/<段階>.xlsx`（1冊1シート。セルが方眼のマスで、文字・式の項・表の罫線がセルに入る）にも書きます。他のプログラムの頁（FEMPython の荷重図、Capacita・JRSNAP の頁）は入りません。0711・0721 は Aggre-SE の帳票そのものなので、方眼Excel はありません。出し先は `--export-dir`（既定は出力先と並ぶ `export`）。方眼Excel は GridLayoutPdf の strict で書き、セルに置けない部分が1つでもあれば、何も公開せずに止まります。
 
 各帳票の内容は Example2 の対応する計算書に合わせています（0500: 04 地盤のモデル化、0600: 05・07、0610: 08、0620: 09、0710: 10、0720: 11）。
 

@@ -350,6 +350,37 @@
    - アドインをつないだとき、`input.json` の荷重モデルに属する項目（列車・衝撃係数・列車速度・曲線半径・遠心作用方向・支承の雪荷重など）は無視し、検査も印字もしない。入力エディタはアドインに対応しない（owner）。`--addin` を付けるのは呼び出す側の責任。
    - 進め方：① 差し込み口と約束を作る。② 列車の荷重モデルを約束の上の標準の荷重モデルに載せ替え、Example橋脚2 の成果物が変わらないことを確かめる（決定69の雪の分岐はここで標準の荷重モデルの中に移る）。③ P7 の車荷重のアドインを案件の repo に書く。
 
+71. **計算書を GridLayoutPdf 0.2.0 の共通グリッドで組み直し、WebPier が組む頁を方眼Excel にも出す**（owner 2026-10-21。計画 `.claude/docs/plans/glp-0.2.0-grid.md`、体裁の契約 `.claude/docs/reporting-style.md`）。
+   - 版面は A4 の共通グリッド（16.08×15.48pt のマス、30列×47行）。位置は列・行の数で持ち、見本から測った pt の位置（0.12pt の格子、9.9pt、14.28pt の行送り、0.12/0.96pt の罫線）はやめる。本文・見出しは MS明朝・MSゴシック 10pt を名前で引く。罫線は外枠 中・内側 極細。
+   - 見本 `Example橋脚/output` は構成・文言・式の書き方の基準として残す。見本の測定値（`tests/fixtures/reporting/appearance`）は記録として残し、新しい PDF との照合には使わない。
+   - 方眼Excel は成果物：`export/<stem>.xlsx`（1冊1シート、`render_xlsx(strict=True)`）。各段階の `grid_documents` が `render` と同じ文書を返す。他のプログラムの頁は入れず、0711・0721（Aggre-SE の帳票そのもの）は出さない。
+   - GridLayoutPdf は Release の wheel の url 参照のまま、v0.2.1 にする（0.2.0 に方眼Excel の左辺の直しを加えた版。移行中だけ一時的に手元の path 依存にした）。
+   - 移行で計算値・文言は変えない（結果JSON は実装のハッシュ以外が同じ、PDF の文字の並びは空白を除いて同じ。頁数の変化は許す）。
+
+72. **作る計算書を入力の出力項目 `outputs` で決め、段階とスイッチの引数を廃止する**（owner 2026-10-21。ADR-0011、CONTEXT.md「出力項目」）。決定46・47・60 のうち「選択式の段階は all にスイッチで足す」「スイッチの状態はエディタの設定で、入力ではない」を改める。
+   - 入力：`outputs` は schema 2 の必須のキー（版の番号は上げない）。12の項目はすべて必須で、値は true／false だけ（null は不可）。
+
+     | キー | 画面の表示 | 段階 | 使う項目 |
+     |---|---|---|---|
+     | `ground_model` | 地盤のモデル化 | 0500 | なし |
+     | `reactions` | 上部工反力及び橋脚自重 | 0600 | なし |
+     | `longitudinal` | 線路方向の計算（地震時以外） | 0610 | ground_model・reactions |
+     | `longitudinal_frame_analysis` | 骨組解析も行う | 0611・0612 | longitudinal |
+     | `transverse` | 線路直角方向の計算（地震時以外） | 0620 | ground_model・reactions |
+     | `transverse_frame_analysis` | 骨組解析も行う | 0621・0622 | transverse |
+     | `longitudinal_seismic` | 線路方向の計算（地震時） | 0710 | longitudinal |
+     | `longitudinal_nonlinear_analysis` | 静的非線形解析も行う | 0711 | longitudinal_seismic |
+     | `transverse_seismic` | 線路直角方向の計算（地震時） | 0720 | transverse |
+     | `transverse_nonlinear_analysis` | 静的非線形解析も行う | 0721 | transverse_seismic |
+     | `footing` | フーチングの計算 | 0800・0810・0820 | 両方向の frame_analysis と nonlinear_analysis |
+     | `cantilever` | 片持ち梁の計算 | 0900・0910 | 両方向の nonlinear_analysis |
+
+   - 検査：使う項目が false なのに true の項目があれば、その項目を名指しした入力エラー。12個すべて false も入力エラー（何も作らずに成功としない）。手で書いた JSON にも MCP の入力にも同じ規則を当てる。
+   - 生成：選ばれた項目の段階をすべて作り直して公開する。依存を満たした項目しか選べないので、計算に使う段階はすべて選ばれている。選ばれていない項目の成果物は消さずに残す（前回の世代。入力の SHA256 が合わないので、エディタでは今回の結果ではないと表示する）。
+   - 引数：`python -m webpier`・`run_headless.py run` の `--stage`・`--frame-analysis`・`--nonlinear-analysis` を廃止する。`--addin` は残す（作る計算書を変えない、ADR-0010）。
+   - 入力エディタ：画面は `01 下部構造`〜`05 鉄筋`、`06 JRSNAPの設定`、`07 計算・印刷`。06 には両方向の JRSNAP の6項目と目標変位の向きの説明を移し、注記は「線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと線路直角方向の全項目が必要」にする（値はいまどおり空欄可で、0710・0720 を作るときだけ必要）。07 は出力項目の12のチェックを、子を字下げして表に並べる。表示は「項目名（段階の番号）」。静的非線形解析には「数分かかり、JRSNAP の画面が出ます」を添える。フーチング・片持ち梁には必要な項目を添える。使う項目にチェックがないうちは灰色にし、親のチェックを外すと子のチェックも外す。決定の番号・post の出力・他のプログラムの説明は画面に書かない。エディタの設定ファイル `editor.json`（`gui/settings.py`）は廃止する。
+   - structural-mcp（同じ作業で直し、submodule の参照を上げる）：`webpier_validate`・`webpier_generate` の `stage`・`frameAnalysis`・`nonlinearAnalysis` を削除する。`webpier_get_contract` は出力項目ごとに、含む段階・要る runner・いまの環境で作れるかを返す。`webpier_validate` は、渡された入力の出力項目に要る runner がそろうかも返す。代役の runner、テスト、README、`smoke:webpier` の引数、スキル `structural-webpier` も合わせる。
+
 ## 実装メモ（決定から導いたもの）
 
 ### 入力の印字桁（.claude/docs/Example橋脚/pre/input-*.pdf の入力票に合わせる）
