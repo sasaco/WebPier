@@ -48,7 +48,8 @@
 - [x] ✅ CONTEXT.md：照査の前提（構造細目）・配筋図・水掛かりの程度（「鋼材の腐食に対する環境条件」を置換）・使用性（損傷）・中間帯鉄筋を足し、帯鉄筋の方向別有効本数・柱の断面照査・片持ち梁の照査を改めた
 - [x] ✅ 決定48・54・59・60 の「H16」と節番号（8.10・9.10 → 8.11・9.11）を直す（各決定に「決定73で改めたこと」）。決定72 の出力項目の表に `detailing`（13項目）、決定73 に実装で決まった細目（担当 F、2026-10-21）
 - [x] ✅ README・CLAUDE.md・CONTEXT.md（フーチングの断面照査に最小鉄筋量・最大鉄筋量、水掛かりの程度のフーチング、使用性（損傷）のねじり）（担当 F）
-- [x] ✅ スキル：webpier-capacita・webpier-cantilever・webpier-footing・webpier-foundation・pier-report-style（WebPier）、structural-capacita（structural-mcp の `sasa/glp`）、structural-webpier（structural-mcp の `sasa/webpier-outputs`。決定72 の出力項目の書き方がそのブランチにだけあるため）（担当 F）
+- [x] ✅ スキル：webpier-capacita・webpier-cantilever・webpier-footing・webpier-foundation・pier-report-style（WebPier）、structural-capacita（structural-mcp の `sasa/glp`）、structural-webpier（structural-mcp の `sasa/webpier-outputs` で書き、ルートの sasa/glp に取り込み済み）（担当 F）
+- [x] ✅ 配筋図の組み込み（89857d0）に合わせて、README・CLAUDE.md・決定73・pier-report-style・structural-webpier の「Release の後」「未実装」を実装済みの記述に直し、帳票の基準の GridLayoutPdf の版（共通グリッドは 0.2.0 で導入、lock は v0.3.0）、フーチング上側の芯 79・104 を合わせた（担当 F、2026-10-21）
 
 ## Phase 1　R5 への切替（WebPier、担当 C）
 

@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 計算・PDF生成（既存成果物の更新には --overwrite）。作る計算書は入力の出力項目 outputs（13の true/false）だけで決まり、段階やスイッチの引数はない（決定72、ADR-0011。webpier/inputs/outputs.py・stages.py の OUTPUT_STAGES）
 # 項目は、使う項目がすべて true のときだけ true にできる（違反と全 false は入力エラー）。選ばなかった項目の成果物は前回のまま残る
 uv run --project "." --locked python -m webpier --overwrite
-# detailing=0400（照査の前提。入力だけから。決定73、ADR-0012）：構造細目を WebPier が判定し、断面力を使う照査は Capacita の節を参照するだけ。配筋図は export/drawing（post/配筋図.dxf と 4.1 の図は GridLayoutPdf の PdfFigure の Release の後）
+# detailing=0400（照査の前提。入力だけから。決定73、ADR-0012）：構造細目を WebPier が判定し、断面力を使う照査は Capacita の節を参照するだけ。配筋図は export/drawing（ezdxf）で描き、post/配筋図.dxf（付帯JSON付き）と 4.1 の図（GridLayoutPdf の PdfFigure、方眼Excel は PNG の preview）に出す
 # ground_model=0500、reactions=0600、longitudinal=0610、transverse=0620：0610/0620 は FrameWeb入力も常に post/ に出力する
 # longitudinal_seismic=0710、transverse_seismic=0720：JRSNAP入力（NDU）も常に post/ に出力する
 # longitudinal_frame_analysis=0611・0612、transverse_frame_analysis=0621・0622（骨組解析。決定46・54。同じ FrameWeb 入力の解析は1回）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
@@ -74,12 +74,12 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・MS P�
 
 ### 決定性と実装の同一性
 - PDFは作成日時を含まず、同じ入力・書体・ライブラリから毎回同じバイトになる。テストはこれを前提にしている。例外は 0610・0620 に差し込む FEMPython の荷重図のページと、0710・0720 に差し込む JRSNAP のデータ確認図と荷重図のページで、その中身はそれぞれの責務として決定性を求めない（ADR-0005、決定50・51）。WebPier が描く部分は決定的にし、テストは代役の runner で確かめる。FEMPython の runner は `dependency_hashes` に入れず、付帯JSONに `engineVersion` を記録する。JRSNAP の runner と結果も同じ（決定47）。
-- 配筋図の DXF（のちの `post/配筋図.dxf`）と図ごとの PDF も決定的にする（`export/drawing/sheet.py`：ezdxf の CLASSES 節の並びを名前順に固定、PDF の /ID を書かない）。
+- 配筋図の DXF（`post/配筋図.dxf`）と図ごとの PDF・PNG も決定的にする（`export/drawing/sheet.py`：ezdxf の CLASSES 節の並びを名前順に固定、PDF の /ID を書かない）。
 - `webpier/pipeline/runtime.py` の `dependency_hashes` は、`webpier` のソースに加えて、インストール済みの GridLayoutPdf・ReportLab・Pillow・pypdf・ezdxf・fontTools・PyMuPDF・書体ファイルのバイトもハッシュし、生成中に実装が変わっていないか照合する。GridLayoutPdf を編集して取り込み直していないと、ハッシュ照合が食い違いテストが失敗する。
 - ハッシュするソースと受入記録の補助スクリプトは `.gitattributes` で LF に固定している（`*.py`、`scripts/*.cs`、jrsnap-input-open-save の `scripts/*.ps1`・`*.cs`）。`core.autocrlf` で CRLF になると実装の同一性や受入記録の SHA が変わる。
 
 ### 帳票の基準とテスト用データ
-- 帳票は GridLayoutPdf 0.2.0 の共通グリッドに組み、位置はマスの数で持つ（2026-10-21、`.claude/docs/plans/glp-0.2.0-grid.md`）。構成・文言・式の書き方の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。各段階の `grid_documents` が方眼Excel の頁で、`render` と同じ文書を作る。
+- 帳票は GridLayoutPdf の共通グリッド（0.2.0 で導入。いまの lock は v0.3.0）に組み、位置はマスの数で持つ（2026-10-21、`.claude/docs/plans/glp-0.2.0-grid.md`）。構成・文言・式の書き方の基準は `.claude/docs/Example橋脚/output`、計算内容の見本は `.claude/docs/Example橋脚2`。体裁の契約は `.claude/docs/reporting-style.md`、層ごとの書き方は `.claude/docs/plans/calc-layer-conventions.md` と `reporting-layer-conventions.md`。各段階の `grid_documents` が方眼Excel の頁で、`render` と同じ文書を作る。
 - テストは層ごとに `tests/<層>/`。期待値は、Example2 原資料から独立に転記した値（`tests/fixtures/example2/`）と、実装を使わない手計算だけ。入力は `tests/fixtures/inputs/current.json` を基に変えたい項目だけ書き換える。テストの補助モジュール（`*_support.py`）は `from <名前> import` で読むので、層をまたいでも同じ名前にしない（先に読んだほうが使われる）。
 - 性質テスト（hypothesis、`tests/*/test_*_properties.py`）は式から言える恒等式・順序だけを確かめる。`tests/conftest.py` のプロファイルで `derandomize=True`（毎回同じ例）にしている。
 - `tests/fixtures/reporting/appearance` は見本PDFから独立に測った体裁値（測定器は `scripts/reporting_appearance.py`）。共通グリッドへの移行で位置の基準ではなくなったが、見本の記録として残す。新しい描画結果から作り直さない。

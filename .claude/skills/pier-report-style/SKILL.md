@@ -1,6 +1,6 @@
 ---
 name: pier-report-style
-description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼Excel）を、GridLayoutPdf 0.2.0 の共通グリッド（A4、16.08×15.48pt のマス、30列×47行、MS明朝/ゴシック 10pt）で新しく作る・直す・確かめる。見本 .claude/docs/Example橋脚/output の構成・文言・式の書き方に合わせ、位置は列・行の数で持つ。帳票の追加や変更、式や表の書き方、体裁が見本と違うという指摘、PDF や方眼Excel（export/）のレイアウト調整、Excel 比較の不合格のときに使う。計算内容の変更には使わない。
+description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼Excel）を、GridLayoutPdf の共通グリッド（0.2.0 で導入、いまの lock は v0.3.0。A4、16.08×15.48pt のマス、30列×47行、MS明朝/ゴシック 10pt）で新しく作る・直す・確かめる。見本 .claude/docs/Example橋脚/output の構成・文言・式の書き方に合わせ、位置は列・行の数で持つ。帳票の追加や変更、式や表の書き方、体裁が見本と違うという指摘、PDF や方眼Excel（export/）のレイアウト調整、Excel 比較の不合格のときに使う。計算内容の変更には使わない。
 ---
 
 # 共通グリッドで計算書を組む
@@ -48,8 +48,8 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 - フローチャート：GridLayoutPdf の `TextBox`（`rounded=True` で角丸の端子）・`TextDiamond`（判定）・`Connector`（折れ線＋矢じり）を `Figure` に置き、Yes/No は `Label`。図の枠はマスの数（`styles.columns_for`・`rows_for`）。方眼Excel では図形になる。例は `reporting/stages/column_check.py`。
 - 括り線：0600 の `Manuscript.rule_start()`／`rule_end()`、layout が GridLayoutPdf の `SideRule`（中の線、行全体）で包む。
 - 回した表：0600・0900 の `_rotated`（縦横を入れ替えた局所グリッドの `QuarterTurn`。方眼Excel では回転したセルになる）。
-- ベクターの図（0400 の 4.1 配筋図、決定73）：GridLayoutPdf の `PdfFigure(col_span, rows, data, *, page=0, preview=…, align="center", valign="middle", block_id=…)` で、別に描いた PDF の頁をベクターのまま枠に置く（2026-10-21 は GridLayoutPdf `sasa/pdf-figure` の f2e618b で未 Release。API は計画書 `phase-0400-detailing.md` の Phase 5）。`data` は PDF のバイト列、`preview` は同じ頁の PNG（方眼Excel はそれを画像で置く。WebPier は `render_xlsx(strict=True)` なので `preview` がないと止まる）。`QuarterTurn` には入れられない。図は `webpier.export.drawing.drawing_figures(pier)` の (PDF, PNG) をそのまま渡し、WebPier で PDF を重ね書きしない。
-- 0400 照査の前提（`reporting/stages/detailing.py`）：文言・式・表は見本 `0400_照査の前提.pdf`、見本にない項目は Example2 06 6.3〜6.8。見出しの条文番号（出典）は見本どおり印刷する。見出しと出典が1行に入らない (b)・(c) は出典を本文の末尾に置く（Ex2 6.3(2) の書き方）、6) の2つの出典は列14 から。断面力を使う照査は参照先の節の文だけ（番号は `COLUMN_SECTIONS`・`FOOTING_SECTIONS`・`CANTILEVER_SECTIONS` の表）。4.1 の図は `render_detailing`・`grid_documents`・`content` の `figures`（`{"beam"|"column"|"footing": FigureSpec}`）で渡し、なければ見出しだけ。
+- ベクターの図（0400 の 4.1 配筋図、決定73）：GridLayoutPdf の `PdfFigure(col_span, rows, data, *, page=0, preview=…, align="center", valign="middle", block_id=…)` で、別に描いた PDF の頁をベクターのまま枠に置く（GridLayoutPdf v0.3.0。API は計画書 `phase-0400-detailing.md` の Phase 5）。`data` は PDF のバイト列、`preview` は同じ頁の PNG（方眼Excel はそれを画像で置く。WebPier は `render_xlsx(strict=True)` なので `preview` がないと止まる）。`QuarterTurn` には入れられない。図は `webpier.export.drawing.drawing_figures(pier)` の (PDF, PNG) をそのまま渡し、WebPier で PDF を重ね書きしない。
+- 0400 照査の前提（`reporting/stages/detailing.py`）：文言・式・表は見本 `0400_照査の前提.pdf`、見本にない項目は Example2 06 6.3〜6.8。見出しの条文番号（出典）は見本どおり印刷する。見出しと出典が1行に入らない (b)・(c) は出典を本文の末尾に置く（Ex2 6.3(2) の書き方）、6) の2つの出典は列14 から。断面力を使う照査は参照先の節の文だけ（番号は `COLUMN_SECTIONS`・`FOOTING_SECTIONS`・`CANTILEVER_SECTIONS` の表）。4.1 の図は `figure_specs(drawings)`（列4 から 26 列、行数は頁の縦横比から最大 30 行）で作った `figures`（`{"beam"|"column"|"footing": FigureSpec}`）を `render_detailing`・`grid_documents`・`content` に渡す（`pipeline/stages.py: _drawings`）。
 - 他のエンジンのページの差し込み（0610・0620 の荷重図＝FEMPython、0611・0621・0810・0820・0910 の節＝Capacita、0710・0720 のデータ確認図と荷重図＝JRSNAP）：`reporting/stages/insertion.py` の1つの仕組みで行う。段階は差し込む場所を `Insertion(<ページの名前>, <単位のキー>, before=…, optional=…)` で宣言し、`render_with_pages` が原稿をその位置で文書に分けて描き、`assembly.join` でつなぐ。`documents(...)` は同じ分け方で WebPier の文書だけを返し、各段階の `grid_documents` が方眼Excel に使う。`render_*` と `grid_documents` は同じ原稿を作ること（Capacita が飛ばした節で原稿が変わる段階は、`pages` を両方に渡す）。エンジンのページは書き換えず、決定性も求めない。エンジンの中にだけある値は解説に印刷しない（ADR-0008）。
 
 ## 4. 手順
@@ -74,7 +74,7 @@ description: WebPier の計算書（webpier/reporting の帳票・PDF と方眼E
 3. 試すときは、手元の作業ツリーを venv に入れて `--no-sync` で走らせる（CLAUDE.md の「手元の GridLayoutPdf の作業ツリーを試す」）。`--locked` の実行は venv を lock の版に戻す。
 4. 取り込むときは、GridLayoutPdf の版を上げてコミット・push し、タグと再現できる wheel の Release を作ってから、WebPier の `url` を差し替えて `uv lock`・`uv sync --locked` する（CLAUDE.md の手順。v0.2.1 の例：版上げ b9e86c3、wheel を2回作って SHA-256 が同じことを確かめてから載せる）。Release の作成は外への公開なので利用者の承認を得る。手元の path 依存は一時的なもので、push しない。
 
-これまでに足した汎用機能：`TermStop`／`EquationGroup(term_columns="grid")`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）、`SideRule`（式のまとまりを括る左の縦線。FR-020）、方眼Excel `render_xlsx`（FR-021）、罫線の種類 `BorderStyle`／`TableBorders`（FR-022）、書体を名前で引く（FR-024）。方眼Excel の左辺を等号の境目の左の列まで届かせる直し（「B′」のように字形が左に寄った記号。2026-10-21）。ベクター PDF の図 `PdfFigure`（FR-028、依存に pypdf>=6,<7。2026-10-21 は未 Release）。
+これまでに足した汎用機能：`TermStop`／`EquationGroup(term_columns="grid")`、`Spacer(discard_at_page_top=True)`、`Leading(overhang=)`、`TextBox`／`TextDiamond`／`Connector`／`Rectangle(corner_radius=)`（DESIGN.md の FR-019）、`SideRule`（式のまとまりを括る左の縦線。FR-020）、方眼Excel `render_xlsx`（FR-021）、罫線の種類 `BorderStyle`／`TableBorders`（FR-022）、書体を名前で引く（FR-024）。方眼Excel の左辺を等号の境目の左の列まで届かせる直し（「B′」のように字形が左に寄った記号。2026-10-21）。ベクター PDF の図 `PdfFigure`（FR-028、依存に pypdf>=6,<7。v0.3.0）。
 
 GridLayoutPdf の部品を足すときの注意：`measure_block` は `Line` のインクの範囲を線幅の半分だけ四方に広げて数える（butt cap でも長さの方向にも広げる）。part の高さいっぱいの縦線を `Line` で引くと part からはみ出して `LayoutOverflowError` になるので、part をまたいでつながる線は塗りの `Rectangle(stroke=False)` で描く（範囲がちょうど箱になる）。全体のカバレッジは `run_tests.py --target tests --cov gridlayoutpdf --min-coverage 90` で確かめる。
 
@@ -116,7 +116,7 @@ GridLayoutPdf の描画のソースを変えると、片持ち梁37頁の画素�
 **表・図**
 - 列幅は中身の字数から見積もる：全角 10pt、半角 約5pt、左右の余白 3pt ずつ。1列（16.08pt）に「1.35」は入らない。30列に入らない表は左へ寄せ、それでも入らなければ分ける（0610・0620 の組合せ係数の表は `TableParts` で要求性能の変わり目で2つに分け、後半にもケースの列を出す）か回す。
 - 回す表は縦横を入れ替えた局所グリッド（`GridSpec(0, 0, PITCH_Y, PITCH_X, …)`）で `QuarterTurn`。こうしないと方眼Excel で図形への切替え（`quarter_turn`）になり strict に落ちる。縦書きのセルは `tables.VerticalLabel`。
-- 添字のあるセルは、セルごとに上下中央に置くと同じ行の数値より 0.7pt 上に出る。frame_report の1行の本文のセルは `CELL_BASELINE` で行の基線をそろえる。上付きのある見出しのセル（N/mm²）に固定の基線を渡すと「content lacks clearance」になるので、見出しは中央のまま。
+- 添字のあるセルは、セルごとに上下中央に置くと同じ行の数値より 0.7pt 上に出る。frame_report の1行の本文のセルは `CELL_BASELINE` で行の基線をそろえる。上付きのある見出しのセル（N/mm²）に固定の基線を渡すと「content lacks clearance」になるので、見出しは中央のまま。複数行の結合セルにも同じ `CELL_BASELINE` を渡す（GridLayoutPdf が1行の文字を結合範囲の中央に置き、Excel の結合セルの中央と合う）。基線を (行数−1)×行送り/2 だけ下げると PDF で半行下がり、0400 の「鉄筋のあき」の3行の結合セルが Excel 比較の dy で落ちた（930cc30 で直した）。
 - 図の枠は `columns_for`・`rows_for`。図題が図の上端に近いと、図が頁の先頭に来たとき方眼Excel が前の頁にも描いて切る（0800 の地盤反力形状）。図題を下げる。
 - 括り線（`SideRule`）の上下を行の途中で縮めると `border_off_grid` で strict に落ちる。行全体に引く。
 
