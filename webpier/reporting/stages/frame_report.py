@@ -208,8 +208,8 @@ def semantic_records(units: Sequence[Unit]) -> list[dict[str, str]]:
 # --- layout ------------------------------------------------------------------------------------------------
 
 
-# Where a plain 10 pt line centred in one grid row stands: every one-line body cell takes it (in the middle of its
-# span), so that a cell with a subscript (起点側 R_B) stands on the baseline of the numbers of its row, as GridLayoutPdf
+# Where a plain 10 pt line centred in one grid row stands: every one-line body cell takes it (GridLayoutPdf centres
+# the one-row line in a span of several rows, as Excel centres a merged cell), so that a cell with a subscript (起点側 R_B) stands on the baseline of the numbers of its row, as GridLayoutPdf
 # would otherwise centre each cell's own envelope. Header cells stay centred: a superscript (N/mm²) needs the room.
 CELL_BASELINE = 11.33
 
@@ -224,7 +224,7 @@ def _cell(item: Any, *, header: bool, numeric: bool, rows: int) -> Cell:
         return cell(VerticalLabel(content, rows), colspan=span.colspan, rowspan=span.rowspan, align="center")
     if not header and not (isinstance(content, str) and "\n" in content):
         lines = CellLines((content,), style=BODY, line_advance=PITCH_Y, inner_padding=CELL_PADDING, align=span.align,
-                          first_baseline=CELL_BASELINE + (rows - 1) * PITCH_Y / 2)
+                          first_baseline=CELL_BASELINE)
         return Cell(lines, colspan=span.colspan, rowspan=span.rowspan, align=span.align, padding=0)
     if isinstance(content, str):
         return cell(content, colspan=span.colspan, rowspan=span.rowspan, align=span.align)
