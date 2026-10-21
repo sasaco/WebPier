@@ -89,6 +89,16 @@ def lines(msp, layer="鉄筋") -> set[tuple[float, float, float, float]]:
     return {(round(line.dxf.start.x, 1), round(line.dxf.start.y, 1), round(line.dxf.end.x, 1),
              round(line.dxf.end.y, 1)) for line in msp.query(f'LINE[layer=="{layer}"]')}
 
+def bands(msp) -> set[tuple[float, float, float, float]]:
+    """(x0, y0, x1, y1) of each closed polyline of the bars without bends (a bar drawn along its length)."""
+    found = set()
+    for polyline in msp.query('LWPOLYLINE[layer=="鉄筋"]'):
+        points = list(polyline.get_points())
+        if not any(point[4] for point in points):
+            xs, ys = [point[0] for point in points], [point[1] for point in points]
+            found.add((round(min(xs), 1), round(min(ys), 1), round(max(xs), 1), round(max(ys), 1)))
+    return found
+
 
 def read(data: bytes):
     return ezdxf.read(io.StringIO(data.decode("utf-8")))
@@ -212,8 +222,10 @@ def test_the_footing_bars_are_the_layers_of_both_faces(sample):
     stations = [3500 + 125 * k for k in range(-27, 28)]
     expected = {(float(x), 2700.0 - 104, 12.5) for x in stations} | {(float(x), 127.0, 14.5) for x in stations}
     assert circles(msp) == expected
-    # 線路 lines between those centres: upper at 79 from the top, lower at 100
-    assert lines(msp) == {(79.0, 2621.0, 6921.0, 2621.0), (100.0, 100.0, 6900.0, 100.0)}
+    # 線路 bars in the plane of the section, between those centres, as bands of their diameter: upper at 79 from the
+    # top, lower at 100; no single lines
+    assert bands(msp) == {(79.0, 2608.5, 6921.0, 2633.5), (100.0, 87.5, 6900.0, 112.5)}
+    assert not lines(msp)
 
 
 def test_the_footing_dimensions_and_labels(sample):
@@ -229,7 +241,7 @@ def test_a_footing_layer_inside_is_labelled_with_its_layer(sample):
     changed = pier(**{"鉄筋/フーチング/faces/下/線路/inner_layers": inner})
     msp = drawn(footing.draw_footing, footing.footing_figure(changed), 60).msp
     # layer 2 at 100 + 25 + 25 = 150 from the lower face
-    assert (100.0, 150.0, 6900.0, 150.0) in lines(msp)
+    assert (100.0, 137.5, 6900.0, 162.5) in bands(msp)
     assert {"1段目D25-ctc125", "2段目D25-ctc250"} <= set(texts(msp))
 
 

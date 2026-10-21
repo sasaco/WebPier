@@ -2,8 +2,9 @@
 layers of both faces as calc.footing_rebar.face_layout places them.
 
 As the sample Example橋脚2 06_照査の前提.pdf 6.1 (3), the 線路 bars lie in the plane of the section and are drawn as
-lines, the 直角 bars cross it and are drawn as circles at their pitch, centred on the footing (the input gives the
-pitch, not where the first bar lies). Both run between the outermost centres of their face from the ends. Each layer
+bands of their diameter (two lines) with an arrow to each, the 直角 bars cross it and are drawn as circles at their
+pitch with a fan of leaders to three, centred on the footing (the input gives the pitch, not where the first bar lies).
+Both run between the outermost centres of their face from the ends. Each layer
 is labelled with its direction and 'D25-ctc125' (with its layer when its direction has more than one on the face),
 the stirrups under the section with 'D16-1.00組/m ctc250' (組 = legs per 1 m / 2, as the sample's 2本/m → 1.00組/m).
 On the right the layers' centres from their faces and the height; under the section the length and the direction.
@@ -78,7 +79,9 @@ def draw_footing(sheet: Sheet, figure: FootingFigure, origin: Vec2) -> None:
             y = height - layer.center.value if face == UPPER else layer.center.value
             radius = layer.diameter.value / 2
             if layer.direction == RAIL:
-                sheet.line(origin + Vec2(edge, y), origin + Vec2(length - edge, y))
+                # in the plane of the section: the bar as long as the face, its diameter wide
+                sheet.rectangle(*(origin + Vec2(edge, y - radius)), *(origin + Vec2(length - edge, y + radius)),
+                                "鉄筋")
                 targets = []
             else:
                 xs = stations(length, layer.pitch.value, edge)
@@ -92,7 +95,8 @@ def draw_footing(sheet: Sheet, figure: FootingFigure, origin: Vec2) -> None:
                 near = sorted(targets, key=lambda station: (station > x, abs(station - x)))[:3]  # left of the elbow
                 fan(sheet, elbow, (origin + Vec2(station, y) for station in near), radius)
             else:
-                sheet.arrow_to(elbow, origin + Vec2(x, y))
+                outer = y + radius if face == UPPER else y - radius  # the arrow stops on the bar's outer side
+                sheet.arrow_to(elbow, origin + Vec2(x, outer))
             sheet.label(elbow, 1, f"{layer.direction}方向", layer_text(layout, layer))
 
     # on the right: the layers' centres from their faces, the height
