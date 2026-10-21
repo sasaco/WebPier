@@ -155,9 +155,11 @@ def test_the_bearing_force_actions(current):
 def test_the_31_cases_their_states_remarks_and_notes():
     assert [definition.number for definition in DEFINITIONS] == list(range(1, 32))
     states = SAMPLE["combinations"]["states"]
+    renamed = {"復旧性(地震時以外)": "使用性(損傷)"}  # the R5 name of the sample's H16 state (decision 73)
     for span, state in states.items():
         first, last = (int(part) for part in span.split("-"))
-        assert all(DEFINITIONS[number - 1].state.value == state for number in range(first, last + 1))
+        assert all(DEFINITIONS[number - 1].state.value == renamed.get(state, state)
+                   for number in range(first, last + 1))
     for number, remark in SAMPLE["combinations"]["remarks"].items():
         assert DEFINITIONS[int(number) - 1].remark == remark
     for number, note in SAMPLE["combinations"]["notes_column"].items():

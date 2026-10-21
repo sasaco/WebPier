@@ -113,14 +113,14 @@ def test_across_the_track_the_sections_are_numbered_12_5_to_12_7(across):
 def test_the_values_written_to_the_wdj_are_printed(pages):
     text = webpier_pages(pages).replace(" ", "")
     for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "構造物係数(=1.0)", "(=0.85)", "(=300×10⁻⁶)",
-                    "部材係数(=1.0)", "「一般の環境」"):
+                    "部材係数(=1.0)", "「常時乾燥」"):
         assert printed in text, printed
 
 
 def test_the_values_only_capacita_holds_are_not_printed(pages):
     """RC標準's tables and formulas Capacita evaluates (σsl1 140/120/100, Wlim 0.005c, fvcd ≧ 0.72, fwcd ≧ 7.8, γc)."""
     text = webpier_pages(pages)
-    for absent in ("腐食性環境", "0.005c", "140", "0.72", "7.8", "γc＝1.3", "1.15"):
+    for absent in ("乾湿繰返し", "0.005c", "140", "0.72", "7.8", "γc＝1.3", "1.15"):
         assert absent not in text, absent
 
 

@@ -6,8 +6,8 @@ bending row, Vd with its Md of each shear row, Mt with its Md and Vd of each tor
 top), and Capacita's Headless calculates the WDJ as given (``run-rc`` without ``--pickup``, which returns no
 ``model.wdj``). One member (the beam, rectangle B1 × (H2 + H3)) with one point, 柱前面, checked for bending, shear and
 torsion; the shear table gives the point's shear span a, in mm as RcDan reads it (the shear span ratio is La / d with d
-in mm: a length in m would be taken for a few mm, a deep beam with βa at its cap). The faces have their own corrosion
-environments (``con_u``, ``con_l``, ``con_s``), the crack row ε'csd of 0900's cracking moment, and the fatigue
+in mm: a length in m would be taken for a few mm, a deep beam with βa at its cap). The faces have their own
+水掛かりの程度 (``con_u``, ``con_l``, ``con_s``), the crack row ε'csd of 0900's cracking moment, and the fatigue
 conditions the trains of the input (the counts as text, as Capacita writes them). The side bars' centre from the side
 face (``sidebar2.side_cover``) is the one the main bars' spacing is measured from.
 """

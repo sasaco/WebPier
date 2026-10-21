@@ -33,15 +33,16 @@ VERSION = "1.0.0"
 GROUP = "1"  # the one member group: the column
 RECTANGLE = 1
 J_END = "JTAN"
-# specification2 of RcDan (OrganizedInput): the H16 base of each body
+# specification2 of RcDan (OrganizedInput): the R5 base of each body (RC標準 R5, decision 73)
 STANDARDS = ((0, "H16_Rail"), (1, "H16_Shinkansen"), (2, "H16_JREast"), (3, "R5_Rail"), (4, "R5_Shinkansen"),
              (8, "R5_JREast"))
-BODIES = {"JR各社": 0, "運輸機構": 1, "JR東日本": 2}
-# Capacita's row titles (DocumentEditor.PickupDefaults); the ids and the extraction cases are calc.column_check's.
+BODIES = {"JR各社": 3, "運輸機構": 4, "JR東日本": 8}
+# Capacita's row titles (DocumentEditor.PickupDefaults), row 6 by its R5 name (WebDanforJS basic-information
+# u_damage; RcDomainEditor.PickupLabel); the ids and the extraction cases are calc.column_check's.
 _MOMENT_TITLES = ("耐久性 応力度", "耐久性 永久荷重", "安全性 疲労限", "安全性 永久作用", "安全性 永久＋変動", "安全性 破壊",
-                  "復旧性 地震時以外", "復旧性 地震時", "最小鉄筋量")
+                  "使用性（損傷）", "復旧性 地震時", "最小鉄筋量")
 _SHEAR_TITLES = ("耐久性 ひび割れ判定", "耐久性 永久荷重", "耐久性 変動荷重", *_MOMENT_TITLES[3:8])
-_TORSION_TITLES = {0: "耐久性 ひび割れ判定", 1: "耐久性 永久荷重", 5: "安全性 破壊", 6: "復旧性 地震時以外", 7: "復旧性 地震時"}
+_TORSION_TITLES = {0: "耐久性 ひび割れ判定", 1: "耐久性 永久荷重", 5: "安全性 破壊", 6: "使用性（損傷）", 7: "復旧性 地震時"}
 _CONDITIONS = (("JR-001", "ひび割れ幅制限値に用いるかぶりは 100mm を上限とする", "jr001"),
                ("JR-004", "せん断耐力におけるβn算定時の Mud は軸力を考慮しない", "jr004"))
 _PILE_FACTORS = (("pile-000", "使用しない", 1.0, 1.0, 1.0, 1.0),)  # the column is not a pile

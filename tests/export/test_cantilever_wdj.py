@@ -137,15 +137,18 @@ def test_the_safety_tables_and_the_standard(built):
     rows = document["safety"]["safety_factor"]["1"]
     assert [row["id"] for row in rows] == expected["safety_factor_ids"]
     fatigue = next(row for row in rows if row["id"] == 2)
-    assert {key: fatigue[key] for key in SAFETY_KEYS} == expected["fatigue_row"]
-    assert all(row["T_rbt"] == 1 for row in rows if row["id"] != 8)
+    # the sample's H16 row but γb of torsion, which the R5 default leaves blank (decision 73)
+    assert {key: fatigue[key] for key in SAFETY_KEYS} == {**expected["fatigue_row"], "T_rbt": None}
+    assert {row["id"]: row["T_rbt"] for row in rows} == {0: 1, 2: None, 5: 1.3, 6: 1.3, 7: 1.3, 8: None}
     assert document["safety"]["material_concrete"]["1"] == expected["material_concrete"]
     bars = document["safety"]["material_bar"]["1"]
     assert [row["separate"] for row in bars] == [25, 29]
     assert all(row[kind] == {"fsy": 390, "fsu": 560} for row in bars for kind in ("tensionBar", "sidebar", "stirrup"))
     assert document["safety"]["pile_factor"]["1"][0]["id"] == "pile-000"
     basic = document["basic"]
-    assert [item["id"] for item in basic["specification2_list"] if item["selected"]] == [expected["specification2_selected"]]
+    # the sample's H16_Shinkansen (1) is R5_Shinkansen (4) now (decision 73)
+    assert expected["specification2_selected"] == 1
+    assert [item["id"] for item in basic["specification2_list"] if item["selected"]] == [4]
     assert basic["specification1_list"][0]["selected"] is True
     assert [item["selected"] for item in basic["conditions_list"]] == [True, False]
     assert all(item["no"] is None for key in ("pickup_moment", "pickup_shear_force", "pickup_torsional_moment")

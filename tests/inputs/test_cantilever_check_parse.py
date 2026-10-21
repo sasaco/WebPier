@@ -37,7 +37,7 @@ def test_the_cantilever_check_conditions_of_the_current_input():
     """Example2 13_片持ち梁照査/WebDan.wdj: con_u 2, con_l 1, con_s 2, vis false; 60 and 0 trains a day, 100 years,
     10.39 repetitions per train for every slope."""
     check = parse_input(data()).cantilever_check
-    assert check.environments == {"上面": "腐食性環境", "下面": "一般の環境", "側面": "腐食性環境"}
+    assert check.environments == {"上面": "乾湿繰返し", "下面": "常時乾燥", "側面": "乾湿繰返し"}
     assert check.appearance == "行わない"
     fatigue = check.fatigue
     assert (fatigue.passenger_trains, fatigue.freight_trains, fatigue.service_life) == (60, 0, 100)
@@ -57,7 +57,7 @@ def test_the_bearing_devices_of_each_girder():
 
 def test_the_conditions_and_the_devices_may_be_blank_until_the_beam_is_checked():
     document = data()
-    document[SECTION] = {"鋼材の腐食に対する環境条件": dict.fromkeys(("上面", "下面", "側面")), "外観の照査": None,
+    document[SECTION] = {"水掛かりの程度": dict.fromkeys(("上面", "下面", "側面")), "外観の照査": None,
                          "疲労": {"旅客列車本数": None, "貨物列車本数": None, "設計耐用年数": None,
                                 "等価繰返し回数": {"A列車": {"k=0.06": None, "k=0.12": None},
                                              "B列車": {"k=0.06": None, "k=0.12": None}}}}
@@ -72,7 +72,7 @@ def test_the_conditions_and_the_devices_may_be_blank_until_the_beam_is_checked()
 
 
 @pytest.mark.parametrize("path,value,message", [
-    (("鋼材の腐食に対する環境条件", "上面"), "厳しい環境", "「一般の環境」「腐食性環境」「特に厳しい腐食性環境」のいずれかを選んでください"),
+    (("水掛かりの程度", "上面"), "厳しい環境", "「常時乾燥」「乾湿繰返し」「常時湿潤」のいずれかを選んでください"),
     (("外観の照査", ), True, "空でない文字列が必要です"),
     (("疲労", "旅客列車本数"), 60.5, "整数が必要です"),
     (("疲労", "旅客列車本数"), -1, "0～10000の整数が必要です"),
@@ -102,7 +102,7 @@ def test_the_devices_are_counts(key, value, message):
         parse_input(document)
 
 
-@pytest.mark.parametrize("path", [(), ("疲労",), ("疲労", "等価繰返し回数", "A列車"), ("鋼材の腐食に対する環境条件", "側面")])
+@pytest.mark.parametrize("path", [(), ("疲労",), ("疲労", "等価繰返し回数", "A列車"), ("水掛かりの程度", "側面")])
 def test_the_section_and_its_keys_are_required(path):
     document = data()
     node = document[SECTION]

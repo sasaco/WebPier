@@ -33,7 +33,7 @@ MARK = "FAKE CAPACITA"
 HEADINGS = {"section_forces": "8.5 断面力の総括", "bending_safety_destruction": "8.6 安全性（破壊）の照査",
             "shear_safety_destruction": "(2) せん断に対する照査", "bending_durability": "8.7 耐久性の照査",
             "shear_durability": "(2) せん断ひび割れの検討", "bending_serviceability": "8.8 使用性の照査",
-            "bending_restorability": "8.9 復旧性の照査", "shear_restorability": "(2) せん断に対する照査"}
+            "bending_restorability": "8.9 使用性（損傷）の照査", "shear_restorability": "(2) せん断に対する照査"}
 # Capacita skips these across the track for Example2 (column_section_check_09.json, skipped_by_capacita)
 SKIPPED = ("shear_durability", "bending_serviceability")
 
@@ -130,7 +130,7 @@ def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across
     # the symbol, its "：" and its text stand in grid columns of their own (each its own text line of the PDF)
     assert "σsl2：永久作用による鉄筋応力度の制限値" in shear.replace(" ", "").replace("\n", "")
     assert shear.rstrip().endswith("永久作用と変動作用によるせん断力が生じないため，せん断ひび割れの検討を省略する．")
-    serviceability = text.split("9.8 使用性の照査")[1].split("9.9 復旧性の照査")[0].replace("\n", "")
+    serviceability = text.split("9.8 使用性の照査")[1].split("9.9 使用性（損傷）の照査")[0].replace("\n", "")
     assert "外観に対するひび割れ幅の制限値" in serviceability
     assert serviceability.rstrip().endswith(
         "永久作用による曲げモーメントおよび引張の軸方向力が生じないため，外観に対する曲げひび割れの検討を省略する．")
@@ -139,7 +139,7 @@ def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across
 def test_the_values_written_to_the_wdj_are_printed(pages):
     text = webpier_pages(pages).replace(" ", "")
     for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "構造物係数(=1.0)", "(=0.85)", "(=0.5)", "(=300×10⁻⁶)",
-                    "部材係数(=1.0)", "「一般の環境」"):
+                    "部材係数(=1.0)", "「常時乾燥」"):
         assert printed in text, printed
 
 
@@ -152,13 +152,13 @@ def test_the_flowchart_writes_the_decision_correctly(pages):
 def test_the_values_only_capacita_holds_are_not_printed(pages):
     """RC標準's tables (σsl1 140/120/100, σsl2, Wlim 0.005c...), σbl, k2's coefficients, z = d/1.15, γb of Vcd."""
     text = webpier_pages(pages)
-    for absent in ("腐食性環境", "0.005c", "140", "1.15", "15/(f'cd+20)", "0.30", "γbは1.3"):
+    for absent in ("乾湿繰返し", "0.005c", "140", "1.15", "15/(f'cd+20)", "0.30", "γbは1.3"):
         assert absent not in text, absent
 
 
 def test_restorability_prints_the_structure_factor_of_the_body(tmp_path):
     def restorability(text, number="8"):
-        return text.split(f"{number}.9 復旧性の照査")[1].replace(" ", "")
+        return text.split(f"{number}.9 使用性（損傷）の照査")[1].replace(" ", "")
 
     assert "構造物係数(=1.2)" in restorability(webpier_pages(render(tmp_path)))
     assert "構造物係数(=1.0)" in restorability(webpier_pages(render(tmp_path / "jr", 適用基準の機関="JR東日本")))
@@ -168,7 +168,7 @@ def test_restorability_prints_the_structure_factor_of_the_body(tmp_path):
 def test_without_the_appearance_check_there_is_no_8_8(tmp_path):
     pages = render(tmp_path, 外観の照査="行わない")
     text = "\n".join(pages)
-    assert "8.8" not in webpier_pages(pages) and "8.9 復旧性の照査" in text
+    assert "8.8" not in webpier_pages(pages) and "8.9 使用性（損傷）の照査" in text
     assert "bending_serviceability" not in text
 
 

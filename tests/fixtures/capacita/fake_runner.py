@@ -29,7 +29,7 @@ listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), 
 (no reportSections), order (the sections reversed), gap (the last section ends past the PDF), hole (the second
 section starts a page late), broken (report.pdf is not a PDF). Two modes stand for Capacita skipping checks for zero
 section forces (RcDan CheckValidation, as across the track in Example2): skip (shear_durability and
-bending_serviceability left out, with the info messages WD-1906 and WD-1901), skipnocode (shear_durability left
+bending_serviceability left out, with the info messages WD-1919 and WD-1914), skipnocode (shear_durability left
 out without its message).
 """
 
@@ -128,7 +128,7 @@ def main(argv):
     wdj = source.read_bytes()
     document = json.loads(wdj.decode("utf-8"))
     digest = hashlib.sha256(wdj).hexdigest()
-    skipped = {"skip": {"shear_durability": "WD-1906", "bending_serviceability": "WD-1901"},
+    skipped = {"skip": {"shear_durability": "WD-1919", "bending_serviceability": "WD-1914"},
                "skipnocode": {"shear_durability": None}}.get(mode, {})
     if pickup is None:
         shown = force_sections(document)

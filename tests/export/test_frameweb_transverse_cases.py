@@ -93,8 +93,9 @@ def test_pickups_are_those_of_9_15(current):
     printed = T09["extraction_cases"]["rows"]
     assert {n: coefficients(row) for n, row in current["pickup"].items()} == {
         n: coefficients(row) for n, row in EXAMPLE2_09["pickup"].items()}
+    renamed = {"復旧性（損傷）": "使用性（損傷）"}  # the R5 name of the sample's H16 extraction case (decision 73)
     assert [(row["row"], row["name"], list(coefficients(row).values())) for row in current["pickup"].values()] == [
-        (row["no"], row["name"], row["combinations"]) for row in printed]
+        (row["no"], renamed.get(row["name"], row["name"]), row["combinations"]) for row in printed]
 
 
 def test_centrifugal_loads_on_a_curve():

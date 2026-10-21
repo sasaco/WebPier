@@ -91,8 +91,8 @@ class SafetyFactors:
     v_rs: Printed | None  # shear: γs
     v_rbc: Printed | None  # shear: γb of Vcd
     v_rbs: Printed | None  # shear: γb of Vsd
-    v_rbv: Printed | None  # shear: γb of Vwcd
-    t_rbt: Printed | None  # torsion: γb (torsion is not checked)
+    v_rbv: Printed | None  # shear: γb of Vdd (RcDan S_Gamma_bd; Vwcd takes γb of Vcd)
+    t_rbt: Printed | None  # torsion: γb (not checked of the column)
     ri: Printed  # γi
     range: int  # Capacita's range of the material factors (1 serviceability, 2 safety, 3 restorability)
 
@@ -104,22 +104,22 @@ def _row(id_: int, title: str, values: str, range_: int) -> SafetyFactors:
     return SafetyFactors(id_, title, m_rc, m_rs, m_rbs, v_rc, v_rs, v_rbc, v_rbs, v_rbv, t_rbt, ri, range_)
 
 
-# RC標準（鉄道構造物等設計標準・同解説 コンクリート構造物、平成16年）の安全係数, as Capacita's railway rows (WebDan
-# RcBusinessEditor) and the sample 08_線路/WebDan.wdj have them, by limit state:
-#        γc(M) γs(M) γb(M) γc(V) γs(V) γb(Vcd) γb(Vsd) γb(Vwcd) γb(T) γi
-# 復旧性（地震時以外）の γi は 1.2 (曲げ・せん断とも; owner 2026-10-18: the 1.0 of the sample's 8-25 is an error,
-# ADR-0001), but 1.0 for JR東日本 (JR_EAST_SAFETY_FACTORS: Capacita's default exception, WebDanforJS
-# safety-factors-material-strengths.service.ts). γb(T) is the sample's; torsion is not checked (decision 48).
+# RC標準（鉄道構造物等設計標準・同解説 コンクリート構造物、R5）の安全係数, as WebDanforJS has them by default for the
+# railway bodies (safety-factors-material-strengths.service.ts default_safety_factor; decision 73), by limit state:
+#        γc(M) γs(M) γb(M) γc(V) γs(V) γb(Vcd) γb(Vsd) γb(Vdd) γb(T) γi
+# (WDJ V_rbv is γb of Vdd and Vod in R5: RcDan OrganizedInput S_Gamma_bd; Vwcd takes γb of Vcd.) 使用性（損傷）の γi
+# is 1.2 (曲げ・せん断とも), but 1.0 for JR東日本 (JR_EAST_SAFETY_FACTORS: the default's exception for JREast_H16 and
+# JREast_R5). Torsion is not checked of the column (decision 48); γb(T) is the default's.
 SAFETY_FACTORS = (
     _row(0, "耐久性, 使用性", "1.0 1.0 1.0 1.0 1.0 1.0 1.0 - 1.0 1.0", 1),
-    _row(2, "安全性（疲労破壊）", "1.3 1.05 1.0 1.3 1.05 1.3 1.0 - 1.0 1.1", 2),
-    _row(5, "安全性（破壊）", "1.3 1.0 1.1 1.3 1.0 1.3 1.1 1.2 1.0 1.2", 2),
-    _row(6, "復旧性（損傷）地震時以外", "1.3 1.0 1.0 1.3 1.0 1.3 1.1 1.2 1.0 1.2", 3),
-    _row(7, "復旧性（損傷）地震時", "1.3 1.0 1.0 1.3 1.0 1.3 1.0 1.2 1.0 1.0", 3),
+    _row(2, "安全性（疲労破壊）", "1.3 1.05 1.0 1.3 1.05 1.3 1.0 - - 1.1", 2),
+    _row(5, "安全性（破壊）", "1.3 1.0 1.1 1.3 1.0 1.3 1.1 1.2 1.3 1.2", 2),
+    _row(6, "使用性（損傷）", "1.3 1.0 1.0 1.3 1.0 1.3 1.1 1.2 1.3 1.2", 3),
+    _row(7, "復旧性（損傷）地震時", "1.3 1.0 1.0 1.3 1.0 1.3 1.1 1.2 1.3 1.0", 3),
     _row(8, "最小鉄筋量", "1.3 1.0 1.0 - - - - - - 1.0", 3),
 )
 JR_EAST_SAFETY_FACTORS = tuple(
-    _row(6, factors.title, "1.3 1.0 1.0 1.3 1.0 1.3 1.1 1.2 1.0 1.0", 3) if factors.id == 6 else factors
+    _row(6, factors.title, "1.3 1.0 1.0 1.3 1.0 1.3 1.1 1.2 1.3 1.0", 3) if factors.id == 6 else factors
     for factors in SAFETY_FACTORS)
 SAFETY_FACTORS_OF_BODY = {"運輸機構": SAFETY_FACTORS, "JR各社": SAFETY_FACTORS, "JR東日本": JR_EAST_SAFETY_FACTORS}
 # kr: 変動作用の頻度の影響を考慮するための係数, 一般に0.5 (RC標準; the sample 8-21)
@@ -136,7 +136,7 @@ MOMENT_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
     (1, ExtractionGroup.PERMANENT),  # 耐久性（永久作用）
     (2, None), (3, None), (4, None),  # 安全性（疲労破壊）
     (5, ExtractionGroup.FAILURE),  # 安全性（破壊）
-    (6, ExtractionGroup.DAMAGE),  # 復旧性（損傷）地震時以外
+    (6, ExtractionGroup.DAMAGE),  # 使用性（損傷）
     (7, None),  # 復旧性（損傷）地震時
     (8, None),  # 最小鉄筋量
 )
@@ -146,7 +146,7 @@ SHEAR_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = (
     (2, ExtractionGroup.VARIABLE),  # 耐久性（変動作用）
     (3, None), (4, None),  # 安全性（疲労破壊）
     (5, ExtractionGroup.FAILURE),  # 安全性（破壊）
-    (6, ExtractionGroup.DAMAGE),  # 復旧性（損傷）地震時以外
+    (6, ExtractionGroup.DAMAGE),  # 使用性（損傷）
     (7, None),  # 復旧性（損傷）地震時
 )
 TORSION_CASES: tuple[tuple[int, ExtractionGroup | None], ...] = ((0, None), (1, None), (5, None), (6, None),
@@ -221,8 +221,8 @@ class ColumnCheckResult:
     hoop_steel: Steel
     fck: Printed  # N/mm2
     aggregate_max: Printed  # Dmax, mm
-    environment: str  # 鋼材の腐食に対する環境条件
-    environment_number: int  # 1 一般の環境, 2 腐食性環境, 3 特に厳しい腐食性環境 (Capacita con)
+    environment: str  # 水掛かりの程度
+    environment_number: int  # 1 常時乾燥, 2 乾湿繰返し, 3 常時湿潤 (Capacita con)
     appearance: bool  # 外観の照査
     ecsd: Printed  # ε'csd, ×10⁻⁶
     body: str  # 適用基準の機関
@@ -361,7 +361,7 @@ def calculate_column_check(pier: PierInput, frame_result: FrameResult, direction
     side = _side(rows[upper.layers:len(rows) - lower.layers], direction.side, corners(layout, direction.side))
     hoops, hoop_grade = _hoops(pier, direction.face)
     conditions = pier.column_check
-    environment = _need(conditions.environment, f"{_CHECK}.鋼材の腐食に対する環境条件")
+    environment = _need(conditions.environment, f"{_CHECK}.水掛かりの程度")
     appearance = _need(conditions.appearance, f"{_CHECK}.外観の照査")
     ecsd = _need(conditions.ecsd, f"{_CHECK}.ε'csd")
     body = _need(conditions.body, f"{_CHECK}.適用基準の機関")
@@ -374,7 +374,7 @@ def calculate_column_check(pier: PierInput, frame_result: FrameResult, direction
         main_steel=_steel(main_grade), side_steel=None if side is None else _steel(side[1]),
         hoop_steel=_steel(hoop_grade), fck=frame_result.frame.materials.column.strength,
         aggregate_max=_need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),
-        environment=environment, environment_number=choices.CORROSION_ENVIRONMENTS.index(environment) + 1,
+        environment=environment, environment_number=choices.WATER_EXPOSURES.index(environment) + 1,
         appearance=appearance == choices.APPEARANCE_CHECKED, ecsd=ecsd, body=body,
         jr001=jr001 == choices.ADOPTED, jr004=jr004 == choices.ADOPTED,
         moment_cases=_cases(MOMENT_CASES, numbers), shear_cases=_cases(SHEAR_CASES, numbers),

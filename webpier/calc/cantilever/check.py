@@ -9,11 +9,11 @@ Capacita (RcDan) calculates and prints the checks; WebPier decides the condition
   pitch. The main and side bars are of the member's main steel, the stirrups of its transverse steel. What the WDJ
   cannot hold is an input error naming its path;
 - f'ck and Dmax of the beam concrete (鉄筋.梁);
-- the 片持ち梁の照査 conditions: the corrosion environment of each face, the appearance check, the trains of the
+- the 片持ち梁の照査 conditions: the 水掛かりの程度 of each face, the appearance check, the trains of the
   fatigue check (the equivalent repetitions per train of the input; SA/SC = SB/SC = 1.0 and γ1 = 1.0 for the main
   bars and 0.65 for the bent stirrups are program constants), and ε'csd from 0900's cracking moment;
 - the standard body and JR-001 / JR-004 of 柱の断面照査 (one pier), the safety factors of 0611 (with γb of torsion
-  1.0), kr and k4;
+  1.3, R5), kr and k4;
 - the section forces: 0900's governing case of each check (combinations.Selection), Md negative to Capacita.
 """
 
@@ -82,7 +82,7 @@ class CantileverSectionResult:
     fck: Printed
     aggregate_max: Printed
     environments: dict[str, str]  # by face: 上面, 下面, 側面
-    environment_numbers: dict[str, int]  # Capacita's con: 1 一般の環境, 2 腐食性環境, 3 特に厳しい腐食性環境
+    environment_numbers: dict[str, int]  # Capacita's con: 1 常時乾燥, 2 乾湿繰返し, 3 常時湿潤
     appearance: bool
     ecsd: Printed  # ×10⁻⁶, from 0900's cracking moment
     body: str
@@ -142,7 +142,7 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
     layout = beam_layout(beam, width, depth)
     upper, lower, side = layout.faces["上"], layout.faces["下"], layout.side
     conditions, column = pier.cantilever_check, pier.column_check
-    environments = {face: _need(conditions.environments[face], f"{_CHECK}.鋼材の腐食に対する環境条件.{face}")
+    environments = {face: _need(conditions.environments[face], f"{_CHECK}.水掛かりの程度.{face}")
                     for face in BEAM_SURFACES}
     appearance = _need(conditions.appearance, f"{_CHECK}.外観の照査")
     body = _need(column.body, f"{_COLUMN_CHECK}.適用基準の機関")
@@ -156,7 +156,7 @@ def calculate_cantilever_section(pier: PierInput, cantilever: CantileverResult) 
         side_steel=None if side is None else _steel(main_grade), stirrup_steel=_steel(stirrup_grade),
         fck=pier.materials.beam, aggregate_max=_need(beam.aggregate_max, f"{_BEAM}.aggregate_max_mm"),
         environments=environments,
-        environment_numbers={face: choices.CORROSION_ENVIRONMENTS.index(name) + 1 for face, name in environments.items()},
+        environment_numbers={face: choices.WATER_EXPOSURES.index(name) + 1 for face, name in environments.items()},
         appearance=appearance == choices.APPEARANCE_CHECKED, ecsd=cantilever.cracking.ecsd, body=body,
         jr001=jr001 == choices.ADOPTED, jr004=jr004 == choices.ADOPTED, fatigue=_fatigue(pier),
         safety=SAFETY_FACTORS_OF_BODY[body], kr=KR, k4=K4, selections=cantilever.selections,

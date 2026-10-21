@@ -5,17 +5,21 @@ flexural crack check, the fatigue conditions and the cracking moment with ε'csd
 Capacita's pages of its section (``stages.insertion``), which the report receives by section id, cut from Capacita's
 report by the page ranges Capacita returns: 13.3 安全性（破壊） (bending, shear, torsion), 13.4 安全性（疲労破壊）
 (bending, shear), 13.5 耐久性 (flexural cracks with the cracking moment and ε'csd, shear cracks, torsion cracks),
-13.6 使用性 (appearance; only with the appearance check: without it there is no 13.6 and 復旧性 is 13.6, as the
-sample), 復旧性 (地震時以外 and 地震時, each bending, shear, torsion). The chapter heading (§13) is not printed. A check
-Capacita skipped for zero section forces (pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by
-the reason it is omitted instead of Capacita's pages.
+13.6 使用性 (appearance; only with the appearance check: without it there is no 13.6 and the next sections move up,
+as the sample), then 使用性（損傷） (the row 6: bending, shear, torsion) and 復旧性（地震時） (the row 7: bending, shear,
+torsion) in sections of their own, as RC標準 R5 names them (decision 73; the sample's one 復旧性 section with 地震時以外
+and 地震時 is H16's). The chapter heading (§13) is not printed. A check Capacita skipped for zero section forces
+(pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by the reason it is omitted instead of
+Capacita's pages.
 
-The explanations follow Example2 13 pp.13-38 .. 13-65 (the texts the column check also has use its wording). The
-values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd, the trains of the fatigue check) and the corrosion
-environment of each face are printed from the same result; the values of RC標準 that only Capacita holds are not.
+The explanations keep the structure of Example2 13 pp.13-38 .. 13-65 (the texts the column check also has use its
+wording), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5 flexural
+crack method and flowchart of 0611, Vyd = Vcd + Vsd). The values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd,
+the trains of the fatigue check) and the 水掛かりの程度 of each face are printed from the same result; the values of
+RC標準 that only Capacita holds are not.
 Not reproduced from the reference (decision 59): the train figure, the reaction chart and the numeric ΣN line of
-13-46 (an external program's work; Capacita's page shows ΣN), the γb 1.3 of the torsion explanation (the WDJ writes
-γb of torsion from the safety factor table), and βnt (Capacita's).
+13-46 (an external program's work; Capacita's page shows ΣN), and βnt (Capacita's). The γb 1.3 of its torsion
+explanation is now the R5 default the WDJ writes (decision 73).
 """
 
 from __future__ import annotations
@@ -34,8 +38,8 @@ from ...inputs import PierInput
 from ...inputs.fields import BEAM_SURFACES
 from ..equations import Definition
 from . import insertion
-from .column_check import (COLON, CONTINUED, OMITTED as COLUMN_OMITTED, SIGMA_SE, _blocks, ecsd_text, flowchart,
-                           wrap)
+from .column_check import (COLON, CONTINUED, CRACK_METHOD, CRACK_STRESS, OMITTED as COLUMN_OMITTED, SIGMA_SE, _blocks,
+                           ecsd_text, flowchart, wrap)
 from .frame_report import BODY_LEFT, Manuscript, Span, TableSpec, Unit, value
 from .insertion import Insertion, documents, render_with_pages
 
@@ -66,12 +70,13 @@ class Numbering:
     fatigue: int = 4
     durability: int = 5
     serviceability: int | None = None
-    restorability: int = 6
+    damage: int = 6
+    restorability: int = 7
 
     @staticmethod
     def of(result: CantileverSectionResult) -> Numbering:
         if result.appearance:
-            return Numbering(serviceability=6, restorability=7)
+            return Numbering(serviceability=6, damage=7, restorability=8)
         return Numbering()
 
 
@@ -93,7 +98,7 @@ def scientific(number: Printed) -> str:
 
 def _safety_moment(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
     factors = _factors(result, 5)
-    m.heading("safety.heading", f"{CHAPTER}.{n.safety} 安全性（破壊）の照査", 1, tag="【ＲＣ標準 7.2.2】")
+    m.heading("safety.heading", f"{CHAPTER}.{n.safety} 安全性（破壊）の照査", 1)
     m.heading("safety.moment.heading", "(1) 曲げ耐力の算定", 2)
     m.paragraph("safety.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                       "設計曲げ耐力Mudを設計限界値として，次式により行う．")
@@ -104,7 +109,8 @@ def _safety_moment(m: Manuscript, result: CantileverSectionResult, n: Numbering)
 
 
 def _shear_lines(m: Manuscript, key: str, gamma_i: str) -> None:
-    """The shear check of 7.2.3 (a/d ≧ 2.0 and ＜ 2.0), shared by 安全性（破壊） and 復旧性."""
+    """The shear check (a/d ≧ 2.0 and ＜ 2.0), shared by 安全性（破壊）, 使用性（損傷） and 復旧性（地震時）: Capacita checks
+    the three alike (RcDan RailR5_Shear_ServiceabilityDamage_Ver and RestorabilityEQ extend SafetyDestruction)."""
     m.paragraph(f"{key}.text", "せん断力を受ける部材の照査は，設計せん断力Vdを設計応答値とし，部材ごとにa/dの値に"
                                "より，設計せん断耐力Vyd，腹部コンクリートの設計斜め圧縮破壊耐力Vwcdまたは設計せん断"
                                "圧縮破壊耐力Vddを設計限界値として，次式により行う．")
@@ -113,10 +119,9 @@ def _shear_lines(m: Manuscript, key: str, gamma_i: str) -> None:
     m.line(f"{key}.yield.check", "γi・Vd / Vyd ≦ 1.0")
     _definitions(m, f"{key}.yield.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
                  Definition("Vd", "設計せん断力"),
-                 Definition("Vyd", "棒部材の設計せん断耐力（Vyd = Vcd + Vwd + Vsd）"),
+                 Definition("Vyd", "棒部材の設計せん断耐力（Vyd = Vcd + Vsd）"),
                  Definition("Vcd", "せん断補強鋼材を用いない棒部材の設計せん断耐力"),
-                 Definition("Vwd", "せん断補強鋼材により受け持たれる棒部材の設計せん断耐力"),
-                 Definition("Vsd", "鉄骨部分により受け持たれる棒部材の設計せん断耐力"))
+                 Definition("Vsd", "せん断補強鋼材により受け持たれる棒部材の設計せん断耐力"))
     m.paragraph(f"{key}.web.heading", "(b) 腹部コンクリートの斜め圧縮破壊耐力による照査", keep=True)
     m.line(f"{key}.web.check", "γi・Vd / Vwcd ≦ 1.0")
     _definitions(m, f"{key}.web.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
@@ -128,12 +133,12 @@ def _shear_lines(m: Manuscript, key: str, gamma_i: str) -> None:
 
 
 def _safety_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("safety.shear.heading", "(2) せん断に対する照査", 2, tag="【ＲＣ標準 7.2.3】")
+    m.heading("safety.shear.heading", "(2) せん断に対する照査", 2)
     _shear_lines(m, "safety.shear", value(_factors(result, 5).ri))
 
 
 def _torsion_lines(m: Manuscript, key: str, factors: SafetyFactors) -> None:
-    """The torsion check (Example2 13-42, 13-43), shared by 安全性（破壊） and 復旧性."""
+    """The torsion check (Example2 13-42, 13-43), shared by 安全性（破壊）, 使用性（損傷） and 復旧性（地震時）."""
     gamma_i, gamma_b = value(factors.ri), value(factors.t_rbt)
     m.heading(f"{key}.plain.heading", "a) ねじり補強鉄筋のない場合の設計ねじり耐力", 3)
     m.paragraph(f"{key}.pure.heading", "ア) 設計純ねじり耐力", keep=True)
@@ -316,13 +321,10 @@ def _fatigue_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering)
 
 def _crack_method(m: Manuscript, key: str) -> None:
     m.heading(f"{key}.method.heading", "1) 曲げひび割れに対する部材の検討方法", 3)
-    m.paragraph(f"{key}.method.text", "曲げひび割れに対する部材の検討は，全断面を有効としたコンクリートの縁引張応力度σbが"
-                                      "断面高さに応じた縁引張応力度の制限値σbl以下の場合は，永久作用による引張鉄筋の"
-                                      "応力度σsによる検討を行い，σbがσblを超える場合は，曲げひび割れ幅Wdによる検討を行う．")
+    m.paragraph(f"{key}.method.text", CRACK_METHOD)
     m.figure(f"{key}.flowchart", flowchart(m.prefix + f"{key}.flowchart.figure"))
     m.heading(f"{key}.stress.heading", "2) 永久作用による引張鉄筋の応力度による検討", 3)
-    m.paragraph(f"{key}.stress.text", "永久作用による引張鉄筋の応力度σsが，永久作用による引張鉄筋応力度の制限値σsl1に"
-                                      "対し，次式を満たすことを検討する．")
+    m.paragraph(f"{key}.stress.text", CRACK_STRESS)
     m.line(f"{key}.stress.check", "σs / σsl1 ≦ 1.0")
     _definitions(m, f"{key}.stress.symbols", Definition("σs", "永久作用による引張鉄筋の設計応力度"),
                  Definition("σsl1", "永久作用による引張鉄筋応力度の制限値"))
@@ -402,7 +404,7 @@ def _ecsd(m: Manuscript, key: str, result: CantileverSectionResult) -> None:
 def _durability_flexure(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
     m.heading("durability.heading", f"{CHAPTER}.{n.durability} 耐久性の照査", 1)
     faces = "，".join(f"{face}「{result.environments[face]}」" for face in BEAM_SURFACES)
-    m.paragraph("durability.environment", f"鋼材の腐食に対する環境条件は，{faces}とする．")
+    m.paragraph("durability.environment", f"水掛かりの程度は，{faces}とする．")
     m.heading("durability.flexure.heading", "(1) 曲げひび割れの検討", 2)
     _crack_method(m, "durability.flexure")
     _crack_width(m, "durability.flexure", result, value(_factors(result, 0).ri), "ひび割れ幅の制限値")
@@ -436,11 +438,11 @@ def _serviceability(m: Manuscript, result: CantileverSectionResult, n: Numbering
     _crack_width(m, "serviceability.flexure", result, value(_factors(result, 0).ri), "外観に対するひび割れ幅の制限値")
 
 
-# --- 復旧性 ---------------------------------------------------------------------------------------------------------
+# --- 使用性（損傷），復旧性（地震時） ----------------------------------------------------------------------------------
 
 
-def _restorability_moment(m: Manuscript, key: str, factors: SafetyFactors) -> None:
-    m.heading(f"{key}.moment.heading", "1) 曲げ耐力の算定", 3)
+def _yield_moment(m: Manuscript, key: str, factors: SafetyFactors) -> None:
+    m.heading(f"{key}.moment.heading", "(1) 曲げ耐力の算定", 2)
     m.paragraph(f"{key}.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                       "設計曲げ降伏耐力Mydを設計限界値として，次式により行う．")
     m.line(f"{key}.moment.check", "γi・Md / Myd ≦ 1.0")
@@ -449,43 +451,42 @@ def _restorability_moment(m: Manuscript, key: str, factors: SafetyFactors) -> No
                  Definition("γb", f"部材係数(= {value(factors.m_rbs)})"))
 
 
-def _restorability(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.heading", f"{CHAPTER}.{n.restorability} 復旧性の照査", 1, tag="【ＲＣ標準 9.2】")
-    m.heading("restorability.usual.heading", "(1) 地震時以外の照査", 2)
-    _restorability_moment(m, "restorability.usual", _factors(result, 6))
+def _damage(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
+    m.heading("damage.heading", f"{CHAPTER}.{n.damage} 使用性（損傷）の照査", 1)
+    _yield_moment(m, "damage", _factors(result, 6))
 
 
-def _restorability_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.usual.shear.heading", "2) せん断に対する照査", 3, tag="【ＲＣ標準 7.2.3】")
-    _shear_lines(m, "restorability.usual.shear", value(_factors(result, 6).ri))
+def _damage_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
+    m.heading("damage.shear.heading", "(2) せん断に対する照査", 2)
+    _shear_lines(m, "damage.shear", value(_factors(result, 6).ri))
 
 
-def _restorability_torsion(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.usual.torsion.heading", "3) ねじりモーメントに対する検討", 3)
-    _torsion_lines(m, "restorability.usual.torsion", _factors(result, 6))
+def _damage_torsion(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
+    m.heading("damage.torsion.heading", "(3) ねじりモーメントに対する検討", 2)
+    _torsion_lines(m, "damage.torsion", _factors(result, 6))
 
 
 def _restorability_eq(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.eq.heading", "(2) 地震時の照査", 2)
-    _restorability_moment(m, "restorability.eq", _factors(result, 7))
+    m.heading("restorability.heading", f"{CHAPTER}.{n.restorability} 復旧性（地震時）の照査", 1)
+    _yield_moment(m, "restorability", _factors(result, 7))
 
 
 def _restorability_eq_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.eq.shear.heading", "2) せん断に対する照査", 3, tag="【ＲＣ標準 7.2.3】")
-    _shear_lines(m, "restorability.eq.shear", value(_factors(result, 7).ri))
+    m.heading("restorability.shear.heading", "(2) せん断に対する照査", 2)
+    _shear_lines(m, "restorability.shear", value(_factors(result, 7).ri))
 
 
 def _restorability_eq_torsion(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
-    m.heading("restorability.eq.torsion.heading", "3) ねじりモーメントに対する検討", 3)
-    _torsion_lines(m, "restorability.eq.torsion", _factors(result, 7))
+    m.heading("restorability.torsion.heading", "(3) ねじりモーメントに対する検討", 2)
+    _torsion_lines(m, "restorability.torsion", _factors(result, 7))
 
 
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
           "torsion_safety_destruction": _safety_torsion, "bending_safety_fatigue": _fatigue_moment,
           "shear_safety_fatigue": _fatigue_shear, "bending_durability": _durability_flexure,
           "shear_durability": _durability_shear, "torsion_durability": _durability_torsion,
-          "bending_serviceability": _serviceability, "bending_restorability": _restorability,
-          "shear_restorability": _restorability_shear, "torsion_restorability": _restorability_torsion,
+          "bending_serviceability": _serviceability, "bending_restorability": _damage,
+          "shear_restorability": _damage_shear, "torsion_restorability": _damage_torsion,
           "bending_restorability_eq": _restorability_eq, "shear_restorability_eq": _restorability_eq_shear,
           "torsion_restorability_eq": _restorability_eq_torsion}
 

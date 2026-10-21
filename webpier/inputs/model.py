@@ -217,7 +217,7 @@ class SeismicDesign:
 class ColumnCheck:
     """柱の断面照査 (CONTEXT.md, decision 48): one set for the column, shared by both directions; None is blank."""
 
-    environment: str | None  # 鋼材の腐食に対する環境条件, one of choices.CORROSION_ENVIRONMENTS
+    environment: str | None  # 水掛かりの程度, one of choices.WATER_EXPOSURES
     appearance: str | None  # 外観の照査, one of choices.APPEARANCE_CHECKS
     ecsd: Printed | None  # ε'csd, ×10⁻⁶
     body: str | None  # 適用基準の機関, one of choices.STANDARD_BODIES
@@ -241,7 +241,7 @@ class CantileverCheck:
     """片持ち梁の照査 (CONTEXT.md, decision 59): the conditions of the cantilever beam check, shared by both
     overhangs; None is blank."""
 
-    environments: dict[str, str | None]  # 鋼材の腐食に対する環境条件 by face (fields.BEAM_SURFACES: 上面, 下面, 側面)
+    environments: dict[str, str | None]  # 水掛かりの程度 by face (fields.BEAM_SURFACES: 上面, 下面, 側面)
     appearance: str | None  # 外観の照査, one of choices.APPEARANCE_CHECKS
     fatigue: FatigueTrains
 

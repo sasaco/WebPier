@@ -1,8 +1,8 @@
 """The design action combinations of the cantilever beam (0900 13.2, decision 59; Example2 13-30 to 13-37) and the
 section forces each check of 0910 is given (the WDJ force table, decision 59).
 
-The 31 cases are a program table, as Example2 13-30 to 13-37 have them: 1〜18 安全性（破壊）, 19〜22 復旧性（地震時
-以外）, 23〜24 復旧性（地震時）, 25〜28 耐久性 and 29〜31 安全性（疲労）. A case multiplies the totals of each action
+The 31 cases are a program table, as Example2 13-30 to 13-37 have them: 1〜18 安全性（破壊）, 19〜22 使用性（損傷）,
+23〜24 復旧性（地震時）, 25〜28 耐久性 and 29〜31 安全性（疲労）. A case multiplies the totals of each action
 (actions.Action: N, Md, Mt) by its factor and sums the printed products (ADR-0003); the design shear force Vd is N.
 The factor of the train and its impact is ρ × γ at the printed digits of 0600 (FACTOR: 1.231 × 1.1 → 1.35,
 1.231 × 1.0 → 1.23; 使用性 ρ = 1.0), that of the vehicle lateral load ρu × γ; the others are written as the table
@@ -47,7 +47,7 @@ COLUMNS = ("D1", "D2", "S", "L", "I", "LF", "W", "LR+B", "EQ")  # of the combina
 
 class LimitState(Enum):
     SAFETY = "安全性(破壊)"
-    RESTORABILITY = "復旧性(地震時以外)"
+    SERVICEABILITY_DAMAGE = "使用性(損傷)"
     RESTORABILITY_EQ = "復旧性(地震時)"
     DURABILITY = "耐久性"
     FATIGUE = "安全性(疲労)"
@@ -112,7 +112,7 @@ def _definitions() -> tuple[CaseDefinition, ...]:
     for loading in Loading:  # 15〜17: 1.1LR + 1.23B, no snow
         add(S, "ロング最大", SAFETY_D1, SAFETY_D2, None, _train(loading, ONE), bearing=LongitudinalCase.SAFETY_LR11_B10)
     add(S, "雪最大", SAFETY_D1, SAFETY_D2, Snow.S30, bearing=LongitudinalCase.SAFETY_LR10)  # 18
-    R = LimitState.RESTORABILITY
+    R = LimitState.SERVICEABILITY_DAMAGE
     for loading in Loading:  # 19〜21
         add(R, "列車最大", ONE, ONE, Snow.S10, _train(loading, ONE), ONE, (Wind.WITH_TRAIN, ONE))
     add(R, "雪最大", ONE, ONE, Snow.S30)  # 22
@@ -252,7 +252,7 @@ FORCE_ROWS = (
     ForceRow(3, "安全性（疲労破壊）永久作用", (Quantity.BENDING, Quantity.SHEAR), _permanent),
     ForceRow(4, "安全性（疲労破壊）永久＋変動", (Quantity.BENDING, Quantity.SHEAR), _variable),
     ForceRow(5, "安全性（破壊）", ALL, _state(LimitState.SAFETY)),
-    ForceRow(6, "復旧性（損傷）地震時以外", ALL, _state(LimitState.RESTORABILITY)),
+    ForceRow(6, "使用性（損傷）", ALL, _state(LimitState.SERVICEABILITY_DAMAGE)),
     ForceRow(7, "復旧性（損傷）地震時", ALL, _state(LimitState.RESTORABILITY_EQ)),
 )
 

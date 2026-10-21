@@ -1,8 +1,8 @@
 """The 0910 report (decision 59, ADR-0008): WebPier's headings and explanations, each followed by Capacita's pages
-of its section, in the order of the beam's sections (13.3 → 13.6); the values written to the WDJ printed from the
+of its section, in the order of the beam's sections (13.3 → 13.7); the values written to the WDJ printed from the
 same result; the cracking moment and ε'csd pages; the fatigue conditions; 13.6 使用性 only with the appearance check
-(復旧性 then 13.7); a check Capacita skipped for zero forces keeps its heading and explanation, with the reason it is
-omitted and no pages; the same bytes for the same input.
+(使用性（損傷） then 13.7, 復旧性（地震時） 13.8); a check Capacita skipped for zero forces keeps its heading and
+explanation, with the reason it is omitted and no pages; the same bytes for the same input.
 
 Capacita's pages are stand-ins here (one page per section, each saying which section it is), cut by their ranges as
 the real report is. The expected texts follow Example2 13 pp.13-38 .. 13-65 and decision 59.
@@ -35,10 +35,10 @@ HEADINGS = {"bending_safety_destruction": "13.3 安全性（破壊）の照査",
             "torsion_safety_destruction": "(3) ねじりモーメントに対する検討",
             "bending_safety_fatigue": "13.4 安全性（疲労破壊）の照査", "shear_safety_fatigue": "(2) せん断に対する照査",
             "bending_durability": "13.5 耐久性の照査", "shear_durability": "(2) せん断ひび割れの検討",
-            "torsion_durability": "(3) ねじりひび割れの検討", "bending_restorability": "13.6 復旧性の照査",
-            "shear_restorability": "2) せん断に対する照査", "torsion_restorability": "3) ねじりモーメントに対する検討",
-            "bending_restorability_eq": "(2) 地震時の照査", "shear_restorability_eq": "2) せん断に対する照査",
-            "torsion_restorability_eq": "3) ねじりモーメントに対する検討"}
+            "torsion_durability": "(3) ねじりひび割れの検討", "bending_restorability": "13.6 使用性（損傷）の照査",
+            "shear_restorability": "(2) せん断に対する照査", "torsion_restorability": "(3) ねじりモーメントに対する検討",
+            "bending_restorability_eq": "13.7 復旧性（地震時）の照査", "shear_restorability_eq": "(2) せん断に対する照査",
+            "torsion_restorability_eq": "(3) ねじりモーメントに対する検討"}
 
 
 def response(file: str, kh: float) -> MaxResponse:
@@ -120,7 +120,7 @@ def test_each_section_follows_its_heading_in_report_order(pages):
 def test_the_values_written_to_the_wdj_are_printed(pages):
     text = flat(pages)
     for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "構造物係数(=1.1)", "部材係数(=1.0)", "構造物係数(=1.0)",
-                    "(=0.85)", "(=0.5)", "(=300×10⁻⁶)", "上面「腐食性環境」", "下面「一般の環境」", "側面「腐食性環境」"):
+                    "(=0.85)", "(=0.5)", "(=300×10⁻⁶)", "上面「乾湿繰返し」", "下面「常時乾燥」", "側面「乾湿繰返し」"):
         assert printed in text, printed
 
 
@@ -144,10 +144,11 @@ def test_the_cracking_moment_and_ecsd_pages(pages):
         assert action in text
 
 
-def test_with_the_appearance_check_13_6_is_serviceability_and_restorability_13_7(with_appearance):
+def test_with_the_appearance_check_13_6_is_serviceability_and_the_others_follow(with_appearance):
     assert "bending_serviceability" in sections_of(with_appearance)
     text = webpier_pages(with_appearance)
-    assert "13.6 使用性の照査" in text and "13.7 復旧性の照査" in text and "13.6 復旧性" not in text
+    assert "13.6 使用性の照査" in text and "13.7 使用性（損傷）の照査" in text and "13.8 復旧性（地震時）の照査" in text
+    assert "13.6 使用性（損傷）" not in text
     assert "外観に対するひび割れ幅の制限値" in text
 
 

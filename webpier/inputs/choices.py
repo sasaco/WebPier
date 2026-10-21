@@ -43,7 +43,7 @@ WIDTH_MODES = ("間隔", "密度")
 WIDTH_SPACING, WIDTH_DENSITY = WIDTH_MODES
 
 # 柱の断面照査 (decision 48): one set for the column, shared by both directions.
-CORROSION_ENVIRONMENTS = ("一般の環境", "腐食性環境", "特に厳しい腐食性環境")  # 鋼材の腐食に対する環境条件
+WATER_EXPOSURES = ("常時乾燥", "乾湿繰返し", "常時湿潤")  # 水掛かりの程度 (RC標準 R5; Capacita con 1, 2, 3)
 APPEARANCE_CHECKS = ("行う", "行わない")  # 外観の照査
 APPEARANCE_CHECKED = APPEARANCE_CHECKS[0]
 STANDARD_BODIES = ("運輸機構", "JR各社", "JR東日本")  # 適用基準の機関

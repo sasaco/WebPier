@@ -231,7 +231,7 @@ def expected(case: str) -> dict[str, str]:
     add("factors.maximum", f"列車最大1.1ρ=1.1×{t(pier.train.factor_ultimate)}={t(f.maximum)}")
     add("factors.service", f"使用性ρ={t(pier.train.factor_service)}≒{t(f.service)}")
     add("factors.service_impact", f"使用性の衝撃0.75ρ=0.75×{t(pier.train.factor_service)}={t(f.service_impact)}")
-    header = ("No記号荷重名称安全性耐久性・使用性復旧性安全性使用性破壊ひび割れ損傷地盤の安定長期短期" + "".join(CHECKS)
+    header = ("No記号荷重名称安全性耐久性・使用性使用性安全性使用性破壊ひび割れ損傷地盤の安定長期短期" + "".join(CHECKS)
               + "".join(str(c.number) for c in result.combinations))
     body = "".join(f"{d.number}{BASIC[d.cases[0].value][2]}{BASIC[d.cases[0].value][0]}" + "".join(
         t(c.coefficients[i]) if c.coefficients[i] is not None else "－" for c in result.combinations)
@@ -241,7 +241,7 @@ def expected(case: str) -> dict[str, str]:
                             "車両横荷重・風荷重は正負それぞれを組み合わせる．組合せ5，7，15，16の衝撃荷重には，"
                             f"使用性の衝撃係数（3/4を含む）による値にρ={t(f.service)}を乗じる．")
     add("extraction.heading", "(4)抽出ケース")
-    labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "復旧性（損傷）", "安全性（安定）", "長期支持性能",
+    labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",
               "短期支持性能"]
     width = max(len(e.combinations) for e in result.extractions)
     add("extraction", "No名称" + "".join(f"C{i}" for i in range(1, width + 1)) + "".join(

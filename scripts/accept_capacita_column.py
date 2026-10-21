@@ -4,7 +4,7 @@ The WDJ is rebuilt as ``python -m webpier`` writes it for the stage (calc.column
 tests/fixtures/inputs/current.json (the Example2 input), and the PIK is the real FEMPython's analysis of the same
 0610 / 0620 FrameWeb file (FrameWebforCS.Headless, as the stage calls it). Both are given to the real
 WebDanforCS.Headless ``run-rc --pickup``. The values its report prints for 安全性（破壊）の曲げ and
-復旧性（地震時以外）の曲げ are compared with Example2 (tests/fixtures/example2/column_section_check.json and
+使用性（損傷）の曲げ are compared with Example2 (tests/fixtures/example2/column_section_check.json and
 column_section_check_09.json, ``acceptance``):
 
 - 0611 (08_線路.pdf 8-15, 8-26): the check ratios must be the printed ones;
@@ -74,7 +74,7 @@ STAGES = {
         ("照査値（γi・Md/Mud＝0.132、γi・Md/Myd＝0.114）は見本と一致する。耐力（Mud・Myd）は見本の WebDan といまの Capacita で"
          " 0.2% 未満違う（Mud 37426.2／37449.1、Myd 38200.7／38260.8）（見本自身の WDJ と PIK をいまの Capacita で計算しても"
          "同じ値になる）。",
-         "復旧性のせん断のページが加わる（見本 8.9(2) は省略。決定48）。",
+         "使用性（損傷）のせん断のページが加わる（見本 8.9(2) は省略。決定48）。",
          "断面力一覧のページが加わる（print_section_force_checked。見本 8.5 に相当）。",
          "表の体裁は Capacita の計算書のもので、見本の WebDan の表とは違う。")),
     "0621": Stage(
@@ -86,11 +86,11 @@ STAGES = {
          " Md 10939.1／見本 8256.6）。軸力 N'd は見本と同じなので、耐力（Mud・Myd）を比べる。",
          "耐力は見本の WebDan といまの Capacita で 0.2% 未満違う（見本自身の WDJ をいまの Capacita で計算すると Mud 29326.7、"
          "Myd 48634.5）。",
-         "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1901）と耐久性のせん断（WD-1906）を飛ばす。見本に 9.7・9.8 が"
+         "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1914）と耐久性のせん断（WD-1919）を飛ばす。見本に 9.7・9.8 が"
          "ないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
          "柱下端の着目点は PIK の 7 番目（柱に風荷重の区間の端の着目点がある）。見本は 6。",
          "側方鉄筋 D32×29 は見本どおり位置を書かず、Capacita が等分に配置する。",
-         "復旧性のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。")),
+         "使用性（損傷）のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。")),
 }
 
 

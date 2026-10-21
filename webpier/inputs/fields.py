@@ -48,7 +48,7 @@ MAX_STEPS = 100_000
 MAX_COUNT = 10_000
 MAX_TRAINS = 10_000  # 列車本数, per track per day
 MAX_YEARS = 1_000  # 設計耐用年数
-BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own corrosion environment (decision 59)
+BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own 水掛かりの程度 (decision 59)
 REPETITION_SLOPES = ("k=0.06", "k=0.12")  # the S-N slopes an equivalent repetition count is given for
 
 Kind = Literal["number", "integer", "choice", "text", "boolean", "blank"]
@@ -238,7 +238,7 @@ def _seismic_design() -> dict[str, Field]:
 def _column_check() -> dict[str, Field]:
     # 柱の断面照査: shared by both directions; needed only by 0611 and 0621 (decision 48).
     section = "柱の断面照査"
-    return {f"{section}.鋼材の腐食に対する環境条件": choice(choices.CORROSION_ENVIRONMENTS, nullable=True),
+    return {f"{section}.水掛かりの程度": choice(choices.WATER_EXPOSURES, nullable=True),
             f"{section}.外観の照査": choice(choices.APPEARANCE_CHECKS, nullable=True),
             f"{section}.ε'csd": number(SHRINKAGE, nullable=True),
             f"{section}.適用基準の機関": choice(choices.STANDARD_BODIES, nullable=True),
@@ -250,7 +250,7 @@ def _cantilever_check() -> dict[str, Field]:
     # 片持ち梁の照査: the conditions of the cantilever beam check; needed only by 0900 and 0910 (decision 59).
     section = "片持ち梁の照査"
     fatigue = f"{section}.疲労"
-    table = {f"{section}.鋼材の腐食に対する環境条件.{face}": choice(choices.CORROSION_ENVIRONMENTS, nullable=True)
+    table = {f"{section}.水掛かりの程度.{face}": choice(choices.WATER_EXPOSURES, nullable=True)
              for face in BEAM_SURFACES}
     table |= {f"{section}.外観の照査": choice(choices.APPEARANCE_CHECKS, nullable=True),
               f"{fatigue}.旅客列車本数": integer(0, MAX_TRAINS, nullable=True),

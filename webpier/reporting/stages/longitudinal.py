@@ -69,7 +69,7 @@ _CHECKS = {
     Check.CRACK_PERMANENT_VARIABLE: ("耐久性・\n使用性", "ひび割れ", "縁応力度"),
     Check.CRACK_PERMANENT: ("耐久性・\n使用性", "ひび割れ", "永久荷重"),
     Check.CRACK_VARIABLE: ("耐久性・\n使用性", "ひび割れ", "変動荷重"),
-    Check.DAMAGE_TRAIN_MAX: ("復旧性", "損傷", "列車最大"), Check.DAMAGE_SNOW_MAX: ("復旧性", "損傷", "雪最大"),
+    Check.DAMAGE_TRAIN_MAX: ("使用性", "損傷", "列車最大"), Check.DAMAGE_SNOW_MAX: ("使用性", "損傷", "雪最大"),
     Check.STABILITY_TRAIN_MAX: ("安全性", "地盤の安定", "列車最大"),
     Check.STABILITY_BRAKING_MAX: ("安全性", "地盤の安定", "制動最大"),
     Check.STABILITY_RAIL_MAX: ("安全性", "地盤の安定", "ﾛﾝｸﾞ最大"),

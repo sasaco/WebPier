@@ -47,15 +47,16 @@ _WITHOUT_WDJ = {("result", "result.json"), ("report", "report.pdf")}
 _CHECK_COLUMN = "で柱の断面照査ができません"
 _CHECK_SECTION = "で断面照査ができません"
 # The info code with which Capacita reports a check it did not make for zero section forces (RcDan ErrorHelper
-# ErrorZeroForce, the H16 messages every body uses: ErrorMessage_1000_1999 ZeroForce_RailH16_*), by the section it
-# then leaves out of the report. The section force list and the flexural durability check are never left out.
-SKIPPED = {"bending_serviceability": "WD-1901", "bending_safety_destruction": "WD-1902",
-           "bending_safety_fatigue": "WD-1903", "bending_restorability": "WD-1904",
-           "bending_restorability_eq": "WD-1905", "shear_durability": "WD-1906",
-           "shear_safety_destruction": "WD-1907", "shear_restorability": "WD-1908",
-           "shear_restorability_eq": "WD-1909", "torsion_durability": "WD-1910",
-           "torsion_safety_destruction": "WD-1911", "torsion_restorability": "WD-1912",
-           "torsion_restorability_eq": "WD-1913"}
+# ErrorZeroForce, the R5 messages every body uses: ErrorMessage_1000_1999 ZeroForce_RailR5_*; decision 73), by the
+# section it then leaves out of the report. The section force list and the flexural durability check are never left
+# out.
+SKIPPED = {"bending_serviceability": "WD-1914", "bending_safety_destruction": "WD-1915",
+           "bending_safety_fatigue": "WD-1916", "bending_restorability": "WD-1917",
+           "bending_restorability_eq": "WD-1918", "shear_durability": "WD-1919",
+           "shear_safety_destruction": "WD-1920", "shear_restorability": "WD-1921",
+           "shear_restorability_eq": "WD-1922", "torsion_durability": "WD-1923",
+           "torsion_safety_destruction": "WD-1924", "torsion_restorability": "WD-1925",
+           "torsion_restorability_eq": "WD-1926"}
 
 
 class _Failure(Exception):

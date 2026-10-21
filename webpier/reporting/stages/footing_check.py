@@ -9,12 +9,14 @@ sample's sentence, 12_フーチング.pdf 262, printed after the durability page
 2) shear, with a, b, c the three section numbers of the ``Chapter`` (12.2〜12.4 for 0810, 12.5〜12.7 for 0820). The
 chapter heading (§12) and 12.1 are 0800's and not printed here.
 
-The explanations follow 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as 0611 writes them (decision 48):
-the values WebPier writes to the WDJ (γi, γb, k4, ε'csd) and the corrosion environment of the input are printed
-from the same result; the values and formulas of RC標準 that only Capacita evaluates (σsl1 and Wlim by environment,
-fvcd, fwcd, βd, βp, βn, z) are not: the inserted result pages show the values used. The seismic restorability prints
-the factors of 復旧性（損傷）地震時 (γi 1.0, γb 1.0; the sample 263). Not reproduced from the sample: its truncated
-flowchart texts, and the safety factors it copies into the seismic shear check (265: γi 1.2; ADR-0001).
+The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as 0611 writes them
+(decision 48), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5
+flexural crack method and flowchart of 0611): the values WebPier writes to the WDJ (γi, γb, k4, ε'csd) and the
+水掛かりの程度 of the input are printed from the same result; the values and formulas of RC標準 that only Capacita
+evaluates (σsl1 and Wlim by 水掛かりの程度, fvcd, fwcd, βd, βp, βn, z) are not: the inserted result pages show the
+values used. The seismic restorability prints the factors of 復旧性（損傷）地震時 (γi 1.0, γb 1.0; the sample 263). Not
+reproduced from the sample: its truncated flowchart texts, and the safety factors it copies into the seismic shear
+check (265: γi 1.2; ADR-0001).
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ from ...calc.column_check import SafetyFactors
 from ...calc.footing_check import FootingCheckResult
 from ..equations import Definition
 from . import insertion
-from .column_check import COLON, SIGMA_SE, _blocks, ecsd_text, flowchart
+from .column_check import COLON, CRACK_METHOD, CRACK_STRESS, SIGMA_SE, _blocks, ecsd_text, flowchart
 from .frame_report import Manuscript, Unit, value
 from .insertion import Insertion, documents, render_with_pages
 
@@ -71,7 +73,7 @@ def _factors(check: FootingCheckResult, limit_state: int) -> SafetyFactors:
 def _safety_moment(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     factors = _factors(check, SAFETY)
     m.heading("safety.heading", f"{chapter.section(0)} 安全性の照査", 1)
-    m.heading("safety.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2, tag="【ＲＣ標準 7.2.2】")
+    m.heading("safety.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.paragraph("safety.moment.lead", "(a) 部材の照査", keep=True)
     m.paragraph("safety.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                       "設計曲げ耐力Mudを設計限界値として，次式により行う．")
@@ -88,7 +90,7 @@ def _safety_moment(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -
 def _shear(m: Manuscript, key: str, factors: SafetyFactors) -> None:
     """2) せん断力に対する照査 of the safety and of the seismic restorability (the sample 256, 257, 265, 266)."""
     gamma_i = value(factors.ri)
-    m.heading(f"{key}.heading", "2) せん断力に対する照査", 2, tag="【ＲＣ標準 7.2】")
+    m.heading(f"{key}.heading", "2) せん断力に対する照査", 2)
     m.paragraph(f"{key}.text", "せん断力を受ける部材の照査は，設計せん断力Vdを設計応答値とし，部材ごとにa/dの値により，"
                                "設計せん断耐力Vyd，腹部コンクリートの設計斜め圧縮破壊耐力Vwcdまたは設計せん断圧縮破壊耐力Vdd"
                                "を設計限界値として，次式により行う．")
@@ -116,16 +118,13 @@ def _safety_shear(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
 def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     key = "durability.flexure"
     m.heading("durability.heading", f"{chapter.section(1)} 耐久性の照査", 1)
-    m.paragraph("durability.environment", f"鋼材の腐食に対する環境条件は「{check.environment}」とする．")
-    m.heading(f"{key}.heading", "1) 曲げモーメントと軸方向力に対する照査", 2, tag="【ＲＣ標準 10.2】")
+    m.paragraph("durability.environment", f"水掛かりの程度は「{check.environment}」とする．")
+    m.heading(f"{key}.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.heading(f"{key}.method.heading", "(a) 曲げひび割れに対する部材の検討方法", 3)
-    m.paragraph(f"{key}.method.text", "曲げひび割れに対する部材の検討は，全断面を有効としたコンクリートの縁引張応力度σbが"
-                                      "断面高さに応じた縁引張応力度の制限値σbl以下の場合は，永久作用による引張鉄筋の"
-                                      "応力度σsによる検討を行い，σbがσblを超える場合は，曲げひび割れ幅Wdによる検討を行う．")
+    m.paragraph(f"{key}.method.text", CRACK_METHOD)
     m.figure(f"{key}.flowchart", flowchart(m.prefix + f"{key}.flowchart.figure"))
     m.heading(f"{key}.stress.heading", "(b) 永久作用による引張鉄筋の応力度による検討", 3)
-    m.paragraph(f"{key}.stress.text", "永久作用による引張鉄筋の応力度σsが，永久作用による引張鉄筋応力度の制限値σsl1に"
-                                      "対し，次式を満たすことを検討する．")
+    m.paragraph(f"{key}.stress.text", CRACK_STRESS)
     m.line(f"{key}.stress.check", "σs / σsl1 ≦ 1.0")
     _definitions(m, f"{key}.stress.symbols", Definition("σs", "永久作用による引張鉄筋の設計応力度"),
                  Definition("σsl1", "永久作用による引張鉄筋応力度の制限値"))
@@ -151,7 +150,7 @@ def _restorability_moment(m: Manuscript, check: FootingCheckResult, chapter: Cha
     m.heading("durability.shear.heading", "2) せん断ひび割れの検討", 2)
     m.paragraph("durability.shear.omitted", OMISSION)
     m.heading("restorability.heading", f"{chapter.section(2)} 復旧性（地震時）の照査", 1)
-    m.heading("restorability.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2, tag="【ＲＣ標準 9.2】")
+    m.heading("restorability.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.paragraph("restorability.moment.lead", "(a) 部材の照査", keep=True)
     m.paragraph("restorability.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
                                              "設計曲げ降伏耐力Mydを設計限界値として，次式により行う．以上の照査により，性能"
