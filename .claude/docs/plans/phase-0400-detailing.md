@@ -130,6 +130,7 @@
 - （決め、オーナー 2026-10-21）曲げひび割れ幅の照査式は Capacita に合わせて「Wd / Wlim ≦ 1.0」（γi とその定義を消した。0611/0621・0810/0820・0910、流れ図も）。σsl1・σsl2 の記号、k4 0.85、使用性（損傷）のせん断の解説、ねじりの ftd は今のまま。水掛かりの値の対応（柱 常時乾燥、片持ち梁 上面・側面 乾湿繰返し・下面 常時乾燥）は確定。
 - （統合後）0400 が参照する節番号を、それを印刷する帳票の定数から作るようにした（重複を消した）：`column_check.DURABILITY_SECTION`・`REBAR_AMOUNT_SECTION`（7・10）、`footing_check.DURABILITY_SECTION`・`REBAR_AMOUNT_SECTION`（`Chapter.section` の 1・3）、`cantilever_check.Numbering.with_appearance(appearance)`。`detailing.references` はこれらを読む（reporting 同士の import）。
 - （事実、失敗の記録）一度 `footing_check` に `DURABILITY` という名前で節の位置を足したところ、限界状態 id の `DURABILITY`（0）を上書きして `_factors` が StopIteration になり、`accept_footing.py` が落ちた。名前を `*_SECTION` に変えて直した（commit 前）。
+- （最後の統合後 2026-10-21、89857d0 の上で）入力（フーチング上側の芯かぶり 79・104 など）が変わったので、受入をすべて取り直した：FrameWeb・基礎 0612/0622・JRSNAP の NDU と図・Aggre-SE のプロジェクトと計算書・柱 0611/0621（0.132／0.114、Mud 37426.2、Myd 38200.7／0621 Mud 29326.7、Myd 48634.5）・フーチング（accepted）。
 
 ## Phase 4　0400 の計算と計算書（担当 D）
 
@@ -224,7 +225,7 @@ PdfFigure(col_span, rows, data, *, page=0, preview=None, align="center", valign=
 
 ## 検証（オーケストレーター）
 
-- [ ] WebPier の品質ゲート `& ".claude/check.ps1"`
+- [x] ✅ WebPier の品質ゲート `& ".claude/check.ps1"`（2026-10-21、担当 C、sasa/glp 89857d0 の上の worktree C:\tmp\wp-r5）：exit 0、4314 passed（54分44秒）。カバレッジ core・inputs・loadmodel・calc・export・pipeline 100%、reporting 99.25%（下限 95）、gui 96.5%（下限 85）
 - [ ] Capacita の `.claude/check.ps1`
 - [ ] GridLayoutPdf のテスト
 - [ ] 0400 だけを true にした生成で `output/0400_照査の前提.pdf`・`export/0400_照査の前提.xlsx`・`post/配筋図.dxf`、2回で同じバイト列、見本と並べて目視
