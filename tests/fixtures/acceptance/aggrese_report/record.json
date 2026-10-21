@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "kind": "aggrese_report_acceptance",
-  "date": "2026-10-21T19:07:54+09:00",
+  "date": "2026-10-21T20:35:31+09:00",
   "method": "本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、計算書（Aggre-SE の report.pdf そのもの）の応答値の算定のページから Case ごとの Kheq・δeq と、安全性・復旧性の μ・δr・Khr を読んだ。線路方向は見本 10-14 と比べ、線路直角方向は風荷重の差（決定12・35）があるので記録だけにした。Aggre-SE の照査の判定は扱わない。",
   "seismic_check_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "f2c1e34271748aaeba821506ace7aceba32c37f57499b3cdf30c1fa87e16cd01"
+    "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
   },
-  "implementation_sha256": "70ffac68da391c5f2594c0378b47133af29978e3f4cfa76b9aad73e852c3386d",
+  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
   "runner": {
     "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
     "sha256": "fe1f863c6dfbafa7d2eee41a281238b53fff0378d858d267d28be4e6dd6e57c3"
@@ -27,7 +27,7 @@
       },
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "8198c1de824082b3d992e7afd3068fc0ff39297ba4bee7b40e50ffbfd5cbcfb5",
+        "sha256": "376c206d7f058cebf3943bb2fbe436867e401787e575c2608b1628113f9166b4",
         "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
         "product": "5.2-L03"
       },
@@ -48,7 +48,7 @@
         },
         "jrsnap": {
           "file": "線路方向_JRSNAP",
-          "sha256": "8198c1de824082b3d992e7afd3068fc0ff39297ba4bee7b40e50ffbfd5cbcfb5"
+          "sha256": "376c206d7f058cebf3943bb2fbe436867e401787e575c2608b1628113f9166b4"
         },
         "files": {
           "pik": {
@@ -57,7 +57,7 @@
           },
           "xlsx": {
             "file": "線路方向_Aggre-SE.xlsx",
-            "sha256": "2630d7c4fecfeb6c4982edbcce1dcc0c01887076b36644a030a7c21a2b01e001"
+            "sha256": "539ac93f9ae01102e898eaeb8c2ce445e4b830ab2ab4d00eed2aefc0be591be6"
           },
           "steps": {
             "file": "線路方向_Aggre-SE_直接基礎.csv",
@@ -100,7 +100,7 @@
       },
       "xlsx": {
         "file": "線路方向_Aggre-SE.xlsx",
-        "bytes": 27308,
+        "bytes": 27301,
         "sheets": [
           "応答値一覧表",
           "設計総括表",
@@ -140,7 +140,7 @@
       },
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "865b5e2df8b60e31eefcfbe09615e1aefcc2fca30b25334b9128ff390ebe7ce8",
+        "sha256": "82bd20e301255ab01cc85e0e49df32129d13aa2264eb9d10208ac18d2da6a7f8",
         "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
         "product": "5.2-L03"
       },
@@ -166,7 +166,7 @@
         },
         "jrsnap": {
           "file": "線路直角方向_JRSNAP",
-          "sha256": "865b5e2df8b60e31eefcfbe09615e1aefcc2fca30b25334b9128ff390ebe7ce8"
+          "sha256": "82bd20e301255ab01cc85e0e49df32129d13aa2264eb9d10208ac18d2da6a7f8"
         },
         "files": {
           "pik": {
@@ -175,7 +175,7 @@
           },
           "xlsx": {
             "file": "線路直角方向_Aggre-SE.xlsx",
-            "sha256": "08341dd4fed124d30ac0df8d3f2fd555fe33efb7952ac6f2ecc95b24a3e733cd"
+            "sha256": "406bf4940b25932f0a2335962c0ab1c64e968b7267026b9ffb8b73f814df2aa2"
           },
           "steps": {
             "file": "線路直角方向_Aggre-SE_直接基礎.csv",
@@ -232,7 +232,7 @@
       },
       "xlsx": {
         "file": "線路直角方向_Aggre-SE.xlsx",
-        "bytes": 27465,
+        "bytes": 27463,
         "sheets": [
           "応答値一覧表",
           "設計総括表",
