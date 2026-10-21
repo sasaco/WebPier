@@ -76,18 +76,33 @@
 
 ## Phase 4　0400 の計算と計算書（担当 D）
 
-- [ ] 出力項目 `detailing`：`inputs/outputs.py`、`pipeline/stages.py`（`OUTPUT_STAGES`、`StageSpec("0400", "0400_照査の前提", ...)`）、`gui/calculation_page.py`、`current.json`・`pre/input.json` の `outputs`、項目を数えるテスト
-- [ ] `current.json`・`pre/input.json` にフーチング上面の配筋
-- [x] ✅ 中間帯鉄筋の配置（calc 層。E も使う）：`webpier/calc/detailing/ties.py`（2026-10-21）
+- [x] ✅ 出力項目 `detailing`：`inputs/outputs.py`、`pipeline/stages.py`（`OUTPUT_STAGES`、`StageSpec("0400", "0400_照査の前提", ...)`）、`gui/calculation_page.py`、`current.json`（false）・`pre/input.json`（true）の `outputs`、項目を数えるテスト、`scripts/accept_footing.py`（detailing を除く）
+- [x] ✅ `current.json`・`pre/input.json` にフーチング上面の配筋（Ex2 06 6.1・6.2：上 線路 D25@125 芯 78.5、直角 D25@125 芯 103.5、指定。current.json は下面・スターラップ・材質・Dmax 25 も pre/input.json から）
+- [x] ✅ 中間帯鉄筋の配置（calc 層。E も使う）：`webpier/calc/detailing/ties.py`（2026-10-21、8678729）
   - `base_hoops(pier, direction) -> BaseHoops`：その方向の帯鉄筋で柱下端を含む行（`start` が空欄か 0、ちょうど1行）。`direction`・`path`（入力のパス）・`diameter`・`legs`（方向別有効本数 n）・`pitch`・`grade`（柱の帯鉄筋の材質）。
   - `column_ties(pier, direction) -> TieLayout`：柱下端の行の脚の位置（`base_hoops` と `column_layout` から）。`tie_layout(layout, direction, legs, path)` が本体。
   - `TieLayout`：`direction`（線路／直角）、`effective_legs`（n）、`span`（面の長さ mm。線路は W6、直角は B6）、`targets`（面を n−1 等分する点 k·span/(n−1)、k=1…n−2、0.1 mm）、`outer`（外巻き帯鉄筋の2本の脚）、`intermediate`（中間帯鉄筋の脚、昇順）、`legs`（全部の脚、昇順。property）、`sets`（n/2 組）、`intermediate_sets`（(n−2)/2 組）、`max_spacing`（隣り合う脚の最大の間隔、48φ の照査に使う）。
   - 座標は `calc/column_rebar.py` と同じ（mm、左上が原点）。線路の脚は x（線路の主鉄筋の面＝Y に垂直な面に沿う）、直角の脚は y。脚は掛ける鉄筋の中心に立てる（使う鉄筋＝配置表の変更の後の `layout.bars`）。外巻きの脚は、その面に沿う方向で断面のいちばん外の鉄筋（どちらの方向の鉄筋でもよい。Ex2 の線路は直角の鉄筋の x＝102・4398、直角は線路の鉄筋の y＝108・2592）。中間帯鉄筋はその方向の1段目の主鉄筋のうち点に最も近いもの（同じ近さなら原点に近いもの）。
   - 入力エラー：n＜2、中間帯鉄筋があるのに1段目の主鉄筋がない、2本の脚が同じ鉄筋に掛かる（本数が足りない）。
-- [ ] `webpier/calc/detailing/`：4.2 柱（1)〜9)）、4.3 梁、4.4 フーチング。印字桁で丸め、frozen dataclass
-- [ ] `webpier/reporting/stages/detailing.py`：§4、4.1（図の場所。図は E）〜4.4、`grid_documents`
-- [ ] 結果JSON と `engineering_status`
-- [ ] テスト：見本の転記と独立の手計算、決定的なバイト列
+- [x] ✅ `webpier/calc/detailing/`：4.2 柱（1)〜9)）、4.3 梁、4.4 フーチング。印字桁で丸め、frozen dataclass（`common.py`・`column.py`・`beam.py`・`footing.py`、入口は `calculate_detailing(pier) -> DetailingResult`）
+- [x] ✅ `webpier/reporting/stages/detailing.py`：§4、4.1（図の場所。図は E）〜4.4、`grid_documents`
+  - 4.1 の図の差し込み口：`render_detailing(result, path, figures=None)`・`grid_documents(result, figures=None)`・`content(result, figures)` の `figures`（`{"beam"|"column"|"footing": FigureSpec}`、`FIGURES` の名前）。あれば「(1) 梁」などの見出しのすぐ後に置く。E は `pipeline/stages.py` の 0400 の lambda で `figures=` を渡す。
+- [x] ✅ 結果JSON と `engineering_status`（`DetailingResult.engineering_status`、各照査の `ok`／`*_ok`。9) は `above` だけで判定に含めない）
+- [x] ✅ テスト：見本の転記と独立の手計算、決定的なバイト列（`tests/calc/test_detailing.py`・`test_detailing_ties.py`、`tests/reporting/test_detailing_report.py`、`tests/pipeline/test_generation_detailing.py`、転記 `tests/fixtures/example2/detailing.json`、`test_report_spacing.py` に 0400）
+
+### Phase 4 の知見（担当 D、2026-10-21）
+
+- commit：中間帯鉄筋 8678729、計算と入力 8b6109f、計算書 343540c、出力項目と登録 cc58684、参照先の番号 14aa61f、エディタのテスト bfd0c24・03679ea（ブランチ `sasa/0400-detailing`）。
+- （事実）品質ゲート（bfd0c24 の時点、2026-10-21）：カバレッジは全層が下限以上（core・inputs・loadmodel・calc・export・pipeline 100%、reporting 99.25%、gui 96.5%）。失敗は受入テスト（`tests/acceptance`、入力の SHA が受入記録と合わない。sasa/glp の HEAD でも同じ）と `test_gui_rebar_edit.py` の1件（03679ea で直し、そのファイルは通る）。pre/input.json を変えたので、受入を取り直すときはこのブランチの pre/input.json で行う。
+- （事実）0400 だけを true にした生成を2回行い、PDF・方眼Excel が同じバイト列（PDF 17頁）。Excel 比較（`test_grid_excel.py -k 0400`）も通る。
+
+- （事実）計画書の「知見」の「見本 0400 の柱は current.json の柱と同じ配筋（D32・29本…）」は誤り。見本 0400 の柱は 3940×1700、D38（線路の面 16本・直角の面 13本で隅を共有、計54本＝61560.0 mm²）、帯鉄筋 D22 線路 10本・直角 6本 ctc150、f'ck 24。見本の値との照合は、その柱とフーチング（H6 1.8、線路 上 D32@150・下 D29@150、直角 D16@200）に合わせた入力で行った（`test_detailing.py: sample_document`）。
+- （事実）見本の誤りで再現しないもの：(1) 6) の b＝1140（2.264%。同じ見本の 8) は 3871/(3940×150)＝0.655%）、(2) の `#REF!`、フーチングに柱の N'd と柱のあきの規定、7) の「小判形」の文、9) の崩れた f'cd の行、フーチングの 6) の 794・1.16組。フーチングの 9) は見本 0.126（丸める前の pw）に対し、印字した pw 0.00599 から 0.127（ADR-0003）。
+- （事実）参照先の節の番号は担当 C の R5 切替（`sasa/0400-r5` eca5fcd）の番号を 0400 側の表に書いて固定した（`reporting/stages/detailing.py: COLUMN_SECTIONS`・`FOOTING_SECTIONS`・`CANTILEVER_SECTIONS`・`references`、テスト `test_detailing_report.py`）：柱 8.10・8.7／9.10・9.7、フーチング 12.5・12.3（0810）／12.9・12.7（0820）、梁 13.8・13.5（外観の照査ありで 13.9・13.5）。節の名前は「最小鉄筋量及び最大鉄筋量」「耐久性の照査」。0910 の番号のため、0400 は `片持ち梁の照査.外観の照査` も要る（空欄は入力エラー）。番号の付け方を共有の関数にするかは統合で決める（オーケストレーター）。
+- （事実）current.json・pre/input.json（Example2）は梁の上側の段のあき 32 mm＜4/3×25＝33.3 mm で 0400 が not_ok になる（Ex2 6.11 は段のあきを照査していない）。ほかの項目はすべて OK。
+- （事実）見出しと出典が1行に入らない (b)・(c) は、出典を本文の末尾に置いた（Ex2 6.3(2) の書き方）。6) の2つの出典は列14 から。
+- （推定・要確認）条文番号は見本どおり印刷した。R5 の番号は手元で確かめられない（Capacita にも R5 の条文の記載がない）。一覧は最終報告に書いた。
+
 
 ## Phase 5　GridLayoutPdf：ベクター PDF の図（担当 B）
 
