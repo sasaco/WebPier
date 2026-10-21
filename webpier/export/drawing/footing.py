@@ -17,7 +17,8 @@ from decimal import Decimal
 
 from .sheet import GAP, TEXT, Sheet, TextEntityAlignment, Vec2, fan, mm, number  # isort: skip
 
-from ...calc.footing_rebar import FaceLayout, PlacedLayer, Stirrups, _stirrups, face_layout
+from ...calc.footing_rebar import FaceLayout, PlacedLayer, Stirrups, face_layout
+from ...calc.footing_rebar import stirrups as footing_stirrups
 from ...core.printed import Printed
 from ...inputs import PierInput, choices
 from .column import _direction
@@ -42,7 +43,8 @@ def footing_figure(pier: PierInput) -> FootingFigure:
     height = Decimal(repr(sub.h[6].value)) * _METRE
     return FootingFigure(length=Printed(float(length), 1, "mm"), height=Printed(float(height), 1, "mm"),
                          faces={face: face_layout(footing, face) for face in choices.BEAM_FACES},
-                         stirrups={direction: _stirrups(footing, direction) for direction in choices.REBAR_DIRECTIONS})
+                         stirrups={direction: footing_stirrups(footing, direction)
+                                   for direction in choices.REBAR_DIRECTIONS})
 
 
 def stations(length: float, pitch: float, edge: float) -> list[float]:

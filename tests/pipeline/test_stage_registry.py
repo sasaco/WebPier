@@ -82,15 +82,16 @@ def test_declared_dependencies_of_the_real_stages():
     assert depends == {stage: expected[stage] for stage in depends}
 
 
-def test_frameweb_is_written_for_the_non_seismic_frames_and_jrsnap_for_the_seismic_ones():
+def test_frameweb_is_written_for_the_non_seismic_frames_jrsnap_for_the_seismic_ones_and_the_dxf_for_0400():
     for stage in STAGES.stages:
         for item in stage.exports:
-            assert item.kind in {"frameweb", "jrsnap"}
-            assert stage.id in ({"0610", "0620"} if item.kind == "frameweb" else {"0710", "0720"})
+            assert item.kind in {"frameweb", "jrsnap", "dxf"}
+            assert stage.id in {"frameweb": {"0610", "0620"}, "jrsnap": {"0710", "0720"}, "dxf": {"0400"}}[item.kind]
     files = {stage.id: [item.file_name for item in stage.exports if item.kind == "frameweb"] for stage in STAGES.stages}
     assert (files["0610"], files["0620"]) == (["線路方向.json"], ["線路直角方向.json"])
     ndu = {stage.id: [item.file_name for item in stage.exports if item.kind == "jrsnap"] for stage in STAGES.stages}
     assert (ndu["0710"], ndu["0720"]) == (["線路方向.ndu"], ["線路直角方向.ndu"])
+    assert [item.file_name for item in STAGES.get("0400").exports] == ["配筋図.dxf"]  # the 配筋図 (decision 73)
 
 
 def test_every_export_is_always_written():

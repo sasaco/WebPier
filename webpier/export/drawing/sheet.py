@@ -13,10 +13,28 @@ from __future__ import annotations
 
 import io
 import math
+import os
+import tempfile
 from collections.abc import Iterable, Sequence
 from decimal import ROUND_HALF_UP, Decimal
+from pathlib import Path
 
-import ezdxf
+HOME = "webpier-ezdxf"  # under the temporary folder: the home of a process without one
+
+
+def home() -> None:
+    """ezdxf reads its config and keeps its font cache under the user's home and stops at import without one, as in
+    the minimal environment structural-mcp starts the headless runner in: such a process gets a home under the
+    temporary folder."""
+    try:
+        Path.home()
+    except RuntimeError:
+        os.environ["USERPROFILE"] = str(Path(tempfile.gettempdir()) / HOME)
+
+
+home()
+
+import ezdxf  # noqa: E402  (after home)
 from ezdxf import bbox, units
 from ezdxf.addons.drawing import Frontend, RenderContext, layout
 from ezdxf.addons.drawing.config import BackgroundPolicy, ColorPolicy, Configuration, LineweightPolicy

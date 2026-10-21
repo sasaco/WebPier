@@ -20,11 +20,11 @@ from decimal import Decimal
 from .sheet import GAP, TEXT, Sheet, TextEntityAlignment, Vec2, fan, mm, number  # isort: skip
 
 from ...calc.beam_rebar import SIDE, BeamLayout, beam_layout, beam_section
-from ...calc.cantilever.check import _stirrups
+from ...calc.cantilever.check import beam_stirrups
 from ...calc.column_check import Hoops
 from ...calc.detailing.ties import SETS
 from ...inputs import PierInput, choices
-from .column import printed
+from .column import sets_text
 
 UPPER, LOWER = choices.BEAM_FACES
 
@@ -39,7 +39,7 @@ def beam_figure(pier: PierInput) -> BeamFigure:
     """What the beam section is drawn from; a blank it needs is an input error naming its path."""
     sub = pier.substructure
     layout = beam_layout(pier.rebar.beam, *beam_section(sub.b[1], sub.h[2], sub.h[3]))
-    return BeamFigure(layout=layout, stirrups=_stirrups(pier.rebar.beam))
+    return BeamFigure(layout=layout, stirrups=beam_stirrups(pier.rebar.beam))
 
 
 def face_texts(layout: BeamLayout, face: str) -> list[str]:
@@ -116,7 +116,7 @@ def draw_beam(sheet: Sheet, figure: BeamFigure, origin: Vec2) -> None:
     leg = at(right, depth / 2 + 2 * line)
     sheet.arrow_to(elbow, leg)
     stirrups = figure.stirrups
-    sets = printed(SETS(stirrups.legs / 2))
+    sets = sets_text(SETS(stirrups.legs / 2))
     sheet.label(elbow, 1, f"D{mm(number(stirrups.diameter))}-{sets}組@{mm(number(stirrups.pitch))}")
 
 
