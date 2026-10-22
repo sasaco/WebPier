@@ -152,18 +152,20 @@ def accept(input_path: Path, evidence: Path, overwrite: bool) -> dict[str, Any]:
                 "xlsx": workbook(post / dict(spec.seismic_check.files)["xlsx"]),
             }
             if stage in EXAMPLE2:
+                # Decision 76: Case1 is the 照査パターン of Example2 (ρm 1.0, αf 1.0); the other Cases are recorded only.
+                first = cases[:len(EXAMPLE2[stage])]
                 direction["example2"] = {"source": "Example橋脚2/10_線路(耐震).pdf 10-14", "values": EXAMPLE2[stage],
-                                         "matches": cases == EXAMPLE2[stage]}
-                if cases != EXAMPLE2[stage]:
-                    raise AcceptanceError(f"{stage}: 応答値が見本 10-14 と違います: {cases} / {EXAMPLE2[stage]}")
+                                         "matches": first == EXAMPLE2[stage]}
+                if first != EXAMPLE2[stage]:
+                    raise AcceptanceError(f"{stage}: Case1 の応答値が見本 10-14 と違います: {first} / {EXAMPLE2[stage]}")
             directions[stage] = direction
     record = {
         "schema_version": 1, "kind": "aggrese_report_acceptance",
         "date": datetime.now().astimezone().isoformat(timespec="seconds"),
         "method": ("本物の JRSNAP と Aggre-SE の runner で 0711・0721 を生成し、計算書（Aggre-SE の report.pdf そのもの）の"
-                   "応答値の算定のページから Case ごとの Kheq・δeq と、安全性・復旧性の μ・δr・Khr を読んだ。線路方向は見本 "
-                   "10-14 と比べ、線路直角方向は風荷重の差（決定12・35）があるので記録だけにした。Aggre-SE の照査の判定は"
-                   "扱わない。"),
+                   "応答値の算定のページから Case ごとの Kheq・δeq と、安全性・復旧性の μ・δr・Khr を読んだ。線路方向の Case1"
+                   "（ρm=1.0・αf=1.0、決定76）は見本 10-14 と比べ、ほかの Case（見本にない）と線路直角方向（風荷重の差、"
+                   "決定12・35）は記録だけにした。Aggre-SE の照査の判定は扱わない。"),
         "seismic_check_judged": False,
         "input": {"path": _relative(input_path), "sha256": file_sha256(input_path)},
         "implementation_sha256": implementation,

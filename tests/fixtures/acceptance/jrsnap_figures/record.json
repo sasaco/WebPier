@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "jrsnap_figures_acceptance",
-  "date": "2026-10-21",
-  "verified_at": "2026-10-21T20:30:00+09:00",
+  "date": "2026-10-22",
+  "verified_at": "2026-10-22T07:53:21+09:00",
   "method": "WebPier が 0710・0720 で書く NDU を本物の JRSNAP 5.2-L03 の runner（JRSNAPHeadless の figures）に渡してデータ確認図と荷重図を描かせ、WebPier が受け取るページ（draw_figures）を pymupdf で測った。",
   "analysis_run": false,
   "runner": {
@@ -14,12 +14,12 @@
     "path": "tests/fixtures/inputs/current.json",
     "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "29b54df933afc7d98cc19aa82358dea5676e9d0ef7c7ed433cd5dab2a9b6b14b",
   "stages": {
     "0710": {
       "ndu": {
         "file": "線路方向.ndu",
-        "sha256": "3199e7cc381660ae420f9f5e28e7a5be140134ce577163403a150904877e860b"
+        "sha256": "1a5df75c560c04dc904360c5248992012e26c6169c969af4db43647a69db852d"
       },
       "load_cases": [
         [
@@ -316,7 +316,7 @@
     "0720": {
       "ndu": {
         "file": "線路直角方向.ndu",
-        "sha256": "36d470afcec6cce19e0c90e83202dad657f3d633bf7f2d4627a92b0e2a66927b"
+        "sha256": "6c50888acaf18ac244a1316d14f08363963cc95877fefef985f2f063464c9153"
       },
       "load_cases": [
         [
@@ -341,7 +341,7 @@
         ],
         [
           6,
-          2
+          5
         ],
         [
           7,
@@ -458,7 +458,7 @@
         {
           "page": 6,
           "case": 6,
-          "combination": 2,
+          "combination": 5,
           "title": "CASE-6 列車荷重（地震時・下り線）",
           "size": [
             595.3,
@@ -630,10 +630,10 @@
             ]
           },
           {
-            "combination": 2,
-            "ndt": "線路直角方向(Case2_ρm10_αf1_正向).ndt",
-            "sha256": "f0ed6affc763f54ff086faa77059a1fe4f37f1c91ba3ee74d6deee659166a321",
-            "file": "load-diagram-2.pdf",
+            "combination": 5,
+            "ndt": "線路直角方向(Case5_ρm10_αf1_逆向).ndt",
+            "sha256": "15c94b2c6717f213ee4bfe4155cb7b2108c6549c762daf64129f7d80c3f7b105",
+            "file": "load-diagram-5.pdf",
             "pages": [
               {
                 "page": 1,

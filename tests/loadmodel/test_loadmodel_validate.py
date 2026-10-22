@@ -147,6 +147,13 @@ def test_a_seismic_combination_loads_seismic_cases(cases, message):
     fails(result(seismic_longitudinal=(SeismicCombination("L-EQ", cases),)), message)
 
 
+@pytest.mark.parametrize("reverse", [1, None, "True"])
+def test_a_seismic_combination_is_reversed_by_a_bool(reverse):
+    # Decision 76: reverse (逆向) is True or False, not a number or a text.
+    fails(result(seismic_transverse=(SeismicCombination("T-EQ", (D1, EQ2), reverse=reverse),)),
+          "アドイン:0720.T-EQ: reverse は True か False が必要です")
+
+
 def test_an_ndu_has_at_most_15_basic_cases():
     base = result()
     extra = tuple(BasicCase(f"S{n}", f"地震時{n}", SpringTerm.SHORT, (),

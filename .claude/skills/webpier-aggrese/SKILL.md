@@ -12,6 +12,7 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 ## WebPier の書出しを直すとき
 
 - 入力は `耐震設計条件`（地域別・地盤区分）だけ。ほかの条件は見本 `P1_線路.xml` の通りの WebPier の定め（`webpier/export/aggrese/writer.py` の定数、決定49）。利用者に聞かずに入力を増やさない。
+- 照査項目 ①〜⑨（`dgCaseList_1`〜`9`）は Case ごとに、その組合せの照査パターン（ρm, αf）から `project.CHECKS` で引く（決定76。載荷の向きによらない）：①②全部、③ (1.0, 2.0) 以外、④ ρm 1.2、⑤なし、⑥ (1.0, 1.0)、⑦⑧⑨ αf 1.0。Case は 0711 が4つ、0721 が8つ（Case5〜8 は逆向）。owner が手で直して Aggre-SE で保存した `post/線路直角方向.xml`（2026-10-22）が見本。
 - WebPier の書出しは、Aggre-SE 自身に保存し直させても**バイト列が変わらない**ことを受入にしている。保存し直しは `scripts/aggrese_project_roundtrip.cs`（WebPier の repo のもの。受入の `scripts/accept_aggrese_project.py` の `HELPER` が使い、`tests/fixtures/acceptance/aggrese/record.json` が SHA を記録しているので動かさない。同じ道具の複製が `structural-aggrese` の `scripts/` にあり、違いは1行目のコメントの決定番号だけ）。コンパイルと実行の手順は `structural-aggrese`。
 - テストの期待値（`tests/fixtures/example2/aggrese/`）は、見本を手で直して（配列50件、DB1 のパス）これで保存し直したもの。手順は同じフォルダーの `notes.md`。
 - Batch の版が変わったら：見本を保存し直して書式の差を見る → `writer.py` の `BATCH_VERSION` と並びを合わせる → 期待値を作り直す（`notes.md` の手順）→ `scripts/accept_aggrese_project.py --overwrite` で受入を取り直す（本物の JRSNAP で 0711・0721 を生成するので数分かかり、画面が出る）。
@@ -22,7 +23,7 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 
 - WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx true --report-pdf true --check-tables false --pik true --pile-anchor-bar-pdf false --foundation-steps true` を呼ぶ（返る成果物は result.json・report.pdf・pickup.pik・summary.xlsx と、直接基礎なら foundation-steps.csv）（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。成果物の組（kind と relativePath）が求めたものとちょうど一致しないと止める。
 - `--foundation-steps` は Batch 9c70f54 以降の runner にしかない（structural-mcp が固定している Batch にはまだない。`structural-aggrese` の `references/foundation-steps.md`）。
-- `report.pdf` の見出しは DB1 の題名から来るので、見本 10.5・10.6 の作成者が書き込んだ見出しを WebPier は再現しない。線路方向（1 Case）は11ページ、線路直角方向（2 Case）は18ページ。
+- `report.pdf` の見出しは DB1 の題名から来るので、見本 10.5・10.6 の作成者が書き込んだ見出しを WebPier は再現しない。決定76 の前は線路方向（1 Case）が11ページ、線路直角方向（2 Case）が18ページ（いまは4 Case・8 Case）。
 - ピックアップ（決定57）：`pickup.pik` を `post/線路方向_Aggre-SE.pik`・`post/線路直角方向_Aggre-SE.pik` にそのまま書く。線路方向は109行・11 KB（部材1〜6）、線路直角方向は127行・13 KB（部材1〜7）。`post/線路方向.pik` は 0611 の FEMPython の PIK なので、名前を分けている。
 - 総括表（決定58）：`summary.xlsx` を `post/線路方向_Aggre-SE.xlsx` に書き、zip であることだけを確かめる（毎回バイトが変わるため）。受入はシート名の並びを記録する。
 - 見本との対応（2026-10-19、見本を画像にして確認）：`10_線路(耐震).pdf` の 13〜21 ページ（10.5）は Case ごとの7ページと設計総括表・直接基礎の照査（A3 を A4 に回転して縮小）、22・23 ページは JRSNAP の基礎照査の出力（地盤反力分布図と「直接基礎底面回転ばねの算定値」のリスト。Aggre-SE の出力ではない）、24〜26 ページ（10.6）は応答値一覧表・設計総括表・直接基礎の照査。`11_直角(耐震).pdf` は 14〜27 ページで、見本は Case1 だけ。見本の Aggre-SE の版は古く、直接基礎の照査の見出しが「1.復旧性（性能レベル1）…3.安全性」（いまの Batch は「1.安定レベル1…3.安定レベル3」）。見本にない安全率一覧表は、いまの Batch が出す。

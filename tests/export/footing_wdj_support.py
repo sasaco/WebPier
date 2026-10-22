@@ -13,6 +13,7 @@ from webpier.calc import footing
 from webpier.calc.footing_check import FootingCheckResult, calculate_footing_check
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
+from webpier.calc.seismic_longitudinal import PATTERNS
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import calculate_transverse
 from webpier.inputs import parse_input
@@ -76,4 +77,5 @@ def footing_check(direction: str = "0800_longitudinal") -> FootingCheckResult:
         vd, hd, md = SAMPLE_ACTIONS[direction][key]
         extreme = fc.SupportReaction(10 + NON_SEISMIC.index(key), hd, -vd, md)
         reactions[(basis.pickups[key], spec.focus.value)] = (extreme, extreme)
-    return calculate_footing_check(pier, footing.complete(basis, reactions, STEPS))
+    alpha_f = tuple(alpha_f for _, alpha_f in PATTERNS)  # the Case of STEPS is the first (decision 76)
+    return calculate_footing_check(pier, footing.complete(basis, reactions, STEPS, alpha_f))

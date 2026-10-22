@@ -422,7 +422,9 @@ class _Validator:
         f.count("ConbNum", self.nk, self.nk)
         coefficient = Num(0, 1, integer=True)
         for index in range(1, self.nk + 1):
-            values = f.fields(f"SNAPConb{index}", *self.rho_alpha, 0, 0, *(coefficient,) * self.nc,
+            # ρm, αf of each 照査パターン (DataInfo holds the first's), then 0 正向 / 1 逆向 (decision 76)
+            rho_alpha = self.rho_alpha if index == 1 else (POSITIVE, POSITIVE)
+            values = f.fields(f"SNAPConb{index}", *rho_alpha, coefficient, 0, *(coefficient,) * self.nc,
                               *(" ",) * (COMBINATION_SLOTS - self.nc), 0, 0)
             f.fields(f"ConbAlpf{index}", *values[4:4 + self.nc])
         return member, joint

@@ -228,6 +228,7 @@ def _footing_wdj() -> bytes:
     from webpier.calc.foundation import calculate_foundation
     from webpier.calc.longitudinal import calculate_longitudinal
     from webpier.calc.reaction import calculate_reaction
+    from webpier.calc.seismic_longitudinal import PATTERNS
     from webpier.export.capacita.footing_wdj import build_footing_wdj, write_footing_wdj
     from webpier.inputs import parse_input
 
@@ -266,7 +267,8 @@ def _footing_wdj() -> bytes:
                                                (2, 16825.97, -5747.86, 52784.78, 22069.94),
                                                (3, 16825.97, -5901.07, 54168.43, 16655.87),
                                                (4, 16825.97, -5949.26, 54514.06, 16655.87)))
-    check = calculate_footing_check(pier, footing.complete(basis, reactions, steps))
+    alpha_f = tuple(alpha_f for _, alpha_f in PATTERNS)  # the Case of the steps is the first (decision 76)
+    check = calculate_footing_check(pier, footing.complete(basis, reactions, steps, alpha_f))
     return write_footing_wdj(build_footing_wdj(check))
 
 

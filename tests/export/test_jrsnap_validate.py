@@ -70,9 +70,9 @@ def both(*edits):
 def test_the_written_bytes_pass(valid):
     summary = validate_ndu(valid, LONGITUDINAL)
     assert (summary.joints, summary.elements, summary.rebar_rows, summary.cases) == (7, 6, 11, 8)
-    assert (summary.member_loads, summary.joint_loads, summary.combinations) == (8, 10, 1)
+    assert (summary.member_loads, summary.joint_loads, summary.combinations) == (8, 10, 4)
     transverse = validate_ndu(write_ndu(model("transverse")), TRANSVERSE)
-    assert (transverse.joints, transverse.cases, transverse.joint_loads, transverse.combinations) == (8, 9, 11, 2)
+    assert (transverse.joints, transverse.cases, transverse.joint_loads, transverse.combinations) == (8, 9, 11, 8)
 
 
 def test_bytes_of_the_other_direction_are_rejected(valid):
@@ -169,6 +169,9 @@ CASES = {
     "coefficient": (field("SNAPConb1", 5, "2"), "SNAPConb1 第5欄: 範囲外です"),
     "linear set": (field("ConbAlpf1", 2, "0"), "ConbAlpf1 第2欄: 1 が必要です"),
     "combination rho": (field("SNAPConb1", 1, "1.1"), "SNAPConb1 第1欄: 1 が必要です"),
+    "pattern rho": (field("SNAPConb2", 1, "0"), "SNAPConb2 第1欄: 範囲外です"),
+    "pushed direction": (field("SNAPConb3", 3, "2"), "SNAPConb3 第3欄: 範囲外です"),
+    "fourth field": (field("SNAPConb2", 4, "1"), "SNAPConb2 第4欄: 0 が必要です"),
     "combination count": (setting("ConbNum", "2"), "ConbNum 第1欄: 範囲外です"),
     "long title": (setting("LoadTitle1", "あ" * 21), "40バイト以内"),
     "title separator": (field("JLoadInfo1", 8, "上部工=反力"), "区切り文字"),

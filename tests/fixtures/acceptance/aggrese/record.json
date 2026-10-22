@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "aggrese_project_acceptance",
-  "date": "2026-10-21T20:33:03+09:00",
+  "date": "2026-10-22T08:00:15+09:00",
   "method": "本物の JRSNAP の runner で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner （AggreSE.Headless.exe inspect / run、総括表と計算書）で読込み・計算した。さらに Aggre-SE の Input.SetXmData → applyVersion → Input.GetXmlData → Shift-JIS の保存し直し（scripts/aggrese_project_roundtrip.cs）でバイト列が変わらないことを確かめた。Aggre-SE の照査の判定は扱わない。",
   "seismic_check_judged": false,
   "gui_operated": false,
@@ -9,7 +9,7 @@
     "path": "tests/fixtures/inputs/current.json",
     "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "29b54df933afc7d98cc19aa82358dea5676e9d0ef7c7ed433cd5dab2a9b6b14b",
   "application": {
     "batch": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\Batch.exe",
@@ -29,14 +29,17 @@
     "0711": {
       "candidate": {
         "path": "線路方向.xml",
-        "sha256": "51c1521da1440a38e049de2e7a5946b5d434656373de6cff93abb4a890bec527"
+        "sha256": "4eb1c3fdc8610bf0fdbb8187d9bf3827b29448da441b5f234af13bd6e81f166e"
       },
       "databases": [
-        "線路方向(Case1_ρm10_αf1_正向).DB1"
+        "線路方向(Case1_ρm10_αf1_正向).DB1",
+        "線路方向(Case2_ρm12_αf1_正向).DB1",
+        "線路方向(Case3_ρm10_αf2_正向).DB1",
+        "線路方向(Case4_ρm12_αf2_正向).DB1"
       ],
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "28f8e75c54de63209db3023e48b89c43f54d51ed885f8dd69e57f4cc94fe0e03",
+        "sha256": "530e7793e0d9905ecc92d6f603451f0e0d334926879de864d0211fc9cd4b62f6",
         "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
         "product": "5.2-L03"
       },
@@ -48,6 +51,24 @@
             "name": "線路方向(Case1_ρm10_αf1_正向)",
             "selected": true,
             "aggregated": true
+          },
+          {
+            "caseNumber": 2,
+            "name": "線路方向(Case2_ρm12_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 3,
+            "name": "線路方向(Case3_ρm10_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 4,
+            "name": "線路方向(Case4_ρm12_αf2_正向)",
+            "selected": true,
+            "aggregated": true
           }
         ]
       },
@@ -57,6 +78,24 @@
           {
             "caseNumber": 1,
             "name": "線路方向(Case1_ρm10_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 2,
+            "name": "線路方向(Case2_ρm12_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 3,
+            "name": "線路方向(Case3_ρm10_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 4,
+            "name": "線路方向(Case4_ρm12_αf2_正向)",
             "selected": true,
             "aggregated": true
           }
@@ -74,15 +113,21 @@
     "0721": {
       "candidate": {
         "path": "線路直角方向.xml",
-        "sha256": "e45108127737859b7d2ab5123fc30d02956b98ab27084e508c1718a07406b1a4"
+        "sha256": "9559069267d7e25b476efb79d9356dbc849fe3225f8f013660bb15977d4c544d"
       },
       "databases": [
         "線路直角方向(Case1_ρm10_αf1_正向).DB1",
-        "線路直角方向(Case2_ρm10_αf1_正向).DB1"
+        "線路直角方向(Case2_ρm12_αf1_正向).DB1",
+        "線路直角方向(Case3_ρm10_αf2_正向).DB1",
+        "線路直角方向(Case4_ρm12_αf2_正向).DB1",
+        "線路直角方向(Case5_ρm10_αf1_逆向).DB1",
+        "線路直角方向(Case6_ρm12_αf1_逆向).DB1",
+        "線路直角方向(Case7_ρm10_αf2_逆向).DB1",
+        "線路直角方向(Case8_ρm12_αf2_逆向).DB1"
       ],
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "7d15a5d63aae14fb3b8271c24ef6140a5da6d0d2ea0c678ff72c634351c373f4",
+        "sha256": "b36ff8279286472bba1a5547391f61a9c487b67c8cbbd3fd735ba4cf5499c2d6",
         "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
         "product": "5.2-L03"
       },
@@ -97,7 +142,43 @@
           },
           {
             "caseNumber": 2,
-            "name": "線路直角方向(Case2_ρm10_αf1_正向)",
+            "name": "線路直角方向(Case2_ρm12_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 3,
+            "name": "線路直角方向(Case3_ρm10_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 4,
+            "name": "線路直角方向(Case4_ρm12_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 5,
+            "name": "線路直角方向(Case5_ρm10_αf1_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 6,
+            "name": "線路直角方向(Case6_ρm12_αf1_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 7,
+            "name": "線路直角方向(Case7_ρm10_αf2_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 8,
+            "name": "線路直角方向(Case8_ρm12_αf2_逆向)",
             "selected": true,
             "aggregated": true
           }
@@ -114,7 +195,43 @@
           },
           {
             "caseNumber": 2,
-            "name": "線路直角方向(Case2_ρm10_αf1_正向)",
+            "name": "線路直角方向(Case2_ρm12_αf1_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 3,
+            "name": "線路直角方向(Case3_ρm10_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 4,
+            "name": "線路直角方向(Case4_ρm12_αf2_正向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 5,
+            "name": "線路直角方向(Case5_ρm10_αf1_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 6,
+            "name": "線路直角方向(Case6_ρm12_αf1_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 7,
+            "name": "線路直角方向(Case7_ρm10_αf2_逆向)",
+            "selected": true,
+            "aggregated": true
+          },
+          {
+            "caseNumber": 8,
+            "name": "線路直角方向(Case8_ρm12_αf2_逆向)",
             "selected": true,
             "aggregated": true
           }

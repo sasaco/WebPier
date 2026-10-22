@@ -181,16 +181,22 @@ def test_11_13_basic_cases():
         1.0, 0.3, 1.0]
 
 
-def test_11_13_two_combinations_up_and_down():
+def test_11_13_combinations_up_then_down_by_pattern():
     (printed,) = S11["combinations"]["rows"]
-    up, down = seismic().combinations
+    combinations = seismic().combinations
+    up = combinations[0]  # Example2 11-13 has the up track with the first 照査パターン only
     expression = [int(n) for n in printed["printed_expression"].split(" + ")]  # 1 + 2 + 3 + 4 + 5 + 7 + 8 + 9
     assert (up.number, up.track, [case.value for case in up.cases]) == (printed["combination"], Track.UP, expression)
-    # Decision 21: the down-track combination is the same with case 6 in place of case 5.
-    assert (down.number, down.track, [case.value for case in down.cases]) == (2, Track.DOWN,
-                                                                              [1, 2, 3, 4, 6, 7, 8, 9])
-    for combination in (up, down):
-        assert (combination.alpha_f.value, combination.alpha_f.digits) == (printed["alpha_f"]["value"], 1)
-        assert (combination.rho_m.value, combination.rho_m.digits) == (printed["rho_m"]["value"], 1)
-        assert combination.direction is ActionDirection.TOWARD_W9  # → only (decision 30)
+    assert (up.alpha_f.value, up.alpha_f.digits) == (printed["alpha_f"]["value"], 1)
+    assert (up.rho_m.value, up.rho_m.digits) == (printed["rho_m"]["value"], 1)
+    # Decision 21: the down track is the same with case 6 in place of case 5; decision 76: each track by the four
+    # 照査パターン (ρm, αf), the down track reversed (逆向, ←).
+    patterns = [(1.0, 1.0), (1.2, 1.0), (1.0, 2.0), (1.2, 2.0)]
+    assert [(c.number, c.track, (c.rho_m.value, c.alpha_f.value), c.reverse, c.direction) for c in combinations] == [
+        *((n, Track.UP, p, False, ActionDirection.TOWARD_W9) for n, p in enumerate(patterns, 1)),
+        *((n, Track.DOWN, p, True, ActionDirection.TOWARD_W1) for n, p in enumerate(patterns, 5))]
+    for combination in combinations:
+        down = combination.track is Track.DOWN
+        assert [case.value for case in combination.cases] == ([1, 2, 3, 4, 6, 7, 8, 9] if down else expression)
+        assert (combination.alpha_f.digits, combination.rho_m.digits) == (1, 1)
         assert combination.ground_resistance_type == printed["ground_resistance_type"]["value"]

@@ -45,7 +45,7 @@ def test_asymmetric_shares_give_two_different_track_tables_and_both_combinations
     assert points(result.basic(C.TRAIN_UP)) == {2: (480.0, 0.0, 749.8)}
     assert points(result.basic(C.TRAIN_DOWN)) == {2: (480.0, 0.0, -1028.62)}
     assert [(c.track, C.TRAIN_UP in c.cases, C.TRAIN_DOWN in c.cases) for c in result.combinations] == [
-        (Track.UP, True, False), (Track.DOWN, False, True)]
+        *[(Track.UP, True, False)] * 4, *[(Track.DOWN, False, True)] * 4]
 
 
 def test_a_track_without_load_on_this_pier_still_has_its_case_and_combination():
@@ -55,7 +55,7 @@ def test_a_track_without_load_on_this_pier_still_has_its_case_and_combination():
     result = seismic(pier(**changes))
     assert [row.n.value for row in result.train(Track.DOWN).rows] == [0.0] * 6
     assert points(result.basic(C.TRAIN_DOWN)) == {2: (0.0, 0.0, 0.0)}
-    assert len(result.combinations) == 2
+    assert len(result.combinations) == 8  # both tracks by the four 照査パターン (decision 76)
 
 
 def test_earthquake_train_load_zero():
@@ -255,6 +255,6 @@ def test_blank_snow_loads_are_no_snow():
         (1, C.D1), (2, C.D2), (3, C.BUOYANCY), (4, C.TRAIN_UP), (5, C.TRAIN_DOWN), (6, C.GIRDER_INERTIA),
         (7, C.TRAIN_INERTIA), (8, C.SELF_INERTIA)]
     assert [[result.basic(case).number for case in c.cases] for c in result.combinations] == [
-        [1, 2, 3, 4, 6, 7, 8], [1, 2, 3, 5, 6, 7, 8]]
+        *[[1, 2, 3, 4, 6, 7, 8]] * 4, *[[1, 2, 3, 5, 6, 7, 8]] * 4]
     with pytest.raises(KeyError):
         result.basic(C.SNOW)

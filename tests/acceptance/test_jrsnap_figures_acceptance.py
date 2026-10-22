@@ -85,9 +85,10 @@ def test_one_load_diagram_page_per_case_in_case_order(stage):
 
 @pytest.mark.parametrize("stage", STAGES)
 def test_each_case_is_drawn_from_its_combination(stage):
-    """0710 has one combination; in 0720 only CASE-6 (下り線) is drawn from combination 2 (decision 51)."""
+    """Every case of 0710 is in combination 1; in 0720 only CASE-6 (下り線) is drawn from combination 5, the first of
+    the down track (decisions 51, 76)."""
     combinations = {page["case"]: page["combination"] for page in record()["stages"][stage]["load_diagram"]}
-    expected = {case: 2 if (stage, case) == ("0720", 6) else 1 for case in range(1, CASES[stage] + 1)}
+    expected = {case: 5 if (stage, case) == ("0720", 6) else 1 for case in range(1, CASES[stage] + 1)}
     assert combinations == expected
 
 

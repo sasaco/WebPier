@@ -20,8 +20,9 @@ def test_along_the_track_every_case_is_drawn_from_combination_1():
     assert diagram_combinations(model("longitudinal")) == tuple((number, 1) for number in range(1, 9))
 
 
-def test_across_the_track_case_6_the_down_track_is_drawn_from_combination_2():
-    expected = tuple((number, 2 if number == 6 else 1) for number in range(1, 10))
+def test_across_the_track_case_6_the_down_track_is_drawn_from_combination_5():
+    # Decision 76: combinations 1〜4 are the up track, 5〜8 the down track (逆向, which keeps the fixed CASE-6).
+    expected = tuple((number, 5 if number == 6 else 1) for number in range(1, 10))
     assert diagram_combinations(model("transverse")) == expected
 
 

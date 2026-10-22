@@ -10,6 +10,8 @@ frame (as calc.seismic_longitudinal ``_on_frame``), and EQ2, the pier self-weigh
 (``self_weight_inertia``, ``self_weight_loads``). The load model's cases are their 支承作用 on this frame, the
 horizontal forces of a case acting toward the earthquake signed toward it (−x along the track, +x across). The
 cases of the NDU are those the combinations use: D1, D2, the buoyancy, the load model's in its order, then EQ2.
+Each combination of the load model is made for each 照査パターン (ρm, αf), together, pushed toward the earthquake or,
+when it is reversed, away from it (decision 76).
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ from ..frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, bui
 from ..materials import calculate_materials
 from ..reaction import DeadReactionResult
 from ..seismic_longitudinal import (
-    ALPHA_F, EARTHQUAKE as TOWARD_ORIGIN, GROUND_RESISTANCE_TYPE, RHO_M, ActionDirection, Increment, MemberLoad,
+    EARTHQUAKE as TOWARD_ORIGIN, GROUND_RESISTANCE_TYPE, PATTERNS, REVERSED, ActionDirection, Increment, MemberLoad,
     SelfWeightInertia, self_weight_inertia, self_weight_loads, toward,
 )
 from ..seismic_transverse import EARTHQUAKE as TOWARD_W9
@@ -67,9 +69,10 @@ class GenericSeismicCombination:
     name: str
     alpha_f: Printed
     rho_m: Printed
-    direction: ActionDirection
+    direction: ActionDirection  # of the push
     cases: tuple[str, ...]  # the ids it loads, in case order
     ground_resistance_type: int
+    reverse: bool = False  # 逆向 (decision 76)
 
 
 @dataclass(frozen=True)
@@ -137,9 +140,11 @@ def calculate_generic_seismic(pier: PierInput, foundation: FoundationResult, rea
             member_loads=self_weight_loads(frame, self_weight, earthquake))
     order = [case.id for case in cases]
     found = tuple(GenericSeismicCombination(
-        number=number, name=c.name, alpha_f=ALPHA_F, rho_m=RHO_M, direction=toward_earthquake,
-        cases=tuple(case for case in order if case in c.cases), ground_resistance_type=GROUND_RESISTANCE_TYPE)
-        for number, c in enumerate(combinations, 1))
+        number=number, name=c.name, alpha_f=alpha_f, rho_m=rho_m,
+        direction=REVERSED[toward_earthquake] if c.reverse else toward_earthquake,
+        cases=tuple(case for case in order if case in c.cases), ground_resistance_type=GROUND_RESISTANCE_TYPE,
+        reverse=c.reverse)
+        for number, (c, (rho_m, alpha_f)) in enumerate(((c, pattern) for c in combinations for pattern in PATTERNS), 1))
     return GenericSeismicResult(frame=frame, earthquake=earthquake, girder_weights=weights, self_weight=self_weight,
                                 basic_cases=tuple(cases), combinations=found,
                                 sections=tuple(model.sections.get(stage, ())))

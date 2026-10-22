@@ -79,10 +79,12 @@ internal static class StateProbe
             float[,] alpha = (float[,])global.GetField("G_sngConbAlph").GetValue(null);
             float[] rho = (float[])global.GetField("G_sngConbRouM").GetValue(null);
             float[] af = (float[])global.GetField("G_sngConbAf").GetValue(null);
+            short[] directions = (short[])global.GetField("G_intConbHoko").GetValue(null);  // 0 正向, 1 逆向
             for (int c = 1; c <= combinations; c++)
             {
                 json.Append(c == 1 ? "" : ",").Append("{\"rho_m\":").Append(Number(rho[c]))
-                    .Append(",\"alpha_f\":").Append(Number(af[c])).Append(",\"cases\":[");
+                    .Append(",\"alpha_f\":").Append(Number(af[c])).Append(",\"direction\":").Append(Number(directions[c]))
+                    .Append(",\"cases\":[");
                 for (int k = 1; k <= caseCounts[c]; k++)
                     json.Append(k == 1 ? "" : ",").Append(Number(cases[c, k]));
                 json.Append("],\"coefficients\":[");

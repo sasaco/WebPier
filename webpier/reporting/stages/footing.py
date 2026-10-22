@@ -18,23 +18,30 @@ and La is printed to 3 decimals. "せん断力ト" of the sample is corrected.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from itertools import groupby
 from pathlib import Path
 from typing import Any
+import unicodedata
 
 from gridlayoutpdf import Document
 
 from ...calc.footing import EffectiveWidth, FootingColumn, FootingDirection, FootingResult, OverhangSide, WeightRow
 from ...calc.foundation_check import Basis
 from ...core.printed import Printed
+from ..styles import BODY_COLUMNS, columns_for
+from ..tables import CELL_PADDING
 from .footing_figures import cases_figure, reaction_figure, weight_figure, width_figure
-from .frame_report import Manuscript, Span, TableSpec, Unit, document, semantic_records, value
+from .frame_report import (
+    FigureSpec, Manuscript, Span, TableParts, TableSpec, Unit, document, plain, semantic_records, value,
+)
 
 PREFIX = "0800/"
 # Widths in grid columns, heights in grid rows. The tables stand from body column 1 (left of the body, as 0612) so that
 # the widest, 1) with the label, the symbol and four design columns, ends at the body's right edge (column 30).
 TABLE_LEFT = 1
 LABEL = (6, 10)  # the label (設計最大地盤反力度) and the symbol (frγ・Iγ・βb・Be・γe1・Nγ) columns of 1)
-COLUMN = 3  # one design column of 1)
+COLUMN = 3  # one design column of 1), at least: wider when a value needs it (Mmd 109235.91 of P7橋脚)
+HALF_WIDTH = 5.0  # pt: a half-width character of the 10 pt body (a full-width one is twice)
 REACTION = (3, 4, 4, 4, 3, 4, 3, 4)  # 3): the limit, the column, q1, q2, L1, W, x, M
 WEIGHT = (2, 7, 3, 3, 4, 3, 4)  # 4): the part, the formula, V, γ, W, x, M
 BUOYANCY = (3, 6, 3, 3, 4, 3, 4)  # 5): the water level, then as 4)
@@ -104,7 +111,31 @@ def _pressure_groups(basis: Basis) -> list[tuple[str, list[tuple[str, Cell]]]]:
     ]
 
 
-def _pressure_table(columns: Sequence[FootingColumn], basis: Basis) -> TableSpec:
+def _text_width(text: str) -> float:
+    return sum(2 * HALF_WIDTH if unicodedata.east_asian_width(c) in "FWA" else HALF_WIDTH for c in text)
+
+
+def _column_width(columns: Sequence[FootingColumn], basis: Basis) -> int:
+    """The grid columns of a design column of 1): COLUMN, or as many as its widest value needs (the characters are
+    never shrunk)."""
+    texts = [cell(column) for _, lines in _pressure_groups(basis) for _, cell in lines for column in columns]
+    widest = max((_text_width(text) for text in texts), default=0.0)
+    return max(COLUMN, columns_for(widest + CELL_PADDING.left + CELL_PADDING.right))
+
+
+def _pressure(m: Manuscript, key: str, columns: Sequence[FootingColumn], basis: Basis) -> None:
+    """The table of 1); when its design columns are too wide for the body's 30 columns, one table a limit state
+    (安全性, 使用性) one under another, as the combination tables of 0610 (TableParts)."""
+    width = _column_width(columns, basis)
+    if TABLE_LEFT + sum(LABEL) + width * len(columns) <= BODY_COLUMNS:
+        m.table(key, _pressure_table(columns, basis, width))
+        return
+    runs = [tuple(run) for _, run in groupby(columns, key=lambda column: column.limit)]
+    specs = tuple(_pressure_table(run, basis, width) for run in runs)
+    m.figure(key, FigureSpec(TableParts(specs, m.prefix + key), tuple(plain(spec) for spec in specs)))
+
+
+def _pressure_table(columns: Sequence[FootingColumn], basis: Basis, width: int = COLUMN) -> TableSpec:
     rows: list[Row] = [(Span(BLANK, colspan=2), *(_title(column) for column in columns))]
     groups = _pressure_groups(basis)
     for label, lines in groups[:-2]:
@@ -116,7 +147,7 @@ def _pressure_table(columns: Sequence[FootingColumn], basis: Basis) -> TableSpec
         for index, (symbol, cell) in enumerate(lines):
             name = (Span(label, rowspan=len(lines)),) if index == 0 else ()
             rows.append((*name, Span(symbol, align="left"), *(Span(cell(column), align="right") for column in columns)))
-    return TableSpec((*LABEL, *(COLUMN,) * len(columns)), tuple(rows), _heights(rows), left=TABLE_LEFT)
+    return TableSpec((*LABEL, *(width,) * len(columns)), tuple(rows), _heights(rows), left=TABLE_LEFT)
 
 
 # --- 3) 地盤反力による断面力 ------------------------------------------------------------------------------------------
@@ -222,8 +253,8 @@ def _direction(m: Manuscript, key: str, title: str, found: FootingDirection) -> 
 
     m.heading(f"{key}.heading", title, 2)
     m.heading(f"{key}.pressure.heading", "1) 設計鉛直地盤反力度の算定", 3)
-    m.table(f"{key}.pressure.table", _pressure_table(others, basis.check))
-    m.table(f"{key}.pressure.seismic.table", _pressure_table(seismic, basis.check))
+    _pressure(m, f"{key}.pressure.table", others, basis.check)
+    _pressure(m, f"{key}.pressure.seismic.table", seismic, basis.check)
     m.figure(f"{key}.pressure.cases.figure", cases_figure(m.prefix + f"{key}.pressure.cases.figure"))
     m.heading(f"{key}.width.heading", "2) 有効幅", 3, tag="【ＲＣ標準 13.6.3】")
     m.paragraph(f"{key}.width.side", "下　側", keep=True)

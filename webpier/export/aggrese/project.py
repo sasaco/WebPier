@@ -7,13 +7,15 @@ P1_直角.xml), and the values that follow from the NDU are taken from its model
 
 - the direct foundation checked at the FootInfo joint (Aggre-SE's 直接基礎の照査位置 is a joint number);
 - the shear span La of the one nonlinear (M-θ) member, in mm, as the NDU's section has it;
-- the focus joint 0: Aggre-SE then uses the control joint stored in each DB1.
+- the focus joint 0: Aggre-SE then uses the control joint stored in each DB1;
+- the check items of each Case, by the 照査パターン (ρm, αf) of its combination (decision 76).
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from decimal import Decimal
 import re
 
 from ...core.errors import InputError
@@ -24,6 +26,17 @@ from ..jrsnap.model import NduModel
 
 SECTION = "耐震設計条件"
 _CASE = re.compile(r".*\(Case(\d+)_[^()]*\)\.db1", re.IGNORECASE)  # JRSNAP's <data>(Case<n>_ρm…_αf…_…).DB1
+
+# Decision 76: the check items ①..⑨ of a Case by its 照査パターン (ρm, αf), whichever way it is pushed:
+# ① 復旧性L2, ② 安全性L2, ③ 損傷レベル, ④ 破壊形態の検討, ⑤ せん断耐力, ⑥ L1, ⑦ 基礎の安定, ⑧ 杭の段落し,
+# ⑨ 断面力ピックアップ. ③ all but (1.0, 2.0), ④ ρm 1.2, ⑤ none, ⑥ (1.0, 1.0), ⑦⑧⑨ αf 1.0.
+CHECKS = {
+    (Decimal("1.0"), Decimal("1.0")): (True, True, True, False, False, True, True, True, True),
+    (Decimal("1.2"), Decimal("1.0")): (True, True, True, True, False, False, True, True, True),
+    (Decimal("1.0"), Decimal("2.0")): (True, True, False, False, False, False, False, False, False),
+    (Decimal("1.2"), Decimal("2.0")): (True, True, True, True, False, False, False, False, False),
+}
+Checks = tuple[bool, ...]
 
 
 class ProjectError(ValueError):
@@ -38,13 +51,23 @@ class Project:
     ground_class: int  # index of GROUND_CLASSES (G0 .. G5)
     shear_span: Printed  # La of the nonlinear member, mm
     footing_joint: int  # FootInfo joint: the direct foundation that is checked
-    cases: int  # combinations of the NDU, one DB1 each
+    cases: tuple[Checks, ...]  # the check items ①..⑨ of each combination of the NDU, one DB1 each
 
 
 def _choice(value: str | None, options: tuple[str, ...], key: str) -> int:
     if value is None:
         raise InputError(f"{SECTION}.{key}: 値が必要です（静的非線形解析の耐震照査の入力に使います）")
     return options.index(value)
+
+
+def _checks(model: NduModel) -> tuple[Checks, ...]:
+    found = []
+    for number, combination in enumerate(model.combinations, 1):
+        pattern = (Decimal(repr(combination.rho_m.value)), Decimal(repr(combination.alpha_f.value)))
+        if pattern not in CHECKS:
+            raise ValueError(f"組合せ {number} の照査パターン ρm={pattern[0]}・αf={pattern[1]} の照査項目がありません")
+        found.append(CHECKS[pattern])
+    return tuple(found)
 
 
 def build_project(model: NduModel, pier: PierInput) -> Project:
@@ -55,8 +78,7 @@ def build_project(model: NduModel, pier: PierInput) -> Project:
         raise InputError(f"JRSNAP の非線形部材が{len(nonlinear)}個です（耐震照査の入力は1個だけに対応します）")
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"),
-                   shear_span=model.section.shear_span, footing_joint=model.footing.node,
-                   cases=len(model.combinations))
+                   shear_span=model.section.shear_span, footing_joint=model.footing.node, cases=_checks(model))
 
 
 def databases(folder: str, names: Iterable[str], cases: int) -> tuple[str, ...]:

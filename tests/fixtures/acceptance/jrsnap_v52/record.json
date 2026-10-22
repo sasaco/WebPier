@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "jrsnap_ndu_acceptance",
-  "date": "2026-10-21",
-  "verified_at": "2026-10-21T20:28:53+09:00",
+  "date": "2026-10-22",
+  "verified_at": "2026-10-22T07:49:38+09:00",
   "method": "JRSNAP_Input.exe の読込み・保存の処理（mdlDataFile.mdl_Get_NDUDataFile / mdl_Wrt_NDUDataFile）を画面なしで呼び、候補の複製を読込み・保存・再保存した（スキル jrsnap-input-open-save の save-ndu.ps1）。読込み直後に JRSNAP が保持する件数と組合せを jrsnap_state_probe.cs で取り出した。",
   "gui_operated": false,
   "analysis_run": false,
@@ -18,26 +18,26 @@
   "helpers": {
     ".claude/skills/jrsnap-input-open-save/scripts/save-ndu.ps1": "b79a8981e588ab0a2bff727a4490ca0d9fb13330e630e78e44fd67cfe8a524b1",
     ".claude/skills/jrsnap-input-open-save/scripts/roundtrip.cs": "97257e68c1c451d4ae564e27a84ea42d1e31c538c97f9c3a74a10d0963772cf7",
-    "scripts/jrsnap_state_probe.cs": "666a3d24f81a0856faea71433838d8df5dcddcdfc654ec5b2b03d6361b24b055",
+    "scripts/jrsnap_state_probe.cs": "d3813f86c40430eda5f4e1e7708408fcfd04bb835545cdba5ad4ada2aeaebbe3",
     "scripts/accept_jrsnap_ndu.py": "243e3e064960734b1eacf6ab95b0618601db035e1210ebf44cb2761ca8d5cb2f"
   },
   "input": {
     "path": "tests/fixtures/inputs/current.json",
     "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "29b54df933afc7d98cc19aa82358dea5676e9d0ef7c7ed433cd5dab2a9b6b14b",
   "directions": {
     "0710": {
       "direction": "longitudinal",
       "file": "線路方向.ndu",
       "candidate": {
         "path": "longitudinal.candidate.ndu",
-        "sha256": "3199e7cc381660ae420f9f5e28e7a5be140134ce577163403a150904877e860b",
-        "records": 253
+        "sha256": "1a5df75c560c04dc904360c5248992012e26c6169c969af4db43647a69db852d",
+        "records": 259
       },
       "saved": {
         "path": "longitudinal.saved.ndu",
-        "sha256": "09092ad8ca221142249ba4583c47e3d096cdc99c35802933d77055acaaeae1f8",
+        "sha256": "0dc77e909c8b4fffb1fde1f09de35b0a60da26d99df74eaae7c92915760c5a97",
         "header": "Virsion=5.2.3.S.4"
       },
       "read_code": 0,
@@ -76,13 +76,82 @@
         "LoadNum": 8,
         "MLoadNum": 8,
         "JLoadNum": 10,
-        "SNAPConbNum": 1,
-        "ConbNum": 1
+        "SNAPConbNum": 4,
+        "ConbNum": 4
       },
       "combinations": [
         [
           "1",
           "1",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1.2",
+          "1",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1",
+          "2",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1.2",
+          "2",
           "0",
           "0",
           "1",
@@ -115,12 +184,88 @@
           "G_intLoadNum": 8,
           "G_intMLoadNum": 8,
           "G_intJLoadNum": 10,
-          "G_intConbNum": 1
+          "G_intConbNum": 4
         },
         "combinations": [
           {
             "rho_m": 1,
             "alpha_f": 1,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 1,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1,
+            "alpha_f": 2,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 2,
+            "direction": 0,
             "cases": [
               1,
               2,
@@ -151,12 +296,12 @@
       "file": "線路直角方向.ndu",
       "candidate": {
         "path": "transverse.candidate.ndu",
-        "sha256": "36d470afcec6cce19e0c90e83202dad657f3d633bf7f2d4627a92b0e2a66927b",
-        "records": 296
+        "sha256": "6c50888acaf18ac244a1316d14f08363963cc95877fefef985f2f063464c9153",
+        "records": 308
       },
       "saved": {
         "path": "transverse.saved.ndu",
-        "sha256": "285d426a7189618567455eedf7ec2bd18affd75a628c9dd74489bf95a4642d87",
+        "sha256": "61b0b46fc7dc52b7bcfed85fd30796d3d047763a0d45c00368fb92340d5fc0d0",
         "header": "Virsion=5.2.3.S.4"
       },
       "read_code": 0,
@@ -195,8 +340,8 @@
         "LoadNum": 9,
         "MLoadNum": 8,
         "JLoadNum": 11,
-        "SNAPConbNum": 2,
-        "ConbNum": 2
+        "SNAPConbNum": 8,
+        "ConbNum": 8
       },
       "combinations": [
         [
@@ -223,9 +368,147 @@
           "0"
         ],
         [
+          "1.2",
+          "1",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
           "1",
           "1",
           "0",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1",
+          "2",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1.2",
+          "2",
+          "0",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1.2",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1",
+          "2",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          "0",
+          "1",
+          "1",
+          "1",
+          "1",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          " ",
+          "0",
+          "0"
+        ],
+        [
+          "1.2",
+          "2",
+          "1",
           "0",
           "1",
           "1",
@@ -257,12 +540,94 @@
           "G_intLoadNum": 9,
           "G_intMLoadNum": 8,
           "G_intJLoadNum": 11,
-          "G_intConbNum": 2
+          "G_intConbNum": 8
         },
         "combinations": [
           {
             "rho_m": 1,
             "alpha_f": 1,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 1,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1,
+            "alpha_f": 2,
+            "direction": 0,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 2,
+            "direction": 0,
             "cases": [
               1,
               2,
@@ -289,6 +654,88 @@
           {
             "rho_m": 1,
             "alpha_f": 1,
+            "direction": 1,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 1,
+            "direction": 1,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1,
+            "alpha_f": 2,
+            "direction": 1,
+            "cases": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "coefficients": [
+              1,
+              1,
+              1,
+              1,
+              0,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "rho_m": 1.2,
+            "alpha_f": 2,
+            "direction": 1,
             "cases": [
               1,
               2,

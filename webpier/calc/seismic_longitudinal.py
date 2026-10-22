@@ -18,7 +18,8 @@ The actions (10-8) are the 0610 D1, D2, buoyancy at the normal water level and
 
 The earthquake acts toward the origin side (← on 10-11/10-12), which is −x of
 the frame; the tables keep the printed magnitudes, the frame loads the sign.
-No structural analysis is done here.
+The one combination of the cases is made for each 照査パターン (ρm, αf), pushed
+toward the earthquake (decision 76). No structural analysis is done here.
 """
 
 from __future__ import annotations
@@ -45,9 +46,9 @@ from .reaction.longitudinal import ADHESION, SEISMIC_KH, SeismicForces
 
 KH = Precision(2, "")  # seismic coefficients as printed (10-8, 10-11: Kh=1.00, Kh=0.20)
 PIER_KH = KH.exact(1.00)  # self-weight inertia, a unit coefficient for the incremental analysis (10-8 (3))
-CONSTANT = Precision(1, "")  # 10-12: αf = 1.0, ρm = 1.0
-ALPHA_F = CONSTANT.exact(1.0)
-RHO_M = CONSTANT.exact(1.0)
+CONSTANT = Precision(1, "")  # 10-12: αf, ρm
+# Decision 76: the 照査パターン (ρm, αf) of every combination, a Case each in this order (Example2 10-12 has the first).
+PATTERNS = tuple((CONSTANT.exact(rho_m), CONSTANT.exact(alpha_f)) for alpha_f in (1.0, 2.0) for rho_m in (1.0, 1.2))
 GROUND_RESISTANCE_TYPE = 1  # 10-12 地盤抵抗TYPE
 EARTHQUAKE = Decimal(-1)  # toward the origin side: ← of 10-11 and 10-12, −x in the frame
 
@@ -69,7 +70,14 @@ class ActionDirection(Enum):
     DOWNWARD = "downward"  # ↓
     UPWARD = "upward"  # ↑
     TOWARD_ORIGIN = "toward_origin"  # ←
+    TOWARD_END = "toward_end"  # → along the track: a reversed (逆向) combination of a load model (decision 76)
     TOWARD_W9 = "toward_w9"  # → across the track (0720), +x of the transverse frame
+    TOWARD_W1 = "toward_w1"  # ← across the track: a reversed (逆向) combination of 0720 (decision 76)
+
+
+# The push of a reversed (逆向) combination: the incremental cases and the target displacement turn around.
+REVERSED = {ActionDirection.TOWARD_ORIGIN: ActionDirection.TOWARD_END,
+            ActionDirection.TOWARD_W9: ActionDirection.TOWARD_W1}
 
 
 class Increment(Enum):
@@ -159,14 +167,15 @@ class SeismicAction:
 
 @dataclass(frozen=True)
 class SeismicCombination:
-    """One combination of 10-12: every basic case once, with no printed factor."""
+    """One combination of 10-12: every basic case once, with no printed factor, for one 照査パターン."""
 
     number: int
     alpha_f: Printed
     rho_m: Printed
-    direction: ActionDirection
+    direction: ActionDirection  # of the push: toward the earthquake, or away from it when reversed
     cases: tuple[SeismicCase, ...]
     ground_resistance_type: int
+    reverse: bool = False  # 逆向 (decision 76)
 
 
 @dataclass(frozen=True)
@@ -282,18 +291,21 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
                       points=points[case], line_loads=lines.get(case, ()),
                       member_loads=self_weight_loads(frame, self_weight) if case is SeismicCase.SELF_INERTIA else ())
         for number, case in enumerate((case for case in SeismicCase if case in points), 1))
-    combination = SeismicCombination(number=1, alpha_f=ALPHA_F, rho_m=RHO_M, direction=ActionDirection.TOWARD_ORIGIN,
-                                     cases=tuple(action.case for action in basic_cases),
-                                     ground_resistance_type=GROUND_RESISTANCE_TYPE)
+    cases = tuple(action.case for action in basic_cases)
+    combinations = tuple(
+        SeismicCombination(number=number, alpha_f=alpha_f, rho_m=rho_m, direction=ActionDirection.TOWARD_ORIGIN,
+                           cases=cases, ground_resistance_type=GROUND_RESISTANCE_TYPE)
+        for number, (rho_m, alpha_f) in enumerate(PATTERNS, 1))
     return SeismicLongitudinalResult(
         frame=frame, fixed=longitudinal.fixed, additional=longitudinal.additional,
         buoyancy=longitudinal.buoyancy[1], snow=longitudinal.snow[0] if longitudinal.snow else None, train=train,
         girder_inertia=girder, train_inertia=train_inertia, self_weight=self_weight,
-        basic_cases=basic_cases, combinations=(combination,))
+        basic_cases=basic_cases, combinations=combinations)
 
 
 __all__ = [
-    "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity", "MemberLoad", "SeismicAction",
+    "PATTERNS", "REVERSED", "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity", "MemberLoad",
+    "SeismicAction",
     "SeismicCase", "SeismicCombination", "SeismicLongitudinalResult", "SelfWeightInertia",
     "calculate_seismic_longitudinal", "made", "self_weight_inertia", "self_weight_loads", "toward",
 ]

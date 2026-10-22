@@ -1,8 +1,8 @@
 """The Aggre-SE project XML of both directions (decision 49).
 
 The expected files (tests/fixtures/example2/aggrese, notes.md there) are the Example2 projects P1_線路.xml and
-P1_直角.xml, with the Case arrays cut to 50 and the DB1 paths of WebPier's JRSNAP folders, saved again by Aggre-SE
-itself: the conditions are Example2's and the format is that of the Aggre-SE the writer follows. Other values are
+P1_直角.xml, with the Case arrays cut to 50 and the DB1 paths of WebPier's JRSNAP folders, with the check items of each
+Case and the DB1 names copied from the owner's project (decision 76), saved again by Aggre-SE itself: the conditions are Example2's and the format is that of the Aggre-SE the writer follows. Other values are
 read back from the XML with ElementTree, independent of the writer.
 """
 
@@ -26,12 +26,23 @@ def names(stem, cases, suffix="DB1"):
     return [f"{stem}(Case{case}_ρm10_αf1_正向).{suffix}" for case in cases]
 
 
+# JRSNAP's names of the Cases (decision 76): the 照査パターン (ρm, αf) of each track, the down track 逆向.
+PATTERNS = ("ρm10_αf1", "ρm12_αf1", "ρm10_αf2", "ρm12_αf2")
+ANALYZED = {"longitudinal": [f"{pattern}_正向" for pattern in PATTERNS],
+            "transverse": [f"{pattern}_{way}" for way in ("正向", "逆向") for pattern in PATTERNS]}
+
+
+def analyzed(direction):
+    stem = FOLDERS[direction]
+    return [f"{stem}(Case{case}_{name}).DB1" for case, name in enumerate(ANALYZED[direction], 1)]
+
+
 def write(direction, data=None, **changes):
     built = model(direction, data, **changes)
     pier = parse_input(data if data is not None else document(**changes))
     project = build_project(built, pier)
     stem = FOLDERS[direction]
-    found = databases(f"{stem}_JRSNAP", names(stem, range(1, project.cases + 1)), project.cases)
+    found = databases(f"{stem}_JRSNAP", analyzed(direction), len(project.cases))
     return project, write_project(project, found)
 
 
@@ -51,17 +62,39 @@ def test_the_example2_projects_as_aggre_se_saves_them(direction):
 
 def test_the_values_that_follow_from_the_ndu():
     """La of the column-base M-θ member (mm) and the FootInfo joint: Example2 7600 / 7 and 10350 / 8."""
-    for direction, la, joint, cases in (("longitudinal", 7600, 7, 1), ("transverse", 10350, 8, 2)):
+    for direction, la, joint, cases in (("longitudinal", 7600, 7, 4), ("transverse", 10350, 8, 8)):
         project, data = write(direction)
-        assert (project.shear_span.value, project.footing_joint, project.cases) == (la, joint, cases)
+        assert (project.shear_span.value, project.footing_joint, len(project.cases)) == (la, joint, cases)
         root = tree(data)
         assert items(root, "Element/_dgLimitLevel_La") == [str(la)]
         assert root.find("Foundation/基礎照査/clsFoundation/dgDispAtPoint/pointNo").text == str(joint)
         paths = items(root, "SNAP/SnapDBPath")
         stem = FOLDERS[direction]
-        assert paths[:cases] == [f"{stem}_JRSNAP/{name}" for name in names(stem, range(1, cases + 1))]
+        assert paths[:cases] == [f"{stem}_JRSNAP/{name}" for name in analyzed(direction)]
         assert len(paths) == CASES and set(paths[cases:]) == {None}
         assert root.find("Version").text == BATCH_VERSION
+
+
+# Decision 76: ①..⑨ of each 照査パターン (1.0, 1)(1.2, 1)(1.0, 2)(1.2, 2), whichever way it is pushed:
+# ①② all, ③ but (1.0, 2), ④ ρm 1.2, ⑤ none, ⑥ (1.0, 1), ⑦⑧⑨ αf 1.
+CHECKED = ["1111", "1111", "1101", "0101", "0000", "1000", "1100", "1100", "1100"]
+
+
+@pytest.mark.parametrize("direction", ["longitudinal", "transverse"])
+def test_the_check_items_of_each_case_are_those_of_its_pattern(direction):
+    project, data = write(direction)
+    root = tree(data)
+    tracks = len(project.cases) // 4
+    for item, checked in enumerate(CHECKED, 1):
+        expected = ["-1" if flag == "1" else "0" for flag in checked * tracks]
+        assert items(root, f"CaseName/dgCaseList_{item}") == expected + ["0"] * (CASES - len(expected))
+
+
+def test_a_pattern_without_check_items_is_an_error():
+    built = model("longitudinal")
+    other = replace(built.combinations[1], rho_m=Printed(1.1, 1, ""))
+    with pytest.raises(ValueError, match="組合せ 2 の照査パターン ρm=1.1・αf=1.0 の照査項目がありません"):
+        build_project(replace(built, combinations=(built.combinations[0], other)), parse_input(document()))
 
 
 @pytest.mark.parametrize("region,ground,chiiki,jiban", [
@@ -91,8 +124,8 @@ def test_a_shear_span_with_a_decimal_is_written_as_xmlserializer_writes_it():
     built = model("longitudinal")
     built = replace(built, section=replace(built.section, shear_span=Printed(7600.5, 1, "mm")))
     project = build_project(built, parse_input(document()))
-    assert items(tree(write_project(project, ["x/a(Case1_ρm10_αf1_正向).DB1"])), "Element/_dgLimitLevel_La") == [
-        "7600.5"]
+    found = [f"x/{name}" for name in analyzed("longitudinal")]
+    assert items(tree(write_project(project, found)), "Element/_dgLimitLevel_La") == ["7600.5"]
 
 
 def test_the_databases_are_found_by_their_case_number():
@@ -115,5 +148,5 @@ def test_the_databases_must_be_one_per_case(found, cases, message):
 
 def test_the_document_needs_one_database_per_case():
     project = build_project(model("transverse"), parse_input(document()))
-    with pytest.raises(ValueError, match="DB1 が1件です（Case は2件）"):
+    with pytest.raises(ValueError, match="DB1 が1件です（Case は8件）"):
         project_document(project, ["f/a.DB1"])

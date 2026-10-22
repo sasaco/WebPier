@@ -124,8 +124,9 @@ def test_longitudinal_loads(longitudinal):
     assert members[7] == [(1, 1, 595.35, 595.35, "自重慣性力"), (2, 1, 595.35, 297.68, "自重慣性力"),
                           (3, 1, 297.68, 297.68, "自重慣性力"), (4, 1, 297.68, 297.68, "自重慣性力")]
     assert all(not case for case in members[1:7])
-    combination, = longitudinal.combinations
-    assert (combination.rho_m.value, combination.alpha_f.value, combination.coefficients) == (1.0, 1.0, (1,) * 8)
+    # Decision 76: the four 照査パターン (ρm, αf), all 正向.
+    assert [((c.rho_m.value, c.alpha_f.value), c.coefficients, c.reverse) for c in longitudinal.combinations] == [
+        ((rho_m, alpha_f), (1,) * 8, False) for rho_m, alpha_f in ((1.0, 1.0), (1.2, 1.0), (1.0, 2.0), (1.2, 2.0))]
 
 
 def test_transverse_loads(transverse):
@@ -140,8 +141,11 @@ def test_transverse_loads(transverse):
     # → inertia is −local y (Example2 MLoadInfo2-4: −595.35 / −297.68).
     assert [(m.element, m.start.value, m.end.value) for m in transverse.cases[8].member_loads] == [
         (2, -595.35, -595.35), (3, -595.35, -297.68), (4, -297.68, -297.68), (5, -297.68, -297.68)]
-    up, down = transverse.combinations
-    assert up.coefficients == (1, 1, 1, 1, 1, 0, 1, 1, 1) and down.coefficients == (1, 1, 1, 1, 0, 1, 1, 1, 1)
+    # Decision 76: the up track 正向, then the down track 逆向, each by the four 照査パターン (ρm, αf).
+    up, down = (1, 1, 1, 1, 1, 0, 1, 1, 1), (1, 1, 1, 1, 0, 1, 1, 1, 1)
+    patterns = [(1.0, 1.0), (1.2, 1.0), (1.0, 2.0), (1.2, 2.0)]
+    assert [((c.rho_m.value, c.alpha_f.value), c.coefficients, c.reverse) for c in transverse.combinations] == [
+        *((pattern, up, False) for pattern in patterns), *((pattern, down, True) for pattern in patterns)]
 
 
 def test_the_conditions_are_the_input_of_the_direction():
@@ -270,7 +274,7 @@ def test_without_snow_there_is_no_snow_case():
         enumerate(titles[:3] + titles[4:], 1))
     # D1, D2, buoyancy and the train do not change (the girder inertia does: it carries the 2-year snow)
     assert [case.joint_loads for case in snowless.cases[:4]] == [full.cases[n].joint_loads for n in (0, 1, 2, 4)]
-    assert [c.coefficients for c in snowless.combinations] == [(1,) * 7]
+    assert [c.coefficients for c in snowless.combinations] == [(1,) * 7] * 4
     validate_ndu(write_ndu(snowless), LONGITUDINAL)
 
 

@@ -21,8 +21,9 @@ The actions (11-8) are the 0620 D1, D2, buoyancy at the normal water level and
   at the footing centroid.
 
 The earthquake acts in one direction, → (+x of the transverse frame, decision
-30). Each track gets its own combination (decision 21). No structural analysis
-is done here.
+30). Each track gets its own combination (decision 21) for each 照査パターン
+(ρm, αf): the up track pushed toward the earthquake, the down track, on the
+other side, reversed (逆向, decision 76). No structural analysis is done here.
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ from .materials import calculate_materials
 from .reaction import ReactionResult
 from .reaction.transverse import SEISMIC_KH_GIRDER, SEISMIC_KH_TRAIN, TransverseForce
 from .seismic_longitudinal import (
-    ALPHA_F, GROUND_RESISTANCE_TYPE, KH, RHO_M, ActionDirection, Increment, MemberLoad, SelfWeightInertia, made,
+    GROUND_RESISTANCE_TYPE, KH, PATTERNS, REVERSED, ActionDirection, Increment, MemberLoad, SelfWeightInertia, made,
     self_weight_inertia, self_weight_loads, toward,
 )
 from .transverse import (
@@ -111,15 +112,17 @@ class SeismicAction:
 
 @dataclass(frozen=True)
 class SeismicCombination:
-    """One combination of 11-13: the basic cases once each, with no printed factor, for one track."""
+    """One combination of 11-13: the basic cases once each, with no printed factor, for one track and one
+    照査パターン."""
 
     number: int
     track: Track
     alpha_f: Printed
     rho_m: Printed
-    direction: ActionDirection
+    direction: ActionDirection  # of the push: → for the up track, ← for the reversed down track
     cases: tuple[SeismicCase, ...]
     ground_resistance_type: int
+    reverse: bool = False  # 逆向 (decision 76): the down track
 
 
 @dataclass(frozen=True)
@@ -135,7 +138,7 @@ class SeismicTransverseResult:
     train_inertia: HorizontalInertia  # 11-8 (7)
     self_weight: SelfWeightInertia  # 11-8 (8)
     basic_cases: tuple[SeismicAction, ...]  # 11-10 to 11-13
-    combinations: tuple[SeismicCombination, ...]  # 11-13: up, then down
+    combinations: tuple[SeismicCombination, ...]  # 11-13: up, then down, each by 照査パターン
 
     def basic(self, case: SeismicCase) -> SeismicAction:
         return made(self.basic_cases, case)
@@ -193,12 +196,14 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, 
                       member_loads=(self_weight_loads(frame, self_weight, EARTHQUAKE)
                                     if case is SeismicCase.SELF_INERTIA else ()))
         for number, case in enumerate((case for case in SeismicCase if case in points), 1))
+    tracks = [(track, track is Track.DOWN) for track in TRAIN_CASES.values()]
     combinations = tuple(
-        SeismicCombination(number=number, track=track, alpha_f=ALPHA_F, rho_m=RHO_M,
-                           direction=ActionDirection.TOWARD_W9,
+        SeismicCombination(number=number, track=track, alpha_f=alpha_f, rho_m=rho_m,
+                           direction=REVERSED[ActionDirection.TOWARD_W9] if reverse else ActionDirection.TOWARD_W9,
                            cases=tuple(a.case for a in basic_cases if TRAIN_CASES.get(a.case, track) is track),
-                           ground_resistance_type=GROUND_RESISTANCE_TYPE)
-        for number, track in enumerate(TRAIN_CASES.values(), 1))
+                           ground_resistance_type=GROUND_RESISTANCE_TYPE, reverse=reverse)
+        for number, ((track, reverse), (rho_m, alpha_f)) in enumerate(
+            ((side, pattern) for side in tracks for pattern in PATTERNS), 1))
     return SeismicTransverseResult(
         frame=frame, fixed=transverse.fixed, additional=transverse.additional, buoyancy=transverse.buoyancy[1],
         snow=transverse.snow[0] if transverse.snow else None, train_up=trains[Track.UP], train_down=trains[Track.DOWN],

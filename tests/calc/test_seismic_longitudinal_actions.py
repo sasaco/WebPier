@@ -136,14 +136,20 @@ def test_10_12_basic_cases():
 
 def test_10_12_combination():
     (printed,) = S10["combinations"]["rows"]
-    (combination,) = seismic().combinations
+    combinations = seismic().combinations
+    combination = combinations[0]  # Example2 10-12 has the first 照査パターン only
     assert combination.number == printed["combination"]
     assert (combination.alpha_f.value, combination.alpha_f.digits) == (printed["alpha_f"]["value"], 1)
     assert (combination.rho_m.value, combination.rho_m.digits) == (printed["rho_m"]["value"], 1)
-    assert combination.direction is ActionDirection.TOWARD_ORIGIN
-    # "1 + 2 + … + 8": every basic case once, no factor printed.
-    assert [case.value for case in combination.cases] == [int(n) for n in printed["printed_expression"].split(" + ")]
-    assert combination.ground_resistance_type == printed["ground_resistance_type"]["value"]
+    # Decision 76: the four 照査パターン (ρm, αf), each pushed toward the earthquake.
+    assert [(c.number, c.rho_m.value, c.alpha_f.value) for c in combinations] == [
+        (1, 1.0, 1.0), (2, 1.2, 1.0), (3, 1.0, 2.0), (4, 1.2, 2.0)]
+    for c in combinations:
+        assert (c.rho_m.digits, c.alpha_f.digits, c.reverse) == (1, 1, False)
+        assert c.direction is ActionDirection.TOWARD_ORIGIN
+        # "1 + 2 + … + 8": every basic case once, no factor printed.
+        assert [case.value for case in c.cases] == [int(n) for n in printed["printed_expression"].split(" + ")]
+        assert c.ground_resistance_type == printed["ground_resistance_type"]["value"]
 
 
 def test_0610_section_keys_still_match():

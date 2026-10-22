@@ -65,11 +65,13 @@ def test_the_longitudinal_bearing_actions_by_hand():
     assert eq1.node == result.frame.node(NodeRole.CAP_TOP).number
 
 
-def test_one_combination_with_every_case_in_order():
+def test_one_combination_with_every_case_in_order_by_pattern():
     _, result = generic(Direction.LONGITUDINAL)
-    (combination,) = result.combinations
-    assert (combination.number, combination.name, combination.cases) == (1, "地震時", tuple(ORDER))
-    assert (combination.alpha_f.value, combination.rho_m.value, combination.direction) == (1.0, 1.0, A.TOWARD_ORIGIN)
+    # Decision 76: the one combination of the load model for each 照査パターン (ρm, αf), toward the earthquake.
+    assert [(c.number, c.name, c.cases, c.rho_m.value, c.alpha_f.value, c.direction, c.reverse)
+            for c in result.combinations] == [
+        (number, "地震時", tuple(ORDER), rho_m, alpha_f, A.TOWARD_ORIGIN, False)
+        for number, (rho_m, alpha_f) in enumerate(((1.0, 1.0), (1.2, 1.0), (1.0, 2.0), (1.2, 2.0)), 1)]
     assert [section.title for section in result.sections] == ["地震時の作用の根拠"]
 
 
@@ -99,8 +101,11 @@ def test_only_the_cases_the_combinations_use():
     from webpier.loadmodel import SeismicCombination
     p, foundation, reaction, model = chain()
     model = replace(model, seismic_longitudinal=(SeismicCombination("車なし", ("D1", "D2", "EQ1")),
-                                                 SeismicCombination("車あり", ("D1", "D2", "LE", "EQ1"))))
+                                                 SeismicCombination("車あり", ("D1", "D2", "LE", "EQ1"), reverse=True)))
     frame = calculate_generic_frame(p, foundation, reaction, model, Direction.LONGITUDINAL, "0610")
     result = calculate_generic_seismic(p, foundation, reaction, frame, model, Direction.LONGITUDINAL, "0710")
     assert [c.id for c in result.basic_cases] == ["D1", "D2", "LE", "EQ1"]  # no buoyancy, no EQ2
-    assert [c.cases for c in result.combinations] == [("D1", "D2", "EQ1"), ("D1", "D2", "LE", "EQ1")]
+    assert [c.cases for c in result.combinations] == [*[("D1", "D2", "EQ1")] * 4, *[("D1", "D2", "LE", "EQ1")] * 4]
+    # A reversed (逆向) combination pushes away from the earthquake: → along the track (decision 76).
+    assert [(c.name, c.reverse, c.direction) for c in result.combinations[3:5]] == [
+        ("車なし", False, A.TOWARD_ORIGIN), ("車あり", True, A.TOWARD_END)]

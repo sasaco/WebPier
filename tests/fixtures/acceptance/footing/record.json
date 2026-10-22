@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "footing_acceptance",
-  "verified_at": "2026-10-21T20:38:15+09:00",
+  "verified_at": "2026-10-22T08:12:24+09:00",
   "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
@@ -69,7 +69,7 @@
     "file": "input.json",
     "sha256": "c525986407504f65cf159f3e408435c5013397fa05dfc3ae2790ceadbcc6da01"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "29b54df933afc7d98cc19aa82358dea5676e9d0ef7c7ed433cd5dab2a9b6b14b",
   "runners": {
     "fempython": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "jrsnap": "C:\\Users\\sasai\\Documents\\structural-mcp\\JRSNAPHeadless\\bin\\Release\\JRSNAP.Headless.exe",
@@ -86,12 +86,12 @@
       "線路直角方向_ピックアップ反力.csv": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"
     },
     "ndu": {
-      "線路方向.ndu": "3199e7cc381660ae420f9f5e28e7a5be140134ce577163403a150904877e860b",
-      "線路直角方向.ndu": "36d470afcec6cce19e0c90e83202dad657f3d633bf7f2d4627a92b0e2a66927b"
+      "線路方向.ndu": "1a5df75c560c04dc904360c5248992012e26c6169c969af4db43647a69db852d",
+      "線路直角方向.ndu": "6c50888acaf18ac244a1316d14f08363963cc95877fefef985f2f063464c9153"
     },
     "steps": {
-      "線路方向_Aggre-SE_直接基礎.csv": "e5fbd819568ee6395a141ed24196049d52bb63974f0a7daf777698ceb2d2e66d",
-      "線路直角方向_Aggre-SE_直接基礎.csv": "457dd09198549a708a12d5b09ab45ab358ba7afb6fcc252e474c224388abaece"
+      "線路方向_Aggre-SE_直接基礎.csv": "d62ea4d22bdf70894642d51fd16ef45d2d99666d5bb2606eab6707798391b260",
+      "線路直角方向_Aggre-SE_直接基礎.csv": "eb990d0428a4b3b153cdd475c1a626d8d5e7e961dfb418dbea0554f3d36bfa96"
     }
   },
   "tolerance": 0.25,
@@ -358,18 +358,18 @@
         "seismic": {
           "ours": {
             "vd": 16825.97,
-            "hd": 6203.02,
-            "md": 69249.04,
+            "hd": 6266.73,
+            "md": 69580.7,
             "chosen": "起点側",
             "design": {
-              "md": 4294.66,
-              "vd": 2234.36,
-              "la": 1.922
+              "md": 4287.34,
+              "vd": 2234.3,
+              "la": 1.919
             },
-            "case_index": 0,
-            "case_name": "線路直角方向(Case1_ρm10_αf1_正向)",
-            "step": 32,
-            "rvd": 16816.75
+            "case_index": 1,
+            "case_name": "線路直角方向(Case2_ρm12_αf1_正向)",
+            "step": 34,
+            "rvd": 15823.16
           },
           "sample": {
             "Vd": 16825.97,
@@ -382,7 +382,7 @@
         "stage": "0820",
         "wdj": {
           "file": "線路直角方向フーチング.wdj",
-          "sha256": "4179ffcb070acced0de522b28452f45007b1f0e5c329b90ddbcb52d88ea4d5d1"
+          "sha256": "c4d1a93e548669a99ff807480bbd38e8def9fb53f7e133d247115a5ca47d2188"
         },
         "engine_version": "1.0.0",
         "sections": {
@@ -393,7 +393,7 @@
           },
           "bending_restorability_eq": {
             "page": 6,
-            "ratio": "0.893",
+            "ratio": "0.892",
             "capacity": "4808.1"
           }
         }

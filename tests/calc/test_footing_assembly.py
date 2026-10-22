@@ -15,7 +15,9 @@ from pathlib import Path
 
 import pytest
 
-from footing_support import COMBINATIONS, DIRECTIONS, NON_SEISMIC, STEPS, completed, footing_pier, prepared, reactions
+from footing_support import (
+    ALPHA_F, COMBINATIONS, DIRECTIONS, NON_SEISMIC, STEPS, completed, footing_pier, prepared, reactions,
+)
 from webpier.calc import foundation_check as fc
 from webpier.calc import footing
 from webpier.calc.foundation import calculate_foundation
@@ -146,13 +148,13 @@ def test_a_missing_pickup_is_the_reaction_error_of_0612():
     given = reactions("0800_longitudinal", basis)
     del given[(basis.pickups["long_term"], "fy")]
     with pytest.raises(fc.ReactionError, match="ピックアップ"):
-        footing.complete(basis, given, STEPS)
+        footing.complete(basis, given, STEPS, ALPHA_F)
 
 
 def test_a_step_table_that_never_reaches_rvd_is_a_steps_error():
     basis, _ = prepared("0800_longitudinal")
     with pytest.raises(footing.StepsError, match="Rvd到達ステップがありません"):
-        footing.complete(basis, reactions("0800_longitudinal", basis), STEPS[:2])
+        footing.complete(basis, reactions("0800_longitudinal", basis), STEPS[:2], ALPHA_F)
 
 
 def test_an_upward_vd_in_a_column_is_an_input_error_naming_the_column():
@@ -162,7 +164,7 @@ def test_an_upward_vd_in_a_column_is_an_input_error_naming_the_column():
     extreme = fc.SupportReaction(13, 0.0, 10.0, 0.0)
     given[(pickup, "fy")] = (extreme, extreme)
     with pytest.raises(InputError, match="フーチングの応答値（使用性 短期）: フーチング底面の鉛直力 Vd が上向きです"):
-        footing.complete(basis, given, STEPS)
+        footing.complete(basis, given, STEPS, ALPHA_F)
 
 
 def test_blank_footing_bars_stop_prepare_before_any_analysis():
@@ -186,8 +188,8 @@ def test_both_directions_are_prepared_before_the_analyses_and_completed_after_th
     bases = footing.calculate_footing(pier, foundation, *frames)
     assert (bases.longitudinal.direction, bases.transverse.direction) == ("線路", "直角")
     assert bases.longitudinal == prepared("0800_longitudinal")[0]
-    result = footing.complete_footing(bases, (reactions("0800_longitudinal", bases.longitudinal), STEPS),
-                                      (reactions("0800_transverse", bases.transverse), STEPS))
+    result = footing.complete_footing(bases, (reactions("0800_longitudinal", bases.longitudinal), STEPS, ALPHA_F),
+                                      (reactions("0800_transverse", bases.transverse), STEPS, ALPHA_F))
     assert result == footing.FootingResult(completed("0800_longitudinal"), completed("0800_transverse"))
 
 
@@ -198,4 +200,4 @@ def test_a_vertical_force_of_zero_names_the_extraction_case():
     extreme = fc.SupportReaction(13, 0.0, 0.0, 0.0)
     given[(basis.pickups["short_term"], "fy")] = (extreme, extreme)
     with pytest.raises(InputError, match="フーチングの応答値（使用性 短期）: 抽出ケース「永久＋変動」の鉛直力 Vd が0です"):
-        footing.complete(basis, given, STEPS)
+        footing.complete(basis, given, STEPS, ALPHA_F)

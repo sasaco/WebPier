@@ -19,6 +19,15 @@
    - 線路直角方向：`線路直角方向_JRSNAP/線路直角方向(Case1_ρm10_αf1_正向).DB1`、`…(Case2_ρm10_αf1_正向).DB1`
 3. 線路直角方向は WebPier の組合せが2つ（上り線・下り線）で、元は1ケースなので、Case2 の照査項目（`dgCaseList_1`〜`9` の2件目）を Case1 と同じにした。
 
+## 手で変えたこと（2026-10-22、決定76）
+
+組合せが照査パターン（ρm, αf）の4つずつになり（線路方向 4 Case、線路直角方向 8 Case。Case5〜8 は下り線の逆向）、照査項目が Case ごとに変わったので、上のファイルの `dgCaseList_1`〜`9` の先頭の Case と `SnapDBPath` を、owner が手で直して Aggre-SE で保存した `post/線路直角方向.xml`（2026-10-22。WebPier の書出しではない）から写した。
+
+- 線路直角方向：その8 Case の照査項目と DB1 のパス（`線路直角方向_JRSNAP/線路直角方向(Case1_ρm10_αf1_正向).DB1` 〜 `(Case8_ρm12_αf2_逆向).DB1`）。
+- 線路方向：その Case1〜4（上り線・正向。照査項目は照査パターンで決まり載荷の向きによらない）の照査項目と、名前を `線路方向` にした DB1 のパス（`線路方向_JRSNAP/線路方向(Case1_ρm10_αf1_正向).DB1` 〜 `(Case4_ρm12_αf2_正向).DB1`）。
+
+写したあとのファイルを下の手順で保存し直し、バイト列が変わらないことを確かめた（SHA256 線路方向 `4eb1c3fdc8610bf0fdbb8187d9bf3827b29448da441b5f234af13bd6e81f166e`、線路直角方向 `9559069267d7e25b476efb79d9356dbc849fe3225f8f013660bb15977d4c544d`）。
+
 ## Aggre-SE での保存し直し
 
 手で変えたファイルを、`scripts/aggrese_project_roundtrip.cs`（Aggre-SE の `Input.SetXmData` → `applyVersion` → `Input.GetXmlData` → Shift-JIS の `StreamWriter`）で保存し直した。使った Aggre-SE は structural-mcp の `Batch` サブモジュール（コミット `14ed213`）の `Aggre-SE/Headless/bin/Release/Batch.exe`（FileVersion 5.3.0.1）。

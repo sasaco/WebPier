@@ -186,6 +186,8 @@ def _seismic(stage: str, combinations: object, cases: Mapping[str, BasicCase]) -
             raise _error(where, "cases は id のタプルが必要です")
         if not combination.cases:
             raise _error(where, "基本ケースが1つ以上必要です")
+        if not isinstance(combination.reverse, bool):
+            raise _error(where, "reverse は True か False が必要です")
         seen: set[str] = set()
         for case in combination.cases:
             if case not in SEISMIC_CASES and case not in cases:

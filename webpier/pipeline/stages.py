@@ -472,7 +472,7 @@ def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput
     """The project of the NDU of *stage_id*, checked before the analysis; then its writer (decision 49)."""
     def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
         project = build_project(_ndu_model(stage_id, profile, results, pier), pier)
-        return lambda folder, names: write_project(project, databases(folder, names, project.cases))
+        return lambda folder, names: write_project(project, databases(folder, names, len(project.cases)))
     return build
 
 
@@ -530,15 +530,17 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
 def _footing(stem: str) -> StageSpec:
     """0800: the footing response values of both directions (decision 60), prepared from 0500 and the frames of
     0610 and 0620 before any runner, finished with the support reactions of the frame analyses of 0612 and 0622
-    (the same analyses as 0611 and 0621) and the step tables of the seismic checks of 0711 and 0721."""
+    (the same analyses as 0611 and 0621) and the step tables of the seismic checks of 0711 and 0721, whose Cases are
+    the combinations of 0710 and 0720 (decision 76)."""
     def complete(bases: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        def analyses(reactions_of: str, steps_of: str, basis: Any):
+        def analyses(reactions_of: str, steps_of: str, seismic: str, basis: Any):
             return (support_reactions(files[seismic_file(reactions_of, "reaction")], basis.node),
-                    foundation_steps(files[seismic_file(steps_of, "steps")]))
-        return complete_footing(bases, analyses("0612", "0711", bases.longitudinal),
-                                analyses("0622", "0721", bases.transverse))
+                    foundation_steps(files[seismic_file(steps_of, "steps")]),
+                    tuple(combination.alpha_f for combination in results[seismic].combinations))
+        return complete_footing(bases, analyses("0612", "0711", "0710", bases.longitudinal),
+                                analyses("0622", "0721", "0720", bases.transverse))
 
-    return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
+    return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
                      lambda pier, results: calculate_footing(pier, results["0500"], results["0610"], results["0620"]),
                      lambda results, pier, path, pages: render_footing(results["0800"], path),
                      complete=complete,
@@ -700,7 +702,7 @@ def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) ->
 
     def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
         project = build_project(ndu(results, pier), pier)
-        return lambda folder, names: write_project(project, databases(folder, names, project.cases))
+        return lambda folder, names: write_project(project, databases(folder, names, len(project.cases)))
 
     return replace(stage, nonlinear_analysis=replace(analysis, project=replace(analysis.project, build=build)))
 

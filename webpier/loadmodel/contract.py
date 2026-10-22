@@ -162,10 +162,13 @@ class Combination:
 
 @dataclass(frozen=True)
 class SeismicCombination:
-    """A combination of a static nonlinear analysis: the basic cases it loads, each with the factor 1."""
+    """A combination of a static nonlinear analysis: the basic cases it loads, each with the factor 1. The application
+    analyses it for each 照査パターン (ρm, αf); ``reverse`` pushes the incremental cases away from the earthquake
+    (逆向, decision 76), as for a load on the other side of the axis."""
 
     name: str
     cases: tuple[str, ...]
+    reverse: bool = False
 
 
 @dataclass(frozen=True)

@@ -300,10 +300,17 @@ class SeismicAction:
     rvd: Printed  # JRSNAP's Rvd at that step, kN
 
 
-def seismic_action(rows: Sequence[FoundationStep]) -> SeismicAction:
+FOUNDATION_ALPHA_F = 1.0  # decision 76: the footing takes the Cases of αf = 1.0 (基礎構造物を照査する場合)
+
+
+def seismic_action(rows: Sequence[FoundationStep], alpha_f: Sequence[Printed]) -> SeismicAction:
+    """*alpha_f* is the αf of each Case by its index (the combinations of the NDU in order)."""
     cases: dict[int, list[FoundationStep]] = {}
     for row in rows:
-        cases.setdefault(row.case_index, []).append(row)
+        if not 0 <= row.case_index < len(alpha_f):
+            raise StepsError(f"{row.case_name} の Case の番号 {row.case_index} が組合せ（{len(alpha_f)}件）にありません")
+        if alpha_f[row.case_index].value == FOUNDATION_ALPHA_F:
+            cases.setdefault(row.case_index, []).append(row)
     candidates = []
     for case_index in sorted(cases):
         reached = next((row for row in sorted(cases[case_index], key=lambda row: row.step) if row.v >= row.rvd),
@@ -315,7 +322,7 @@ def seismic_action(rows: Sequence[FoundationStep]) -> SeismicAction:
         candidates.append(SeismicAction(case_index, reached.case_name, reached.step, FORCE(reached.v),
                                         FORCE(abs(reached.h)), MOMENT(abs(reached.m)), FORCE(reached.rvd)))
     if not candidates:
-        raise StepsError("どの Case も Rvd到達ステップがありません（V が Rvd に達しません）")
+        raise StepsError("αf=1.0 のどの Case も Rvd到達ステップがありません（V が Rvd に達しません）")
     return max(candidates, key=lambda action: action.md.value)
 
 
@@ -456,10 +463,11 @@ class FootingDirection:
         return next(column for column in self.columns if column.key == key)
 
 
-def complete(basis: FootingBasis, reactions: Reactions, steps: Sequence[FoundationStep]) -> FootingDirection:
+def complete(basis: FootingBasis, reactions: Reactions, steps: Sequence[FoundationStep],
+             alpha_f: Sequence[Printed]) -> FootingDirection:
     """The five columns from the support reactions (``ReactionError`` when a pickup is missing) and the step table
-    (``StepsError`` when no Case reaches Rvd)."""
-    seismic = seismic_action(steps)
+    of the Cases whose αf is *alpha_f* by index (``StepsError`` when no Case of αf = 1.0 reaches Rvd)."""
+    seismic = seismic_action(steps, alpha_f)
     columns = []
     for spec in COLUMNS:
         if spec.group is None:
@@ -504,7 +512,8 @@ class FootingBases:
     transverse: FootingBasis
 
 
-Analyses = tuple[Reactions, Sequence[FoundationStep]]  # (the support reactions, the step table) of one direction
+# (the support reactions, the step table, the αf of each Case) of one direction
+Analyses = tuple[Reactions, Sequence[FoundationStep], Sequence[Printed]]
 
 
 def calculate_footing(pier: PierInput, foundation: FoundationResult, longitudinal_frame: FrameResult,

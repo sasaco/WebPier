@@ -9,6 +9,7 @@ from webpier.calc import footing
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
+from webpier.calc.seismic_longitudinal import PATTERNS
 from webpier.calc.transverse import calculate_transverse
 
 SANDY = {"地盤データ/層/1/土質区分": "砂質土", "地盤データ/層/0/単位体積重量/水中": 9.0}
@@ -49,6 +50,8 @@ def step(case_index, number, v, h, m, rvd):
                                   54120.2, 0.081)
 
 
+# The αf of each Case: the four 照査パターン of 0710 (decision 76); the Case of STEPS is the first (αf 1.0).
+ALPHA_F = tuple(alpha_f for _, alpha_f in PATTERNS)
 STEPS = (step(0, 1, 16825.97, 0.0, 580.25, 543358.71), step(0, 2, 16825.97, -5747.86, 52784.78, 22069.94),
          step(0, 3, 16825.97, -5901.07, 54168.43, 16655.87), step(0, 4, 16825.97, -5949.26, 54514.06, 16655.87))
 
@@ -80,4 +83,4 @@ def reactions(direction: str, basis: footing.FootingBasis) -> fc.Reactions:
 
 def completed(direction: str, **changes) -> footing.FootingDirection:
     basis, _ = prepared(direction, **changes)
-    return footing.complete(basis, reactions(direction, basis), STEPS)
+    return footing.complete(basis, reactions(direction, basis), STEPS, ALPHA_F)

@@ -77,7 +77,7 @@ def test_declared_dependencies_of_the_real_stages():
     expected = {"0400": (), "0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
                 "0710": ("0500", "0600", "0610"), "0720": ("0500", "0600", "0620"), "0611": ("0610",),
                 "0621": ("0620",), "0612": ("0500", "0610"), "0622": ("0500", "0620"), "0711": ("0710",),
-                "0721": ("0720",), "0800": ("0500", "0610", "0612", "0620", "0622", "0711", "0721"),
+                "0721": ("0720",), "0800": ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
                 "0810": ("0800",), "0820": ("0800",), "0900": ("0600", "0711", "0721"), "0910": ("0900",)}
     assert depends == {stage: expected[stage] for stage in depends}
 
@@ -164,10 +164,11 @@ def test_the_nonlinear_analysis_stages_analyze_the_ndu_files():
 
 def test_the_footing_stages_read_the_analyses_of_both_directions():
     """Decision 60: 0800 is prepared from 0500 and the frames of 0610・0620 and finished with the reactions of the
-    analyses of 0612・0622 and the step tables of the seismic checks of 0711・0721; 0810・0820 have Capacita check
-    the WDJ of their direction as given (no frame analysis of their own)."""
+    analyses of 0612・0622 and the step tables of the seismic checks of 0711・0721, whose Cases are the combinations
+    of 0710・0720 (decision 76); 0810・0820 have Capacita check the WDJ of their direction as given (no frame
+    analysis of their own)."""
     for stage_id, stem, depends in (
-            ("0800", "0800_フーチング", ("0500", "0610", "0612", "0620", "0622", "0711", "0721")),
+            ("0800", "0800_フーチング", ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721")),
             ("0810", "0810_線路方向フーチング照査", ("0800",)), ("0820", "0820_直角方向フーチング照査", ("0800",))):
         stage = STAGES.get(stage_id)
         assert (stage.stem, stage.depends_on, STAGES.item(stage_id)) == (stem, depends, "footing")

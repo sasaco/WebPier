@@ -20,8 +20,9 @@ ENCODING = "cp932"
 NEWLINE = "\r\n"
 NIL = None  # an array item written as xsi:nil
 
-# WebPier's conditions, those of the Example2 projects (P1_線路.xml, P1_直角.xml):
-CHECKS = (True, True, True, False, True, True, True, True, True)  # ①..⑨ for every Case: all but ④ 破壊形態の検討
+# WebPier's conditions, those of the Example2 projects (P1_線路.xml, P1_直角.xml); the check items ①..⑨ of each Case
+# are those of its 照査パターン (project.CHECKS, decision 76):
+CHECK_ITEMS = 9  # dgCaseList_1..9
 MEMBER_TYPE = 2  # 部材照査タイプ of the one nonlinear member: 柱
 SHEAR_FORMULA = 1  # せん断耐力の算定式 ① 標準せん断耐力【RC標準】
 SUPPORT = -1  # 端部支持条件: none (an M-θ member)
@@ -84,10 +85,11 @@ def _pile_anchor_bar() -> list[Node]:
 
 def document(project: Project, databases: Sequence[str]) -> list[Node]:
     """The children of ``Datas``: the project with the DB1 of each Case (paths from the XML)."""
-    if len(databases) != project.cases:
-        raise ValueError(f"DB1 が{len(databases)}件です（Case は{project.cases}件）")
-    case_name = [(f"dgCaseList_{number}", _array("int", _cases([-1 if check else 0] * project.cases, 0)))
-                 for number, check in enumerate(CHECKS, 1)]
+    if len(databases) != len(project.cases):
+        raise ValueError(f"DB1 が{len(databases)}件です（Case は{len(project.cases)}件）")
+    case_name = [(f"dgCaseList_{item + 1}",
+                  _array("int", _cases([-1 if checks[item] else 0 for checks in project.cases], 0)))
+                 for item in range(CHECK_ITEMS)]
     case_name.append(("analysisObject", _array("string", _cases([], NIL))))
     element = [("_dgLimitLevel_SIJI", _array("int", [SUPPORT])), ("_dgLimitLevel_type", _array("int", [MEMBER_TYPE])),
                ("_dgLimitLevel_La", _array("float", [Decimal(repr(project.shear_span.value))])),

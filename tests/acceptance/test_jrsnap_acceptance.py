@@ -72,10 +72,16 @@ def test_jrsnap_saved_what_we_wrote(stage):
     compare_state(parse_records(candidate), direction["jrsnap_state"])
 
 
-def test_jrsnap_reads_both_combinations_of_0720():
-    """Decision 40: JRSNAP 5.2 reads a 0720 NDU with two SNAPConb (上り線・下り線), so one NDU is kept."""
+def test_jrsnap_reads_every_combination_with_its_pattern_and_direction():
+    """Decision 40: JRSNAP 5.2 reads a 0720 NDU with several SNAPConb, so one NDU is kept; decision 76: the four
+    照査パターン (ρm, αf) of each, the down track 逆向 (G_intConbHoko 1)."""
+    patterns = [(1, 1), (1.2, 1), (1, 2), (1.2, 2)]
     state = RECORD["directions"]["0720"]["jrsnap_state"]
-    assert state["counts"]["G_intConbNum"] == 2
-    assert [combination["coefficients"] for combination in state["combinations"]] == [
-        [1, 1, 1, 1, 1, 0, 1, 1, 1], [1, 1, 1, 1, 0, 1, 1, 1, 1]]
-    assert RECORD["directions"]["0710"]["jrsnap_state"]["counts"]["G_intConbNum"] == 1
+    assert state["counts"]["G_intConbNum"] == 8
+    assert [(c["coefficients"], (c["rho_m"], c["alpha_f"]), c["direction"]) for c in state["combinations"]] == [
+        *(([1, 1, 1, 1, 1, 0, 1, 1, 1], pattern, 0) for pattern in patterns),
+        *(([1, 1, 1, 1, 0, 1, 1, 1, 1], pattern, 1) for pattern in patterns)]
+    state = RECORD["directions"]["0710"]["jrsnap_state"]
+    assert state["counts"]["G_intConbNum"] == 4
+    assert [((c["rho_m"], c["alpha_f"]), c["direction"]) for c in state["combinations"]] == [
+        (pattern, 0) for pattern in patterns]

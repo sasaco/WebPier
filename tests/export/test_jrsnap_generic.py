@@ -27,10 +27,10 @@ def built(direction: Direction):
 def test_the_ndu_passes_with_the_cases_the_load_model_declares(direction):
     profile, model, data = built(direction)
     summary = validate_ndu(data, profile)
-    assert (summary.cases, summary.combinations) == (7, 1)
+    assert (summary.cases, summary.combinations) == (7, 4)  # the one combination by the four 照査パターン
     assert [case.title for case in model.cases] == TITLES
     assert [case.increment for case in model.cases] == [0, 0, 0, 0, 1, 4, 1]  # 固定 0, 増分 1, 限定増分 4
-    assert model.combinations[0].coefficients == (1,) * 7
+    assert [c.coefficients for c in model.combinations] == [(1,) * 7] * 4
 
 
 def test_the_labels_of_the_loads():

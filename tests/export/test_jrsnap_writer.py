@@ -74,7 +74,7 @@ def test_records_equal_to_example2(written):
 def test_longitudinal_records_equal_to_example2():
     built = lines(write_ndu(model("longitudinal")))
     sample = {key: ",".join(fields) for key, fields in example2("longitudinal").items()}
-    for key in ["JointOrg", "JointNum", "ElementNum", "LoadNum", "SNAPConbNum", "SNAPConb1", "ConbNum", "ConbAlpf1",
+    for key in ["JointOrg", "JointNum", "ElementNum", "LoadNum", "SNAPConb1", "ConbAlpf1",
                 *(f"JointXY{i}" for i in range(2, 8)),
                 *(f"{key}{case}" for key in ("LoadTitle", "LoadCase", "LoadAlph") for case in range(5, 9))]:
         assert built[key] == sample[key], key
@@ -84,6 +84,11 @@ def test_longitudinal_records_equal_to_example2():
     assert built["JLoadInfo1"] == sample["JLoadInfo1"] == "1, ,1,0, ,8299.53,-610,上部工反力"
     assert built["JLoadInfo8"] == sample["JLoadInfo8"] == "6, ,1,1,-11530, , ,上部工慣性力"
     assert built["JLoadInfo9"] == sample["JLoadInfo9"] == "7, ,1,4,-128, , ,列車慣性力"
+    # Decision 76: Example2 has the first 照査パターン; the other three follow, all 正向.
+    assert sample["SNAPConbNum"] == "1" and built["SNAPConbNum"] == built["ConbNum"] == "4"
+    assert [built[f"SNAPConb{i}"].split(",")[:4] for i in range(1, 5)] == [
+        ["1", "1", "0", "0"], ["1.2", "1", "0", "0"], ["1", "2", "0", "0"], ["1.2", "2", "0", "0"]]
+    assert all(built[f"ConbAlpf{i}"] == sample["ConbAlpf1"] for i in range(1, 5))
 
 
 def test_transverse_records():
@@ -91,10 +96,14 @@ def test_transverse_records():
     assert built["DataName"] == "線路直角方向" and built["JointOrg"] == "6" and built["LoadNum"] == "9"
     assert built["JointXY1"] == "0,-10.35,1" and built["JointXY8"] == "0,2.7,8"
     assert built["DataInfo"].split(",")[2:7] == ["350", "1", "1000", "300", " "]
-    assert built["SNAPConbNum"] == built["ConbNum"] == "2"
-    assert built["SNAPConb1"] == "1,1,0,0,1,1,1,1,1,0,1,1,1, , , , , , ,0,0"
-    assert built["SNAPConb2"] == "1,1,0,0,1,1,1,1,0,1,1,1,1, , , , , , ,0,0"
-    assert built["ConbAlpf2"] == "1,1,1,1,0,1,1,1,1"
+    # Decision 76: as the owner wrote them (post/線路直角方向.ndu, 2026-10-22): the up track 正向, the down track
+    # 逆向 (3rd field 1), each by the 照査パターン (ρm, αf) (1.0, 1)(1.2, 1)(1.0, 2)(1.2, 2).
+    assert built["SNAPConbNum"] == built["ConbNum"] == "8"
+    up, down = "1,1,1,1,1,0,1,1,1", "1,1,1,1,0,1,1,1,1"
+    assert [built[f"SNAPConb{i}"] for i in range(1, 9)] == [
+        f"{pattern},{way},0,{cases}, , , , , , ,0,0" for way, cases in ((0, up), (1, down))
+        for pattern in ("1,1", "1.2,1", "1,2", "1.2,2")]
+    assert [built[f"ConbAlpf{i}"] for i in range(1, 9)] == [up] * 4 + [down] * 4
     assert built["JLoadInfo7"] == "5, ,2,0, ,480,1028.62,列車荷重"
     assert built["JLoadInfo8"] == "6, ,2,0, ,480,-1028.62,列車荷重"
     assert built["MLoadInfo5"] == "9, ,2,1,1, , ,-595.35,-595.35, , ,自重慣性力"

@@ -164,7 +164,9 @@ def test_every_item_adds_the_footing_stages_with_their_reports_and_wdjs(footing_
         assert output[f"{stem}.pdf"].startswith(b"%PDF-")
     result = load_json(output["0800_フーチング.json"])
     assert "section_check" not in result and "engineering_status" not in result["result"]
-    for direction, case_index in (("longitudinal", 0), ("transverse", 1)):
+    # The stand-in's M grows with the Case index; decision 76 takes the largest of the αf 1.0 Cases: along the track
+    # Case2 (ρm 1.2), across it Case6 (the down track, ρm 1.2), not the αf 2.0 ones after them.
+    for direction, case_index in (("longitudinal", 1), ("transverse", 5)):
         columns = result["result"][direction]["columns"]
         assert [column["key"] for column in columns] == ["safety_moment", "safety_shear", "short_term", "long_term",
                                                           "seismic"]

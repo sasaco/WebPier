@@ -17,6 +17,7 @@ import pytest
 from footing_report_cases import completed
 from frame_report_cases import text
 from webpier.calc.footing import FootingResult
+from webpier.core.printed import Printed
 from webpier.reporting.stages.footing import build_footing, content, records, render_footing
 
 HEADINGS = ("(1) 線路方向の計算", "1) 設計鉛直地盤反力度の算定", "2) 有効幅", "3) 地盤反力による断面力",
@@ -138,6 +139,23 @@ def test_the_design_forces_name_the_full_and_the_effective_width(result):
                  "設計曲げモーメント Md (kN・m)", "地盤反力によるせん断力 (kN/m)", f"1 m当たりせん断力 (kN) Be = {text(width.be)} m",
                  "設計せん断力 Vd (kN)", "せん断スパン La = Md / Vd (m)"):
         assert line in shown, line
+
+
+def test_a_value_too_wide_for_three_columns_splits_the_table_by_limit_state(tmp_path, result):
+    # P7橋脚 across the track: Mmd 109235.91 does not fit a design column of 3 grid columns (42.24 pt for 45 pt), and
+    # four wider ones do not fit the body: one table a limit state, nothing shrunk (2026-10-22).
+    found = result.transverse
+    wide = Printed(109235.91, 2, "kN・m")
+    columns = tuple(replace(column, capacity=replace(column.capacity, mmd=wide)) for column in found.columns)
+    big = FootingResult(result.longitudinal, replace(found, columns=columns))
+    units = {unit.key: unit for unit in content(big)}
+    split = units["0800/transverse.pressure.table"]
+    assert split.kind == "figure" and len(split.value.block.specs) == 2
+    assert all(spec.widths[2:] == (4,) * (len(spec.widths) - 2) for spec in split.value.block.specs)
+    assert units["0800/longitudinal.pressure.table"].kind == "table"  # the sample's values keep one table
+    assert printed(big).count("109235.91") == len(columns)
+    with pymupdf.open(stream=render_footing(big, tmp_path / "wide.pdf").read_bytes()) as pages:
+        assert "".join(page.get_text() for page in pages).count("109235.91") == len(columns)
 
 
 def test_the_report_renders_the_same_bytes_every_time(tmp_path, result):

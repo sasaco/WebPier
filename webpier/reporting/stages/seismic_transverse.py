@@ -46,7 +46,7 @@ ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before
 # JRSNAP's データ確認図 before 11.2 (decision 50) and its load diagram after 11.3 (decision 51).
 INSERTIONS = (Insertion(DATA_CHECK, PREFIX + ACTIONS, before=True), Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS))
 ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←",
-          ActionDirection.TOWARD_W9: "→"}
+          ActionDirection.TOWARD_W9: "→", ActionDirection.TOWARD_W1: "←"}
 TRACK_NAMES = {Track.UP: "上り", Track.DOWN: "下り"}
 _CASES = {
     SeismicCase.D1: (("D", "1"), "固定死荷重"), SeismicCase.D2: (("D", "2"), "付加死荷重"),

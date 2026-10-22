@@ -61,7 +61,7 @@ def test_aggre_se_checked_every_case_into_the_report(stage):
     assert (checked["engine"], checked["engineering_status"]) == ("aggrese", "not_evaluated")
     assert checked["jrsnap"] == {"file": spec.nonlinear_analysis.folder, "sha256": direction["jrsnap"]["sha256"]}
     assert len(checked["cases"]) == len(direction["cases"]) == len(direction["project"]["databases"]) == {
-        "0711": 1, "0721": 2}[stage]
+        "0711": 4, "0721": 8}[stage]  # the 照査パターン of each combination (decision 76)
     assert all(case["aggregated"] for case in checked["cases"])
     assert direction["report"]["file"] == f"{spec.stem}.pdf" and direction["report"]["pages"] > len(direction["cases"])
 
@@ -87,9 +87,10 @@ def test_aggre_se_returned_the_summary_workbook_of_the_report(stage):
 
 
 def test_the_longitudinal_response_is_example2s():
-    """Example2 10-14: Kheq 0.368, δeq 30.5, safety μ 9.32 and δr 284.3, restorability μ 5.78 and δr 176.3."""
+    """Example2 10-14: Kheq 0.368, δeq 30.5, safety μ 9.32 and δr 284.3, restorability μ 5.78 and δr 176.3 — Case1,
+    whose 照査パターン is Example2's (ρm 1.0, αf 1.0; decision 76)."""
     direction = RECORD["directions"]["0711"]
     assert direction["example2"]["matches"] is True
-    assert direction["cases"] == [{"kheq": 0.368, "delta_eq": 30.5,
+    assert direction["cases"][:1] == [{"kheq": 0.368, "delta_eq": 30.5,
                                    "safety": {"mu": 9.32, "delta_r": 284.3, "khr": 0.386},
                                    "restorability": {"mu": 5.78, "delta_r": 176.3, "khr": 0.385}}]

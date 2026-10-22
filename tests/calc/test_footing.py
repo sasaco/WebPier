@@ -238,36 +238,53 @@ def step(case_index, step_number, v, h, m, rvd, name=None):
 
 STEPS = (step(0, 1, 16825.97, 0.0, 580.25, 543358.71), step(0, 2, 16825.97, -5747.86, 52784.78, 22069.94),
          step(0, 3, 16825.97, -5901.07, 54168.43, 16655.87), step(0, 4, 16825.97, -5949.26, 54514.06, 16655.87))
+# The αf of Case1〜4 by index, as the four 照査パターン (ρm, αf) of 0710 give them (decision 76).
+ALPHA_F = tuple(Printed(alpha_f, 1, "") for alpha_f in (1.0, 1.0, 2.0, 2.0))
 
 
 def test_the_seismic_action_is_the_first_step_at_rvd():
-    found = footing.seismic_action(STEPS)
+    found = footing.seismic_action(STEPS, ALPHA_F)
     assert (found.case_index, found.case_name, found.step) == (0, "Case1", 3)
     assert (found.vd.value, found.hd.value, found.md.value) == (16825.97, 5901.07, 54168.43)
-    assert footing.seismic_action(tuple(reversed(STEPS))) == found
+    assert footing.seismic_action(tuple(reversed(STEPS)), ALPHA_F) == found
 
 
 def test_the_case_with_the_largest_md_at_rvd_is_taken():
     other = (step(1, 1, 16825.97, 0.0, 580.25, 543358.71), step(1, 2, 16825.97, 5901.07, -54268.43, 16655.87),
              step(1, 3, 16825.97, 5949.26, -54614.06, 16655.87))
-    found = footing.seismic_action(STEPS + other)
+    found = footing.seismic_action(STEPS + other, ALPHA_F)
     assert (found.case_index, found.case_name, found.step, found.hd.value, found.md.value) == (1, "Case2", 2, 5901.07,
                                                                                                54268.43)
     tie = (step(1, 1, 16825.97, 0.0, 580.25, 543358.71), step(1, 2, 16825.97, 5901.07, -54168.43, 16655.87))
-    assert footing.seismic_action(STEPS + tie).case_index == 0
+    assert footing.seismic_action(STEPS + tie, ALPHA_F).case_index == 0
+
+
+def test_a_case_of_alpha_f_2_is_not_a_candidate():
+    # Decision 76: Case3 (αf 2.0) reaches Rvd with a larger |Md| but is for the superstructure, not the foundation.
+    larger = (step(2, 1, 16825.97, 0.0, 580.25, 543358.71), step(2, 2, 16825.97, 5901.07, -99999.0, 16655.87))
+    assert footing.seismic_action(STEPS + larger, ALPHA_F).case_index == 0
+    with pytest.raises(footing.StepsError, match="αf=1.0 のどの Case も Rvd到達ステップがありません"):
+        footing.seismic_action(larger, ALPHA_F)
+
+
+def test_a_case_outside_the_combinations_is_an_error():
+    with pytest.raises(footing.StepsError, match=r"Case5 の Case の番号 4 が組合せ（4件）にありません"):
+        footing.seismic_action(STEPS + (step(4, 1, 16825.97, 0.0, 580.25, 543358.71),), ALPHA_F)
+    with pytest.raises(footing.StepsError, match="番号 -1 が"):
+        footing.seismic_action((step(-1, 1, 16825.97, 0.0, 580.25, 543358.71),), ALPHA_F)
 
 
 def test_a_case_that_never_reaches_rvd_is_not_a_candidate():
     never = (step(1, 1, 16825.97, 0.0, 580.25, 543358.71), step(1, 2, 16825.97, 9000.0, 99999.0, 20000.0))
-    assert footing.seismic_action(STEPS + never).case_index == 0
+    assert footing.seismic_action(STEPS + never, ALPHA_F).case_index == 0
     with pytest.raises(footing.StepsError, match="どの Case も Rvd到達ステップがありません"):
-        footing.seismic_action(never)
+        footing.seismic_action(never, ALPHA_F)
 
 
 def test_an_upward_or_zero_vd_at_rvd_is_an_error():
     rows = (step(0, 1, 16825.97, 0.0, 580.25, 543358.71), step(0, 2, 0.0, 5000.0, 50000.0, -1.0))
     with pytest.raises(footing.StepsError, match=r"Case1 のステップ 2 の鉛直力 V が 0 以下です（0\.0 kN）"):
-        footing.seismic_action(rows)
+        footing.seismic_action(rows, ALPHA_F)
 
 
 # 3) 6) 7) the trapezoid rows of the four non-seismic columns, with the corrected q2 (hand calculation).

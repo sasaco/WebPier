@@ -64,7 +64,7 @@ def test_a_number_written_in_another_format_is_normalized(longitudinal):
 
 
 @pytest.mark.parametrize("old,new,message", [
-    ("SNAPConbNum=2\r\n", "SNAPConbNum=1\r\n", "SNAPConbNum"),  # a value
+    ("SNAPConbNum=8\r\n", "SNAPConbNum=1\r\n", "SNAPConbNum"),  # a value
     ("GanmaA=1.2,1,1,1\r\n", "GanmaA=1.2,1,1,1,0\r\n", "GanmaA: 欄の数"),
     ("Tisou=\r\n", "Tisou= \r\n", "Tisou"),  # EMPTY and BLANK are different
     ("SHABUZAI_INFO\r\n", "SHABUZAI_INFO=\r\n", "SHABUZAI_INFO"),
@@ -96,18 +96,17 @@ def test_a_dropped_or_moved_record_is_an_error(transverse):
 def test_summary_counts_the_declared_records(transverse, longitudinal):
     assert summarize(parse_records(transverse)) == {
         "counts": {"JointNum": 8, "MemberNum": 7, "ElementNum": 7, "LoadNum": 9, "MLoadNum": 8, "JLoadNum": 11,
-                   "SNAPConbNum": 2, "ConbNum": 2},
-        "combinations": [["1", "1", "0", "0", "1", "1", "1", "1", "1", "0", "1", "1", "1", " ", " ", " ", " ", " ",
-                          " ", "0", "0"],
-                         ["1", "1", "0", "0", "1", "1", "1", "1", "0", "1", "1", "1", "1", " ", " ", " ", " ", " ",
-                          " ", "0", "0"]],
+                   "SNAPConbNum": 8, "ConbNum": 8},
+        "combinations": [[*pattern, way, "0", *cases, *[" "] * 6, "0", "0"]
+                         for way, cases in (("0", "111110111"), ("1", "111101111"))
+                         for pattern in (("1", "1"), ("1.2", "1"), ("1", "2"), ("1.2", "2"))],
     }
-    assert summarize(parse_records(longitudinal))["counts"]["SNAPConbNum"] == 1
+    assert summarize(parse_records(longitudinal))["counts"]["SNAPConbNum"] == 4
 
 
 def test_a_count_that_differs_from_its_records_is_an_error(transverse):
     lines = [line for line in transverse.split(b"\r\n")[:-1] if not line.startswith(b"SNAPConb2=")]
-    with pytest.raises(ReadbackError, match="SNAPConbNum = 2 に対して SNAPConb が 1 件"):
+    with pytest.raises(ReadbackError, match="SNAPConbNum = 8 に対して SNAPConb が 7 件"):
         summarize(parse_records(b"".join(line + b"\r\n" for line in lines)))
 
 
@@ -119,11 +118,13 @@ def test_a_missing_count_is_an_error():
 STATE = {"read_code": 0,
          "counts": {"G_intJointNum": 8, "G_intMemberNum": 7, "G_intElementNum": 7, "G_intSectNum": 1,
                     "G_intSuppotNum": 3, "G_intLoadNum": 9, "G_intMLoadNum": 8, "G_intJLoadNum": 11,
-                    "G_intConbNum": 2},
-         "combinations": [{"rho_m": 1, "alpha_f": 1, "cases": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                           "coefficients": [1, 1, 1, 1, 1, 0, 1, 1, 1]},
-                          {"rho_m": 1, "alpha_f": 1, "cases": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-                           "coefficients": [1, 1, 1, 1, 0, 1, 1, 1, 1]}]}
+                    "G_intConbNum": 8},
+         # Decision 76: the up track 正向 (0), then the down track 逆向 (1), by 照査パターン (ρm, αf).
+         "combinations": [{"rho_m": rho_m, "alpha_f": alpha_f, "direction": direction,
+                           "cases": [1, 2, 3, 4, 5, 6, 7, 8, 9], "coefficients": list(coefficients)}
+                          for direction, coefficients in ((0, [1, 1, 1, 1, 1, 0, 1, 1, 1]),
+                                                          (1, [1, 1, 1, 1, 0, 1, 1, 1, 1]))
+                          for rho_m, alpha_f in ((1, 1), (1.2, 1), (1, 2), (1.2, 2))]}
 
 
 def state(**changes):
@@ -138,17 +139,18 @@ def state(**changes):
 
 
 def test_what_jrsnap_holds_after_reading_is_what_we_wrote(transverse):
-    """The probe's literal output for the 0720 NDU of current.json (2026-10-18, JRSNAP 5.2-L03): two combinations."""
+    """The probe's output for the 0720 NDU of current.json (JRSNAP 5.2-L03): eight combinations (decision 76)."""
     compare_state(parse_records(transverse), STATE)
 
 
 @pytest.mark.parametrize("changes,message", [
     ({"read_code": 200}, "読込みの戻り値 200"),
     ({"counts/G_intJointNum": 7}, "JointNum = 8 に対して JRSNAP は 7"),
-    ({"counts/G_intConbNum": 1, "combinations": STATE["combinations"][:1]}, "SNAPConbNum = 2 に対して JRSNAP は 1"),
+    ({"counts/G_intConbNum": 1, "combinations": STATE["combinations"][:1]}, "SNAPConbNum = 8 に対して JRSNAP は 1"),
     ({"combinations": STATE["combinations"][:1]}, "組合せの数"),
-    ({"combinations/1/coefficients/4": 1}, "組合せ 2 の係数"),
+    ({"combinations/1/coefficients/5": 1}, "組合せ 2 の係数"),
     ({"combinations/1/cases": [1, 2, 3, 4, 5, 6, 7, 8]}, "組合せ 2 の荷重ケース"),
+    ({"combinations/4/direction": 0}, "組合せ 5 の載荷の向き"),
     ({"combinations/0/rho_m": 1.1}, "組合せ 1 の ρm"),
     ({"combinations/0/alpha_f": 0.9}, "組合せ 1 の αf"),
 ])

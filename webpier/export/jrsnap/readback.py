@@ -135,8 +135,9 @@ def _same_number(field: str, value: float | int) -> bool:
 def compare_state(records: tuple[Record, ...], state: Mapping[str, Any]) -> None:
     """Compare what JRSNAP holds after reading (scripts/jrsnap_state_probe.cs) with the records we wrote.
 
-    *state* is the probe's JSON: the read code, the counts, and each combination's ρm, αf, load cases and
-    coefficients. SNAPConb is ρm, αf, two zeros, a coefficient per load case (blank for the unused slots), two zeros.
+    *state* is the probe's JSON: the read code, the counts, and each combination's ρm, αf, direction (0 正向,
+    1 逆向), load cases and coefficients. SNAPConb is ρm, αf, the direction, a zero, a coefficient per load case (blank
+    for the unused slots), two zeros.
     """
     if state["read_code"] != 0:
         raise ReadbackError(f"JRSNAP の読込みの戻り値 {state['read_code']}")
@@ -154,6 +155,8 @@ def compare_state(records: tuple[Record, ...], state: Mapping[str, Any]) -> None
             raise ReadbackError(f"組合せ {number} の ρm が異なります（書いた {fields[0]}、JRSNAP {combination['rho_m']}）")
         if not _same_number(fields[1], combination["alpha_f"]):
             raise ReadbackError(f"組合せ {number} の αf が異なります（書いた {fields[1]}、JRSNAP {combination['alpha_f']}）")
+        if not _same_number(fields[2], combination["direction"]):
+            raise ReadbackError(f"組合せ {number} の載荷の向きが異なります（書いた {fields[2]}、JRSNAP {combination['direction']}）")
         if combination["cases"] != cases:
             raise ReadbackError(f"組合せ {number} の荷重ケースが異なります（JRSNAP {combination['cases']}）")
         coefficients = fields[4:4 + len(cases)]

@@ -5,9 +5,9 @@
   <CaseName>
     <dgCaseList_1>
       <int>-1</int>
-      <int>0</int>
-      <int>0</int>
-      <int>0</int>
+      <int>-1</int>
+      <int>-1</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -57,9 +57,9 @@
     </dgCaseList_1>
     <dgCaseList_2>
       <int>-1</int>
-      <int>0</int>
-      <int>0</int>
-      <int>0</int>
+      <int>-1</int>
+      <int>-1</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -109,9 +109,9 @@
     </dgCaseList_2>
     <dgCaseList_3>
       <int>-1</int>
+      <int>-1</int>
       <int>0</int>
-      <int>0</int>
-      <int>0</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -161,9 +161,9 @@
     </dgCaseList_3>
     <dgCaseList_4>
       <int>0</int>
+      <int>-1</int>
       <int>0</int>
-      <int>0</int>
-      <int>0</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -212,7 +212,7 @@
       <int>0</int>
     </dgCaseList_4>
     <dgCaseList_5>
-      <int>-1</int>
+      <int>0</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -317,7 +317,7 @@
     </dgCaseList_6>
     <dgCaseList_7>
       <int>-1</int>
-      <int>0</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -369,7 +369,7 @@
     </dgCaseList_7>
     <dgCaseList_8>
       <int>-1</int>
-      <int>0</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -421,7 +421,7 @@
     </dgCaseList_8>
     <dgCaseList_9>
       <int>-1</int>
-      <int>0</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -527,9 +527,9 @@
   <SNAP>
     <SnapDBPath>
       <string>ü˜H•ûŒü_JRSNAP/ü˜H•ûŒü(Case1_ƒÏm10_ƒ¿f1_³Œü).DB1</string>
-      <string xsi:nil="true" />
-      <string xsi:nil="true" />
-      <string xsi:nil="true" />
+      <string>ü˜H•ûŒü_JRSNAP/ü˜H•ûŒü(Case2_ƒÏm12_ƒ¿f1_³Œü).DB1</string>
+      <string>ü˜H•ûŒü_JRSNAP/ü˜H•ûŒü(Case3_ƒÏm10_ƒ¿f2_³Œü).DB1</string>
+      <string>ü˜H•ûŒü_JRSNAP/ü˜H•ûŒü(Case4_ƒÏm12_ƒ¿f2_³Œü).DB1</string>
       <string xsi:nil="true" />
       <string xsi:nil="true" />
       <string xsi:nil="true" />

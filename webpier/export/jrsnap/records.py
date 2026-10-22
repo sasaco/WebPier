@@ -166,7 +166,8 @@ def _loads(model: NduModel) -> Iterator[Record]:
     yield "SNAPConbNum", (len(model.combinations),)
     for index, c in enumerate(model.combinations, 1):
         padding = (BLANK,) * (COMBINATION_SLOTS - len(c.coefficients))
-        yield f"SNAPConb{index}", (c.rho_m, c.alpha_f, 0, 0, *c.coefficients, *padding, 0, 0)
+        # The 3rd field is the direction of the push (G_intConbHoko): 0 正向, 1 逆向 (decision 76)
+        yield f"SNAPConb{index}", (c.rho_m, c.alpha_f, int(c.reverse), 0, *c.coefficients, *padding, 0, 0)
     yield "ConbNum", (len(model.combinations),)
     for index, c in enumerate(model.combinations, 1):
         yield f"ConbAlpf{index}", c.coefficients

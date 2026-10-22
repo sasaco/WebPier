@@ -36,7 +36,7 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 - 4列：安全性 Md最大＝ピックアップ 1 安全性（破壊）の |mz| 最大、安全性 Vd最大＝1 の fy 最大、使用性 短期＝2 耐久性 永久＋変動の fy 最大、長期＝3 永久作用の fy 最大。支点の節点は骨組の役割 `FOOTING_BOTTOM`、符号と丸めは 0612 と同じ（Vd＝−fy、Hd＝|fx|、Md＝|mz|、2桁）。
 - ピックアップ 2・3 は fy が max 行と min 行で同じ（19506.36）で、mz が ±（水平力の向き違い）の2つある。`foundation_check.pick` は fy が同値なら |mz| の大きい行、さらに同じなら |fx| の大きい行を採る（owner 2026-10-19）。これで使用性の Md は見本（3327.13／3056.25）と一致する。先頭の行を採ると 2852.88／1887.75 になる。
 - 使用性の Vd は 19506.36 で見本 19505.93 と 0.43 違う（見本の隠れ桁）。受入の許容差は使用性の Vd だけ 0.5 kN、他は 0.25。
-- ステップ表（`foundation-steps.csv`）：`case_index, case_name, node, step, V, H, M, qvd, qd, Rvd, Mmd, plasticity`。SNAPDBLib が返す JRSNAP の値のまま（列と step の番号はスキル structural-aggrese 参照）。Rvd到達ステップは `V ≧ Rvd` の最初の行。Case が複数（0721）なら Case ごとに求めて |M| が最大の Case。Vd＝V（0以下はエラー）、Hd＝|H|、Md＝|M|。見本 10-23・11-24 の「増分ステップ＝31／32」と同じ番号付け。
+- ステップ表（`foundation-steps.csv`）：`case_index, case_name, node, step, V, H, M, qvd, qd, Rvd, Mmd, plasticity`。SNAPDBLib が返す JRSNAP の値のまま（列と step の番号はスキル structural-aggrese 参照）。Rvd到達ステップは `V ≧ Rvd` の最初の行。Case ごとに求め、αf＝1.0 の Case（`case_index` は SnapDBPath の順＝0710・0720 の組合せの順。その組合せの αf で選ぶ）のうち |M| が最大の Case（決定76。αf＝2.0 は上部構造物の照査用で、基礎には使わない）。Vd＝V（0以下はエラー）、Hd＝|H|、Md＝|M|。見本 10-23・11-24 の「増分ステップ＝31／32」と同じ番号付け。
 - Example2（`pre/input.json`、Df 4.70）の結果：線路方向は Case 1 のステップ 32（見本 31）、Vd 16825.97（一致）、Hd 5901.07／Md 54168.43（見本 5747.86／52784.78）。Df・γe2 の既知の差で1ステップ遅い。Aggre-SE の PIK（決定57、応答値までの包絡）は Md が約7%大きく、使わない（owner 2026-10-19）。
 - 地震時の列の抵抗側は WebPier が求める：地盤抵抗係数 1.00（`FACTORS` の地震時）、γe2 は平水位、Df は 0612 と同じ表層厚。ステップ表の qd・Rvd は到達の判定にだけ使う。
 

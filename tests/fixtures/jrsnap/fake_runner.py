@@ -5,7 +5,7 @@ It follows the runner's protocol as WebPier uses it (structural-mcp JRSNAPHeadle
 ``webpier.pipeline.jrsnap.analyze_nonlinear``, an output directory that must be absent or empty, the files in it,
 and one UTF-8 JSON envelope (protocolVersion 1, engine jrsnap) on stdout. Instead of JRSNAP it writes, for the input
 ``<stem>.ndu`` and each of its combinations n (the line ``SNAPConbNum=<count>``, else one), the analysis data
-``<stem>(Case<n>_ρm10_αf1_正向).ndt`` with the line ``FAKE NDT <file name> <SHA256 of the input bytes>`` and the
+``<stem>(Case<n>_ρm<ρm×10>_αf<αf>_正向|逆向).ndt`` (from its line ``SNAPConb<n>``, decision 76) with the line ``FAKE NDT <file name> <SHA256 of the input bytes>`` and the
 results ``….DB1``, ``….LOG`` and ``….OUT`` with ``FAKE DB1 …``, ``FAKE LOG …`` and ``FAKE OUT …`` (UTF-8, LF), so a
 test can tell which bytes were analyzed. Several combinations are analyzed in one run, as the real runner does.
 When the real runner's protocol changes, change this too.
@@ -82,6 +82,14 @@ def count(document, key):
     return int(found[1]) if found else 1
 
 
+def case_name(document, stem, number):
+    """JRSNAP's name of combination *number*: ``<stem>(Case<n>_ρm<ρm×10, 2 digits>_αf<αf>_正向|逆向)`` from its line
+    ``SNAPConb<n>=ρm,αf,direction,…`` (else ρm 1.0, αf 1.0, 正向)."""
+    found = re.search(rb"^SNAPConb" + str(number).encode() + rb"=([^,]*),([^,]*),([^,]*),", document, re.MULTILINE)
+    rho, alpha, reverse = (float(found[1]), float(found[2]), found[3] == b"1") if found else (1.0, 1.0, False)
+    return f"{stem}(Case{number}_ρm{round(rho * 10):02d}_αf{round(alpha)}_{'逆向' if reverse else '正向'})"
+
+
 def figures(argv, mode):
     if mode == "exit":
         return 3
@@ -106,7 +114,6 @@ def figures(argv, mode):
     if missing := [number for number in numbers if number > combinations]:
         return failure("COMBINATION_NOT_FOUND", f"The .ndu has no combination {missing[0]}.", "input")
     digest = hashlib.sha256(document).hexdigest()
-    ndt = f"{source.stem}(Case{{}}_ρm10_αf1_正向).ndt"
     names = argv[6].split(",")
     if mode == "order":
         names.reverse()
@@ -124,7 +131,8 @@ def figures(argv, mode):
         drawn = list(range(1, cases + (0 if mode == "nocase" and last else 1)))
         content = pdf(*(f"FAKE LOAD DIAGRAM COMB {combination} CASE {case} {digest[:16]}" for case in drawn))
         listed = [{"page": page, "case": case, "title": f"CASE-{case} FAKE"} for page, case in enumerate(drawn, 1)]
-        diagrams.append({"combination": combination, "ndt": ndt.format(combination), "sha256": digest,
+        diagrams.append({"combination": combination, "ndt": f"{case_name(document, source.stem, combination)}.ndt",
+                         "sha256": digest,
                          "file": f"load-diagram-{combination}.pdf",
                          "pages": listed[:-1] if mode == "pages" and last else listed})
         files.append(("load-diagram", f"load-diagram-{combination}.pdf", content))
@@ -138,7 +146,7 @@ def figures(argv, mode):
                           "relativePath": name, "bytes": len(content),
                           "sha256": hashlib.sha256(b"other" if mode == "sha" and last else content).hexdigest()})
     summary = {"jrsnap": {"product": "5.2-L03", "assemblyVersion": "5.2.3.1"},
-               "dataCheck": {"combination": 1, "ndt": ndt.format(1), "sha256": digest,
+               "dataCheck": {"combination": 1, "ndt": f"{case_name(document, source.stem, 1)}.ndt", "sha256": digest,
                              "figures": [{"figure": figure, "file": f"{figure}.pdf", "pages": 1} for figure in names]},
                "loadDiagram": None if mode == "nodiagram" else diagrams}
     changes = {"protocol": {"protocolVersion": 2}, "summary": {"summary": None}}.get(mode, {})
@@ -171,7 +179,7 @@ def main(argv):
     document = source.read_bytes()
     digest = hashlib.sha256(document).hexdigest()
     count = re.search(rb"^SNAPConbNum=(\d+)\r?$", document, re.MULTILINE)
-    outputs = [(f"{source.stem}(Case{case}_ρm10_αf1_正向).{suffix}", kind,
+    outputs = [(f"{case_name(document, source.stem, case)}.{suffix}", kind,
                 f"FAKE {word} {source.name} {digest}\n".encode())
                for case in range(1, (int(count[1]) if count else 1) + 1)
                for suffix, kind, word in (("ndt", "ndt", "NDT"), ("DB1", "analysis-result", "DB1"),

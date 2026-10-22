@@ -196,7 +196,8 @@ def test_the_frame_analysis_adds_the_pickup_files_and_changes_no_report(all_gene
 
 
 def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all_generation, tmp_path):
-    """The stand-in writes one case per combination of the NDU: the transverse one has two (decision 47)."""
+    """The stand-in writes one case per combination of the NDU, named as JRSNAP names it (decisions 47, 76): four
+    照査パターン along the track, and across it the up track 正向 and the down track 逆向."""
     source = copy_input(tmp_path / "pre", *DEFAULT, *NONLINEAR, "cantilever")
     generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
     assert generation.stages == ("0500", "0600", "0610", "0620", "0710", "0711", "0720", "0721", "0900", "0910")
@@ -207,12 +208,17 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
                           if not name.startswith(tuple(reports.values()))}) == without_input(
         tree(all_generation[0] / "output"))
     post = tree(tmp_path / "post")
-    for stage, source_stage, stem, cases in (("0711", "0710", "線路方向", (1,)), ("0721", "0720", "線路直角方向", (1, 2))):
+    patterns = ("ρm10_αf1", "ρm12_αf1", "ρm10_αf2", "ρm12_αf2")
+    along = tuple(f"Case{case}_{pattern}_正向" for case, pattern in enumerate(patterns, 1))
+    across = along + tuple(f"Case{case}_{pattern}_逆向" for case, pattern in enumerate(patterns, 5))
+    for stage, source_stage, stem, names in (("0711", "0710", "線路方向", along),
+                                             ("0721", "0720", "線路直角方向", across)):
+        cases = range(1, len(names) + 1)
         folder, ndu = f"{stem}_JRSNAP", f"{stem}.ndu"
         digest = sha256(post[ndu])
         assert {name: content for name, content in post.items() if name.startswith(folder + "/")} == {
-            f"{folder}/{stem}(Case{case}_ρm10_αf1_正向).{suffix}": f"FAKE {word} {ndu} {digest}\n".encode()
-            for case in cases for suffix, word in (("ndt", "NDT"), ("DB1", "DB1"), ("LOG", "LOG"), ("OUT", "OUT"))}
+            f"{folder}/{stem}({name}).{suffix}": f"FAKE {word} {ndu} {digest}\n".encode()
+            for name in names for suffix, word in (("ndt", "NDT"), ("DB1", "DB1"), ("LOG", "LOG"), ("OUT", "OUT"))}
         sidecar = load_json(post[f"{folder}.provenance.json"])
         assert (sidecar["stage"], sidecar["export"], sidecar["file"]) == (stage, "jrsnap", folder)
         assert sidecar["nonlinear_analysis"]["ndu"] == {"stage": source_stage, "export": "jrsnap", "file": ndu,
@@ -230,15 +236,15 @@ def test_the_nonlinear_analysis_adds_the_jrsnap_folder_of_each_published_ndu(all
         # Decision 56: the report is the stand-in Aggre-SE runner's, one page per Case and a summary page.
         with pymupdf.open(stream=output[f"{reports[stage]}.pdf"], filetype="pdf") as document:
             pages = [page.get_text().strip() for page in document]
-        databases = [post[f"{folder}/{stem}(Case{case}_ρm10_αf1_正向).DB1"] for case in cases]
+        databases = [post[f"{folder}/{stem}({name}).DB1"] for name in names]
         assert pages == [*(f"FAKE AGGRESE Case{case} {sha256(database)[:16]}" for case, database in zip(cases, databases)),
                          f"FAKE AGGRESE SUMMARY {sha256(post[project])[:16]}"]
         result = load_json(output[f"{reports[stage]}.json"])
         assert result["result"] is None
         assert result["seismic_check"] == {
             "engine": "aggrese", "engine_version": "fake-1", "engineering_status": "not_evaluated",
-            "cases": [{"caseNumber": case, "name": f"{stem}(Case{case}_ρm10_αf1_正向)", "aggregated": True}
-                      for case in cases],
+            "cases": [{"caseNumber": case, "name": f"{stem}({name})", "aggregated": True}
+                      for case, name in zip(cases, names)],
             "project": {"file": project, "sha256": sha256(post[project])},
             "jrsnap": {"file": folder, "sha256": content_sha256(tmp_path / "post" / folder)},
             "files": {kind: {"file": name, "sha256": sha256(post[name])}

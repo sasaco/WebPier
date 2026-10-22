@@ -59,7 +59,7 @@ def test_the_accepted_project_is_what_the_generator_writes_now(pier, stage):
 def test_aggre_se_read_every_case_and_saved_the_same_bytes(stage):
     direction = RECORD["directions"][stage]
     cases = direction["run"]["cases"]
-    assert len(cases) == len(direction["databases"]) == {"0711": 1, "0721": 2}[stage]
+    assert len(cases) == len(direction["databases"]) == {"0711": 4, "0721": 8}[stage]  # decision 76
     assert all(case["selected"] and case["aggregated"] for case in cases)
     assert {"summary.xlsx", "report.pdf"} <= set(direction["run"]["outputs"])
     assert direction["roundtrip_identical"] is True

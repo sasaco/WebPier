@@ -130,6 +130,7 @@ class Combination:
     rho_m: Printed
     alpha_f: Printed
     coefficients: tuple[int, ...]  # 1 or 0 for each load case
+    reverse: bool = False  # 逆向: the incremental cases and the target displacement turned around (decision 76)
 
 
 @dataclass(frozen=True)

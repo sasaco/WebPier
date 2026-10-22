@@ -168,9 +168,10 @@ def test_only_0710_and_0720_take_the_figures_of_their_ndu(pier):
 
 
 def test_each_basic_case_is_drawn_from_the_first_combination_that_uses_it(pier):
-    """Decision 51: 0710 has one combination; across the track CASE-6 (the down track) is not in combination 1."""
+    """Decision 51: along the track every case is in combination 1; across it CASE-6 (the down track) is first in
+    combination 5, the first of the down track (decision 76)."""
     assert figure_cases(pier, "0710") == tuple((case, 1) for case in range(1, 9))
-    assert figure_cases(pier, "0720") == tuple((case, 2 if case == 6 else 1) for case in range(1, 10))
+    assert figure_cases(pier, "0720") == tuple((case, 5 if case == 6 else 1) for case in range(1, 10))
     results = generate._calculate(STAGES, pier, ("0720",))
     assert STAGES.get("0720").jrsnap_figures.load_cases(generate._own(STAGES, results, "0720"), pier) == \
         figure_cases(pier, "0720")

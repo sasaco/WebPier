@@ -13,7 +13,8 @@
   keeps N (downward), H (+x) and M (N × +x lever) of the frame: JRSNAP's y down and M clockwise give the same
   signs. A horizontal load along a member is −h on the local y of the top-to-bottom element; the D1 column
   weight is an axial load. A load without a component has no row.
-- Combinations: one per calc combination, coefficient 1 for its cases and 0 for the others.
+- Combinations: one per calc combination, coefficient 1 for its cases and 0 for the others, with its ρm, αf and
+  whether it is reversed (逆向, decision 76).
 
 Values come from the results as they are printed; nothing is recalculated.
 """
@@ -159,7 +160,7 @@ def build_ndu(profile: Profile, pier: PierInput, foundation: FoundationResult, e
     cases = tuple(_case(number, action, profile, elements) for number, action in enumerate(seismic.basic_cases, 1))
     order = [action.case for action in seismic.basic_cases]
     combinations = tuple(Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
-                                     coefficients=tuple(int(case in c.cases) for case in order))
+                                     coefficients=tuple(int(case in c.cases) for case in order), reverse=c.reverse)
                          for c in seismic.combinations)
     return _from_the_upper_left(NduModel(
         profile=profile, analysis=_analysis(pier, profile), control=control.number, origin=top.number,

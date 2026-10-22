@@ -43,7 +43,8 @@ PREFIX = "0710/"
 ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before (decision 50)
 # JRSNAP's データ確認図 before 10.2 (decision 50) and its load diagram after 10.3 (decision 51).
 INSERTIONS = (Insertion(DATA_CHECK, PREFIX + ACTIONS, before=True), Insertion(LOAD_DIAGRAM, PREFIX + DIAGRAMS))
-ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←"}
+ARROWS = {ActionDirection.DOWNWARD: "↓", ActionDirection.UPWARD: "↑", ActionDirection.TOWARD_ORIGIN: "←",
+          ActionDirection.TOWARD_END: "→"}
 INCREMENTS = {Increment.FIXED: "固定", Increment.INCREMENTAL: "増分", Increment.LIMITED: "限定増分"}
 # 10-12: symbol (base, subscript) and name; the inertia names carry their Kh.
 _CASES = {

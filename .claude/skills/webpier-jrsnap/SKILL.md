@@ -38,7 +38,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - 差し込みは、他のエンジンのページと共通の `webpier/reporting/stages/insertion.py`。0710・0720 の帳票は `Insertion(DATA_CHECK, <作用の見出し>, before=True)` で、10.2（11.2）の前にページの名前 `data_check` のページを挟む（`render_with_pages`）。
 - 段階の登録表の `StageSpec.jrsnap_figures` が、どの NDU から描くかと「基本ケース → 組合せ」を決める。NDU の付帯JSONの `jrsnap_figures` に、runner の版と報告、データ確認図の組合せと図（`data_check`）を記録する。
 - 0711・0721 を選ばない生成でも毎回描く。そのため、0710・0720 を含む生成には `STRUCTURAL_MCP_JRSNAP_RUNNER` が必須。
-- 番号図・断面・節点ばねは組合せで変わらないので、組合せ1の `.ndt` だけで描く（0720 は組合せが2つ）。runner が 0710 のために書く `.ndt` は、0711 の `post/線路方向_JRSNAP/` の `.ndt` と SHA256 が同じ。
+- 番号図・断面・節点ばねは組合せで変わらないので、組合せ1の `.ndt` だけで描く（組合せは照査パターン（ρm, αf）の4つずつで、0710 は4つ、0720 は8つ。決定76）。runner が 0710 のために書く `.ndt` は、0711 の `post/線路方向_JRSNAP/` の `.ndt` と SHA256 が同じ。
 - 用語は CONTEXT.md に合わせ、「組合せ」と「基本ケース（CASE-n）」を混ぜない。
 - 補助を `Environment.Exit` で終えると、終了処理の中で S_DataCheck の画面が例外を出し、答えの後に終了コードが変わったことが 0710 で1回あった（そのため補助は `TerminateProcess` で終える。`structural-jrsnap-figures` の report-host.md）。
 - テストの代役は `tests/fixtures/jrsnap/fake_runner.py` の `figures`。データ確認図は図ごとに `FAKE DATA CHECK <名前> <NDU の SHA256 の先頭16桁>` の1ページを返す。誤動作は `FAKE_JRSNAP_FIGURES` で選ぶ（`FAKE_JRSNAP` は `run` だけに効く）。
@@ -47,14 +47,14 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 ## 0710・0720 の荷重図 10.3・11.3（決定51）
 
 - 0710 に「10.3 荷重図」、0720 に「11.3 荷重図」の見出しを置き、その後に基本ケースのページを CASE の順に1ケース1ページで挟む。作用の組合せは 10.4・11.4 で、新しいページから始める。荷重が0のケースも省かない。
-- WebPier は NDU のモデル（`export/jrsnap/model.NduModel` の `cases` と `combinations[].coefficients`）から、基本ケースごとに「そのケースを使う、番号がいちばん小さい組合せ」を決める（0710 は全ケース 1、0720 は CASE-6 だけ 2。0720 では組合せ1の NDT は CASE-6（下り線）が0、組合せ2の NDT は CASE-5（上り線）が0）。その組合せを `--load-diagram` に渡し、返ったページから（`summary.loadDiagram[].pages` のページとケースの対応で）1ページずつ取り出す。
+- WebPier は NDU のモデル（`export/jrsnap/model.NduModel` の `cases` と `combinations[].coefficients`）から、基本ケースごとに「そのケースを使う、番号がいちばん小さい組合せ」を決める（0710 は全ケース 1、0720 は CASE-6 だけ 5。0720 では組合せ1〜4 の NDT は CASE-6（下り線）が0、組合せ5〜8 の NDT は CASE-5（上り線）が0。組合せ5〜8 は逆向だが、逆向は増分の作用（`LOAD 1`）と目標変位の符号だけを変え、固定の CASE-6 の荷重は同じ）。その組合せを `--load-diagram` に渡し、返ったページから（`summary.loadDiagram[].pages` のページとケースの対応で）1ページずつ取り出す。
 - 実装の場所：「基本ケース → 組合せ」は `webpier/export/jrsnap/diagrams.py` の `diagram_combinations`（登録表の `StageSpec.jrsnap_figures` が使う）、runner の呼び出しとページの取り出しは `webpier/pipeline/jrsnap.py` の `draw_figures`、計算書への差し込みは `webpier/reporting/stages/insertion.py`（`Insertion(LOAD_DIAGRAM, <10.3・11.3 の見出し>)`）。NDU の付帯JSONの `jrsnap_figures.load_diagram` に `[{case, combination}, …]` を記録する。
 - いまの WebPier の NDT はどのケースも1部材に要素荷重が1つなので、`AutoRowFlg` の 0 と 1 で図はピクセル単位まで同じ。0710 の CASE-1 で、節点4〜6付近の「297.680」と「4167.450」の文字が重なるのは、種別4（柱自重）の既定の配置で、`AutoRowFlg` では直らず、JRSNAP の描画として受け入れた。
 - 荷重の行が1つもないケースは、JRSNAP の荷重図がページを省いたうえ次のページに前の題名を付ける。WebPier は値0の節点荷重を1行書いて避ける（決定62。2026-10-20、P7 で本物の runner により全ケースの題名と中身が合うことを確認）。雪荷重のない橋脚は雪荷重のケースそのものを作らない（決定69、7・8ケース）ので、いまは入力からこの形はできない。
 - 基本ケースの番号は作ったケースの順（`SeismicAction.number`）。`SeismicCase` の値は雪のあるときの番号で、番号に使わない。検証器は `LoadTitle` が profile の名前の順（雪荷重を抜いた順も可）であることを確かめる。
 - いまの WebPier の NDT では `NDT_REJECTED`（要素荷重の2つの値がともに0の行）は起きない（JRSNAP が0にするのは、いまは節点荷重だけ）。
 - 受入：`scripts/accept_jrsnap_figures.py`（本物の runner、5.2-L03。記録 `tests/fixtures/acceptance/jrsnap_figures/record.json`、テスト `tests/acceptance/test_jrsnap_figures_acceptance.py`）。0710 は8ページ・0720 は9ページが CASE の順、A4縦・色の画素0・ページ番号なし、0720 の CASE-5・CASE-6 の両方に 480（`480.000`）を確かめた（2026-10-18）。生成する NDU か「基本ケース → 組合せ」が変わると `tests/acceptance` が失敗するので、`--overwrite` を付けてやり直す。
-- 計算書の確かめ方（本物の runner で 0710・0720（出力項目 `longitudinal_seismic`・`transverse_seismic`）を作り直した後）：`uv run --no-project --with pypdfium2 --with pillow python -X utf8 …` でページごとの文字を取り出し、並びを見る。2026-10-18 の `pre/input.json` では、0710 は17ページ（1〜2 10.1、3〜7 データ確認図、8 10.2 の末尾に「10.3 荷重図」、9〜16 CASE-1〜8、17 「10.4 作用の組合せ」）、0720 は19ページ（8〜9 11.2 で9の末尾に「11.3 荷重図」、10〜18 CASE-1〜9、19 「11.4」）。組合せ2から取った 0720 の CASE-6 だけ、ヘッダーの名前が組合せ2の NDT（`『線路直角方向(Case2_…)』`）になる。見出しのページと 10.4・11.4 の改ページは、150dpi の PNG にして目でも確かめる。
+- 計算書の確かめ方（本物の runner で 0710・0720（出力項目 `longitudinal_seismic`・`transverse_seismic`）を作り直した後）：`uv run --no-project --with pypdfium2 --with pillow python -X utf8 …` でページごとの文字を取り出し、並びを見る。2026-10-18 の `pre/input.json` では、0710 は17ページ（1〜2 10.1、3〜7 データ確認図、8 10.2 の末尾に「10.3 荷重図」、9〜16 CASE-1〜8、17 「10.4 作用の組合せ」）、0720 は19ページ（8〜9 11.2 で9の末尾に「11.3 荷重図」、10〜18 CASE-1〜9、19 「11.4」）。組合せ5から取った 0720 の CASE-6 だけ、ヘッダーの名前が組合せ5の NDT（`『線路直角方向(Case5_ρm10_αf1_逆向)』`）になる（決定76 の前は組合せ2）。見出しのページと 10.4・11.4 の改ページは、150dpi の PNG にして目でも確かめる。
 - 見本 `.claude/docs/Example橋脚2/10_線路(耐震).pdf` の 10.3（10-9〜10-11）は、Excel で描いた図（1ページに2〜3ケース）で、その体裁は再現しない。
 - 詳細と進み具合は `.claude/docs/plans/jrsnap-load-diagram-plan.md` と `refactoring-decisions.md` の決定51。
 

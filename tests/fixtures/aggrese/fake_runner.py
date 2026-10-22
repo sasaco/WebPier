@@ -11,8 +11,9 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
   page ``FAKE AGGRESE SUMMARY <SHA256 of the XML, 16 hex>``;
 - ``pickup.pik``: ``Batch ver1.0.0`` and one line ``FAKE PIK <SHA256 of the XML, 16 hex>``, in Shift-JIS with CRLF;
 - ``summary.xlsx``: a workbook (openpyxl) with the real one's sheets 応答値一覧表・設計総括表・安全率一覧表・直接基礎;
-  the 応答値一覧表 has the real layout decision 59 reads (row No with the Case numbers from column D, row 名称, the blocks
-  復旧性 and 安全性 with a row 最大応答震度 of text values: Case n gives 0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1)), and
+  the 応答値一覧表 has the real layout decision 59 reads (row No with the Case numbers from column D, row 名称, rows αf
+  and ρm from the DB1 name, the blocks 復旧性 and 安全性 with a row 最大応答震度 of text values: Case n gives
+  0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1)), and
   設計総括表 A1 says ``FAKE XLSX <SHA256 of the XML, 16 hex>``; its properties are dated 1980-01-01 so the bytes are the
   same each run (the real workbook's are not);
 - ``foundation-steps.csv``: the step table of the direct foundation (decision 60), UTF-8 and CRLF, with the real
@@ -37,6 +38,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import xml.etree.ElementTree as ET
 
@@ -92,8 +94,10 @@ def workbook(text, names):
         column = 4 + index
         sheet.cell(row=4, column=column, value=index + 1)
         sheet.cell(row=5, column=column, value=name)
-        sheet.cell(row=6, column=column, value="1.0")
-        sheet.cell(row=7, column=column, value="1.0")
+        found = re.search(r"_ρm(\d)(\d)_αf(\d)_", name)  # JRSNAP's name of the Case (decision 76)
+        rho, alpha = (f"{found[1]}.{found[2]}", f"{found[3]}.0") if found else ("1.0", "1.0")
+        sheet.cell(row=6, column=column, value=alpha)
+        sheet.cell(row=7, column=column, value=rho)
         sheet.cell(row=15, column=column, value=f"{0.385 + 0.01 * index:.3f}")
         sheet.cell(row=19, column=column, value=f"{0.386 + 0.01 * index:.3f}")
     for title in ("設計総括表", "安全率一覧表", "直接基礎"):
