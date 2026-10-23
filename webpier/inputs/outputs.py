@@ -40,8 +40,9 @@ OUTPUT_KEYS = tuple(item.key for item in OUTPUT_ITEMS)
 _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
 
 # The items a pile foundation can make so far (roadmap pile-foundation-roadmap.md; widened a stage at a time): 0400,
-# 0500 (SOIL-JR's ground model, decision 85) and 0600 (which does not read the foundation).
-PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions")
+# 0500 (SOIL-JR's ground model, decision 85), 0600 (which does not read the foundation) and 0610, 0620 (the frame on the
+# piles, decision 88).
+PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "longitudinal", "transverse")
 
 
 def foundation_makes(foundation: str | None, key: str) -> bool:

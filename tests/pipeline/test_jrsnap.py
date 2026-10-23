@@ -228,7 +228,7 @@ def test_the_stand_in_calculates_the_given_sdt(fake_jrsnap_runner: Path):
     document = soil_input()
     found = calculate_ground("杭基礎.sdt", document, fake_jrsnap_runner, liquefaction=False)
     digest = hashlib.sha256(document).hexdigest()
-    assert sorted(found.files) == ["sdc", "sdr"] and found.files["sdc"] == f"FAKE SDC {digest}".encode()
+    assert sorted(found.files) == ["sdc", "sdr"] and found.files["sdc"].decode("cp932").split("\r\n")[4] == f"FAKE SDC {digest}"
     assert f"FAKE SOIL-JR REPORT {digest[:16]}" in texts(found.report)[0]
     assert found.pages == {SOIL_REPORT: found.report}
     assert found.engine_version == "fake-1" and found.summary["input"] == {"name": "杭基礎.sdt", "sha256": digest}

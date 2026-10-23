@@ -12,7 +12,17 @@
 | P1 JRSNAPHeadless の `soil` 命令 | ✅ 済 | 83 | JRSNAPHeadless `a8733f9`（README に命令・成果物・失敗の種類） |
 | P2 入力（schema 2） | ✅ 済 | 84 | WebPier `f84ffb1` |
 | P3 0500（杭基礎） | ✅ 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
-| P4〜P9 | 未着手 | — | — |
+| P4 杭基礎の骨組（0610・0620） | ✅ 済（本物の SOIL-JR・FEMPython で見本と一致。杭先端の反力に既知の差） | 88 | （下の「P4 で決めたこと」） |
+| P5〜P9 | 未着手 | — | — |
+
+### P4 で決めたこと（決定88。詳細は `refactoring-decisions.md`）
+
+- ばねは .sdc の「解析用地盤ばね値」をそのまま使う。長期を 1番、短期（線形）を 2番に、`fix_node`（杭先端）と `fix_member`（杭周面の分布ばね）で持つ。FEMPython はそのまま使えた（改造なし）。
+- 注記（※1〜3）は SOIL-JR が値に反映済み。杭周面の鉛直せん断ばねは**押込み側**の表（owner）。見本の表 III-21 は最下層（4-2）にもせん断ばねがあり、押込み側だと杭先端の反力が見本より 9 %・4 % 大きい（引抜き側の値にすると 0.02 % で合う）。既知の差として `tests/pipeline/test_pile_frame_fempython.py` に記録した。
+- 杭の断面は杭頭の1つで全長（段落しは入れない）。杭列は1本の部材（A・I は奥行き本数倍）、杭頭は底面の剛な部材に剛結。
+- 計算と FrameWeb 入力は、0500 の SOIL-JR が動いてから行う（`StageSpec.after`）。`validate` は2段階の計算を確かめない。
+- 見本の照合：.sdc は見本の表 III-21 と 0.2 % 以内、杭頭の軸力は見本の断面力図 D1 と 0.01 %（`tests/fixtures/example4/`、`example4.json`）。
+- 見本との差で残るもの：荷重（EA-17。`example4.json` は仮置き）が違うので、列車荷重を含む断面力は照合していない。フーチングの自重は見本が部材に分布させ、WebPier は重心の1点（直接基礎と同じ）なので、フーチングの曲げモーメントは違う（P7 で扱う）。
 
 ### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`）
 

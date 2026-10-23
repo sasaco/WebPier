@@ -4,8 +4,9 @@ WebPier derives the rows of SOIL-JR's input from the input (``calc.pile_ground``
 has SOIL-JR calculate it with the JRSNAP runner (``jrsnap.calculate_ground``). The report of the stage is SOIL-JR's as the
 runner printed it, byte for byte; the 基礎照査連携用データ (.sdr), the 解析連携データ (.sdc) and, when a layer along the pile
 liquefies, the same two for the liquefaction are published under post/ as returned. The stage's result holds what WebPier
-derived, the .sdt SOIL-JR calculated by its SHA256, and the design limits of the .sdr (and of the one for the
-liquefaction) as tables, so that the stages that use them take them from the result (0612 and 0622, Aggre-SE's check).
+derived, the .sdt SOIL-JR calculated by its SHA256, the design limits of the .sdr (and of the one for the
+liquefaction) as tables, and the ground springs of the .sdc, so that the stages that use them take them from the result
+(0610 and 0620 the springs, decision 88; 0612 and 0622, Aggre-SE's check the limits).
 SOIL-JR returns no judgement: the check is recorded as run, not as passed.
 """
 
@@ -18,7 +19,8 @@ from typing import Any
 
 from ..calc.pile_ground import PileGroundResult, calculate_pile_ground
 from ..core.integrity import sha256
-from ..export.soiljr import SdrError, SdrFile, build_sdt, parse_sdr
+from ..calc.pile_springs import GroundSprings
+from ..export.soiljr import SdcError, SdrError, SdrFile, build_sdt, parse_sdc, parse_sdr
 from ..inputs import PierInput
 from .jrsnap import SOIL_REPORT
 
@@ -38,6 +40,7 @@ class PileGroundModel:
     ground: PileGroundResult
     sdt_sha256: str
     sdr: SdrFile
+    springs: GroundSprings  # the 解析用地盤ばね値 of the .sdc: the frame of 0610 and 0620 stands on them (decision 88)
     liquefied_sdr: SdrFile | None  # the .sdr for the liquefaction, when some layer along the pile liquefies
 
 
@@ -70,7 +73,11 @@ def complete(result: PileGroundResult, files: Mapping[str, bytes], pier: PierInp
     if "liquefiedsdr" in files:
         other = parse_sdr(files["liquefiedsdr"])
         _check(result, other, LIQUEFACTION[0][1])
-    return PileGroundModel(result, sha256(files["sdt"]), found, other)
+    try:
+        springs = parse_sdc(files["sdc"])
+    except SdcError as exc:
+        raise SdrError(f"{FILES[1][1]} を読めません: {exc}") from exc
+    return PileGroundModel(result, sha256(files["sdt"]), found, springs, other)
 
 
 def render(results: Mapping[str, Any], pier: PierInput, path: Path, pages: Mapping[str, bytes]) -> None:

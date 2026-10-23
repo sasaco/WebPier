@@ -1,0 +1,660 @@
+{
+  "schema_version": 2,
+  "出典": {
+    "由来": "Example橋脚4（鋼管ソイルセメント杭、R5年）1of3 を画像で読んで作った。pile.json の形に合わせた",
+    "見本": ".claude/docs/Example橋脚4/..._R5年_1of3.pdf（印刷頁。I-n は PDF index n+14、III-n は 1of3 で n+146・2of3 で n-111）。2of3 の III-169〜183・III-214 も読んだ",
+    "上部工反力": "III-30 表2.1.3（A 1710/470、B 1710/470、C 4250/1050、D 4250/1050）。支承位置は I-3 構造一般図（起点側 ±2.2、終点側 ±1.325・±2.975）。支承ごとの D1・D2 は等分した値（見本にない）。列車分担は線路中心±1.90（III-34）の剛体の配分 0.5+e·y/Σy²（見本にない）。積雪なし（I-12）で雪荷重は空欄",
+    "上部構造": "I-3、III-30、III-35 表2.1.5（衝撃 0.542/0.591）、III-177〜182（h1〜h4、f＝III-34 の偏心 0.70/0.20）、列車速度 I-10。hs は III-27 注記（桁重心をスラブ上面）から 2.25。荷重修正係数の安全性(破壊) 1.10 は III-70（EA-17 の γf）",
+    "下部構造": "I-3、III-28 表2.1.2（く体 2.5×3.5×9.2＝柱7.2＋はり1.5＋ハンチ0.5、はり幅 7.7、フーチング 7.0×8.0×2.2）、土かぶり 0.5・水位 I-14、単位体積重量 III-28",
+    "杭基礎": "I-22 5.3、III-2 図1.2.2・1.2.3（杭長 26.5、Dsc 1.0、Dsp 0.8、有効肉厚17＋腐食代1＝18、2×3 格子 ±2.5・0/±3.0）。杭の単位体積重量は見本になく 24.5 を仮置き（パーサーが必須）",
+    "地盤データ": "I-13〜I-21（表4.3.1・4.3.2・4.3.8）、III-6 表1.4.2。湿潤列は III-6 の値（水位下は飽和重量）。4-3・第5層の φ は見本になし",
+    "鉄筋": "柱のみ I-4・III-139・III-143・III-214（D38 線路23＋内側11、D19 直角7、帯鉄筋D25 は A_w と S_s=250 の逆算）。柱の軸方向鉄筋は SD490 で選択肢になく空欄。梁・フーチングは未転記",
+    "耐震設計条件": "IV-1（G4地盤）、IV-4（地域別係数 νa=1.00 から A地域と読む）",
+    "仮置き": "上部構造.列車の 1両の長さ・軸距・編成数・遠心重心高・地震重心高は EA-17 で使わない見込み（決定78）だが現行パーサーが必須とするため pile.json の値を置いた"
+  },
+  "上部工反力": {
+    "起点側": {
+      "A支点": {
+        "固定死荷重_D1": 1710.0,
+        "付加死荷重_D2": 470.0,
+        "雪荷重_2年確率": null,
+        "雪荷重_10年確率": null,
+        "雪荷重_30年確率": null
+      },
+      "B支点": [
+        {
+          "支承位置": -2.2,
+          "固定死荷重_D1": 855.0,
+          "付加死荷重_D2": 235.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.932,
+            "L2": 0.068,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": 2.2,
+          "固定死荷重_D1": 855.0,
+          "付加死荷重_D2": 235.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.068,
+            "L2": 0.932,
+            "L3": null,
+            "L4": null
+          }
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "終点側": {
+      "D支点": {
+        "固定死荷重_D1": 4250.0,
+        "付加死荷重_D2": 1050.0,
+        "雪荷重_2年確率": null,
+        "雪荷重_10年確率": null,
+        "雪荷重_30年確率": null
+      },
+      "C支点": [
+        {
+          "支承位置": -2.975,
+          "固定死荷重_D1": 1062.5,
+          "付加死荷重_D2": 262.5,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.516,
+            "L2": -0.016,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": -1.325,
+          "固定死荷重_D1": 1062.5,
+          "付加死荷重_D2": 262.5,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.369,
+            "L2": 0.131,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": 1.325,
+          "固定死荷重_D1": 1062.5,
+          "付加死荷重_D2": 262.5,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.131,
+            "L2": 0.369,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": 2.975,
+          "固定死荷重_D1": 1062.5,
+          "付加死荷重_D2": 262.5,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": -0.016,
+            "L2": 0.516,
+            "L3": null,
+            "L4": null
+          }
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "上部構造": {
+    "起点側": {
+      "桁長": {
+        "L1": 0.4,
+        "スパン長": 7.2,
+        "L2": 0.4
+      },
+      "衝撃係数_単線終局": 0.542,
+      "曲線半径": 0,
+      "列車速度": 130,
+      "遠心作用方向": "→",
+      "高さ": {
+        "h1": 1.25,
+        "h2": 1.0,
+        "h3": 0.7,
+        "h4": 1.1
+      },
+      "重心高_hs": 2.25,
+      "支承位置_f": 0.7
+    },
+    "終点側": {
+      "桁長": {
+        "L1": 0.5,
+        "スパン長": 24.0,
+        "L2": 0.5
+      },
+      "衝撃係数_単線終局": 0.591,
+      "曲線半径": 0,
+      "列車速度": 130,
+      "遠心作用方向": "→",
+      "高さ": {
+        "h1": 0.15,
+        "h2": 2.1,
+        "h3": 0.7,
+        "h4": 1.1
+      },
+      "重心高_hs": 2.25,
+      "支承位置_f": 0.2
+    },
+    "支承データ": {
+      "起点側": {
+        "支承名": "可動",
+        "摩擦係数_μ": 0.1,
+        "ゴム支承の箇所数": 2,
+        "ストッパーの箇所数": null,
+        "片持ち梁上のゴム支承": null,
+        "片持ち梁上のストッパー": null
+      },
+      "終点側": {
+        "支承名": "固定",
+        "摩擦係数_μ": 0.1,
+        "ゴム支承の箇所数": 4,
+        "ストッパーの箇所数": null,
+        "片持ち梁上のゴム支承": null,
+        "片持ち梁上のストッパー": null
+      }
+    },
+    "列車": {
+      "車両名": "EA-17",
+      "1両の長さ": 20.0,
+      "軸距": {
+        "a1_連結部": 2.8,
+        "a2": 2.2
+      },
+      "軸重": {
+        "地震以外": 170.0,
+        "地震": 35.0
+      },
+      "編成数": 10,
+      "車両高": {
+        "受風高": 3.6,
+        "遠心重心高": 1.5,
+        "地震重心高": 1.5
+      },
+      "荷重修正係数": {
+        "使用性": 1.0,
+        "安全性(破壊)": 1.1,
+        "安全性(疲労)": 1.0
+      }
+    }
+  },
+  "下部構造": {
+    "寸法": {
+      "側面": {
+        "B1": 2.5,
+        "B2": 0.0,
+        "B3": 0.0,
+        "B4": 0.0,
+        "B5": 0.0,
+        "B6": 2.5,
+        "B7": 2.25,
+        "B8": 2.5,
+        "B9": 2.25
+      },
+      "正面": {
+        "W1": 7.7,
+        "W2": 0.0,
+        "W3": 0.0,
+        "W4": 2.1,
+        "W5": 2.1,
+        "W6": 3.5,
+        "W7": 2.25,
+        "W8": 3.5,
+        "W9": 2.25
+      },
+      "高さ": {
+        "H1": 0.0,
+        "H2": 1.5,
+        "H3": 0.5,
+        "H4": 7.2,
+        "H5": 0.0,
+        "H6": 2.2
+      }
+    },
+    "土かぶり": {
+      "起点側_df1": 0.5,
+      "終点側_df2": 0.5
+    },
+    "水位": {
+      "高水位_hw1": 2.2,
+      "平水位_hw2": 0.0,
+      "低水位_hw3": 0.0
+    },
+    "斜角": {
+      "θ": 90,
+      "タイプ": 1
+    },
+    "単位体積重量": {
+      "梁・躯体": 24.5,
+      "フーチング": 24.5,
+      "上載土": 18.0
+    },
+    "基礎形式": "鋼管ソイルセメント杭"
+  },
+  "杭基礎": {
+    "杭長": 26.5,
+    "杭の単位体積重量": 24.5,
+    "場所打ち杭": {
+      "杭径": null,
+      "f'ck": null,
+      "施工条件": null
+    },
+    "鋼管ソイルセメント杭": {
+      "ソイルセメント径": 1.0,
+      "鋼管外径": 0.8,
+      "鋼管厚": 18.0,
+      "腐食代": 1.0
+    },
+    "配置": {
+      "形式": "格子",
+      "線路方向の列の位置": [
+        -2.5,
+        2.5
+      ],
+      "線路直角方向の列の位置": [
+        -3.0,
+        0.0,
+        3.0
+      ],
+      "抜く杭": []
+    }
+  },
+  "地盤データ": {
+    "層": [
+      {
+        "層番": "表層",
+        "層厚": 2.7,
+        "土質区分": "砂質土",
+        "N値": 8,
+        "単位体積重量": {
+          "湿潤": 18.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": null,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 14227,
+        "De": null
+      },
+      {
+        "層番": "第1層",
+        "層厚": 3.75,
+        "土質区分": "粘性土",
+        "N値": 4,
+        "単位体積重量": {
+          "湿潤": 16.0,
+          "水中": 6.0
+        },
+        "内部摩擦角_φd": null,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": 60,
+        "変形係数_Ed": 6382,
+        "De": null
+      },
+      {
+        "層番": "第2層",
+        "層厚": 7.5,
+        "土質区分": "粘性土",
+        "N値": 5,
+        "単位体積重量": {
+          "湿潤": 16.0,
+          "水中": 6.0
+        },
+        "内部摩擦角_φd": null,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": 80,
+        "変形係数_Ed": 8618,
+        "De": null
+      },
+      {
+        "層番": "第3層",
+        "層厚": 1.95,
+        "土質区分": "砂質土",
+        "N値": 13,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": 32.0,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 16836,
+        "De": null
+      },
+      {
+        "層番": "第4-1層",
+        "層厚": 12.3,
+        "土質区分": "砂質土",
+        "N値": 22,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": 33.0,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 56473,
+        "De": null
+      },
+      {
+        "層番": "第4-2層",
+        "層厚": 1.0,
+        "土質区分": "砂質土",
+        "N値": 22,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": 32.0,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 56473,
+        "De": null
+      },
+      {
+        "層番": "第4-3層",
+        "層厚": 5.0,
+        "土質区分": "砂質土",
+        "N値": 22,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": null,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 56473,
+        "De": null
+      },
+      {
+        "層番": "第5層",
+        "層厚": null,
+        "土質区分": "砂礫",
+        "N値": 50,
+        "単位体積重量": {
+          "湿潤": 20.0,
+          "水中": 10.0
+        },
+        "内部摩擦角_φd": null,
+        "内部摩擦角の上限値": null,
+        "粘着力_c": null,
+        "変形係数_Ed": 96282,
+        "De": null
+      }
+    ]
+  },
+  "鉄筋": {
+    "version": 3,
+    "柱": {
+      "materials": {
+        "main": null,
+        "transverse": "SD390"
+      },
+      "concrete_strength_mpa": 40,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": 40,
+      "main_bars": {
+        "線路": {
+          "diameter_mm": 38,
+          "per_face_count": 23,
+          "cover_mode": "自動",
+          "center_mm": null,
+          "endpoints": "含む",
+          "distribution": {
+            "mode": "両端＋中央ピッチ",
+            "edge_center_mm": 84,
+            "pitch_mm": 150
+          },
+          "inner_layers": [
+            {
+              "per_face_count": 11,
+              "clear_gap_mm": 57
+            }
+          ]
+        },
+        "直角": {
+          "diameter_mm": 19,
+          "per_face_count": 7,
+          "cover_mode": "自動",
+          "center_mm": null,
+          "endpoints": "含む",
+          "distribution": {
+            "mode": "中央ピッチ",
+            "edge_center_mm": null,
+            "pitch_mm": 300
+          },
+          "inner_layers": []
+        }
+      },
+      "table_overrides": {
+        "線路": [],
+        "直角": []
+      },
+      "column_hoops": {
+        "enclosing_diameter_mm": 25,
+        "direction_rows": [
+          {
+            "direction": "線路",
+            "diameter_mm": 25,
+            "effective_legs": 10,
+            "pitch_mm": 250,
+            "start_mm": null,
+            "end_mm": null
+          },
+          {
+            "direction": "直角",
+            "diameter_mm": 25,
+            "effective_legs": 4,
+            "pitch_mm": 250,
+            "start_mm": null,
+            "end_mm": null
+          }
+        ]
+      }
+    },
+    "フーチング": {
+      "materials": {
+        "main": "SD390",
+        "transverse": "SD390"
+      },
+      "concrete_strength_mpa": 27,
+      "aggregate_max_mm": 40,
+      "pure_cover_mm": null,
+      "faces": {
+        "上": {
+          "outer_direction": null,
+          "線路": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": null,
+            "center_mm": null,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": null,
+            "center_mm": null,
+            "inner_layers": []
+          }
+        },
+        "下": {
+          "outer_direction": null,
+          "線路": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": null,
+            "center_mm": null,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": null,
+            "pitch_mm": null,
+            "cover_mode": null,
+            "center_mm": null,
+            "inner_layers": []
+          }
+        }
+      },
+      "stirrups": {
+        "線路": {
+          "diameter_mm": null,
+          "pitch_mm": null,
+          "distribution_mode": null,
+          "width_pitch_mm": null,
+          "density_per_m": null
+        },
+        "直角": {
+          "diameter_mm": null,
+          "pitch_mm": null,
+          "distribution_mode": null,
+          "width_pitch_mm": null,
+          "density_per_m": null
+        }
+      }
+    },
+    "梁": {
+      "materials": {
+        "main": "SD390",
+        "transverse": "SD390"
+      },
+      "concrete_strength_mpa": 40,
+      "aggregate_max_mm": null,
+      "pure_cover_mm": null,
+      "faces": {
+        "上": {
+          "diameter_mm": null,
+          "count": null,
+          "bar_type": null,
+          "cover_mode": null,
+          "center_mm": null,
+          "inner_layers": []
+        },
+        "下": {
+          "diameter_mm": null,
+          "count": null,
+          "cover_mode": null,
+          "center_mm": null,
+          "inner_layers": []
+        }
+      },
+      "side_bars": {
+        "diameter_mm": null,
+        "per_face_count": null,
+        "start_mm": null,
+        "pitch_mm": null,
+        "stirrup_position": null,
+        "cover_mode": null,
+        "center_mm": null
+      },
+      "stirrups": {
+        "diameter_mm": null,
+        "effective_legs": null,
+        "pitch_mm": null
+      }
+    }
+  },
+  "耐震設計条件": {
+    "地域別": "A地域",
+    "地盤区分": "G4地盤"
+  },
+  "柱の断面照査": {
+    "水掛かりの程度": null,
+    "外観の照査": null,
+    "ε'csd": null,
+    "適用基準の機関": null,
+    "JR-001": null,
+    "JR-004": null
+  },
+  "片持ち梁の照査": {
+    "水掛かりの程度": {
+      "上面": null,
+      "下面": null,
+      "側面": null
+    },
+    "外観の照査": null,
+    "疲労": {
+      "旅客列車本数": 80,
+      "貨物列車本数": 75,
+      "設計耐用年数": 100,
+      "等価繰返し回数": {
+        "A列車": {
+          "k=0.06": null,
+          "k=0.12": null
+        },
+        "B列車": {
+          "k=0.06": null,
+          "k=0.12": null
+        }
+      }
+    }
+  },
+  "jrsnap_longitudinal": {
+    "shear_factor_vcd": null,
+    "shear_factor_vsd": null,
+    "shear_factor_vdd": null,
+    "analysis_steps": null,
+    "limited_final_step": null,
+    "target_displacement_m": null
+  },
+  "jrsnap_transverse": {
+    "shear_factor_vcd": null,
+    "shear_factor_vsd": null,
+    "shear_factor_vdd": null,
+    "analysis_steps": null,
+    "limited_final_step": null,
+    "target_displacement_m": null
+  },
+  "outputs": {
+    "detailing": false,
+    "ground_model": true,
+    "reactions": true,
+    "longitudinal": false,
+    "longitudinal_frame_analysis": false,
+    "transverse": false,
+    "transverse_frame_analysis": false,
+    "longitudinal_seismic": false,
+    "longitudinal_nonlinear_analysis": false,
+    "transverse_seismic": false,
+    "transverse_nonlinear_analysis": false,
+    "footing": false,
+    "cantilever": false
+  }
+}

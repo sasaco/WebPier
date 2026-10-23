@@ -229,11 +229,14 @@ def planned(options: GenerationOptions, selected: Sequence[str], *, registry: Re
     return tuple(_plan(options, registry, tuple(selected), pier)[0])
 
 
-def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
-    results: dict[str, Any] = {}
+def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...], results: dict[str, Any] | None = None,
+               *, late: bool = False) -> dict[str, Any]:
+    """The results of the *selected* stages and what they read, into *results*. The stages that wait for a runner's
+    result (``after``, decision 88) are the *late* ones: calculated in a second call, when 0500 is complete."""
+    results = {} if results is None else results
     for stage_id in registry.closure(selected):
         stage = registry.get(stage_id)
-        if stage.calculate is not None:
+        if stage.calculate is not None and bool(stage.after) is late:
             results[stage_id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on
                                                        if name in results})
     return results
@@ -259,6 +262,9 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
     item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
     if item is None:
         raise InputError(f"{selected}に{kind} の出力はありません")
+    if registry.get(selected).after:
+        raise InputError(f"{selected}の「{kind}」は、{'・'.join(registry.get(selected).after)}の SOIL-JR の結果から作るので、"
+                         "生成のときだけ作れます")
     results = _calculate(registry, pier, (selected,))
     return item.build(_own(registry, results, selected), pier)
 
@@ -684,7 +690,8 @@ def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[st
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
     nonlinear = {stage_id: analysis for stage_id in selected
                  if (analysis := registry.get(stage_id).nonlinear_analysis) is not None}
-    built = _build(registry, pier, results, posts, {**analyses, **nonlinear})
+    built = _build(registry, pier, results, [post for post in posts if not registry.get(post.stage).after],
+                   {**analyses, **nonlinear})
     # The projects' input is checked now, before any analysis or report; each is written from the analysis' files.
     writers = {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
                for stage_id, analysis in nonlinear.items() if analysis.project is not None}
@@ -733,6 +740,18 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
               "implementation_sha256": _implementation_sha256(identity), **({} if addin is None else {"addin": addin})}
     with ArtifactStaging([*destinations, *stale_paths]) as staging:
         by_role = {artifact.role: artifact for artifact in artifacts}
+        # SOIL-JR calculates first (decision 85); the stages that stand on its springs follow (decision 88).
+        grounded = {stage_id: _calculate_ground(
+                        next(item for item in registry.get(stage_id).exports if item.kind == ground.export).file_name,
+                        built[(stage_id, ground.export)], jrsnap_runner, ground.liquefied(pier))
+                    for stage_id in selected if (ground := registry.get(stage_id).soil_jr) is not None}
+        for stage_id in grounded:  # SOIL-JR's files and the .sdt they were calculated from (decision 85)
+            files = {**grounded[stage_id].files, "sdt": built[(stage_id, registry.get(stage_id).soil_jr.export)]}
+            results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
+        late = [post for post in posts if registry.get(post.stage).after]
+        if late:
+            _calculate(registry, pier, selected, results, late=True)
+            built |= _build(registry, pier, results, late, {})
         for post in posts:
             if post.export is not None:
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
@@ -752,11 +771,6 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
                                                built[(analysis.stage, analysis.export)], jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
-        # SOIL-JR calculates the .sdt of a stage of a pile foundation (decision 85): the file staged is the file calculated
-        grounded = {stage_id: _calculate_ground(
-                        next(item for item in registry.get(stage_id).exports if item.kind == ground.export).file_name,
-                        built[(stage_id, ground.export)], jrsnap_runner, ground.liquefied(pier))
-                    for stage_id in selected if (ground := registry.get(stage_id).soil_jr) is not None}
         for post in posts:
             if post.native.folder:
                 folder = staging.path_for(post.native.path)
@@ -777,11 +791,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         # A stage finishes its result with the files of its frame analysis, or of the seismic checks of its
         # dependencies, or with their finished results (decisions 54, 59), in registry order.
         for stage_id in selected:
-            if registry.get(stage_id).complete is not None:
+            if registry.get(stage_id).complete is not None and stage_id not in grounded:
                 files = _completion_files(registry, stage_id, analyzed, checked)
-                if stage_id in grounded:  # SOIL-JR's files and the .sdt they were calculated from (decision 85)
-                    files |= {**grounded[stage_id].files,
-                              "sdt": built[(stage_id, registry.get(stage_id).soil_jr.export)]}
                 results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
         # Capacita checks the section the stage describes: the column with the PIK the stage's own frame analysis
         # returned (decision 48), or the beam with the section forces written in the WDJ (decision 59).

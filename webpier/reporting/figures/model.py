@@ -123,6 +123,11 @@ class FrameFigure:
     springs: bool = True  # Kv, Ks, Kr at the support; 0710 and 0720 show no springs (decision 41)
     block_id: str = ""
 
+    @property
+    def _springs(self) -> bool:
+        """The springs at the support are drawn; the piles of a pile foundation (decision 88) have none at the support."""
+        return self.springs and self.frame.support is not None
+
     # --- what is printed -------------------------------------------------------------------------------------
     def _base(self) -> None:
         if self.frame.node(NodeRole.FOOTING_BOTTOM).y.value != 0:
@@ -143,7 +148,7 @@ class FrameFigure:
         found.append((1, footing.y.value, 0.0, printed(footing.y)))
         top = max(self.frame.nodes, key=lambda node: node.y.value)
         found.append((2, top.y.value, 0.0, printed(top.y)))
-        return found
+        return list(dict.fromkeys(found))  # the pile rows have members of one length: one dimension
 
     def texts(self) -> tuple[str, ...]:
         """Every text run the figure draws, in drawing order."""
@@ -152,7 +157,7 @@ class FrameFigure:
         found += [str(member.number) for member in self.frame.members]
         found += [text for *_, text in self._dimensions()]
         found += [dimension.text for dimension in self.horizontal]
-        if self.springs:
+        if self._springs:
             found += ["K", "v", "K", "s", "K", "r"]
         found += list(self.bearings or ())
         return tuple(found)
@@ -200,7 +205,7 @@ class FrameFigure:
         # Node numbers right of their nodes, spread so that close nodes (the micro member) stay readable.
         cap = cap_height(fonts, NODE_STYLE)
         # The support's number is lifted clear of the Ks spring; without springs it stays at its node.
-        support = self.frame.support.node if self.springs else None
+        support = self.frame.support.node if self._springs else None
         order = sorted(nodes, key=lambda n: (nodes[n][1] - (7 if n == support else 0), n))
         centres = spread([nodes[n][1] - (7 if n == support else 0) for n in order], [cap / 2 + .5] * len(order),
                          1.5, 2, self.height - 2, "節点番号")
@@ -254,8 +259,8 @@ class FrameFigure:
             if abs(centre - (a + b) / 2) > 1:
                 drawn.append(Line(x, (a + b) / 2, x - 3, centre, THIN))
 
-        # Footing dimensions below the springs.
-        base = Y(0.0)
+        # Footing dimensions below the springs, or below the tips of the piles.
+        base = Y(ymin if self.frame.piles is not None else 0.0)
         for row in range(rows):
             chosen = [d for d in self.horizontal if d.row == row]
             y = base + 40 + 22 * row
@@ -268,7 +273,7 @@ class FrameFigure:
                 texts.append(Text(centre - width / 2, y - 2.5, dimension.text, DIMENSION_STYLE))
 
         # Springs at the support (8-1): Kv down, Ks to the end side, Kr as a coil on the origin side.
-        if self.springs:
+        if self._springs:
             sx, sy = nodes[support]
             drawn += [zigzag((sx + 2, sy), (sx + 22, sy)), Line(sx + 22, sy - 4, sx + 22, sy + 4, .5),
                       zigzag((sx, sy + 2), (sx, sy + 22)), Line(sx - 4, sy + 22, sx + 4, sy + 22, .5),

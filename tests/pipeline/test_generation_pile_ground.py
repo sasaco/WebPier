@@ -93,14 +93,16 @@ def test_the_sdt_is_what_the_writer_gives_and_what_was_calculated(made):
     assert sdt == export_bytes(pier, "0500", "sdt")
     sdr = parse_sdr((root / "post" / "杭基礎.sdr").read_bytes())
     assert sdr.title == f"FAKE SOIL-JR {hashlib.sha256(sdt).hexdigest()[:16]}"  # what the runner calculated from
-    assert (root / "post" / "杭基礎.sdc").read_bytes() == f"FAKE SDC {hashlib.sha256(sdt).hexdigest()}".encode()
+    sdc = (root / "post" / "杭基礎.sdc").read_bytes()
+    assert sdc.decode("cp932").split("\r\n")[4] == f"FAKE SDC {hashlib.sha256(sdt).hexdigest()}"
 
 
 def test_the_result_holds_what_was_derived_the_sdt_and_the_limits(made):
     root, opts, generation = made
     document = load_json((root / "output" / "0500_杭基礎.json").read_bytes())
     result = document["result"]
-    assert set(result) == {"ground", "sdt_sha256", "sdr", "liquefied_sdr"} and result["liquefied_sdr"] is None
+    assert set(result) == {"ground", "sdt_sha256", "sdr", "springs", "liquefied_sdr"} and result["liquefied_sdr"] is None
+    assert [d["name"] for d in result["springs"]["directions"]] == ["橋軸方向", "直角方向"]  # the .sdc, read (decision 88)
     assert result["sdt_sha256"] == sha256((root / "post" / "杭基礎.sdt").read_bytes())
     assert [row["thickness"] for row in result["ground"]["layers"]] == [2.6, 5.0, 4.0, 6.4, 1.0]
     assert result["sdr"]["version"] == "Ver.5.2.3" and len(result["sdr"]["tables"]) == 16
@@ -183,6 +185,19 @@ def test_a_runner_that_fails_or_returns_what_was_not_asked_publishes_nothing(tmp
     with pytest.raises(GenerationError, match=message):
         generate.generate(opts)
     assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
+
+
+def test_an_sdc_the_frame_cannot_read_stops_the_completion(tmp_path):
+    from webpier.export.soiljr import SdrError
+    from webpier.pipeline import soiljr
+
+    pier = parse_input(load_json(write(tmp_path).read_bytes()))
+    ground = calculate_pile_ground(pier)
+    good = {"sdt": b"x", "sdr": (FIXTURES / "soiljr" / "pile_cast.sdr").read_bytes(),
+            "sdc": (FIXTURES / "soiljr" / "pile_cast.sdc").read_bytes()}
+    assert soiljr.complete(ground, good, pier, {}).springs.directions[0].name == "橋軸方向"
+    with pytest.raises(SdrError, match="杭基礎.sdc を読めません: SOIL-JR 5.2 の .sdc ではありません"):
+        soiljr.complete(ground, {**good, "sdc": b"not an sdc\n" * 12}, pier, {})
 
 
 def test_a_sdr_of_another_pile_is_refused(tmp_path, monkeypatch):

@@ -1,0 +1,2401 @@
+{
+ "source": "Example橋脚4 1of3.pdf 第III編 1. 構造解析モデル",
+ "units": "kN, m, kN/m^3 など（表の単位のまま）",
+ "member_properties": {
+  "table": "図1.2.1 (III-1), 図1.2.2 (III-2)",
+  "printed_page": "III-1, III-2",
+  "column_longitudinal": {
+   "section_m": {
+    "along_track": 2.5,
+    "across_track": 3.5
+   },
+   "A_m2": 8.75,
+   "I_m4": 4.56,
+   "note": "橋脚く体の断面。線路方向の曲げに効く辺は 2.5 m（I = 1/12 x 3.5 x 2.5^3）"
+  },
+  "column_transverse": {
+   "A_m2": 8.75,
+   "I_m4": 8.93,
+   "note": "I = 1/12 x 2.5 x 3.5^3"
+  },
+  "footing": {
+   "A": "inf",
+   "I": "inf",
+   "note": "剛域。水平方向の軸線はフーチング高さの 1/2、鉛直方向の軸線はく体と杭の軸線位置"
+  },
+  "pile": {
+   "type": "鋼管ソイルセメント杭",
+   "D_sc_m": 1.0,
+   "D_sp_m": 0.8,
+   "t_mm_pile_head_to_step": 17.0,
+   "t_mm_below_step": 13.0,
+   "A_m2_per_pile": 0.04171,
+   "I_m4_per_pile": 0.00318,
+   "E_s_kN_mm2": 200.0,
+   "material": "SKK490",
+   "corrosion_allowance_mm": 1.0,
+   "length_m": 26.5,
+   "note": "有効肉厚は腐食代 1.0 mm を引いた値。段落としの位置は 1.2 では不明（表1.4.3 は t = 0.017 m のみ）"
+  }
+ },
+ "geometry": {
+  "table": "図1.2.3 骨組み図",
+  "printed_page": "III-2",
+  "column_height_m": 9.2,
+  "footing_thickness_m": 2.2,
+  "footing_axis_from_top_and_bottom_m": [
+   1.1,
+   1.1
+  ],
+  "footing_overhang_m": 1.0,
+  "pile_segment_lengths_m": [
+   3.75,
+   7.5,
+   1.95,
+   12.3,
+   1.0
+  ],
+  "pile_total_length_m": 26.5,
+  "longitudinal": {
+   "pile_rows": 2,
+   "row_spacing_m": 5.0,
+   "piles_per_row_n": 3,
+   "footing_width_m": 7.0,
+   "dims_mm": {
+    "column_width": 2500,
+    "pile_row_half_spacing": [
+     2500,
+     2500
+    ],
+    "overhang": [
+     1000,
+     1000
+    ]
+   },
+   "nodes": {
+    "1": "く体天端",
+    "2": "く体下端（フーチング中心の上）",
+    "3": "フーチング 左の杭列位置",
+    "4": "フーチング中心",
+    "5": "フーチング 右の杭列位置",
+    "6..11": "左杭 杭頭から先端",
+    "12..17": "右杭 杭頭から先端"
+   },
+   "member_circles_in_figure": {
+    "1": "く体 (1-2)",
+    "2": "2-4",
+    "3": "フーチング 左半分",
+    "4": "フーチング 右半分",
+    "5": "左の剛域",
+    "6..10": "左杭の5区間",
+    "11": "右の剛域",
+    "12..16": "右杭の5区間"
+   },
+   "node_numbers_are_read_from_figure": true
+  },
+  "transverse": {
+   "pile_rows": 3,
+   "row_spacing_m": 3.0,
+   "piles_per_row_n": 2,
+   "footing_width_m": 8.0,
+   "dims_mm": {
+    "column_width": 3500,
+    "pile_row_spacing": [
+     3000,
+     3000
+    ],
+    "overhang": [
+     1000,
+     1000
+    ]
+   },
+   "nodes": {
+    "1": "く体天端",
+    "2": "く体下端",
+    "3,4,5": "フーチング 杭列位置（3 左・4 中・5 右）",
+    "6..11": "左の杭列",
+    "12..17": "中の杭列",
+    "18..23": "右の杭列"
+   },
+   "member_circles_in_figure": {
+    "1": "く体",
+    "2": "2-4",
+    "3,4": "フーチング",
+    "5,11,17": "剛域",
+    "6..10": "左杭",
+    "12..16": "中杭",
+    "18..22": "右杭"
+   },
+   "node_numbers_are_read_from_figure": true
+  },
+  "unreadable": false,
+  "note": "図1.2.3 は縮小された CAD 図で、剛域（5, 11, 17）の向きと節点 2・4 の関係は読み切れない。結果表の杭の部材番号（線路方向 7・8、直角方向 8・9・10）は図の杭区間の番号（6, 12 / 6, 12, 18）と一致しない。frame_notes.md 参照。"
+ },
+ "soil_model": {
+  "1.4.2 地盤の諸数値の設計用値 (III-6)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "soil",
+    "N",
+    "gamma_wet_kN_m3",
+    "gamma_submerged_kN_m3",
+    "phi_deg",
+    "c_kN_m2",
+    "Ed_kN_m2"
+   ],
+   "rows": [
+    {
+     "layer": "上載土",
+     "thickness_m": 2.7,
+     "soil": "砂質土",
+     "N": null,
+     "gamma_wet_kN_m3": 18,
+     "gamma_submerged_kN_m3": 9,
+     "phi_deg": null,
+     "c_kN_m2": null,
+     "Ed_kN_m2": null
+    },
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "soil": "粘性土",
+     "N": 4,
+     "gamma_wet_kN_m3": 16,
+     "gamma_submerged_kN_m3": 6,
+     "phi_deg": null,
+     "c_kN_m2": 60.0,
+     "Ed_kN_m2": 6382
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "soil": "粘性土",
+     "N": 5,
+     "gamma_wet_kN_m3": 16,
+     "gamma_submerged_kN_m3": 6,
+     "phi_deg": null,
+     "c_kN_m2": 80.0,
+     "Ed_kN_m2": 8618
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "soil": "砂質土",
+     "N": 13,
+     "gamma_wet_kN_m3": 19,
+     "gamma_submerged_kN_m3": 9,
+     "phi_deg": 32,
+     "c_kN_m2": null,
+     "Ed_kN_m2": 16836
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "soil": "砂質土",
+     "N": 22,
+     "gamma_wet_kN_m3": 19,
+     "gamma_submerged_kN_m3": 9,
+     "phi_deg": 33,
+     "c_kN_m2": null,
+     "Ed_kN_m2": 56473
+    },
+    {
+     "layer": "4-2",
+     "thickness_m": 1.0,
+     "soil": "砂質土",
+     "N": 22,
+     "gamma_wet_kN_m3": 19,
+     "gamma_submerged_kN_m3": 9,
+     "phi_deg": 32,
+     "c_kN_m2": null,
+     "Ed_kN_m2": 56473
+    },
+    {
+     "layer": "先端支持層",
+     "thickness_m": null,
+     "soil": "砂質土",
+     "N": 14,
+     "gamma_wet_kN_m3": null,
+     "gamma_submerged_kN_m3": null,
+     "phi_deg": null,
+     "c_kN_m2": null,
+     "Ed_kN_m2": 56473
+    }
+   ],
+   "notes": [
+    "4層は最小根入れ深さ D_min を考慮して 4-1・4-2 に層分け",
+    "先端支持層は杭先端から下方 3D の区間の最小 N 値",
+    "フーチング前面抵抗は考慮しない"
+   ]
+  },
+  "1.4.3 杭の設計用値 (III-6)": {
+   "D_sc_m": 1.0,
+   "L_m": 26.5,
+   "D_sp_m": 0.8,
+   "t_m": 0.017,
+   "corrosion_m": 0.001,
+   "I_m4": 0.00318,
+   "Es_kN_mm2": 200.0
+  },
+  "k_tv 式 (III-6, III-7)": {
+   "rho_gk_long": 0.5,
+   "rho_gk_short": 1.0,
+   "ktv_long_kN_m3": 225892,
+   "ktv_short_kN_m3": 451784,
+   "formula": "8.0 rho_gk Ed D^-3/4"
+  },
+  "1.4.4 杭周面の設計鉛直せん断地盤反力係数 (III-7)": {
+   "columns": [
+    "layer",
+    "Ed_kN_m2",
+    "rho_gk_long",
+    "rho_gk_short",
+    "kfv_long_kN_m3",
+    "kfv_short_kN_m3"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "Ed_kN_m2": 6382,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kfv_long_kN_m3": 1436,
+     "kfv_short_kN_m3": 2872
+    },
+    {
+     "layer": "2",
+     "Ed_kN_m2": 8618,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kfv_long_kN_m3": 1939,
+     "kfv_short_kN_m3": 3878
+    },
+    {
+     "layer": "3",
+     "Ed_kN_m2": 16836,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kfv_long_kN_m3": 3788,
+     "kfv_short_kN_m3": 7576
+    },
+    {
+     "layer": "4-1",
+     "Ed_kN_m2": 56473,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kfv_long_kN_m3": 12706,
+     "kfv_short_kN_m3": 25413
+    },
+    {
+     "layer": "4-2",
+     "Ed_kN_m2": 56473,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kfv_long_kN_m3": 12706,
+     "kfv_short_kN_m3": 25413
+    }
+   ]
+  },
+  "1.4.5 杭周面の設計水平地盤反力係数 (III-8)": {
+   "columns": [
+    "layer",
+    "Ed_kN_m2",
+    "D_m",
+    "rho_gk_long",
+    "rho_gk_short",
+    "kh_long",
+    "kh_short_linear",
+    "kh_short_nonlinear"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "Ed_kN_m2": 6382,
+     "D_m": 1.0,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kh_long": 5744,
+     "kh_short_linear": 11488,
+     "kh_short_nonlinear": 22975
+    },
+    {
+     "layer": "2",
+     "Ed_kN_m2": 8618,
+     "D_m": 1.0,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kh_long": 7756,
+     "kh_short_linear": 15512,
+     "kh_short_nonlinear": 31025
+    },
+    {
+     "layer": "3",
+     "Ed_kN_m2": 16836,
+     "D_m": 1.0,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kh_long": 15152,
+     "kh_short_linear": 30305,
+     "kh_short_nonlinear": 60610
+    },
+    {
+     "layer": "4-1",
+     "Ed_kN_m2": 56473,
+     "D_m": 1.0,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kh_long": 50826,
+     "kh_short_linear": 101651,
+     "kh_short_nonlinear": 203303
+    },
+    {
+     "layer": "4-2",
+     "Ed_kN_m2": 56473,
+     "D_m": 1.0,
+     "rho_gk_long": 0.5,
+     "rho_gk_short": 1.0,
+     "kh_long": 50826,
+     "kh_short_linear": 101651,
+     "kh_short_nonlinear": 203303
+    }
+   ]
+  },
+  "群杭の補正係数 e_g (III-8, III-9)": {
+   "k_pile_head_fixity": 0.6,
+   "longitudinal": {
+    "dm": 5.0,
+    "dn": 3.0,
+    "m": 1,
+    "n": 3,
+    "d": 3.0,
+    "e_g": 0.825,
+    "note": "dm>=5 より群杭の影響を無視し 1列群杭 (m=1) として扱う"
+   },
+   "transverse": {
+    "dm": 3.0,
+    "dn": 5.0,
+    "m": 3,
+    "n": 1,
+    "d": 3.0,
+    "e_g": 0.613,
+    "note": "dn>=5 より 1列群杭 (n=1)"
+   },
+   "formula": "e_g = [1 - 5{1 - (0.6 - 0.25k) d^(0.3+0.2k)} x {1 - m^-0.22 n^-0.09}]^4/3"
+  },
+  "1.4.6 群杭の設計水平地盤反力係数 線路方向 (III-9)": {
+   "columns": [
+    "layer",
+    "e_g",
+    "kh_long",
+    "khg_long",
+    "kh_short_linear",
+    "khg_short_linear",
+    "kh_short_nonlinear",
+    "khg_short_nonlinear"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "e_g": 0.825,
+     "kh_long": 5744,
+     "khg_long": 4739,
+     "kh_short_linear": 11488,
+     "khg_short_linear": 9478,
+     "kh_short_nonlinear": 22975,
+     "khg_short_nonlinear": 18954
+    },
+    {
+     "layer": "2",
+     "e_g": 0.825,
+     "kh_long": 7756,
+     "khg_long": 6399,
+     "kh_short_linear": 15512,
+     "khg_short_linear": 12797,
+     "kh_short_nonlinear": 31025,
+     "khg_short_nonlinear": 25596
+    },
+    {
+     "layer": "3",
+     "e_g": 0.825,
+     "kh_long": 15152,
+     "khg_long": 12500,
+     "kh_short_linear": 30305,
+     "khg_short_linear": 25002,
+     "kh_short_nonlinear": 60610,
+     "khg_short_nonlinear": 50003
+    },
+    {
+     "layer": "4-1",
+     "e_g": 0.825,
+     "kh_long": 50826,
+     "khg_long": 41931,
+     "kh_short_linear": 101651,
+     "khg_short_linear": 83862,
+     "kh_short_nonlinear": 203303,
+     "khg_short_nonlinear": 167725
+    },
+    {
+     "layer": "4-2",
+     "e_g": 0.825,
+     "kh_long": 50826,
+     "khg_long": 41931,
+     "kh_short_linear": 101651,
+     "khg_short_linear": 83862,
+     "kh_short_nonlinear": 203303,
+     "khg_short_nonlinear": 167725
+    }
+   ]
+  },
+  "1.4.7 群杭の設計水平地盤反力係数 線路直角方向 (III-9)": {
+   "columns": [
+    "layer",
+    "e_g",
+    "kh_long",
+    "khg_long",
+    "kh_short_linear",
+    "khg_short_linear",
+    "kh_short_nonlinear",
+    "khg_short_nonlinear"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "e_g": 0.613,
+     "kh_long": 5744,
+     "khg_long": 3521,
+     "kh_short_linear": 11488,
+     "khg_short_linear": 7042,
+     "kh_short_nonlinear": 22975,
+     "khg_short_nonlinear": 14084
+    },
+    {
+     "layer": "2",
+     "e_g": 0.613,
+     "kh_long": 7756,
+     "khg_long": 4754,
+     "kh_short_linear": 15512,
+     "khg_short_linear": 9509,
+     "kh_short_nonlinear": 31025,
+     "khg_short_nonlinear": 19018
+    },
+    {
+     "layer": "3",
+     "e_g": 0.613,
+     "kh_long": 15152,
+     "khg_long": 9288,
+     "kh_short_linear": 30305,
+     "khg_short_linear": 18577,
+     "kh_short_nonlinear": 60610,
+     "khg_short_nonlinear": 37154
+    },
+    {
+     "layer": "4-1",
+     "e_g": 0.613,
+     "kh_long": 50826,
+     "khg_long": 31156,
+     "kh_short_linear": 101651,
+     "khg_short_linear": 62312,
+     "kh_short_nonlinear": 203303,
+     "khg_short_nonlinear": 124625
+    },
+    {
+     "layer": "4-2",
+     "e_g": 0.613,
+     "kh_long": 50826,
+     "khg_long": 31156,
+     "kh_short_linear": 101651,
+     "khg_short_linear": 62312,
+     "kh_short_nonlinear": 203303,
+     "khg_short_nonlinear": 124625
+    }
+   ]
+  },
+  "杭先端の鉛直地盤ばね定数 (III-10)": {
+   "At_m2": 0.785,
+   "Ktv_long_kN_m": 177325,
+   "Ktv_short_kN_m": 354650,
+   "note": "225892 x 0.785 = 177325、451784 x 0.785 = 354650（1本当り）。総括(III-21)は本数倍"
+  },
+  "1.4.8 杭周面の設計鉛直せん断地盤ばね定数 (III-10)": {
+   "columns": [
+    "layer",
+    "l_m",
+    "U_m",
+    "kfv_long",
+    "kfv_short",
+    "kfvU_long_kN_m2",
+    "kfvU_short_kN_m2"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "l_m": 3.75,
+     "U_m": 3.142,
+     "kfv_long": 1436,
+     "kfv_short": 2872,
+     "kfvU_long_kN_m2": 4512,
+     "kfvU_short_kN_m2": 9024
+    },
+    {
+     "layer": "2",
+     "l_m": 7.5,
+     "U_m": 3.142,
+     "kfv_long": 1939,
+     "kfv_short": 3878,
+     "kfvU_long_kN_m2": 6092,
+     "kfvU_short_kN_m2": 12185
+    },
+    {
+     "layer": "3",
+     "l_m": 1.95,
+     "U_m": 3.142,
+     "kfv_long": 3788,
+     "kfv_short": 7576,
+     "kfvU_long_kN_m2": 11902,
+     "kfvU_short_kN_m2": 23804
+    },
+    {
+     "layer": "4-1",
+     "l_m": 12.3,
+     "U_m": 3.142,
+     "kfv_long": 12706,
+     "kfv_short": 25413,
+     "kfvU_long_kN_m2": 39922,
+     "kfvU_short_kN_m2": 79848
+    },
+    {
+     "layer": "4-2",
+     "l_m": 1.0,
+     "U_m": 3.142,
+     "kfv_long": 12706,
+     "kfv_short": 25413,
+     "kfvU_long_kN_m2": 39922,
+     "kfvU_short_kN_m2": 79848
+    }
+   ]
+  },
+  "1.4.9 群杭の設計水平地盤ばね定数 線路方向 (III-11)": {
+   "columns": [
+    "layer",
+    "D_m",
+    "khg_long",
+    "khg_short_linear",
+    "khg_short_nonlinear",
+    "khgD_long_kN_m2",
+    "khgD_short_linear_kN_m2",
+    "khgD_short_nonlinear_kN_m2"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "D_m": 1.0,
+     "khg_long": 4739,
+     "khg_short_linear": 9478,
+     "khg_short_nonlinear": 18954,
+     "khgD_long_kN_m2": 4739,
+     "khgD_short_linear_kN_m2": 9478,
+     "khgD_short_nonlinear_kN_m2": 18954
+    },
+    {
+     "layer": "2",
+     "D_m": 1.0,
+     "khg_long": 6399,
+     "khg_short_linear": 12797,
+     "khg_short_nonlinear": 25596,
+     "khgD_long_kN_m2": 6399,
+     "khgD_short_linear_kN_m2": 12797,
+     "khgD_short_nonlinear_kN_m2": 25596
+    },
+    {
+     "layer": "3",
+     "D_m": 1.0,
+     "khg_long": 12500,
+     "khg_short_linear": 25002,
+     "khg_short_nonlinear": 50003,
+     "khgD_long_kN_m2": 12500,
+     "khgD_short_linear_kN_m2": 25002,
+     "khgD_short_nonlinear_kN_m2": 50003
+    },
+    {
+     "layer": "4-1",
+     "D_m": 1.0,
+     "khg_long": 41931,
+     "khg_short_linear": 83862,
+     "khg_short_nonlinear": 167725,
+     "khgD_long_kN_m2": 41931,
+     "khgD_short_linear_kN_m2": 83862,
+     "khgD_short_nonlinear_kN_m2": 167725
+    },
+    {
+     "layer": "4-2",
+     "D_m": 1.0,
+     "khg_long": 41931,
+     "khg_short_linear": 83862,
+     "khg_short_nonlinear": 167725,
+     "khgD_long_kN_m2": 41931,
+     "khgD_short_linear_kN_m2": 83862,
+     "khgD_short_nonlinear_kN_m2": 167725
+    }
+   ]
+  },
+  "1.4.10 群杭の設計水平地盤ばね定数 線路直角方向 (III-11)": {
+   "columns": [
+    "layer",
+    "D_m",
+    "khg_long",
+    "khg_short_linear",
+    "khg_short_nonlinear",
+    "khgD_long_kN_m2",
+    "khgD_short_linear_kN_m2",
+    "khgD_short_nonlinear_kN_m2"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "D_m": 1.0,
+     "khg_long": 3521,
+     "khg_short_linear": 7042,
+     "khg_short_nonlinear": 14084,
+     "khgD_long_kN_m2": 3521,
+     "khgD_short_linear_kN_m2": 7042,
+     "khgD_short_nonlinear_kN_m2": 14084
+    },
+    {
+     "layer": "2",
+     "D_m": 1.0,
+     "khg_long": 4754,
+     "khg_short_linear": 9509,
+     "khg_short_nonlinear": 19018,
+     "khgD_long_kN_m2": 4754,
+     "khgD_short_linear_kN_m2": 9509,
+     "khgD_short_nonlinear_kN_m2": 19018
+    },
+    {
+     "layer": "3",
+     "D_m": 1.0,
+     "khg_long": 9288,
+     "khg_short_linear": 18577,
+     "khg_short_nonlinear": 37154,
+     "khgD_long_kN_m2": 9288,
+     "khgD_short_linear_kN_m2": 18577,
+     "khgD_short_nonlinear_kN_m2": 37154
+    },
+    {
+     "layer": "4-1",
+     "D_m": 1.0,
+     "khg_long": 31156,
+     "khg_short_linear": 62312,
+     "khg_short_nonlinear": 124625,
+     "khgD_long_kN_m2": 31156,
+     "khgD_short_linear_kN_m2": 62312,
+     "khgD_short_nonlinear_kN_m2": 124625
+    },
+    {
+     "layer": "4-2",
+     "D_m": 1.0,
+     "khg_long": 31156,
+     "khg_short_linear": 62312,
+     "khg_short_nonlinear": 124625,
+     "khgD_long_kN_m2": 31156,
+     "khgD_short_linear_kN_m2": 62312,
+     "khgD_short_nonlinear_kN_m2": 124625
+    }
+   ]
+  },
+  "1.4.11 杭の特性値 β 線路方向 (III-12)": {
+   "columns": [
+    "layer",
+    "l_m",
+    "khgD_short_linear",
+    "beta_1_per_m",
+    "beta_l"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "l_m": 3.75,
+     "khgD_short_linear": 9478,
+     "beta_1_per_m": 0.2471,
+     "beta_l": 0.9266
+    },
+    {
+     "layer": "2",
+     "l_m": 7.5,
+     "khgD_short_linear": 12797,
+     "beta_1_per_m": 0.2663,
+     "beta_l": 1.9973
+    },
+    {
+     "layer": "3",
+     "l_m": 1.95,
+     "khgD_short_linear": 25002,
+     "beta_1_per_m": 0.3149,
+     "beta_l": 0.6141
+    },
+    {
+     "layer": "4-1",
+     "l_m": 12.3,
+     "khgD_short_linear": 83862,
+     "beta_1_per_m": 0.4261,
+     "beta_l": 5.241
+    },
+    {
+     "layer": "4-2",
+     "l_m": 1.0,
+     "khgD_short_linear": 83862,
+     "beta_1_per_m": 0.4261,
+     "beta_l": 0.4261
+    }
+   ],
+   "inverse_beta_m": 4.026,
+   "beta_l_sum": 9.2051,
+   "EI_basis": "E = 200.0e6 kN/m2, I = 0.00318 m4",
+   "note": "1/β: l2 = (1 - 0.9266) / 0.2663 = 0.276 → 3.750 + 0.276 = 4.026 m"
+  },
+  "1.4.12 杭の特性値 β 線路直角方向 (III-12)": {
+   "columns": [
+    "layer",
+    "l_m",
+    "khgD_short_linear",
+    "beta_1_per_m",
+    "beta_l"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "l_m": 3.75,
+     "khgD_short_linear": 7042,
+     "beta_1_per_m": 0.2294,
+     "beta_l": 0.8603
+    },
+    {
+     "layer": "2",
+     "l_m": 7.5,
+     "khgD_short_linear": 9509,
+     "beta_1_per_m": 0.2473,
+     "beta_l": 1.8548
+    },
+    {
+     "layer": "3",
+     "l_m": 1.95,
+     "khgD_short_linear": 18577,
+     "beta_1_per_m": 0.2923,
+     "beta_l": 0.57
+    },
+    {
+     "layer": "4-1",
+     "l_m": 12.3,
+     "khgD_short_linear": 62312,
+     "beta_1_per_m": 0.3956,
+     "beta_l": 4.8659
+    },
+    {
+     "layer": "4-2",
+     "l_m": 1.0,
+     "khgD_short_linear": 62312,
+     "beta_1_per_m": 0.3956,
+     "beta_l": 0.3956
+    }
+   ],
+   "inverse_beta_m": 4.315,
+   "beta_l_sum": 8.5466,
+   "note": "l2 = (1 - 0.8603) / 0.2473 = 0.565 → 3.750 + 0.565 = 4.315 m (III-13)。βl > 2.5 なので杭先端の拘束条件は考慮しない（両方向）"
+  },
+  "降伏先端支持力・終局先端支持力 1.4.13 (III-13, III-14)": {
+   "N_tip": 14,
+   "qtk_kN_m2": 2100,
+   "Rtk_kN": 1649,
+   "rho_gty": 0.9,
+   "rho_gtu": 1.3,
+   "Rty_kN": 1484,
+   "Rtu_kN": 2144,
+   "At_m2": 0.785,
+   "note": "qtk = 150 x 14 = 2100 <= 10000, Rtk = 2100 x 0.785 = 1649"
+  },
+  "1.4.14 基準周面支持力 線路方向 押込み側 (III-15)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "soil",
+    "N",
+    "c_kN_m2",
+    "gamma_fk_kN_m2",
+    "method",
+    "dl_other_m",
+    "dl_seismic_m",
+    "Rfk_other_kN",
+    "Rfk_seismic_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "soil": "粘性土",
+     "N": 4,
+     "c_kN_m2": 60.0,
+     "gamma_fk_kN_m2": 42,
+     "method": "Cより算定",
+     "dl_other_m": 3.75,
+     "dl_seismic_m": 0.0,
+     "Rfk_other_kN": 494.9,
+     "Rfk_seismic_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "soil": "粘性土",
+     "N": 5,
+     "c_kN_m2": 80.0,
+     "gamma_fk_kN_m2": 56,
+     "method": "Cより算定",
+     "dl_other_m": 7.5,
+     "dl_seismic_m": 7.224,
+     "Rfk_other_kN": 1319.6,
+     "Rfk_seismic_kN": 1271.1
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "soil": "砂質土",
+     "N": 13,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 91,
+     "method": "N値より算定",
+     "dl_other_m": 1.95,
+     "dl_seismic_m": 1.95,
+     "Rfk_other_kN": 557.5,
+     "Rfk_seismic_kN": 557.5
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 12.3,
+     "dl_seismic_m": 12.3,
+     "Rfk_other_kN": 5951.6,
+     "Rfk_seismic_kN": 5951.6
+    }
+   ],
+   "totals": {
+    "thickness_m": 25.5,
+    "Rfk_other_kN": 8324,
+    "Rfk_seismic_kN": 7780
+   },
+   "layer_4_2": "-（押込み側は考慮しない）"
+  },
+  "1.4.15 基準周面支持力 線路方向 引抜き側 (III-15)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "soil",
+    "N",
+    "c_kN_m2",
+    "gamma_fk_kN_m2",
+    "method",
+    "dl_other_m",
+    "dl_seismic_m",
+    "Rfk_other_kN",
+    "Rfk_seismic_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "soil": "粘性土",
+     "N": 4,
+     "c_kN_m2": 60.0,
+     "gamma_fk_kN_m2": 42,
+     "method": "Cより算定",
+     "dl_other_m": 3.75,
+     "dl_seismic_m": 0.0,
+     "Rfk_other_kN": 494.9,
+     "Rfk_seismic_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "soil": "粘性土",
+     "N": 5,
+     "c_kN_m2": 80.0,
+     "gamma_fk_kN_m2": 56,
+     "method": "Cより算定",
+     "dl_other_m": 7.5,
+     "dl_seismic_m": 7.224,
+     "Rfk_other_kN": 1319.6,
+     "Rfk_seismic_kN": 1271.1
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "soil": "砂質土",
+     "N": 13,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 91,
+     "method": "N値より算定",
+     "dl_other_m": 1.95,
+     "dl_seismic_m": 1.95,
+     "Rfk_other_kN": 557.5,
+     "Rfk_seismic_kN": 557.5
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 12.3,
+     "dl_seismic_m": 12.3,
+     "Rfk_other_kN": 5951.6,
+     "Rfk_seismic_kN": 5951.6
+    },
+    {
+     "layer": "4-2",
+     "thickness_m": 1.0,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 1.0,
+     "dl_seismic_m": 1.0,
+     "Rfk_other_kN": 483.9,
+     "Rfk_seismic_kN": 483.9
+    }
+   ],
+   "totals": {
+    "thickness_m": 26.5,
+    "Rfk_other_kN": 8808,
+    "Rfk_seismic_kN": 8264
+   }
+  },
+  "1.4.16 基準周面支持力 線路直角方向 押込み側 (III-16)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "soil",
+    "N",
+    "c_kN_m2",
+    "gamma_fk_kN_m2",
+    "method",
+    "dl_other_m",
+    "dl_seismic_m",
+    "Rfk_other_kN",
+    "Rfk_seismic_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "soil": "粘性土",
+     "N": 4,
+     "c_kN_m2": 60.0,
+     "gamma_fk_kN_m2": 42,
+     "method": "Cより算定",
+     "dl_other_m": 3.75,
+     "dl_seismic_m": 0.0,
+     "Rfk_other_kN": 494.9,
+     "Rfk_seismic_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "soil": "粘性土",
+     "N": 5,
+     "c_kN_m2": 80.0,
+     "gamma_fk_kN_m2": 56,
+     "method": "Cより算定",
+     "dl_other_m": 7.5,
+     "dl_seismic_m": 6.935,
+     "Rfk_other_kN": 1319.6,
+     "Rfk_seismic_kN": 1220.2
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "soil": "砂質土",
+     "N": 13,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 91,
+     "method": "N値より算定",
+     "dl_other_m": 1.95,
+     "dl_seismic_m": 1.95,
+     "Rfk_other_kN": 557.5,
+     "Rfk_seismic_kN": 557.5
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 12.3,
+     "dl_seismic_m": 12.3,
+     "Rfk_other_kN": 5951.6,
+     "Rfk_seismic_kN": 5951.6
+    }
+   ],
+   "totals": {
+    "thickness_m": 25.5,
+    "Rfk_other_kN": 8324,
+    "Rfk_seismic_kN": 7729
+   }
+  },
+  "1.4.17 基準周面支持力 線路直角方向 引抜き側 (III-16)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "soil",
+    "N",
+    "c_kN_m2",
+    "gamma_fk_kN_m2",
+    "method",
+    "dl_other_m",
+    "dl_seismic_m",
+    "Rfk_other_kN",
+    "Rfk_seismic_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "soil": "粘性土",
+     "N": 4,
+     "c_kN_m2": 60.0,
+     "gamma_fk_kN_m2": 42,
+     "method": "Cより算定",
+     "dl_other_m": 3.75,
+     "dl_seismic_m": 0.0,
+     "Rfk_other_kN": 494.9,
+     "Rfk_seismic_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "soil": "粘性土",
+     "N": 5,
+     "c_kN_m2": 80.0,
+     "gamma_fk_kN_m2": 56,
+     "method": "Cより算定",
+     "dl_other_m": 7.5,
+     "dl_seismic_m": 6.935,
+     "Rfk_other_kN": 1319.6,
+     "Rfk_seismic_kN": 1220.2
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "soil": "砂質土",
+     "N": 13,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 91,
+     "method": "N値より算定",
+     "dl_other_m": 1.95,
+     "dl_seismic_m": 1.95,
+     "Rfk_other_kN": 557.5,
+     "Rfk_seismic_kN": 557.5
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 12.3,
+     "dl_seismic_m": 12.3,
+     "Rfk_other_kN": 5951.6,
+     "Rfk_seismic_kN": 5951.6
+    },
+    {
+     "layer": "4-2",
+     "thickness_m": 1.0,
+     "soil": "砂質土",
+     "N": 22,
+     "c_kN_m2": null,
+     "gamma_fk_kN_m2": 154,
+     "method": "N値より算定",
+     "dl_other_m": 1.0,
+     "dl_seismic_m": 1.0,
+     "Rfk_other_kN": 483.9,
+     "Rfk_seismic_kN": 483.9
+    }
+   ],
+   "totals": {
+    "thickness_m": 26.5,
+    "Rfk_other_kN": 8808,
+    "Rfk_seismic_kN": 8213
+   }
+  },
+  "1.4.18 杭の降伏周面支持力・終局周面支持力 押込み側 (III-17)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "Rfk_long_kN",
+    "Rfk_trans_kN",
+    "rho_gfy",
+    "rho_gfu",
+    "long_Rfy_kN",
+    "long_Rfu_kN",
+    "trans_Rfy_kN",
+    "trans_Rfu_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "Rfk_long_kN": 0.0,
+     "Rfk_trans_kN": 0.0,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 0.0,
+     "long_Rfu_kN": 0.0,
+     "trans_Rfy_kN": 0.0,
+     "trans_Rfu_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "Rfk_long_kN": 1271.1,
+     "Rfk_trans_kN": 1220.2,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 1398.2,
+     "long_Rfu_kN": 1652.4,
+     "trans_Rfy_kN": 1342.2,
+     "trans_Rfu_kN": 1586.3
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "Rfk_long_kN": 557.5,
+     "Rfk_trans_kN": 557.5,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 613.3,
+     "long_Rfu_kN": 724.8,
+     "trans_Rfy_kN": 613.3,
+     "trans_Rfu_kN": 724.8
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "Rfk_long_kN": 5951.6,
+     "Rfk_trans_kN": 5951.6,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 6546.8,
+     "long_Rfu_kN": 7737.1,
+     "trans_Rfy_kN": 6546.8,
+     "trans_Rfu_kN": 7737.1
+    }
+   ],
+   "totals": {
+    "long_Rfy_kN": 8558.3,
+    "long_Rfu_kN": 10114.3,
+    "trans_Rfy_kN": 8502.3,
+    "trans_Rfu_kN": 10048.2
+   }
+  },
+  "1.4.19 杭の降伏周面支持力・終局周面支持力 引抜き側 (III-17)": {
+   "columns": [
+    "layer",
+    "thickness_m",
+    "Rfk_long_kN",
+    "Rfk_trans_kN",
+    "rho_gfy",
+    "rho_gfu",
+    "long_Rfy_kN",
+    "long_Rfu_kN",
+    "trans_Rfy_kN",
+    "trans_Rfu_kN"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "thickness_m": 3.75,
+     "Rfk_long_kN": 0.0,
+     "Rfk_trans_kN": 0.0,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 0.0,
+     "long_Rfu_kN": 0.0,
+     "trans_Rfy_kN": 0.0,
+     "trans_Rfu_kN": 0.0
+    },
+    {
+     "layer": "2",
+     "thickness_m": 7.5,
+     "Rfk_long_kN": 1271.1,
+     "Rfk_trans_kN": 1220.2,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 1398.2,
+     "long_Rfu_kN": 1652.4,
+     "trans_Rfy_kN": 1342.2,
+     "trans_Rfu_kN": 1586.3
+    },
+    {
+     "layer": "3",
+     "thickness_m": 1.95,
+     "Rfk_long_kN": 557.5,
+     "Rfk_trans_kN": 557.5,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 613.3,
+     "long_Rfu_kN": 724.8,
+     "trans_Rfy_kN": 613.3,
+     "trans_Rfu_kN": 724.8
+    },
+    {
+     "layer": "4-1",
+     "thickness_m": 12.3,
+     "Rfk_long_kN": 5951.6,
+     "Rfk_trans_kN": 5951.6,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 6546.8,
+     "long_Rfu_kN": 7737.1,
+     "trans_Rfy_kN": 6546.8,
+     "trans_Rfu_kN": 7737.1
+    },
+    {
+     "layer": "4-2",
+     "thickness_m": 1.0,
+     "Rfk_long_kN": 483.9,
+     "Rfk_trans_kN": 483.9,
+     "rho_gfy": 1.1,
+     "rho_gfu": 1.3,
+     "long_Rfy_kN": 532.3,
+     "long_Rfu_kN": 629.1,
+     "trans_Rfy_kN": 532.3,
+     "trans_Rfu_kN": 629.1
+    }
+   ],
+   "totals": {
+    "long_Rfy_kN": 9090.6,
+    "long_Rfu_kN": 10743.4,
+    "trans_Rfy_kN": 9034.6,
+    "trans_Rfu_kN": 10677.3
+   }
+  },
+  "1.4.20 有効抵抗土圧力度 pe(z) (III-18)": {
+   "columns": [
+    "layer",
+    "soil",
+    "thickness_m",
+    "z_m",
+    "position",
+    "gamma_kN_m3",
+    "gamma_e_bar_kN_m3",
+    "phi_deg",
+    "Kp",
+    "c_kN_m2",
+    "D_pe_kN_m"
+   ],
+   "rows": [
+    {
+     "layer": "0",
+     "soil": "上載土",
+     "thickness_m": 2.7,
+     "z_m": null,
+     "position": null,
+     "gamma_kN_m3": 18.0,
+     "gamma_e_bar_kN_m3": null,
+     "phi_deg": null,
+     "Kp": null,
+     "c_kN_m2": null,
+     "D_pe_kN_m": null
+    },
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "z_m": 2.7,
+     "position": "上面",
+     "gamma_kN_m3": 6.0,
+     "gamma_e_bar_kN_m3": 18.0,
+     "phi_deg": null,
+     "Kp": null,
+     "c_kN_m2": 60.0,
+     "D_pe_kN_m": 396.2
+    },
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "z_m": 6.45,
+     "position": "下面",
+     "gamma_kN_m3": 6.0,
+     "gamma_e_bar_kN_m3": 11.0,
+     "phi_deg": null,
+     "Kp": null,
+     "c_kN_m2": 60.0,
+     "D_pe_kN_m": 540.0
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "z_m": 6.45,
+     "position": "上面",
+     "gamma_kN_m3": 6.0,
+     "gamma_e_bar_kN_m3": 11.0,
+     "phi_deg": null,
+     "Kp": null,
+     "c_kN_m2": 80.0,
+     "D_pe_kN_m": 720.0
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "z_m": 13.95,
+     "position": "下面",
+     "gamma_kN_m3": 6.0,
+     "gamma_e_bar_kN_m3": 8.3,
+     "phi_deg": null,
+     "Kp": null,
+     "c_kN_m2": 80.0,
+     "D_pe_kN_m": 720.0
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "z_m": 13.95,
+     "position": "上面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.3,
+     "phi_deg": 32,
+     "Kp": 3.255,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 1130.6
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "z_m": 15.9,
+     "position": "下面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.4,
+     "phi_deg": 32,
+     "Kp": 3.255,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 1304.2
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "z_m": 15.9,
+     "position": "上面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.4,
+     "phi_deg": 33,
+     "Kp": 3.392,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 1359.1
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "z_m": 28.2,
+     "position": "下面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.7,
+     "phi_deg": 33,
+     "Kp": 3.392,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 2496.6
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "z_m": 28.2,
+     "position": "上面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.7,
+     "phi_deg": 32,
+     "Kp": 3.255,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 2395.7
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "z_m": 29.2,
+     "position": "下面",
+     "gamma_kN_m3": 9.0,
+     "gamma_e_bar_kN_m3": 8.7,
+     "phi_deg": 32,
+     "Kp": 3.255,
+     "c_kN_m2": null,
+     "D_pe_kN_m": 2480.7
+    }
+   ],
+   "note": "z は上載土 2.70 m を含む深さ（第1層上面 z = 2.70）。alpha_h = 3 (砂質土)、粘性土は pe = (1+z/2D)(gamma_e z + 2c) <= 9c"
+  },
+  "1.4.21 抵抗分担係数 eta_m (砂質土) (III-18)": {
+   "columns": [
+    "condition",
+    "dm_range",
+    "row1",
+    "row2",
+    "row3_or_later"
+   ],
+   "rows": [
+    {
+     "condition": "地盤変位の影響を考慮しない",
+     "dm_range": "dm<3.0",
+     "row1": 1.0,
+     "row2": 0.5,
+     "row3_or_later": 0.4
+    },
+    {
+     "condition": "地盤変位の影響を考慮しない",
+     "dm_range": "3.0<=dm<5.0",
+     "row1": 1.0,
+     "row2": 0.8,
+     "row3_or_later": 0.7
+    },
+    {
+     "condition": "地盤変位の影響を考慮しない",
+     "dm_range": "5.0<=dm",
+     "row1": 1.0,
+     "row2": 1.0,
+     "row3_or_later": 1.0
+    },
+    {
+     "condition": "地盤変位の影響を考慮する",
+     "dm_range": "dm<5.0",
+     "row1": 1.0,
+     "row2": 0.8,
+     "row3_or_later": 0.7
+    },
+    {
+     "condition": "地盤変位の影響を考慮する",
+     "dm_range": "5.0<=dm",
+     "row1": 1.0,
+     "row2": 1.0,
+     "row3_or_later": 1.0
+    }
+   ],
+   "longitudinal": {
+    "dm": 5.0,
+    "dn": 3.0,
+    "n": 3,
+    "eta_n": 0.906
+   },
+   "transverse": {
+    "dm": 3.0,
+    "dn": 5.0,
+    "n": 2,
+    "eta_n": 1.0
+   },
+   "eta_n_formula": "(dn/3)^0.42 n^-0.09 <= 1.0",
+   "note": "粘性土は各列とも eta_m = 1.0、eta_n = 1.0。dm, dn は III-18 と III-19 の印字値（線路方向 dm=5.00/1.00、dn=3.00/1.00、n=3；直角方向 dm=3.00、dn=5.00、n=2）"
+  },
+  "1.4.22 群杭の有効抵抗土圧力度 線路方向 (III-19)": {
+   "columns": [
+    "layer",
+    "soil",
+    "thickness_m",
+    "position",
+    "D_pe_kN_m",
+    "eta_m_row1",
+    "eta_m_row2",
+    "eta_m_row3",
+    "eta_n",
+    "eta_m_n_row1",
+    "eta_m_n_row2",
+    "eta_m_n_row3",
+    "D_peg_row1",
+    "D_peg_row2",
+    "D_peg_row3"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "position": "上面",
+     "D_pe_kN_m": 396.2,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 396,
+     "D_peg_row2": 396,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "position": "下面",
+     "D_pe_kN_m": 540.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 540,
+     "D_peg_row2": 540,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "position": "上面",
+     "D_pe_kN_m": 720.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 720,
+     "D_peg_row2": 720,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "position": "下面",
+     "D_pe_kN_m": 720.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 720,
+     "D_peg_row2": 720,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "position": "上面",
+     "D_pe_kN_m": 1130.6,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 1024,
+     "D_peg_row2": 1024,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "position": "下面",
+     "D_pe_kN_m": 1304.2,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 1182,
+     "D_peg_row2": 1182,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "position": "上面",
+     "D_pe_kN_m": 1359.1,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 1231,
+     "D_peg_row2": 1231,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "position": "下面",
+     "D_pe_kN_m": 2496.6,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 2262,
+     "D_peg_row2": 2262,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "position": "上面",
+     "D_pe_kN_m": 2395.7,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 2171,
+     "D_peg_row2": 2171,
+     "D_peg_row3": null
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "position": "下面",
+     "D_pe_kN_m": 2480.7,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": null,
+     "eta_n": 0.906,
+     "eta_m_n_row1": 0.906,
+     "eta_m_n_row2": 0.906,
+     "eta_m_n_row3": null,
+     "D_peg_row1": 2248,
+     "D_peg_row2": 2248,
+     "D_peg_row3": null
+    }
+   ],
+   "note": "地盤変位を考慮しない場合と考慮する場合で同じ値"
+  },
+  "1.4.23 群杭の有効抵抗土圧力度 線路直角方向 (III-20)": {
+   "columns": [
+    "layer",
+    "soil",
+    "thickness_m",
+    "position",
+    "D_pe_kN_m",
+    "eta_m_row1",
+    "eta_m_row2",
+    "eta_m_row3",
+    "eta_n",
+    "eta_m_n_row1",
+    "eta_m_n_row2",
+    "eta_m_n_row3",
+    "D_peg_row1",
+    "D_peg_row2",
+    "D_peg_row3"
+   ],
+   "rows": [
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "position": "上面",
+     "D_pe_kN_m": 396.2,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": 1.0,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": 1.0,
+     "D_peg_row1": 396,
+     "D_peg_row2": 396,
+     "D_peg_row3": 396
+    },
+    {
+     "layer": "1",
+     "soil": "粘性土",
+     "thickness_m": 3.75,
+     "position": "下面",
+     "D_pe_kN_m": 540.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": 1.0,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": 1.0,
+     "D_peg_row1": 540,
+     "D_peg_row2": 540,
+     "D_peg_row3": 540
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "position": "上面",
+     "D_pe_kN_m": 720.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": 1.0,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": 1.0,
+     "D_peg_row1": 720,
+     "D_peg_row2": 720,
+     "D_peg_row3": 720
+    },
+    {
+     "layer": "2",
+     "soil": "粘性土",
+     "thickness_m": 7.5,
+     "position": "下面",
+     "D_pe_kN_m": 720.0,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 1.0,
+     "eta_m_row3": 1.0,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 1.0,
+     "eta_m_n_row3": 1.0,
+     "D_peg_row1": 720,
+     "D_peg_row2": 720,
+     "D_peg_row3": 720
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "position": "上面",
+     "D_pe_kN_m": 1130.6,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 1131,
+     "D_peg_row2": 904,
+     "D_peg_row3": 791
+    },
+    {
+     "layer": "3",
+     "soil": "砂質土",
+     "thickness_m": 1.95,
+     "position": "下面",
+     "D_pe_kN_m": 1304.2,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 1304,
+     "D_peg_row2": 1043,
+     "D_peg_row3": 913
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "position": "上面",
+     "D_pe_kN_m": 1359.1,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 1359,
+     "D_peg_row2": 1087,
+     "D_peg_row3": 951
+    },
+    {
+     "layer": "4-1",
+     "soil": "砂質土",
+     "thickness_m": 12.3,
+     "position": "下面",
+     "D_pe_kN_m": 2496.6,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 2497,
+     "D_peg_row2": 1997,
+     "D_peg_row3": 1748
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "position": "上面",
+     "D_pe_kN_m": 2395.7,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 2396,
+     "D_peg_row2": 1917,
+     "D_peg_row3": 1677
+    },
+    {
+     "layer": "4-2",
+     "soil": "砂質土",
+     "thickness_m": 1.0,
+     "position": "下面",
+     "D_pe_kN_m": 2480.7,
+     "eta_m_row1": 1.0,
+     "eta_m_row2": 0.8,
+     "eta_m_row3": 0.7,
+     "eta_n": 1.0,
+     "eta_m_n_row1": 1.0,
+     "eta_m_n_row2": 0.8,
+     "eta_m_n_row3": 0.7,
+     "D_peg_row1": 2481,
+     "D_peg_row2": 1985,
+     "D_peg_row3": 1736
+    }
+   ]
+  }
+ },
+ "spring_summary": {
+  "longitudinal": {
+   "table_pages": "III-21 .. III-23",
+   "①杭本数および1/β": {
+    "rows_of_piles": 2,
+    "piles_depth_row1": 3,
+    "piles_depth_row2": 3,
+    "inverse_beta_m": 4.026
+   },
+   "②長期・短期地盤ばね値 (3本当り)": {
+    "unit": "kN/m2",
+    "rows": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "kh_horizontal_kN_m2_long": 14217,
+      "kv_vertical_kN_m2_long": 13536,
+      "kh_horizontal_kN_m2_short": 28434,
+      "kv_vertical_kN_m2_short": 27072
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "kh_horizontal_kN_m2_long": 19197,
+      "kv_vertical_kN_m2_long": 18276,
+      "kh_horizontal_kN_m2_short": 38391,
+      "kv_vertical_kN_m2_short": 36555
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "kh_horizontal_kN_m2_long": 37500,
+      "kv_vertical_kN_m2_long": 35706,
+      "kh_horizontal_kN_m2_short": 75006,
+      "kv_vertical_kN_m2_short": 71412
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "kh_horizontal_kN_m2_long": 125793,
+      "kv_vertical_kN_m2_long": 119766,
+      "kh_horizontal_kN_m2_short": 251586,
+      "kv_vertical_kN_m2_short": 239544
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "kh_horizontal_kN_m2_long": 125793,
+      "kv_vertical_kN_m2_long": 119766,
+      "kh_horizontal_kN_m2_short": 251586,
+      "kv_vertical_kN_m2_short": 239544
+     }
+    ],
+    "tip_vertical_node_spring_kN_m": {
+     "long": 531975,
+     "short": 1063950
+    },
+    "note": "杭周面の分布ばね値は 3本当り（表1.4.9 の値 x 3 本）。先端の長期 531975 は 177325 x 3、短期 1063950 は 354650 x 3"
+   },
+   "③地震時(慣性力設計)": {
+    "horizontal": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "kh_kN_m2": 56862,
+      "pe": {
+       "row1": [
+        1188,
+        1620
+       ],
+       "row2": [
+        1188,
+        1620
+       ],
+       "row3": null
+      }
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "kh_kN_m2": 76788,
+      "pe": {
+       "row1": [
+        2160,
+        2160
+       ],
+       "row2": [
+        2160,
+        2160
+       ],
+       "row3": null
+      }
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "kh_kN_m2": 150009,
+      "pe": {
+       "row1": [
+        3072,
+        3546
+       ],
+       "row2": [
+        3072,
+        3546
+       ],
+       "row3": null
+      }
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "kh_kN_m2": 503175,
+      "pe": {
+       "row1": [
+        3693,
+        6786
+       ],
+       "row2": [
+        3693,
+        6786
+       ],
+       "row3": null
+      }
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "kh_kN_m2": 503175,
+      "pe": {
+       "row1": [
+        6513,
+        6744
+       ],
+       "row2": [
+        6513,
+        6744
+       ],
+       "row3": null
+      }
+     }
+    ],
+    "pe_columns": "[上端, 下端] (kN/m)",
+    "vertical_push_in": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "dl_m": 0.0,
+      "kv_1st_kN_m2": 0,
+      "kv_2nd_kN_m2": 0,
+      "Rfy_kN_m": 0,
+      "Rfu_kN_m": 0
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "dl_m": 7.224,
+      "kv_1st_kN_m2": 36555,
+      "kv_2nd_kN_m2": 1255,
+      "Rfy_kN_m": 580.6,
+      "Rfu_kN_m": 686.2
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "dl_m": 1.95,
+      "kv_1st_kN_m2": 71412,
+      "kv_2nd_kN_m2": 1977,
+      "Rfy_kN_m": 943.5,
+      "Rfu_kN_m": 1115.1
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "dl_m": 12.3,
+      "kv_1st_kN_m2": 239544,
+      "kv_2nd_kN_m2": 3110,
+      "Rfy_kN_m": 1596.8,
+      "Rfu_kN_m": 1887.1
+     }
+    ],
+    "vertical_pull_out": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "dl_m": 0.0,
+      "kv_1st_kN_m2": 0,
+      "kv_2nd_kN_m2": 0,
+      "Rfy_kN_m": 0,
+      "Rfu_kN_m": 0
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "dl_m": 7.224,
+      "kv_1st_kN_m2": 36555,
+      "kv_2nd_kN_m2": 1255,
+      "Rfy_kN_m": 580.6,
+      "Rfu_kN_m": 686.2
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "dl_m": 1.95,
+      "kv_1st_kN_m2": 71412,
+      "kv_2nd_kN_m2": 1977,
+      "Rfy_kN_m": 943.5,
+      "Rfu_kN_m": 1115.1
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "dl_m": 12.3,
+      "kv_1st_kN_m2": 239544,
+      "kv_2nd_kN_m2": 3110,
+      "Rfy_kN_m": 1596.8,
+      "Rfu_kN_m": 1887.1
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "dl_m": 1.0,
+      "kv_1st_kN_m2": 239544,
+      "kv_2nd_kN_m2": 3111,
+      "Rfy_kN_m": 1596.9,
+      "Rfu_kN_m": 1887.3
+     }
+    ],
+    "tip": {
+     "kv_1st_kN_m": 1063950,
+     "kv_2nd_kN_m": 20665,
+     "Rty_kN": 4452.0,
+     "Rtu_kN": 6432.0
+    }
+   },
+   "④地震時(応答変位法)": {
+    "horizontal": "③と同じ値（III-22 に再掲）",
+    "vertical_push_in": "③の押込み側と同じ（III-22）",
+    "vertical_pull_out": "③の引抜き側と同じ（III-23）",
+    "tip": "③と同じ（III-23: 1063950, 20665, 4452.0, 6432.0）"
+   }
+  },
+  "transverse": {
+   "table_pages": "III-24 .. III-26",
+   "①杭本数および1/β": {
+    "rows_of_piles": 3,
+    "piles_depth_row1": 2,
+    "piles_depth_row2": 2,
+    "piles_depth_row3": 2,
+    "inverse_beta_m": 4.315
+   },
+   "②長期・短期地盤ばね値 (2本当り)": {
+    "unit": "kN/m2",
+    "rows": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "kh_horizontal_kN_m2_long": 7042,
+      "kv_vertical_kN_m2_long": 9024,
+      "kh_horizontal_kN_m2_short": 14084,
+      "kv_vertical_kN_m2_short": 18048
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "kh_horizontal_kN_m2_long": 9508,
+      "kv_vertical_kN_m2_long": 12184,
+      "kh_horizontal_kN_m2_short": 19018,
+      "kv_vertical_kN_m2_short": 24370
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "kh_horizontal_kN_m2_long": 18576,
+      "kv_vertical_kN_m2_long": 23804,
+      "kh_horizontal_kN_m2_short": 37154,
+      "kv_vertical_kN_m2_short": 47608
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "kh_horizontal_kN_m2_long": 62312,
+      "kv_vertical_kN_m2_long": 79844,
+      "kh_horizontal_kN_m2_short": 124624,
+      "kv_vertical_kN_m2_short": 159696
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "kh_horizontal_kN_m2_long": 62312,
+      "kv_vertical_kN_m2_long": 79844,
+      "kh_horizontal_kN_m2_short": 124624,
+      "kv_vertical_kN_m2_short": 159696
+     }
+    ],
+    "tip_vertical_node_spring_kN_m": {
+     "long": 354650,
+     "short": 709300
+    },
+    "note": "水平は表1.4.10 の khg x 2 本（3521x2=7042 など）、鉛直は表1.4.8 の kfv・U x 2 本"
+   },
+   "③地震時(慣性力設計)": {
+    "horizontal": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "kh_kN_m2": 28168,
+      "pe": {
+       "row1": [
+        792,
+        1080
+       ],
+       "row2": [
+        792,
+        1080
+       ],
+       "row3": [
+        792,
+        1080
+       ]
+      }
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "kh_kN_m2": 38036,
+      "pe": {
+       "row1": [
+        1440,
+        1440
+       ],
+       "row2": [
+        1440,
+        1440
+       ],
+       "row3": [
+        1440,
+        1440
+       ]
+      }
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "kh_kN_m2": 74308,
+      "pe": {
+       "row1": [
+        2262,
+        2608
+       ],
+       "row2": [
+        1808,
+        2086
+       ],
+       "row3": [
+        1582,
+        1826
+       ]
+      }
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "kh_kN_m2": 249250,
+      "pe": {
+       "row1": [
+        2718,
+        4994
+       ],
+       "row2": [
+        2174,
+        3994
+       ],
+       "row3": [
+        1902,
+        3496
+       ]
+      }
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "kh_kN_m2": 249250,
+      "pe": {
+       "row1": [
+        4792,
+        4962
+       ],
+       "row2": [
+        3834,
+        3970
+       ],
+       "row3": [
+        3354,
+        3472
+       ]
+      }
+     }
+    ],
+    "pe_columns": "[上端, 下端] (kN/m)",
+    "vertical_push_in": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "dl_m": 0.0,
+      "kv_1st_kN_m2": 0,
+      "kv_2nd_kN_m2": 0,
+      "Rfy_kN_m": 0,
+      "Rfu_kN_m": 0
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "dl_m": 6.935,
+      "kv_1st_kN_m2": 24370,
+      "kv_2nd_kN_m2": 837,
+      "Rfy_kN_m": 387.1,
+      "Rfu_kN_m": 457.5
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "dl_m": 1.95,
+      "kv_1st_kN_m2": 47608,
+      "kv_2nd_kN_m2": 1318,
+      "Rfy_kN_m": 629.0,
+      "Rfu_kN_m": 743.4
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "dl_m": 12.3,
+      "kv_1st_kN_m2": 159696,
+      "kv_2nd_kN_m2": 2074,
+      "Rfy_kN_m": 1064.5,
+      "Rfu_kN_m": 1258.1
+     }
+    ],
+    "vertical_pull_out": [
+     {
+      "layer": "1",
+      "thickness_m": 3.75,
+      "dl_m": 0.0,
+      "kv_1st_kN_m2": 0,
+      "kv_2nd_kN_m2": 0,
+      "Rfy_kN_m": 0,
+      "Rfu_kN_m": 0
+     },
+     {
+      "layer": "2",
+      "thickness_m": 7.5,
+      "dl_m": 6.935,
+      "kv_1st_kN_m2": 24370,
+      "kv_2nd_kN_m2": 837,
+      "Rfy_kN_m": 387.1,
+      "Rfu_kN_m": 457.5
+     },
+     {
+      "layer": "3",
+      "thickness_m": 1.95,
+      "dl_m": 1.95,
+      "kv_1st_kN_m2": 47608,
+      "kv_2nd_kN_m2": 1318,
+      "Rfy_kN_m": 629.0,
+      "Rfu_kN_m": 743.4
+     },
+     {
+      "layer": "4-1",
+      "thickness_m": 12.3,
+      "dl_m": 12.3,
+      "kv_1st_kN_m2": 159696,
+      "kv_2nd_kN_m2": 2074,
+      "Rfy_kN_m": 1064.5,
+      "Rfu_kN_m": 1258.1
+     },
+     {
+      "layer": "4-2",
+      "thickness_m": 1.0,
+      "dl_m": 1.0,
+      "kv_1st_kN_m2": 159696,
+      "kv_2nd_kN_m2": 2074,
+      "Rfy_kN_m": 1064.6,
+      "Rfu_kN_m": 1258.2
+     }
+    ],
+    "tip": {
+     "kv_1st_kN_m": 709300,
+     "kv_2nd_kN_m": 13776,
+     "Rty_kN": 2968.0,
+     "Rtu_kN": 4288.0
+    }
+   },
+   "④地震時(応答変位法)": {
+    "horizontal": "③と同じ値（III-25 に再掲）",
+    "vertical_push_in": "③の押込み側と同じ（III-25。終局 4-1 は 1258.1）",
+    "vertical_pull_out": "③の引抜き側と同じ（III-26）",
+    "tip": "③と同じ（III-26: 709300, 13776, 2968.0, 4288.0）"
+   }
+  }
+ },
+ "consistency_checks_done": [
+  "総括の杭先端節点ばね：線路方向 531975 = 177325 x 3、1063950 = 354650 x 3；直角方向 354650 = 177325 x 2、709300 = 354650 x 2（本数倍）",
+  "総括 ② の水平・鉛直分布ばねは表1.4.9/1.4.10・1.4.8 の1本当りの値の本数倍：4739 x 3 = 14217、9478 x 3 = 28434、4512 x 3 = 13536（線路）；3521 x 2 = 7042、4512 x 2 = 9024（直角）。印字値と一致",
+  "総括 ② の鉛直 第2層 直角方向 12184 = 6092 x 2、水平 9508 = 4754 x 2。ただし 1.4.9/1.4.10 の khg(長期)は 6399 / 4754 で、これと整合（見本内の矛盾なし）"
+ ]
+}

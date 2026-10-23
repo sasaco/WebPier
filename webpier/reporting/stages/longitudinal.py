@@ -33,7 +33,7 @@ from .frame_report import (
     BODY_LEFT, FigureSpec, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
     frame_figure, material_lines, member_table, part_weight, node_table, operand, overlap_lines, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, pedestal_lever_note, seat_heading, seat_tables,
-    semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    semantic_records as records, pile_section, spring_note, spring_units, sub, top_table, used_concretes, value, with_unit,
 )
 from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 
@@ -128,8 +128,7 @@ def _model(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, 
                                           horizontal=footing_dimensions(pier, frame, reaction.self_weight.footing_length),
                                           block_id=PREFIX + "model.figure"))
     m.paragraph("model.figure.note", "太線は剛域を示す．Ⓜは可動支承，Ⓕは固定支承．寸法の単位は m．")
-    m.paragraph("model.springs.caption", "フーチング底面のばね", keep=True)
-    m.table("model.springs", spring_table(frame))
+    spring_units(m, frame)
     m.heading("model.nodes.heading", "(2) 節点と部材", 2)
     m.table("model.nodes", node_table(frame))
     m.table("model.members", member_table(frame))
@@ -146,6 +145,9 @@ def _model(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, 
     m.paragraph("section.footing.rigid", "フーチングはすべて剛域とする．")
     m.equation("section.footing.centroid", "断面の重心位置", sub("y", "G"),
                with_unit(frame.node(NodeRole.FOOTING_CENTROID).y))
+    if frame.piles is not None:
+        number += 1
+        pile_section(m, frame, number)
     number += 1
     m.heading("section.material.heading", f"{number}) 弾性係数", 3)
     for key, label, concrete in used_concretes(frame):
@@ -323,7 +325,7 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
         name, _, qualifier, _ = basic_name(result, reaction, action.case)
         rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
     m.table("basic", TableSpec((2, 7, 16, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
-    m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
+    m.paragraph("basic.note", spring_note(result.frame))
     m.heading("define.heading", "(2) Defineケース", 2)
     rows = [("No", "C1", "C2", "C3", "記号", "荷重名称", "区分")]
     for define in result.define_cases:

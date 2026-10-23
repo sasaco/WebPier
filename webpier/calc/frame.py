@@ -28,6 +28,10 @@ by rigid members above the pier top and numbered first; the control node is
 the level of the girder with the larger inertia force (``girder_levels``,
 decision 81, which replaces the weighted level of decision 65). No drawing
 data is kept here.
+
+On a pile foundation (decision 88) the footing base is a rigid horizontal member through the heads of the pile rows and
+the springs of 0500 give way to the piles: one member of the length of the pile for each row, with the springs of
+SOIL-JR on it (``calc.pile_frame``). The frame then has ``piles`` and no ``support``.
 """
 
 from __future__ import annotations
@@ -43,6 +47,8 @@ from ..inputs import PierInput
 from ..loadmodel import Side
 from ._exact import d, put
 from .foundation import FoundationResult, SpringSet
+from .pile_frame import LONGITUDINAL as PILE_LONGITUDINAL, TRANSVERSE as PILE_TRANSVERSE
+from .pile_frame import PileFoundation, PileGroup, PileRow, pile_group
 from .materials import Concrete, MaterialsResult
 from .reaction.self_weight import SelfWeightResult
 
@@ -62,6 +68,8 @@ class NodeRole(Enum):
     FOOTING_TOP = "footing_top"
     FOOTING_CENTROID = "footing_centroid"  # footing loads act here (load anchor)
     FOOTING_BOTTOM = "footing_bottom"  # the spring support
+    PILE_HEAD = "pile_head"  # the head of a pile row, on the footing base
+    PILE_TIP = "pile_tip"  # the tip of a pile row: the vertical spring of the tip
     PEDESTAL_BASE = "pedestal_base"
     PEDESTAL_TOP = "pedestal_top"
     GIRDER_ORIGIN = "girder_origin"  # h1 + h2 of the origin girder above the bearing seat (0720)
@@ -76,6 +84,8 @@ class Region(Enum):
     COLUMN_BASE = "column_base"  # the 0.010 m micro member
     FOOTING_UPPER = "footing_upper"  # footing top to centroid
     FOOTING_LOWER = "footing_lower"  # centroid to base
+    FOOTING_BASE = "footing_base"  # a rigid member along the footing base between the heads of the pile rows
+    PILE = "pile"  # one row of piles from its head to its tip
     PEDESTAL_ARM = "pedestal_arm"  # beam top to the pedestal centre, horizontal
     PEDESTAL = "pedestal"  # H1
     GIRDER = "girder"  # bearing seat up to a girder level, rigid (0720)
@@ -112,10 +122,15 @@ class Member:
     offset: Printed  # x_end − x_start
     section: Section | None  # None for a rigid member
     material: Concrete | None
+    modulus: Printed | None = None  # E of a pile row (kN/m2), whose material is not a concrete of the pier
 
     @property
     def rigid(self) -> bool:
         return self.section is None
+
+    @property
+    def pile(self) -> bool:
+        return self.region is Region.PILE
 
 
 @dataclass(frozen=True)
@@ -133,6 +148,16 @@ class Support:
 
 
 @dataclass(frozen=True)
+class PileNodes:
+    """The nodes and the member of a pile row of the frame: where the springs of SOIL-JR are put."""
+
+    row: PileRow
+    head: int
+    tip: int
+    member: int
+
+
+@dataclass(frozen=True)
 class Frame:
     direction: Direction
     nodes: tuple[Node, ...]
@@ -140,9 +165,11 @@ class Frame:
     column_section: Section
     pedestal_section: Section | None  # None without a pedestal (H1 = 0)
     materials: MaterialsResult
-    support: Support
+    support: Support | None  # the springs of 0500 at the footing base; None on a pile foundation
     pier_height: Printed  # H2 + H3 + H4: the beam top above the footing top (Example2 8-1 7.600)
     seats: tuple[NodeRole, NodeRole]  # where the bearings of the origin and the end girder sit (decision 81)
+    piles: PileGroup | None = None  # the pile rows of a pile foundation (decision 88)
+    pile_nodes: tuple[PileNodes, ...] = ()
 
     def node(self, role: NodeRole) -> Node:
         for node in self.nodes:
@@ -253,6 +280,32 @@ def _seats(pier: PierInput, self_weight: SelfWeightResult) -> tuple[NodeRole, No
     return origin, end
 
 
+def _pile_rows(group: PileGroup, nodes: list[Node], links: list[tuple[int, int, Region]]
+               ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+    """The heads of the pile rows on the footing base, the rigid members along the base between them (through the
+    footing centre, the base node of the footing), and each row's member down to its tip (decision 88)."""
+    nodes, links = list(nodes), list(links)
+    base = next(node for node in nodes if NodeRole.FOOTING_BOTTOM in node.roles)
+    zero = LENGTH(0)
+    heads: dict[int, int] = {}  # row number -> node number
+    for row in group.rows:
+        if (row.x, zero) == (base.x, base.y):  # a row under the footing centre shares its node
+            nodes[base.number - 1] = Node(base.number, base.x, base.y,
+                                          nodes[base.number - 1].roles | {NodeRole.PILE_HEAD})
+            heads[row.number] = base.number
+        else:
+            nodes.append(Node(len(nodes) + 1, row.x, zero, frozenset({NodeRole.PILE_HEAD})))
+            heads[row.number] = len(nodes)
+    along_base = sorted([(base.x.value, base.number), *((row.x.value, heads[row.number]) for row in group.rows
+                                                         if heads[row.number] != base.number)])
+    links += [(left, right, Region.FOOTING_BASE) for (_, left), (_, right) in zip(along_base, along_base[1:])]
+    tip = LENGTH(-group.length.value)
+    for row in group.rows:
+        nodes.append(Node(len(nodes) + 1, row.x, tip, frozenset({NodeRole.PILE_TIP})))
+        links.append((heads[row.number], len(nodes), Region.PILE))
+    return nodes, links
+
+
 def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, int, Region]],
                    forces: tuple[Printed, Printed], seats: tuple[NodeRole, NodeRole]
                    ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
@@ -302,12 +355,13 @@ def _numbered_from_the_upper_left(nodes: list[Node], links: list[tuple[int, int,
     return [Node(new[node.number], node.x, node.y, node.roles) for node in order], renumbered
 
 
-def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: FoundationResult,
+def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: FoundationResult | PileFoundation,
                 materials: MaterialsResult, direction: Direction, *, column_base_micro_member: bool = False,
                 elastic_regions: Collection[Region] = BODY_REGIONS,
                 girder_levels: tuple[Printed, Printed] | None = None) -> Frame:
     """*girder_levels*: the girder inertia forces (origin, end) of 0720, which add the girder levels and the
-    control node; None for the other frames."""
+    control node; None for the other frames. A *foundation* of piles (``PileFoundation``) puts the pile rows
+    under the footing in place of the springs (decision 88)."""
     unknown = set(elastic_regions) - BODY_REGIONS
     if unknown:
         raise ValueError(f"elastic regions need a section: {sorted(region.name for region in unknown)}")
@@ -364,6 +418,10 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
         previous = len(nodes)
         if start:
             links.append((start, previous, region))  # type: ignore[arg-type]  # only the beam top has no region
+    group = None
+    if isinstance(foundation, PileFoundation):
+        group = pile_group(pier, foundation, PILE_LONGITUDINAL if longitudinal else PILE_TRANSVERSE)
+        nodes, links = _pile_rows(group, nodes, links)
     seats = _seats(pier, self_weight)
     if girder_levels is not None:
         nodes, links = _girder_levels(pier, nodes, links, girder_levels, seats)
@@ -376,9 +434,27 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
         elastic = region in elastic_regions
         section = (pedestal_section if region is Region.PEDESTAL else column_section) if elastic else None
         material = (materials.beam if region in _BEAM_CONCRETE else materials.column) if elastic else None
+        modulus = None
+        if region is Region.PILE:
+            assert group is not None
+            row = next(row for row in group.rows if row.x == a.x)
+            section = Section(width=group.section.diameter, depth=group.section.diameter, area=row.area,
+                              inertia=row.inertia)
+            modulus = group.section.modulus
         members.append(Member(number=number, start=start, end=end, region=region,
                               height=put(LENGTH, abs(d(a.y) - d(b.y))), offset=put(LENGTH, d(b.x) - d(a.x)),
-                              section=section, material=material))
+                              section=section, material=material, modulus=modulus))
+    if group is not None:
+        pile_nodes = tuple(
+            PileNodes(row=row,
+                      head=next(n.number for n in nodes if NodeRole.PILE_HEAD in n.roles and n.x == row.x),
+                      tip=next(n.number for n in nodes if NodeRole.PILE_TIP in n.roles and n.x == row.x),
+                      member=next(m.number for m in members if m.region is Region.PILE
+                                  and by_number[m.start].x == row.x))
+            for row in group.rows)
+        return Frame(direction=direction, nodes=tuple(nodes), members=tuple(members), column_section=column_section,
+                     pedestal_section=pedestal_section, materials=materials, support=None, pier_height=pier_height,
+                     seats=seats, piles=group, pile_nodes=pile_nodes)
     support = Support(node=next(n.number for n in nodes if NodeRole.FOOTING_BOTTOM in n.roles),
                       long_term=_springs(foundation.long_term, direction),
                       short_term=_springs(foundation.short_term, direction))

@@ -37,7 +37,12 @@ file declare the same files and share one analysis: a generation runs it once an
 A stage with ``soil_jr`` (0500 for a pile foundation, decision 85, ADR-0013) has SOIL-JR calculate the .sdt of its
 export with the JRSNAP runner: its report is SOIL-JR's as the runner printed it, its .sdr and .sdc (and the two for the
 liquefaction, when a layer along the pile liquefies) are published under post/ as returned, and ``complete`` finishes its
-result with them. A stage with ``foundations`` is the one of the direct foundation; the stages of the other 基礎形式 are its
+result with them. A stage with ``after`` (0610 and 0620 of a pile foundation, decision 88) calculates and builds its exports only once
+the stages it names have their runner's files and are complete: its frame stands on the springs SOIL-JR returned. Such a
+stage is checked only by a generation (``validate`` has no runner's result); the stages that read it (0611, 0612, 0800 …)
+are not items a pile foundation can choose yet (inputs.outputs.PILE_OUTPUT_KEYS).
+
+A stage with ``foundations`` is the one of the direct foundation; the stages of the other 基礎形式 are its
 values, and ``Registry.for_foundation`` makes the registry of a 基礎形式 once the input is read.
 
 Which stages a generation makes is decided by the input's 出力項目 alone (decision 72, ADR-0011): ``OUTPUT_STAGES``
@@ -77,6 +82,7 @@ from ..calc.generic.cantilever import calculate_generic_cantilever, complete_gen
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
+from ..calc.pile_frame import PileFoundation
 from ..calc.pile_ground import calculate_pile_ground
 from ..calc.reaction import calculate_dead_reaction, calculate_reaction
 from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
@@ -306,6 +312,8 @@ class StageSpec:
     # the stage of each pile foundation (a 基礎形式 of choices.PILE_FOUNDATIONS) in place of this one, which is the direct
     # foundation's: the same id, and its own stem, files and runners (decision 85)
     foundations: Mapping[str, StageSpec] = field(default_factory=dict)
+    # the stages (with ``soil_jr``) that must be complete before this stage is calculated and its exports are built
+    after: tuple[str, ...] = ()
 
     @property
     def has_report(self) -> bool:
@@ -375,6 +383,11 @@ class Registry:
                 outputs += analysis.files
             if stage.complete is not None and not stage.has_report:
                 raise ValueError(f"{stage.id}の結果を仕上げるには計算書が必要です")
+            for name in stage.after:
+                if name not in stage.depends_on or self.get(name).soil_jr is None:
+                    raise ValueError(f"{stage.id}が待つ{name}は、依存段階の SOIL-JR で計算する段階である必要があります")
+                if stage.complete is not None or stage.frame_analysis is not None or stage.nonlinear_analysis is not None:
+                    raise ValueError(f"{stage.id}は待つ段階があるので、仕上げと解析は持てません")
             if stage.complete is not None and analysis is None and stage.soil_jr is None and not any(
                     self.get(name).seismic_check is not None or self.get(name).complete is not None
                     for name in self.closure(stage.depends_on)):
@@ -477,6 +490,10 @@ class Registry:
         them uses, as the input has them, these are every stage the generation calculates."""
         chosen = set(outputs)
         return tuple(stage.id for stage in self.stages if self.item(stage.id) in chosen)
+
+    def deferred(self, stage_ids: Sequence[str]) -> tuple[str, ...]:
+        """Those of *stage_ids* that wait for a runner's result (``after``), in registry order."""
+        return tuple(stage_id for stage_id in self.ids if stage_id in stage_ids and self.get(stage_id).after)
 
     def closure(self, selected: Sequence[str]) -> tuple[str, ...]:
         """The selected stages and everything they read, in registry (dependency) order."""
@@ -653,6 +670,25 @@ def _pile_ground() -> StageSpec:
                      complete=soiljr.complete)
 
 
+def _with_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any]) -> StageSpec:
+    """*stage* with its stage for each pile foundation (``_on_piles``)."""
+    return replace(stage, foundations={foundation: _on_piles(stage, calculate)
+                                       for foundation in choices.PILE_FOUNDATIONS})
+
+
+def _pile_foundation(results: Results) -> PileFoundation:
+    """What the frame of a pile foundation takes of 0500, once SOIL-JR has returned its springs (decision 88)."""
+    model = results["0500"]
+    return PileFoundation(model.ground, model.springs)
+
+
+def _on_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any]) -> StageSpec:
+    """*stage* of the direct foundation as it is for a pile foundation: the frame stands on the piles and the springs of
+    SOIL-JR, so it is calculated and its files are built once 0500 is complete (decision 88)."""
+    return replace(stage, calculate=lambda pier, results: calculate(pier, _pile_foundation(results), results["0600"]),
+                   after=("0500",), foundations={})
+
+
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
 # The same generation has Aggre-SE read the project and check with it (decision 56): the sidecar names that report.
@@ -677,23 +713,23 @@ STAGES = Registry((
               lambda pier, results: calculate_reaction(pier),
               lambda results, pier, path, pages: render_reaction(results["0600"], pier, path),
               grid_documents=lambda results, pier, pages: reaction_report.grid_documents(results["0600"], pier)),
-    StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
+    _with_piles(StageSpec("0610", "0610_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_longitudinal(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_longitudinal(results["0610"], results["0600"], pier, path,
                                                                      pages),
               (Export("frameweb", "線路方向.json", _frameweb("0610", build_frameweb)),), load_diagram="frameweb",
               grid_documents=lambda results, pier, pages: longitudinal_report.grid_documents(
-                  results["0610"], results["0600"], pier)),
+                  results["0610"], results["0600"], pier)), calculate_longitudinal),
     _column_check("0611", "0611_線路方向照査", "0610", "線路方向", COLUMN_LONGITUDINAL, CHAPTER_8),
     _foundation_check("0612", "0612_線路方向基礎", "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
-    StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
+    _with_piles(StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
                                                                    pages),
               (Export("frameweb", "線路直角方向.json", _frameweb("0620", build_frameweb_transverse)),),
               load_diagram="frameweb",
               grid_documents=lambda results, pier, pages: transverse_report.grid_documents(
-                  results["0620"], results["0600"], pier)),
+                  results["0620"], results["0600"], pier)), calculate_transverse),
     _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
     _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
     # 0710 / 0720 calculate D1, D2, the buoyancy and the snow themselves and read no 0610 / 0620 (decision 78).
@@ -781,6 +817,16 @@ def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: L
                          results["0900"], pier))
 
 
+def _refuse_piles(stage: StageSpec) -> StageSpec:
+    """*stage* of a load model's frame on a pile foundation: its frame is not built (the frame of a pile foundation is of
+    the train load, decision 88), so the input is refused as the stage is calculated."""
+    def refuse(pier: PierInput, results: Results) -> Any:
+        raise InputError(f"下部構造.基礎形式: 荷重モデル（--addin）の{stage.id}は、{pier.substructure.foundation}では"
+                         "計算できません（杭基礎の骨組は列車荷重だけです）")
+
+    return replace(stage, calculate=refuse)
+
+
 def stages_for(source: LoadModelSource) -> Registry:
     """The stages with the load model *source* (decision 70): 0600 the dead loads only, 0610 / 0620 / 0710 / 0720 /
     0900 from its result, 0711 / 0721 with the project of their generic NDU; every other stage is shared, reading the
@@ -819,4 +865,7 @@ def stages_for(source: LoadModelSource) -> Registry:
         "0721": _generic_nonlinear(STAGES.get("0721"), "0720", NDU_TRANSVERSE),
         "0900": _generic_cantilever(STAGES.get("0900").stem, "0711", "0721", source),
     }
+    for stage_id in ("0610", "0620"):
+        generic[stage_id] = replace(generic[stage_id], foundations={
+            foundation: _refuse_piles(generic[stage_id]) for foundation in choices.PILE_FOUNDATIONS})
     return Registry(tuple(generic.get(stage.id, stage) for stage in STAGES.stages), load_model=source)

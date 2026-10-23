@@ -29,6 +29,7 @@ TOP_LEVEL = ("node", "fix_node", "member", "element", "load", "define", "combine
 SECTION_KEYS = ("E", "G", "Xp", "A", "J", "Iy", "Iz", "n")
 SUPPORT_KEYS = ("row", "n", "tx", "ty", "tz", "rx", "ry", "rz")
 LOAD_KEYS = ("fix_node", "element", "symbol", "LL_pitch", "rate", "name")
+MEMBER_SPRING_KEYS = ("m", "tx", "ty", "tz", "tr", "length", "row")  # a pile row's distributed springs (decision 88)
 NODE_LOAD_KEYS = ("n", "tx", "ty", "tz", "rx", "ry", "rz", "row")
 MEMBER_LOAD_KEYS = ("m1", "m2", "direction", "mark", "L1", "L2", "P1", "P2", "row")
 MAX_DEFINES = 50  # FrameWebforCS shows C1-C50 in the Combine grid (tests/InputCombineColumnsTests.cs)
@@ -120,6 +121,7 @@ def _connected(nodes: Iterable[int], edges: Mapping[int, set[int]], start: set[i
 
 
 def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], dict[int, float], set[int], set[int]]:
+    piles = "fix_member" in root  # springs at the tips and along the members: a pile foundation (decision 88)
     nodes = {}
     for number, node in _numbered(root["node"], "node"):
         path = f"node.{number}"
@@ -166,11 +168,37 @@ def _model(root: Mapping[str, Any]) -> tuple[dict[int, tuple[float, float]], dic
             start.add(_named(row["n"], nodes, f"{where}.n"))
             _null(row, ("tz", "rx", "ry"), where)
             for key in ("tx", "ty", "rz"):
+                if piles and key != "ty" and row[key] is None:  # SOIL-JR leaves the spring out of a long pile's tip
+                    continue
                 if _number(row[key], f"{where}.{key}", positive=True) == 1:
                     _fail(f"{where}.{key}", "ばね値 1 は FrameWeb では固定支点を意味します")
         _connected(nodes, edges, start, path)
         supports.add(number)
+    if piles:
+        _member_springs(root["fix_member"], members, supports)
     return nodes, members, supports, {types[0][0]}
+
+
+def _member_springs(value: object, members: Mapping[int, float], sets: set[int]) -> None:
+    """The distributed springs: a set for each spring set of ``fix_node``, in rows of intervals from the I end."""
+    found = _numbered(value, "fix_member")
+    if {number for number, _ in found} != sets:
+        _fail("fix_member", "fix_node と同じ番号のばねの組が必要です")
+    for number, rows in found:
+        path = f"fix_member.{number}"
+        used: dict[int, float] = {}
+        for index, row in enumerate(_rows(rows, path), 1):
+            where = f"{path}[{index}]"
+            _record(row, where, MEMBER_SPRING_KEYS)
+            _row_number(row, index, where)
+            member = _named(row["m"], members, f"{where}.m")
+            _null(row, ("tz", "tr"), where)
+            values = [_number(row[key], f"{where}.{key}") for key in ("tx", "ty") if row[key] is not None]
+            if not values or any(v < 0 for v in values) or all(v == 0 for v in values):
+                _fail(where, "ばね値は 0 以上で、成分のない行は書きません（0 の成分は null）")
+            used[member] = used.get(member, 0.0) + _number(row["length"], f"{where}.length", positive=True)
+            if used[member] > members[member] + 1e-6:
+                _fail(where, f"区間の長さの合計（{used[member]!r}）が部材長（{members[member]!r}）を超えます")
 
 
 def _node_rows(rows: object, nodes: Mapping[int, Any], path: str) -> None:
@@ -223,7 +251,7 @@ def _member_rows(rows: object, members: Mapping[int, float], path: str) -> None:
 
 def validate_frameweb(document: object) -> None:
     """Raise InputError naming the first rule the document breaks."""
-    root = _record(document, "", TOP_LEVEL)
+    root = _record(document, "", TOP_LEVEL, ("fix_member",))
     if type(root["dimension"]) is not int or root["dimension"] != 2:
         _fail("dimension", "2次元（2）が必要です")
     nodes, members, supports, types = _model(root)
@@ -231,8 +259,12 @@ def validate_frameweb(document: object) -> None:
     loaded = {}
     for number, case in _numbered(root["load"], "load"):
         path = f"load.{number}"
-        _record(case, path, LOAD_KEYS, ("load_node", "load_member"))
+        _record(case, path, LOAD_KEYS, ("fix_member", "load_node", "load_member"))
         _reference(case["fix_node"], supports, f"{path}.fix_node")
+        if ("fix_member" in root) != ("fix_member" in case):
+            _fail(f"{path}.fix_member", "杭基礎の骨組は、荷重ケースごとに分布ばねの組を指します（直接基礎は書きません）")
+        if "fix_member" in case:
+            _reference(case["fix_member"], supports, f"{path}.fix_member")
         _reference(case["element"], types, f"{path}.element")
         for key in ("symbol", "name"):
             _text(case[key], f"{path}.{key}")

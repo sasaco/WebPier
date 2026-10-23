@@ -342,8 +342,10 @@ _ROLE_NAMES = {
     NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面",
     NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
     NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁",
+    NodeRole.PILE_HEAD: "杭頭", NodeRole.PILE_TIP: "杭先端",
 }
 REGION_NAMES = {
+    Region.FOOTING_BASE: "フーチング底面の剛域", Region.PILE: "杭",
     Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端の微小部材",
     Region.FOOTING_UPPER: "フーチング天端～重心", Region.FOOTING_LOWER: "フーチング重心～底面",
     Region.PEDESTAL_ARM: "桁受けまでの剛域", Region.PEDESTAL: "桁受け", Region.GIRDER: "支承から桁までの剛域",
@@ -354,8 +356,9 @@ def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
     """Nodes and their roles; with *springs* the footing bottom is named as the spring node (0610, 0620). The control
     node is a girder level and is not named (decision 81)."""
     rows = [("節点番号", "X座標 (m)", "Y座標 (m)", "位置")]
+    spring_role = NodeRole.FOOTING_BOTTOM if frame.piles is None else NodeRole.PILE_TIP  # the piles' springs: at the tips
     for node in frame.nodes:
-        names = "・".join(name + ("（ばね）" if springs and role is NodeRole.FOOTING_BOTTOM else "")
+        names = "・".join(name + ("（ばね）" if springs and role is spring_role else "")
                          for role, name in _ROLE_NAMES.items() if role in node.roles)
         rows.append((str(node.number), value(node.x), value(node.y), names))
     return TableSpec((4, 5, 5, 13), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 1, 2}))
@@ -364,6 +367,8 @@ def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
 def _section_name(frame: Frame, member: Member) -> str:
     if member.section is None:
         return "剛域"
+    if member.pile:
+        return "杭"
     return "桁受け" if member.section == frame.pedestal_section and member.region is Region.PEDESTAL else "柱"
 
 
@@ -377,6 +382,87 @@ def member_table(frame: Frame) -> TableSpec:
     # 水平距離 (m) and f'ck (N/mm2) take five columns and the longest 部位 (フーチング天端～重心) seven: the body's 30.
     return TableSpec((3, 2, 2, 3, 5, 7, 3, 5), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 1, 2, 3, 4, 7}),
                      left=0)
+
+
+def pile_spring_table(frame: Frame) -> TableSpec:
+    """The distributed springs of each pile row (decision 88): the intervals from the head, the horizontal and the vertical
+    shear spring of the long term and the short term, as SOIL-JR's 解析連携データ gives them for the row."""
+    assert frame.piles is not None
+    rows: list[tuple[Any, ...]] = [
+        (Span("杭列", rowspan=2), Span("区間", rowspan=2), Span("長さ (m)", rowspan=2),
+         Span("水平ばね (kN/m2)", colspan=2), Span("せん断ばね (kN/m2)", colspan=2)),
+        ("長期", "短期", "長期", "短期")]
+    for number, nodes in enumerate(frame.pile_nodes, 1):
+        row = nodes.row
+        for index, (long_term, short_term) in enumerate(zip(row.long_term, row.short_term, strict=True), 1):
+            rows.append((str(number) if index == 1 else "", str(index), value(long_term.length),
+                         value(long_term.horizontal, thousands=True), value(short_term.horizontal, thousands=True),
+                         value(long_term.shear, thousands=True), value(short_term.shear, thousands=True)))
+    return TableSpec((3, 3, 5, 4, 4, 4, 4), tuple(rows), (1,) * len(rows), header_rows=2,
+                     numeric=frozenset({2, 3, 4, 5, 6}))
+
+
+def pile_tip_table(frame: Frame) -> TableSpec:
+    """The springs at the tip of each pile row (decision 88)."""
+    assert frame.piles is not None
+    rows: list[tuple[Any, ...]] = [
+        (Span("杭列", rowspan=2), Span("鉛直ばね (kN/m)", colspan=2), Span("水平ばね (kN/m)", colspan=2),
+         Span("回転ばね (kN/m)", colspan=2)),
+        ("長期", "短期", "長期", "短期", "長期", "短期")]
+    for number, nodes in enumerate(frame.pile_nodes, 1):
+        row = nodes.row
+        rows.append((str(number), value(row.long_tip.vertical, thousands=True),
+                     value(row.short_tip.vertical, thousands=True), value(row.long_tip.horizontal, thousands=True),
+                     value(row.short_tip.horizontal, thousands=True), value(row.long_tip.rotation, thousands=True),
+                     value(row.short_tip.rotation, thousands=True)))
+    return TableSpec((3, 4, 4, 4, 4, 4, 4), tuple(rows), (1,) * len(rows), header_rows=2,
+                     numeric=frozenset({1, 2, 3, 4, 5, 6}))
+
+
+def pile_rows_table(frame: Frame) -> TableSpec:
+    """The pile rows: where they stand, their piles in the depth and the section of the row."""
+    assert frame.piles is not None
+    rows: list[tuple[Any, ...]] = [("杭列", "位置 (m)", "奥行き本数", "A (m2)", "I (m4)")]
+    for number, nodes in enumerate(frame.pile_nodes, 1):
+        row = nodes.row
+        rows.append((str(number), value(row.x), str(row.piles), value(row.area), value(row.inertia)))
+    return TableSpec((3, 6, 6, 6, 6), tuple(rows), (1,) * len(rows), numeric=frozenset({1, 2, 3, 4}))
+
+
+def spring_units(m: Manuscript, frame: Frame) -> None:
+    """The springs of the model: those at the footing base, or on a pile foundation (decision 88) the pile rows, the
+    springs along them and at their tips."""
+    if frame.piles is None:
+        m.paragraph("model.springs.caption", "フーチング底面のばね", keep=True)
+        m.table("model.springs", spring_table(frame))
+        return
+    m.paragraph("model.piles.caption", f"杭列（{frame.piles.direction}）", keep=True)
+    m.table("model.piles", pile_rows_table(frame))
+    m.paragraph("model.springs.caption", "杭周面の地盤ばね（杭頭から）", keep=True)
+    m.table("model.springs", pile_spring_table(frame))
+    m.paragraph("model.tips.caption", "杭先端の地盤ばね", keep=True)
+    m.table("model.tips", pile_tip_table(frame))
+
+
+def spring_note(frame: Frame) -> str:
+    """The note under the basic cases (8.4, 9.4): which springs the spring numbers 1 and 2 are."""
+    ground = "フーチング底面" if frame.piles is None else "杭"
+    return f"バネ 1 は長期，2 は短期の{ground}のばねを用いる．" if frame.piles is None else \
+        "バネ 1 は長期，2 は短期の杭の地盤ばね（杭周面と杭先端）を用いる．"
+
+
+def pile_section(m: Manuscript, frame: Frame, number: int) -> None:
+    """The section of one pile of a pile foundation (decision 88): its modulus, area and second moment."""
+    assert frame.piles is not None
+    section = frame.piles.section
+    m.heading("section.pile.heading", f"{number}) 杭（{section.kind}，全長で同じ断面）", 3)
+    exponent = len(f"{int(section.modulus.value)}") - 1
+    mantissa = f"{section.modulus.value / 10 ** exponent:.2f}"
+    m.equation("section.pile.modulus", "弾性係数", "E",
+               terms(mantissa, "×", Row(sup("10", str(exponent)), " ", unit("kN/m2"), gap=0)))
+    m.equation("section.pile.area", "断面積", "A", with_unit(section.area))
+    m.equation("section.pile.inertia", "断面二次モーメント", "I", with_unit(section.inertia))
+    m.paragraph("section.pile.note", "A・I は1本当り．杭列の断面は奥行き本数を掛けた値とする．")
 
 
 def spring_table(frame: Frame) -> TableSpec:
@@ -668,6 +754,7 @@ __all__ = [
     "TableSpec", "Unit", "bearing_symbol", "document",
     "frame_figure", "material_lines", "member_table", "node_table", "operand", "plain", "section_lines",
     "seat_heading", "seat_moment", "seat_tables", "semantic_records", "spring_table", "sub", "sup", "top_table",
+    "pile_rows_table", "pile_section", "pile_spring_table", "pile_tip_table", "spring_note", "spring_units",
     "pedestal_lever_note", "used_concretes", "value",
     "with_unit",
 ]

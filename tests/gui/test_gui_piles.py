@@ -220,10 +220,10 @@ def test_a_checked_item_stays_enabled_so_that_it_can_be_unchecked(calculation):
     page, disabled = states(calculation)
     assert disabled["longitudinal"] is False  # current.json chooses 0500, 0610 and 0710 ...
     assert disabled["ground_model"] is False and disabled["longitudinal_seismic"] is False
-    page.outputs["longitudinal"].set(False)
-    page._output_changed("longitudinal")
-    assert calculation.document.data["outputs"]["longitudinal"] is False
-    assert "disabled" in page.output_boxes["longitudinal"].state()
+    page.outputs["longitudinal_seismic"].set(False)
+    page._output_changed("longitudinal_seismic")
+    assert calculation.document.data["outputs"]["longitudinal_seismic"] is False
+    assert "disabled" in page.output_boxes["longitudinal_seismic"].state()
 
 
 def test_the_note_names_the_items_a_pile_foundation_can_make(calculation, monkeypatch):

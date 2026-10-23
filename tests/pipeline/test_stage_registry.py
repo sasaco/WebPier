@@ -399,3 +399,37 @@ def test_the_files_soil_jr_returns_are_checked_like_any_output():
         one_item(calculating(soil_jr=soil(files=(("sdr", "x.sdr"), ("sdr", "y.sdr")))))
     with pytest.raises(ValueError, match="出力の種類の名前が不正です: sdr-liquefied"):
         one_item(calculating(soil_jr=soil(liquefaction=(("sdr-liquefied", "x.sdl"),))))
+
+
+# --- the stages that wait for SOIL-JR (decision 88) ----------------------------------------------------------------------
+
+
+def waiting(stage_id="B", *, after=("A",), **changes):
+    return replace(spec(stage_id, "A", exports=FRAMEWEB), after=after, **changes)
+
+
+def test_a_stage_that_waits_names_a_dependency_that_soil_jr_calculates():
+    registry = one_item(calculating(), waiting())
+    assert registry.get("B").after == ("A",) and registry.deferred(("A", "B")) == ("B",)
+    assert registry.deferred(("A",)) == ()
+
+
+@pytest.mark.parametrize("stages, message", [
+    ((calculating(), waiting(after=("C",))), "Bが待つCは、依存段階の SOIL-JR で計算する段階である必要があります"),
+    ((spec("A"), waiting()), "Bが待つAは、依存段階の SOIL-JR で計算する段階である必要があります"),
+    ((calculating(), waiting(complete=lambda result, files, pier, results: result)),
+     "Bは待つ段階があるので、仕上げと解析は持てません"),
+])
+def test_a_stage_that_waits_is_checked(stages, message):
+    with pytest.raises(ValueError, match=message):
+        one_item(*stages)
+
+
+def test_the_frames_of_a_pile_foundation_wait_for_the_ground_and_the_direct_foundations_do_not():
+    for foundation in ("場所打ち杭", "鋼管ソイルセメント杭"):
+        piles = STAGES.for_foundation(foundation)
+        assert [stage.id for stage in piles.stages if stage.after] == ["0610", "0620"]
+        assert piles.get("0610").after == piles.get("0620").after == ("0500",) and piles.get("0610").foundations == {}
+        assert piles.deferred(piles.closure(("0620",))) == ("0620",)
+    assert not any(stage.after for stage in STAGES.stages)
+    assert set(STAGES.get("0610").foundations) == set(STAGES.get("0620").foundations) == {"場所打ち杭", "鋼管ソイルセメント杭"}

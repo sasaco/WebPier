@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from ...inputs import PierInput
 from ..foundation import FoundationResult
+from ..pile_frame import PileFoundation
 from ..frame import Direction, Frame, build_frame
 from ..longitudinal.combinations import (
     Basis, CombinationFactors, Extraction, ExtractionGroup, Usage, combination_factors, extractions,
@@ -56,7 +57,8 @@ class TransverseResult:
         raise KeyError(case)
 
 
-def calculate_transverse(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult) -> TransverseResult:
+def calculate_transverse(pier: PierInput, foundation: FoundationResult | PileFoundation,
+                        reaction: ReactionResult) -> TransverseResult:
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.TRANSVERSE)
     actions = calculate_actions(pier, frame, reaction)
     factors = combination_factors(pier)

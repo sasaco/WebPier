@@ -71,11 +71,11 @@ def test_a_missing_runner_is_reported_before_anything_is_calculated(tmp_path, ca
 
 def test_a_pile_input_for_an_item_it_cannot_make_is_an_input_error_at_the_item(tmp_path, capsys):
     data = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    data["outputs"]["longitudinal"] = True
+    data["outputs"]["longitudinal_seismic"] = True
     path = tmp_path / "input.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     code, envelope = call(capsys, "validate", "--input", path)
     assert code == 2
     (error,) = envelope["errors"]
-    assert (error["code"], error["path"]) == ("INPUT_ERROR", "outputs.longitudinal")
+    assert (error["code"], error["path"]) == ("INPUT_ERROR", "outputs.longitudinal_seismic")
     assert "場所打ち杭は未対応です" in error["message"]

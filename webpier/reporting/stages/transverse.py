@@ -36,7 +36,7 @@ from .frame_report import (
     BODY_LEFT, Manuscript, Span, TableSpec, Unit, coefficient_table, document,
     extraction_table, factor_lines, frame_figure, joined, material_lines, member_table, node_table,
     operand, overlap_lines, part_weight, pedestal_lever_note, seat_heading, seat_moment, seat_tables, section_lines,
-    semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    semantic_records as records, pile_section, spring_note, spring_units, sub, top_table, used_concretes, value, with_unit,
 )
 from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 
@@ -161,8 +161,7 @@ def _model(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pi
     m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), block_id=PREFIX + "model.figure",
                                           horizontal=footing_dimensions(pier, frame, reaction.self_weight.footing_width)))
     m.paragraph("model.figure.note", "太線は剛域を示す．寸法の単位は m．")
-    m.paragraph("model.springs.caption", "フーチング底面のばね", keep=True)
-    m.table("model.springs", spring_table(frame))
+    spring_units(m, frame)
     m.heading("model.nodes.heading", "(2) 節点と部材", 2)
     m.table("model.nodes", node_table(frame))
     m.table("model.members", member_table(frame))
@@ -174,11 +173,15 @@ def _model(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pi
         number += 1
         m.heading("section.pedestal.heading", f"{number}) 桁受け", 3)
         section_lines(m, "section.pedestal", frame.pedestal_section)
-    m.heading("section.footing.heading", f"{number + 1}) フーチング", 3)
+    number += 1
+    m.heading("section.footing.heading", f"{number}) フーチング", 3)
     m.paragraph("section.footing.rigid", "フーチングはすべて剛域とする．")
     m.equation("section.footing.centroid", "断面の重心位置", sub("y", "G"),
                with_unit(frame.node(NodeRole.FOOTING_CENTROID).y))
-    m.heading("section.material.heading", f"{number + 2}) 弾性係数", 3)
+    if frame.piles is not None:
+        number += 1
+        pile_section(m, frame, number)
+    m.heading("section.material.heading", f"{number + 1}) 弾性係数", 3)
     for key, label, concrete in used_concretes(frame):
         material_lines(m, "section.material." + key, label, concrete)
 
@@ -367,7 +370,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
         name, qualifier, _ = _BASIC[action.case]
         rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
     m.table("basic", TableSpec((2, 7, 16, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
-    m.paragraph("basic.note", "バネ 1 は長期，2 は短期のフーチング底面のばねを用いる．")
+    m.paragraph("basic.note", spring_note(result.frame))
     m.heading("define.heading", "(2) Defineケース", 2)
     width = max(len(define.cases) * len(define.signs) for define in result.define_cases)
     rows = [("No", *(f"C{index}" for index in range(1, width + 1)), "記号", "荷重名称", "区分")]

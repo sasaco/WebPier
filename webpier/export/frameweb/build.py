@@ -11,7 +11,11 @@ FrameWebforJS (the browser) mirrors this file once more and shows it upside down
 - ``node``: x in m, y in m downward (−y of the calc frame); ``member``: end nodes and the section number; ``element``: one section type "1" with
   E (kN/m2), A, Iz per section. Example2 gives the rigid footing a finite stiffness (E = 26,500,000,
   A = Iz = 1000) and Xp = 1e-5 to every section; we keep both conventions.
-- ``fix_node``: 1 long-term, 2 short-term springs at the support: tx = Ks, ty = Kv, rz = Kr.
+- ``fix_node``: 1 long-term, 2 short-term springs at the support: tx = Ks, ty = Kv, rz = Kr. On a pile foundation
+  (decision 88) they are the springs at the tips of the pile rows (null where SOIL-JR leaves the spring out), and
+  ``fix_member`` 1 and 2 hold the distributed springs of each pile row's member, one row per interval from its head:
+  tx = the vertical shear spring (along the member), ty = the horizontal spring, length in m; each load case takes the
+  set of its term in both (``fix_node`` and ``fix_member``).
 - ``load``: tx = H, ty = N (N downward), rz = M (M positive as N × +x lever: Example2 D1 M = −610.00 is
   rz = −610; the old-format Example2 file saves 610); a zero component is null and a point load without components
   has no row. Member loads are one row per member in global axes: a line load uniform over the whole member
@@ -33,6 +37,7 @@ from decimal import Decimal
 from typing import Any
 
 from ...calc.frame import Frame, Member, Region, Springs
+from ...calc.pile_frame import PileRow, SpringInterval, TipSpring
 from ...calc.transverse.wind import MemberLoad
 from .cases import Cases, LoadCase
 from .profile import LONG_TERM, SHORT_TERM
@@ -44,7 +49,7 @@ LL_PITCH = 0.1  # Example2: moving-load pitch, unused by a static case
 RATE = 1  # as Example2 writes it; FrameWebforCS does not pass it to the solver (README FrameWeb)
 RIGID_NAME = "剛域"
 REGION_NAMES = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端",
-                Region.PEDESTAL: "桁受け"}
+                Region.PEDESTAL: "桁受け", Region.PILE: "杭"}
 
 
 def _number(value: float) -> int | float:
@@ -61,7 +66,7 @@ def _elements(frame: Frame) -> tuple[dict[str, Any], list[int]]:
     regions: dict[object, dict[Region, None]] = {}
     members = []
     for member in frame.members:
-        key = None if member.rigid else (member.section, member.material)
+        key = None if member.rigid else (member.section, member.material, member.modulus)
         members.append(numbers.setdefault(key, len(numbers) + 1))
         regions.setdefault(key, {})[member.region] = None
     sections = {}
@@ -69,8 +74,9 @@ def _elements(frame: Frame) -> tuple[dict[str, Any], list[int]]:
         if key is None:
             e, a, iz, name = RIGID["E"], RIGID["A"], RIGID["Iz"], RIGID_NAME
         else:
-            section, material = key  # type: ignore[misc]
-            e, a, iz = _number(material.ec), _number(section.area.value), _number(section.inertia.value)
+            section, material, modulus = key  # type: ignore[misc]
+            e = _number(modulus.value if material is None else material.ec)
+            a, iz = _number(section.area.value), _number(section.inertia.value)
             name = "・".join(REGION_NAMES[region] for region in regions[key])
         sections[str(number)] = {"E": e, "G": None, "Xp": XP, "A": a, "J": None, "Iy": None, "Iz": iz, "n": name}
     return {str(SECTION_TYPE): sections}, members
@@ -79,6 +85,30 @@ def _elements(frame: Frame) -> tuple[dict[str, Any], list[int]]:
 def _support(node: int, springs: Springs) -> list[dict[str, Any]]:
     return [{"row": 1, "n": str(node), "tx": _number(springs.ks.value), "ty": _number(springs.kv.value),
              "tz": None, "rx": None, "ry": None, "rz": _number(springs.kr.value)}]
+
+
+def _tip(node: int, tip: TipSpring) -> dict[str, Any]:
+    return {"n": str(node), "tx": _component(tip.horizontal.value), "ty": _number(tip.vertical.value), "tz": None,
+            "rx": None, "ry": None, "rz": _component(tip.rotation.value)}
+
+
+def _tips(frame: Frame, term: str) -> list[dict[str, Any]]:
+    """The springs at the pile tips of a spring set (``term``: "long_term" or "short_term")."""
+    return [{"row": number, **_tip(nodes.tip, getattr(nodes.row, "long_tip" if term == "long_term" else "short_tip"))}
+            for number, nodes in enumerate(frame.pile_nodes, 1)]
+
+
+def _intervals(frame: Frame, term: str) -> list[dict[str, Any]]:
+    """The distributed springs of the pile rows of a spring set: each interval from the head of the row's member."""
+    rows: list[dict[str, Any]] = []
+    for nodes in frame.pile_nodes:
+        row: PileRow = nodes.row
+        for interval in getattr(row, term):
+            interval: SpringInterval
+            rows.append({"m": str(nodes.member), "tx": _component(interval.shear.value),
+                         "ty": _number(interval.horizontal.value), "tz": None, "tr": None,
+                         "length": _number(interval.length.value), "row": len(rows) + 1})
+    return rows
 
 
 def _margin(member: Member, load: MemberLoad) -> int | float:
@@ -95,9 +125,11 @@ def _member_row(member: str, direction: str, start: int | float, margin: int | f
             "P1": _number(p1), "P2": _number(p2), "row": row}
 
 
-def _load(case: LoadCase, members: dict[int, Member]) -> dict[str, Any]:
+def _load(case: LoadCase, members: dict[int, Member], piles: bool = False) -> dict[str, Any]:
     result: dict[str, Any] = {"fix_node": case.spring, "element": SECTION_TYPE, "symbol": case.symbol,
                               "LL_pitch": LL_PITCH, "rate": RATE, "name": case.name}
+    if piles:
+        result["fix_member"] = case.spring
     nodes = []
     if case.zero:
         nodes.append({"n": str(case.points[0].node), "tx": None, "ty": 0, "tz": None, "rx": None, "ry": None,
@@ -129,15 +161,23 @@ def frameweb_document(frame: Frame, cases: Cases) -> dict[str, Any]:
     elements, member_sections = _elements(frame)
     members = {member.number: member for member in frame.members}
     support = frame.support
+    piles = frame.piles is not None
+    if support is None:
+        springs: dict[str, Any] = {
+            "fix_node": {str(LONG_TERM): _tips(frame, "long_term"), str(SHORT_TERM): _tips(frame, "short_term")},
+            "fix_member": {str(LONG_TERM): _intervals(frame, "long_term"),
+                           str(SHORT_TERM): _intervals(frame, "short_term")}}
+    else:
+        springs = {"fix_node": {str(LONG_TERM): _support(support.node, support.long_term),
+                                str(SHORT_TERM): _support(support.node, support.short_term)}}
     return {
         "node": {str(node.number): {"x": _number(node.x.value), "y": _number(-node.y.value or 0.0), "z": None}
                  for node in frame.nodes},
-        "fix_node": {str(LONG_TERM): _support(support.node, support.long_term),
-                     str(SHORT_TERM): _support(support.node, support.short_term)},
+        **springs,
         "member": {str(member.number): {"ni": member.start, "nj": member.end, "e": section, "cg": None}
                    for member, section in zip(frame.members, member_sections, strict=True)},
         "element": elements,
-        "load": {str(number): _load(case, members) for number, case in enumerate(cases.loads, 1)},
+        "load": {str(number): _load(case, members, piles) for number, case in enumerate(cases.loads, 1)},
         "define": {str(number): {"row": number, **{f"C{i}": load for i, load in enumerate(loads, 1)}}
                    for number, loads in enumerate(cases.defines, 1)},
         "combine": {str(number): {"row": number, "name": combine.name,

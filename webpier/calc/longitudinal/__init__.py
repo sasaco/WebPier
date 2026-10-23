@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from ...inputs import PierInput
 from ..foundation import FoundationResult
+from ..pile_frame import PileFoundation
 from ..frame import Direction, Frame, build_frame
 from ..materials import calculate_materials
 from ..reaction import ReactionResult
@@ -49,7 +50,7 @@ class LongitudinalResult:
         raise KeyError(case)
 
 
-def calculate_longitudinal(pier: PierInput, foundation: FoundationResult,
+def calculate_longitudinal(pier: PierInput, foundation: FoundationResult | PileFoundation,
                            reaction: ReactionResult) -> LongitudinalResult:
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.LONGITUDINAL)
     actions = calculate_actions(pier, frame, reaction)
