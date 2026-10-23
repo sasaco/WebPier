@@ -17,7 +17,7 @@ def chain(p=None):
     foundation = calculate_foundation(p)
     reaction = calculate_reaction(p)
     transverse = calculate_transverse(p, foundation, reaction)
-    return p, reaction, transverse, calculate_seismic_transverse(p, foundation, reaction, transverse)
+    return p, reaction, transverse, calculate_seismic_transverse(p, foundation, reaction)
 
 
 def seismic(p=None):

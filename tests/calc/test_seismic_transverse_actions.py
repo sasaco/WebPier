@@ -2,7 +2,9 @@
 
 from decimal import Decimal
 
-from reaction_support import D, q, value
+import pytest
+
+from reaction_support import D, pier, q, value
 from seismic_transverse_support import S11, chain, diagram, inertia_item, points, seismic
 from transverse_support import BEARING_KEYS
 from webpier.calc.seismic_longitudinal import ActionDirection, Increment
@@ -115,18 +117,24 @@ def test_11_8_self_weight_inertia():
     assert footing.force.value == printed["result"]["value"] == 1105.65
 
 
-def test_11_10_to_11_11_vertical_cases_are_those_of_0620():
-    # 11-8: "下記以外の作用については §9 と同様": D1, D2, Wp (normal water) and S2 are the 0620 basic cases,
-    # put on the 0720 frame (one node lower: the girder level is node 1).
-    _, _, transverse, result = chain()
+# The bearings on an offset pedestal (H1 > 0): D1 splits at the seat and the bearing moments move to it.
+PEDESTAL = {"下部構造/寸法/側面/B2": 0.5, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
+            "下部構造/寸法/正面/W3": 7.0, "下部構造/寸法/高さ/H1": 0.3}
+
+
+@pytest.mark.parametrize("changes", [{}, PEDESTAL], ids=["current", "pedestal"])
+def test_11_10_to_11_11_vertical_cases_are_those_of_0620(changes):
+    # 11-8: D1, D2, Wp (normal water) and S2 are the 0620 basic cases, which 0720 calculates on its own frame
+    # without reading 0620 (decision 78; one node lower: the girder level is node 1).
+    _, _, transverse, result = chain(pier(**changes))
     for case, basic in ((C.D1, BasicCase.D1), (C.D2, BasicCase.D2), (C.BUOYANCY, BasicCase.BUOYANCY_NORMAL),
                         (C.SNOW, BasicCase.SNOW2)):
         ours, theirs = result.basic(case), transverse.basic(basic)
         assert [(p.anchor, p.n, p.h, p.m) for p in ours.points] == [(p.anchor, p.n, p.h, p.m) for p in theirs.points]
         assert [(line.n, line.h) for line in ours.line_loads] == [(line.n, line.h) for line in theirs.line_loads]
         assert ours.member_loads == ()
-    assert result.fixed is transverse.fixed and result.additional is transverse.additional
-    assert result.buoyancy is transverse.buoyancy[1] and result.snow is transverse.snow[0]
+    assert result.fixed == transverse.fixed and result.additional == transverse.additional
+    assert result.buoyancy == transverse.buoyancy[1] and result.snow == transverse.snow[0]
 
 
 def test_11_10_to_11_12_load_diagrams():

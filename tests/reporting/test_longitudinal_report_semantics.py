@@ -146,6 +146,48 @@ def horizontal_names(result, reaction):
     return found
 
 
+def dead_records(add, pier, reaction, frame, fixed, additional, d1, d2_point, number: int = 1) -> None:
+    """The records of (1) 固定死荷重 and (2) 付加死荷重 as 8.2 prints them; 10.2 prints the same (decision 78)."""
+    s, sw = pier.substructure, reaction.self_weight
+    add("fixed.heading", f"({number})固定死荷重")
+    add("fixed.column", f"柱q={t(s.w[6])}×{t(s.b[6])}×{t(s.unit_weight_body)}={t(fixed.column_q)}kN/m")
+    add("fixed.footing", f"フーチングP={t(sw.footing.unit_weight)}×{t(sw.footing.volume)}={t(fixed.footing.n)}kN")
+    if fixed.footing.arm.value:
+        add("fixed.footing.moment", f"MP={t(fixed.footing.n)}×{paren(fixed.footing.arm)}={t(fixed.footing.m)}kN・m")
+    add("fixed.top.heading", "・橋脚天端に作用する荷重")
+    if s.h[1].value > 0:
+        add("fixed.top.pedestal", f"桁受けN={t(sw.pedestal.unit_weight)}×{t(sw.pedestal.volume)}="
+                                  f"{t(fixed.table.row(Item.PEDESTAL).n)}kN")
+    add("fixed.top.beam", f"はり・ハンチN={t(sw.beam.unit_weight)}×{t(sw.beam.volume)}={t(fixed.table.row(Item.BEAM).n)}kN")
+    add("fixed.top", top(fixed.table.rows, fixed.table.n, fixed.table.m))
+    add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
+    add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
+    add("fixed.n", f"鉛直力N={t(fixed.table.n)}−{t(fixed.column_q)}×{t(fixed.overlap)}={t(fixed.n)}kN")
+    add("fixed.m", f"モーメントM={t(fixed.m)}kN・m")
+    if frame.bearing_offset.value:
+        seat_point = next(p for p in d1 if p.anchor is NodeRole.PEDESTAL_TOP)
+        cap = next(p for p in d1 if p.anchor is NodeRole.CAP_TOP)
+        bearings = [r for r in fixed.table.rows if r.item in (Item.ORIGIN, Item.END)]
+        body = [r for r in fixed.table.rows if r.item not in (Item.ORIGIN, Item.END)]
+        add("fixed.seat.heading", "・桁受け天端とはり天端への載荷")
+        add("fixed.seat.n", "桁受け天端N=" + "+".join(t(r.n) for r in bearings) + f"={t(seat_point.n)}kN")
+        add("fixed.seat.m", "M=" + "+".join(t(r.m) if i == 0 else paren(r.m) for i, r in enumerate(bearings))
+            + f"−{t(seat_point.n)}×{paren(frame.bearing_offset)}={t(seat_point.m)}kN・m")
+        add("fixed.cap.n", "はり天端N'=" + "+".join(t(r.n) for r in body)
+            + f"−{t(fixed.column_q)}×{t(fixed.overlap)}={t(cap.n)}kN")
+        add("fixed.cap.m", "M'=" + "+".join(t(r.m) if i == 0 else paren(r.m) for i, r in enumerate(body))
+            + f"={t(cap.m)}kN・m")
+    add("additional.heading", f"({number + 1})付加死荷重")
+    soil = additional.soil
+    add("additional.soil", f"載荷土P={t(sw.overburden.unit_weight)}×{t(sw.overburden.volume)}={t(soil.n)}kN")
+    if soil.arm.value:
+        add("additional.soil.moment", f"MP={t(soil.n)}×{paren(soil.arm)}={t(soil.m)}kN・m")
+    add("additional.top.heading", "・橋脚天端に作用する荷重")
+    table = additional.table
+    add("additional.top", top(table.rows, table.n, table.m))
+    add("additional.top.seat", seat(frame, table.n, table.m, d2_point))
+
+
 def expected(case: str) -> dict[str, str]:
     pier, reaction, result, _ = chain(case)
     frame, s, sw = result.frame, pier.substructure, reaction.self_weight
@@ -183,46 +225,9 @@ def expected(case: str) -> dict[str, str]:
     elastic = {m.region for m in frame.members if not m.rigid}
     key, label = ("body", "く体") if elastic & {Region.BEAM, Region.HAUNCH} else ("column", "柱")
     out.update({"0610/" + k: v for k, v in material(f"section.material.{key}", label, frame.materials.column).items()})
-    fixed = result.fixed
     add("actions.heading", "8.2作用の計算")
-    add("fixed.heading", "(1)固定死荷重")
-    add("fixed.column", f"柱q={t(s.w[6])}×{t(s.b[6])}×{t(s.unit_weight_body)}={t(fixed.column_q)}kN/m")
-    add("fixed.footing", f"フーチングP={t(sw.footing.unit_weight)}×{t(sw.footing.volume)}={t(fixed.footing.n)}kN")
-    if fixed.footing.arm.value:
-        add("fixed.footing.moment", f"MP={t(fixed.footing.n)}×{paren(fixed.footing.arm)}={t(fixed.footing.m)}kN・m")
-    add("fixed.top.heading", "・橋脚天端に作用する荷重")
-    if s.h[1].value > 0:
-        add("fixed.top.pedestal", f"桁受けN={t(sw.pedestal.unit_weight)}×{t(sw.pedestal.volume)}="
-                                  f"{t(fixed.table.row(Item.PEDESTAL).n)}kN")
-    add("fixed.top.beam", f"はり・ハンチN={t(sw.beam.unit_weight)}×{t(sw.beam.volume)}={t(fixed.table.row(Item.BEAM).n)}kN")
-    add("fixed.top", top(fixed.table.rows, fixed.table.n, fixed.table.m))
-    add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
-    add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
-    add("fixed.n", f"鉛直力N={t(fixed.table.n)}−{t(fixed.column_q)}×{t(fixed.overlap)}={t(fixed.n)}kN")
-    add("fixed.m", f"モーメントM={t(fixed.m)}kN・m")
-    if frame.bearing_offset.value:
-        d1 = result.basic(BasicCase.D1).points
-        seat_point = next(p for p in d1 if p.anchor is NodeRole.PEDESTAL_TOP)
-        cap = next(p for p in d1 if p.anchor is NodeRole.CAP_TOP)
-        bearings = [r for r in fixed.table.rows if r.item in (Item.ORIGIN, Item.END)]
-        body = [r for r in fixed.table.rows if r.item not in (Item.ORIGIN, Item.END)]
-        add("fixed.seat.heading", "・桁受け天端とはり天端への載荷")
-        add("fixed.seat.n", "桁受け天端N=" + "+".join(t(r.n) for r in bearings) + f"={t(seat_point.n)}kN")
-        add("fixed.seat.m", "M=" + "+".join(t(r.m) if i == 0 else paren(r.m) for i, r in enumerate(bearings))
-            + f"−{t(seat_point.n)}×{paren(frame.bearing_offset)}={t(seat_point.m)}kN・m")
-        add("fixed.cap.n", "はり天端N'=" + "+".join(t(r.n) for r in body)
-            + f"−{t(fixed.column_q)}×{t(fixed.overlap)}={t(cap.n)}kN")
-        add("fixed.cap.m", "M'=" + "+".join(t(r.m) if i == 0 else paren(r.m) for i, r in enumerate(body))
-            + f"={t(cap.m)}kN・m")
-    add("additional.heading", "(2)付加死荷重")
-    soil = result.additional.soil
-    add("additional.soil", f"載荷土P={t(sw.overburden.unit_weight)}×{t(sw.overburden.volume)}={t(soil.n)}kN")
-    if soil.arm.value:
-        add("additional.soil.moment", f"MP={t(soil.n)}×{paren(soil.arm)}={t(soil.m)}kN・m")
-    add("additional.top.heading", "・橋脚天端に作用する荷重")
-    table = result.additional.table
-    add("additional.top", top(table.rows, table.n, table.m))
-    add("additional.top.seat", seat(frame, table.n, table.m, result.basic(BasicCase.D2).points[0]))
+    dead_records(add, pier, reaction, frame, result.fixed, result.additional,
+                 result.basic(BasicCase.D1).points, result.basic(BasicCase.D2).points[0])
     add("buoyancy.heading", "(3)浮力")
     for (key, label, suffix), row, water in zip((("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3")),
                                                 result.buoyancy, (sw.buoyancy_high, sw.buoyancy_normal, sw.buoyancy_low)):

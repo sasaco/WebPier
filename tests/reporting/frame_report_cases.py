@@ -70,7 +70,7 @@ def chain(case: str) -> tuple[PierInput, ReactionResult, LongitudinalResult, Sei
     foundation = calculate_foundation(pier)
     reaction = calculate_reaction(pier)
     longitudinal = calculate_longitudinal(pier, foundation, reaction)
-    return pier, reaction, longitudinal, calculate_seismic_longitudinal(pier, foundation, reaction, longitudinal)
+    return pier, reaction, longitudinal, calculate_seismic_longitudinal(pier, foundation, reaction)
 
 
 def text(value: Printed | None, *, thousands: bool = False) -> str:
@@ -116,4 +116,4 @@ def transverse_chain(case: str):
     foundation = calculate_foundation(pier)
     reaction = calculate_reaction(pier)
     transverse = calculate_transverse(pier, foundation, reaction)
-    return pier, reaction, transverse, calculate_seismic_transverse(pier, foundation, reaction, transverse)
+    return pier, reaction, transverse, calculate_seismic_transverse(pier, foundation, reaction)

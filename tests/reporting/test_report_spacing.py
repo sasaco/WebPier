@@ -68,8 +68,8 @@ BUILDERS: dict[str, Callable[[str], Any]] = {
     "0610": lambda name: build_longitudinal(chain(name)[2], chain(name)[1], chain(name)[0]),
     "0620": lambda name: build_transverse(transverse_chain(name)[2], transverse_chain(name)[1],
                                           transverse_chain(name)[0]),
-    "0710": lambda name: build_seismic_longitudinal(chain(name)[3], chain(name)[0]),
-    "0720": lambda name: build_seismic_transverse(transverse_chain(name)[3], transverse_chain(name)[0]),
+    "0710": lambda name: build_seismic_longitudinal(chain(name)[3], chain(name)[1], chain(name)[0]),
+    "0720": lambda name: build_seismic_transverse(transverse_chain(name)[3], transverse_chain(name)[1], transverse_chain(name)[0]),
     # one Document before each of Capacita's sections (decision 48); across the track with the two checks Capacita
     # skips for Example2, each ending with the reason
     "0611": lambda name: build_column_check(calculate_column_check(chain(name)[0], chain(name)[2], LONGITUDINAL),

@@ -64,10 +64,9 @@ def results(direction, data=None):
     foundation = calculate_foundation(p)
     reaction = calculate_reaction(p)
     if direction == "longitudinal":
-        seismic = calculate_seismic_longitudinal(p, foundation, reaction,
-                                                 calculate_longitudinal(p, foundation, reaction))
+        seismic = calculate_seismic_longitudinal(p, foundation, reaction)
     else:
-        seismic = calculate_seismic_transverse(p, foundation, reaction, calculate_transverse(p, foundation, reaction))
+        seismic = calculate_seismic_transverse(p, foundation, reaction)
     return p, foundation, calculate_embedment(p, foundation), column_layout(p), seismic
 
 

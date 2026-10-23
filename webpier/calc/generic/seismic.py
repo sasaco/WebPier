@@ -5,9 +5,9 @@ the track the girder levels of each side with the control node (decision 65), we
 the track of the incremental seismic cases of the combinations, summed for each side (the limited incremental ones
 are not counted).
 
-The application's cases are D1, D2 and the buoyancy at the normal water level of the generic 0610 / 0620 put on this
-frame (as calc.seismic_longitudinal ``_on_frame``), and EQ2, the pier self-weight inertia of the train path
-(``self_weight_inertia``, ``self_weight_loads``). The load model's cases are their 支承作用 on this frame, the
+The application's cases are D1, D2 and the buoyancy at the normal water level, calculated on this frame as the
+generic 0610 / 0620 do (``dead_actions``; decision 78: 0710 / 0720 do not read them), and EQ2, the pier self-weight
+inertia of the train path (``self_weight_inertia``, ``self_weight_loads``). The load model's cases are their 支承作用 on this frame, the
 horizontal forces of a case acting toward the earthquake signed toward it (−x along the track, +x across). The
 cases of the NDU are those the combinations use: D1, D2, the buoyancy, the load model's in its order, then EQ2.
 Each combination of the load model is made for each 照査パターン (ρm, αf), together, pushed toward the earthquake or,
@@ -27,7 +27,8 @@ from ...loadmodel import (
 from .._exact import put, total
 from ..bearing_actions import BearingTable, bearing_table
 from ..foundation import FoundationResult
-from ..frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, column_line_load, point_load
+from ..frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, point_load
+from ..longitudinal import actions as longitudinal
 from ..materials import calculate_materials
 from ..reaction import DeadReactionResult
 from ..seismic_longitudinal import (
@@ -35,14 +36,14 @@ from ..seismic_longitudinal import (
     SelfWeightInertia, self_weight_inertia, self_weight_loads, toward,
 )
 from ..seismic_transverse import EARTHQUAKE as TOWARD_W9
-from .frame import GenericFrameResult
+from ..transverse import actions as transverse
 
 INCREMENTS = {ModelIncrement.FIXED: Increment.FIXED, ModelIncrement.INCREMENTAL: Increment.INCREMENTAL,
               ModelIncrement.LIMITED: Increment.LIMITED}
-# The application's cases: name, direction, increment.
-_APPLICATION = {D1: ("固定死荷重", ActionDirection.DOWNWARD, Increment.FIXED),
-                D2: ("付加死荷重", ActionDirection.DOWNWARD, Increment.FIXED),
-                WP_NORMAL: ("浮力", ActionDirection.UPWARD, Increment.FIXED)}
+# The application's cases: name, direction, increment and the case of dead_actions.
+_APPLICATION = {D1: ("固定死荷重", ActionDirection.DOWNWARD, Increment.FIXED, "D1"),
+                D2: ("付加死荷重", ActionDirection.DOWNWARD, Increment.FIXED, "D2"),
+                WP_NORMAL: ("浮力", ActionDirection.UPWARD, Increment.FIXED, "BUOYANCY_NORMAL")}
 EQ2_NAME = "自重による地震時慣性力"
 
 
@@ -80,6 +81,7 @@ class GenericSeismicResult:
     frame: Frame
     earthquake: Decimal  # ±1 in x
     girder_weights: tuple[Printed, Printed] | None  # 0720: the weights of the control node (origin, end)
+    dead: longitudinal.DeadActions | transverse.DeadActions  # D1, D2 and the buoyancy on this frame (decision 78)
     self_weight: SelfWeightInertia  # EQ2
     basic_cases: tuple[SeismicCase, ...]
     combinations: tuple[GenericSeismicCombination, ...]
@@ -87,10 +89,6 @@ class GenericSeismicResult:
 
     def basic(self, case: str) -> SeismicCase:
         return next(item for item in self.basic_cases if item.id == case)
-
-
-def _on_frame(frame: Frame, point: PointLoad) -> PointLoad:
-    return point_load(frame, point.anchor, n=point.n, h=point.h, m=point.m)
 
 
 def girder_weights(model: LoadModelResult, used: set[str]) -> tuple[Printed, Printed]:
@@ -104,14 +102,16 @@ def girder_weights(model: LoadModelResult, used: set[str]) -> tuple[Printed, Pri
 
 
 def calculate_generic_seismic(pier: PierInput, foundation: FoundationResult, reaction: DeadReactionResult,
-                              frame_result: GenericFrameResult, model: LoadModelResult, direction: Direction,
-                              stage: str) -> GenericSeismicResult:
+                              model: LoadModelResult, direction: Direction, stage: str) -> GenericSeismicResult:
     along = direction is Direction.LONGITUDINAL
     combinations = model.seismic_longitudinal if along else model.seismic_transverse
     used = {case for combination in combinations for case in combination.cases}
     weights = None if along else girder_weights(model, used)
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), direction,
                         column_base_micro_member=True, elastic_regions={Region.COLUMN_BASE}, girder_levels=weights)
+    actions = longitudinal if along else transverse
+    dead = actions.dead_actions(pier, frame, reaction.dead, reaction.self_weight)
+    kinds = actions.BasicCase
     earthquake = TOWARD_ORIGIN if along else TOWARD_W9
     toward_earthquake = ActionDirection.TOWARD_ORIGIN if along else ActionDirection.TOWARD_W9
     self_weight = self_weight_inertia(pier, reaction)  # type: ignore[arg-type]  # reads the self weight only
@@ -120,12 +120,10 @@ def calculate_generic_seismic(pier: PierInput, foundation: FoundationResult, rea
     def add(**values) -> None:
         cases.append(SeismicCase(number=len(cases) + 1, **values))
 
-    for case, (name, kind, increment) in _APPLICATION.items():
+    for case, (name, kind, increment, basic) in _APPLICATION.items():
         if case in used:
-            action = frame_result.basic(case)
-            add(id=case, name=name, direction=kind, increment=increment,
-                points=tuple(_on_frame(frame, p) for p in action.points),
-                line_loads=tuple(column_line_load(frame, n=line.n, h=line.h) for line in action.line_loads))
+            add(id=case, name=name, direction=kind, increment=increment, points=dead.points[kinds[basic]],
+                line_loads=(dead.column,) if case == D1 else ())
     for case in model.cases:
         if case.id in used:
             assert case.seismic is not None  # loadmodel.validate
@@ -145,6 +143,6 @@ def calculate_generic_seismic(pier: PierInput, foundation: FoundationResult, rea
         cases=tuple(case for case in order if case in c.cases), ground_resistance_type=GROUND_RESISTANCE_TYPE,
         reverse=c.reverse)
         for number, (c, (rho_m, alpha_f)) in enumerate(((c, pattern) for c in combinations for pattern in PATTERNS), 1))
-    return GenericSeismicResult(frame=frame, earthquake=earthquake, girder_weights=weights, self_weight=self_weight,
-                                basic_cases=tuple(cases), combinations=found,
+    return GenericSeismicResult(frame=frame, earthquake=earthquake, girder_weights=weights, dead=dead,
+                                self_weight=self_weight, basic_cases=tuple(cases), combinations=found,
                                 sections=tuple(model.sections.get(stage, ())))

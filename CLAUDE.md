@@ -69,7 +69,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・MS P�
 段階の依存・計算・帳票・成果物・外部出力は `webpier/pipeline/stages.py` の `StageSpec` 1か所に定義し、段階ごとの分岐を他に書かない。他のプログラムのページ（FEMPython の荷重図、Capacita の節、JRSNAP のデータ確認図と荷重図）は `webpier/reporting/stages/insertion.py` の1つの仕組みで差し込み、`render` は全段階で `(results, pier, path, pages)` を受け取る（`pages` はページの名前からページへの対応で、各エンジンの pipeline のモジュールが作る）。生成は `webpier/pipeline/generate.py`。
 
 1. 入力を一度だけバイト列で読み、厳密に解析する。そのSHA256を全ての結果JSONと付帯JSONに記録する。
-2. 選択した段階と依存段階をすべて計算してから描画する（0610/0620は0500と0600、0710は0610、0720は0620も使う）。保存済みの結果JSONは読まない。
+2. 選択した段階と依存段階をすべて計算してから描画する（0610/0620/0710/0720は0500と0600を使う。0710・0720 は 0610・0620 を読まず、使う死荷重・浮力・雪を自分で求める、決定78）。保存済みの結果JSONは読まない。
 3. 成果物（計算書、WebPier が組む頁の方眼Excel `export/<stem>.xlsx`、結果JSON、外部出力）を出力先の横でステージングし、`publication.py` が退避・置換・復元を伴ってまとめて公開する。外部出力（`post/`）には付帯JSON（`*.provenance.json`）を付け、入力・同じ世代の全成果物・実装のSHAを記録する。0711・0721 の JRSNAP の結果はそれぞれフォルダー1つの成果物で、丸ごと置き換え、SHA は中の全ファイルから求める（`core.integrity.content_sha256`）。
 
 ### 決定性と実装の同一性

@@ -109,6 +109,12 @@ def test_only_the_stages_of_the_chosen_items_are_calculated_and_published(env):
     assert generation.stages == ("A", "B")
     assert sorted(env.files()) == ["output/A_基礎.json", "output/A_基礎.pdf", "output/B_荷重.json",
                                    "output/B_荷重.pdf", "post/frame.json", "post/frame.json.provenance.json"]
+    # Decision 78: the seismic item without the 線路方向 one; --overwrite removes what B made before (decision 74).
+    env.choose("ground_model", "reactions", "longitudinal_seismic")
+    generation = env.generate(overwrite=True)
+    assert generation.stages == ("A", "C") and "B" not in env.recorder.actions("calculate")[-2:]
+    assert sorted(env.files()) == ["output/A_基礎.json", "output/A_基礎.pdf", "output/C_地震.json",
+                                   "output/C_地震.pdf", "post/model.ndu", "post/model.ndu.provenance.json"]
 
 
 def test_every_calculation_and_export_succeeds_before_any_report_is_rendered(env):
@@ -120,9 +126,9 @@ def test_every_calculation_and_export_succeeds_before_any_report_is_rendered(env
 def test_each_step_receives_only_the_declared_results(env):
     env.generate()
     assert env.recorder.log == [
-        ("calculate", "A", ()), ("calculate", "B", ("A",)), ("calculate", "C", ("B",)),
-        ("export", "B", ("A", "B")), ("export", "C", ("B", "C")),
-        ("render", "A", ("A",)), ("render", "B", ("A", "B")), ("render", "C", ("B", "C"))]
+        ("calculate", "A", ()), ("calculate", "B", ("A",)), ("calculate", "C", ("A",)),
+        ("export", "B", ("A", "B")), ("export", "C", ("A", "C")),
+        ("render", "A", ("A",)), ("render", "B", ("A", "B")), ("render", "C", ("A", "C"))]
 
 
 def test_a_calculation_error_stops_before_rendering_and_writes_nothing(env):
@@ -179,7 +185,7 @@ def test_the_sidecar_lists_the_whole_generation_with_relative_names(env):
 
 @pytest.mark.parametrize("items,message", [
     (("longitudinal",), "outputs.longitudinal: outputs.ground_model・outputs.reactions も true が必要です"),
-    (("ground_model", "longitudinal_seismic"), "outputs.longitudinal_seismic: outputs.longitudinal も true が必要です"),
+    (("ground_model", "longitudinal_seismic"), "outputs.longitudinal_seismic: outputs.reactions も true が必要です"),
     ((), r"outputs: 出力項目が選ばれていません"),
 ])
 def test_an_invalid_choice_of_items_is_rejected_before_anything_is_calculated(env, items, message):

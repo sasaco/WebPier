@@ -22,17 +22,16 @@ ORDER = ["D1", "D2", "WP_NORMAL", "LE", "EQ1", "EQL", "EQ2"]
 
 def generic(direction: Direction):
     p, foundation, reaction, model = chain()
-    stages = ("0610", "0710") if direction is Direction.LONGITUDINAL else ("0620", "0720")
-    frame = calculate_generic_frame(p, foundation, reaction, model, direction, stages[0])
-    return model, calculate_generic_seismic(p, foundation, reaction, frame, model, direction, stages[1])
+    stage = "0710" if direction is Direction.LONGITUDINAL else "0720"
+    return model, calculate_generic_seismic(p, foundation, reaction, model, direction, stage)
 
 
 def train(direction: Direction):
     p = parse_input(CURRENT)
     foundation, reaction = calculate_foundation(p), calculate_reaction(p)
     if direction is Direction.LONGITUDINAL:
-        return calculate_seismic_longitudinal(p, foundation, reaction, calculate_longitudinal(p, foundation, reaction))
-    return calculate_seismic_transverse(p, foundation, reaction, calculate_transverse(p, foundation, reaction))
+        return calculate_seismic_longitudinal(p, foundation, reaction)
+    return calculate_seismic_transverse(p, foundation, reaction)
 
 
 def test_the_longitudinal_cases_and_their_kinds():
@@ -102,8 +101,7 @@ def test_only_the_cases_the_combinations_use():
     p, foundation, reaction, model = chain()
     model = replace(model, seismic_longitudinal=(SeismicCombination("車なし", ("D1", "D2", "EQ1")),
                                                  SeismicCombination("車あり", ("D1", "D2", "LE", "EQ1"), reverse=True)))
-    frame = calculate_generic_frame(p, foundation, reaction, model, Direction.LONGITUDINAL, "0610")
-    result = calculate_generic_seismic(p, foundation, reaction, frame, model, Direction.LONGITUDINAL, "0710")
+    result = calculate_generic_seismic(p, foundation, reaction, model, Direction.LONGITUDINAL, "0710")
     assert [c.id for c in result.basic_cases] == ["D1", "D2", "LE", "EQ1"]  # no buoyancy, no EQ2
     assert [c.cases for c in result.combinations] == [*[("D1", "D2", "EQ1")] * 4, *[("D1", "D2", "LE", "EQ1")] * 4]
     # A reversed (逆向) combination pushes away from the earthquake: → along the track (decision 76).

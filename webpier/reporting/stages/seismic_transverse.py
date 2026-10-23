@@ -3,7 +3,8 @@
 11.1 the transverse model with the 0.010 m column-base micro member and the
 girder level above the bearing seat (11-1 node 1), 11.2 the actions printed
 here (the seismic train of each track, the girder and train inertia, the
-self-weight inertia; the rest is "§9 と同様"), 11.3 the load diagrams:
+self-weight inertia; before them D1, D2, the buoyancy at the normal water level
+and the 2-year snow as 9.2 prints them, decision 78), 11.3 the load diagrams:
 JRSNAP's 荷重図 (S_LoadPicture) of each basic case, one page per case in CASE
 order, each drawn from the .ndt of the first combination that uses the case
 (decision 51: CASE-6, the down track, from combination 2, every other case from
@@ -38,7 +39,8 @@ from .frame_report import (
     sub, used_concretes, value, with_unit,
 )
 from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
-from .seismic_longitudinal import INCREMENTS
+from . import transverse as frame_stage
+from .seismic_longitudinal import INCREMENTS, DeadItems, dead_items
 from .transverse import _train_table, action_item, horizontal_table
 
 PREFIX = "0720/"
@@ -101,10 +103,10 @@ def _inertia(m: Manuscript, key: str, heading: str, inertia: HorizontalInertia) 
     m.table(f"{key}.table", horizontal_table(inertia.rows, inertia.h, inertia.m))
 
 
-def _actions(m: Manuscript, result: SeismicTransverseResult) -> None:
+def _actions(m: Manuscript, result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> None:
     snow = result.snow is not None  # the items follow those of 9.2 (decision 69)
     m.heading(ACTIONS, "11.2 作用の計算", 1)
-    m.paragraph("actions.note", "下記以外の作用については，§9. 線路直角方向の計算（地震時以外）と同様とする．")
+    dead_items(m, DeadItems.of(result, SeismicCase), reaction, pier, frame_stage)
     m.heading("train.heading", f"{action_item(snow, 5)} 列車荷重", 2)
     m.paragraph("train.note", "鉛直力は 0600 の地震時列車荷重による反力に支承の分担率を乗じた値とする（上り線 L2，下り線 L1）．")
     for track, case in ((Track.UP, SeismicCase.TRAIN_UP), (Track.DOWN, SeismicCase.TRAIN_DOWN)):
@@ -143,35 +145,35 @@ def _combinations(m: Manuscript, result: SeismicTransverseResult) -> None:
     m.paragraph("combination.note", "上り線・下り線の列車荷重をそれぞれ組み合わせる．")
 
 
-def content(result: SeismicTransverseResult, pier: PierInput) -> tuple[Unit, ...]:
+def content(result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(PREFIX)
     _model(m, result, pier)
-    _actions(m, result)
+    _actions(m, result, reaction, pier)
     diagrams_heading(m, "11.3 荷重図")
     _combinations(m, result)
     return tuple(m.units)
 
 
-def semantic_records(result: SeismicTransverseResult, pier: PierInput) -> list[dict[str, str]]:
-    return records(content(result, pier))
+def semantic_records(result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> list[dict[str, str]]:
+    return records(content(result, reaction, pier))
 
 
-def build_seismic_transverse(result: SeismicTransverseResult, pier: PierInput) -> Document:
+def build_seismic_transverse(result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> Document:
     """The whole 0720 manuscript as one GridLayoutPdf Document, without JRSNAP's pages."""
-    return document(content(result, pier))
+    return document(content(result, reaction, pier))
 
 
-def render_seismic_transverse(result: SeismicTransverseResult, pier: PierInput, path: str | Path,
-                              pages: Mapping[str, bytes]) -> Path:
+def render_seismic_transverse(result: SeismicTransverseResult, reaction: Any, pier: PierInput,
+                              path: str | Path, pages: Mapping[str, bytes]) -> Path:
     """The report with JRSNAP's データ確認図 (``pages[DATA_CHECK]``) before 11.2 and its load diagram
     (``pages[LOAD_DIAGRAM]``) after 11.3; atomically replaces *path*.
 
     WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decisions 50, 51).
     """
-    return render_with_pages(content(result, pier), INSERTIONS, pages, path)
+    return render_with_pages(content(result, reaction, pier), INSERTIONS, pages, path)
 
 
-def grid_documents(result: SeismicTransverseResult, pier: PierInput) -> tuple[Document, ...]:
+def grid_documents(result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> tuple[Document, ...]:
     """The documents of the report WebPier lays out, without the pages of JRSNAP (its grid Excel workbook)."""
-    return documents(content(result, pier), INSERTIONS)
+    return documents(content(result, reaction, pier), INSERTIONS)

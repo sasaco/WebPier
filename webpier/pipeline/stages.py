@@ -636,27 +636,28 @@ STAGES = Registry((
                   results["0620"], results["0600"], pier)),
     _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
     _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
-    StageSpec("0710", "0710_線路方向荷重", ("0500", "0600", "0610"),
-              lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"],
-                                                                   results["0610"]),
-              lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], pier, path, pages),
+    # 0710 / 0720 calculate D1, D2, the buoyancy and the snow themselves and read no 0610 / 0620 (decision 78).
+    StageSpec("0710", "0710_線路方向荷重", ("0500", "0600"),
+              lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"]),
+              lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], results["0600"], pier,
+                                                                             path, pages),
               (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
               jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
               grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
-                  results["0710"], pier)),
+                  results["0710"], results["0600"], pier)),
     StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
                   Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
               seismic_check=_aggrese_files("線路方向")),
-    StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600", "0620"),
-              lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"],
-                                                                 results["0620"]),
-              lambda results, pier, path, pages: render_seismic_transverse(results["0720"], pier, path, pages),
+    StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600"),
+              lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"]),
+              lambda results, pier, path, pages: render_seismic_transverse(results["0720"], results["0600"], pier,
+                                                                           path, pages),
               (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
               jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE)),
               grid_documents=lambda results, pier, pages: seismic_transverse_report.grid_documents(
-                  results["0720"], pier)),
+                  results["0720"], results["0600"], pier)),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
     StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(
@@ -679,19 +680,19 @@ def _generic_ndu(stage_id: str, base: NduProfile) -> Callable[[Results, PierInpu
     return model
 
 
-def _generic_seismic_stage(stage_id: str, stem: str, frame: str, base: NduProfile, file_name: str,
+def _generic_seismic_stage(stage_id: str, stem: str, base: NduProfile, file_name: str,
                            direction: FrameDirection, source: LoadModelSource) -> StageSpec:
     ndu = _generic_ndu(stage_id, base)
-    return StageSpec(stage_id, stem, ("0500", "0600", frame),
+    return StageSpec(stage_id, stem, ("0500", "0600"),
                      lambda pier, results: calculate_generic_seismic(pier, results["0500"], results["0600"],
-                                                                     results[frame], source.result(pier), direction,
-                                                                     stage_id),
-                     lambda results, pier, path, pages: render_generic_seismic(results[stage_id], pier, path, pages),
+                                                                     source.result(pier), direction, stage_id),
+                     lambda results, pier, path, pages: render_generic_seismic(results[stage_id], results["0600"],
+                                                                               pier, path, pages),
                      (Export("jrsnap", file_name, lambda results, pier: write_ndu(ndu(results, pier)), metadata=_NDU),),
                      jrsnap_figures=JrsnapFigures("jrsnap", lambda results, pier: diagram_combinations(
                          ndu(results, pier))),
                      grid_documents=lambda results, pier, pages: generic_seismic_report.grid_documents(
-                         results[stage_id], pier))
+                         results[stage_id], results["0600"], pier))
 
 
 def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) -> StageSpec:
@@ -750,10 +751,10 @@ def stages_for(source: LoadModelSource) -> Registry:
                           load_diagram="frameweb",
                           grid_documents=lambda results, pier, pages: generic_frame_report.grid_documents(
                               results["0620"], results["0600"], pier)),
-        "0710": _generic_seismic_stage("0710", STAGES.get("0710").stem, "0610", NDU_LONGITUDINAL, "線路方向.ndu",
+        "0710": _generic_seismic_stage("0710", STAGES.get("0710").stem, NDU_LONGITUDINAL, "線路方向.ndu",
                                        FrameDirection.LONGITUDINAL, source),
         "0711": _generic_nonlinear(STAGES.get("0711"), "0710", NDU_LONGITUDINAL),
-        "0720": _generic_seismic_stage("0720", STAGES.get("0720").stem, "0620", NDU_TRANSVERSE, "線路直角方向.ndu",
+        "0720": _generic_seismic_stage("0720", STAGES.get("0720").stem, NDU_TRANSVERSE, "線路直角方向.ndu",
                                        FrameDirection.TRANSVERSE, source),
         "0721": _generic_nonlinear(STAGES.get("0721"), "0720", NDU_TRANSVERSE),
         "0900": _generic_cantilever(STAGES.get("0900").stem, "0711", "0721", source),

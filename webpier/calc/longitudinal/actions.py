@@ -302,17 +302,17 @@ def dead_actions(pier: PierInput, frame: Frame, dead: Any, weights: SelfWeightRe
     return DeadActions(fixed, additional, buoyancy, points, column_line_load(frame, n=q))  # type: ignore[arg-type]
 
 
+def snow_table(pier: PierInput, dead: Any, field: str) -> TopTable:
+    """The snow of one return period at B and C (8-4): *field* is snow2, snow10 or snow30 of the 0600 dead loads."""
+    return _table(_bearings(getattr(dead.origin.pier, field), getattr(dead.end.pier, field), _arms(pier)))
+
+
 def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
     dead, weights, train = reaction.dead, reaction.self_weight, reaction.train
     arms = _arms(pier)
-    origin, end = dead.origin.pier, dead.end.pier
-
-    def loads(field: str) -> list[Row]:
-        return _bearings(getattr(origin, field), getattr(end, field), arms)
-
     app = dead_actions(pier, frame, dead, weights)
     fixed, additional, buoyancy = app.fixed, app.additional, app.buoyancy
-    snow = tuple(_table(loads(field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
+    snow = tuple(snow_table(pier, dead, field) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
     single = _table(_bearings(train.loading.rb, train.loading.rc, arms))
     double = _table(_bearings(put(FORCE, d(train.loading.rb) * d(dead.origin.track_total)),
                               put(FORCE, d(train.loading.rc) * d(dead.end.track_total)), arms))
@@ -353,4 +353,4 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 
 __all__ = ["Actions", "AdditionalDead", "BasicAction", "BasicCase", "DeadActions", "FixedDead", "HorizontalRow",
            "ImpactRow", "ImpactTable", "Impacts", "Item", "NATURES", "Row", "SNOW_CASES", "SpringTerm", "TopTable",
-           "Trains", "bearing_point", "calculate_actions", "dead_actions"]
+           "Trains", "bearing_point", "calculate_actions", "dead_actions", "snow_table"]

@@ -82,8 +82,8 @@ def test_0620_prints_the_wind_on_the_pier(tmp_path):
 
 @pytest.mark.parametrize("direction", list(Direction))
 def test_0710_and_0720_print_the_seismic_cases(tmp_path, direction):
-    pier, result = seismic(direction)
-    printed = texts(seismic_report.semantic_records(result, pier))
+    pier, reaction, result = seismic(direction)
+    printed = texts(seismic_report.semantic_records(result, reaction, pier))
     prefix = "0710/" if direction is Direction.LONGITUDINAL else "0720/"
     assert printed[prefix + "combination"].endswith("1 + 2 + 3 + 4 + 5 + 6 + 71")
     assert "限定増分" in printed[prefix + "basic"] and "自重による地震時慣性力" in printed[prefix + "basic"]
@@ -93,7 +93,8 @@ def test_0710_and_0720_print_the_seismic_cases(tmp_path, direction):
     else:
         assert "400.00" in printed[prefix + "control.origin"] and "350.00" in printed[prefix + "control.end"]
     no_train(printed)
-    rendered_twice(tmp_path, lambda path: seismic_report.render_generic_seismic(result, pier, path, jrsnap_pages(7)))
+    rendered_twice(tmp_path, lambda path: seismic_report.render_generic_seismic(result, reaction, pier, path,
+                                                                                jrsnap_pages(7)))
 
 
 def test_0900_prints_the_combinations_and_the_zero_row(tmp_path):
@@ -124,11 +125,13 @@ def test_the_optional_parts():
     printed = texts(frame_report.semantic_records(frame_result, reaction, pier))
     assert "0610/loadmodel.heading" not in printed and printed["0610/bearings.heading"] == "(4) 荷重モデルの支承作用"
     assert frame_report.build_generic_frame(frame_result, reaction, pier).blocks
-    seismic_result = calculate_generic_seismic(pier, foundation, reaction, frame_result, bare, Direction.LONGITUDINAL,
-                                               "0710")
-    printed = texts(seismic_report.semantic_records(seismic_result, pier))
-    assert "0710/bearings.heading" not in printed and printed["0710/inertia.heading"] == "(1) 自重による地震時慣性力"
-    assert seismic_report.build_generic_seismic(seismic_result, pier).blocks
+    seismic_result = calculate_generic_seismic(pier, foundation, reaction, bare, Direction.LONGITUDINAL, "0710")
+    printed = texts(seismic_report.semantic_records(seismic_result, reaction, pier))
+    assert "0710/bearings.heading" not in printed and printed["0710/inertia.heading"] == "(3) 自重による地震時慣性力"
+    # Decision 78: only the dead cases the combinations use, numbered in turn; no buoyancy here.
+    assert [printed["0710/fixed.heading"], printed["0710/additional.heading"]] == ["(1) 固定死荷重", "(2) 付加死荷重"]
+    assert "0710/buoyancy.heading" not in printed
+    assert seismic_report.build_generic_seismic(seismic_result, reaction, pier).blocks
     document = deepcopy(CURRENT)
     document["上部工反力"]["終点側"]["C支点"] = [None] * 10  # no bearing of the end girder on this pier
     pier = parse_input(document, load_model=True)

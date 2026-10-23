@@ -13,7 +13,7 @@ this stage. Horizontal forces print as magnitude and direction, as in 0710.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -102,10 +102,17 @@ def _top_rows(table: TopTable) -> list[tuple[Any, Any, Any, Any]]:
             for row in table.rows]
 
 
-def _bearing_table(m: Manuscript, key: str, result: TransverseResult, table: TopTable, case: BasicCase | None) -> None:
+def top_with_seat(m: Manuscript, key: str, frame: Any, table: TopTable, point: Any) -> None:
+    """A table of the loads at each bearing with, on an offset pedestal, its moment at the seat (*point*)."""
     m.table(key, top_table(_top_rows(table), (table.n, table.m)))
-    if case is not None:
-        seat_moment(m, key + ".seat", result.frame, table.n, table.m, result.basic(case).points[0])
+    seat_moment(m, key + ".seat", frame, table.n, table.m, point)
+
+
+def _bearing_table(m: Manuscript, key: str, result: TransverseResult, table: TopTable, case: BasicCase | None) -> None:
+    if case is None:
+        m.table(key, top_table(_top_rows(table), (table.n, table.m)))
+    else:
+        top_with_seat(m, key, result.frame, table, result.basic(case).points[0])
 
 
 def _footing_moment(m: Manuscript, key: str, row: Any) -> None:
@@ -176,10 +183,11 @@ def _model(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pi
         material_lines(m, "section.material." + key, label, concrete)
 
 
-def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pier: PierInput) -> None:
-    s, weights, fixed, frame = pier.substructure, reaction.self_weight, result.fixed, result.frame
-    m.heading("actions.heading", "9.2 作用の計算", 1)
-    m.heading("fixed.heading", "(1) 固定死荷重", 2)
+def fixed_dead(m: Manuscript, heading: str, pier: PierInput, weights: Any, frame: Any, fixed: Any,
+               points: Sequence[Any]) -> None:
+    """9.2 (1) 固定死荷重, and of 11.2 (decision 78): *points* are the D1 point loads on *frame*."""
+    s = pier.substructure
+    m.heading("fixed.heading", heading, 2)
     m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
                                                value(s.unit_weight_body)), fixed.column_q)
     m.equation("fixed.footing", "フーチング", "P",
@@ -198,21 +206,37 @@ def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pie
                                               value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
     if frame.bearing_offset.value:
-        seat_split(m, fixed, result.basic(BasicCase.D1).points, frame, lambda row: row.slot is not None)
-    m.heading("additional.heading", "(2) 付加死荷重", 2)
-    soil = result.additional.soil
+        seat_split(m, fixed, points, frame, lambda row: row.slot is not None)
+
+
+def additional_dead(m: Manuscript, heading: str, weights: Any, frame: Any, additional: Any, point: Any) -> None:
+    """9.2 (2) 付加死荷重, and of 11.2: *point* is the D2 load at the seat."""
+    m.heading("additional.heading", heading, 2)
+    soil = additional.soil
     m.equation("additional.soil", "載荷土", "P",
                terms(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
     _footing_moment(m, "additional.soil.moment", soil)
     m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
-    _bearing_table(m, "additional.top", result, result.additional.table, BasicCase.D2)
+    top_with_seat(m, "additional.top", frame, additional.table, point)
+
+
+def buoyancy_line(m: Manuscript, key: str, label: str, symbol: Any, row: Any, water: Any) -> None:
+    """The buoyancy of one water level (9.2 (3), 11.2 (3)) and its moment about the footing centroid."""
+    m.equation(key, label, symbol, terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
+    _footing_moment(m, f"{key}.moment", row)
+
+
+def _dead(m: Manuscript, result: TransverseResult, reaction: ReactionResult, pier: PierInput) -> None:
+    weights = reaction.self_weight
+    m.heading("actions.heading", "9.2 作用の計算", 1)
+    fixed_dead(m, "(1) 固定死荷重", pier, weights, result.frame, result.fixed, result.basic(BasicCase.D1).points)
+    additional_dead(m, "(2) 付加死荷重", weights, result.frame, result.additional,
+                    result.basic(BasicCase.D2).points[0])
     m.heading("buoyancy.heading", "(3) 浮力", 2)
     for (key, label, suffix), row, water in zip(_WATER, result.buoyancy, (weights.buoyancy_high,
                                                                          weights.buoyancy_normal,
                                                                          weights.buoyancy_low), strict=True):
-        m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
-                   terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
-        _footing_moment(m, f"buoyancy.{key}.moment", row)
+        buoyancy_line(m, f"buoyancy.{key}", label, sub("ω", suffix), row, water)
     if result.snow is not None:
         m.heading("snow.heading", "(4) 雪荷重", 2)
         for index, (key, label, case) in enumerate((("2", "1) 2年確率", BasicCase.SNOW2),

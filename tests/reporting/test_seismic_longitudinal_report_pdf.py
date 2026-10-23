@@ -32,18 +32,18 @@ REPORT = stand_ins(LONGITUDINAL_LOAD_CASES)
 
 
 def render(case: str, path: Path) -> Path:
-    pier, _, _, result = chain(case)
-    return render_seismic_longitudinal(result, pier, path, REPORT)
+    pier, reaction, _, result = chain(case)
+    return render_seismic_longitudinal(result, reaction, pier, path, REPORT)
 
 
 @pytest.mark.parametrize("case", list(CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
-    pier, _, _, result = chain(case)
-    model, actions, combinations = layout(content(result, pier), INSERTIONS)
+    pier, reaction, _, result = chain(case)
+    model, actions, combinations = layout(content(result, reaction, pier), INSERTIONS)
     pages = model + actions + combinations
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
-    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, pier)))
+    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
     with pymupdf.open(render(case, tmp_path / "0710.pdf")) as pdf:
         # Decisions 50, 51: JRSNAP's データ確認図 pages come right after 10.1 and its load diagram after 10.3.
         assert len(pdf) == len(pages) + DATA_CHECK_PAGES + LONGITUDINAL_LOAD_CASES
@@ -71,19 +71,22 @@ def test_the_pages_are_the_model_the_data_check_the_actions_the_load_diagram_and
 def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers(tmp_path: Path, case: str):
     path = render(case, tmp_path / "0710.pdf")
     formulas = formula_checks(path)
-    pier, _, _, result = chain(case)
+    pier, reaction, _, result = chain(case)
     # A, I, four or five Hw, the footing H, and the seat moment with a pedestal.
     assert len(formulas) >= 6
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
-    assert Counter(check.kind for check in rows) == {"row": 2, "total": 1, "horizontal": 2}
+    # D1, D2, the 2-year snow (decision 78; none without snow, decision 69) and the train, each with its total.
+    tables = [result.fixed.table, result.additional.table, *([result.snow] if result.snow else []), result.train]
+    assert Counter(check.kind for check in rows) == {"row": sum(len(t.rows) for t in tables), "total": len(tables),
+                                                     "horizontal": 2}
     assert [check for check in rows if not check.ok] == []
 
 
 def test_a_wrong_printed_number_is_caught_by_the_hand_check(tmp_path: Path):
-    pier, _, _, result = chain("current")
+    pier, reaction, _, result = chain("current")
     inertia = replace(result.self_weight, column=replace(result.self_weight.column, value=Printed(297.67, 2, "kN/m")))
-    path = render_seismic_longitudinal(replace(result, self_weight=inertia), pier, tmp_path / "w.pdf",
+    path = render_seismic_longitudinal(replace(result, self_weight=inertia), reaction, pier, tmp_path / "w.pdf",
                                        REPORT)
     assert [check.printed for check in formula_checks(path) if not check.ok] == ["297.67"]
 
@@ -95,8 +98,8 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
               "from frame_report_cases import chain\n"
               "from jrsnap_pages_support import LONGITUDINAL_LOAD_CASES, pages\n"
               "from webpier.reporting.stages.seismic_longitudinal import render_seismic_longitudinal\n"
-              "pier, _, _, result = chain('current')\n"
-              "render_seismic_longitudinal(result, pier, sys.argv[1], pages(LONGITUDINAL_LOAD_CASES))\n")
+              "pier, reaction, _, result = chain('current')\n"
+              "render_seismic_longitudinal(result, reaction, pier, sys.argv[1], pages(LONGITUDINAL_LOAD_CASES))\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)
@@ -110,7 +113,7 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
     with pymupdf.open(render("pedestal", tmp_path / "0710.pdf")) as pdf:
         found = spans(pdf)
         placed = (("§10. 線路方向の計算（地震時）", 0, HEADING), ("10.1 検討モデル", 1, HEADING),
-                  ("(3) 自重による地震時慣性力", 2, HEADING), ("1) 柱下端の微小部材", 3, HEADING),
+                  ("(7) 自重による地震時慣性力", 2, HEADING), ("1) 柱下端の微小部材", 3, HEADING),
                   ("柱下端の微小部材以外の部材はすべて剛域とする．", 4, BODY))
         assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
         assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
@@ -133,7 +136,6 @@ def test_the_displaced_soil_of_several_layers_prints_its_average(tmp_path: Path)
 
     from frame_report_cases import CURRENT
     from webpier.calc.foundation import calculate_foundation
-    from webpier.calc.longitudinal import calculate_longitudinal
     from webpier.calc.reaction import calculate_reaction
     from webpier.calc.seismic_longitudinal import calculate_seismic_longitudinal
     from webpier.inputs import parse_input
@@ -146,10 +148,9 @@ def test_the_displaced_soil_of_several_layers_prints_its_average(tmp_path: Path)
     data["下部構造"]["単位体積重量"]["フーチング"] = 24.5
     pier = parse_input(data)
     foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
-    result = calculate_seismic_longitudinal(pier, foundation, reaction,
-                                            calculate_longitudinal(pier, foundation, reaction))
+    result = calculate_seismic_longitudinal(pier, foundation, reaction)
     assert result.self_weight.footing.displaced == Printed(19.0, 1, "kN/m3")
-    text = "".join(squeeze(r["text"]) for r in semantic_records(result, pier))
+    text = "".join(squeeze(r["text"]) for r in semantic_records(result, reaction, pier))
     assert "γ'=(0.050×17.0+2.650×19.0)/2.700=19.0" in text and "厚さによる平均" in text
-    checks = formula_checks(render_seismic_longitudinal(result, pier, tmp_path / "layers.pdf", REPORT))
+    checks = formula_checks(render_seismic_longitudinal(result, reaction, pier, tmp_path / "layers.pdf", REPORT))
     assert [check for check in checks if not check.ok] == []

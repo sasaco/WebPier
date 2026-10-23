@@ -14,8 +14,9 @@ import pytest
 
 from frame_report_cases import TRANSVERSE_CASES, text, transverse_chain
 from test_longitudinal_report_semantics import material, member_rows, node_rows, section, squeeze
-from test_transverse_report_semantics import bearing
+from test_transverse_report_semantics import bearing, dead_records, paren, seat, top
 from webpier.calc.frame import NodeRole, Region
+from webpier.calc.seismic_transverse import SeismicCase
 from webpier.calc.transverse import Item, Track
 from webpier.core.printed import Printed
 
@@ -31,7 +32,7 @@ def names(result) -> list[str]:
 
 
 def expected(case: str) -> dict[str, str]:
-    pier, _, _, result = transverse_chain(case)
+    pier, reaction, _, result = transverse_chain(case)
     frame = result.frame
     out: dict[str, str] = {}
 
@@ -60,7 +61,19 @@ def expected(case: str) -> dict[str, str]:
     add("section.material.heading", "2)弾性係数")
     out.update({"0720/" + k: v for k, v in material("section.material.column", "柱", frame.materials.column).items()})
     add("actions.heading", "11.2作用の計算")
-    add("actions.note", "下記以外の作用については，§9.線路直角方向の計算（地震時以外）と同様とする．")
+    # Decision 78: D1, D2, the buoyancy at the normal water level and the 2-year snow as 9.2, no reference to §9.
+    sw = reaction.self_weight
+    dead_records(add, pier, reaction, frame, result.fixed, result.additional, result.basic(SeismicCase.D2).points[0])
+    add("buoyancy.heading", "(3)浮力（平水位）")
+    row, water = result.buoyancy, sw.buoyancy_normal
+    add("buoyancy", f"ω={t(water.body.unit_weight)}×{t(water.body.volume)}={t(row.n)}kN")
+    if row.arm.value:
+        add("buoyancy.moment", f"MP={t(row.n)}×{paren(row.arm)}={t(row.m)}kN・m")
+    if result.snow is not None:
+        add("snow.heading", "(4)雪荷重（2年確率）")
+        add("snow", top(result.snow))
+        add("snow.seat", seat(frame, result.snow.n, result.snow.m, result.basic(SeismicCase.SNOW).points[0]))
+
     def item(number: int) -> str:  # decision 69: the items follow those of 9.2, without (4) 雪荷重 when no snow
         return f"({number if result.snow is not None else number - 1})"
 
@@ -117,8 +130,8 @@ def actual(case: str, result=None) -> dict[str, str]:
     from webpier.reporting.stages.frame_report import plain
     from webpier.reporting.stages.seismic_transverse import content
 
-    pier, _, _, seismic = transverse_chain(case)
-    units = content(result or seismic, pier)
+    pier, reaction, _, seismic = transverse_chain(case)
+    units = content(result or seismic, reaction, pier)
     assert len({unit.key for unit in units}) == len(units)
     return {unit.key: squeeze(plain(unit.value)) for unit in units}
 
@@ -140,6 +153,8 @@ def test_current_input_prints_the_example2_values():
     assert got["0720/train_inertia.table"].endswith("合計144.00770.40")
     assert "13.050" in got["0720/model.figure"] and "1+2+3+4+5+7+8+9" in got["0720/combination"]
     assert "1+2+3+4+6+7+8+9" in got["0720/combination"]
+    assert not any("§9" in text for text in got.values())  # decision 78: 11.2 prints D1 to S2 itself
+    assert got["0720/fixed.n"].endswith("=8299.53kN")  # the 9-3 value of 0620
 
 
 def test_the_report_reads_the_results_not_the_input():

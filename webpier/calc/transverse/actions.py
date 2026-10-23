@@ -420,12 +420,18 @@ def dead_actions(pier: PierInput, frame: Frame, dead: Any, weights: SelfWeightRe
     return DeadActions(fixed, additional, buoyancy, points, column_line_load(frame, n=q))  # type: ignore[arg-type]
 
 
+def snow_table(dead: Any, field: str) -> TopTable:
+    """The snow of one return period at each bearing (9-4): *field* is snow2, snow10 or snow30 of the 0600 dead
+    loads."""
+    return _table(_loads(dead, field))
+
+
 def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -> Actions:
     dead, weights, train, transverse = reaction.dead, reaction.self_weight, reaction.train, reaction.transverse
     girders: Girders = ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
     app = dead_actions(pier, frame, dead, weights)
     fixed, additional, buoyancy = app.fixed, app.additional, app.buoyancy
-    snow = tuple(_table(_loads(dead, field)) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
+    snow = tuple(snow_table(dead, field) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
     reactions = {Item.ORIGIN: train.loading.rb, Item.END: train.loading.rc}
     trains = Trains(*(train_table(track, girders, reactions) for track in Track))
     impact = Impacts(ultimate=_impacts(trains, train.ultimate), service=_impacts(trains, train.service))
@@ -482,4 +488,4 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
 __all__ = ["CENTRIFUGAL_CASES", "IMPACT_CASES", "SNOW_CASES", "TRACKS", "Actions", "AdditionalDead", "CentrifugalRow",
            "CentrifugalTable", "Centrifugals", "BasicAction", "BasicCase", "DeadActions", "FixedDead", "dead_actions",
            "HorizontalRow", "ImpactRow", "ImpactSet", "ImpactTable", "Impacts", "Item", "Lateral", "Row", "TopTable",
-           "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions", "train_table"]
+           "TrainRow", "TrainTable", "Trains", "Track", "Wind", "calculate_actions", "snow_table", "train_table"]

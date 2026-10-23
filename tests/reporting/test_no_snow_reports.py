@@ -37,12 +37,16 @@ def test_0620_has_no_snow_item_and_14_basic_cases():
 
 
 def test_0710_and_0720_have_no_snow_case():
-    pier, _, _, seismic = chain("no_snow")
-    printed = texts(seismic_longitudinal.semantic_records(seismic, pier))
+    pier, reaction, _, seismic = chain("no_snow")
+    printed = texts(seismic_longitudinal.semantic_records(seismic, reaction, pier))
     assert "雪荷重" not in printed["0710/basic"]
     assert "1 + 2 + 3 + 4 + 5 + 6 + 7" in printed["0710/combination"]
-    pier, _, _, seismic = transverse_chain("no_snow")
-    printed = texts(seismic_transverse.semantic_records(seismic, pier))
+    # Decision 78: 10.2 prints (1)〜(3) as 8.2 and no (4) 雪荷重, the items after it moving up.
+    assert "0710/snow.heading" not in printed
+    assert [printed[f"0710/{key}.heading"] for key in ("buoyancy", "train", "horizontal", "inertia")] == [
+        "(3) 浮力（平水位）", "(4) 列車荷重", "(5) 水平荷重", "(6) 自重による地震時慣性力"]
+    pier, reaction, _, seismic = transverse_chain("no_snow")
+    printed = texts(seismic_transverse.semantic_records(seismic, reaction, pier))
     assert "雪荷重" not in printed["0720/basic"]
     assert [printed[f"0720/{key}"] for key in ("train.heading", "girder.heading", "train_inertia.heading")] == [
         "(4) 列車荷重", "(5) 地震時桁荷重慣性力", "(6) 地震時列車荷重慣性力"]

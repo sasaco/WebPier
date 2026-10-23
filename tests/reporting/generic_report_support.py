@@ -39,13 +39,11 @@ def frame(direction: Direction):
 
 
 def seismic(direction: Direction):
-    from webpier.calc.generic.frame import calculate_generic_frame
+    """(pier, the dead 0600, the generic 0710 / 0720)."""
     from webpier.calc.generic.seismic import calculate_generic_seismic
     pier, foundation, reaction, model = generic_inputs()
-    along = direction is Direction.LONGITUDINAL
-    result = calculate_generic_frame(pier, foundation, reaction, model, direction, "0610" if along else "0620")
-    return pier, calculate_generic_seismic(pier, foundation, reaction, result, model, direction,
-                                           "0710" if along else "0720")
+    stage = "0710" if direction is Direction.LONGITUDINAL else "0720"
+    return pier, reaction, calculate_generic_seismic(pier, foundation, reaction, model, direction, stage)
 
 
 def response(kh: str) -> MaxResponse:

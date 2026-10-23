@@ -24,9 +24,9 @@ def pier():
 def test_calculates_the_closure_and_renders_nothing(pier):
     recorder = Recorder()
     assert export_bytes(pier, "C", "jrsnap", registry=fake_registry(recorder)) == b"NDU C\r\n"
-    assert recorder.actions("calculate") == ["A", "B", "C"]
+    assert recorder.actions("calculate") == ["A", "C"]  # C reads no B (decision 78)
     assert recorder.actions("render") == []
-    assert recorder.log[-1] == ("export", "C", ("B", "C"))  # its dependencies and itself, as in a generation
+    assert recorder.log[-1] == ("export", "C", ("A", "C"))  # its dependencies and itself, as in a generation
 
 
 def test_an_export_of_an_earlier_stage_calculates_only_its_closure(pier):

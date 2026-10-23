@@ -33,10 +33,10 @@ def _units(stage: str, case: str) -> tuple[Any, ...]:
     if stage in ("0610", "0710"):
         pier, reaction, result, seismic = chain(case)
         return (longitudinal.content(result, reaction, pier) if stage == "0610"
-                else seismic_longitudinal.content(seismic, pier))
+                else seismic_longitudinal.content(seismic, reaction, pier))
     pier, reaction, result, seismic = transverse_chain(case)
     return (transverse.content(result, reaction, pier) if stage == "0620"
-            else seismic_transverse.content(seismic, pier))
+            else seismic_transverse.content(seismic, reaction, pier))
 
 
 PARAMETERS = ([(stage, case) for stage in ("0610", "0710") for case in CASES]

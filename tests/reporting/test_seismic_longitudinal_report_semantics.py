@@ -16,7 +16,7 @@ import pytest
 
 from frame_report_cases import CASES, chain, text
 from test_longitudinal_report_semantics import (
-    material, member_rows, node_rows, section, squeeze,
+    dead_records, material, member_rows, node_rows, paren, seat, section, squeeze, top,
 )
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import Item
@@ -67,8 +67,25 @@ def expected(case: str) -> dict[str, str]:
     add("section.material.heading", "2)弾性係数")
     out.update({"0710/" + k: v for k, v in material("section.material.column", "柱", frame.materials.column).items()})
     add("actions.heading", "10.2作用の計算")
-    add("actions.note", "下記以外の作用については，§8.線路方向の計算（地震時以外）と同様とする．")
-    add("train.heading", "(1)列車荷重")
+    # Decision 78: D1, D2, the buoyancy at the normal water level and the 2-year snow as 8.2, no reference to §8.
+    sw = reaction.self_weight
+    dead_records(add, pier, reaction, frame, result.fixed, result.additional, result.basic(SeismicCase.D1).points,
+                 result.basic(SeismicCase.D2).points[0])
+    add("buoyancy.heading", "(3)浮力（平水位）")
+    row, water = result.buoyancy, sw.buoyancy_normal
+    add("buoyancy", f"ω={t(water.body.unit_weight)}×{t(water.body.volume)}={t(row.n)}kN")
+    if row.arm.value:
+        add("buoyancy.moment", f"MP={t(row.n)}×{paren(row.arm)}={t(row.m)}kN・m")
+    snow = result.snow
+    if snow is not None:
+        add("snow.heading", "(4)雪荷重（2年確率）")
+        add("snow", top(snow.rows, snow.n, snow.m))
+        add("snow.seat", seat(frame, snow.n, snow.m, result.basic(SeismicCase.SNOW).points[0]))
+
+    def item(number: int) -> str:  # decision 69: without snow the items after (3) move up
+        return f"({number if snow is not None else number - 1})"
+
+    add("train.heading", f"{item(5)}列車荷重")
     add("train.single", "・単線載荷")
     train = result.train
     labels = {Item.ORIGIN: "起点側RB", Item.END: "終点側RC"}
@@ -79,7 +96,7 @@ def expected(case: str) -> dict[str, str]:
         point = result.basic(SeismicCase.TRAIN).points[0]
         paren = f"({t(e)})" if e.value < 0 else t(e)
         add("train.seat", f"桁受け天端M={t(train.m)}−{t(train.n)}×{paren}={t(point.m)}kN・m")
-    add("horizontal.heading", "(2)水平荷重")
+    add("horizontal.heading", f"{item(6)}水平荷重")
     add("horizontal.summary.heading", "1)支承に働く水平荷重のまとめ")
     g, r = result.girder_inertia.forces, result.train_inertia.forces
     add("horizontal", "荷　重　種　別起点桁(kN)終点桁(kN)合計(kN)"
@@ -88,7 +105,7 @@ def expected(case: str) -> dict[str, str]:
     add("horizontal.note", f"0600の支承の水平力（桁荷重Kh={t(result.girder_inertia.kh)}，"
                            f"列車荷重μ={t(result.train_inertia.kh)}）をそのまま用いる．")
     inertia = result.self_weight
-    add("inertia.heading", "(3)自重による地震時慣性力")
+    add("inertia.heading", f"{item(7)}自重による地震時慣性力")
     add("inertia.kh", f"設計水平震度Kh={t(inertia.kh)}")
     add("inertia.body", "・橋脚く体に作用する水平力")
     for key, label, name, value in (("beam_top", "はり", "w1", inertia.beam_top),
@@ -121,8 +138,8 @@ def expected(case: str) -> dict[str, str]:
 def actual(case: str, result=None) -> dict[str, str]:
     from webpier.reporting.stages.seismic_longitudinal import semantic_records
 
-    pier, _, _, seismic = chain(case)
-    records = semantic_records(result or seismic, pier)
+    pier, reaction, _, seismic = chain(case)
+    records = semantic_records(result or seismic, reaction, pier)
     assert len({r["id"] for r in records}) == len(records)
     return {r["id"]: squeeze(r["text"]) for r in records}
 
@@ -144,6 +161,8 @@ def test_current_input_prints_the_example2_values():
     assert got["0710/inertia.column"].endswith("=297.68kN/m")
     assert got["0710/inertia.footing"] == "H=170.100×(24.5−18.0)×1.00=1105.65kN"
     assert "1+2+3+4+5+6+7+8" in got["0710/combination"]
+    assert not any("§8" in text for text in got.values())  # decision 78: 10.2 prints D1 to S2 itself
+    assert got["0710/snow.heading"] == "(4)雪荷重（2年確率）" and got["0710/train.heading"] == "(5)列車荷重"
     assert "4.8900.010" in got["0710/model.figure"]  # the column and the micro member below it
 
 

@@ -75,7 +75,7 @@ def test_report_stems_are_the_japanese_stage_names():
 def test_declared_dependencies_of_the_real_stages():
     depends = {stage.id: stage.depends_on for stage in STAGES.stages}
     expected = {"0400": (), "0500": (), "0600": (), "0610": ("0500", "0600"), "0620": ("0500", "0600"),
-                "0710": ("0500", "0600", "0610"), "0720": ("0500", "0600", "0620"), "0611": ("0610",),
+                "0710": ("0500", "0600"), "0720": ("0500", "0600"), "0611": ("0610",),
                 "0621": ("0620",), "0612": ("0500", "0610"), "0622": ("0500", "0620"), "0711": ("0710",),
                 "0721": ("0720",), "0800": ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
                 "0810": ("0800",), "0820": ("0800",), "0900": ("0600", "0711", "0721"), "0910": ("0900",)}
@@ -115,6 +115,9 @@ def test_each_output_item_makes_its_stages():
     assert STAGES.selected(("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic",
                             "transverse_seismic")) == ("0500", "0600", "0610", "0620", "0710", "0720")
     assert STAGES.selected(("transverse_frame_analysis", "ground_model")) == ("0500", "0621", "0622")
+    # Decision 78: the seismic items without 0610 / 0620.
+    assert STAGES.selected(("ground_model", "reactions", "longitudinal_seismic", "transverse_seismic")) == (
+        "0500", "0600", "0710", "0720")
     assert STAGES.selected(("detailing",)) == ("0400",)
     assert [STAGES.item(stage_id) for stage_id in ("0400", "0500", "0612", "0721", "0820", "0910")] == [
         "detailing", "ground_model", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]

@@ -17,7 +17,7 @@ def chain(p=None):
     foundation = calculate_foundation(p)
     reaction = calculate_reaction(p)
     longitudinal = calculate_longitudinal(p, foundation, reaction)
-    return p, reaction, longitudinal, calculate_seismic_longitudinal(p, foundation, reaction, longitudinal)
+    return p, reaction, longitudinal, calculate_seismic_longitudinal(p, foundation, reaction)
 
 
 def seismic(p=None):

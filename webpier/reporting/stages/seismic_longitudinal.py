@@ -1,9 +1,10 @@
 """0710 線路方向の計算（地震時）: the report of Example2 10 pp.10-1..10-12 on the SeismicLongitudinalResult.
 
 10.1 the model with the 0.010 m column-base micro member (figure, nodes and
-members, the section of the micro member, Ec), 10.2 the actions printed here
-(the seismic train, the bearing horizontal forces and the self-weight inertia;
-the rest is "§8 と同様"), 10.3 the load diagrams: JRSNAP's 荷重図
+members, the section of the micro member, Ec), 10.2 the actions: D1, D2, the
+buoyancy at the normal water level and the 2-year snow as 8.2 prints them
+(decision 78: Example2 10-8 refers to §8 instead), the seismic train, the
+bearing horizontal forces and the self-weight inertia, 10.3 the load diagrams: JRSNAP's 荷重図
 (S_LoadPicture) of each basic case, one page per case in CASE order, each drawn
 from the .ndt of the first combination that uses the case (decision 51;
 Example2 10.3 is an Excel figure of two or three cases a page, which is not
@@ -20,6 +21,7 @@ are not part of this stage.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +39,9 @@ from .frame_report import (
     frame_figure, material_lines, member_table, node_table, section_lines, seat_moment,
     self_weight_inertia, semantic_records as records, sub, top_table, used_concretes, value, with_unit,
 )
+from . import longitudinal as frame_stage
 from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
+from .transverse import action_item
 
 PREFIX = "0710/"
 ACTIONS = "actions.heading"  # the unit the データ確認図 pages come before (decision 50)
@@ -93,17 +97,63 @@ def _model(m: Manuscript, result: SeismicLongitudinalResult, pier: PierInput) ->
         material_lines(m, "section.material." + key, label, concrete)
 
 
-def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
+@dataclass(frozen=True)
+class DeadItems:
+    """What ``dead_items`` prints of a seismic result; an item is None when the stage does not make its case."""
+
+    frame: Any
+    fixed: Any = None
+    d1_points: tuple[Any, ...] = ()
+    additional: Any = None
+    d2_point: Any = None  # the D2 load at the seat
+    buoyancy: Any = None  # the row at the normal water level
+    snow: Any = None  # the 2-year table
+    snow_point: Any = None
+
+    @classmethod
+    def of(cls, result: Any, cases: Any) -> DeadItems:
+        """The items of a 0710 / 0720 result, its basic cases named by *cases* (the SeismicCase of the stage)."""
+        return cls(frame=result.frame, fixed=result.fixed, d1_points=result.basic(cases.D1).points,
+                   additional=result.additional, d2_point=result.basic(cases.D2).points[0], buoyancy=result.buoyancy,
+                   snow=result.snow,
+                   snow_point=result.basic(cases.SNOW).points[0] if result.snow is not None else None)
+
+
+def dead_items(m: Manuscript, result: Any, reaction: Any, pier: PierInput, stage: Any, number: int = 1) -> int:
+    """(1) 固定死荷重 to (4) 雪荷重 of 10.2 / 11.2 (decision 78): the dead cases *result* makes, written as 8.2 / 9.2
+    (*stage*, the module of 0610 or 0620), the buoyancy at the normal water level and the 2-year snow alone; the
+    number of the next item."""
+    weights = reaction.self_weight
+    if result.fixed is not None:
+        stage.fixed_dead(m, f"({number}) 固定死荷重", pier, weights, result.frame, result.fixed, result.d1_points)
+        number += 1
+    if result.additional is not None:
+        stage.additional_dead(m, f"({number}) 付加死荷重", weights, result.frame, result.additional,
+                              result.d2_point)
+        number += 1
+    if result.buoyancy is not None:
+        m.heading("buoyancy.heading", f"({number}) 浮力（平水位）", 2)
+        stage.buoyancy_line(m, "buoyancy", "", "ω", result.buoyancy, weights.buoyancy_normal)
+        number += 1
+    if result.snow is not None:
+        m.heading("snow.heading", f"({number}) 雪荷重（2年確率）", 2)
+        stage.top_with_seat(m, "snow", result.frame, result.snow, result.snow_point)
+        number += 1
+    return number
+
+
+def _actions(m: Manuscript, result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> None:
+    snow = result.snow is not None  # the items follow those of 8.2 (decision 69)
     m.heading(ACTIONS, "10.2 作用の計算", 1)
-    m.paragraph("actions.note", "下記以外の作用については，§8. 線路方向の計算（地震時以外）と同様とする．")
-    m.heading("train.heading", "(1) 列車荷重", 2)
+    dead_items(m, DeadItems.of(result, SeismicCase), reaction, pier, frame_stage)
+    m.heading("train.heading", f"{action_item(snow, 5)} 列車荷重", 2)
     m.paragraph("train.single", "・単線載荷", keep=True)
     rows = [(bearing_symbol("origin" if row.item is Item.ORIGIN else "end"), row.n, row.arm, row.m)
             for row in result.train.rows]
     m.table("train", top_table(rows, (result.train.n, result.train.m)))
     seat_moment(m, "train.seat", result.frame, result.train.n, result.train.m,
                 result.basic(SeismicCase.TRAIN).points[0])
-    m.heading("horizontal.heading", "(2) 水平荷重", 2)
+    m.heading("horizontal.heading", f"{action_item(snow, 6)} 水平荷重", 2)
     m.heading("horizontal.summary.heading", "1) 支承に働く水平荷重のまとめ", 3)
     table: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")]
     for index, (name, inertia) in enumerate((("桁荷重", result.girder_inertia), ("列車荷重", result.train_inertia))):
@@ -115,7 +165,7 @@ def _actions(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.table("horizontal", TableSpec((2, 12, 4, 4, 4), tuple(table), (2, 2, 2)))  # the rows of 0610's table
     m.paragraph("horizontal.note", f"0600 の支承の水平力（桁荷重 Kh = {value(result.girder_inertia.kh)}，"
                                    f"列車荷重 μ = {value(result.train_inertia.kh)}）をそのまま用いる．")
-    self_weight_inertia(m, result.self_weight, "(3) 自重による地震時慣性力", "§6")
+    self_weight_inertia(m, result.self_weight, f"{action_item(snow, 7)} 自重による地震時慣性力", "§6")
 
 
 def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
@@ -139,35 +189,35 @@ def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
                                      numeric=frozenset({0, 4})))
 
 
-def content(result: SeismicLongitudinalResult, pier: PierInput) -> tuple[Unit, ...]:
+def content(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(PREFIX)
     _model(m, result, pier)
-    _actions(m, result)
+    _actions(m, result, reaction, pier)
     diagrams_heading(m, "10.3 荷重図")
     _combinations(m, result)
     return tuple(m.units)
 
 
-def semantic_records(result: SeismicLongitudinalResult, pier: PierInput) -> list[dict[str, str]]:
-    return records(content(result, pier))
+def semantic_records(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> list[dict[str, str]]:
+    return records(content(result, reaction, pier))
 
 
-def build_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput) -> Document:
+def build_seismic_longitudinal(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> Document:
     """The whole 0710 manuscript as one GridLayoutPdf Document, without JRSNAP's pages."""
-    return document(content(result, pier))
+    return document(content(result, reaction, pier))
 
 
-def render_seismic_longitudinal(result: SeismicLongitudinalResult, pier: PierInput, path: str | Path,
-                                pages: Mapping[str, bytes]) -> Path:
+def render_seismic_longitudinal(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput,
+                                path: str | Path, pages: Mapping[str, bytes]) -> Path:
     """The report with JRSNAP's データ確認図 (``pages[DATA_CHECK]``) before 10.2 and its load diagram
     (``pages[LOAD_DIAGRAM]``) after 10.3; atomically replaces *path*.
 
     WebPier's pages are the same bytes for the same input; JRSNAP's are its own (decisions 50, 51).
     """
-    return render_with_pages(content(result, pier), INSERTIONS, pages, path)
+    return render_with_pages(content(result, reaction, pier), INSERTIONS, pages, path)
 
 
-def grid_documents(result: SeismicLongitudinalResult, pier: PierInput) -> tuple[Document, ...]:
+def grid_documents(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> tuple[Document, ...]:
     """The documents of the report WebPier lays out, without the pages of JRSNAP (its grid Excel workbook)."""
-    return documents(content(result, pier), INSERTIONS)
+    return documents(content(result, reaction, pier), INSERTIONS)

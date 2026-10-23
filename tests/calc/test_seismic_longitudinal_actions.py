@@ -2,8 +2,10 @@
 
 from decimal import Decimal
 
+import pytest
+
 from longitudinal_support import SECTIONS
-from reaction_support import D, q, value
+from reaction_support import D, pier, q, value
 from seismic_longitudinal_support import S10, chain, diagram, inertia_item, points, seismic
 from webpier.calc.longitudinal import BasicCase, Item
 from webpier.calc.seismic_longitudinal import ActionDirection, Increment, SeismicCase
@@ -74,16 +76,24 @@ def test_10_8_footing_inertia_less_the_displaced_soil():
     assert (footing.force.value, footing.force.digits) == (printed["result"]["value"], 2)
 
 
-def test_10_9_to_10_10_vertical_cases_are_those_of_0610():
-    # 10-8: "下記以外の作用については §8 と同様": D1, D2, Wp (normal water) and S2 are the 0610 basic cases,
-    # put on the 0710 frame (the footing centroid is node 6 here, node 5 in 0610).
-    _, _, longitudinal, result = chain()
+# The bearings on an offset pedestal (H1 > 0): D1 splits at the seat and the bearing moments move to it.
+PEDESTAL = {"下部構造/寸法/側面/B2": 0.5, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
+            "下部構造/寸法/正面/W3": 7.0, "下部構造/寸法/高さ/H1": 0.3}
+
+
+@pytest.mark.parametrize("changes", [{}, PEDESTAL], ids=["current", "pedestal"])
+def test_10_9_to_10_10_vertical_cases_are_those_of_0610(changes):
+    # 10-8: D1, D2, Wp (normal water) and S2 are the 0610 basic cases, which 0710 calculates on its own frame
+    # without reading 0610 (decision 78; the footing centroid is node 6 here, node 5 in 0610).
+    _, _, longitudinal, result = chain(pier(**changes))
     for case, basic in ((C.D1, BasicCase.D1), (C.D2, BasicCase.D2), (C.BUOYANCY, BasicCase.BUOYANCY_NORMAL),
                         (C.SNOW, BasicCase.SNOW2)):
         ours, theirs = result.basic(case), longitudinal.basic(basic)
         assert [(p.anchor, p.n, p.h, p.m) for p in ours.points] == [(p.anchor, p.n, p.h, p.m) for p in theirs.points]
         assert [(line.n, line.h) for line in ours.line_loads] == [(line.n, line.h) for line in theirs.line_loads]
         assert ours.member_loads == ()
+    assert result.fixed == longitudinal.fixed and result.additional == longitudinal.additional
+    assert result.buoyancy == longitudinal.buoyancy[1] and result.snow == longitudinal.snow[0]
 
 
 def test_10_9_to_10_11_load_diagrams():

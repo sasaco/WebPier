@@ -7,8 +7,9 @@ joined to the seat by a rigid member and loaded with nothing, with the control
 node at the levels weighted by the girder inertia forces (decision 65). The frame keeps
 the 0500 springs; no nonlinear constitutive data is made here.
 
-The actions (11-8) are the 0620 D1, D2, buoyancy at the normal water level and
-2-year snow, put on this frame ("§9 と同様"), and:
+The actions (11-8) are D1, D2, the buoyancy at the normal water level and the
+2-year snow, calculated on this frame as 0620 does (decision 78: 0720 does not
+read 0620), and:
 
 - the seismic train of each track, the 0600 R of the girder × the share of the
   bearing (up = L2, down = L1, decision 21), each bearing a row with its
@@ -36,7 +37,7 @@ from ..core.printed import FORCE, MOMENT, Printed
 from ..inputs import PierInput
 from ._exact import put, total
 from .foundation import FoundationResult
-from .frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, column_line_load, point_load
+from .frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, point_load
 from .longitudinal.actions import bearing_point
 from .materials import calculate_materials
 from .reaction import ReactionResult
@@ -46,9 +47,9 @@ from .seismic_longitudinal import (
     self_weight_inertia, self_weight_loads, toward,
 )
 from .transverse import (
-    AdditionalDead, BasicCase, FixedDead, HorizontalRow, Item, Row, TopTable, Track, TrainTable, TransverseResult,
+    AdditionalDead, BasicCase, FixedDead, HorizontalRow, Item, Row, TopTable, Track, TrainTable,
 )
-from .transverse.actions import train_table
+from .transverse.actions import dead_actions, snow_table, train_table
 
 EARTHQUAKE = Decimal(1)  # → of 11-12 and 11-13, +x in the transverse frame (decision 30)
 
@@ -68,9 +69,9 @@ class SeismicCase(Enum):
 
 
 TRAIN_CASES = {SeismicCase.TRAIN_UP: Track.UP, SeismicCase.TRAIN_DOWN: Track.DOWN}
-# 11-8: the vertical cases are those of §9 (0620).
-_FROM_0620 = {SeismicCase.D1: BasicCase.D1, SeismicCase.D2: BasicCase.D2,
-              SeismicCase.BUOYANCY: BasicCase.BUOYANCY_NORMAL, SeismicCase.SNOW: BasicCase.SNOW2}
+# 11-8: the dead cases, as the cases of 0620 they are calculated as (decision 78).
+DEAD_CASES = {SeismicCase.D1: BasicCase.D1, SeismicCase.D2: BasicCase.D2,
+              SeismicCase.BUOYANCY: BasicCase.BUOYANCY_NORMAL}
 # 11-13 作用方向 and 荷重種別.
 _KINDS = {
     SeismicCase.D1: (ActionDirection.DOWNWARD, Increment.FIXED),
@@ -128,10 +129,10 @@ class SeismicCombination:
 @dataclass(frozen=True)
 class SeismicTransverseResult:
     frame: Frame  # 11-1 to 11-7
-    fixed: FixedDead  # 0620 D1
-    additional: AdditionalDead  # 0620 D2
-    buoyancy: Row  # 0620 buoyancy at the normal water level
-    snow: TopTable | None  # 0620 2-year snow; None without snow (decision 69)
+    fixed: FixedDead  # D1 as 9-3, printed in 11.2 (decision 78)
+    additional: AdditionalDead  # D2 as 9-3
+    buoyancy: Row  # the buoyancy at the normal water level as 9-4
+    snow: TopTable | None  # the 2-year snow as 9-4; None without snow (decision 69)
     train_up: TrainTable  # 11-8 (5) 上り線載荷 (L2)
     train_down: TrainTable  # 11-8 (5) 下り線載荷 (L1)
     girder_inertia: HorizontalInertia  # 11-8 (6)
@@ -154,17 +155,12 @@ def _inertia(kh: Decimal, origin: TransverseForce, end: TransverseForce) -> Hori
                              m=put(MOMENT, total(r.m for r in rows)))
 
 
-def _on_frame(frame: Frame, point: PointLoad) -> PointLoad:
-    """A 0620 point load at the same role of this frame (the node numbers differ)."""
-    return point_load(frame, point.anchor, n=point.n, h=point.h, m=point.m)
-
-
 def _seat(frame: Frame, inertia: HorizontalInertia) -> PointLoad:
     return bearing_point(frame, FORCE(0), toward(inertia.m, EARTHQUAKE), toward(inertia.h, EARTHQUAKE))
 
 
-def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult,
-                                 transverse: TransverseResult) -> SeismicTransverseResult:
+def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult,
+                                 reaction: ReactionResult) -> SeismicTransverseResult:
     sides = reaction.transverse.origin, reaction.transverse.end
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.TRANSVERSE,
                         column_base_micro_member=True, elastic_regions={Region.COLUMN_BASE},
@@ -177,13 +173,13 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, 
     train_inertia = _inertia(SEISMIC_KH_TRAIN, sides[0].seismic_train, sides[1].seismic_train)
     self_weight = self_weight_inertia(pier, reaction)
 
-    vertical = {case: transverse.basic(basic) for case, basic in _FROM_0620.items()
-                if case is not SeismicCase.SNOW or transverse.snow is not None}  # decision 69
+    actions = dead_actions(pier, frame, dead, reaction.self_weight)
+    snow = snow_table(dead, "snow2") if dead.snow else None  # decision 69
     points: dict[SeismicCase, tuple[PointLoad, ...]] = {
-        case: tuple(_on_frame(frame, p) for p in action.points) for case, action in vertical.items()}
-    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {
-        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in action.line_loads)
-        for case, action in vertical.items()}
+        case: actions.points[basic] for case, basic in DEAD_CASES.items()}
+    if snow is not None:
+        points[SeismicCase.SNOW] = (bearing_point(frame, snow.n, snow.m),)
+    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: (actions.column,)}
     for case, track in TRAIN_CASES.items():
         points[case] = (bearing_point(frame, trains[track].n, trains[track].m),)
     points[SeismicCase.GIRDER_INERTIA] = (_seat(frame, girder),)
@@ -205,13 +201,13 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult, 
         for number, ((track, reverse), (rho_m, alpha_f)) in enumerate(
             ((side, pattern) for side in tracks for pattern in PATTERNS), 1))
     return SeismicTransverseResult(
-        frame=frame, fixed=transverse.fixed, additional=transverse.additional, buoyancy=transverse.buoyancy[1],
-        snow=transverse.snow[0] if transverse.snow else None, train_up=trains[Track.UP], train_down=trains[Track.DOWN],
+        frame=frame, fixed=actions.fixed, additional=actions.additional, buoyancy=actions.buoyancy[1], snow=snow,
+        train_up=trains[Track.UP], train_down=trains[Track.DOWN],
         girder_inertia=girder, train_inertia=train_inertia, self_weight=self_weight,
         basic_cases=basic_cases, combinations=combinations)
 
 
 __all__ = [
-    "EARTHQUAKE", "TRAIN_CASES", "HorizontalInertia", "SeismicAction", "SeismicCase", "SeismicCombination",
+    "DEAD_CASES", "EARTHQUAKE", "TRAIN_CASES", "HorizontalInertia", "SeismicAction", "SeismicCase", "SeismicCombination",
     "SeismicTransverseResult", "calculate_seismic_transverse",
 ]

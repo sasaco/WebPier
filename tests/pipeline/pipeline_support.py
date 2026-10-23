@@ -1,6 +1,7 @@
 """A small stage registry with fast fake calculations and reports, for the generation tests.
 
-A → B → C, where B writes a FrameWeb-like file and C a JRSNAP-like file. Every call is logged so the
+A → B and A → C, where B writes a FrameWeb-like file and C a JRSNAP-like file (C reads no B, as 0710 reads no
+0610: decision 78). Every call is logged so the
 tests can tell what was calculated and rendered, and in which order. A, B and C are the stages of the 出力項目
 ground_model, longitudinal and longitudinal_seismic (decision 72), which current.json chooses; ``choose`` sets which
 items an input chooses.
@@ -23,7 +24,7 @@ CURRENT = FIXTURES / "inputs" / "current.json"
 FAKE_OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_seismic": ("C",)}
 # The items of the 線路方向 (decision 72): with every item each uses, the stages A, B and C of the fake registry
 LONGITUDINAL = ("ground_model", "reactions", "longitudinal")
-SEISMIC = (*LONGITUDINAL, "longitudinal_seismic")
+SEISMIC = (*LONGITUDINAL, "longitudinal_seismic")  # B with C, as current.json chooses them
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,7 @@ def fake_registry(recorder: Recorder) -> Registry:
         StageSpec("A", "A_基礎", (), recorder.calculate("A"), recorder.render("A")),
         StageSpec("B", "B_荷重", ("A",), recorder.calculate("B"), recorder.render("B"),
                   (Export("frameweb", "frame.json", recorder.export("B", b'{"B": 1}\n')),)),
-        StageSpec("C", "C_地震", ("B",), recorder.calculate("C"), recorder.render("C"),
+        StageSpec("C", "C_地震", ("A",), recorder.calculate("C"), recorder.render("C"),
                   (Export("jrsnap", "model.ndu", recorder.export("C", b"NDU C\r\n"),
                           metadata={"target_version": "5.2-L03", "analysis_run": False}),)),
     ), outputs=FAKE_OUTPUTS)

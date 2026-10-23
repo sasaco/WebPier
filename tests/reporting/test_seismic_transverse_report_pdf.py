@@ -30,18 +30,18 @@ REPORT = stand_ins(TRANSVERSE_LOAD_CASES)
 
 
 def render(case: str, path: Path) -> Path:
-    pier, _, _, result = transverse_chain(case)
-    return render_seismic_transverse(result, pier, path, REPORT)
+    pier, reaction, _, result = transverse_chain(case)
+    return render_seismic_transverse(result, reaction, pier, path, REPORT)
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))
 def test_the_scene_draws_every_record_in_order_and_the_pdf_has_the_same_text(tmp_path: Path, case: str):
-    pier, _, _, result = transverse_chain(case)
-    model, actions, combinations = layout(content(result, pier), INSERTIONS)
+    pier, reaction, _, result = transverse_chain(case)
+    model, actions, combinations = layout(content(result, reaction, pier), INSERTIONS)
     pages = model + actions + combinations
     drawn = [c.text for page in pages for c in page.commands
              if isinstance(c, Text)]
-    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, pier)))
+    assert squeeze("".join(drawn)) == squeeze("".join(r["text"] for r in semantic_records(result, reaction, pier)))
     with pymupdf.open(render(case, tmp_path / "0720.pdf")) as pdf:
         # Decisions 50, 51: JRSNAP's データ確認図 pages come right after 11.1 and its load diagram after 11.3.
         assert len(pdf) == len(pages) + DATA_CHECK_PAGES + TRANSVERSE_LOAD_CASES
@@ -69,7 +69,10 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     assert len(formulas) >= 8
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
-    assert Counter(check.kind for check in rows) == {"row": 16, "total": 4}
+    # The two trains and the two inertia tables, after D1, D2 and the 2-year snow (decision 78; none without snow).
+    _, _, _, result = transverse_chain(case)
+    dead = [result.fixed.table, result.additional.table, *([result.snow] if result.snow else [])]
+    assert Counter(check.kind for check in rows) == {"row": 16 + sum(len(t.rows) for t in dead), "total": 4 + len(dead)}
     assert [check for check in rows if not check.ok] == []
 
 
@@ -80,8 +83,8 @@ def test_same_input_gives_the_same_bytes_in_this_and_another_process(tmp_path: P
               "from frame_report_cases import transverse_chain\n"
               "from jrsnap_pages_support import TRANSVERSE_LOAD_CASES, pages\n"
               "from webpier.reporting.stages.seismic_transverse import render_seismic_transverse\n"
-              "pier, _, _, result = transverse_chain('current')\n"
-              "render_seismic_transverse(result, pier, sys.argv[1], pages(TRANSVERSE_LOAD_CASES))\n")
+              "pier, reaction, _, result = transverse_chain('current')\n"
+              "render_seismic_transverse(result, reaction, pier, sys.argv[1], pages(TRANSVERSE_LOAD_CASES))\n")
     other = tmp_path / "c.pdf"
     subprocess.run([sys.executable, "-X", "utf8", "-c", script, str(other), str(Path(__file__).parent), str(ROOT)],
                    check=True, cwd=tmp_path)

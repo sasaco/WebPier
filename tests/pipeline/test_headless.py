@@ -327,12 +327,14 @@ def test_the_contract_is_the_registry(capsys):
         ["ground_model", "reactions"], ["fempython"])
     assert outputs["longitudinal_frame_analysis"]["stages"] == ["0611", "0612"]
     assert outputs["longitudinal_frame_analysis"]["runners"] == ["fempython", "webdan2"]
-    assert outputs["longitudinal_seismic"]["runners"] == ["fempython", "jrsnap"]  # with the load diagram of 0610
+    # Decision 78: 0710 draws no 0610 load diagram, so FEMPython is not needed.
+    assert (outputs["longitudinal_seismic"]["requires"], outputs["longitudinal_seismic"]["runners"]) == (
+        ["ground_model", "reactions"], ["jrsnap"])
     assert outputs["footing"]["requires"] == ["longitudinal_frame_analysis", "transverse_frame_analysis",
                                               "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"]
     assert outputs["footing"]["stages"] == ["0800", "0810", "0820"]
     assert outputs["footing"]["runners"] == ["fempython", "jrsnap", "webdan2", "aggrese"]
-    assert outputs["cantilever"]["runners"] == ["fempython", "jrsnap", "webdan2", "aggrese"]
+    assert outputs["cantilever"]["runners"] == ["jrsnap", "webdan2", "aggrese"]  # no frame analysis (decision 78)
     folders = [file["path"] for item in contract["outputs"] for file in item["files"] if file["folder"]]
     assert folders == ["post/線路方向_JRSNAP", "post/線路直角方向_JRSNAP"]
     assert [file["path"] for file in outputs["transverse_nonlinear_analysis"]["files"] if file["folder"]] == [

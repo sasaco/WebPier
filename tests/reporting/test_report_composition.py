@@ -73,12 +73,12 @@ def test_0620_load_diagrams_are_a_heading_only(case: str):
 def test_0710_load_diagrams_are_a_heading_only_and_it_shows_no_springs(case: str):
     from webpier.reporting.stages import seismic_longitudinal
 
-    pier, _, _, result = chain(case)
-    found = records(seismic_longitudinal, result, pier)
+    pier, reaction, _, result = chain(case)
+    found = records(seismic_longitudinal, result, reaction, pier)
     assert {key: text for key, text in found.items() if SPRING.search(text)} == {}
     assert [text for text in found.values() if "荷重図" in text] == ["10.3荷重図"]
     assert sections(found) == ["10.1検討モデル", "10.2作用の計算", "10.3荷重図", "10.4作用の組合せ"]
-    units = seismic_longitudinal.content(result, pier)
+    units = seismic_longitudinal.content(result, reaction, pier)
     drawn = figure_commands(units, "0710/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []
     assert [c for c in drawn if isinstance(c, Polyline) and len(c.points) > 3] == []  # no zigzag, no coil
@@ -88,12 +88,12 @@ def test_0710_load_diagrams_are_a_heading_only_and_it_shows_no_springs(case: str
 def test_0720_load_diagrams_are_a_heading_only_and_it_shows_no_springs_and_no_enlarged_column_bottom(case: str):
     from webpier.reporting.stages import seismic_transverse
 
-    pier, _, _, result = transverse_chain(case)
-    found = records(seismic_transverse, result, pier)
+    pier, reaction, _, result = transverse_chain(case)
+    found = records(seismic_transverse, result, reaction, pier)
     assert {key: text for key, text in found.items() if SPRING.search(text)} == {}
     assert [text for text in found.values() if "荷重図" in text] == ["11.3荷重図"]
     assert sections(found) == ["11.1検討モデル", "11.2作用の計算", "11.3荷重図", "11.4作用の組合せ"]
-    units = seismic_transverse.content(result, pier)
+    units = seismic_transverse.content(result, reaction, pier)
     assert [unit.key for unit in units if unit.kind == "figure"] == ["0720/model.figure"]  # the frame only
     drawn = figure_commands(units, "0720/model.figure")
     assert [c.text for c in drawn if isinstance(c, Text) and c.text in ("K", "v", "s", "r")] == []

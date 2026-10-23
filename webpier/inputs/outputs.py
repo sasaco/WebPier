@@ -27,9 +27,9 @@ OUTPUT_ITEMS = (
     OutputItem("longitudinal_frame_analysis", ("longitudinal",)),  # 0611, 0612
     OutputItem("transverse", ("ground_model", "reactions")),  # 0620
     OutputItem("transverse_frame_analysis", ("transverse",)),  # 0621, 0622
-    OutputItem("longitudinal_seismic", ("longitudinal",)),  # 0710
+    OutputItem("longitudinal_seismic", ("ground_model", "reactions")),  # 0710 (decision 78: without 0610)
     OutputItem("longitudinal_nonlinear_analysis", ("longitudinal_seismic",)),  # 0711
-    OutputItem("transverse_seismic", ("transverse",)),  # 0720
+    OutputItem("transverse_seismic", ("ground_model", "reactions")),  # 0720 (decision 78: without 0620)
     OutputItem("transverse_nonlinear_analysis", ("transverse_seismic",)),  # 0721
     OutputItem("footing", (*_FRAMES, *_NONLINEAR)),  # 0800, 0810, 0820
     OutputItem("cantilever", _NONLINEAR),  # 0900, 0910

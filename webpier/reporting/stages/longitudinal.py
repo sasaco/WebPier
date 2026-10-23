@@ -12,7 +12,7 @@ the input.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -160,12 +160,19 @@ def _top_rows(table: TopTable) -> list[tuple[Any, Any, Any, Any]]:
     return found
 
 
+def top_with_seat(m: Manuscript, key: str, frame: Any, table: TopTable, point: Any) -> None:
+    """A table of the loads at B and C with, on an offset pedestal, its moment at the seat (*point*)."""
+    m.table(key, top_table(_top_rows(table), (table.n, table.m)))
+    seat_moment(m, key + ".seat", frame, table.n, table.m, point)
+
+
 def _table_with_seat(m: Manuscript, key: str, result: LongitudinalResult, table: TopTable, case: BasicCase | None,
                      seat_point: Any = None) -> None:
-    m.table(key, top_table(_top_rows(table), (table.n, table.m)))
     point = seat_point or (result.basic(case).points[0] if case is not None else None)
-    if point is not None:
-        seat_moment(m, key + ".seat", result.frame, table.n, table.m, point)
+    if point is None:
+        m.table(key, top_table(_top_rows(table), (table.n, table.m)))
+    else:
+        top_with_seat(m, key, result.frame, table, point)
 
 
 def _footing_moment(m: Manuscript, key: str, symbol: Any, n: Any, arm: Any, moment: Any) -> None:
@@ -173,10 +180,11 @@ def _footing_moment(m: Manuscript, key: str, symbol: Any, n: Any, arm: Any, mome
         m.equation(key, "", symbol, terms(value(n), "×", operand(arm)), moment)
 
 
-def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
-    s, weights, fixed, frame = pier.substructure, reaction.self_weight, result.fixed, result.frame
-    m.heading("actions.heading", "8.2 作用の計算", 1)
-    m.heading("fixed.heading", "(1) 固定死荷重", 2)
+def fixed_dead(m: Manuscript, heading: str, pier: PierInput, weights: Any, frame: Any, fixed: Any,
+               points: Sequence[Any]) -> None:
+    """8.2 (1) 固定死荷重, and of 10.2 (decision 78): *points* are the D1 point loads on *frame*."""
+    s = pier.substructure
+    m.heading("fixed.heading", heading, 2)
     m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
                                                value(s.unit_weight_body)), fixed.column_q)
     m.equation("fixed.footing", "フーチング", "P",
@@ -195,22 +203,37 @@ def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, p
                                               value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
     if frame.bearing_offset.value:
-        seat_split(m, fixed, result.basic(BasicCase.D1).points, frame,
-                   lambda row: row.item in (Item.ORIGIN, Item.END))
-    m.heading("additional.heading", "(2) 付加死荷重", 2)
-    soil = result.additional.soil
+        seat_split(m, fixed, points, frame, lambda row: row.item in (Item.ORIGIN, Item.END))
+
+
+def additional_dead(m: Manuscript, heading: str, weights: Any, frame: Any, additional: Any, point: Any) -> None:
+    """8.2 (2) 付加死荷重, and of 10.2: *point* is the D2 load at the seat."""
+    m.heading("additional.heading", heading, 2)
+    soil = additional.soil
     m.equation("additional.soil", "載荷土", "P",
                terms(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
     _footing_moment(m, "additional.soil.moment", sub("M", "P"), soil.n, soil.arm, soil.m)
     m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
-    _table_with_seat(m, "additional.top", result, result.additional.table, BasicCase.D2)
+    top_with_seat(m, "additional.top", frame, additional.table, point)
+
+
+def buoyancy_line(m: Manuscript, key: str, label: str, symbol: Any, row: Any, water: Any) -> None:
+    """The buoyancy of one water level (8.2 (3), 10.2 (3)) and its moment about the footing centroid."""
+    m.equation(key, label, symbol, terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
+    _footing_moment(m, f"{key}.moment", sub("M", "P"), row.n, row.arm, row.m)
+
+
+def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
+    weights = reaction.self_weight
+    m.heading("actions.heading", "8.2 作用の計算", 1)
+    fixed_dead(m, "(1) 固定死荷重", pier, weights, result.frame, result.fixed, result.basic(BasicCase.D1).points)
+    additional_dead(m, "(2) 付加死荷重", weights, result.frame, result.additional,
+                    result.basic(BasicCase.D2).points[0])
     m.heading("buoyancy.heading", "(3) 浮力", 2)
     for (key, label, suffix), row, water in zip(_WATER, result.buoyancy, (weights.buoyancy_high,
                                                                          weights.buoyancy_normal,
                                                                          weights.buoyancy_low), strict=True):
-        m.equation(f"buoyancy.{key}", label, sub("ω", suffix),
-                   terms(value(water.body.unit_weight), "×", value(water.body.volume)), row.n)
-        _footing_moment(m, f"buoyancy.{key}.moment", sub("M", "P"), row.n, row.arm, row.m)
+        buoyancy_line(m, f"buoyancy.{key}", label, sub("ω", suffix), row, water)
 
 
 def _item(result: LongitudinalResult, number: int) -> str:

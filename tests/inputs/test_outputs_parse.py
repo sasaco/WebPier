@@ -32,15 +32,16 @@ def fails(document, message):
 
 
 def test_the_items_and_what_each_uses():
-    """The table of decision 72 with the 照査の前提 of decision 73 first, in the order of the screen."""
+    """The table of decision 72 with the 照査の前提 of decision 73 first, in the order of the screen; the seismic
+    items use no 0610 / 0620 (decision 78)."""
     assert OUTPUT_KEYS == ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
                            "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
                            "transverse_seismic", "transverse_nonlinear_analysis", "footing", "cantilever")
     assert {key: requires(key) for key in OUTPUT_KEYS} == {
         "detailing": (), "ground_model": (), "reactions": (), "longitudinal": ("ground_model", "reactions"),
         "longitudinal_frame_analysis": ("longitudinal",), "transverse": ("ground_model", "reactions"),
-        "transverse_frame_analysis": ("transverse",), "longitudinal_seismic": ("longitudinal",),
-        "longitudinal_nonlinear_analysis": ("longitudinal_seismic",), "transverse_seismic": ("transverse",),
+        "transverse_frame_analysis": ("transverse",), "longitudinal_seismic": ("ground_model", "reactions"),
+        "longitudinal_nonlinear_analysis": ("longitudinal_seismic",), "transverse_seismic": ("ground_model", "reactions"),
         "transverse_nonlinear_analysis": ("transverse_seismic",),
         "footing": ("longitudinal_frame_analysis", "transverse_frame_analysis", "longitudinal_nonlinear_analysis",
                     "transverse_nonlinear_analysis"),
@@ -49,8 +50,9 @@ def test_the_items_and_what_each_uses():
 
 def test_uses_and_users_follow_the_table_through_other_items():
     assert uses("cantilever") == {"longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis",
-                                  "longitudinal_seismic", "transverse_seismic", "longitudinal", "transverse",
-                                  "ground_model", "reactions"}
+                                  "longitudinal_seismic", "transverse_seismic", "ground_model", "reactions"}
+    assert "longitudinal" in uses("footing")  # through the frame analyses
+    assert users("longitudinal") == ("longitudinal_frame_analysis", "footing")
     assert uses("ground_model") == frozenset()
     assert users("longitudinal_seismic") == ("longitudinal_nonlinear_analysis", "footing", "cantilever")
     assert users("reactions") == tuple(key for key in OUTPUT_KEYS

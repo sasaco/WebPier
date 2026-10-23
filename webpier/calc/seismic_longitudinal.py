@@ -5,8 +5,9 @@ The model is the longitudinal frame with the 0.010 m column-base micro member
 haunch, column, footing (and pedestal) are rigid (10-5). The frame keeps the
 0500 springs like every frame; no nonlinear constitutive data is made here.
 
-The actions (10-8) are the 0610 D1, D2, buoyancy at the normal water level and
-2-year snow, put on this frame ("§8 と同様"), and:
+The actions (10-8) are D1, D2, the buoyancy at the normal water level and the
+2-year snow, calculated on this frame as 0610 does (decision 78: 0710 does not
+read 0610), and:
 
 - the seismic train of one track, R = e × L / 2 of 0600 at the lever −f / +f;
 - the 0600 bearing forces of the girder inertia (Kh = 1.00) and the seismic
@@ -36,10 +37,12 @@ from ._exact import d, put, total
 from .embedment import Displaced, displaced_soil
 from .foundation import FoundationResult
 from .frame import (
-    Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, column_line_load, point_load,
+    Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, point_load,
 )
-from .longitudinal import BasicCase, LongitudinalResult
-from .longitudinal.actions import AdditionalDead, FixedDead, Item, Row, TopTable, bearing_point
+from .longitudinal import BasicCase
+from .longitudinal.actions import (
+    AdditionalDead, FixedDead, Item, Row, TopTable, bearing_point, dead_actions, snow_table,
+)
 from .materials import calculate_materials
 from .reaction import ReactionResult
 from .reaction.longitudinal import ADHESION, SEISMIC_KH, SeismicForces
@@ -88,9 +91,9 @@ class Increment(Enum):
     LIMITED = "limited_incremental"  # 限定増分
 
 
-# 10-8: the vertical cases are those of §8 (0610).
-_FROM_0610 = {SeismicCase.D1: BasicCase.D1, SeismicCase.D2: BasicCase.D2,
-              SeismicCase.BUOYANCY: BasicCase.BUOYANCY_NORMAL, SeismicCase.SNOW: BasicCase.SNOW2}
+# 10-8: the dead cases, as the cases of 0610 they are calculated as (decision 78).
+DEAD_CASES = {SeismicCase.D1: BasicCase.D1, SeismicCase.D2: BasicCase.D2,
+              SeismicCase.BUOYANCY: BasicCase.BUOYANCY_NORMAL}
 # 10-12 作用方向 and 荷重種別.
 _KINDS = {
     SeismicCase.D1: (ActionDirection.DOWNWARD, Increment.FIXED),
@@ -181,10 +184,10 @@ class SeismicCombination:
 @dataclass(frozen=True)
 class SeismicLongitudinalResult:
     frame: Frame  # 10-1 to 10-7
-    fixed: FixedDead  # 0610 D1
-    additional: AdditionalDead  # 0610 D2
-    buoyancy: Row  # 0610 buoyancy at the normal water level
-    snow: TopTable | None  # 0610 2-year snow; None without snow (decision 69)
+    fixed: FixedDead  # D1 as 8-3, printed in 10.2 (decision 78)
+    additional: AdditionalDead  # D2 as 8-3
+    buoyancy: Row  # the buoyancy at the normal water level as 8-3
+    snow: TopTable | None  # the 2-year snow as 8-4; None without snow (decision 69)
     train: TopTable  # 10-8 (1): seismic train, one track
     girder_inertia: Inertia  # 10-8 (2) 1.0 EQ (桁荷重)
     train_inertia: Inertia  # 10-8 (2) 1.0 EQ (列車荷重)
@@ -257,13 +260,8 @@ def self_weight_loads(frame: Frame, inertia: SelfWeightInertia, earthquake: Deci
                  for m in frame.members if m.region in ends)
 
 
-def _on_frame(frame: Frame, point: PointLoad) -> PointLoad:
-    """A 0610 point load at the same role of this frame (the node numbers differ)."""
-    return point_load(frame, point.anchor, n=point.n, h=point.h, m=point.m)
-
-
-def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult, reaction: ReactionResult,
-                                   longitudinal: LongitudinalResult) -> SeismicLongitudinalResult:
+def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult,
+                                   reaction: ReactionResult) -> SeismicLongitudinalResult:
     frame = build_frame(pier, reaction.self_weight, foundation, calculate_materials(pier), Direction.LONGITUDINAL,
                         column_base_micro_member=True, elastic_regions={Region.COLUMN_BASE})
     spans, seismic = pier.spans, reaction.train.seismic
@@ -274,13 +272,12 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
     train_inertia = Inertia(kh=put(KH, ADHESION), forces=reaction.longitudinal.seismic_train)
     self_weight = self_weight_inertia(pier, reaction)
 
-    vertical = {case: longitudinal.basic(basic) for case, basic in _FROM_0610.items()
-                if case is not SeismicCase.SNOW or longitudinal.snow is not None}  # decision 69
-    points: dict[SeismicCase, tuple[PointLoad, ...]] = {
-        case: tuple(_on_frame(frame, p) for p in action.points) for case, action in vertical.items()}
-    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {
-        case: tuple(column_line_load(frame, n=line.n, h=line.h) for line in action.line_loads)
-        for case, action in vertical.items()}
+    dead = dead_actions(pier, frame, reaction.dead, reaction.self_weight)
+    snow = snow_table(pier, reaction.dead, "snow2") if reaction.dead.snow else None  # decision 69
+    points: dict[SeismicCase, tuple[PointLoad, ...]] = {case: dead.points[basic] for case, basic in DEAD_CASES.items()}
+    if snow is not None:
+        points[SeismicCase.SNOW] = (bearing_point(frame, snow.n, snow.m),)
+    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: (dead.column,)}
     points[SeismicCase.TRAIN] = (bearing_point(frame, train.n, train.m),)
     points[SeismicCase.GIRDER_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(girder.forces.total)),)
     points[SeismicCase.TRAIN_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(train_inertia.forces.total)),)
@@ -297,14 +294,14 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
                            cases=cases, ground_resistance_type=GROUND_RESISTANCE_TYPE)
         for number, (rho_m, alpha_f) in enumerate(PATTERNS, 1))
     return SeismicLongitudinalResult(
-        frame=frame, fixed=longitudinal.fixed, additional=longitudinal.additional,
-        buoyancy=longitudinal.buoyancy[1], snow=longitudinal.snow[0] if longitudinal.snow else None, train=train,
+        frame=frame, fixed=dead.fixed, additional=dead.additional, buoyancy=dead.buoyancy[1], snow=snow, train=train,
         girder_inertia=girder, train_inertia=train_inertia, self_weight=self_weight,
         basic_cases=basic_cases, combinations=combinations)
 
 
 __all__ = [
-    "PATTERNS", "REVERSED", "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity", "MemberLoad",
+    "DEAD_CASES", "PATTERNS", "REVERSED", "ActionDirection", "FootingInertia", "Increment", "Inertia", "Intensity",
+    "MemberLoad",
     "SeismicAction",
     "SeismicCase", "SeismicCombination", "SeismicLongitudinalResult", "SelfWeightInertia",
     "calculate_seismic_longitudinal", "made", "self_weight_inertia", "self_weight_loads", "toward",
