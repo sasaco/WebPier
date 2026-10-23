@@ -164,15 +164,29 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
 
 
-def _stale(options: GenerationOptions, registry: Registry, artifacts: list[Artifact]) -> list[Artifact]:
-    """The artifacts of the stages this generation does not select that are still on disk (decision 74): they belong
-    to an earlier generation, so a publication removes them. Only with ``overwrite``; without it nothing is touched."""
+def _stale(options: GenerationOptions, artifacts: list[Artifact]) -> list[Artifact]:
+    """Everything in the output folders that this generation does not write (decision 82, replacing decision 74's
+    registry-only removal): a publication empties ``output``, ``export`` and ``post`` just before the new files go in,
+    so old and new files are never mixed. Only with ``overwrite``; without it nothing is touched. The input file (or
+    a folder holding it), the staging folders and the output folders themselves are never taken."""
     if not options.overwrite:
         return []
     planned_paths = {artifact.path for artifact in artifacts}
-    every = _plan(options, registry, tuple(stage.id for stage in registry.stages))[0]
-    return [artifact for artifact in every
-            if artifact.path not in planned_paths and (artifact.path.exists() or artifact.path.is_symlink())]
+    folders = {"output": options.output_dir, "post": options.post_dir,
+               **({} if options.export_dir is None else {"export": options.export_dir})}
+    roots = {Path(folder).resolve() for folder in folders.values()}
+    protected = Path(options.input_path).resolve()
+    stale = []
+    for directory, folder in folders.items():
+        if not Path(folder).is_dir():
+            continue
+        for entry in sorted(Path(folder).iterdir()):
+            resolved = entry.resolve()
+            if (entry in planned_paths or entry.name.startswith(".webpier-") or resolved in roots
+                    or protected.is_relative_to(resolved) or any(root.is_relative_to(resolved) for root in roots)):
+                continue
+            stale.append(Artifact(f"{directory}/{entry.name}", entry, directory, entry.is_dir() and not entry.is_symlink()))
+    return stale
 
 
 def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierInput]:
@@ -701,7 +715,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
                           folders=_folders(artifacts))
-    stale = _stale(options, registry, artifacts)
+    stale = _stale(options, artifacts)
     stale_paths = [artifact.path for artifact in stale]
     validate_destinations(stale_paths, overwrite=True, input_path=Path(options.input_path), folders=_folders(stale))
     baseline = {path: _state(path) for path in [*destinations, *stale_paths]}

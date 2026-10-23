@@ -299,13 +299,13 @@ def test_existing_outputs_need_overwrite_and_are_checked_before_calculating(env)
 
 
 def test_outputs_of_the_items_not_chosen_are_removed_when_overwriting(env):
-    """Decision 74: an overwriting generation leaves only the files of the items it chooses; others' files stay."""
+    """Decision 82: an overwriting generation empties output/export/post, so only the files it writes remain."""
     old = env.write_old("output/C_地震.pdf", "output/C_地震.json", "post/model.ndu", "output/unrelated.txt")
     env.choose(*LONGITUDINAL)
     env.generate(overwrite=True)
     files = env.files()
     assert not any("C_地震" in name or "model.ndu" in name for name in files)
-    assert files["output/unrelated.txt"] == old["output/unrelated.txt"]
+    assert "output/unrelated.txt" not in files
     assert "output/A_基礎.pdf" in files
 
 
