@@ -27,6 +27,9 @@ class SpringLayer:
     shear_thickness: float  # m, the 層厚 of the push side of table d): the part that has a shear spring
     shear_long: tuple[float, ...]  # kN/m² per column: 長期, the push side
     shear_short: tuple[float, ...]  # 短期(使用性・安全性), the push side
+    pull_thickness: float  # m, the 層厚 of the pull side of table d)
+    pull_long: tuple[float, ...]  # kN/m² per column: 長期, the pull side
+    pull_short: tuple[float, ...]  # 短期(使用性・安全性), the pull side
 
 
 @dataclass(frozen=True)

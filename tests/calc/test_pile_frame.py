@@ -76,9 +76,9 @@ def test_the_intervals_are_the_layers_and_add_up_to_the_pile(pier):
     assert sum(interval.length.value for interval in row.long_term) == pytest.approx(26.5)
     assert [interval.horizontal.value for interval in row.long_term][:2] == [14208, 19186]
     assert [interval.horizontal.value for interval in row.short_term][:2] == [28417, 38373]
-    # the push side of the shear spring: the last layer is within the least embedment (decision 88)
-    assert [interval.shear.value for interval in row.long_term] == [13534, 18275, 35702, 119755, 0]
-    assert [interval.shear.value for interval in row.short_term][-1] == 0
+    # the push side of the shear spring, but the last layer (within the least embedment) takes the pull side (P5, owner)
+    assert [interval.shear.value for interval in row.long_term] == [13534, 18275, 35702, 119755, 119755]
+    assert [interval.shear.value for interval in row.short_term][-1] == 239510
 
 
 def test_a_layer_whose_shear_spring_ends_before_it_is_split(pier):
@@ -88,9 +88,9 @@ def test_a_layer_whose_shear_spring_ends_before_it_is_split(pier):
     from webpier.calc.pile_frame import _intervals
 
     rows = _intervals(stagger.direction("橋軸方向"), 0, True)
-    # layer 4 is 6.4 m with a shear spring over 6.2 m, layer 5 has none: five layers become six intervals
+    # layer 4 is 6.4 m with a shear spring over 6.2 m, layer 5 has none on the push side but the pull side's: five layers become six intervals
     assert [(interval.length.value, interval.shear.value) for interval in rows][3:] == [
-        (6.2, 7573), (0.2, 0), (1.0, 0)]
+        (6.2, 7573), (0.2, 0), (1.0, 121176)]
     assert [interval.horizontal.value for interval in rows][3:] == [6671, 6671, 106745]
     assert layers[3].thickness == 6.4
 

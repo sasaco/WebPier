@@ -136,8 +136,13 @@ def _intervals(direction: DirectionSprings, column: int, long_term: bool) -> tup
         vertical = (layer.shear_long if long_term else layer.shear_short)[column]
         if shear:
             rows.append(SpringInterval(_length(shear), SPRING(horizontal), SPRING(vertical)))
-        if thickness - shear:
-            rows.append(SpringInterval(_length(thickness - shear), SPRING(horizontal), SPRING(0)))
+        rest = thickness - shear
+        if rest:
+            # the part without a push-side shear spring has none, except at the bottom of the pile: within the least
+            # embedment into the bearing layer the pull side's spring is taken (owner, P5: the example's table III-21)
+            bottom = layer is direction.layers[-1] and _mm(layer.pull_thickness) >= rest
+            pulled = (layer.pull_long if long_term else layer.pull_short)[column] if bottom else 0
+            rows.append(SpringInterval(_length(rest), SPRING(horizontal), SPRING(pulled)))
     return tuple(rows)
 
 

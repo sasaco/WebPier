@@ -338,7 +338,8 @@ def test_the_contract_is_the_registry(capsys):
             {"role": "0500.liquefiedsdc", "path": "post/杭基礎(液状化時用).sdc", "folder": False,
              "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}]}
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
-        "detailing", "ground_model", "reactions", "longitudinal", "transverse"]
+        "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
+        "transverse_frame_analysis"]
     assert outputs["reactions"]["pileFoundation"]["conditionalFiles"] == []
     assert outputs["longitudinal"]["pileFoundation"]["runners"] == ["fempython", "jrsnap"]  # 0500 of piles needs it too
     assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (

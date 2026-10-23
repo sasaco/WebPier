@@ -5,9 +5,8 @@ prints in its section force diagrams (III-75, III-76; tests/fixtures/example4/fr
 train load: the axial force of the piles at their heads and the reaction of their tips follow from the stiffness of the piles
 and the springs alone. The springs are those the real SOIL-JR 5.2 returned (tests/fixtures/soiljr/pile_steel_grid.sdc).
 
-The head forces agree with the example to 0.01 %. The tips agree to 0.02 % when the last layer has the vertical shear spring of
-the pull side, which the example's table III-21 shows, and are 9 % and 4 % larger with the push side (decision 88), whose
-last layer, within the least embedment into the bearing layer, has none: the known difference of this decision.
+The head forces agree with the example to 0.01 %, the tips to 0.02 %: the last layer (4-2) has the vertical shear spring of the
+pull side, which the example's table III-21 shows (P5, owner; the push side alone gave tips 9 % and 4 % larger).
 """
 
 import json
@@ -87,26 +86,9 @@ def test_the_heads_and_the_tips_of_the_piles_carry_what_the_example_prints(real_
     heads = sorted(-force for force in head_axial_forces(pik, [n.member for n in nodes]))
     assert heads == pytest.approx(sorted([5635.32, 5765.44]), abs=0.2)  # III-75: the axial force at the heads, D1
     assert -5635.32 in d1["N_values_kN"] and -5765.44 in d1["N_values_kN"]
-    tips = [-reaction[("min", n.tip)] for n in nodes]  # D1 is the largest compression of the pickup: its minimum
-    assert tips == pytest.approx([1016.49, 993.57], abs=0.5)  # the push side of decision 88: the last layer has no shear spring
-    assert [-reaction[("max", n.tip)] for n in nodes] == pytest.approx([175.41, 167.55], abs=0.5)  # D2 likewise
-    assert min(tips) > 931.65 * 1.06 and -931.65 in d1["N_values_kN"] and -953.16 in d1["N_values_kN"]  # III-75
-    assert -157.14 in d2["N_values_kN"] and -164.51 in d2["N_values_kN"]  # III-76
-
-
-def test_the_tips_agree_with_the_example_when_the_last_layer_has_the_shear_spring_of_the_pull_side(real_fempython_runner):
-    """Table III-21 gives the last layer (4-2) a shear spring like the layer above it, as the pull side of the .sdc does."""
-    text = SDC.decode("cp932")
-    assert "5, 1.000, 119755, 239510, 1.000" in text  # the pull side of the last layer: 長期, 短期
-    found, result = document()
-    for row in found["fix_member"]["1"]:
-        if row["length"] == 1.0:
-            row["tx"] = 119755
-    for row in found["fix_member"]["2"]:
-        if row["length"] == 1.0:
-            row["tx"] = 239510
-    reaction, _ = reactions(found, real_fempython_runner)
-    tips = sorted(-reaction[("min", n.tip)] for n in result.frame.pile_nodes)
-    assert tips == pytest.approx(sorted([931.65, 953.16]), rel=0.0005)  # III-75
-    d2 = sorted(-reaction[("max", n.tip)] for n in result.frame.pile_nodes)
-    assert d2 == pytest.approx(sorted([157.14, 164.51]), abs=0.05)  # III-76
+    tips = sorted(-reaction[("min", n.tip)] for n in nodes)  # D1 is the largest compression of the pickup: its minimum
+    assert tips == pytest.approx(sorted([931.65, 953.16]), rel=0.0005)  # III-75: the last layer has the pull side's shear spring
+    assert -931.65 in d1["N_values_kN"] and -953.16 in d1["N_values_kN"]
+    d2_tips = sorted(-reaction[("max", n.tip)] for n in nodes)
+    assert d2_tips == pytest.approx(sorted([157.14, 164.51]), abs=0.05)  # III-76
+    assert -157.14 in d2["N_values_kN"] and -164.51 in d2["N_values_kN"]

@@ -111,20 +111,25 @@ def _layers(b: list[str], d: list[str], columns: int) -> tuple[SpringLayer, ...]
     if at is None:
         raise SdcError("d）に【押込み側】がありません")
     shear = _rows(d, at + 1)
-    if len(horizontal) != len(shear):
+    pull_at = next((index for index, line in enumerate(d) if line.startswith("【引抜き側】")), None)
+    if pull_at is None:
+        raise SdcError("d）に【引抜き側】がありません")
+    pull = _rows(d, pull_at + 1)
+    if len(horizontal) != len(shear) or len(shear) != len(pull):
         raise SdcError("b）と d）の層の数が違います")
     layers = []
-    for h, s in zip(horizontal, shear):
+    for h, s, u in zip(horizontal, shear, pull):
         if len(h) != 2 + 3 * columns:
             raise SdcError(f"b）の層 {h[0]} の項目数が違います（{len(h)}）")
-        if len(s) != 3 + 4 * columns:
+        if len(s) != 3 + 4 * columns or len(u) != 3 + 4 * columns:
             raise SdcError(f"d）の層 {s[0]} の項目数が違います（{len(s)}）")
-        h_values, s_values = _numbers(h), _numbers(s)
+        h_values, s_values, u_values = _numbers(h), _numbers(s), _numbers(u)
         layers.append(SpringLayer(
             number=int(h_values[0]), thickness=h_values[1],
             horizontal_long=h_values[2:2 + columns], horizontal_short=h_values[2 + columns:2 + 2 * columns],
             shear_thickness=s_values[1], shear_long=s_values[2:2 + columns],
-            shear_short=s_values[2 + columns:2 + 2 * columns]))
+            shear_short=s_values[2 + columns:2 + 2 * columns], pull_thickness=u_values[1],
+            pull_long=u_values[2:2 + columns], pull_short=u_values[2 + columns:2 + 2 * columns]))
     return tuple(layers)
 
 

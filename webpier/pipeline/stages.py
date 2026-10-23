@@ -39,8 +39,9 @@ export with the JRSNAP runner: its report is SOIL-JR's as the runner printed it,
 liquefaction, when a layer along the pile liquefies) are published under post/ as returned, and ``complete`` finishes its
 result with them. A stage with ``after`` (0610 and 0620 of a pile foundation, decision 88) calculates and builds its exports only once
 the stages it names have their runner's files and are complete: its frame stands on the springs SOIL-JR returned. Such a
-stage is checked only by a generation (``validate`` has no runner's result); the stages that read it (0611, 0612, 0800 …)
-are not items a pile foundation can choose yet (inputs.outputs.PILE_OUTPUT_KEYS).
+stage is checked only by a generation (``validate`` has no runner's result); so are the stages that read it, which are
+waited for too (``Registry.waits``: the frame analyses 0611 and 0612 of a pile foundation, decision 89). The items a pile
+foundation can choose are inputs.outputs.PILE_OUTPUT_KEYS.
 
 A stage with ``foundations`` is the one of the direct foundation; the stages of the other 基礎形式 are its
 values, and ``Registry.for_foundation`` makes the registry of a 基礎形式 once the input is read.
@@ -82,6 +83,7 @@ from ..calc.generic.cantilever import calculate_generic_cantilever, complete_gen
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
+from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check
 from ..calc.pile_frame import PileFoundation
 from ..calc.pile_ground import calculate_pile_ground
 from ..calc.reaction import calculate_dead_reaction, calculate_reaction
@@ -110,6 +112,7 @@ from ..reporting.stages import footing_check as footing_check_report
 from ..reporting.stages import foundation as foundation_report
 from ..reporting.stages import foundation_check as foundation_check_report
 from ..reporting.stages import longitudinal as longitudinal_report
+from ..reporting.stages import pile_check as pile_check_report
 from ..reporting.stages import reaction as reaction_report
 from ..reporting.stages import seismic_longitudinal as seismic_longitudinal_report
 from ..reporting.stages import seismic_transverse as seismic_transverse_report
@@ -136,14 +139,16 @@ from ..reporting.stages.generic.frame import render_generic_frame
 from ..reporting.stages.generic.reaction import render_dead_reaction
 from ..reporting.stages.generic.seismic import render_generic_seismic
 from ..reporting.stages.longitudinal import render_longitudinal
+from ..reporting.stages.pile_check import render_pile_check
 from ..reporting.stages.reaction import render_reaction
 from ..reporting.stages.seismic_check import render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
 from . import soiljr
+from .pile_check import limits as pile_limits
 from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
-from .fempython import ANALYSIS_FILES, support_reactions
+from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, support_reactions
 
 Results = Mapping[str, Any]
 # The stages of each 出力項目 (decision 72): the frame analysis (decisions 46, 54), the static nonlinear analysis
@@ -491,6 +496,12 @@ class Registry:
         chosen = set(outputs)
         return tuple(stage.id for stage in self.stages if self.item(stage.id) in chosen)
 
+    def waits(self, stage_id: str) -> bool:
+        """Whether the stage is calculated only once SOIL-JR has returned its files: it has ``after``, or reads a stage
+        that does (the frame analyses of a pile foundation, decision 89)."""
+        stage = self.get(stage_id)
+        return bool(stage.after) or any(self.waits(name) for name in stage.depends_on)
+
     def deferred(self, stage_ids: Sequence[str]) -> tuple[str, ...]:
         """Those of *stage_ids* that wait for a runner's result (``after``), in registry order."""
         return tuple(stage_id for stage_id in self.ids if stage_id in stage_ids and self.get(stage_id).after)
@@ -591,6 +602,31 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
                          basis, support_reactions(files["reaction"], basis.node)),
                      grid_documents=lambda results, pier, pages: foundation_check_report.grid_documents(
                          results[stage_id], chapter))
+
+
+def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: FoundationDirection,
+                chapter: FoundationChapter) -> StageSpec:
+    """The 基礎の照査 of a pile foundation in *direction* (decision 89): the pile heads' forces and the footing top's
+    displacements of the frame analysis of the FrameWeb file of *source* against the limits of SOIL-JR's .sdr in 0500.
+    It waits for them (the frame stands on SOIL-JR's springs), so it is calculated once 0500 is complete."""
+    def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
+        return check_pile(basis, pile_limits(results["0500"].sdr, direction),
+                          head_forces(files["pik"], [member.member for member in basis.members]),
+                          footing_displacements(files["displacement"], basis.node))
+
+    return StageSpec(stage_id, stem, ("0500", source),
+                     lambda pier, results: prepare_pile_check(pier, results[source], direction),
+                     lambda results, pier, path, pages: render_pile_check(results[stage_id], path, chapter),
+                     frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)), complete=complete,
+                     grid_documents=lambda results, pier, pages: pile_check_report.grid_documents(
+                         results[stage_id], chapter))
+
+
+def _with_pile_check(stage: StageSpec, source: str, name: str, direction: FoundationDirection,
+                     chapter: FoundationChapter) -> StageSpec:
+    """The direct foundation's 基礎の照査 *stage* with its stage for each pile foundation (decision 89)."""
+    return replace(stage, foundations={foundation: _pile_check(stage.id, stage.stem, source, name, direction, chapter)
+                                       for foundation in choices.PILE_FOUNDATIONS})
 
 
 def _footing(stem: str) -> StageSpec:
@@ -721,7 +757,9 @@ STAGES = Registry((
               grid_documents=lambda results, pier, pages: longitudinal_report.grid_documents(
                   results["0610"], results["0600"], pier)), calculate_longitudinal),
     _column_check("0611", "0611_線路方向照査", "0610", "線路方向", COLUMN_LONGITUDINAL, CHAPTER_8),
-    _foundation_check("0612", "0612_線路方向基礎", "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
+    _with_pile_check(
+        _foundation_check("0612", "0612_線路方向基礎", "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
+        "0610", "線路方向", FOUNDATION_LONGITUDINAL, FOUNDATION_CHAPTER_8),
     _with_piles(StageSpec("0620", "0620_直角方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_transverse(pier, results["0500"], results["0600"]),
               lambda results, pier, path, pages: render_transverse(results["0620"], results["0600"], pier, path,
@@ -731,7 +769,9 @@ STAGES = Registry((
               grid_documents=lambda results, pier, pages: transverse_report.grid_documents(
                   results["0620"], results["0600"], pier)), calculate_transverse),
     _column_check("0621", "0621_直角方向照査", "0620", "線路直角方向", COLUMN_TRANSVERSE, CHAPTER_9),
-    _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
+    _with_pile_check(
+        _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
+        "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
     # 0710 / 0720 calculate D1, D2, the buoyancy and the snow themselves and read no 0610 / 0620 (decision 78).
     StageSpec("0710", "0710_線路方向荷重", ("0500", "0600"),
               lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"]),

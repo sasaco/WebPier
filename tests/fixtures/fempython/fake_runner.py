@@ -18,6 +18,11 @@ forces): every member in order with ITAN, a numbered point where a member load o
 JTAN, so the place of a point (export.capacita.point_index) is the real runner's for the same file. When the real
 runner's protocol changes, change this too (the real-runner tests are the signal).
 
+A FrameWeb document of a pile foundation (it has ``fix_member``, decision 88) also has, for the 基礎の照査 of 0612 / 0622 (decision 89),
+a line of the axial force N at the head (ITAN) of each member that has a distributed spring, for every pickup, after the
+points (``head(member, pickup)``), and a displacement pickup CSV in the real runner's columns, for every pickup, node and
+focus component (dx, dy, rz) one row of the largest and the smallest extreme (``motion(node, pickup, focus)``).
+
 ``FAKE_FEMPYTHON`` makes it misbehave, for the error tests: fail, text, list, protocol, version, artifacts (one
 artifact listed twice), missing (the last file not written), sha (the last file's SHA256 wrong), exit, and for the
 load diagram badpdf and empty. Prefixed with ``analysis-`` a mode applies to the analysis call only.
@@ -75,9 +80,60 @@ def points(document):
 
 
 def pik(source, digest):
+    document = json.loads(source.read_text(encoding="utf-8"))
     rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}" + f"{0:>10.2f}" * 6
-            for number, point, position in points(json.loads(source.read_text(encoding="utf-8")))]
-    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows]).encode()
+            for number, point, position in points(document)]
+    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document)]).encode()
+
+
+def head(member, pickup):
+    """(largest, smallest axial force) of the head of a pile member in a pickup: compression is negative, and the
+    largest is a tension (the member's number added) in the pickups of even number."""
+    return (60.0 + member if pickup % 2 == 0 else -50.0), -(3000.0 + 10.0 * member + 100.0 * pickup)
+
+
+def motion(node, pickup, focus):
+    """(largest, smallest) of the displacement component *focus* of a node in a pickup: dx and dy in m, rz in rad."""
+    scale = {"dx": 0.001, "dy": 0.0005, "rz": 0.0001}[focus]
+    return scale * (pickup + node / 10), -scale * (2 * pickup + node / 10)
+
+
+def pile_members(document):
+    return sorted({int(row["m"]) for rows in document.get("fix_member", {}).values() for row in rows})
+
+
+def pile_heads(document):
+    """The N lines of the heads of the pile members, for every pickup, in the PIK's fixed columns."""
+    lines = []
+    for number, pickup in document.get("pickup", {}).items():
+        combinations = [pickup[key] for key in pickup if key.startswith("C")]
+        for member in pile_members(document):
+            largest, smallest = head(member, int(number))
+            lines.append(f"{number:>5}{'N':>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{'ITAN':>5}{0.0:>10.3f}"
+                         + f"{0.0:>10.2f}" * 2 + f"{largest:>10.2f}" + f"{0.0:>10.2f}" * 2 + f"{smallest:>10.2f}")
+    return lines
+
+
+DISPLACEMENT_HEADER = ("pickup_id,focus_component,node_id,max_combine_id,min_combine_id,"
+                       + ",".join(f"{side}_{name} ({unit})" for side in ("max", "min")
+                                  for name, unit in (("dx", "unspecified"), ("dy", "unspecified"), ("dz", "unspecified"),
+                                                     ("rx", "rad"), ("ry", "rad"), ("rz", "rad"))))
+
+
+def displacements(document):
+    """The displacement pickup CSV of a pile document (see the module docstring): the extreme of the row's focus
+    component, the other components zero; the combinations are the pickup's first (largest) and last (smallest)."""
+    lines = [DISPLACEMENT_HEADER]
+    for number, pickup in document.get("pickup", {}).items():
+        combinations = [pickup[key] for key in pickup if key.startswith("C")]
+        for focus in ("dx", "dy", "rz"):
+            for node in document.get("node", {}):
+                largest, smallest = motion(int(node), int(number), focus)
+                values = [[largest if name == focus else 0.0 for name in ("dx", "dy", "dz", "rx", "ry", "rz")],
+                          [smallest if name == focus else 0.0 for name in ("dx", "dy", "dz", "rx", "ry", "rz")]]
+                cells = [f"{v!r}" for row in values for v in row]
+                lines.append(f"{number},{focus},{node},{combinations[0]},{combinations[-1]}," + ",".join(cells))
+    return "".join(f"{line}\n" for line in lines).encode()
 
 
 def reaction(combination):
@@ -118,7 +174,9 @@ def analysis(source):
     document = json.loads(source.read_text(encoding="utf-8"))
     return [("result.json", "result", json.dumps({"kind": "frameweb_analysis", "input": digest}).encode()),
             ("pickup.pik", "pik", pik(source, digest)),
-            ("pickup-displacement.csv", "pickup-displacement", f"FAKE DISPLACEMENT {source.name} {digest}\n".encode()),
+            ("pickup-displacement.csv", "pickup-displacement",
+             displacements(document) if "fix_member" in document else
+             f"FAKE DISPLACEMENT {source.name} {digest}\n".encode()),
             ("pickup-reaction.csv", "pickup-reaction", reactions(document))]
 
 

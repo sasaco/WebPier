@@ -34,6 +34,7 @@ from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
 from ..calc.foundation_check import ReactionError, Reactions, SupportReaction
+from ..calc.pile_check import Displacements, Extreme, HeadForce, HeadForces, PileResponseError
 from ..reporting.stages.insertion import LOAD_DIAGRAM
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
@@ -230,4 +231,52 @@ def support_reactions(content: bytes, node: int) -> Reactions:
             found[key] = (extremes[0], extremes[1])
     except (UnicodeDecodeError, IndexError, ValueError) as exc:
         raise ReactionError(f"反力の CSV を読めません（{exc}）") from exc
+    return found
+
+
+def head_forces(content: bytes, members: Sequence[int]) -> HeadForces:
+    """The axial force at the head (the ITAN point) of each of *members* in every pickup, from the PIK as FEMPython
+    returns it (decision 89): the line whose focus is the axial force (N) gives its largest and smallest values with
+    their combinations; ``PileResponseError`` when it cannot be read."""
+    found: dict[tuple[int, int], HeadForce] = {}
+    try:
+        for number, line in enumerate(content.decode("utf-8-sig").splitlines(), 1):
+            cells = line.split()
+            if len(cells) != 13 or cells[1] != "N" or cells[5] != "ITAN" or int(cells[2]) not in members:
+                continue
+            key = (int(cells[0]), int(cells[2]))
+            forces = (float(cells[9]), float(cells[12]))
+            if key in found or not all(map(math.isfinite, forces)):
+                raise PileResponseError(f"{number} 行目: ピックアップ {key[0]} の部材 {key[1]} の杭頭が重複しているか有限でありません")
+            found[key] = HeadForce(forces[0], int(cells[3]), forces[1], int(cells[4]))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise PileResponseError(f"PIK を読めません（{exc}）") from exc
+    return found
+
+
+def footing_displacements(content: bytes, node: int) -> Displacements:
+    """The largest absolute horizontal displacement (dx) and rotation (rz) of *node* in every pickup, each from the row
+    of its own focus component of the displacement pickup CSV (the sample's 2.5.11 takes each extreme by itself);
+    ``PileResponseError`` when it cannot be read."""
+    try:
+        rows = list(csv.reader(StringIO(content.decode("utf-8-sig"))))
+        header = [name.split(" ", 1)[0] for name in rows[0]]
+        index = {name: header.index(name) for name in ("pickup_id", "focus_component", "node_id", "max_combine_id",
+                                                       "min_combine_id", "max_dx", "min_dx", "max_rz", "min_rz")}
+        found: dict[tuple[int, str], Extreme] = {}
+        for number, row in enumerate(rows[1:], 2):
+            # the rows of the nodes the runner adds inside a member are named "generated:<member>:S<n>"
+            if row[index["node_id"]] != str(node) or row[index["focus_component"]] not in ("dx", "rz"):
+                continue
+            component = row[index["focus_component"]]
+            largest, smallest = (float(row[index[f"{side}_{component}"]]) for side in ("max", "min"))
+            if not (math.isfinite(largest) and math.isfinite(smallest)):
+                raise PileResponseError(f"{number} 行目に有限でない変位があります")
+            side = "max" if abs(largest) >= abs(smallest) else "min"
+            key = (int(row[index["pickup_id"]]), component)
+            if key in found:
+                raise PileResponseError(f"{number} 行目: ピックアップ {key[0]}（{component}）の節点 {node} が重複しています")
+            found[key] = Extreme(abs(largest if side == "max" else smallest), int(row[index[f"{side}_combine_id"]]))
+    except (UnicodeDecodeError, IndexError, ValueError) as exc:
+        raise PileResponseError(f"変位の CSV を読めません（{exc}）") from exc
     return found

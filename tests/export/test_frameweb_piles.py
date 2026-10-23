@@ -47,8 +47,8 @@ def test_the_tips_of_the_piles_hold_the_springs_of_each_term(document, results):
 
 def test_each_pile_row_has_the_springs_of_its_layers_from_the_head(document, results):
     members = [str(nodes.member) for nodes in results[0].frame.pile_nodes]
-    for number, horizontal, shear in (("1", [14208, 19186, 37482, 125727, 125727], [13534, 18275, 35702, 119755, None]),
-                                      ("2", [28417, 38373, 74964, 251453, 251453], [27067, 36550, 71404, 239510, None])):
+    for number, horizontal, shear in (("1", [14208, 19186, 37482, 125727, 125727], [13534, 18275, 35702, 119755, 119755]),
+                                      ("2", [28417, 38373, 74964, 251453, 251453], [27067, 36550, 71404, 239510, 239510])):
         rows = document["fix_member"][number]
         assert [row["row"] for row in rows] == list(range(1, 11))
         for index, member in enumerate(members):
@@ -56,7 +56,7 @@ def test_each_pile_row_has_the_springs_of_its_layers_from_the_head(document, res
             assert {row["m"] for row in mine} == {member}
             assert [row["length"] for row in mine] == [3.75, 7.5, 1.95, 12.3, 1.0]
             assert [row["ty"] for row in mine] == horizontal  # the horizontal spring is the member's local y
-            assert [row["tx"] for row in mine] == shear  # the vertical shear spring is along it (null where none)
+            assert [row["tx"] for row in mine] == shear  # the vertical shear spring is along it (the last layer takes the pull side)
             assert all(row["tz"] is None and row["tr"] is None for row in mine)
 
 

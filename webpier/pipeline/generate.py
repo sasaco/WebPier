@@ -53,6 +53,7 @@ from ..export.aggrese import ProjectError
 from ..calc.cantilever import ResponseError
 from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
+from ..calc.pile_check import PileResponseError
 from ..export.capacita import PickupError
 from ..export.soiljr import SdrError
 from ..inputs import PierInput, parse_input
@@ -232,11 +233,12 @@ def planned(options: GenerationOptions, selected: Sequence[str], *, registry: Re
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...], results: dict[str, Any] | None = None,
                *, late: bool = False) -> dict[str, Any]:
     """The results of the *selected* stages and what they read, into *results*. The stages that wait for a runner's
-    result (``after``, decision 88) are the *late* ones: calculated in a second call, when 0500 is complete."""
+    result (``after``, decision 88, and the stages that read them, decision 89) are the *late* ones: calculated in a
+    second call, when 0500 is complete."""
     results = {} if results is None else results
     for stage_id in registry.closure(selected):
         stage = registry.get(stage_id)
-        if stage.calculate is not None and bool(stage.after) is late:
+        if stage.calculate is not None and registry.waits(stage_id) is late:
             results[stage_id] = stage.calculate(pier, {name: results[name] for name in stage.depends_on
                                                        if name in results})
     return results
@@ -602,6 +604,8 @@ def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str
         raise GenerationError(f"直接基礎のステップ表で{stage_id}の結果を仕上げられません: {exc}") from exc
     except ResponseError as exc:
         raise GenerationError(f"{stage_id}の片持ち梁の照査ができません: {exc}") from exc
+    except PileResponseError as exc:  # the pile heads and the footing top of the frame analysis (0612, 0622, decision 89)
+        raise GenerationError(f"骨組解析の結果で{stage_id}の杭基礎の照査ができません: {exc}") from exc
     except SdrError as exc:  # the .sdr SOIL-JR returned for the stage's .sdt (0500, decision 85)
         raise GenerationError(f"SOIL-JR の .sdr で{stage_id}の結果を仕上げられません: {exc}") from exc
 
@@ -690,8 +694,9 @@ def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[st
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
     nonlinear = {stage_id: analysis for stage_id in selected
                  if (analysis := registry.get(stage_id).nonlinear_analysis) is not None}
-    built = _build(registry, pier, results, [post for post in posts if not registry.get(post.stage).after],
-                   {**analyses, **nonlinear})
+    built = _build(registry, pier, results, [post for post in posts if not registry.waits(post.stage)],
+                   {key: analysis for key, analysis in {**analyses, **nonlinear}.items()
+                    if not registry.waits(analysis.stage)})
     # The projects' input is checked now, before any analysis or report; each is written from the analysis' files.
     writers = {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
                for stage_id, analysis in nonlinear.items() if analysis.project is not None}
@@ -748,10 +753,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         for stage_id in grounded:  # SOIL-JR's files and the .sdt they were calculated from (decision 85)
             files = {**grounded[stage_id].files, "sdt": built[(stage_id, registry.get(stage_id).soil_jr.export)]}
             results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
-        late = [post for post in posts if registry.get(post.stage).after]
-        if late:
+        late = [post for post in posts if registry.waits(post.stage)]
+        waiting = {key: analysis for key, analysis in analyses.items() if registry.waits(analysis.stage)}
+        if late or waiting:
             _calculate(registry, pier, selected, results, late=True)
-            built |= _build(registry, pier, results, late, {})
+            built |= _build(registry, pier, results, late, waiting)
         for post in posts:
             if post.export is not None:
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
