@@ -36,8 +36,9 @@ def _render(stage: str, pages: int):
 
 
 def registry() -> Registry:
-    """0500 → 0610 (FrameWeb) → 0611 (frame analysis) and 0710 (JRSNAP) → 0711 (static nonlinear analysis); the stems
-    and 出力項目 of the real registry (decision 72), so current.json chooses 0500, 0610 and 0710."""
+    """0500 → 0610 (FrameWeb) → 0611 (frame analysis) and 0500 → 0710 (JRSNAP) → 0711 (static nonlinear analysis; 0710
+    reads no 0610, decision 78); the stems and 出力項目 of the real registry (decision 72), so current.json chooses 0500,
+    0610 and 0710."""
     return Registry((
         StageSpec("0500", "0500_直接基礎", (), lambda pier, results: {"stage": "0500"}, _render("0500", 1)),
         StageSpec("0610", "0610_線路方向荷重", ("0500",), lambda pier, results: {"stage": "0610"}, _render("0610", 2),
@@ -45,7 +46,7 @@ def registry() -> Registry:
         StageSpec("0611", "0611_線路方向照査", ("0610",), frame_analysis=FrameAnalysis(
             "0610", "frameweb", (("pik", "線路方向.pik"), ("displacement", "線路方向_ピックアップ変位量.csv"),
                                  ("reaction", "線路方向_ピックアップ反力.csv")))),
-        StageSpec("0710", "0710_線路方向荷重", ("0610",), lambda pier, results: {"stage": "0710"}, _render("0710", 3),
+        StageSpec("0710", "0710_線路方向荷重", ("0500",), lambda pier, results: {"stage": "0710"}, _render("0710", 3),
                   (Export("jrsnap", "線路方向.ndu", lambda results, pier: b"NDU\r\n",
                           metadata={"analysis_run": False}),)),
         StageSpec("0711", "0711_線路方向非線形解析", ("0710",),

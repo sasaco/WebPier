@@ -198,10 +198,12 @@ def test_unchecking_an_item_unchecks_every_item_that_uses_it(editor):
     assert all(chosen(editor).values())
     box(editor, "longitudinal").invoke()
     assert {key for key, value in chosen(editor).items() if not value} == {
-        "longitudinal", "longitudinal_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
-        "footing", "cantilever"}
-    assert box(editor, "longitudinal_seismic").instate(["disabled"]) and box(editor, "footing").instate(["disabled"])
+        "longitudinal", "longitudinal_frame_analysis", "footing"}  # the seismic items use no 0610 (decision 78)
+    assert box(editor, "longitudinal_frame_analysis").instate(["disabled"]) and box(editor, "footing").instate(["disabled"])
+    assert not box(editor, "longitudinal_seismic").instate(["disabled"]) and page(editor).outputs["cantilever"].get()
     assert not page(editor).outputs["footing"].get()
+    box(editor, "reactions").invoke()
+    assert box(editor, "longitudinal_seismic").instate(["disabled"]) and not page(editor).outputs["cantilever"].get()
 
 
 def test_an_input_without_the_items_gets_all_of_them_on_the_first_click(tk_root, input_path, quiet, runner, tmp_path):
