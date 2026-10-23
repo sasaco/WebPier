@@ -63,7 +63,7 @@ def test_the_normal_water_level_must_lie_inside_the_cover(hw2):
 
 
 LOAM = {"層番": "ローム", "層厚": 1.0, "土質区分": "粘性土", "N値": 4, "単位体積重量": {"湿潤": 17.0, "水中": 7.0},
-        "内部摩擦角_φd": None, "一軸圧縮強度_qu": None, "変形係数_Ed": None}
+        "内部摩擦角_φd": None, "粘着力_c": None, "変形係数_Ed": None, "De": None}
 
 
 def layered(surface, loam=LOAM):

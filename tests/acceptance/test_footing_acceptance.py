@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import before_piles, upgrade_to_piles
 from webpier.core.integrity import dump_json, load_json, sha256
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes
@@ -26,14 +27,16 @@ SERVICE = ("short_term", "long_term")
 @pytest.fixture(scope="module")
 def accepted():
     record = json.loads((RECORDS / "record.json").read_text(encoding="utf-8"))
-    data = load_json((ROOT / record["input"]["path"]).read_bytes())
+    raw = (ROOT / record["input"]["path"]).read_bytes()
+    data = load_json(before_piles(raw) or raw)  # the input as it was recorded, before the pile foundation (decision 84)
     # Recorded before the input had the 出力項目, which are no condition of the calculation (decision 72, ADR-0011).
     chosen = data.pop("outputs")
     data["鉄筋"]["フーチング"] = record["input"]["footing_bars"]
     rebuilt = dump_json(data)
     assert sha256(rebuilt) == record["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
     assert sha256((RECORDS / record["input"]["file"]).read_bytes()) == record["input"]["sha256"]
-    return record, parse_input({**load_json(rebuilt), "outputs": chosen})
+    # ... and before the pile foundation (decision 84): the recorded file is read in the form of today.
+    return record, parse_input(upgrade_to_piles({**load_json(rebuilt), "outputs": chosen}))
 
 
 def test_the_record_is_accepted(accepted):

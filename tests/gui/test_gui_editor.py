@@ -123,12 +123,12 @@ def test_choices_are_the_programs_lists(editor):
         target = cell(editor, *path)
         assert target.sheet.get_dropdown_values(target.row, target.column) == values
     editor.select("下部構造")
-    condition = cell(editor, "下部構造", "場所打ち杭の施工条件")
-    assert condition.sheet.get_dropdown_values(condition.row, condition.column) == [
-        "", "自然泥水", "ベントナイト泥水", "気中施工", "設定しない"]
-    type_in(editor, ("下部構造", "杭種"), "鋼管杭")
-    assert ("下部構造", "杭種") in editor.bindings.refused
-    type_in(editor, ("下部構造", "杭種"), "直接基礎")
+    foundation = cell(editor, "下部構造", "基礎形式")
+    assert foundation.sheet.get_dropdown_values(foundation.row, foundation.column) == [
+        "直接基礎", "場所打ち杭", "鋼管ソイルセメント杭"]
+    type_in(editor, ("下部構造", "基礎形式"), "鋼管杭")
+    assert ("下部構造", "基礎形式") in editor.bindings.refused
+    type_in(editor, ("下部構造", "基礎形式"), "直接基礎")
     assert not editor.bindings.refused
 
 

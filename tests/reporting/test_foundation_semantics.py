@@ -26,6 +26,8 @@ REFERENCE = Path(__file__).parents[1] / "fixtures" / "reporting" / "semantic" / 
 
 # Old record → why the new text differs. New records are listed with None.
 DIFFERENCES = {
+    # 決定80: 地盤の表の「一軸圧縮強度 qu」の列は「粘着力 c」になった（地盤の層の qu を c に替えた）
+    "0500/soil.header": "層番層厚(m)土質区分Ｎ値単位体積重量湿潤水中内部摩擦角φd(°)粘着力c(kN/m2)変形係数Ed(kN/m2)（旧: 一軸圧縮強度qu）",
     "0500/soil.surface": None,   # 表層厚を検算できるように値だけの代入式で印刷する（派生値。入力票の記号は書かない）
     # 見本どおり Av を「ここに、」の定義に加え、Bv と Av を値の列がそろう代入式で印刷する
     "0500/kv.definition.Av": None,
@@ -71,14 +73,15 @@ def expected_records(result, pier, embedment) -> dict[str, str]:
     def fixed(key: str) -> None:
         out["0500/" + key] = reference["0500/" + key]
 
-    for key in ("title", "soil.heading", "soil.introduction", "soil.caption", "soil.header"):
+    for key in ("title", "soil.heading", "soil.introduction", "soil.caption"):
         fixed(key)
+    out["0500/soil.header"] = "層番層厚(m)土質区分Ｎ値単位体積重量湿潤水中内部摩擦角φd(°)粘着力c(kN/m2)変形係数Ed(kN/m2)"
     surface = surface_layer_thickness(pier, result.surface_thickness)  # decision 64: the rest of Df when blank
     for index, layer in enumerate(pier.soil.layers):
         thickness = surface if index == 0 else layer.thickness
         out[f"0500/soil.row.{index}"] = "".join((
             layer.name, text(thickness), layer.soil_type, text(layer.n_value), text(layer.unit_weight_wet),
-            text(layer.unit_weight_submerged), text(layer.friction_angle), text(layer.compressive_strength),
+            text(layer.unit_weight_submerged), text(layer.friction_angle), text(layer.cohesion),
             text(layer.deformation_modulus, thousands=True)))
     sub = pier.substructure
     label = "表層の層厚" if surface == result.surface_thickness else "Df"

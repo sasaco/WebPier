@@ -347,15 +347,15 @@ def test_a_shear_span_below_one_and_a_quarter_depth_is_outside_the_m_theta():
 def test_the_support_must_be_sandy_with_no_cohesion():
     with pytest.raises(InputError, match=re.escape("地盤データ.層[1].土質区分: JRSNAP の直接基礎（砂質土系）")):
         model("longitudinal", **{"地盤データ/層/1/土質区分": "粘性土"})
-    with pytest.raises(InputError, match=re.escape("地盤データ.層[1].一軸圧縮強度_qu: qu = 0 または空欄が必要です")):
-        model("longitudinal", **{"地盤データ/層/1/一軸圧縮強度_qu": 50})
+    with pytest.raises(InputError, match=re.escape("地盤データ.層[1].粘着力_c: c = 0 または空欄が必要です")):
+        model("longitudinal", **{"地盤データ/層/1/粘着力_c": 50})
     with pytest.raises(InputError, match=re.escape("地盤データ.層[1].単位体積重量.水中: 値が必要です")):
         model("longitudinal", **{"地盤データ/層/1/単位体積重量/水中": None})
 
 
 def test_a_blank_qu_is_zero():
-    # decision 63: qu is not written to the NDU (c = 0 of 砂質土系), so blank and 0 give the same model
-    assert model("longitudinal", **{"地盤データ/層/1/一軸圧縮強度_qu": None}) == model("longitudinal")
+    # decision 63 (c, decision 80): c is not written to the NDU (c = 0 of 砂質土系), so blank and 0 give the same model
+    assert model("longitudinal", **{"地盤データ/層/1/粘着力_c": None}) == model("longitudinal")
 
 
 def test_two_layers_of_main_bars():

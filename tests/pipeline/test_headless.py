@@ -406,7 +406,14 @@ def test_the_schema_leaves(schema):
     assert seismic[-1] is None
     shares = properties["上部工反力"]["properties"]["終点側"]["properties"]["C支点"]["items"]["properties"]["列車分担"]
     assert shares["properties"]["L3"] == {"type": "null", "description": "3線以上は未対応です"}
-    assert properties["下部構造"]["properties"]["杭種"]["x-webpier-reserved"] is True
+    assert properties["下部構造"]["properties"]["斜角"]["properties"]["θ"]["x-webpier-reserved"] is True
+    assert properties["下部構造"]["properties"]["基礎形式"] == {"enum": ["直接基礎", "場所打ち杭", "鋼管ソイルセメント杭"]}
+    layout = properties["杭基礎"]["properties"]["配置"]["properties"]  # decision 84: lists of scalars and of objects
+    assert layout["線路方向の列の位置"] == {
+        "type": "array", "items": {"type": "number", "x-webpier-unit": "m", "x-webpier-digits": 3}}
+    assert layout["抜く杭"]["items"]["properties"]["線路方向の列"] == {"type": "integer", "minimum": 1, "maximum": 99}
+    layer = properties["地盤データ"]["properties"]["層"]["items"]["properties"]
+    assert layer["De"]["x-webpier-limit"] == "0～1 が必要です" and "一軸圧縮強度_qu" not in layer
     angle = properties["地盤データ"]["properties"]["層"]["items"]["properties"]["内部摩擦角_φd"]
     assert angle["type"] == ["number", "null"] and angle["x-webpier-limit"] == "90度未満が必要です"
     repetitions = properties["片持ち梁の照査"]["properties"]["疲労"]["properties"]["等価繰返し回数"]["properties"]

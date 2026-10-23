@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .choices import PILE_FOUNDATIONS
+
 
 @dataclass(frozen=True)
 class OutputItem:
@@ -36,6 +38,14 @@ OUTPUT_ITEMS = (
 )
 OUTPUT_KEYS = tuple(item.key for item in OUTPUT_ITEMS)
 _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
+
+# The items a pile foundation can make so far (roadmap pile-foundation-roadmap.md; widened a stage at a time).
+PILE_OUTPUT_KEYS: tuple[str, ...] = ()
+
+
+def foundation_makes(foundation: str | None, key: str) -> bool:
+    """Whether a generation can make the item *key* for the 基礎形式 (a direct foundation makes every item)."""
+    return foundation not in PILE_FOUNDATIONS or key in PILE_OUTPUT_KEYS
 
 
 def requires(key: str) -> tuple[str, ...]:

@@ -9,10 +9,19 @@ VEHICLES: dict[str, BrakingRule] = {
 
 SOIL_TYPES = ("砂質土", "砂礫", "粘性土", "砂質土と粘性土の互層")
 
-FOUNDATION_TYPES = ("直接基礎", "場所打ち杭")
-SUPPORTED_FOUNDATION = "直接基礎"
+# 基礎形式 (decision 80): the pile foundations are put into SOIL-JR (ADR-0013), whose pile types and construction methods
+# these are; others can be added as choices.
+DIRECT_FOUNDATION = "直接基礎"
+CAST_IN_PLACE_PILE = "場所打ち杭"
+STEEL_SOIL_CEMENT_PILE = "鋼管ソイルセメント杭"
+PILE_FOUNDATIONS = (CAST_IN_PLACE_PILE, STEEL_SOIL_CEMENT_PILE)
+FOUNDATION_TYPES = (DIRECT_FOUNDATION, *PILE_FOUNDATIONS)
 
-CAST_IN_PLACE_CONDITIONS = ("自然泥水", "ベントナイト泥水", "気中施工", "設定しない")
+# 場所打ち杭の施工条件: SOIL-JR's K_SJYOUKEN 1 and 2
+CAST_IN_PLACE_CONDITIONS = ("自然泥水", "安定液使用")
+# 杭の配置: 千鳥配置 has piles only where the sum of the column numbers is even (CONTEXT.md 千鳥配置)
+PILE_ARRANGEMENTS = ("格子", "千鳥")
+GRID, STAGGERED = PILE_ARRANGEMENTS
 
 BEARING_TYPES = ("固定", "可動")
 

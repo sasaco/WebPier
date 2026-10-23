@@ -33,6 +33,8 @@ FRICTION_ANGLE = Precision(1, "°")
 N_VALUE = Precision(0, "")
 STRESS = Precision(0, "kN/m2")
 STRENGTH = Precision(1, "N/mm2")
+THICKNESS_MM = Precision(1, "mm")  # 鋼管厚・腐食代 of the 鋼管ソイルセメント杭 (SOIL-JR t1, 腐食代)
+REDUCTION = Precision(3, "")  # De, the reduction coefficient of a layer in liquefaction (SOIL-JR's 0.000)
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
 SHRINKAGE = Precision(0, "×10⁻⁶")  # ε'csd of the flexural crack width (decision 48; Example2 300)
@@ -46,6 +48,7 @@ SHEAR_FACTOR_MAX = 99.99
 AGGREGATE_RANGE = (0.1, 999_999)
 MAX_STEPS = 100_000
 MAX_COUNT = 10_000
+MAX_PILE_COLUMNS = 99  # SOIL-JR: 1..99 columns of piles in each direction
 MAX_TRAINS = 10_000  # 列車本数, per track per day
 MAX_YEARS = 1_000  # 設計耐用年数
 BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own 水掛かりの程度 (decision 59)
@@ -204,15 +207,32 @@ def _substructure() -> dict[str, Field]:
         f"{sub}.単位体積重量.梁・躯体": number(UNIT_WEIGHT, "positive"),
         f"{sub}.単位体積重量.フーチング": number(UNIT_WEIGHT, "positive"),
         f"{sub}.単位体積重量.上載土": number(UNIT_WEIGHT),
-        **{f"{sub}.単位体積重量.杭.{key}": number(UNIT_WEIGHT, nullable=True, reserved=True) for key in ("鉛直重量", "慣性力")},
-        f"{sub}.杭種": choice(choices.FOUNDATION_TYPES, reserved=True),
-        f"{sub}.場所打ち杭の施工条件": choice(choices.CAST_IN_PLACE_CONDITIONS, nullable=True, reserved=True),
+        f"{sub}.基礎形式": choice(choices.FOUNDATION_TYPES),
     }
-    for direction, axis in (("線路方向", "X"), ("線路直角方向", "Y")):
-        row = f"{sub}.杭の配置[*].{direction}"
-        table[f"{row}.{axis}"] = number(LENGTH, "any", nullable=True, reserved=True)
-        table[f"{row}.本数"] = integer(0, MAX_COUNT, nullable=True, reserved=True)
     return table
+
+
+def _piles() -> dict[str, Field]:
+    """杭基礎 (decision 80): used only when the 基礎形式 is a pile foundation, and then only the items of its type; every
+    value may stay blank until the stage that needs it asks (ADR-0013). The positions of the columns are lists of numbers."""
+    section = "杭基礎"
+    cast, steel, layout = (f"{section}.場所打ち杭", f"{section}.鋼管ソイルセメント杭", f"{section}.配置")
+    return {
+        f"{section}.杭長": number(LENGTH, "positive", nullable=True),
+        f"{section}.杭の単位体積重量": number(UNIT_WEIGHT, "positive", nullable=True),
+        f"{cast}.杭径": number(LENGTH, "positive", nullable=True),
+        f"{cast}.f'ck": number(STRENGTH, "positive", nullable=True),
+        f"{cast}.施工条件": choice(choices.CAST_IN_PLACE_CONDITIONS, nullable=True),
+        f"{steel}.ソイルセメント径": number(LENGTH, "positive", nullable=True),
+        f"{steel}.鋼管外径": number(LENGTH, "positive", nullable=True),
+        f"{steel}.鋼管厚": number(THICKNESS_MM, "positive", nullable=True),
+        f"{steel}.腐食代": number(THICKNESS_MM, nullable=True),
+        f"{layout}.形式": choice(choices.PILE_ARRANGEMENTS, nullable=True),
+        f"{layout}.線路方向の列の位置[*]": number(LENGTH, "any"),
+        f"{layout}.線路直角方向の列の位置[*]": number(LENGTH, "any"),
+        f"{layout}.抜く杭[*].線路方向の列": integer(1, MAX_PILE_COLUMNS),
+        f"{layout}.抜く杭[*].線路直角方向の列": integer(1, MAX_PILE_COLUMNS),
+    }
 
 
 def _soil() -> dict[str, Field]:
@@ -224,8 +244,10 @@ def _soil() -> dict[str, Field]:
         f"{layer}.単位体積重量.湿潤": number(UNIT_WEIGHT, nullable=True),
         f"{layer}.単位体積重量.水中": number(UNIT_WEIGHT, nullable=True),
         f"{layer}.内部摩擦角_φd": angle, f"{layer}.内部摩擦角の上限値": angle,
-        f"{layer}.一軸圧縮強度_qu": number(STRESS, nullable=True),
+        f"{layer}.粘着力_c": number(STRESS, nullable=True),
         f"{layer}.変形係数_Ed": number(STRESS, nullable=True),
+        # decision 80: the reduction coefficient of the layer in liquefaction; blank is 1 (the layer does not liquefy)
+        f"{layer}.De": number(REDUCTION, nullable=True, limit=within(0, 1, "")),
     }
 
 
@@ -383,7 +405,7 @@ def _outputs() -> dict[str, Field]:
     return {f"outputs.{key}": BOOLEAN for key in OUTPUT_KEYS}
 
 
-FIELDS: dict[str, Field] = {**_reactions(), **_superstructure(), **_substructure(), **_soil(), **_rebar(),
+FIELDS: dict[str, Field] = {**_reactions(), **_superstructure(), **_substructure(), **_piles(), **_soil(), **_rebar(),
                             **_seismic_design(), **_column_check(), **_cantilever_check(), **_jrsnap(),
                             **_outputs()}
 _INDEX = re.compile(r"\[\d+\]")

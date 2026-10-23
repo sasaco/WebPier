@@ -29,16 +29,17 @@ PROJECT_DIR = Path(__file__).resolve().parents[2]
 JRSNAP = "JRSNAPの設定"
 INPUT_PAGES: dict[str, Callable[[Form], None]] = {
     "下部構造": pages.substructure, "上部構造": pages.superstructure, "上部工反力": reaction_page.reactions,
-    "地盤データ": pages.ground, JRSNAP: pages.jrsnap,
+    "地盤データ": pages.ground, "杭基礎": pages.piles, JRSNAP: pages.jrsnap,
 }
 REBAR = "鉄筋"
 CALCULATION = "計算・印刷"
-PAGES = ("下部構造", "上部構造", "上部工反力", "地盤データ", REBAR, JRSNAP, CALCULATION)
+PAGES = ("下部構造", "上部構造", "上部工反力", "地盤データ", "杭基礎", REBAR, JRSNAP, CALCULATION)
 HINTS = {
     "下部構造": "図の記号と同じ欄に寸法を入力します。数値は入力した時点で印字桁に丸めます。",
     "上部構造": "起点側と終点側を並べて入力します。支承と列車の条件は下に続きます。",
     "上部工反力": "支点・支承の並びに沿って、支承位置、死荷重、雪荷重、列車分担を入力します。",
     "地盤データ": "上から順に1層ずつ入力します。行を選ぶと、その層を複製・移動・削除できます。",
+    "杭基礎": "基礎形式が杭基礎のときの杭の諸元と配置を入力します（直接基礎では使いません）。",
     REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁とフーチングの配筋略図は「配筋略図」で開きます。",
     JRSNAP: "JRSNAP入力（NDU）に書く解析の条件を、方向ごとに入力します。",
     CALCULATION: "出力項目を選び、入力を保存して選んだ計算書を作り直し、PDFで確認します。",

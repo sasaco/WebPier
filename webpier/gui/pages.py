@@ -13,6 +13,7 @@ from tkinter import messagebox, ttk
 from typing import Any
 
 from ..export.jrsnap import LONGITUDINAL, TRANSVERSE
+from ..inputs import choices
 from ..inputs.choices import LAYER_SUPPORT, LAYER_SURFACE
 from . import bearings
 from .document import EditorError
@@ -46,21 +47,14 @@ def substructure(form: Form) -> None:
     form.figure(body, "skew", "タイプ1・2 / 原図・記号確認用")
 
     body = form.section("03  単位体積重量", note="排除した土の単位体積重量は、地盤データのうちフーチング高さ（H5＋H6）の範囲にある層の"
-                        "湿潤単位体積重量を厚さで平均して計算します。杭は" + RESERVED)
+                        "湿潤単位体積重量を厚さで平均して計算します。杭の単位体積重量は「杭基礎」のページで入力します。")
     weights = (*SUB, "単位体積重量")
     form.properties(body, [((*weights, "梁・躯体"), "梁・躯体"), ((*weights, "フーチング"), "フーチング"),
-                           ((*weights, "上載土"), "上載土"), ((*weights, "杭", "鉛直重量"), "杭：鉛直重量（予約）"),
-                           ((*weights, "杭", "慣性力"), "杭：慣性力（予約）")])
+                           ((*weights, "上載土"), "上載土")])
 
-    body = form.section("04  基礎形式・杭の配置", note="計算できるのは直接基礎です。杭の項目は" + RESERVED)
-    form.properties(body, [((*SUB, "杭種"), "基礎形式（杭種）"), ((*SUB, "場所打ち杭の施工条件"), "場所打ち杭の施工条件")],
-                    widths=[260, 200, 100])
-    piles = form.data.get("下部構造", {}).get("杭の配置", [])
-    columns = (("線路方向 X (m)", ("線路方向", "X")), ("本数", ("線路方向", "本数")),
-               ("線路直角方向 Y (m)", ("線路直角方向", "Y")), ("本数", ("線路直角方向", "本数")))
-    form.table(body, [label for label, _ in columns],
-               [[(*SUB, "杭の配置", row, *tail) for _, tail in columns] for row in range(len(piles))],
-               [150, 80, 150, 80], row_labels=[str(row + 1) for row in range(len(piles))])
+    body = form.section("04  基礎形式", note="直接基礎のほか、場所打ち杭・鋼管ソイルセメント杭を選べます。杭基礎の杭の条件と配置は"
+                        "「杭基礎」のページで入力します（杭基礎の計算は、段ごとに対応を広げています）。")
+    form.properties(body, [((*SUB, "基礎形式"), "基礎形式")], widths=[260, 200, 100])
 
 
 def same_as_b7(form: Form) -> bool:
@@ -117,7 +111,8 @@ def superstructure(form: Form) -> None:
 GROUND_COLUMNS = (("層番", ("層番",)), ("層厚\n(m)", ("層厚",)), ("土質区分", ("土質区分",)), ("N値", ("N値",)),
                   ("単位体積重量\n湿潤", ("単位体積重量", "湿潤")), ("単位体積重量\n水中", ("単位体積重量", "水中")),
                   ("内部摩擦角\nφd (°)", ("内部摩擦角_φd",)), ("φd の上限値\n(°)", ("内部摩擦角の上限値",)),
-                  ("一軸圧縮強度\nqu (kN/m²)", ("一軸圧縮強度_qu",)), ("変形係数\nEd (kN/m²)", ("変形係数_Ed",)))
+                  ("粘着力\nc (kN/m²)", ("粘着力_c",)), ("変形係数\nEd (kN/m²)", ("変形係数_Ed",)),
+                  ("液状化の\n低減係数 De", ("De",)))
 
 
 def _layers(form: Form) -> list:
@@ -126,7 +121,7 @@ def _layers(form: Form) -> list:
 
 def blank_layer() -> dict[str, Any]:
     return {"層番": None, "層厚": None, "土質区分": None, "N値": None, "単位体積重量": {"湿潤": None, "水中": None},
-            "内部摩擦角_φd": None, "一軸圧縮強度_qu": None, "変形係数_Ed": None}
+            "内部摩擦角_φd": None, "粘着力_c": None, "変形係数_Ed": None, "De": None}
 
 
 def _thickness_keys(layers: list) -> None:
@@ -150,7 +145,7 @@ def ground(form: Form) -> None:
     layers = _layers(form)
     rows = [[("地盤データ", "層", index, *tail) for _, tail in GROUND_COLUMNS] for index in range(len(layers))]
     sheet = form.table(body, [label for label, _ in GROUND_COLUMNS], rows,
-                       [90, 75, 150, 60, 95, 95, 90, 90, 110, 110])
+                       [90, 75, 150, 60, 95, 95, 90, 90, 110, 110, 110])
     editor = form.editor
     editor.soil_selected = min(editor.soil_selected, max(0, len(layers) - 1))
 
@@ -197,6 +192,74 @@ def soil_change(form: Form, action: str) -> bool:
         index = target
     _thickness_keys(layers)
     editor.soil_selected = index
+    editor.rebuild()
+    return True
+
+
+PILES = ("杭基礎",)
+PILE_ROWS = {
+    choices.CAST_IN_PLACE_PILE: ((("場所打ち杭", "杭径"), "杭径 D"), (("場所打ち杭", "f'ck"), "コンクリートの設計基準強度 f'ck"),
+                                 (("場所打ち杭", "施工条件"), "施工条件")),
+    choices.STEEL_SOIL_CEMENT_PILE: (
+        (("鋼管ソイルセメント杭", "ソイルセメント径"), "ソイルセメント径 Dsc"), (("鋼管ソイルセメント杭", "鋼管外径"), "鋼管外径 Dsp"),
+        (("鋼管ソイルセメント杭", "鋼管厚"), "鋼管厚 t（腐食代を含む）"), (("鋼管ソイルセメント杭", "腐食代"), "腐食代 c")),
+}
+LAYOUT_DIRECTIONS = (("線路方向の列の位置", "線路方向の列", "線路方向"), ("線路直角方向の列の位置", "線路直角方向の列", "線路直角方向"))
+
+
+def piles(form: Form) -> None:
+    """杭基礎 (decision 80): the items of the chosen 基礎形式 only; the other form's are kept in the input and not shown."""
+    foundation = form.data.get("下部構造", {}).get("基礎形式")
+    layout = form.data.get("杭基礎", {}).get("配置")
+    if foundation not in choices.PILE_FOUNDATIONS or not isinstance(layout, dict):
+        form.section("杭基礎", note=f"基礎形式が{foundation}のため、杭基礎の項目は使いません。基礎形式は「下部構造」のページで選びます。")
+        return
+    body = form.section("01  杭の諸元", note=f"基礎形式：{foundation}。長さは m、鋼管厚と腐食代は mm です。杭の単位体積重量は"
+                        "杭の有効重量（SOIL-JR の入力）に使います。")
+    form.properties(body, [((*PILES, "杭長"), "杭長 L"), ((*PILES, "杭の単位体積重量"), "杭の単位体積重量"),
+                           *(((*PILES, *tail), label) for tail, label in PILE_ROWS[foundation])], widths=[260, 150, 100])
+
+    body = form.section("02  杭の配置", note="杭列の位置はフーチングの中心からの距離（m）で、小さい順に並べます（骨組の x・y の向き）。"
+                        "格子配置は全交点に杭があります。千鳥配置は両方向とも奇数列で、列の番号の和が偶数の位置にだけ杭があります。"
+                        "列ごとの本数・間隔は位置から求めます。")
+    form.properties(body, [((*PILES, "配置", "形式"), "配置の形式")], widths=[260, 150, 100])
+    tables = ttk.Frame(body)
+    tables.pack(anchor="w", pady=(10, 0))
+    for column, (key, _, direction) in enumerate(LAYOUT_DIRECTIONS):
+        box = ttk.Frame(tables, padding=(0, 0, 18, 0))
+        box.grid(row=0, column=column, sticky="n")
+        positions = layout.get(key, [])
+        form.table(box, [f"{direction}の列の位置\n(m)"], [[(*PILES, "配置", key, index)] for index in range(len(positions))],
+                   [170], row_labels=[str(index + 1) for index in range(len(positions))], pack=False).pack(anchor="w")
+        buttons = ttk.Frame(box)
+        buttons.pack(anchor="w", pady=(6, 0))
+        ttk.Button(buttons, text="＋ 列を追加", command=lambda key=key: pile_change(form, key, "add")).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text="最後の列を削除", command=lambda key=key: pile_change(form, key, "delete")).pack(side="left")
+    box = ttk.Frame(tables, padding=(0, 0, 18, 0))
+    box.grid(row=0, column=2, sticky="n")
+    removed = layout.get("抜く杭", [])
+    form.table(box, ["抜く杭\n線路方向の列", "抜く杭\n線路直角方向の列"],
+               [[(*PILES, "配置", "抜く杭", index, column) for _, column, _ in LAYOUT_DIRECTIONS]
+                for index in range(len(removed))],
+               [130, 150], row_labels=[str(index + 1) for index in range(len(removed))], pack=False).pack(anchor="w")
+    buttons = ttk.Frame(box)
+    buttons.pack(anchor="w", pady=(6, 0))
+    ttk.Button(buttons, text="＋ 抜く杭を追加", command=lambda: pile_change(form, "抜く杭", "add")).pack(side="left", padx=(0, 8))
+    ttk.Button(buttons, text="最後を削除", command=lambda: pile_change(form, "抜く杭", "delete")).pack(side="left")
+
+
+def pile_change(form: Form, key: str, action: str) -> bool:
+    """Add a column position or a pile left out, or delete the last one."""
+    editor = form.editor
+    if not editor.ready_to_restructure():
+        return False
+    items = form.data["杭基礎"]["配置"][key]
+    if action == "add":
+        items.append({"線路方向の列": None, "線路直角方向の列": None} if key == "抜く杭" else None)
+    elif items:
+        items.pop()
+    else:
+        return False
     editor.rebuild()
     return True
 

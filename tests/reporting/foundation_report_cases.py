@@ -18,7 +18,7 @@ CURRENT = json.loads((FIXTURES / "inputs" / "current.json").read_text(encoding="
 EXTRA_LAYER = {
     "層番": "第2層", "層厚": 3.25, "土質区分": "粘性土", "N値": 12,
     "単位体積重量": {"湿潤": 17.5, "水中": 7.5}, "内部摩擦角_φd": 28.4,
-    "一軸圧縮強度_qu": 120, "変形係数_Ed": 28000,
+    "粘着力_c": 120, "変形係数_Ed": 28000, "De": None,
 }
 
 # Each variant changes the dimensions, the support soil (equation), Ed, φ and the cover,
@@ -35,7 +35,7 @@ CASES: dict[str, dict[str, object]] = {
     },
     "alternating": {
         "地盤データ/層/1/土質区分": "砂質土と粘性土の互層", "地盤データ/層/1/変形係数_Ed": 98765,
-        "地盤データ/層/1/内部摩擦角_φd": 37.5, "地盤データ/層/1/一軸圧縮強度_qu": 250,
+        "地盤データ/層/1/内部摩擦角_φd": 37.5, "地盤データ/層/1/粘着力_c": 250,
         "下部構造/寸法/側面/B8": 3.05, "下部構造/寸法/正面/W8": 5.15,
         "下部構造/土かぶり/起点側_df1": 1.5,
     },

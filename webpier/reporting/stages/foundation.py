@@ -52,8 +52,9 @@ _WORDED = (8, 22, 26, 27)
 # A "ここに、" list: "ここに、" and the symbol from column 5, the "：" on the boundary before column 9 and the text from
 # column 10; a value's "(=" before column 19, the value ending at column 23 and its unit from column 24.
 _DEFINITIONS = {"left": 5, "colon": 9, "value_equal": 19, "value_right": 23, "unit_start": 24}
-# The soil table spans the body's 30 columns: 層番, 層厚, 土質区分, Ｎ値, 湿潤, 水中, 内部摩擦角, 一軸圧縮強度, 変形係数.
-# Each column holds its 10 pt header (一軸圧縮強度 takes five) and its widest value; a long name wraps.
+# The soil table spans the body's 30 columns: 層番, 層厚, 土質区分, Ｎ値, 湿潤, 水中, 内部摩擦角, 粘着力, 変形係数.
+# Each column holds its 10 pt header (粘着力 takes five, as 一軸圧縮強度 did before decision 80) and its widest value; a long
+# name wraps.
 _SOIL_LEFT = 0
 _SOIL_WIDTHS = (3, 3, 3, 2, 3, 3, 4, 5, 4)
 
@@ -169,7 +170,7 @@ def content(result: FoundationResult, pier: PierInput, embedment: EmbedmentResul
     add("soil.header", ("層番", ("層厚", "(m)"), "土質区分", "Ｎ値",
                         ("単位体積重量", "湿潤", "水中"),
                         ("内部摩擦角", "φd(°)"),
-                        ("一軸圧縮強度", Row("qu(kN/m", power("", "2"), ")", gap=0)),
+                        ("粘着力", Row("c(kN/m", power("", "2"), ")", gap=0)),
                         ("変形係数", Row("Ed(kN/m", power("", "2"), ")", gap=0))), "soil_header", _SOIL_LEFT)
     surface = surface_layer_thickness(pier, result.surface_thickness)
     for index, layer in enumerate(pier.soil.layers):
@@ -177,7 +178,7 @@ def content(result: FoundationResult, pier: PierInput, embedment: EmbedmentResul
         thickness = surface if index == 0 else layer.thickness
         add(f"soil.row.{index}", (layer.name, _optional(thickness), layer.soil_type, _optional(layer.n_value),
                                   _optional(layer.unit_weight_wet), _optional(layer.unit_weight_submerged),
-                                  _optional(layer.friction_angle), _optional(layer.compressive_strength),
+                                  _optional(layer.friction_angle), _optional(layer.cohesion),
                                   _optional(layer.deformation_modulus, thousands=True)), "soil_row", _SOIL_LEFT)
     sub_ = pier.substructure
     # The names of the input sheet (H6, H5, df1, df2) are not defined in the report: values only. With 表層

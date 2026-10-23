@@ -106,9 +106,9 @@ def _footing(pier: PierInput, foundation: FoundationResult, embedment: Embedment
     if support.soil_type not in SANDY_SOILS:
         raise InputError(f"{path}.土質区分: JRSNAP の直接基礎（砂質土系）は{'・'.join(SANDY_SOILS)}だけに対応します"
                          f"（入力 {support.soil_type}）")
-    # decision 63: a blank qu is 0
-    if support.compressive_strength is not None and support.compressive_strength.value != 0:
-        raise InputError(f"{path}.一軸圧縮強度_qu: qu = 0 または空欄が必要です（砂質土系の直接基礎は c = 0）")
+    # decision 63 (read as c, decision 80): a blank c is 0
+    if support.cohesion is not None and support.cohesion.value != 0:
+        raise InputError(f"{path}.粘着力_c: c = 0 または空欄が必要です（砂質土系の直接基礎は c = 0）")
     if support.unit_weight_submerged is None:
         raise InputError(f"{path}.単位体積重量.水中: 値が必要です（γ1）")
     b, l = (getattr(foundation, name) for name in profile.plan)

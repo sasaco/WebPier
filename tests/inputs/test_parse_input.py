@@ -148,16 +148,9 @@ def test_soil_type_choices_follow_the_ground_reaction_equations():
     fails(document, "地盤データ.層[1].土質区分: 「砂質土」「砂礫」「粘性土」「砂質土と粘性土の互層」のいずれか")
 
 
-def test_unsupported_foundation_type_is_reserved_but_rejected():
-    document = data()
-    document["下部構造"]["杭種"] = "場所打ち杭"
-    fails(document, "下部構造.杭種: 場所打ち杭は未対応です")
-
-
-def test_reserved_pile_and_skew_fields_are_validated_but_kept():
+def test_reserved_skew_fields_are_validated_but_kept():
     pier = parse_input(data())
     assert pier.reserved.skew_angle.value == 90
-    assert len(pier.reserved.piles) == 6
     document = data()
     document["下部構造"]["斜角"]["θ"] = 90.5
     fails(document, "下部構造.斜角.θ: 小数0桁までで入力してください")

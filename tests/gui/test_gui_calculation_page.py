@@ -80,7 +80,7 @@ def test_the_jrsnap_conditions_are_inputs_with_program_units_on_their_own_page(e
     """Decision 72: the JRSNAP conditions moved from 計算・印刷 to the page 06 JRSNAPの設定."""
     assert ("jrsnap_longitudinal", "analysis_steps") not in editor.bindings.items
     steps = jrsnap_cell(editor, "jrsnap_longitudinal", "analysis_steps")
-    assert gui.PAGES.index(gui.JRSNAP) == 5 and gui.PAGES.index(gui.CALCULATION) == 6
+    assert gui.PAGES.index(gui.JRSNAP) == 6 and gui.PAGES.index(gui.CALCULATION) == 7
     assert steps.get() == "300" and cell(editor, "jrsnap_transverse", "target_displacement_m").get() == "0.350"
     row = steps.row
     assert steps.sheet.get_cell_data(row, 0) == "解析のステップ数"

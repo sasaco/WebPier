@@ -378,12 +378,16 @@ def input_schema(*, load_model: bool = False) -> dict[str, Any]:
     root["properties"]["出典"] = {"description": "入力の出典（自由な形式。計算には使わない）"}
     for pattern, spec in FIELDS.items():
         node = root
-        *branches, last = _parts(pattern)  # every field is a scalar of an object (no list of scalars)
+        *branches, last = _parts(pattern)  # a field is a scalar of an object, or a list of scalars (杭の列の位置)
         for branch in branches:
             name, array = (branch[:-3], True) if branch.endswith("[*]") else (branch, False)
             child = node["properties"].setdefault(name, {"type": "array", "items": _object()} if array else _object())
             node = child["items"] if array else child
-        node["properties"][last] = _LOAD_MODEL if load_model and load_model_item(pattern) else _leaf(spec)
+        leaf = _LOAD_MODEL if load_model and load_model_item(pattern) else _leaf(spec)
+        if last.endswith("[*]"):
+            node["properties"][last[:-3]] = {"type": "array", "items": leaf}
+        else:
+            node["properties"][last] = leaf
     rebar = root["properties"]["鉄筋"]["properties"]
     rebar["version"] = {"const": REBAR_VERSION}
     rebar["梁"]["properties"]["side_bars"]["type"] = ["object", "null"]  # null: no side bars (rebar._beam_side)

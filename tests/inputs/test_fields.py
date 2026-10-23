@@ -89,10 +89,7 @@ def test_units_come_from_the_program():
 def test_reserved_fields_are_marked():
     reserved = {key for key, spec in fields.FIELDS.items() if spec.reserved}
     assert reserved == {
-        "下部構造.斜角.θ", "下部構造.斜角.タイプ", "下部構造.単位体積重量.杭.鉛直重量", "下部構造.単位体積重量.杭.慣性力",
-        "下部構造.杭種", "下部構造.場所打ち杭の施工条件", "下部構造.杭の配置[*].線路方向.X",
-        "下部構造.杭の配置[*].線路方向.本数", "下部構造.杭の配置[*].線路直角方向.Y",
-        "下部構造.杭の配置[*].線路直角方向.本数", "上部構造.起点側.遠心作用方向", "上部構造.終点側.遠心作用方向"}
+        "下部構造.斜角.θ", "下部構造.斜角.タイプ", "上部構造.起点側.遠心作用方向", "上部構造.終点側.遠心作用方向"}
 
 
 def test_the_third_and_fourth_track_are_blank_fields():

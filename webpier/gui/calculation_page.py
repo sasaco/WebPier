@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 from ..core.errors import InputError
 from ..core.integrity import file_sha256
 from ..inputs import parse_input
-from ..inputs.outputs import OUTPUT_KEYS, requires, users
+from ..inputs.outputs import OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, requires, users
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
 from .pdf_dialog import PdfPreviewDialog
@@ -83,6 +83,8 @@ class CalculationPage:
             self.output_boxes[key].pack(side="left")
             if note:
                 ttk.Label(row, text=f"　{note}", style="Muted.TLabel").pack(side="left")
+        self.foundation_note = tk.StringVar(master=editor.root)
+        ttk.Label(box, textvariable=self.foundation_note, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
         self._show_outputs()
         actions = ttk.Frame(page)
         actions.pack(fill="x", pady=(6, 0))
@@ -139,10 +141,16 @@ class CalculationPage:
     def _show_outputs(self) -> None:
         """The checkboxes as the document holds the items; an item is enabled only with every item it uses."""
         chosen = self._chosen()
+        foundation = self.editor.document.data.get("下部構造", {}).get("基礎形式")
         for key, variable in self.outputs.items():
             variable.set(chosen[key])
-            enabled = not self.busy and all(chosen[item] for item in requires(key))
+            # an item the 基礎形式 cannot make yet stays enabled while it is checked, so that it can be unchecked
+            enabled = (not self.busy and all(chosen[item] for item in requires(key))
+                       and (foundation_makes(foundation, key) or chosen[key]))
             self.output_boxes[key].state(["!disabled"] if enabled else ["disabled"])
+        self.foundation_note.set("" if all(foundation_makes(foundation, key) for key in OUTPUT_KEYS) else
+                                 f"{foundation}で選べる項目は、対応した段階から広がります（いま選べる項目: "
+                                 f"{'・'.join(PILE_OUTPUT_KEYS) or 'なし'}）。")
 
     def _output_changed(self, key: str) -> None:
         """Write the item into the document (decision 72); unchecking it unchecks every item that uses it."""

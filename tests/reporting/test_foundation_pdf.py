@@ -184,7 +184,7 @@ def test_every_text_is_ms_mincho_or_ms_gothic_at_10_pt_with_6_5_pt_scripts_on_gr
                or (command.style == HEADING and min(abs(command.x - x) for x in HEADING_STARTS) < .01)}
     assert len(offsets) == 1, offsets
     headings = {command.text for _, command in texts if command.style.font == "MS Gothic" and command.style.size == 10}
-    assert {"§5. 地盤のモデル化", "5.2 地盤反力係数の算定", "【基礎標準 13.2.2.2】", "層番", "一軸圧縮強度"} <= headings
+    assert {"§5. 地盤のモデル化", "5.2 地盤反力係数の算定", "【基礎標準 13.2.2.2】", "層番", "粘着力"} <= headings
 
 
 def test_headings_body_and_soil_table_stand_on_the_common_grid_columns(tmp_path: Path):
@@ -208,7 +208,7 @@ def test_headings_body_and_soil_table_stand_on_the_common_grid_columns(tmp_path:
                  if rule.width in (BorderStyle.HAIR.stroke_width, BorderStyle.MEDIUM.stroke_width)]
         vertical = [rule for rule in table if rule.axis == "v"]
         horizontal = [rule for rule in table if rule.axis == "h"]
-        # Column boundaries: 層番 3, 層厚 3, 土質区分 3, Ｎ値 2, 湿潤 3, 水中 3, 内部摩擦角 4, 一軸圧縮強度 5, 変形係数 4.
+        # Column boundaries: 層番 3, 層厚 3, 土質区分 3, Ｎ値 2, 湿潤 3, 水中 3, 内部摩擦角 4, 粘着力 5, 変形係数 4.
         boundaries = (0, 3, 6, 9, 11, 14, 17, 21, 26, 30)
         frame = BorderStyle.MEDIUM.stroke_width / 2  # the frame is drawn inside the table
         assert sorted({round(rule.coordinate, 2) for rule in vertical}) == pytest.approx(

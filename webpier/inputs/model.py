@@ -38,6 +38,7 @@ class Substructure:
     unit_weight_body: Printed
     unit_weight_footing: Printed
     unit_weight_overburden: Printed
+    foundation: str  # 基礎形式, one of choices.FOUNDATION_TYPES
 
 
 @dataclass(frozen=True)
@@ -138,8 +139,9 @@ class SoilLayer:
     unit_weight_submerged: Printed | None
     friction_angle: Printed | None
     friction_angle_limit: Printed | None
-    compressive_strength: Printed | None
+    cohesion: Printed | None  # 粘着力 c (decision 80; it replaced the 一軸圧縮強度 qu)
     deformation_modulus: Printed | None
+    reduction: Printed | None  # De of the layer in liquefaction; None is blank, 1 (the layer does not liquefy)
 
 
 @dataclass(frozen=True)
@@ -167,11 +169,45 @@ class Materials:
 
 
 @dataclass(frozen=True)
-class Pile:
-    x: Printed | None
-    x_count: int | None
-    y: Printed | None
-    y_count: int | None
+class CastInPlacePile:
+    """場所打ち杭: its diameter, concrete strength and construction condition; None is blank."""
+
+    diameter: Printed | None  # 杭径 D, m
+    fck: Printed | None  # f'ck, N/mm2
+    condition: str | None  # 施工条件, one of choices.CAST_IN_PLACE_CONDITIONS
+
+
+@dataclass(frozen=True)
+class SteelSoilCementPile:
+    """鋼管ソイルセメント杭; None is blank."""
+
+    soil_cement_diameter: Printed | None  # ソイルセメント径 Dsc, m
+    steel_diameter: Printed | None  # 鋼管外径 Dsp, m
+    thickness: Printed | None  # 鋼管厚 t, mm (it includes the corrosion allowance)
+    corrosion: Printed | None  # 腐食代 c, mm
+
+
+@dataclass(frozen=True)
+class PileLayout:
+    """杭の配置 (CONTEXT.md): the positions of the columns of piles in each direction (m from the centre of the footing,
+    in the direction of the frame's x and of its y), grid or staggered, and the piles left out. A column is numbered
+    from 1 in the order of the positions; ``removed`` holds (column along the line, column across it)."""
+
+    pattern: str | None  # 形式, one of choices.PILE_ARRANGEMENTS
+    along: tuple[Printed, ...]  # 線路方向の列の位置
+    across: tuple[Printed, ...]  # 線路直角方向の列の位置
+    removed: tuple[tuple[int, int], ...]  # 抜く杭
+
+
+@dataclass(frozen=True)
+class PileFoundation:
+    """杭基礎 (decision 80): read for every 基礎形式 as to form and digits; a pile foundation uses the items of its type."""
+
+    length: Printed | None  # 杭長 L, m
+    unit_weight: Printed | None  # 杭の単位体積重量, kN/m3
+    cast_in_place: CastInPlacePile
+    steel_soil_cement: SteelSoilCementPile
+    layout: PileLayout
 
 
 @dataclass(frozen=True)
@@ -180,10 +216,6 @@ class Reserved:
 
     skew_angle: Printed
     skew_type: int
-    pile_unit_weight_vertical: Printed | None
-    pile_unit_weight_inertia: Printed | None
-    cast_in_place_condition: str | None
-    piles: tuple[Pile, ...]
     centrifugal_direction: tuple[str, str] | None  # None with a load model (decision 70)
 
 
@@ -255,6 +287,7 @@ class PierInput:
     soil: Soil
     materials: Materials
     reserved: Reserved
+    piles: PileFoundation  # 杭基礎 (decision 80); used when substructure.foundation is a pile foundation
     rebar: RebarInput
     seismic_design: SeismicDesign
     column_check: ColumnCheck  # 柱の断面照査 (decision 48)

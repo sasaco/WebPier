@@ -18,12 +18,13 @@ from typing import Any
 from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
-from .fields import BEAM_SURFACES, LOAD, REPETITION_SLOPES, SNOW_KEYS, read
+from .fields import BEAM_SURFACES, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
-    Bearing, CantileverCheck, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions, Materials, PierInput,
-    Pile, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span, Spans, Substructure, Train,
+    Bearing, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
+    Materials, PierInput, PileFoundation, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
+    Spans, Substructure, SteelSoilCementPile, Train,
 )
-from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS
+from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes
 from .rebar import parse_rebar
 
 SCHEMA_VERSION = 2
@@ -51,13 +52,14 @@ def _substructure(root: Reader) -> Substructure:
             raise dims.at(group, f"{prefix}1").error(f"{prefix}4+{prefix}5より大きい値が必要です")
     cover = sub.at("土かぶり").only("起点側_df1", "終点側_df2")
     water = sub.at("水位").only("高水位_hw1", "平水位_hw2", "低水位_hw3")
-    weights = sub.at("単位体積重量").only("梁・躯体", "フーチング", "杭", "上載土")
+    weights = sub.at("単位体積重量").only("梁・躯体", "フーチング", "上載土")
     return Substructure(
         b=sized["B"], w=sized["W"], h=sized["H"],
         df1=read(cover.at("起点側_df1")), df2=read(cover.at("終点側_df2")),
         hw1=read(water.at("高水位_hw1")), hw2=read(water.at("平水位_hw2")), hw3=read(water.at("低水位_hw3")),
         unit_weight_body=read(weights.at("梁・躯体")), unit_weight_footing=read(weights.at("フーチング")),
         unit_weight_overburden=read(weights.at("上載土")),
+        foundation=read(sub.at("基礎形式")),
     )
 
 
@@ -159,7 +161,7 @@ def _reactions(root: Reader, load_model: bool) -> Reactions:
 
 
 LAYER_KEYS = ("層番", "層厚", "土質区分", "N値", "単位体積重量", "内部摩擦角_φd", "内部摩擦角の上限値",
-              "一軸圧縮強度_qu", "変形係数_Ed")
+              "粘着力_c", "変形係数_Ed", "De")
 
 
 def _layer(node: Reader, index: int) -> SoilLayer:
@@ -177,14 +179,26 @@ def _layer(node: Reader, index: int) -> SoilLayer:
         unit_weight_submerged=read(weights.at("水中")),
         friction_angle=read(node.at("内部摩擦角_φd")),
         friction_angle_limit=None if angle_limit is None else read(angle_limit),
-        compressive_strength=read(node.at("一軸圧縮強度_qu")),
+        cohesion=read(node.at("粘着力_c")),
         deformation_modulus=read(node.at("変形係数_Ed")),
+        reduction=read(node.at("De")),
     )
 
 
-def _soil(root: Reader) -> Soil:
+# SOIL-JR takes up to 20 layers below the bottom of the footing (the layers above it are one); a direct foundation up to 11
+PILE_LAYERS = 40
+DIRECT_LAYERS = 11
+
+
+def _soil(root: Reader, foundation: str) -> Soil:
+    """The layers from the ground surface. A direct foundation reads them as 表層 … 支持層 (decision 64); a pile foundation
+    cuts them at the bottom of the footing and the tip of the pile, which the stage that needs them does (ADR-0013)."""
     rows = root.at("地盤データ").only("層").at("層")
-    layers = tuple(_layer(node, index) for index, node in enumerate(rows.items(minimum=1, maximum=11)))
+    layers = tuple(_layer(node, index) for index, node in enumerate(rows.items(minimum=1, maximum=PILE_LAYERS if
+                                                                              foundation in choices.PILE_FOUNDATIONS
+                                                                              else DIRECT_LAYERS)))
+    if foundation in choices.PILE_FOUNDATIONS:
+        return Soil(layers)
     if layers[0].name != choices.LAYER_SURFACE:
         raise rows.at(0, "層番").error(f"先頭は「{choices.LAYER_SURFACE}」としてください")
     supports = [index for index, layer in enumerate(layers) if layer.name == choices.LAYER_SUPPORT]
@@ -212,24 +226,110 @@ def _materials(root: Reader) -> Materials:
 def _reserved(root: Reader, load_model: bool) -> Reserved:
     sub = root.at("下部構造")
     skew = sub.at("斜角").only("θ", "タイプ")
-    pile_weights = sub.at("単位体積重量", "杭").only("鉛直重量", "慣性力")
-    piles = []
-    for row in sub.at("杭の配置").items():
-        row.only("線路方向", "線路直角方向")
-        along = row.at("線路方向").only("X", "本数")
-        across = row.at("線路直角方向").only("Y", "本数")
-        piles.append(Pile(x=read(along.at("X")), x_count=read(along.at("本数")),
-                          y=read(across.at("Y")), y_count=read(across.at("本数"))))
     skew_type = read(skew.at("タイプ"))
     return Reserved(
         skew_angle=read(skew.at("θ")), skew_type=skew_type,
-        pile_unit_weight_vertical=read(pile_weights.at("鉛直重量")),
-        pile_unit_weight_inertia=read(pile_weights.at("慣性力")),
-        cast_in_place_condition=read(sub.at("場所打ち杭の施工条件")),
-        piles=tuple(piles),
         centrifugal_direction=None if load_model else tuple(
             read(root.at("上部構造", side, "遠心作用方向")) for side in ("起点側", "終点側")),
     )
+
+
+def _required_pile(node: Reader) -> Printed | str:
+    """A value of the pile foundation the table lets stay blank, which the chosen 基礎形式 needs."""
+    value = read(node)
+    if value is None:
+        raise node.error("値が必要です")
+    return value
+
+
+def _columns(node: Reader) -> tuple[Printed, ...]:
+    """The positions of the columns of piles in one direction: one to 99, each larger than the one before."""
+    return tuple(read(item) for item in node.items(maximum=MAX_PILE_COLUMNS))
+
+
+def _layout(node: Reader) -> PileLayout:
+    node.only("形式", "線路方向の列の位置", "線路直角方向の列の位置", "抜く杭")
+    removed = []
+    for row in node.at("抜く杭").items():
+        row.only("線路方向の列", "線路直角方向の列")
+        removed.append((read(row.at("線路方向の列")), read(row.at("線路直角方向の列"))))
+    return PileLayout(pattern=read(node.at("形式")), along=_columns(node.at("線路方向の列の位置")),
+                      across=_columns(node.at("線路直角方向の列の位置")), removed=tuple(removed))
+
+
+def _pile_layout_rules(node: Reader, layout: PileLayout) -> None:
+    """The rules of 杭の配置 of a pile foundation (CONTEXT.md 杭の配置, 千鳥配置): the columns are in order, a staggered
+    layout has an odd number of columns each way, a pile left out is at a place that has one, and every column keeps one."""
+    if layout.pattern is None:
+        raise node.at("形式").error("値が必要です")
+    for key, positions in (("線路方向の列の位置", layout.along), ("線路直角方向の列の位置", layout.across)):
+        if not positions:
+            raise node.at(key).error("1列以上の位置が必要です")
+        for index in range(1, len(positions)):
+            if positions[index].value <= positions[index - 1].value:
+                raise node.at(key, index).error(f"前の列（{positions[index - 1].value:g} m）より大きい位置が必要です")
+    along, across = len(layout.along), len(layout.across)
+    staggered = layout.pattern == choices.STAGGERED
+    if staggered and (along % 2 == 0 or across % 2 == 0):
+        raise node.at("形式").error(f"千鳥配置は両方向とも奇数列が必要です（線路方向 {along}列、線路直角方向 {across}列）")
+
+    def has_pile(i: int, j: int) -> bool:
+        return not staggered or (i + j) % 2 == 0
+
+    seen: set[tuple[int, int]] = set()
+    for index, (i, j) in enumerate(layout.removed):
+        row = node.at("抜く杭", index)
+        if i > along:
+            raise row.at("線路方向の列").error(f"線路方向の列は 1～{along} が必要です")
+        if j > across:
+            raise row.at("線路直角方向の列").error(f"線路直角方向の列は 1～{across} が必要です")
+        if not has_pile(i, j):
+            raise row.error("千鳥配置の杭のない位置は抜けません")
+        if (i, j) in seen:
+            raise row.error("同じ位置が重なっています")
+        seen.add((i, j))
+
+    def left(i: int, j: int) -> bool:
+        return has_pile(i, j) and (i, j) not in seen
+
+    for i in range(1, along + 1):
+        if not any(left(i, j) for j in range(1, across + 1)):
+            raise node.at("線路方向の列の位置", i - 1).error("この列の杭がすべてなくなります")
+    for j in range(1, across + 1):
+        if not any(left(i, j) for i in range(1, along + 1)):
+            raise node.at("線路直角方向の列の位置", j - 1).error("この列の杭がすべてなくなります")
+
+
+def _piles(root: Reader, foundation: str) -> PileFoundation:
+    """杭基礎 (decision 80): form and digits whatever the 基礎形式; a pile foundation also needs the values of its type."""
+    node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
+    cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
+    steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代")
+    piles = PileFoundation(
+        length=read(node.at("杭長")), unit_weight=read(node.at("杭の単位体積重量")),
+        cast_in_place=CastInPlacePile(diameter=read(cast.at("杭径")), fck=read(cast.at("f'ck")),
+                                      condition=read(cast.at("施工条件"))),
+        steel_soil_cement=SteelSoilCementPile(
+            soil_cement_diameter=read(steel.at("ソイルセメント径")), steel_diameter=read(steel.at("鋼管外径")),
+            thickness=read(steel.at("鋼管厚")), corrosion=read(steel.at("腐食代"))),
+        layout=_layout(node.at("配置")))
+    if foundation not in choices.PILE_FOUNDATIONS:
+        return piles
+    _required_pile(node.at("杭長"))
+    _required_pile(node.at("杭の単位体積重量"))
+    if foundation == choices.CAST_IN_PLACE_PILE:
+        for key in ("杭径", "f'ck", "施工条件"):
+            _required_pile(cast.at(key))
+    else:
+        sizes = {key: _required_pile(steel.at(key)) for key in ("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代")}
+        if sizes["ソイルセメント径"].value <= sizes["鋼管外径"].value:
+            raise steel.at("ソイルセメント径").error("鋼管外径より大きい値が必要です")
+        if sizes["鋼管厚"].value >= sizes["鋼管外径"].value * 500:
+            raise steel.at("鋼管厚").error("鋼管外径の半分より小さい値が必要です")
+        if sizes["腐食代"].value > sizes["鋼管厚"].value:
+            raise steel.at("腐食代").error("鋼管厚（腐食代を含む）以下が必要です")
+    _pile_layout_rules(node.at("配置"), piles.layout)
+    return piles
 
 
 JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "analysis_steps",
@@ -281,10 +381,15 @@ def _cantilever_check(root: Reader) -> CantileverCheck:
                               service_life=read(fatigue.at("設計耐用年数")), repetitions=counts))
 
 
-def _outputs(root: Reader) -> tuple[str, ...]:
-    """The chosen 出力項目 (decision 72): at least one, each with every item it uses."""
+def _outputs(root: Reader, foundation: str) -> tuple[str, ...]:
+    """The chosen 出力項目 (decision 72): at least one, each with every item it uses; a pile foundation makes only the
+    items it can so far (PILE_OUTPUT_KEYS), and each other chosen item is an input error at its own path."""
     node = root.at("outputs").only(*OUTPUT_KEYS)
     chosen = tuple(key for key in OUTPUT_KEYS if read(node.at(key)))
+    for key in chosen:
+        if not foundation_makes(foundation, key):
+            available = "・".join(PILE_OUTPUT_KEYS) or "なし"
+            raise node.at(key).error(f"{foundation}は未対応です（{foundation}で選べる出力項目: {available}）")
     for item in OUTPUT_ITEMS:
         if item.key in chosen and (missing := [key for key in item.requires if key not in chosen]):
             raise node.at(item.key).error(f"{'・'.join(f'outputs.{key}' for key in missing)} も true が必要です")
@@ -293,7 +398,7 @@ def _outputs(root: Reader) -> tuple[str, ...]:
     return chosen
 
 
-TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "地盤データ", "鉄筋", "耐震設計条件", "柱の断面照査",
+TOP_KEYS = ("schema_version", "出典", "上部工反力", "上部構造", "下部構造", "杭基礎", "地盤データ", "鉄筋", "耐震設計条件", "柱の断面照査",
             CANTILEVER_CHECK, "jrsnap_longitudinal", "jrsnap_transverse", "outputs")
 
 
@@ -316,24 +421,22 @@ def parse_input(data: Any, *, load_model: bool = False) -> PierInput:
     root.at("schema_version").integer(SCHEMA_VERSION, SCHEMA_VERSION)
     root.at("上部構造").only("起点側", "終点側", "支承データ", "列車")
     root.at("上部構造", "支承データ").only("起点側", "終点側")
-    sub = root.at("下部構造").only("寸法", "土かぶり", "水位", "斜角", "単位体積重量", "杭種",
-                                   "場所打ち杭の施工条件", "杭の配置")
-    foundation = read(sub.at("杭種"))
-    if foundation != choices.SUPPORTED_FOUNDATION:
-        raise sub.at("杭種").error(f"{foundation}は未対応です（{choices.SUPPORTED_FOUNDATION}のみ計算できます）")
+    sub = root.at("下部構造").only("寸法", "土かぶり", "水位", "斜角", "単位体積重量", "基礎形式")
+    foundation = read(sub.at("基礎形式"))
     return PierInput(
         substructure=_substructure(root),
         spans=Spans(_span(root, "起点側", load_model), _span(root, "終点側", load_model)),
         train=None if load_model else _train(root),
         reactions=_reactions(root, load_model),
-        soil=_soil(root),
+        soil=_soil(root, foundation),
         materials=_materials(root),
         reserved=_reserved(root, load_model),
+        piles=_piles(root, foundation),
         rebar=parse_rebar(root),
         seismic_design=_seismic_design(root),
         column_check=_column_check(root),
         cantilever_check=_cantilever_check(root),
         jrsnap=Jrsnap(longitudinal=_jrsnap_conditions(root, "jrsnap_longitudinal"),
                       transverse=_jrsnap_conditions(root, "jrsnap_transverse")),
-        outputs=_outputs(root),
+        outputs=_outputs(root, foundation),
     )
