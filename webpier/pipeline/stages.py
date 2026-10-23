@@ -83,7 +83,8 @@ from ..calc.generic.cantilever import calculate_generic_cantilever, complete_gen
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
-from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check
+from ..calc.pile_body import assemble as assemble_pile_body, select as select_pile_forces, steel as pile_steel
+from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check, with_body
 from ..calc.pile_frame import PileFoundation
 from ..calc.pile_ground import calculate_pile_ground
 from ..calc.reaction import calculate_dead_reaction, calculate_reaction
@@ -91,7 +92,7 @@ from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
 from ..calc.seismic_transverse import calculate_seismic_transverse
 from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
-from ..core.integrity import dump_json
+from ..core.integrity import dump_json, sha256
 from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
 from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wdj, point_index, write_footing_wdj,
                                write_wdj)
@@ -101,6 +102,7 @@ from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_
 from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
+from ..export.steeldan import write_wsj
 from ..inputs import PierInput, choices
 from ..inputs.outputs import OUTPUT_KEYS, uses
 from ..reporting.stages import cantilever as cantilever_report
@@ -145,10 +147,11 @@ from ..reporting.stages.seismic_check import render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
-from . import soiljr
+from . import capacita, soiljr
 from .pile_check import limits as pile_limits
+from .steeldan import check_pile as run_pile_body
 from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
-from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, support_reactions
+from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, member_forces, support_reactions
 
 Results = Mapping[str, Any]
 # The stages of each 出力項目 (decision 72): the frame analysis (decisions 46, 54), the static nonlinear analysis
@@ -610,9 +613,19 @@ def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: Fou
     displacements of the frame analysis of the FrameWeb file of *source* against the limits of SOIL-JR's .sdr in 0500.
     It waits for them (the frame stands on SOIL-JR's springs), so it is calculated once 0500 is complete."""
     def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        return check_pile(basis, pile_limits(results["0500"].sdr, direction),
-                          head_forces(files["pik"], [member.member for member in basis.members]),
-                          footing_displacements(files["displacement"], basis.node))
+        found = check_pile(basis, pile_limits(results["0500"].sdr, direction),
+                           head_forces(files["pik"], [member.member for member in basis.members]),
+                           footing_displacements(files["displacement"], basis.node))
+        if pier.substructure.foundation != choices.STEEL_SOIL_CEMENT_PILE:
+            return found
+        # the pile body of a steel pipe pile: WebPier chooses the design forces, Capacita's SteelDan calculates (decision 89)
+        steel = pile_steel(pier)
+        lines = member_forces(files["pik"], [member.member for member in basis.members], basis.body_pickup)
+        rows = [select_pile_forces(member.row, member.member, member.piles, lines[member.member])
+                for member in basis.members]
+        wsj = write_wsj(steel, rows)
+        values, version = run_pile_body(wsj, {row.row for row in rows}, capacita.runner_path())
+        return with_body(found, assemble_pile_body(steel, rows, values, version, sha256(wsj)))
 
     return StageSpec(stage_id, stem, ("0500", source),
                      lambda pier, results: prepare_pile_check(pier, results[source], direction),

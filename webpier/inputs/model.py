@@ -185,6 +185,7 @@ class SteelSoilCementPile:
     steel_diameter: Printed | None  # 鋼管外径 Dsp, m
     thickness: Printed | None  # 鋼管厚 t, mm (it includes the corrosion allowance)
     corrosion: Printed | None  # 腐食代 c, mm
+    grade: str | None  # 鋼管材質, one of choices.STEEL_PIPE_GRADES (the pile body check, decision 89)
 
 
 @dataclass(frozen=True)

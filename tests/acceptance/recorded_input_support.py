@@ -24,7 +24,8 @@ def _blank_piles(piles: object) -> bool:
     """Whether the 杭基礎 of an input is the empty one (nothing entered)."""
     return piles == {
         "杭長": None, "杭の単位体積重量": None, "場所打ち杭": {"杭径": None, "f'ck": None, "施工条件": None},
-        "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None},
+        "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None,
+                      "鋼管材質": None},
         "配置": {"形式": None, "線路方向の列の位置": [], "線路直角方向の列の位置": [], "抜く杭": []}}
 
 
@@ -74,7 +75,8 @@ def upgrade_to_piles(document: dict) -> dict:
                 for name, item in value.items() if name not in ("場所打ち杭の施工条件", "杭の配置")}
             new["杭基礎"] = {
                 "杭長": None, "杭の単位体積重量": None, "場所打ち杭": {"杭径": None, "f'ck": None, "施工条件": None},
-                "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None},
+                "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None,
+                              "鋼管材質": None},
                 "配置": {"形式": None, "線路方向の列の位置": [], "線路直角方向の列の位置": [], "抜く杭": []}}
         elif key == "地盤データ":
             new[key] = {**value, "層": [{**{("粘着力_c" if name == "一軸圧縮強度_qu" else name): item

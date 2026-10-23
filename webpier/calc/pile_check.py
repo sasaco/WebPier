@@ -19,7 +19,7 @@ short term (the sample, III-3.3).
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from ..core.errors import InputError
@@ -27,6 +27,7 @@ from ..core.printed import Precision, Printed
 from ..inputs import PierInput
 from ._exact import d, put
 from .foundation_check import FrameResult, LONGITUDINAL, TRANSVERSE, Direction, Requirement
+from .pile_body import PileBodyResult, PileResponseError
 from .frame import NodeRole
 from .longitudinal.combinations import ExtractionGroup
 
@@ -68,10 +69,6 @@ class HeadForce:
     smallest_combination: int
 
 
-class PileResponseError(Exception):
-    """The files FEMPython returned have no response the check reads."""
-
-
 @dataclass(frozen=True)
 class Extreme:
     """The largest absolute value of a displacement component of the footing top and its combination."""
@@ -101,6 +98,7 @@ class Basis:
     members: tuple[PileMember, ...]
     node: int  # the footing top of the frame
     pickups: Mapping[str, int]  # the pickup of each requirement, by its value
+    body_pickup: int  # the pickup of the 安全性（破壊）, whose section forces the pile body is checked with (decision 89)
 
 
 @dataclass(frozen=True)
@@ -143,7 +141,8 @@ class Column:
 class PileCheckResult:
     basis: Basis
     columns: tuple[Column, ...]
-    engineering_status: str  # "ok" when every check of every column is satisfied, else "not_ok"
+    engineering_status: str  # "ok" when every check of every column (and of the pile body) is satisfied, else "not_ok"
+    body: PileBodyResult | None = None  # the pile body of a steel pipe pile (decision 89), SteelDan's checks
 
 
 def prepare(pier: PierInput, frame_result: FrameResult, direction: Direction) -> Basis:
@@ -154,7 +153,8 @@ def prepare(pier: PierInput, frame_result: FrameResult, direction: Direction) ->
     numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
     members = tuple(PileMember(nodes.row.number, nodes.member, nodes.row.piles) for nodes in frame.pile_nodes)
     return Basis(members=members, node=frame.node(NodeRole.FOOTING_TOP).number,
-                 pickups={requirement.value: numbers[group] for requirement, _, group, _ in REQUIREMENTS})
+                 pickups={requirement.value: numbers[group] for requirement, _, group, _ in REQUIREMENTS},
+                 body_pickup=numbers[ExtractionGroup.FAILURE])
 
 
 def _ratio(numerator: Decimal, denominator: Decimal) -> Judged:
@@ -204,6 +204,12 @@ def check(basis: Basis, limits: Mapping[Requirement, Limits], forces: HeadForces
 
 
 
+def with_body(result: PileCheckResult, body: PileBodyResult) -> PileCheckResult:
+    """The check with the pile body of a steel pipe pile: the status is not_ok when a check of the body is not satisfied too."""
+    ok = result.engineering_status == "ok" and body.ok
+    return replace(result, body=body, engineering_status="ok" if ok else "not_ok")
+
+
 __all__ = ["Basis", "Column", "Displacements", "Extreme", "HeadForce", "HeadForces", "LONGITUDINAL", "Limits",
-           "PileCheckResult", "PileMember", "REQUIREMENTS", "PileResponseError", "SDR_DIRECTION", "TRANSVERSE", "check",
+           "PileCheckResult", "PileMember", "with_body", "REQUIREMENTS", "PileResponseError", "SDR_DIRECTION", "TRANSVERSE", "check",
            "prepare"]

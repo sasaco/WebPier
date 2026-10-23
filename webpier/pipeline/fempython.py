@@ -34,6 +34,7 @@ from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
 from ..calc.foundation_check import ReactionError, Reactions, SupportReaction
+from ..calc.pile_body import PointForces, SectionForce
 from ..calc.pile_check import Displacements, Extreme, HeadForce, HeadForces, PileResponseError
 from ..reporting.stages.insertion import LOAD_DIAGRAM
 
@@ -280,3 +281,25 @@ def footing_displacements(content: bytes, node: int) -> Displacements:
     except (UnicodeDecodeError, IndexError, ValueError) as exc:
         raise PileResponseError(f"変位の CSV を読めません（{exc}）") from exc
     return found
+
+
+def member_forces(content: bytes, members: Sequence[int], pickup: int) -> dict[int, tuple[PointForces, ...]]:
+    """The section forces of each of *members* in *pickup*, point by point, from the PIK as FEMPython returns it
+    (decision 89): a line of the focus M (bending moment), S (shear force) or N (axial force) at a point of a member
+    (ITAN: the head, JTAN: the tip, else a number) gives the forces of its largest and its smallest case, each with
+    the case; ``PileResponseError`` when it cannot be read."""
+    found: dict[int, list[PointForces]] = {member: [] for member in members}
+    try:
+        for number, line in enumerate(content.decode("utf-8-sig").splitlines(), 1):
+            cells = line.split()
+            if len(cells) != 13 or cells[1] not in ("M", "S", "N") or int(cells[0]) != pickup or int(cells[2]) not in found:
+                continue
+            forces = [float(cell) for cell in cells[6:]]
+            if not all(map(math.isfinite, forces)):
+                raise PileResponseError(f"{number} 行目に有限でない断面力があります")
+            found[int(cells[2])].append(PointForces(
+                cells[1], cells[5], forces[0], SectionForce(forces[1], forces[2], forces[3], int(cells[3])),
+                SectionForce(forces[4], forces[5], forces[6], int(cells[4]))))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise PileResponseError(f"PIK を読めません（{exc}）") from exc
+    return {member: tuple(rows) for member, rows in found.items()}

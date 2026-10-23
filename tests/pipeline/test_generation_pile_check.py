@@ -21,9 +21,16 @@ ITEMS = ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analys
          "transverse_frame_analysis")
 
 
-def write(directory: Path) -> Path:
+def write(directory: Path, **changes) -> Path:
+    """pile.json choosing the items of the frames and their checks, with each 'a/b/c' path replaced by its value."""
     data = deepcopy(PILE)
     data["outputs"] = {key: key in ITEMS for key in data["outputs"]}
+    for path, value in changes.items():
+        node = data
+        *parents, key = path.split("/")
+        for part in parents:
+            node = node[part]
+        node[key] = value
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "input.json"
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -111,3 +118,73 @@ def test_the_report_has_the_checks_the_table_and_the_grid_workbook(made, tmp_pat
     for words in ("長期支持", "短期支持", "安全性", "γi・Vud / Rud ≦ 1.0", "ＮＧ", "θLd (rad)", "0.00200"):
         assert words in pdf
     assert report.LONGITUDINAL.number == 8 and LONGITUDINAL.prefix == "0612/"
+
+
+STEEL = {"下部構造/基礎形式": "鋼管ソイルセメント杭"}
+
+
+def steel_options(root: Path, **changes) -> GenerationOptions:
+    return GenerationOptions(write(root / "pre", **STEEL, **changes), root / "output", root / "post")
+
+
+@pytest.fixture(scope="module")
+def steel(tmp_path_factory):
+    root = tmp_path_factory.mktemp("pile-body")
+    return root, generate.generate(steel_options(root))
+
+
+def test_the_pile_body_of_a_steel_pipe_pile_is_checked_by_steeldan(steel):
+    """The stand-in of SteelDan calculates the formulas of Capacita/SteelDan PipePileVerifier from the WSJ WebPier wrote: D 798 and t 17
+    (the input's 1.0 m pipe of 18 mm with a corrosion allowance of 1 mm: 1000 − 2, 18 − 1), SKK490."""
+    root, _ = steel
+    result = load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]
+    body = result["body"]
+    assert (body["steel"]["grade"], body["steel"]["diameter"], body["steel"]["thickness"]) == ("SKK490", 998.0, 17.0)
+    assert (body["steel"]["fsyk"], body["steel"]["fsvyk"], body["gamma_i"]) == (315.0, 180.0, 1.2)
+    assert [row["row"] for row in body["rows"]] == [1, 2, 3] and [row["piles"] for row in body["rows"]] == [3, 2, 3]
+    first = body["rows"][0]["cases"]
+    assert [case["case"] for case in first] == [6, 7, 8]  # the largest bending moment, shear force and axial compression
+    # row 1 (member 7, three piles): the stand-in's inner point has the moment 207 (largest) or −157 (smallest) kN m, the shear
+    # force 307 or −257, the axial force −1007 … −4070 kN (compression negative); per pile, compression positive
+    assert [(case["md"], case["vd"], case["nd"]) for case in first] == [(69.0, 6.7, 335.7), (16.7, 102.3, 666.7),
+                                                                       (10.0, 13.3, 1356.7)]
+    assert all(case["distance"] == 3.75 for case in first)
+    resistance = body["resistance"]
+    assert first[1]["shear"] == round(1.2 * 102.3 / resistance["shear"], 2)
+    assert first[0]["ratio_compression"] == round(1.2 * (335.7 / resistance["compression"] + 69.0 / resistance["bending_compression"]), 2)
+    assert body["engine_version"] == "fake-1" and len(body["wsj_sha256"]) == 64
+    assert result["engineering_status"] in ("ok", "not_ok")
+
+
+def test_the_pile_body_is_not_checked_for_a_cast_in_place_pile(made):
+    root, _ = made
+    assert load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]["body"] is None
+
+
+
+def test_a_pipe_too_thin_for_its_forces_fails_the_body_and_the_status(tmp_path):
+    from webpier.pipeline.generate import GenerationOptions as Options
+
+    thin = {"杭基礎/鋼管ソイルセメント杭/鋼管厚": 2.0}  # t = 2 − 1 = 1 mm of a 998 mm pipe
+    generation = generate.generate(Options(write(tmp_path / "pre", **STEEL, **thin), tmp_path / "output", tmp_path / "post"))
+    result = load_json((tmp_path / "output" / "0612_線路方向基礎.json").read_bytes())["result"]
+    assert result["engineering_status"] == "not_ok" and result["body"]["steel"]["thickness"] == 1.0
+    assert any(max(case["shear"], case["combined"], case["ratio_compression"]) > 1.0
+               for row in result["body"]["rows"] for case in row["cases"])
+    assert "ＮＧ" in text((tmp_path / "output" / "0612_線路方向基礎.pdf").read_bytes())
+    assert generation.stages[-1] == "0622"
+
+
+def test_the_pile_body_needs_the_grade_of_the_pipe(tmp_path):
+    from webpier.core.errors import InputError
+
+    with pytest.raises(InputError, match="杭基礎.鋼管ソイルセメント杭.鋼管材質: 杭体の照査に必要です"):
+        generate.generate(steel_options(tmp_path, **{"杭基礎/鋼管ソイルセメント杭/鋼管材質": None}))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
+
+
+def test_a_failure_of_steeldan_stops_the_generation(monkeypatch, tmp_path):
+    monkeypatch.setenv("FAKE_CAPACITA", "steel-fail")
+    with pytest.raises(generate.GenerationError, match="pile.wsj で鋼管杭の杭体の照査ができません: .*SD-FORCE-CASE"):
+        generate.generate(steel_options(tmp_path))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")

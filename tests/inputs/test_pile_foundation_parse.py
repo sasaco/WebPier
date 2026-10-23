@@ -34,7 +34,8 @@ def pile_input(kind="場所打ち杭"):
     piles["杭長"] = 19.0
     piles["杭の単位体積重量"] = 24.5
     piles["場所打ち杭"] = {"杭径": 1.0, "f'ck": 24.0, "施工条件": "自然泥水"}
-    piles["鋼管ソイルセメント杭"] = {"ソイルセメント径": 1.2, "鋼管外径": 1.0, "鋼管厚": 18.0, "腐食代": 1.0}
+    piles["鋼管ソイルセメント杭"] = {"ソイルセメント径": 1.2, "鋼管外径": 1.0, "鋼管厚": 18.0, "腐食代": 1.0,
+                                  "鋼管材質": "SKK490"}
     piles["配置"] = {"形式": "格子", "線路方向の列の位置": [-3.0, 0.0, 3.0], "線路直角方向の列の位置": [-3.0, 0.0, 3.0],
                    "抜く杭": [{"線路方向の列": 2, "線路直角方向の列": 2}]}
     return data
@@ -289,3 +290,12 @@ def test_the_cohesion_of_a_layer_is_its_c():
     assert parse_input(data).soil.layers[1].cohesion.value == 150
     data["地盤データ"]["層"][1]["一軸圧縮強度_qu"] = 300
     fails(data, "地盤データ.層[1].一軸圧縮強度_qu: 未知の入力項目です")
+
+
+def test_the_grade_of_the_steel_pipe_is_one_of_the_grades_and_may_stay_blank():
+    data = pile_input("鋼管ソイルセメント杭")
+    assert parse_input(data).piles.steel_soil_cement.grade == "SKK490"
+    data["杭基礎"]["鋼管ソイルセメント杭"]["鋼管材質"] = None
+    assert parse_input(data).piles.steel_soil_cement.grade is None  # the pile body asks for it (decision 89)
+    data["杭基礎"]["鋼管ソイルセメント杭"]["鋼管材質"] = "SS400"
+    fails(data, "杭基礎.鋼管ソイルセメント杭.鋼管材質")

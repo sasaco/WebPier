@@ -83,7 +83,7 @@ def pik(source, digest):
     document = json.loads(source.read_text(encoding="utf-8"))
     rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}" + f"{0:>10.2f}" * 6
             for number, point, position in points(document)]
-    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document)]).encode()
+    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document), *pile_points(document)]).encode()
 
 
 def head(member, pickup):
@@ -112,6 +112,26 @@ def pile_heads(document):
             lines.append(f"{number:>5}{'N':>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{'ITAN':>5}{0.0:>10.3f}"
                          + f"{0.0:>10.2f}" * 2 + f"{largest:>10.2f}" + f"{0.0:>10.2f}" * 2 + f"{smallest:>10.2f}")
     return lines
+
+
+def pile_points(document):
+    """The lines of the inner point (3.75 m from the head) of the pile members, for every pickup: the focus M, S and N, each with
+    the forces of its largest and its smallest case (``inner(member)``), so that the pile body takes them (decision 89)."""
+    lines = []
+    for number, pickup in document.get("pickup", {}).items():
+        combinations = [pickup[key] for key in pickup if key.startswith("C")]
+        for member in pile_members(document):
+            for focus, (largest, smallest) in inner(member).items():
+                lines.append(f"{number:>5}{focus:>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{'1':>5}{3.75:>10.3f}"
+                             + "".join(f"{value:>10.2f}" for value in (*largest, *smallest)))
+    return lines
+
+
+def inner(member):
+    """((Md, Vd, Nd) of the largest, of the smallest case) of each focus at the inner point of a pile member."""
+    return {"M": ((200.0 + member, 20.0, -(1000.0 + member)), (-(150.0 + member), -20.0, -900.0)),
+            "S": ((50.0, 300.0 + member, -2000.0), (-50.0, -(250.0 + member), -1800.0)),
+            "N": ((10.0, 5.0, -500.0), (30.0, 40.0, -(4000.0 + 10.0 * member)))}
 
 
 DISPLACEMENT_HEADER = ("pickup_id,focus_component,node_id,max_combine_id,min_combine_id,"

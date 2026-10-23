@@ -304,14 +304,15 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
     """杭基礎 (decision 80): form and digits whatever the 基礎形式; a pile foundation also needs the values of its type."""
     node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
     cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
-    steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代")
+    steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質")
     piles = PileFoundation(
         length=read(node.at("杭長")), unit_weight=read(node.at("杭の単位体積重量")),
         cast_in_place=CastInPlacePile(diameter=read(cast.at("杭径")), fck=read(cast.at("f'ck")),
                                       condition=read(cast.at("施工条件"))),
         steel_soil_cement=SteelSoilCementPile(
             soil_cement_diameter=read(steel.at("ソイルセメント径")), steel_diameter=read(steel.at("鋼管外径")),
-            thickness=read(steel.at("鋼管厚")), corrosion=read(steel.at("腐食代"))),
+            thickness=read(steel.at("鋼管厚")), corrosion=read(steel.at("腐食代")),
+            grade=read(steel.at("鋼管材質"))),
         layout=_layout(node.at("配置")))
     if foundation not in choices.PILE_FOUNDATIONS:
         return piles

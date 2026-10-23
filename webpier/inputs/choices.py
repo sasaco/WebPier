@@ -19,6 +19,8 @@ FOUNDATION_TYPES = (DIRECT_FOUNDATION, *PILE_FOUNDATIONS)
 
 # 場所打ち杭の施工条件: SOIL-JR's K_SJYOUKEN 1 and 2
 CAST_IN_PLACE_CONDITIONS = ("自然泥水", "安定液使用")
+# 鋼管の材質（JIS G 3444）: the design strengths of each are the calculation's (calc.pile_body)
+STEEL_PIPE_GRADES = ("SKK400", "SKK490")
 # 杭の配置: 千鳥配置 has piles only where the sum of the column numbers is even (CONTEXT.md 千鳥配置)
 PILE_ARRANGEMENTS = ("格子", "千鳥")
 GRID, STAGGERED = PILE_ARRANGEMENTS

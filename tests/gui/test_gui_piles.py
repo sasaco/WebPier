@@ -80,7 +80,7 @@ def test_a_cast_in_place_pile_foundation_shows_its_own_items(editor):
 def test_a_steel_soil_cement_pile_foundation_shows_its_own_items(editor):
     choose(editor, "鋼管ソイルセメント杭")
     shown = {path for path in editor.bindings.items if path[:1] == PILES}
-    assert {(*PILES, "鋼管ソイルセメント杭", key) for key in ("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代")} <= shown
+    assert {(*PILES, "鋼管ソイルセメント杭", key) for key in ("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質")} <= shown
     assert not any(path[1:2] == ("場所打ち杭",) for path in shown)
 
 

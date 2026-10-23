@@ -227,6 +227,7 @@ def _piles() -> dict[str, Field]:
         f"{steel}.鋼管外径": number(LENGTH, "positive", nullable=True),
         f"{steel}.鋼管厚": number(THICKNESS_MM, "positive", nullable=True),
         f"{steel}.腐食代": number(THICKNESS_MM, nullable=True),
+        f"{steel}.鋼管材質": choice(choices.STEEL_PIPE_GRADES, nullable=True),
         f"{layout}.形式": choice(choices.PILE_ARRANGEMENTS, nullable=True),
         f"{layout}.線路方向の列の位置[*]": number(LENGTH, "any"),
         f"{layout}.線路直角方向の列の位置[*]": number(LENGTH, "any"),

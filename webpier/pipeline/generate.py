@@ -604,6 +604,8 @@ def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str
         raise GenerationError(f"直接基礎のステップ表で{stage_id}の結果を仕上げられません: {exc}") from exc
     except ResponseError as exc:
         raise GenerationError(f"{stage_id}の片持ち梁の照査ができません: {exc}") from exc
+    except RunnerError as exc:  # SteelDan's check of the pile body (0612, 0622, decision 89)
+        raise GenerationError(str(exc)) from exc
     except PileResponseError as exc:  # the pile heads and the footing top of the frame analysis (0612, 0622, decision 89)
         raise GenerationError(f"骨組解析の結果で{stage_id}の杭基礎の照査ができません: {exc}") from exc
     except SdrError as exc:  # the .sdr SOIL-JR returned for the stage's .sdt (0500, decision 85)

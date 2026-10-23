@@ -154,3 +154,10 @@ def test_a_file_that_is_not_what_the_frame_reads_is_refused(data, message):  # n
 def test_the_rows_of_a_listed_layout_are_checked_against_its_columns(pairs, message):
     with pytest.raises(SdcError, match=message):
         parse_sdc(mutate(*pairs, name="pile_cast"))
+
+
+def test_a_pull_side_table_that_is_missing_is_named():
+    """The last layer takes the shear spring of the pull side (P5, owner), so d) must have both sides."""
+    text = (FIXTURES / "pile_steel_grid.sdc").read_bytes().decode("cp932").replace("【引抜き側】", "【引抜】")
+    with pytest.raises(SdcError, match="d）に【引抜き側】がありません"):
+        parse_sdc(text.encode("cp932"))

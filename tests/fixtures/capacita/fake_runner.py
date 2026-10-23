@@ -24,6 +24,13 @@ bending_restorability_eq, shear_restorability_eq and bending_rebar_amount, the b
 appearance), with the warnings WD-408 / WD-409 the real runner gives for the bending / shear rows without forces (the
 beam's table has them all: none); no ``model.wdj`` comes back.
 
+``run-steel --input <wsj> --output-dir <dir>`` (the pile body of a steel pipe pile of 0612 and 0622, decision 89) writes ``result.json``
+only, with the verifications SteelDan returns (engine steeldan, readiness experimental): for each point and force case 6, 7 and 8 of the
+WSJ the checks pipePileBending, pipePileShear and pipePileCombined with their values, calculated by the same formulas as
+Capacita/SteelDan PipePileVerifier (the same rounding), and the info message SD-NO-REPORT-SECTION. Modes ``steel-fail``,
+``steel-engine``, ``steel-artifacts``, ``steel-sha``, ``steel-missing``, ``steel-short`` (a check left out), ``steel-duplicate``,
+``steel-text-value`` (a value that is no number) and ``steel-version`` misbehave in it.
+
 When the real runner's protocol changes, change this too (the real-runner test is the signal). ``FAKE_CAPACITA`` makes
 it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
 listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), extra (an unlisted file), sections
@@ -106,6 +113,96 @@ def report(sections, digest):
     return stream.getvalue(), ranges
 
 
+def round_half_up(value, digits):
+    from decimal import ROUND_HALF_UP, Decimal
+
+    return float(Decimal(repr(value)).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP))
+
+
+def pipe_pile(document, mode):
+    """The verifications of the pile body (SteelDan PipePileVerifier): per point and case 6, 7, 8 of the force row."""
+    import math
+
+    members = {member["m_no"]: member for member in document["members"]}
+    factors = document["safety"]["safety_factor"]["1"][1]
+    gamma_i, gamma_t, gamma_c, gamma_s, gamma_m = (factors[key] for key in ("ri", "rb_T", "rb_C", "rb_S", "rs"))
+    material = document["safety"]["material_steel"]["1"][0]
+    verifications = []
+    for point in document["points"]:
+        section = next(item for item in document["sections"] if item["index"] == point["index"])
+        row = next(item for item in document["force"] if item["index"] == point["index"])
+        count = members[point["m_no"]]["n"] or 1
+        outer, wall = section["h"], section["t"]
+        inner = outer - 2 * wall
+        area = round_half_up(math.pi / 4 * (outer ** 2 - inner ** 2) / 1e6, 5)
+        inertia = round_half_up(math.pi / 64 * (outer ** 4 - inner ** 4) / 1e12, 8)
+        distance = round_half_up(outer / 2, 1)
+        fsyd = round_half_up(material["fsyk"] / gamma_m, 0)
+        fsvyd = round_half_up(material["fsvyk"] / gamma_m, 0)
+        tension = round_half_up(area * fsyd * 1000 / gamma_t, 1)
+        compression = round_half_up(area * fsyd * 1000 / gamma_c, 1)
+        bending_t = round_half_up(inertia / (distance / 1000) * fsyd * 1000 / gamma_t, 1)
+        bending_c = round_half_up(inertia / (distance / 1000) * fsyd * 1000 / gamma_c, 1)
+        shear = round_half_up(area * fsvyd * 1000 / gamma_s, 1)
+        for case in (6, 7, 8):
+            if row.get(f"{case}_Md") is None:
+                continue
+            md = round_half_up(abs(row[f"{case}_Md"] / count), 1)
+            nd = round_half_up(row[f"{case}_Nd"] / count, 1)
+            vd = round_half_up(abs(row[f"{case}_Vd"] / count), 1)
+            common = {"case": case, "D": outer, "t": wall, "A": area, "I": inertia, "y": distance, "fsyk": material["fsyk"],
+                      "fsvyk": material["fsvyk"], "gamma_s": gamma_m, "gamma_b_T": gamma_t, "gamma_b_C": gamma_c,
+                      "gamma_b_S": gamma_s, "gamma_i": gamma_i, "fsyd": fsyd, "fsvyd": fsvyd, "Md": md, "Nd": nd, "Vd": vd}
+            ratio_t = round_half_up(gamma_i * (-nd / tension + md / bending_t), 2)
+            ratio_c = round_half_up(gamma_i * (nd / compression + md / bending_c), 2)
+            ratio_s = round_half_up(gamma_i * vd / shear, 2)
+            ratio_k = round_half_up((gamma_i / 1.1) ** 2 * ((nd / compression + md / bending_c) ** 2 + (vd / shear) ** 2), 2)
+            for kind, ratio, own in (
+                    ("pipePileBending", max(ratio_t, ratio_c), {"Nud": tension, "Nu0d": compression, "Mutd": bending_t,
+                                                              "Mucd": bending_c, "ratio_tension": ratio_t,
+                                                              "ratio_compression": ratio_c}),
+                    ("pipePileShear", ratio_s, {"Vyd": shear}),
+                    ("pipePileCombined", ratio_k, {"Nu0d": compression, "Mucd": bending_c, "Vyd": shear})):
+                verifications.append({"kind": kind, "pointIndex": point["index"], "groupName": "G", "pointName": "P",
+                                      "side": "-", "ratio": ratio, "status": "ok" if ratio <= 1 else "notOk",
+                                      "values": {**common, **own, "ratio": ratio}})
+    if mode == "steel-short":
+        verifications.pop()
+    if mode == "steel-duplicate":
+        verifications.append(verifications[0])
+    if mode == "steel-text-value":
+        verifications[0]["values"]["A"] = "x"
+    return verifications
+
+
+def run_steel(argv, mode):
+    if len(argv) != 5 or argv[1] != "--input" or argv[3] != "--output-dir":
+        return failure("invalid_arguments", " ".join(argv), 2)
+    source, output = Path(argv[2]), Path(argv[4])
+    if output.exists() and any(output.iterdir()):
+        return failure("output_not_empty", str(output), 5)
+    if mode == "steel-fail":
+        print(json.dumps({**envelope(False, errors=[{"code": "calculation_failed", "message": "x"}]), "engine": "steeldan",
+                          "messages": [{"level": "error", "code": "SD-FORCE-CASE", "text": "断面力がありません"}]},
+                         ensure_ascii=False))
+        return 4
+    document = json.loads(source.read_bytes().decode("utf-8"))
+    result = json.dumps({"status": "success", "hasEngineeringFailure": False, "messages": [],
+                         "verifications": pipe_pile(document, mode)}, ensure_ascii=False).encode("utf-8")
+    output.mkdir(parents=True, exist_ok=True)
+    if mode != "steel-missing":
+        (output / "result.json").write_bytes(result)
+    artifact = {"kind": "result", "mediaType": "application/json; charset=utf-8", "relativePath": "result.json",
+                "bytes": len(result), "sha256": hashlib.sha256(b"other" if mode == "steel-sha" else result).hexdigest()}
+    changes = {"steel-engine": {"engine": "webdan2"}, "steel-version": {"engineVersion": ""},
+               "steel-artifacts": {"artifacts": [artifact, artifact]}}.get(mode, {})
+    print(json.dumps({**envelope(True, [artifact], summary={"verificationCount": 0}), "engine": "steeldan",
+                      "readiness": "experimental", "messages": [{"level": "info", "code": "SD-NO-REPORT-SECTION",
+                                                                  "text": "PDFを生成しません。"}], **changes},
+                     ensure_ascii=False))
+    return 0
+
+
 def main(argv):
     sys.stdout.reconfigure(encoding="utf-8")
     mode = os.environ.get("FAKE_CAPACITA", "")
@@ -117,6 +214,8 @@ def main(argv):
     if mode == "list":
         sys.stdout.write("[]")
         return 0
+    if argv and argv[0] == "run-steel":
+        return run_steel(argv, mode)
     if (len(argv) not in (7, 9) or argv[0] != "run-rc" or argv[1] != "--input" or argv[3] != "--output-dir"
             or argv[5:7] != ["--output-format", "pdf"] or (len(argv) == 9 and argv[7] != "--pickup")):
         return failure("invalid_arguments", " ".join(argv), 2)
