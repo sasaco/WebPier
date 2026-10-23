@@ -317,7 +317,7 @@ def test_the_relations_stand_on_the_formula_columns(current_pdf):
     # Every "=" on a column boundary is on a formula column (荷重修正係数 ρf takes six columns before its "=").
     assert set(relations) <= {SHORT_EQUAL, MARK_EQUAL, CONCLUSION_EQUAL, VERTICAL_EQUAL, WIDE_EQUAL, RESULT_EQUAL,
                               BODY + 6}
-    assert relations[RESULT_EQUAL] > 150 and relations[SHORT_EQUAL] > 150 and relations[WIDE_EQUAL] > 40
+    assert relations[RESULT_EQUAL] > 150 and relations[SHORT_EQUAL] > 100 and relations[WIDE_EQUAL] > 40
     # The unit of a result starts at its column.
     units = [span for span in spans(current_pdf) if span.text in ("kN", "m", "kN・m")
              and abs(span.x0 - column_x(UNIT_START)) < 1]

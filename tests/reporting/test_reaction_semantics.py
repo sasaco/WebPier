@@ -64,12 +64,25 @@ PART_VALUE = re.compile(
     r"self_weight\.(pedestal|beam|column|footing|overburden)\.(?:(weight)|rows\.(\d+)\.volume|weights\.(\d+))")
 
 
+WATER_VALUE = re.compile(r"self_weight\.buoyancy_(high|normal|low)\.(?:(rise|submerged|wedge|rectangle)|body\.rows\.(\d+)\.volume)")
+
+
 def omitted(result, path: str) -> bool:
     """A value that is not printed: one of UNPRINTED, a 桁受け of volume 0 (decision 41), a row of table 6.2.1 whose V
     is 0, and the weight of a part that the table prints in one row (its W is the row's)."""
     sw = result.self_weight
     if UNPRINTED.fullmatch(path) or sw.pedestal.volume.value == 0 and path.startswith("self_weight.pedestal."):
         return True
+    water = WATER_VALUE.fullmatch(path)
+    if water is not None:  # decision 86: what is 0 in 6.2 (3) is not printed
+        body = getattr(sw, "buoyancy_" + water[1])
+        return body.submerged.value == 0 if water[2] in ("rise", "submerged", "wedge", "rectangle") else \
+            body.body.rows[int(water[3])].volume.value == 0
+    dry = re.fullmatch(r"self_weight\.buoyancy_(high|normal|low)\.body\.(volume|unit_weight)", path)
+    if dry is not None:  # nothing under water: only N = 0 is printed
+        return all(row.volume.value == 0 for row in getattr(sw, "buoyancy_" + dry[1]).body.rows)
+    if path == "self_weight.column_area":
+        return all(getattr(sw, "buoyancy_" + name).body.rows[1].volume.value == 0 for name in ("high", "normal", "low"))
     found = PART_VALUE.fullmatch(path)
     if found is None:
         return False
@@ -91,7 +104,7 @@ def test_every_result_value_is_printed_from_the_result_at_its_digits():
         changed = "\n".join(records(replaced(result, path, mark), pier).values())
         if not pattern(mark).search(changed):
             missing.append(dotted(path))
-    assert missing == []
+    assert missing == [], missing
 
 
 @pytest.mark.parametrize("name", list(CASES))

@@ -52,8 +52,9 @@ def test_the_submerged_sloped_soil_is_a_wedge_on_the_lower_side(name: str, wedge
                                                  f"/{text(sw.soil_step)},{text(sw.footing_length)})={text(high.wedge)}m")
     # The wedge lies on the lower side (its position is of the calculation only, decision 79).
     assert (high.body.rows[2].x_l.value > 0) is (wedge_side == "end")
-    # The low water is below the footing top: nothing of the slope is submerged.
-    assert actual["weight.water.low.wedge"] == "b'=0.000m"
+    # The low water is below the footing top: nothing of the slope is submerged, so what is 0 is not printed.
+    for name in ("rise", "submerged", "wedge", "rectangle", "column.volume", "wedge.volume", "rectangle.volume"):
+        assert f"weight.water.low.{name}" not in actual
 
 
 def test_no_haunch_no_cover_and_no_bearing():
