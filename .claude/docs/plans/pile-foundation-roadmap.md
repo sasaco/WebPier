@@ -8,13 +8,13 @@
 
 | 段 | 状況 | 決定 | 実装 |
 |---|---|---|---|
-| P0 SOIL-JR 5.2 の .sdt の確認 | 済 | 83 | スキル structural-jrsnap-soil の `references/sdt-format.md` §12.1（structural-mcp `09d57ee`） |
-| P1 JRSNAPHeadless の `soil` 命令 | 済 | 83 | JRSNAPHeadless `a8733f9`（README に命令・成果物・失敗の種類） |
-| P2 入力（schema 2） | 済 | 84 | WebPier `f84ffb1` |
-| P3 0500（杭基礎） | 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
+| P0 SOIL-JR 5.2 の .sdt の確認 | ✅ 済 | 83 | スキル structural-jrsnap-soil の `references/sdt-format.md` §12.1（structural-mcp `09d57ee`） |
+| P1 JRSNAPHeadless の `soil` 命令 | ✅ 済 | 83 | JRSNAPHeadless `a8733f9`（README に命令・成果物・失敗の種類） |
+| P2 入力（schema 2） | ✅ 済 | 84 | WebPier `f84ffb1` |
+| P3 0500（杭基礎） | ✅ 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
 | P4〜P9 | 未着手 | — | — |
 
-### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`）
+### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`） ✅
 
 - 登録表：`StageSpec.foundations`（基礎形式→その段階）と `Registry.for_foundation`。杭基礎の 0500 は `0500_杭基礎`。
 - .sdt は入力から導いた値（`calc/pile_ground.py`）を `export/soiljr/` が SOIL-JR 5.2.3 の形に書く。地盤抵抗係数は未入力の目印で SOIL-JR に求めさせる（P0 で確かめた）。
@@ -65,7 +65,7 @@ P2 ───────┴─→ P3 ─→ P4 ─→ P5 ─┐
 P9 は各段の終わりに付ける
 ```
 
-### P0 SOIL-JR 5.2 の .sdt を確かめる
+### P0 SOIL-JR 5.2 の .sdt を確かめる ✅
 
 - **作るもの**：
   - 5.2 の .sdt の項目対応表。スキル structural-jrsnap-soil の `references/sdt-format.md` §12 を広げる。
@@ -75,7 +75,7 @@ P9 は各段の終わりに付ける
 - **決めること**：なし（事実の確認）。結果によっては決定80 を改める。
 - **依存**：なし。
 
-### P1 JRSNAPHeadless に SOIL-JR の命令を足す
+### P1 JRSNAPHeadless に SOIL-JR の命令を足す ✅
 
 - **作るもの**：
   - `soil` 命令。.sdt を受けて、.sdr・.sdc（液状化時用も）と帳票の PDF を返す。
@@ -93,7 +93,7 @@ P9 は各段の終わりに付ける
   - 計算中の確認画面（短い杭、杭間隔係数の OK/キャンセル）への応え方
 - **依存**：P0。
 
-### P2 入力（schema 2）
+### P2 入力（schema 2） ✅
 
 - **作るもの**：
   - 項目：`下部構造.基礎形式`、最上位の `杭基礎`、`地盤データ.層` の `粘着力_c`（qu を替える）と `De`。予約項目は消す（決定80）。
