@@ -11,7 +11,7 @@
 | P0 SOIL-JR 5.2 の .sdt の確認 | 済 | 83 | スキル structural-jrsnap-soil の `references/sdt-format.md` §12.1（structural-mcp `09d57ee`） |
 | P1 JRSNAPHeadless の `soil` 命令 | 済 | 83 | JRSNAPHeadless `a8733f9`（README に命令・成果物・失敗の種類） |
 | P2 入力（schema 2） | 済 | 84 | WebPier `f84ffb1` |
-| P3 0500（杭基礎） | 済（本物の SOIL-JR で見本と一致） | 85 | 下の「P3 で決めたこと」 |
+| P3 0500（杭基礎） | 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
 | P4〜P9 | 未着手 | — | — |
 
 ### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`）
