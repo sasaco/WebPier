@@ -1,103 +1,180 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0622",
-  "verified_at": "2026-10-21T20:28:47+09:00",
-  "method": "WebPier が 0620 で書く FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を Example2 9-27 と比べた。",
+  "verified_at": "2026-10-23T19:44:55+09:00",
+  "method": "WebPier が 0620 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 9-27 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+    "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
+    "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
   },
-  "frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
+  "frameweb_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
   "reaction": {
-    "file": "線路直角方向_ピックアップ反力.csv",
-    "sha256": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"
+    "file": "線路直角方向_ピックアップ反力_橋脚く体の衝撃.csv",
+    "sha256": "d2fbd2b1f3f5a03ff4cbb1c5ae1d94807c56153974f227a04a3c3539955eab4a"
   },
   "node": 6,
-  "compared": [
-    "vd"
-  ],
-  "tolerance": 0.25,
+  "hand_tolerance": 0.05,
   "columns": {
     "long_term": {
-      "ours": {
+      "real": {
         "combination": 14,
-        "vd": 16348.95,
-        "hd": 0.0,
-        "md": 0.0
+        "vd": 16348.948,
+        "fx": 0.0,
+        "mz": 0.0
       },
-      "sample": {
-        "combination": 14,
-        "vd": 16348.95,
-        "hd": 0.0,
-        "md": 0.0
+      "by_hand": {
+        "vd": 16348.948,
+        "fx": null,
+        "mz": null
       },
       "differences": {
-        "vd": 0.0,
-        "hd": 0.0,
-        "md": 0.0
+        "vd": 0.0
       }
     },
     "short_term": {
-      "ours": {
+      "real": {
         "combination": 15,
-        "vd": 18788.38,
-        "hd": 0.0,
-        "md": 1573.13
+        "vd": 18745.768,
+        "fx": 0.0,
+        "mz": -1482.68
       },
-      "sample": {
-        "combination": 15,
-        "vd": 18788.17,
-        "hd": 0.0,
-        "md": 1572.67
+      "by_hand": {
+        "vd": 18745.768,
+        "fx": null,
+        "mz": null
       },
       "differences": {
-        "vd": 0.21,
-        "hd": 0.0,
-        "md": 0.46
+        "vd": 0.0
       }
     },
     "safety_vertical": {
-      "ours": {
+      "real": {
         "combination": 10,
-        "vd": 22585.13,
-        "hd": 465.94,
-        "md": 7389.08
+        "vd": 22448.2168,
+        "fx": -465.9387,
+        "mz": -7389.0769
       },
-      "sample": {
-        "combination": 10,
-        "vd": 22585.12,
-        "hd": 194.91,
-        "md": 3451.7
+      "by_hand": {
+        "vd": 22448.23,
+        "fx": null,
+        "mz": null
       },
       "differences": {
-        "vd": 0.01,
-        "hd": 271.03,
-        "md": 3937.38
+        "vd": -0.0132
       }
     },
     "safety_moment": {
-      "ours": {
+      "real": {
         "combination": 12,
-        "vd": 20045.0,
-        "hd": 788.53,
-        "md": 13068.19
+        "vd": 20045.0028,
+        "fx": 788.532,
+        "mz": 13068.186
       },
-      "sample": {
-        "combination": 12,
-        "vd": 20045.0,
-        "hd": 797.47,
-        "md": 10409.79
+      "by_hand": {
+        "vd": 20045.02,
+        "fx": null,
+        "mz": null
       },
       "differences": {
-        "vd": 0.0,
-        "hd": -8.94,
-        "md": 2658.4
+        "vd": -0.0172
+      }
+    }
+  },
+  "reference": {
+    "fempython": {
+      "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+    },
+    "frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
+    "reaction": {
+      "file": "線路直角方向_ピックアップ反力.csv",
+      "sha256": "f8f63dbbe296b18c5f425c2f3f8f0eea5a032af34c4a828c0905d79cfde2ef12"
+    },
+    "compared": [
+      "vd"
+    ],
+    "tolerance": 0.25,
+    "columns": {
+      "long_term": {
+        "ours": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 0.0
+        },
+        "sample": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 0.0
+        },
+        "differences": {
+          "vd": 0.0,
+          "hd": 0.0,
+          "md": 0.0
+        }
+      },
+      "short_term": {
+        "ours": {
+          "combination": 15,
+          "vd": 18788.38,
+          "hd": 0.0,
+          "md": 1573.13
+        },
+        "sample": {
+          "combination": 15,
+          "vd": 18788.17,
+          "hd": 0.0,
+          "md": 1572.67
+        },
+        "differences": {
+          "vd": 0.21,
+          "hd": 0.0,
+          "md": 0.46
+        }
+      },
+      "safety_vertical": {
+        "ours": {
+          "combination": 10,
+          "vd": 22585.13,
+          "hd": 465.94,
+          "md": 7389.08
+        },
+        "sample": {
+          "combination": 10,
+          "vd": 22585.12,
+          "hd": 194.91,
+          "md": 3451.7
+        },
+        "differences": {
+          "vd": 0.01,
+          "hd": 271.03,
+          "md": 3937.38
+        }
+      },
+      "safety_moment": {
+        "ours": {
+          "combination": 12,
+          "vd": 20045.0,
+          "hd": 788.53,
+          "md": 13068.19
+        },
+        "sample": {
+          "combination": 12,
+          "vd": 20045.0,
+          "hd": 797.47,
+          "md": 10409.79
+        },
+        "differences": {
+          "vd": 0.0,
+          "hd": -8.94,
+          "md": 2658.4
+        }
       }
     }
   },

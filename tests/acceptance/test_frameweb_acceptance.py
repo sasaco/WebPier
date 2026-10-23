@@ -73,9 +73,9 @@ def test_every_calculated_case_balances_the_loads_we_wrote(stage):
 
 
 def test_a_combination_differs_from_the_printed_one_only_by_rounding():
-    """Decision 38: 0610 combination 1 is 22585.1473 in FrameWeb against the printed 22585.160 (by hand in
+    """Decision 38, 77: 0610 combination 1 is 22448.2033 in FrameWeb against the printed 22448.220 (by hand in
     tests/export/test_frameweb_readback.py); each printed action differs by at most 0.005."""
     combination = RUNS["0610"]["combination"]
-    assert combination["printed"] == pytest.approx(22585.16, abs=1e-9)
-    assert combination["frameweb"] == pytest.approx(22585.1473, abs=1e-9)
+    assert combination["printed"] == pytest.approx(22448.22, abs=1e-9)
+    assert combination["frameweb"] == pytest.approx(22448.2033, abs=1e-9)
     assert combination["largest_action_difference"] <= 0.005

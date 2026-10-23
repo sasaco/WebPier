@@ -1,35 +1,35 @@
 {
   "schema_version": 1,
   "kind": "frameweb_headless_read_check",
-  "date": "2026-10-21",
-  "verified_at": "2026-10-21T20:28:39+09:00",
+  "date": "2026-10-23",
+  "verified_at": "2026-10-23T19:38:10+09:00",
   "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
   "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
   "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
   "application": {
     "name": "FrameWebforCS.Headless",
     "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "sha256": "c3682ce2c627e2eed825f7a869f197150905c406062b21901bc4b8ffb0cfe9fe",
-    "dll_sha256": "155dc6c652fc0d1a902cf3aa3e410a6ab1adde5187da64481075528d9a0f83d5",
+    "sha256": "b44c6d58e6eaacdc41656b4abd0f7904e22cf90e85caa25e065ad8965c35b7cc",
+    "dll_sha256": "7270433eecad8b18dbdf310c0b801bd709fb51b84d91cf6dc5c0dcb0734761b9",
     "fempython_repository": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython",
-      "head": "b2584ced9908bb5b415a7efb32b4aef74c9c3d02",
-      "clean": false
+      "head": "564399b379b78c78226b476facdf1ce089d873f3",
+      "clean": true
     }
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
   "runs": [
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "e53b0ddc7cfa2a68f970ffcc2a2d84aeb3d3a89b78797edc8f6c6a53d38f0a00"
+        "sha256": "60dfe11394bc14429353ef4fe098ca52ec9a2c200b870a9729131545e45b78cd"
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+      "candidate_sha256": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02",
+        "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
@@ -180,11 +180,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            227.79
+            171.05
           ],
           "reactions": [
-            1.05e-66,
-            -227.79
+            7.9e-67,
+            -171.05
           ]
         },
         {
@@ -192,11 +192,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            428.29
+            326.85
           ],
           "reactions": [
-            2e-66,
-            -428.29
+            1.6e-66,
+            -326.85
           ]
         },
         {
@@ -300,11 +300,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            7.9e-67,
-            -171.05
+            5.9e-67,
+            -128.44
           ]
         },
         {
@@ -312,34 +312,34 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            321.63
+            244.98
           ],
           "reactions": [
-            1.5e-66,
-            -321.63
+            1.2e-66,
+            -244.98
           ]
         }
       ],
       "combination": {
         "combine": 1,
-        "printed": 22585.16,
-        "unrounded": 22585.1473,
-        "frameweb": 22585.147300000004,
-        "difference": 0.01269999999619647,
+        "printed": 22448.22,
+        "unrounded": 22448.2033,
+        "frameweb": 22448.203300000005,
+        "difference": 0.01669999999519647,
         "largest_action_difference": 0.005
       }
     },
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "e53b0ddc7cfa2a68f970ffcc2a2d84aeb3d3a89b78797edc8f6c6a53d38f0a00"
+        "sha256": "60dfe11394bc14429353ef4fe098ca52ec9a2c200b870a9729131545e45b78cd"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
+      "candidate_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02",
+        "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
@@ -502,11 +502,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            227.77
+            171.05
           ],
           "reactions": [
-            1.5802154084873807e-64,
-            -227.77
+            1.1864286344494153e-64,
+            -171.05
           ]
         },
         {
@@ -514,11 +514,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            227.77
+            171.05
           ],
           "reactions": [
-            -1.5802154084873807e-64,
-            -227.77
+            -1.1864286344494153e-64,
+            -171.05
           ]
         },
         {
@@ -526,11 +526,11 @@
           "symbol": "I3",
           "applied": [
             0.0,
-            428.28
+            326.86
           ],
           "reactions": [
             0.0,
-            -428.28
+            -326.85999999999996
           ]
         },
         {
@@ -574,11 +574,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            1.1864286344494153e-64,
-            -171.05
+            8.904692911650673e-65,
+            -128.44
           ]
         },
         {
@@ -586,11 +586,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            -1.1864286344494153e-64,
-            -171.05
+            -8.904692911650673e-65,
+            -128.44
           ]
         },
         {
@@ -598,11 +598,11 @@
           "symbol": "I3s",
           "applied": [
             0.0,
-            321.62
+            245.0
           ],
           "reactions": [
             0.0,
-            -321.62
+            -245.00000000000003
           ]
         }
       ]
@@ -610,14 +610,14 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+        "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+      "candidate_sha256": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02",
+        "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
@@ -768,11 +768,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            227.79
+            171.05
           ],
           "reactions": [
-            1.05e-66,
-            -227.79
+            7.9e-67,
+            -171.05
           ]
         },
         {
@@ -780,11 +780,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            428.29
+            326.85
           ],
           "reactions": [
-            2e-66,
-            -428.29
+            1.6e-66,
+            -326.85
           ]
         },
         {
@@ -888,11 +888,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            7.9e-67,
-            -171.05
+            5.9e-67,
+            -128.44
           ]
         },
         {
@@ -900,34 +900,34 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            321.63
+            244.98
           ],
           "reactions": [
-            1.5e-66,
-            -321.63
+            1.2e-66,
+            -244.98
           ]
         }
       ],
       "combination": {
         "combine": 1,
-        "printed": 22585.16,
-        "unrounded": 22585.1473,
-        "frameweb": 22585.147300000004,
-        "difference": 0.01269999999619647,
+        "printed": 22448.22,
+        "unrounded": 22448.2033,
+        "frameweb": 22448.203300000005,
+        "difference": 0.01669999999519647,
         "largest_action_difference": 0.005
       }
     },
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+        "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
+      "candidate_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
       "envelope": {
         "engine": "fempython",
-        "engineVersion": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02",
+        "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
         "ok": true,
         "executionStatus": "success",
         "engineeringStatus": "not_checked",
@@ -1090,11 +1090,11 @@
           "symbol": "I1",
           "applied": [
             0.0,
-            227.77
+            171.05
           ],
           "reactions": [
-            1.5802154084873807e-64,
-            -227.77
+            1.1864286344494153e-64,
+            -171.05
           ]
         },
         {
@@ -1102,11 +1102,11 @@
           "symbol": "I2",
           "applied": [
             0.0,
-            227.77
+            171.05
           ],
           "reactions": [
-            -1.5802154084873807e-64,
-            -227.77
+            -1.1864286344494153e-64,
+            -171.05
           ]
         },
         {
@@ -1114,11 +1114,11 @@
           "symbol": "I3",
           "applied": [
             0.0,
-            428.28
+            326.86
           ],
           "reactions": [
             0.0,
-            -428.28
+            -326.85999999999996
           ]
         },
         {
@@ -1162,11 +1162,11 @@
           "symbol": "I1s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            1.1864286344494153e-64,
-            -171.05
+            8.904692911650673e-65,
+            -128.44
           ]
         },
         {
@@ -1174,11 +1174,11 @@
           "symbol": "I2s",
           "applied": [
             0.0,
-            171.05
+            128.44
           ],
           "reactions": [
-            -1.1864286344494153e-64,
-            -171.05
+            -8.904692911650673e-65,
+            -128.44
           ]
         },
         {
@@ -1186,11 +1186,11 @@
           "symbol": "I3s",
           "applied": [
             0.0,
-            321.62
+            245.0
           ],
           "reactions": [
             0.0,
-            -321.62
+            -245.00000000000003
           ]
         }
       ]
