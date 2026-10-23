@@ -14,7 +14,7 @@ from gridlayoutpdf import Document
 
 from ....calc.reaction import ReactionResult
 from ....inputs import PierInput
-from . import dead, longitudinal, train, transverse, weight_parts, weight_totals
+from . import buoyancy, dead, longitudinal, train, transverse, weight_parts
 from .layout import document
 from .manuscript import PREFIX, Manuscript, Unit, plain
 
@@ -23,7 +23,7 @@ def content(result: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:
     """One ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript()
     dead.section(m, result)
-    weight_totals.section(m, result.self_weight, pier, weight_parts.section(m, result.self_weight, pier))
+    buoyancy.section(m, result.self_weight, pier, weight_parts.section(m, result.self_weight, pier))
     train.section(m, result, pier)
     longitudinal.section(m, result, pier)
     transverse.section(m, result, pier)

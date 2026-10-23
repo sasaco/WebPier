@@ -5,8 +5,10 @@ measured from the column axis, with heights from the beam top (up positive);
 the column, the footing and the soil are measured from the footing centre, with
 heights from the footing base. Water levels are heights above the footing base.
 
-Volume tables print V, x and V·x to 3 decimals and weights to 2 (the 0600
-self-weight pages); Example2 08 p.8-3 prints the footing, soil and buoyancy.
+Volumes are calculated from the printed lengths, as table 6.2.1 writes them
+(decision 79), and printed to 3 decimals; a part's weight is the sum of the
+weights V × γ of its rows, printed to 2. Buoyancy is ΣV × γ. Example2 08 p.8-3
+prints the footing, soil and buoyancy.
 """
 
 from __future__ import annotations
@@ -60,7 +62,8 @@ class Body:
     moment_c: Printed  # ΣV·xC
     moment_y: Printed | None  # ΣV·y
     unit_weight: Printed  # γ
-    weight: Printed  # N = ΣV × γ
+    weights: tuple[Printed, ...] | None  # W = V × γ of each row (table 6.2.1); None for buoyancy
+    weight: Printed  # N = ΣW of the rows, or ΣV × γ for buoyancy
     x_l: Printed  # xL = ΣV·xL / ΣV (the row's own value for a single prism)
     x_c: Printed  # xC
     y: Printed | None  # hG; None for soil and water, whose heights are not used
@@ -162,7 +165,7 @@ def _centroid(amount: Printed, moment: Printed, name: str) -> Printed:
     return put(LENGTH, d(moment) / d(amount))
 
 
-def _body(name: str, rows: Sequence[VolumeRow], unit_weight: Printed) -> Body:
+def _body(name: str, rows: Sequence[VolumeRow], unit_weight: Printed, *, by_row: bool = True) -> Body:
     volume = put(VOLUME, total(row.volume for row in rows))
     moment_l = put(VOLUME_MOMENT, total(row.moment_l for row in rows))
     moment_c = put(VOLUME_MOMENT, total(row.moment_c for row in rows))
@@ -173,8 +176,10 @@ def _body(name: str, rows: Sequence[VolumeRow], unit_weight: Printed) -> Body:
     else:
         x_l, x_c = _centroid(volume, moment_l, name), _centroid(volume, moment_c, name)
         y = None if moment_y is None else _centroid(volume, moment_y, name)
+    weights = tuple(put(FORCE, d(row.volume) * d(unit_weight)) for row in rows) if by_row else None
+    weight = put(FORCE, total(weights)) if weights is not None else put(FORCE, d(volume) * d(unit_weight))
     return Body(rows=tuple(rows), volume=volume, moment_l=moment_l, moment_c=moment_c, moment_y=moment_y,
-                unit_weight=unit_weight, weight=put(FORCE, d(volume) * d(unit_weight)), x_l=x_l, x_c=x_c, y=y)
+                unit_weight=unit_weight, weights=weights, weight=weight, x_l=x_l, x_c=x_c, y=y)
 
 
 def _area(a: Decimal, b: Decimal, name: str) -> Printed:
@@ -229,7 +234,7 @@ def _buoyancy(level: Printed, pier: PierInput, footing_area: Printed, column_are
         _row(put(VOLUME, d(rectangle) * d(wf) * wet), put(LENGTH, rectangle_x), zero),
     )
     return Buoyancy(level=level, rise=rise, submerged=submerged, wedge=wedge, rectangle=rectangle,
-                    body=_body("浮力", rows, WATER))
+                    body=_body("浮力", rows, WATER, by_row=False))
 
 
 def _weight_row(part: Part, weight: Printed, x_l: Printed, x_c: Printed, y: Printed | None) -> WeightRow:
@@ -264,7 +269,7 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
 
     # 桁受け: geometric centroid even at zero volume (the drawing shows it).
     pedestal_area = put(AREA, b[3] * w[3])
-    pedestal = _body("桁受け", [_row(put(VOLUME, d(pedestal_area) * h[1]),
+    pedestal = _body("桁受け", [_row(put(VOLUME, b[3] * w[3] * h[1]),
                                      put(LENGTH, (2 * b[2] + b[3] - b[1] - b[4] + b[5]) / 2),
                                      put(LENGTH, (2 * w[2] + w[3] - w[1] - w[4] + w[5]) / 2),
                                      put(LENGTH, h[1] / 2))], gamma)
@@ -276,13 +281,13 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     beam_shape = _haunch_shape((lower_b, lower_w), (b[1], w[1]))
     z = _haunch_centroid(s.h[3], beam_shape)
     beam = _body("はり", [
-        _row(put(VOLUME, d(top_area) * h[2]), beam_x_l, beam_x_c, put(LENGTH, -h[2] / 2)),
-        _row(put(VOLUME, h[3] / 6 * (lower_b * w[1] + b[1] * lower_w + 2 * (d(top_area) + d(bottom_area)))),
+        _row(put(VOLUME, b[1] * w[1] * h[2]), beam_x_l, beam_x_c, put(LENGTH, -h[2] / 2)),
+        _row(put(VOLUME, h[3] / 6 * (lower_b * w[1] + b[1] * lower_w + 2 * (b[1] * w[1] + lower_b * lower_w))),
              _scaled(beam_x_l, z, s.h[3]), _scaled(beam_x_c, z, s.h[3]), put(LENGTH, -(h[2] + h[3] - d(z)))),
     ], gamma)
 
     column_area = _area(b[6], w[6], "柱")
-    column = _body("柱", [_row(put(VOLUME, d(column_area) * h[4]), put(LENGTH, (b[7] - b[9]) / 2),
+    column = _body("柱", [_row(put(VOLUME, b[6] * w[6] * h[4]), put(LENGTH, (b[7] - b[9]) / 2),
                               put(LENGTH, (w[7] - w[9]) / 2), put(LENGTH, h[4] / 2 + h[5] + h[6]))], gamma)
 
     # フーチング: haunch (H5) on the base prism (H6); z from the larger lower face.
@@ -290,9 +295,9 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     footing_top, footing_bottom = put(AREA, b[8] * w[8]), _area(d(bf), d(wf), "フーチング下面")
     footing_shape = _haunch_shape((d(bf), d(wf)), (b[8], w[8]))
     zf = _haunch_centroid(s.h[5], footing_shape)
-    footing_haunch = _row(put(VOLUME, h[5] / 6 * (d(bf) * w[8] + b[8] * d(wf) + 2 * (d(footing_top) + d(footing_bottom)))),
+    footing_haunch = _row(put(VOLUME, h[5] / 6 * (d(bf) * w[8] + b[8] * d(wf) + 2 * (b[8] * w[8] + d(bf) * d(wf)))),
                           _scaled(column.x_l, zf, s.h[5]), _scaled(column.x_c, zf, s.h[5]), put(LENGTH, h[6] + d(zf)))
-    footing = _body("フーチング", [footing_haunch, _row(put(VOLUME, d(footing_bottom) * h[6]), LENGTH(0), LENGTH(0),
+    footing = _body("フーチング", [footing_haunch, _row(put(VOLUME, d(bf) * d(wf) * h[6]), LENGTH(0), LENGTH(0),
                                                     put(LENGTH, h[6] / 2))], s.unit_weight_footing)
 
     # 上載土: the soil surface is linear from df1 (origin side) to df2 (end side).
@@ -301,10 +306,10 @@ def calculate_self_weight(pier: PierInput) -> SelfWeightResult:
     trapezoid_x = put(LENGTH, d(bf) * (df1 + 2 * df2) / (3 * (df1 + df2)) - d(bf) / 2) if df1 + df2 else LENGTH(0)
     zero = LENGTH(0)
     overburden = _body("上載土", [
-        _row(put(VOLUME, d(footing_bottom) * (df1 + df2) / 2), trapezoid_x, zero),
-        _row(put(VOLUME, -d(column_area) * d(soil_depth)), column.x_l, column.x_c),
+        _row(put(VOLUME, d(bf) * d(wf) * (df1 + df2) / 2), trapezoid_x, zero),
+        _row(put(VOLUME, -(b[6] * w[6] * d(soil_depth))), column.x_l, column.x_c),
         # The haunch layer spans the whole footing plan, so it is centred on the footing (decision 20).
-        _row(put(VOLUME, d(footing_bottom) * h[5]), zero, zero),
+        _row(put(VOLUME, d(bf) * d(wf) * h[5]), zero, zero),
         _row(put(VOLUME, -d(footing_haunch.volume)), footing_haunch.x_l, footing_haunch.x_c),
     ], s.unit_weight_overburden)
 

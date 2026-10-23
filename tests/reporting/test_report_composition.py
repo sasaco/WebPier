@@ -106,8 +106,8 @@ def _reaction_records(name: str) -> dict[str, str]:
     return {key.removeprefix("0600/"): text for key, text in records(reaction, *reaction_case(name)).items()}
 
 
-WEIGHT_ITEMS = ["橋脚の形状", "はり", "柱", "フーチング", "上載土", "浮力", "柱下端における重量および重心位置",
-                "フーチング中心における重量および重心位置"]
+# 6.2 (decision 79): the shape, table 6.2.1 of the parts and the buoyancy; 桁受け is a row of the table.
+WEIGHT_ITEMS = ["橋脚の形状", "橋脚く体，フーチングおよび上載土", "浮力"]
 
 
 def _items(found: dict[str, str]) -> list[str]:
@@ -115,13 +115,13 @@ def _items(found: dict[str, str]) -> list[str]:
 
 
 @pytest.mark.parametrize("name", list(REACTION_CASES))
-def test_0600_leaves_out_the_pedestal_when_its_volume_is_zero_and_closes_up_the_numbers(name: str):
+def test_0600_leaves_out_the_pedestal_when_its_volume_is_zero(name: str):
     result, pier = reaction_case(name)
     found = _reaction_records(name)
     present = result.self_weight.pedestal.volume.value != 0
     assert present == (pier.substructure.h[1].value > 0)  # these cases have B3 × W3 > 0
-    items = WEIGHT_ITEMS[:1] + (["桁受け"] if present else []) + WEIGHT_ITEMS[1:]
-    assert _items(found) == [f"({number}){item}" for number, item in enumerate(items, 1)]
+    assert _items(found) == [f"({number}){item}" for number, item in enumerate(WEIGHT_ITEMS, 1)]
+    assert found["weight.parts.table"].startswith("|V(m^3)|自重|γ|W|(kN/m^3)|(kN)|桁受け|") == present
     assert any("桁受け" in text for text in found.values()) == present
 
 

@@ -14,7 +14,7 @@ from dataclasses import replace
 
 import pytest
 
-from frame_report_cases import CASES, chain, text
+from frame_report_cases import CASES, chain, part_weight, text
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import BasicCase, Item, SpringTerm
 from webpier.core.printed import Printed
@@ -151,14 +151,13 @@ def dead_records(add, pier, reaction, frame, fixed, additional, d1, d2_point, nu
     s, sw = pier.substructure, reaction.self_weight
     add("fixed.heading", f"({number})固定死荷重")
     add("fixed.column", f"柱q={t(s.w[6])}×{t(s.b[6])}×{t(s.unit_weight_body)}={t(fixed.column_q)}kN/m")
-    add("fixed.footing", f"フーチングP={t(sw.footing.unit_weight)}×{t(sw.footing.volume)}={t(fixed.footing.n)}kN")
+    add("fixed.footing", f"フーチングP={part_weight(sw.footing)}={t(fixed.footing.n)}kN")
     if fixed.footing.arm.value:
         add("fixed.footing.moment", f"MP={t(fixed.footing.n)}×{paren(fixed.footing.arm)}={t(fixed.footing.m)}kN・m")
     add("fixed.top.heading", "・橋脚天端に作用する荷重")
     if s.h[1].value > 0:
-        add("fixed.top.pedestal", f"桁受けN={t(sw.pedestal.unit_weight)}×{t(sw.pedestal.volume)}="
-                                  f"{t(fixed.table.row(Item.PEDESTAL).n)}kN")
-    add("fixed.top.beam", f"はり・ハンチN={t(sw.beam.unit_weight)}×{t(sw.beam.volume)}={t(fixed.table.row(Item.BEAM).n)}kN")
+        add("fixed.top.pedestal", f"桁受けN={part_weight(sw.pedestal)}={t(fixed.table.row(Item.PEDESTAL).n)}kN")
+    add("fixed.top.beam", f"はり・ハンチN={part_weight(sw.beam)}={t(fixed.table.row(Item.BEAM).n)}kN")
     add("fixed.top", top(fixed.table.rows, fixed.table.n, fixed.table.m))
     add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
     add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
@@ -179,7 +178,7 @@ def dead_records(add, pier, reaction, frame, fixed, additional, d1, d2_point, nu
             + f"={t(cap.m)}kN・m")
     add("additional.heading", f"({number + 1})付加死荷重")
     soil = additional.soil
-    add("additional.soil", f"載荷土P={t(sw.overburden.unit_weight)}×{t(sw.overburden.volume)}={t(soil.n)}kN")
+    add("additional.soil", f"載荷土P={part_weight(sw.overburden)}={t(soil.n)}kN")
     if soil.arm.value:
         add("additional.soil.moment", f"MP={t(soil.n)}×{paren(soil.arm)}={t(soil.m)}kN・m")
     add("additional.top.heading", "・橋脚天端に作用する荷重")

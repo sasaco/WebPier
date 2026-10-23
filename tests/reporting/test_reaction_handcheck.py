@@ -1,26 +1,28 @@
 """0600 hand-check from the printed PDF alone (decision 15).
 
 Every formula chain recomputes from its printed numbers, and the tables do their
-arithmetic from their printed cells: V·x = V × x, the sums, L = R × ρf, I = L × i,
-M = H × y and H_B + H_C. Nothing here imports the report's internals except to
+arithmetic from their printed cells: V from its numbers and W = V × γ (table 6.2.1),
+L = R × ρf, I = L × i, M = H × y and H_B + H_C. Nothing here imports the report's internals except to
 count the formulas the manuscript declares as numeric.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from pdf_handcheck import PrintedLine, decimal_of, formula_checks, printed_lines, rounded_like
+from pdf_handcheck import PrintedLine, _evaluate, decimal_of, formula_checks, printed_lines, rounded_like
 from reaction_report_cases import CASES, case
-from webpier.calc.reaction.self_weight import Part
 from webpier.core.printed import Printed
 
-PARTS = {"桁受け", "はり", "ハンチ部", "柱", "フーチング", "上載土", "台形部", "柱控除", "ハンチの層", "ハンチ控除",
-         "斜面部", "矩形部"}
+PARTS = {"桁受け", "はり", "柱", "フーチング", "上載土"}
+OPERATORS = {"+", "−", "×", "/"}
+NUMBERS = re.compile(r"[−(]*\d")  # the first number of V (the header's words and units are not)
+HEADING = re.compile(r"\(\d+\)")  # the next item, after the table and its sums
 
 
 def render(tmp_path: Path, result, pier, name: str = "0600.pdf") -> Path:
@@ -39,7 +41,7 @@ def declared(result, pier) -> int:
 def test_every_printed_formula_reproduces_its_result(tmp_path: Path, name: str):
     result, pier = case(name)
     checks = formula_checks(render(tmp_path, result, pier))
-    assert len(checks) == declared(result, pier) > 250
+    assert len(checks) == declared(result, pier) > 150
     assert [check for check in checks if not check.ok] == []
 
 
@@ -63,7 +65,7 @@ class _Tables:
     def __init__(self) -> None:
         self.failures: list[str] = []
         self.checked = 0
-        self.parts: list[list[str]] = []  # rows of the volume or weight table being read
+        self.weights: list[tuple[list[str], list[str]]] | None = None  # rows of table 6.2.1: V's numbers, V γ W
         self.rho: Decimal | None = None
         self.reaction: list[str] | None = None
         self.single: list[str] | None = None
@@ -77,13 +79,19 @@ class _Tables:
             self.failures.append(message)
 
     def read(self, line: PrintedLine) -> None:
+        if line.cells[:2] == ("表", "6.2.1"):
+            self.weights = []
+            return
+        if self.weights is not None:
+            if line.cells[0] != "W" and not HEADING.fullmatch(line.cells[0]):
+                self._weight_row(line)
+                return
+            self._weights(f"p{line.page} 表6.2.1")
         label, values = _suffix(line)
         where = f"p{line.page} {label}"
         if "荷重修正係数" in label and values:
             self.rho = decimal_of(values[-1])
-        if len(values) in (5, 7) and (label in PARTS or label == "合計"):
-            self._part(label, values, where)
-        elif len(values) == 4:
+        if len(values) == 4:
             self._impact(label.removeprefix("単線").removeprefix("複線"), values, where)
         elif len(values) == 3 and ("LR" in label or "EQ" in label):
             total = decimal_of(values[0]) + decimal_of(values[1])
@@ -92,20 +100,29 @@ class _Tables:
             for force, height, moment in (values[:3], values[3:]):
                 self.check(_product(force, height, moment), f"{where} M = H × y: {force} × {height}")
 
-    def _part(self, label: str, values: list[str], where: str) -> None:
-        if label != "合計":
-            for column in range(2, len(values), 2):
-                if values[column] != "-":
-                    self.check(_product(values[0], values[column - 1], values[column]),
-                               f"{where}: {values[0]} × {values[column - 1]}")
-            self.parts.append(values)
-            return
-        for column in range(0, len(values), 2):
-            if values[column] != "-":
-                total = sum((decimal_of(row[column]) for row in self.parts if row[column] != "-"), Decimal(0))
-                self.check(rounded_like(total, values[column]) == decimal_of(values[column]),
-                           f"{where} column {column}: {values[column]}")
-        self.parts = []
+    def _weight_row(self, line: PrintedLine) -> None:
+        """A line of table 6.2.1: its numbers of V continue the row when they begin with an operator (a wrapped V),
+        and its "= V γ W" belongs to the row being read, on whichever of its lines it stands."""
+        assert self.weights is not None
+        cells = [cell for cell in line.cells if cell not in PARTS and cell != "V"]
+        numbers, values = (cells[:cells.index("=")], cells[cells.index("=") + 1:]) if "=" in cells else (cells, [])
+        first = bool(numbers) and NUMBERS.match(numbers[0]) is not None
+        if first:
+            self.weights.append(([], []))
+        if self.weights and (first or numbers and numbers[0] in OPERATORS or values):
+            self.weights[-1][0].extend(numbers)
+            self.weights[-1][1].extend(values)
+
+    def _weights(self, where: str) -> None:
+        """V recomputed from its printed numbers, and W = V × γ, of each row read."""
+        assert self.weights is not None
+        for numbers, values in self.weights:
+            expression = " ".join(numbers)
+            volume, gamma, weight = values
+            exact = _evaluate(expression.replace("×", "*").replace("−", "-").replace(" ", ""))
+            self.check(rounded_like(exact, volume) == decimal_of(volume), f"{where} V = {expression}: {volume}")
+            self.check(_product(volume, gamma, weight), f"{where} W = V × γ: {volume} × {gamma}")
+        self.weights = None
 
     def _impact(self, label: str, values: list[str], where: str) -> None:
         if label == "列車反力R":
@@ -153,17 +170,13 @@ def test_the_table_reader_checks_every_table_cell_with_arithmetic(tmp_path: Path
     result, pier = case("current")
     lines = printed_lines(render(tmp_path, result, pier))
     sw = result.self_weight
-    # The current input has no 桁受け (V = 0): neither its volume table nor its weight rows are printed (decision 41).
-    assert sw.pedestal.volume.value == 0
-    bodies = (sw.beam, sw.column, sw.footing, sw.overburden, sw.buoyancy_high.body,
-              sw.buoyancy_normal.body, sw.buoyancy_low.body)
-    # V·x (2 or 3 per row) and the sums (3 or 4) of each volume table, N·x and sums of the two weight tables.
-    volumes = sum(len(body.rows) * (3 if body.moment_y is not None else 2) + (4 if body.moment_y is not None else 3)
-                  for body in bodies)
-    weights = sum(sum(2 + (row.moment_y is not None) for row in total.rows if row.part is not Part.PEDESTAL) + 4
-                  for total in (sw.pier_bottom, sw.footing_centre))
+    # Table 6.2.1: V and W of each row whose V is not 0; the current input has no 桁受け and no footing haunch, and
+    # the soil no haunch layer nor its deduction (decision 79).
+    shown = sum(row.volume.value != 0 for body in (sw.pedestal, sw.beam, sw.column, sw.footing, sw.overburden)
+                for row in body.rows)
+    assert shown == 6
     impacts = 3 * 4 * 4  # L = R × ρf, I, L = L × n, I for each of the three groups
-    assert table_checks(lines) == volumes + weights + impacts + 10 + 2 * 8
+    assert table_checks(lines) == 2 * shown + impacts + 10 + 2 * 8
 
 
 def _wrong(result, field: str):
@@ -171,8 +184,6 @@ def _wrong(result, field: str):
     sw, train, lon, trans = result.self_weight, result.train, result.longitudinal, result.transverse
     if field == "beam_weight":
         return replace(result, self_weight=replace(sw, beam=replace(sw.beam, weight=Printed(1503.28, 2, "kN"))))
-    if field == "haunch_z":
-        return replace(result, self_weight=replace(sw, beam_haunch_centroid=Printed(0.390, 3, "m")))
     if field == "double_impact":
         impact = replace(train.ultimate.origin_impact, double=Printed(0.223, 3, ""))
         return replace(result, train=replace(train, ultimate=replace(train.ultimate, origin_impact=impact)))
@@ -181,9 +192,12 @@ def _wrong(result, field: str):
         origin = replace(case_.origin, friction_floor=Printed(29.85, 2, "kN"))
         cases = (*lon.cases[:2], replace(case_, origin=origin), *lon.cases[3:])
         return replace(result, longitudinal=replace(lon, cases=cases))
-    if field == "hG":
-        total = replace(sw.footing_centre, y=Printed(2.981, 3, "m"))  # ΣN·y / ΣN with the soil (decision 24)
-        return replace(result, self_weight=replace(sw, footing_centre=total))
+    if field == "beam_row_weight":
+        weights = (sw.beam.weights[0], Printed(312.58, 2, "kN"))
+        return replace(result, self_weight=replace(sw, beam=replace(sw.beam, weights=weights)))
+    if field == "column_volume":
+        rows = (replace(sw.column.rows[0], volume=Printed(59.536, 3, "m3")),)
+        return replace(result, self_weight=replace(sw, column=replace(sw.column, rows=rows)))
     assert field == "moment"
     wind = replace(trans.origin.wind_with_train, moment=Printed(1323.26, 2, "kN m"))
     side = replace(trans.origin, wind_with_train=wind)
@@ -191,10 +205,7 @@ def _wrong(result, field: str):
 
 
 @pytest.mark.parametrize("field,expected", [
-    ("beam_weight", {"61.358*24.5"}),
-    # z is a factor of the haunch y as well (its x stays 0 × z / H3 = 0).
-    ("haunch_z", {"0.700*(2.700*4.500/2+(2.700*4.500+4.500*0.000)/3+0.000*4.500/4)/(2.700*4.500+(2.700*4.500"
-                  "+4.500*0.000)/2+0.000*4.500/3)", "-(2.000+0.700-0.390)"}),
+    ("beam_weight", {"1190.70+312.57"}),
     # The double-track impact is a factor of the movable bearing's Rm in the safety and restorability cases;
     # 0.223 × 0.75 still prints 0.167.
     ("double_impact", {"0.245*(1-18.850/200)",
@@ -203,7 +214,6 @@ def _wrong(result, field: str):
                        "1.0*5740.00+1.0*520.00+1.23*272.47*2.000*(1+0.223)+740.00"}),
     # The friction floor μ·T/n is printed as a candidate of H; it does not govern here.
     ("floor", {"0.10*298.40"}),
-    ("hG", {"26707.918/7129.33"}),
 ])
 def test_a_value_that_does_not_follow_from_the_printed_factors_is_found(tmp_path: Path, field: str, expected: set[str]):
     result, pier = case("current")
@@ -211,8 +221,14 @@ def test_a_value_that_does_not_follow_from_the_printed_factors_is_found(tmp_path
     assert {check.expression for check in checks if not check.ok} == expected
 
 
-def test_a_table_cell_that_does_not_follow_is_found(tmp_path: Path):
+@pytest.mark.parametrize("field,expected", [
+    ("moment", ["M = H × y: 197.00 × 6.717"]),
+    ("beam_row_weight", ["W = V × γ: 12.758 × 24.5"]),
+    # V = 59.536 neither follows from its numbers nor gives the printed W.
+    ("column_volume", ["V = 2.700 × 4.500 × 4.900: 59.536", "W = V × γ: 59.536 × 24.5"]),
+])
+def test_a_table_cell_that_does_not_follow_is_found(tmp_path: Path, field: str, expected: list[str]):
     result, pier = case("current")
-    lines = printed_lines(render(tmp_path, _wrong(result, "moment"), pier))
+    lines = printed_lines(render(tmp_path, _wrong(result, field), pier))
     failures = table_failures(lines)
-    assert len(failures) == 1 and failures[0].endswith("M = H × y: 197.00 × 6.717")
+    assert len(failures) == len(expected) and all(failure.endswith(end) for failure, end in zip(failures, expected))

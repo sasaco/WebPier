@@ -31,7 +31,7 @@ from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
 from .frame_report import (
     BODY_LEFT, FigureSpec, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
-    frame_figure, material_lines, member_table, node_table, operand, overlap_lines, section_lines, seat_moment,
+    frame_figure, material_lines, member_table, part_weight, node_table, operand, overlap_lines, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
 from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
@@ -187,16 +187,13 @@ def fixed_dead(m: Manuscript, heading: str, pier: PierInput, weights: Any, frame
     m.heading("fixed.heading", heading, 2)
     m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
                                                value(s.unit_weight_body)), fixed.column_q)
-    m.equation("fixed.footing", "フーチング", "P",
-               terms(value(weights.footing.unit_weight), "×", value(weights.footing.volume)), fixed.footing.n)
+    m.equation("fixed.footing", "フーチング", "P", part_weight(weights.footing), fixed.footing.n)
     _footing_moment(m, "fixed.footing.moment", sub("M", "P"), fixed.footing.n, fixed.footing.arm, fixed.footing.m)
     m.paragraph("fixed.top.heading", "・橋脚天端に作用する荷重", keep=True)
     if s.h[1].value > 0:
-        m.equation("fixed.top.pedestal", "桁受け", "N", terms(value(weights.pedestal.unit_weight), "×",
-                                                             value(weights.pedestal.volume)),
+        m.equation("fixed.top.pedestal", "桁受け", "N", part_weight(weights.pedestal),
                    fixed.table.row(Item.PEDESTAL).n)
-    m.equation("fixed.top.beam", "はり・ハンチ", "N",
-               terms(value(weights.beam.unit_weight), "×", value(weights.beam.volume)), fixed.table.row(Item.BEAM).n)
+    m.equation("fixed.top.beam", "はり・ハンチ", "N", part_weight(weights.beam), fixed.table.row(Item.BEAM).n)
     m.table("fixed.top", top_table(_top_rows(fixed.table), (fixed.table.n, fixed.table.m)))
     overlap_lines(m, s, fixed)
     m.equation("fixed.n", "鉛直力", "N", terms(value(fixed.table.n), "−", value(fixed.column_q), "×",
@@ -210,8 +207,7 @@ def additional_dead(m: Manuscript, heading: str, weights: Any, frame: Any, addit
     """8.2 (2) 付加死荷重, and of 10.2: *point* is the D2 load at the seat."""
     m.heading("additional.heading", heading, 2)
     soil = additional.soil
-    m.equation("additional.soil", "載荷土", "P",
-               terms(value(weights.overburden.unit_weight), "×", value(weights.overburden.volume)), soil.n)
+    m.equation("additional.soil", "載荷土", "P", part_weight(weights.overburden), soil.n)
     _footing_moment(m, "additional.soil.moment", sub("M", "P"), soil.n, soil.arm, soil.m)
     m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
     top_with_seat(m, "additional.top", frame, additional.table, point)

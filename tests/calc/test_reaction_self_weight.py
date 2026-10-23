@@ -2,6 +2,8 @@
 
 The hand calculation below rounds every printed value (volumes and lengths to 3
 decimals, weights to 2) and continues from the rounded value, as a person would.
+A volume of table 6.2.1 is the product of the printed lengths, and a part weighs
+the sum of its rows' W = V × γ (decision 79); the buoyancy weighs ΣV × γ.
 """
 
 from decimal import Decimal
@@ -46,11 +48,11 @@ def hand(p):
     body, footing, soil = D(s.unit_weight_body.value), D(s.unit_weight_footing.value), D(s.unit_weight_overburden.value)
     r = {}
 
-    def body_total(name, rows, gamma, heights=True):
+    def body_total(name, rows, gamma, heights=True, by_row=True):
         volume = sum((row[0] for row in rows), ZERO)
         moments = [sum((q3(row[0] * row[k]) for row in rows), ZERO) for k in (1, 2)]
         r[name + ".volume"] = volume
-        r[name + ".weight"] = q(volume * gamma, 2)
+        r[name + ".weight"] = sum((q(row[0] * gamma, 2) for row in rows), ZERO) if by_row else q(volume * gamma, 2)
         r[name + ".x_l"] = q3(moments[0] / volume) if volume else ZERO
         r[name + ".x_c"] = q3(moments[1] / volume) if volume else ZERO
         if heights:
@@ -58,8 +60,7 @@ def hand(p):
             r[name + ".y"] = q3(moment_y / volume) if volume else ZERO
 
     # Pedestal: one prism on the beam top; centroids are geometric.
-    area = q3(b[3] * w[3])
-    volume = q3(area * h[1])
+    volume = q3(b[3] * w[3] * h[1])
     r["pedestal.volume"] = volume
     r["pedestal.weight"] = q(volume * body, 2)
     r["pedestal.x_l"] = q3((2 * b[2] + b[3] - b[1] - b[4] + b[5]) / 2)
@@ -67,38 +68,39 @@ def hand(p):
     r["pedestal.y"] = q3(h[1] / 2)
 
     # Beam: prism + haunch frustum; z from the smaller (lower) face A2.
-    a1, a2 = q3(b[1] * w[1]), q3((b[1] - b[4] - b[5]) * (w[1] - w[4] - w[5]))
+    b0, w0 = b[1] - b[4] - b[5], w[1] - w[4] - w[5]
     xl, xc = q3((b[5] - b[4]) / 2), q3((w[5] - w[4]) / 2)
-    z = haunch_centroid(h[3], (b[1] - b[4] - b[5], w[1] - w[4] - w[5]), (b[1], w[1]))
-    haunch_volume = q3(h[3] / 6 * ((b[1] - b[4] - b[5]) * w[1] + b[1] * (w[1] - w[4] - w[5]) + 2 * (a1 + a2)))
+    z = haunch_centroid(h[3], (b0, w0), (b[1], w[1]))
+    haunch_volume = q3(h[3] / 6 * (b0 * w[1] + b[1] * w0 + 2 * (b[1] * w[1] + b0 * w0)))
     haunch = (haunch_volume, q3(xl * z / h[3]) if h[3] else ZERO, q3(xc * z / h[3]) if h[3] else ZERO,
               q3(-(h[2] + h[3] - z)))
     r["beam.z"] = z
     r["beam.haunch_y"] = haunch[3]
     r["beam.haunch_x_l"] = haunch[1]
-    body_total("beam", [(q3(a1 * h[2]), xl, xc, q3(-h[2] / 2)), haunch], body)
+    body_total("beam", [(q3(b[1] * w[1] * h[2]), xl, xc, q3(-h[2] / 2)), haunch], body)
 
     # Column.
     column_area = q3(b[6] * w[6])
-    column = (q3(column_area * h[4]), q3((b[7] - b[9]) / 2), q3((w[7] - w[9]) / 2), q3(h[4] / 2 + h[5] + h[6]))
+    column = (q3(b[6] * w[6] * h[4]), q3((b[7] - b[9]) / 2), q3((w[7] - w[9]) / 2), q3(h[4] / 2 + h[5] + h[6]))
     r["column.volume"], r["column.weight"] = column[0], q(column[0] * body, 2)
     r["column.x_l"], r["column.x_c"], r["column.y"] = column[1:]
 
     # Footing: haunch frustum on the lower prism; z from the larger (lower) face.
     bf, wf = b[7] + b[8] + b[9], w[7] + w[8] + w[9]
-    f1, f2 = q3(b[8] * w[8]), q3(bf * wf)
+    f2 = q3(bf * wf)
     zf = haunch_centroid(h[5], (bf, wf), (b[8], w[8]))
-    footing_haunch = (q3(h[5] / 6 * (bf * w[8] + b[8] * wf + 2 * (f1 + f2))),
+    footing_haunch = (q3(h[5] / 6 * (bf * w[8] + b[8] * wf + 2 * (b[8] * w[8] + bf * wf))),
                       q3(column[1] * zf / h[5]) if h[5] else ZERO, q3(column[2] * zf / h[5]) if h[5] else ZERO,
                       q3(h[6] + zf))
-    body_total("footing", [footing_haunch, (q3(f2 * h[6]), ZERO, ZERO, q3(h[6] / 2))], footing)
+    body_total("footing", [footing_haunch, (q3(bf * wf * h[6]), ZERO, ZERO, q3(h[6] / 2))], footing)
 
     # Overburden soil: trapezoid, less the column, plus the haunch layer, less the footing haunch.
     hc = q3((df1 - df2) / bf * (b[9] + b[8] / 2) + df2)
     r["soil.depth_at_column"] = hc
     trapezoid_x = q3(bf * (df1 + 2 * df2) / (3 * (df1 + df2)) - bf / 2) if df1 + df2 else ZERO
-    body_total("soil", [(q3(f2 * (df1 + df2) / 2), trapezoid_x, ZERO), (q3(-column_area * hc), column[1], column[2]),
-                        (q3(f2 * h[5]), ZERO, ZERO), (-footing_haunch[0], footing_haunch[1], footing_haunch[2])],
+    body_total("soil", [(q3(bf * wf * (df1 + df2) / 2), trapezoid_x, ZERO),
+                        (q3(-(b[6] * w[6] * hc)), column[1], column[2]),
+                        (q3(bf * wf * h[5]), ZERO, ZERO), (-footing_haunch[0], footing_haunch[1], footing_haunch[2])],
                soil, heights=False)
 
     # Buoyancy at the three water levels (heights above the footing base).
@@ -115,7 +117,8 @@ def hand(p):
         body_total(name, [(q3(f2 * max(ZERO, min(low + base, hw))), ZERO, ZERO),
                           (q3(column_area * max(hw - hc - base, ZERO)), column[1], column[2]),
                           (q3(wedge * wf * wet / 2), q3(wedge_x), ZERO),
-                          (q3(rectangle * wf * wet), q3(rectangle_x), ZERO)], Decimal("-10.0"), heights=False)
+                          (q3(rectangle * wf * wet), q3(rectangle_x), ZERO)], Decimal("-10.0"), heights=False,
+                   by_row=False)
 
     # Pier bottom: pedestal (by weight), beam and column about the column axis.
     top = h[4] + h[3] + h[2]
@@ -215,6 +218,27 @@ def test_example2_values_by_hand():
     assert result.column.weight.value == 1458.61  # 12.150 x 4.900 = 59.535 m3 x 24.5
     assert result.pier_bottom.weight.value == 2961.88  # Ds of the pier impact reduction
     assert (result.pedestal.x_l.value, result.pedestal.x_c.value) == (-1.35, -4.5)
+
+
+def test_a_volume_is_the_product_of_the_printed_lengths():
+    """Decision 79: table 6.2.1 writes V = b × w × h, so V is not the rounded area A times h."""
+    result = calculate_self_weight(pier(**{"下部構造/寸法/側面/B6": 2.05, "下部構造/寸法/正面/W6": 4.05}))
+    # 2.050 × 4.050 × 4.900 = 40.68225 -> 40.682; the area 8.3025 -> 8.303 × 4.900 = 40.6847 would give 40.685.
+    assert result.column_area.value == 8.303
+    assert result.column.rows[0].volume.value == 40.682
+    # The soil's column deduction likewise: -(2.050 × 4.050 × 2.000) = -16.605 (8.303 × 2.000 = 16.606).
+    assert result.overburden.rows[1].volume.value == -16.605
+
+
+def test_a_part_weighs_the_sum_of_its_printed_rows():
+    """Decision 79: each row's W = V × γ is printed at 2 decimals and the part is their sum (ADR-0003)."""
+    result = calculate_self_weight(pier(**{"下部構造/寸法/高さ/H2": 1.04}))
+    # 2.700 × 9.000 × 1.040 = 25.272 × 24.5 = 619.164 -> 619.16, the haunch 12.758 × 24.5 = 312.571 -> 312.57:
+    # 619.16 + 312.57 = 931.73, where ΣV × γ = 38.030 × 24.5 = 931.735 would give 931.74.
+    assert [weight.value for weight in result.beam.weights] == [619.16, 312.57]
+    assert result.beam.weight.value == 931.73
+    # The buoyancy is ΣV × γ, without row weights.
+    assert result.buoyancy_high.body.weights is None
 
 
 def test_haunch_centroid_is_measured_from_the_smaller_lower_face():

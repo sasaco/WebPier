@@ -2,7 +2,8 @@
 
 The shape figure shows side and front views of the pier from the input
 dimensions; every label is a printed input value (the front view's soil cover
-is the soil depth at the column of the result). The loading figure (Example2
+is the soil depth at the column, and the footing's overall length and width,
+dimensioned under its parts for table 6.2.1 (decision 79), are of the result). The loading figure (Example2
 07 7-1/7-14) shows the two girders, their bearings and the adopted axles; its
 labels are the spacings and girder lengths of the moving-load result and the
 input L1, span and L2. Lines avoid the 0.3-0.9 pt stroke widths the PDF
@@ -37,10 +38,12 @@ TOP = 44.0  # the drawing starts below the caption and the beam dimension
 
 @dataclass(frozen=True)
 class View:
-    """One view: the sizes across it (B or W), the common heights and the soil cover at both footing edges."""
+    """One view: the sizes across it (B or W), the footing's overall size, the common heights and the soil cover at
+    both footing edges."""
 
     caption: str
     size: dict[int, Printed]
+    footing: Printed
     heights: dict[int, Printed]
     soil: tuple[Printed, Printed]
 
@@ -48,13 +51,15 @@ class View:
 def _views(pier: PierInput, sw: SelfWeightResult) -> tuple[View, View]:
     s = pier.substructure
     depth = sw.soil_depth_at_column
-    return View("側 面 図", s.b, s.h, (s.df1, s.df2)), View("正 面 図", s.w, s.h, (depth, depth))
+    return (View("側 面 図", s.b, sw.footing_length, s.h, (s.df1, s.df2)),
+            View("正 面 図", s.w, sw.footing_width, s.h, (depth, depth)))
 
 
 def _labels(view: View) -> list[str]:
     """Dimension labels in drawing order; zero sizes are not dimensioned."""
     size, h = view.size, view.heights
     labels = [printed(size[index]) for index in (1, 6, 4, 5, 7, 8, 9) if size[index].value]
+    labels.append(printed(view.footing))
     labels += [printed(h[index]) for index in (6, 5, 4, 3, 2, 1) if h[index].value]
     return labels + [printed(value) for value in view.soil]
 
@@ -150,6 +155,7 @@ def _draw(view: View, left: float) -> list:
     for index, start, end in zip((7, 8, 9), corners, corners[1:]):
         if size[index]:
             items += _horizontal(x(start), x(end), y(0) + 18, y(0), next(labels))
+    items += _horizontal(x(edges[0]), x(edges[1]), y(0) + 36, y(0), next(labels))
     level, right = 0.0, x(max(edges[1], beam_left + size[1])) + 34
     for index in (6, 5, 4, 3, 2, 1):
         if h[index]:

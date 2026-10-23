@@ -1,7 +1,7 @@
 """0600 with a load model (decision 70): the dead loads D1 and D2 at the supports and the pier self weight.
 
 6.1 prints D1 and D2 only (the snow and the train shares are the load model's, and are not printed); 6.2 is the
-self weight of the train path's report (reporting.stages.reaction weight_parts / weight_totals). The train, the
+self weight of the train path's report (reporting.stages.reaction weight_parts / buoyancy). The train, the
 forces of the girders and the impact (the train path's 6.3 onward) are the load model's and are not part of it.
 """
 
@@ -14,7 +14,7 @@ from gridlayoutpdf import Document, Row
 from ....calc.reaction import DeadReactionResult
 from ....calc.reaction.dead import GirderDeadLoads
 from ....inputs import PierInput
-from ..reaction import weight_parts, weight_totals
+from ..reaction import buoyancy, weight_parts
 from ..reaction.dead import bearing_name
 from ..reaction.layout import document
 from ..reaction.manuscript import (
@@ -70,7 +70,7 @@ def content(result: DeadReactionResult, pier: PierInput) -> tuple[Unit, ...]:
     m.heading("dead.bearings.heading", "(2) 本橋脚の支承の荷重", SUBSECTION)
     _girder(m, "origin", "1) 起点側桁（B支点）", "B", dead.origin)
     _girder(m, "end", "2) 終点側桁（C支点）", "C", dead.end)
-    weight_totals.section(m, result.self_weight, pier, weight_parts.section(m, result.self_weight, pier))
+    buoyancy.section(m, result.self_weight, pier, weight_parts.section(m, result.self_weight, pier))
     return tuple(m.units)
 
 

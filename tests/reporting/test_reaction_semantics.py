@@ -3,10 +3,10 @@
 Three independent checks:
 1. Each Printed of the result, replaced by a sentinel, is printed as that sentinel at
    its digits: the report reads every value from the result and rounds nothing.
-   No value of the result is left out.
+   No value of the result is left out, but those 6.2 does not print (decision 79).
 2. Every number written in a formula or table is the text of a result or input
    value, or a constant of the formula: the report computes no number.
-3. Key lines (decisions 11, 22, 23, 24, 27) are written here from the result with an
+3. Key lines (decisions 11, 23, 27, 79) are written here from the result with an
    independent formatter and compared as text, and nothing explains more than the
    samples do (decision 55).
 """
@@ -19,7 +19,6 @@ from dataclasses import replace
 import pytest
 
 from reaction_report_cases import CASES, case, dotted, leaves, replaced, text
-from webpier.calc.reaction.self_weight import Part
 from webpier.core.printed import Printed
 
 SENTINEL = 8765.4321
@@ -50,14 +49,32 @@ def pattern(value: Printed) -> re.Pattern[str]:
     return re.compile(r"(?<![\d.])" + re.escape(text(value)) + r"(?![\d])")
 
 
-def omitted(result) -> tuple[str, ...]:
-    """Paths of the values that are not printed: a 桁受け of volume 0 is left out (decision 41)."""
+# The self-weight values 6.2 does not print (decision 79): the centroids and their moments (the frame and the
+# eccentric moments of 0610/0620 use them), the totals about the column bottom and the footing centre, the haunch
+# centroids, the areas, and ΣV of each part (table 6.2.1 prints its rows; the buoyancy prints its sum).
+UNPRINTED = re.compile(
+    r"self_weight\.(?:"
+    r"(?:pedestal|beam|column|footing|overburden|buoyancy_\w+\.body)(?:\.rows\.\d+)?\."
+    r"(?:x_l|x_c|y|moment_l|moment_c|moment_y)"
+    r"|(?:pier_bottom|footing_centre|footing_haunch_shape)\..*"
+    r"|(?:beam|footing)_haunch_centroid|beam_haunch_shape\.(?:length|width)_change"
+    r"|(?:pedestal|beam_top|beam_bottom|footing_top)_area"
+    r"|(?:pedestal|beam|column|footing|overburden)\.volume)")
+PART_VALUE = re.compile(
+    r"self_weight\.(pedestal|beam|column|footing|overburden)\.(?:(weight)|rows\.(\d+)\.volume|weights\.(\d+))")
+
+
+def omitted(result, path: str) -> bool:
+    """A value that is not printed: one of UNPRINTED, a 桁受け of volume 0 (decision 41), a row of table 6.2.1 whose V
+    is 0, and the weight of a part that the table prints in one row (its W is the row's)."""
     sw = result.self_weight
-    if sw.pedestal.volume.value != 0:
-        return ()
-    assert sw.pier_bottom.rows[0].part is Part.PEDESTAL and sw.footing_centre.rows[0].part is Part.PEDESTAL
-    return ("self_weight.pedestal.", "self_weight.pedestal_area", "self_weight.pier_bottom.rows.0.",
-            "self_weight.footing_centre.rows.0.")
+    if UNPRINTED.fullmatch(path) or sw.pedestal.volume.value == 0 and path.startswith("self_weight.pedestal."):
+        return True
+    found = PART_VALUE.fullmatch(path)
+    if found is None:
+        return False
+    shown = [row.volume.value != 0 for row in getattr(sw, found[1]).rows]
+    return sum(shown) < 2 if found[2] else not shown[int(found[3] or found[4])]
 
 
 def test_every_result_value_is_printed_from_the_result_at_its_digits():
@@ -65,11 +82,10 @@ def test_every_result_value_is_printed_from_the_result_at_its_digits():
     result, pier = case("current")
     baseline = "\n".join(records(result, pier).values())
     assert "8765" not in baseline
-    skipped = omitted(result)
-    assert skipped  # the current input has no 桁受け
+    assert result.self_weight.pedestal.volume.value == 0  # the current input has no 桁受け
     missing = []
     for path, value in leaves(result):
-        if dotted(path).startswith(skipped):
+        if omitted(result, dotted(path)):
             continue
         mark = sentinel(value)
         changed = "\n".join(records(replaced(result, path, mark), pier).values())
@@ -89,7 +105,8 @@ def test_every_result_value_of_each_variant_is_printed_at_its_digits(name: str):
         result = replaced(result, path, mark)
         marks[dotted(path)] = mark
     printed_text = "\n".join(records(result, pier).values())
-    assert [key for key, mark in marks.items() if not pattern(mark).search(printed_text)] == []
+    assert [key for key, mark in marks.items()
+            if not omitted(result, key) and not pattern(mark).search(printed_text)] == []
 
 
 NUMBER = re.compile(r"(?<![A-Za-z\d.])\d+(?:\.\d+)?(?![\d.])")
@@ -118,7 +135,7 @@ def _nodes(value):
     """Every node of an authored unit value, depth first."""
     from gridlayoutpdf import Equation, Row, Script
     from webpier.reporting.equations import Definition
-    from webpier.reporting.stages.reaction.manuscript import CellSpec, TableSpec
+    from webpier.reporting.stages.reaction.manuscript import CellSpec, TableSpec, Wrapped
 
     yield value
     children = ()
@@ -132,6 +149,8 @@ def _nodes(value):
         children = (value.symbol, value.text, value.value, value.unit)
     elif isinstance(value, CellSpec):
         children = (value.content,)
+    elif isinstance(value, Wrapped):
+        children = (value.node,)
     elif isinstance(value, TableSpec):
         children = value.rows
     elif isinstance(value, tuple):
@@ -181,26 +200,35 @@ def test_the_movable_bearing_prints_every_candidate_with_the_friction_floor():
     assert found[key + ".force"] == f"※∴H={text(bearing.force)}kN"
 
 
-def test_the_footing_centre_height_leaves_out_the_soil():
-    """Decision 24: hG = ΣN·y / ΣN of the structure; the soil is in N, xL and xC only."""
+def test_table_6_2_1_writes_each_row_and_the_parts_of_more_rows_are_summed():
+    """Decision 79: each row of table 6.2.1 is V as numbers = V, γ and W = V × γ (a row whose V is 0 is left out);
+    a part of more rows has W, the sum of its rows. Written here from the input with an independent formatter."""
     result, pier = case("current")
-    actual = "\n".join(records(result, pier).values()).replace(" ", "")
-    total = result.self_weight.footing_centre
-    assert f"={text(total.moment_y)}/{text(total.structure_weight)}={text(total.y)}m" in actual
-    # without the soil, and without the 桁受け of volume 0 (decision 41)
-    structure = "+".join(text(row.weight) for row in total.rows[:-1] if row.part is not Part.PEDESTAL)
-    assert f"={structure}={text(total.structure_weight)}kN" in actual
-
-
-def test_the_exact_haunch_centroid_is_printed_with_its_operands():
-    """Decision 22: z from b0, w0, Δb, Δw of the haunch; Example2's frustum value is 0.001 m higher."""
-    result, pier = case("current")
-    actual = "\n".join(records(result, pier).values())
-    assert text(result.self_weight.beam_haunch_centroid) == "0.389"
-    shape = result.self_weight.beam_haunch_shape
-    for value in (shape.lower_length, shape.lower_width, shape.length_change, shape.width_change):
-        assert text(value) in actual
-    assert "0.390" not in actual
+    found = {key.removeprefix("0600/"): value.replace(" ", "") for key, value in records(result, pier).items()}
+    sw, s = result.self_weight, pier.substructure
+    b, w, h = ({index: text(value) for index, value in size.items()} for size in (s.b, s.w, s.h))
+    bf, wf = text(sw.footing_length), text(sw.footing_width)
+    b0, w0 = text(sw.beam_haunch_shape.lower_length), text(sw.beam_haunch_shape.lower_width)
+    beam, column, footing, soil = sw.beam, sw.column, sw.footing, sw.overburden
+    rows = [("はり", beam, 0, f"{b[1]}×{w[1]}×{h[2]}"),
+            ("", beam, 1, f"{h[3]}/6×({b0}×{w[1]}+{b[1]}×{w0}+2×({b[1]}×{w[1]}+{b0}×{w0}))"),
+            ("柱", column, 0, f"{b[6]}×{w[6]}×{h[4]}"),
+            ("フーチング", footing, 1, f"{bf}×{wf}×{h[6]}"),
+            ("上載土", soil, 0, f"{bf}×{wf}×({text(s.df1)}+{text(s.df2)})/2"),
+            ("", soil, 1, f"−{b[6]}×{w[6]}×{text(sw.soil_depth_at_column)}")]
+    expected = "|".join(f"{name + '|' if name else ''}V{index + 1}|{numbers}|=|{text(body.rows[row].volume)}|"
+                        f"{text(body.unit_weight)}|{text(body.weights[row])}"
+                        for index, (name, body, row, numbers) in enumerate(rows))
+    assert found["weight.parts.table"].endswith(expected)
+    assert found["weight.parts.text"] == "橋脚く体，フーチングおよび上載土の自重を表6.2.1に示す．"
+    assert found["weight.parts.title"] == "表6.2.1橋脚く体，フーチングおよび上載土の自重"
+    for part, body in (("beam", beam), ("overburden", soil)):
+        first, second = (text(weight) for weight in body.weights[:2])
+        second = f"({second})" if second.startswith("-") else second
+        assert found[f"weight.{part}.sum.weight"] == f"W={first}+{second}={text(body.weight)}kN"
+    # The footing's haunch (V = 0) is left out, so the footing is one row and has no sum; nor has the column.
+    assert footing.rows[0].volume.value == 0 and "weight.footing.sum.weight" not in found
+    assert "weight.column.sum.weight" not in found
 
 
 def test_no_pier_impact_is_printed():
@@ -218,6 +246,8 @@ SAMPLE_TEXT = {
     "制動荷重：(0.27 + 1.00/Lv)・ΣR",
     "始動荷重：(0.25 + 0.95/Lv)・ΣR",
 }
+# Tables whose header is a sample's: table 6.2.1 is the table 2.1.2 of Example橋脚3 (its γ, decision 79).
+SAMPLE_TABLES = {"0600/weight.parts.table"}
 # What explains or names a formula beyond the samples: sentences, "ここに" definitions, symbolic steps.
 EXPLAINING = re.compile(r"とする|である|乗じ|求め|作用させ|載荷し|ここに|Σ|×\s*n\b|γ|軸数|L\s*×\s*α|H\s*×\s*y")
 
@@ -226,7 +256,8 @@ EXPLAINING = re.compile(r"とする|である|乗じ|求め|作用させ|載荷�
 def test_nothing_is_explained_beyond_the_samples(name: str):
     """Decision 55: no sentence, definition or symbolic step that the samples do not write."""
     found = {key: value for key, value in records(*case(name)).items()
-             if value not in SAMPLE_TEXT and "heading" not in key and EXPLAINING.search(value)}
+             if value not in SAMPLE_TEXT and "heading" not in key and key not in SAMPLE_TABLES
+             and EXPLAINING.search(value)}
     assert found == {}
 
 
@@ -240,8 +271,8 @@ def test_the_report_reads_the_result_not_the_input():
 
 def test_unit_text_follows_the_result_units():
     result, pier = case("current")
-    odd = replace(result, self_weight=replace(result.self_weight, column=replace(
-        result.self_weight.column, weight=Printed(1.0, 0, "furlong"))))
+    odd = replace(result, self_weight=replace(result.self_weight, beam=replace(
+        result.self_weight.beam, weight=Printed(1.0, 0, "furlong"))))
     with pytest.raises(ValueError, match="単位"):
         records(odd, pier)
 

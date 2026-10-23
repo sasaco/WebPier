@@ -28,17 +28,18 @@ def test_a_pedestal_is_calculated_and_drawn():
     result, pier = case("pedestal")
     actual = records("pedestal")
     sw = result.self_weight
-    assert actual["weight.pedestal.volume"] == f"V=7.200×0.250={text(sw.pedestal.rows[0].volume)}m^3"
-    assert actual["weight.pedestal.x_l"].endswith("=(2×0.300+1.200−3.000−0.400+0.200)/2=-0.700m")
+    pedestal = f"|桁受け|V1|1.200×6.000×0.250|=|{text(sw.pedestal.rows[0].volume)}|24.5|{text(sw.pedestal.weight)}|"
+    assert pedestal in actual["weight.parts.table"]
     assert "|0.250|" in actual["weight.shape.figure"]  # H1 is dimensioned
     assert "0.250" not in records("current")["weight.shape.figure"].replace("2.250", "")
-    # The footing haunch (H5 = 0.400) is placed by the column's position, the beam haunch by the beam's:
-    # x × z / h in numbers.
-    sw = result.self_weight
-    assert actual["weight.footing.haunch.x_l"] == (f"xL={text(sw.column.x_l)}×{text(sw.footing_haunch_centroid)}"
-                                                   f"/0.400={text(sw.footing.rows[0].x_l)}m")
-    assert actual["weight.beam.haunch.x_l"].startswith(f"xL={text(sw.beam.rows[0].x_l)}×"
-                                                       f"{text(sw.beam_haunch_centroid)}/")
+    # The footing haunch (H5 = 0.400) is a row of its own, the prismatoid between B × W and B8 × W8; with the
+    # footing's prism the footing has two rows and its weight is their sum (decision 79).
+    haunch = f"|フーチング|V5|0.400/6×(6.000×4.600+2.400×9.000+2×(2.400×4.600+6.000×9.000))|=|"
+    assert haunch in actual["weight.parts.table"]
+    first, second = (text(weight) for weight in sw.footing.weights)
+    assert actual["weight.footing.sum.weight"] == f"W={first}+{second}={text(sw.footing.weight)}kN"
+    # The overall footing length and width are dimensioned under its parts.
+    assert "|6.000|" in actual["weight.shape.figure"] and "|9.000|" in actual["weight.shape.figure"]
 
 
 @pytest.mark.parametrize("name,wedge_side", [("pedestal", "end"), ("mirrored", "origin")])
@@ -49,10 +50,8 @@ def test_the_submerged_sloped_soil_is_a_wedge_on_the_lower_side(name: str, wedge
     sw = result.self_weight
     assert actual["weight.water.high.wedge"] == (f"b'=min({text(sw.footing_length)}×{text(high.submerged)}"
                                                  f"/{text(sw.soil_step)},{text(sw.footing_length)})={text(high.wedge)}m")
-    # The wedge lies on the lower side: after the rectangle (b'' + b'/3) or from the origin end (2b'/3).
-    wedge, rectangle, half = text(high.wedge), text(high.rectangle), text(sw.footing_length)
-    expected = f"xL={rectangle}+{wedge}/3−{half}/2=" if wedge_side == "end" else f"xL=2×{wedge}/3−{half}/2="
-    assert actual["weight.water.high.wedge.x_l"].startswith(expected)
+    # The wedge lies on the lower side (its position is of the calculation only, decision 79).
+    assert (high.body.rows[2].x_l.value > 0) is (wedge_side == "end")
     # The low water is below the footing top: nothing of the slope is submerged.
     assert actual["weight.water.low.wedge"] == "b'=0.000m"
 
@@ -60,9 +59,14 @@ def test_the_submerged_sloped_soil_is_a_wedge_on_the_lower_side(name: str, wedge
 def test_no_haunch_no_cover_and_no_bearing():
     result, _ = case("bare")
     actual = records("bare")
-    assert actual["weight.beam.haunch.x_l"] == "xL=0.000m"  # H3 = 0: no position from z / H3
-    assert actual["weight.soil.trapezoid.x_l"] == "xL=0.000m"  # df1 + df2 = 0
-    assert actual["weight.soil.centroid.x_l"] == "xL=0.000m"  # ΣV = 0
+    sw = result.self_weight
+    # H3 = 0 and df1 = df2 = 0: the beam haunch and the soil rows of V = 0 are left out of table 6.2.1, so the beam is
+    # one row with no sum (decision 79).
+    assert sw.beam.rows[1].volume.value == 0 and sw.overburden.rows[0].volume.value == 0
+    shown = sum(row.volume.value != 0 for body in (sw.pedestal, sw.beam, sw.column, sw.footing, sw.overburden)
+                for row in body.rows)
+    assert actual["weight.parts.table"].count("|=|") == shown
+    assert "weight.beam.sum.weight" not in actual
     assert "dead.end.bearings" not in actual
     assert actual["dead.end.sum.d1"] == "RC(D1)=0.00kN"
     assert actual["dead.end.tracks"] == "n=0.000"
@@ -139,16 +143,6 @@ def test_each_combination_is_named_with_its_printed_factors():
     assert actual["long.case.safety_lr10_b11.label"] == "・1.0LR+1.35B[1.1D1+1.2D2+1.23(L+I)+S10+1.0LR+1.35Bの組合せ]"
     assert actual["long.case.safety_lr10_b10.origin.vertical.symbols"] == "Rm=1.1D1+1.2D2+1.35複線(L+I)+S10"
     assert "|1.0LR+1.23B|298.40|175.03|473.43|1.1LR+1.23B|" in actual["long.summary.table"]
-
-
-def test_zero_aggregates_print_their_centroid_without_dividing_by_zero():
-    result, pier = case("current")
-    sw = result.self_weight
-    zero = Printed(0.0, 2, "kN")
-    bottom = replace(sw.pier_bottom, weight=zero, structure_weight=zero)
-    actual = records("", replace(result, self_weight=replace(sw, pier_bottom=bottom)), pier)
-    assert actual["weight.bottom.x_l"] == f"xL={text(sw.pier_bottom.x_l)}m"
-    assert actual["weight.bottom.y"] == f"y={text(sw.pier_bottom.y)}m"
 
 
 def test_a_girder_without_axles_prints_its_reactions_as_values():

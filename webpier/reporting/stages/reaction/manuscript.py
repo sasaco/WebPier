@@ -108,8 +108,9 @@ def _columns(*items: Any) -> Row:
     return Row(*out, gap=row.gap)
 
 
-def _opened(items: list[Any]) -> list[Any]:
-    """Top-level parentheses kept on their first and last terms, so that a long group wraps inside."""
+def _opened(items: list[Any], nested: bool = False) -> list[Any]:
+    """Top-level parentheses kept on their first and last terms, so that a long group wraps inside; with *nested*
+    the groups inside them too."""
     out: list[Any] = []
     index = 0
     while index < len(items):
@@ -122,7 +123,7 @@ def _opened(items: list[Any]) -> list[Any]:
             depth += (items[end] == "(") - (items[end] == ")")
             if depth == 0:
                 break
-        inner = list(_parts(terms(*items[index + 1:end])))
+        inner = _opened(items[index + 1:end], nested) if nested else list(_parts(terms(*items[index + 1:end])))
         inner[0] = Row("(", inner[0], gap=0)
         inner[-1] = Row(inner[-1], ")", gap=0)
         out.extend(inner)
@@ -130,11 +131,12 @@ def _opened(items: list[Any]) -> list[Any]:
     return out
 
 
-def expr(*parts: Any, open_groups: bool = False) -> Row:
+def expr(*parts: Any, open_groups: bool = False, nested: bool = False) -> Row:
     """An equation RHS in term columns (terms); printed values are written at their digits.
 
     A parenthesized group is one term that never wraps inside; with *open_groups* the top-level groups
-    keep their parentheses on their first and last terms, so that a group too long for a line wraps.
+    keep their parentheses on their first and last terms, so that a group too long for a line wraps (with *nested*,
+    the groups inside them too).
     """
     items: list[Any] = []
     for index, part in enumerate(parts):
@@ -142,7 +144,7 @@ def expr(*parts: Any, open_groups: bool = False) -> Row:
         first = index == 0 or (isinstance(previous, str) and previous in ("(", "="))
         node = operand(part, first=first)
         items.extend(_parts(node) if _aligned(node) else (node,))
-    return _columns(*(_opened(items) if open_groups else items))
+    return _columns(*(_opened(items, nested) if open_groups else items))
 
 
 def inline(node: Any) -> Any:
@@ -204,10 +206,18 @@ def unit_of(value: Printed) -> str | MathNode | None:
 
 
 @dataclass(frozen=True)
-class CellSpec:
-    """One authored table cell: text or a math node, and its span."""
+class Wrapped:
+    """An expression in term columns (expr) written in a table cell on as many lines as the cell's width needs, each
+    further line beginning with the operator it breaks before (V of table 6.2.1, decision 79)."""
 
-    content: str | MathNode
+    node: Row
+
+
+@dataclass(frozen=True)
+class CellSpec:
+    """One authored table cell: text, a math node or a wrapped expression, and its span."""
+
+    content: str | MathNode | Wrapped
     colspan: int = 1
     rowspan: int = 1
     align: str | None = None
@@ -221,6 +231,7 @@ class TableSpec:
     rows: tuple[tuple[CellSpec, ...], ...]
     header_rows: int
     numeric_columns: tuple[int, ...] = ()
+    open_boundaries: tuple[int, ...] = ()  # column boundaries (0 is the left edge) drawn without a rule
 
 
 @dataclass(frozen=True)
@@ -243,7 +254,7 @@ class Pair:
 @dataclass(frozen=True)
 class Unit:
     key: str
-    kind: str  # heading, paragraph, math, pair, equation, definitions, table, figure
+    kind: str  # heading, paragraph, caption, math, pair, equation, definitions, table, figure
     value: Any
     left: int = BODY  # body column
     first_equal: int | None = None  # a pair: the column of its second text
@@ -349,6 +360,10 @@ class Manuscript:
         """"ここに、" symbol：meaning, one line each, the symbols right-aligned against one colon column."""
         self._add(Unit(key, "definitions", items, INDENTED, first_equal=DEFINITION_COLON, group=self._group))
 
+    def caption(self, key: str, text: str, left: int) -> None:
+        """A table's title, centred from *left* right above the table that follows (table 6.2.1, decision 79)."""
+        self._add(Unit(key, "caption", text, left, gap_before=True, keep=True))
+
     def table(self, key: str, spec: TableSpec, left: int) -> None:
         self._add(Unit(key, "table", spec, left, gap_before=True))
 
@@ -384,6 +399,8 @@ def plain(value: Any) -> str:
         return value.first + value.second
     if isinstance(value, CellSpec):
         return plain(value.content)
+    if isinstance(value, Wrapped):
+        return plain(value.node)
     if isinstance(value, TableSpec):
         return "|".join("|".join(plain(cell) for cell in row) for row in value.rows)
     if isinstance(value, FigureSpec):

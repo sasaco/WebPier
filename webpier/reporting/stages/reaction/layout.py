@@ -11,15 +11,15 @@ from dataclasses import dataclass, replace
 
 from gridlayoutpdf import (Block, BorderStyle, BreakHint, Cell, CellLines, Document, Equation, GridSpec, KeepWithNext,
                            LayoutContext, LayoutOverflowError, Leading, MeasuredBlock, Operator, Paragraph,
-                           PreferKeepTogether, QuarterTurn, Row, SideRule, TermStop, measure_block)
+                           PreferKeepTogether, QuarterTurn, Row, SideRule, TermStop, as_math, measure_block)
 
 from ...document import blank, columns, heading, indent_to, math_line, paragraph, report, spacer
 from ...equations import definitions, equation_group
-from ...styles import BODY, BODY_COLUMNS, PITCH_X, PITCH_Y, columns_pt
+from ...styles import BODY, BODY_COLUMNS, HEADING, PITCH_X, PITCH_Y, columns_pt
 from ...tables import CELL_PADDING, table
 from .figures import LoadingFigure, OutlineFigure
 from .manuscript import (
-    RESULT_EQUAL, RESULT_RIGHT, RULE_X, UNIT_START, CellSpec, Pair, TableSpec, Unit,
+    RESULT_EQUAL, RESULT_RIGHT, RULE_X, UNIT_START, CellSpec, Pair, TableSpec, Unit, Wrapped,
 )
 
 FIGURES = {"outline": OutlineFigure, "loading": LoadingFigure}
@@ -30,10 +30,54 @@ def _lines(spec: CellSpec) -> int:
     return spec.content.count("\n") + 1 if isinstance(spec.content, str) else 1
 
 
+def _run(items: Sequence[object]) -> Row:
+    """Terms and operators as one line, a space on each side of an operator (none before a leading one)."""
+    out: list[object] = []
+    for index, item in enumerate(items):
+        out.extend(((" ", item, " ") if index else (item, " ")) if isinstance(item, Operator) else (item,))
+    return Row(*out, gap=0)
+
+
+@dataclass(frozen=True)
+class _WrappedLines:
+    """A Wrapped expression in a cell: as many of its terms on a line as the cell's width holds, breaking before
+    "+" or "−" where it can, else before "×" or "/" (as _Equations does); the text and its order do not change."""
+
+    wrapped: Wrapped
+    advance: float
+    align: str
+
+    def measure(self, context: LayoutContext, available_width: float) -> MeasuredBlock:
+        width = available_width - CELL_PADDING.left - CELL_PADDING.right
+
+        def fits(items: Sequence[object]) -> bool:
+            return as_math(_run(items)).measure(context.fonts, BODY).width <= width
+
+        items = [item for item in self.wrapped.node.items if not isinstance(item, (TermStop, BreakHint))]
+        lines: list[Row] = []
+        while not fits(items):
+            cut = next((index for breaks in _BREAKS for index in range(len(items) - 1, 0, -1)
+                        if isinstance(items[index], Operator) and items[index].text in breaks
+                        and fits(items[:index])), None)
+            if cut is None:
+                break  # nothing shorter fits: CellLines reports the line
+            lines.append(_run(items[:cut]))
+            items = items[cut:]
+        lines.append(_run(items))
+        content = CellLines(tuple(lines), style=BODY, line_advance=self.advance, inner_padding=CELL_PADDING,
+                            align=self.align)
+        return measure_block(content, context, available_width)
+
+
 def _cell(spec: CellSpec, advance: float) -> Cell:
-    """A cell of text lines ("\\n" separated) or one math line, one grid row (*advance* pt) per line."""
-    lines = tuple(spec.content.split("\n")) if isinstance(spec.content, str) else (spec.content,)
-    content = CellLines(lines, style=BODY, line_advance=advance, inner_padding=CELL_PADDING, align=spec.align or "left")
+    """A cell of text lines ("\\n" separated), one math line or a wrapped expression, one grid row (*advance* pt)
+    per line."""
+    if isinstance(spec.content, Wrapped):
+        content: Block = _WrappedLines(spec.content, advance, spec.align or "left")
+    else:
+        lines = tuple(spec.content.split("\n")) if isinstance(spec.content, str) else (spec.content,)
+        content = CellLines(lines, style=BODY, line_advance=advance, inner_padding=CELL_PADDING,
+                            align=spec.align or "left")
     return Cell(content, colspan=spec.colspan, rowspan=spec.rowspan, align=spec.align, padding=0)
 
 
@@ -64,9 +108,12 @@ def _heights(spec: TableSpec) -> list[int]:
 
 
 def _raw_table(spec: TableSpec, block_id: str, advance: float = PITCH_Y) -> Block:
+    """A wrapped cell takes the lines it needs, so a table with one has its row heights found by measuring."""
     rows = [[_cell(item, advance) for item in row] for row in spec.rows]
-    return table(spec.widths, rows, row_heights=_heights(spec), header_rows=spec.header_rows,
-                 numeric_columns=spec.numeric_columns, block_id=block_id)
+    wrapped = any(isinstance(item.content, Wrapped) for row in spec.rows for item in row)
+    return table(spec.widths, rows, row_heights=None if wrapped else _heights(spec), header_rows=spec.header_rows,
+                 numeric_columns=spec.numeric_columns, vertical=dict.fromkeys(spec.open_boundaries),
+                 block_id=block_id)
 
 
 def _table(spec: TableSpec, block_id: str) -> Block:
@@ -210,6 +257,8 @@ def _block(unit: Unit) -> Block:
         return heading(unit.value, left=unit.left, block_id=unit.identifier)
     if unit.kind == "paragraph":
         return paragraph(unit.value, left=unit.left, block_id=unit.identifier)
+    if unit.kind == "caption":
+        return paragraph(unit.value, left=unit.left, style=HEADING, align="center", block_id=unit.identifier)
     if unit.kind == "pair":
         assert unit.first_equal is not None
         return _pair(unit.value, unit.left, unit.first_equal, unit.identifier)
@@ -235,7 +284,8 @@ def _ruled(out: list[Block], ruled: list[bool]) -> list[Block]:
 def blocks(units: Sequence[Unit]) -> list[Block]:
     """Blocks in manuscript order: a heading and a group's units stay with what follows them.
 
-    A heading, table or figure has one blank line before and after it; blank lines never stack.
+    A heading, table or figure has one blank line before and after it (a table none after its caption); blank lines
+    never stack.
     A ruled unit and the blank lines next to it are bracketed by the rule.
     """
     def kept(index: int) -> bool:
@@ -248,7 +298,8 @@ def blocks(units: Sequence[Unit]) -> list[Block]:
     index = 0
     while index < len(units):
         unit = units[index]
-        if unit.kind in ("heading", "table", "rotated", "figure") or unit.gap_before:
+        captioned = unit.kind == "table" and index > 0 and units[index - 1].kind == "caption"
+        if (unit.kind in ("heading", "table", "rotated", "figure") or unit.gap_before) and not captioned:
             before = len(out)
             blank(out)
             if len(out) > before and (unit.ruled or index > 0 and units[index - 1].ruled):

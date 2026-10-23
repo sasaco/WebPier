@@ -82,6 +82,16 @@ def text(value: Printed | None, *, thousands: bool = False) -> str:
     return format(decimal, ",f" if thousands else "f")
 
 
+def part_weight(body) -> str:
+    """A 0600 part's weight as 8.2/9.2 write it (decision 79): the W of the rows table 6.2.1 prints (V not 0) summed,
+    a negative one in parentheses, or γ × V when it prints one row."""
+    weights = [weight for row, weight in zip(body.rows, body.weights, strict=True) if row.volume.value != 0]
+    if len(weights) < 2:
+        return f"{text(body.unit_weight)}×{text(body.volume)}"
+    return "+".join(text(weight) if index == 0 or weight.value >= 0 else f"({text(weight)})"
+                    for index, weight in enumerate(weights))
+
+
 # 0620/0720: the transverse frame changes with W sizes; R ≠ 0 adds the centrifugal cases (decision 33);
 # the ground (footing top + min(df1, df2)) cuts the column in Example2 and the haunch in ``haunch_ground``.
 TRANSVERSE_CASES: dict[str, dict[str, object]] = {

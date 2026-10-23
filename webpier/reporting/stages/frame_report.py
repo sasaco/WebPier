@@ -63,6 +63,18 @@ def operand(number: Printed) -> str:
     return f"({text})" if number.value < 0 else text
 
 
+def part_weight(body: Any) -> Row:
+    """The weight of a 0600 part (a self-weight Body): the sum of the W of its rows that table 6.2.1 prints (V not
+    0), or γ × V when it prints one (decision 79)."""
+    weights = [weight for row, weight in zip(body.rows, body.weights, strict=True) if row.volume.value != 0]
+    if len(weights) < 2:
+        return terms(value(body.unit_weight), "×", value(body.volume))
+    parts: list[Any] = [value(weights[0])]
+    for weight in weights[1:]:
+        parts += ["+", operand(weight)]
+    return terms(*parts)
+
+
 def with_unit(number: Printed, *, thousands: bool = False) -> Row:
     return Row(printed(number, thousands=thousands), " ", unit(number.unit), gap=0)
 
