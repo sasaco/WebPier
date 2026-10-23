@@ -9,11 +9,11 @@ from recorded_input_support import before_piles, input_sha256s, upgrade_to_piles
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
-# SHA256 of the inputs as they were before the pile foundation (HEAD of 2026-10-23, before decision 84)
+# SHA256 of the inputs as they were before the pile foundation (HEAD of 2026-10-23, before decision 84); the
+# project's own pre/input.json is not here: its owner edits it (the 出力項目 …), so its bytes are no fixture
 BEFORE = {
     "tests/fixtures/inputs/current.json": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa",
     "tests/fixtures/acceptance/footing/input.json": "c525986407504f65cf159f3e408435c5013397fa05dfc3ae2790ceadbcc6da01",
-    "pre/input.json": "33e1f6719cd1937c3eb6500a5e7b99a94c829772c0bc6bd728eebc3fa20a9764",
 }
 
 

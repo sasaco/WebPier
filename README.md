@@ -72,7 +72,21 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | `footing` | フーチングの計算 | 0800・0810・0820 | 両方向の `*_frame_analysis` と `*_nonlinear_analysis` |
 | `cantilever` | 片持ち梁の計算 | 0900・0910 | 両方向の `*_nonlinear_analysis` |
 
+杭基礎（`下部構造.基礎形式` が場所打ち杭・鋼管ソイルセメント杭）では、選べる項目を段ごとに広げます。いま選べるのは `detailing`・`ground_model`・`reactions` です（ほかは `outputs.<項目>` の入力エラー）。`ground_model` は 0500 の杭基礎用（下の「杭基礎の 0500」）で、SOIL-JR を動かす JRSNAP の runner が要ります。
+
 項目と段階の対応は `webpier/inputs/outputs.py`（項目と使う項目）と `webpier/pipeline/stages.py` の `OUTPUT_STAGES` が持ちます。地震時の項目は地震時以外の項目を使いません（決定78）。0710・0720 は、使う固定死荷重・付加死荷重・浮力（平水位）・雪荷重（2年確率）を 0610・0620 と同じ計算で自分の骨組に求めるので、0610・0620 を選ばずに作れ、FEMPython の runner も要りません。
+
+### 杭基礎の 0500（決定80・83・85、ADR-0013）
+
+杭基礎の 0500 は、WebPier が地盤ばねや支持力を計算せず、SOIL-JR 5.2-L03 に計算させます。段階の登録表（`stages.py`）で、直接基礎の 0500（`0500_直接基礎`）の `foundations` に杭基礎の 0500（`0500_杭基礎`）を持ち、入力を読んだ直後に基礎形式で引き当てます（`Registry.for_foundation`）。
+
+1. 入力から SOIL-JR の入力の値を導きます（`webpier/calc/pile_ground.py`）。杭頭より上の地盤は、フーチング底面の深さ Df（H6＋H5＋min(df1, df2)）までの層を、水位より上・下の厚さで加重した湿潤・水中単位体積重量の1行にします。杭の区間（フーチング底面から杭長）は、地盤の層をその深さで切った行にします（最後の層は下に続く。Ex＝Ed、ρgE＝γgE＝1。砂質土・砂礫は N値・φd、粘性土は N値・c が要る。砂質土と粘性土の互層は入力エラー）。杭の断面（場所打ち杭は A＝πD²/4、I＝πD⁴/64 と Ec〔f'ck の表の補間〕、鋼管ソイルセメント杭は A＝πDsc²/4、I＝π{(Dsp−2c)⁴−(Dsp−2t)⁴}/64 と Es＝200 kN/mm²）と、列ごとの本数・距離を配置から求めます。
+2. .sdt を書きます（`webpier/export/soiljr/`。SOIL-JR 5.2.3 が保存する形、CP932・CRLF）。地盤抵抗係数は未入力の目印で書き、SOIL-JR に求めさせます。
+3. JRSNAP の runner の `soil` 命令（JRSNAPHeadless、環境変数 `STRUCTURAL_MCP_JRSNAP_RUNNER`）で SOIL-JR を動かします。0500（杭基礎）を含む生成は、runner がないと止まります。
+4. 成果物：`output/0500_杭基礎.pdf`（SOIL-JR の帳票を、印刷のメニューと同じ全項目、runner が出したバイト列のまま。WebPier は頁も見出しも足さず、方眼Excelもありません。印刷日が入るので生成のたびに変わります）、`output/0500_杭基礎.json`、`post/杭基礎.sdt`・`杭基礎.sdr`・`杭基礎.sdc`（液状化を考慮する入力、つまり杭の区間の層の De が 1 未満のときは `杭基礎(液状化時用).sdr`・`.sdc` も）と、それぞれの付帯JSON（`soil_jr`：runner、SOIL-JR の版、.sdt の SHA-256、警告。`engineering_status` は `not_evaluated`）。.sdr・.sdc は SOIL-JR が返したバイト列のままで、同じ入力から毎回同じです。
+5. 結果JSON（`result`）：導いた値（`ground`：杭頭より上の地盤、杭の区間の行、杭の断面、杭の列、液状化の有無）、渡した .sdt の SHA-256、.sdr の表（`sdr`・`liquefied_sdr`。設計鉛直支持力・設計引き抜き抵抗力・水平変位の設計限界値 δL・回転角の設計限界値 θL を方向・条件ごとの表として）。.sdr の見出し（杭種・杭長・列数・本数）が渡した入力と違えば生成を止めます。0612・0622 と Aggre-SE の杭基礎の制限値は、この表と .sdc から取ります（ロードマップ P5 以降）。
+
+本物の SOIL-JR での受入：`scripts/accept_pile_ground.py`。見本 RC橋脚（杭基礎）サンプルデータE.sdt（場所打ち杭 3×3 中抜き）を表す `tests/fixtures/inputs/pile.json` から書いた .sdt を計算させ、.sdr・.sdc が見本の .sdt の結果と表題を除いてバイトまで同じであることを確かめて `tests/fixtures/acceptance/pile_ground/record.json` に記録します（`tests/acceptance/test_pile_ground_acceptance.py`）。
 
 0611・0612・0621・0622 は骨組解析の段階です（決定46、ADR-0006）。0611・0621 は骨組解析に続けて柱の断面照査を行い（決定48、下記）、0612・0622 は同じ骨組解析の反力で基礎の照査を行います（決定54、下記）。同じ FrameWeb 入力を解析する段階（0611 と 0612、0621 と 0622）は解析を共有し、1回の生成で FEMPython を1回だけ呼び、ピックアップのファイルも1組だけ公開します（付帯JSONの `stage` は先の段階、`frame_analysis.stages` に使った段階）。出力項目 `longitudinal_frame_analysis`・`transverse_frame_analysis` で選びます（両方向を選ぶと、上の20ファイルに、0611・0612・0621・0622 の計算書・結果JSON、ピックアップのファイル6つ、`線路方向.wdj`・`線路直角方向.wdj`、付帯JSON8つが加わります）。0611 と 0612（0621 と 0622）は同じ項目で、一緒に作ります。同じ生成で一度だけ組み立てた FrameWeb 入力のバイトを、荷重図とは別の呼び出しで FEMPython の Headless runner（`run --generate-pdf false --generate-pik true --generate-pickup-displacement-csv true --generate-pickup-reaction-csv true`）に渡し、返った `pickup.pik`・`pickup-displacement.csv`・`pickup-reaction.csv` を、読み直しも再エンコードもせずにそのままのバイトで公開します（`result.json` は SHA256 とバイト数を確かめるだけで公開しません）。解析に失敗すると何も公開せずに止まります（終了コード 2）。解析しない生成は、前回のピックアップのファイルを消さずに残します（どの世代のものかは付帯JSONでわかります）。0610・0620 の計算書は骨組解析の有無で変わりません。
 
@@ -190,7 +204,7 @@ structural-mcp（MCP の `webpier_get_input_schema`・`webpier_get_contract`・`
 - runner は**環境変数だけ**から読みます（`.env` は読みません）。選んだ出力項目が要る runner がなければ何も書かずに `RUNNER_UNAVAILABLE` で終わります。
 - 終了コードは CLI と同じ（0・2・3）。失敗の種類は `errors[0].code`（`INVALID_ARGUMENT`・`INPUT_ERROR`（入力のパス付き）・`ADDIN_ERROR`（下の「荷重モデルのアドイン」）・`RUNNER_UNAVAILABLE`・`ENGINE_FAILED`・`GENERATION_FAILED`・`IO_ERROR`・`RECOVERY_REQUIRED`）。
 - `engineeringStatus` は段階ごと（0400・0612・0622 は ok／not_ok、ほかは not_evaluated）と全体（not_ok が1つでもあれば not_ok、判定した段階がすべて ok なら ok）。実行の成否（`ok`）とは別です。
-- `validate` は runner を呼ばずに決まる範囲（解析・計算・外部出力・Aggre-SE のプロジェクトの入力）を確かめます。`contract` は段階（依存と出力項目）と、出力項目ごとの段階・使う項目・選ぶと要る runner（使う項目の分も含む）・公開するファイル（`outputs`）、`schema` は入力の JSON Schema（項目表から。必須と項目間の規則は `validate` が正）。
+- `validate` は runner を呼ばずに決まる範囲（解析・計算・外部出力・Aggre-SE のプロジェクトの入力）を確かめます。`contract` は段階（依存と出力項目）と、出力項目ごとの段階・使う項目・選ぶと要る runner（使う項目の分も含む）・公開するファイル（`outputs`。各項目の `pileFoundation` は杭基礎で作るときの同じ内容：`supported`〔杭基礎で選べるか〕・`runners`・`files`・`conditionalFiles`〔液状化を考慮する入力だけに出るファイル〕。決定85）、`schema` は入力の JSON Schema（項目表から。必須と項目間の規則は `validate` が正）。
 
 ### 荷重モデルのアドイン（`--addin`、決定70、ADR-0010）
 

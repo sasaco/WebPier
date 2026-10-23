@@ -18,8 +18,12 @@
    the DB1 of each Case (decision 49; its input is checked before any analysis). The Aggre-SE runner then checks with
    that staged project and folder: its report is the stage's report as it is (decision 56) and its section force
    pickup and summary workbook are staged as they are (decisions 57, 58). Each export is built
-   once, so the file analyzed is the bytes staged. The runners are looked up before anything is calculated, and a
-   missing or failing runner stops the generation.
+   once, so the file analyzed is the bytes staged. A stage with SOIL-JR's calculation (0500 of a pile foundation, decision
+   85, ADR-0013) has the JRSNAP runner calculate its .sdt in one call, before any report is rendered: the report is
+   SOIL-JR's as the runner printed it, its .sdr and .sdc (and the two for the liquefaction, when the input considers it)
+   are staged as they are, and the stage finishes its result with them. The runners are looked up before anything is
+   calculated, and a missing or failing runner stops the generation. The stages are those of the input's 基礎形式
+   (``Registry.for_foundation``).
 4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
    sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
    written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
@@ -50,6 +54,7 @@ from ..calc.cantilever import ResponseError
 from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
 from ..export.capacita import PickupError
+from ..export.soiljr import SdrError
 from ..inputs import PierInput, parse_input
 from ..reporting.workbook import write_workbook
 from . import aggrese, capacita, fempython, jrsnap
@@ -59,7 +64,7 @@ from .publication import ArtifactStaging, backup_path, publish_outputs, validate
 from .runtime import RuntimeIdentityError, dependency_hashes
 from .serialize import SCHEMA_VERSION, result_document, to_json
 from .stages import (STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project, Registry, SectionCheck, SeismicCheck,
-                     StageSpec, seismic_file, stages_for)
+                     SoilJrCalculation, StageSpec, seismic_file, stages_for)
 
 PROVENANCE_SUFFIX = ".provenance.json"
 
@@ -96,6 +101,7 @@ class _PostFile:
     project: Project | None = None  # the Aggre-SE project beside that folder (decision 49)
     check: SectionCheck | None = None  # the completed WDJ of the stage's column section check (decision 48)
     seismic: SeismicCheck | None = None  # a file of the stage's 耐震性能照査 (decisions 57, 58)
+    soil: SoilJrCalculation | None = None  # a file SOIL-JR returned for the stage's .sdt (decision 85)
 
 
 def _identity() -> dict[Path, str]:
@@ -118,8 +124,10 @@ def _analysis_key(analysis: FrameAnalysis) -> tuple[str, str]:
     return analysis.stage, analysis.export
 
 
-def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...]
+def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, ...], pier: PierInput | None = None
           ) -> tuple[list[Artifact], list[_PostFile]]:
+    """The files of a generation of *selected* stages of *registry* (the stages of the input's 基礎形式). Which files
+    SOIL-JR returns depends on the input (the two for the liquefaction), so they are planned only with its *pier*."""
     reports, posts = [], []
     analyzed: set[tuple[str, str]] = set()
     for stage_id in selected:
@@ -143,11 +151,16 @@ def _plan(options: GenerationOptions, registry: Registry, selected: tuple[str, .
                 files.append((project.kind, project.file_name, None, False, project, None, None))
         if (seismic := stage.seismic_check) is not None:
             files += [(kind, file_name, None, False, None, None, seismic) for kind, file_name in seismic.files]
+        ground = stage.soil_jr
+        returned = () if ground is None else (*ground.files, *(ground.liquefaction if pier is not None
+                                                                and ground.liquefied(pier) else ()))
+        files += [(kind, file_name, None, False, None, None, None) for kind, file_name in returned]
         for kind, file_name, item, folder, project, check, seismic in files:
             native = Artifact(f"{stage_id}.{kind}", Path(options.post_dir) / file_name, "post", folder)
             sidecar = Artifact(f"{native.role}.provenance", native.path.with_name(file_name + PROVENANCE_SUFFIX),
                                "post")
-            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check, seismic))
+            posts.append(_PostFile(stage_id, kind, native, sidecar, item, project, check, seismic,
+                                   ground if (kind, file_name) in returned else None))
     return [*reports, *(post.native for post in posts), *(post.sidecar for post in posts)], posts
 
 
@@ -168,25 +181,38 @@ def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierIn
     return data, parse_input(load_json(data), load_model=registry.load_model is not None)
 
 
+def resolve(options: GenerationOptions, registry: Registry = STAGES) -> tuple[Registry, tuple[str, ...]]:
+    """The registry of the input of *options*, and the stages its 出力項目 choose in it, in registry order (decision 72):
+    the registry of its load model's add-in (decision 70), with the stages of its 基礎形式 (decision 85). The input is read
+    and parsed strictly, so an invalid one is an input error."""
+    registry = with_addin(options, registry)
+    pier = _read(options, registry)[1]
+    registry = registry.for_foundation(pier.substructure.foundation)
+    return registry, registry.selected(pier.outputs)
+
+
 def selection(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[str, ...]:
     """The stages the 出力項目 of the input of *options* choose, in registry order (decision 72); the input is read
     and parsed strictly, so an invalid one is an input error."""
-    registry = with_addin(options, registry)
-    return registry.selected(_read(options, registry)[1].outputs)
+    return resolve(options, registry)[1]
 
 
 def _folders(artifacts: list[Artifact]) -> tuple[Path, ...]:
     return tuple(artifact.path for artifact in artifacts if artifact.folder)
 
 
-def planned(options: GenerationOptions, selected: Sequence[str], *,
-            registry: Registry = STAGES) -> tuple[Artifact, ...]:
+def planned(options: GenerationOptions, selected: Sequence[str], *, registry: Registry = STAGES,
+            pier: PierInput | None = None) -> tuple[Artifact, ...]:
     """The files a generation of the stages *selected* (``selection``) with *options* publishes, in publication order;
     nothing is read or written.
 
-    The editor uses it to check a finished generation against exactly the files the CLI wrote.
+    The editor uses it to check a finished generation against exactly the files the CLI wrote. With the *pier* the
+    generation read the files are those of its 基礎形式 and of what its input decides (decision 85); without one, those of
+    the direct foundation, and of a pile foundation only the files it always has.
     """
-    return tuple(_plan(options, registry, tuple(selected))[0])
+    if pier is not None:
+        registry = registry.for_foundation(pier.substructure.foundation)
+    return tuple(_plan(options, registry, tuple(selected), pier)[0])
 
 
 def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...]) -> dict[str, Any]:
@@ -214,6 +240,7 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
 
     The real-app acceptance rebuilds its candidate files with this.
     """
+    registry = registry.for_foundation(pier.substructure.foundation)
     selected = registry.stage(stage_id).id
     item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
     if item is None:
@@ -334,8 +361,11 @@ def _sidecar(post: _PostFile, staging: ArtifactStaging, artifacts: list[Artifact
 
 
 def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadDiagramPages],
-                  figures: Mapping[str, jrsnap.FigurePages]) -> dict[str, Any]:
+                  figures: Mapping[str, jrsnap.FigurePages], grounded: Mapping[str, jrsnap.SoilFiles],
+                  built: Mapping[tuple[str, str], bytes]) -> dict[str, Any]:
     facts: dict[str, Any] = {"metadata": to_json(post.export.metadata)}
+    if post.stage in grounded and post.kind == registry.get(post.stage).soil_jr.export:
+        facts |= _ground_facts(post, grounded, built[(post.stage, post.kind)])
     if post.kind == registry.get(post.stage).load_diagram:
         # The runner's pages are FEMPython's (decision 44): only which runner drew them is recorded.
         facts["load_diagram"] = {"report": f"{post.stage}.pdf", "engine": ENGINE,
@@ -353,6 +383,18 @@ def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadD
                                                     for case, combination in pages.load_cases],
                                    "runner_summary": dict(pages.summary)}
     return facts
+
+
+def _ground_facts(post: _PostFile, grounded: Mapping[str, jrsnap.SoilFiles], sdt: bytes) -> dict[str, Any]:
+    # The returned files and the report are SOIL-JR's (decision 85, ADR-0013): which runner calculated which .sdt, with
+    # what it reports of SOIL-JR and its warnings. It returns no judgement, so the check is recorded as run.
+    calculated = grounded[post.stage]
+    return {"soil_jr": {"engine": jrsnap.ENGINE, "engine_version": calculated.engine_version,
+                        "engineering_status": "not_evaluated", "report": f"{post.stage}.pdf",
+                        "sdt": {"stage": post.stage, "export": post.soil.export if post.soil else post.kind,
+                                "sha256": sha256(sdt)},
+                        "runner_summary": dict(calculated.summary),
+                        "messages": [dict(message) for message in calculated.messages]}}
 
 
 def _analysis_facts(registry: Registry, post: _PostFile, analyzed: Mapping[str, AnalysisFiles],
@@ -452,12 +494,13 @@ def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes
 
 
 # The runner each kind of stage calls, by the module that finds and calls it, in the order they are looked up:
-# FEMPython draws the load diagrams and analyzes the frames (decisions 44, 46), JRSNAP draws the figures and analyzes
-# the NDU (decisions 47, 50, 51), Capacita checks the sections (decisions 48, 59) and Aggre-SE the seismic checks
+# FEMPython draws the load diagrams and analyzes the frames (decisions 44, 46), JRSNAP draws the figures, analyzes
+# the NDU and has SOIL-JR calculate the ground of a pile foundation (decisions 47, 50, 51, 85), Capacita checks the sections (decisions 48, 59) and Aggre-SE the seismic checks
 # (decision 56).
 _RUNNERS: tuple[tuple[ModuleType, Callable[[StageSpec], bool]], ...] = (
     (fempython, lambda stage: bool(stage.load_diagram) or stage.frame_analysis is not None),
-    (jrsnap, lambda stage: stage.jrsnap_figures is not None or stage.nonlinear_analysis is not None),
+    (jrsnap, lambda stage: stage.jrsnap_figures is not None or stage.nonlinear_analysis is not None
+     or stage.soil_jr is not None),
     (capacita, lambda stage: stage.section_check is not None),
     (aggrese, lambda stage: stage.seismic_check is not None),
 )
@@ -539,6 +582,8 @@ def _complete(registry: Registry, stage_id: str, result: Any, files: Mapping[str
         raise GenerationError(f"直接基礎のステップ表で{stage_id}の結果を仕上げられません: {exc}") from exc
     except ResponseError as exc:
         raise GenerationError(f"{stage_id}の片持ち梁の照査ができません: {exc}") from exc
+    except SdrError as exc:  # the .sdr SOIL-JR returned for the stage's .sdt (0500, decision 85)
+        raise GenerationError(f"SOIL-JR の .sdr で{stage_id}の結果を仕上げられません: {exc}") from exc
 
 
 def _build_wdj(check: SectionCheck, own: Results, pier: PierInput, pik_name: str, pik: bytes) -> bytes:
@@ -566,6 +611,13 @@ def _draw_figures(name: str, document: bytes, runner: Path, load_cases: Sequence
 def _analyze(name: str, document: bytes, runner: Path) -> AnalysisFiles:
     try:
         return analyze_frame(name, document, runner)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+
+
+def _calculate_ground(name: str, document: bytes, runner: Path, liquefaction: bool) -> jrsnap.SoilFiles:
+    try:
+        return jrsnap.calculate_ground(name, document, runner, liquefaction=liquefaction)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
 
@@ -632,8 +684,9 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
     is checked only by a generation. Returns the selected stages."""
     registry = with_addin(options, registry)
     data, pier = _read(options, registry)
+    registry = registry.for_foundation(pier.substructure.foundation)
     selected = registry.selected(pier.outputs)
-    _inputs(data, pier, registry, selected, _plan(options, registry, selected)[1])
+    _inputs(data, pier, registry, selected, _plan(options, registry, selected, pier)[1])
     return selected
 
 
@@ -642,8 +695,9 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
     registry = with_addin(options, registry)
     data, pier = _read(options, registry)
+    registry = registry.for_foundation(pier.substructure.foundation)
     selected = registry.selected(pier.outputs)
-    artifacts, posts = _plan(options, registry, selected)
+    artifacts, posts = _plan(options, registry, selected, pier)
     destinations = [artifact.path for artifact in artifacts]
     validate_destinations(destinations, overwrite=options.overwrite, input_path=Path(options.input_path),
                           folders=_folders(artifacts))
@@ -684,6 +738,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
                                                built[(analysis.stage, analysis.export)], jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
+        # SOIL-JR calculates the .sdt of a stage of a pile foundation (decision 85): the file staged is the file calculated
+        grounded = {stage_id: _calculate_ground(
+                        next(item for item in registry.get(stage_id).exports if item.kind == ground.export).file_name,
+                        built[(stage_id, ground.export)], jrsnap_runner, ground.liquefied(pier))
+                    for stage_id in selected if (ground := registry.get(stage_id).soil_jr) is not None}
         for post in posts:
             if post.native.folder:
                 folder = staging.path_for(post.native.path)
@@ -705,8 +764,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         # dependencies, or with their finished results (decisions 54, 59), in registry order.
         for stage_id in selected:
             if registry.get(stage_id).complete is not None:
-                results[stage_id] = _complete(registry, stage_id, results.get(stage_id),
-                                              _completion_files(registry, stage_id, analyzed, checked), pier, results)
+                files = _completion_files(registry, stage_id, analyzed, checked)
+                if stage_id in grounded:  # SOIL-JR's files and the .sdt they were calculated from (decision 85)
+                    files |= {**grounded[stage_id].files,
+                              "sdt": built[(stage_id, registry.get(stage_id).soil_jr.export)]}
+                results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
         # Capacita checks the section the stage describes: the column with the PIK the stage's own frame analysis
         # returned (decision 48), or the beam with the section forces written in the WDJ (decision 59).
         given: dict[str, bytes] = {}
@@ -726,6 +788,8 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         for post in posts:
             if post.check is not None:
                 staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
+            elif post.soil is not None:
+                staging.path_for(post.native.path).write_bytes(grounded[post.stage].files[post.kind])
             elif post.seismic is not None:
                 staging.path_for(post.native.path).write_bytes(checked[post.stage].files[post.kind])
             elif post.export is None and not post.native.folder and post.project is None:
@@ -734,7 +798,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             if not registry.get(stage_id).has_report:
                 continue
             # The pages of other programs, by the name the report takes them: none, or those of one runner.
-            pages = {name: content for drawn_by in (drawn, figures, inspected, checked) if stage_id in drawn_by
+            pages = {name: content for drawn_by in (drawn, figures, inspected, checked, grounded) if stage_id in drawn_by
                      for name, content in drawn_by[stage_id].pages.items()}
             spec = registry.get(stage_id)
             try:
@@ -769,13 +833,29 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                                "sha256": content_sha256(staging.path_for(project.with_name(analysis.folder)))},
                     "files": {kind: {"file": file_name, "sha256": sha256(checked[stage_id].files[kind])}
                               for kind, file_name in registry.get(stage_id).seismic_check.files}}
+            if stage_id in grounded:  # that SOIL-JR calculated, with which files, not a judgement (ADR-0013)
+                ground = registry.get(stage_id).soil_jr
+                calculated = grounded[stage_id]
+                document["soil_jr"] = {
+                    "engine": jrsnap.ENGINE, "engine_version": calculated.engine_version,
+                    "engineering_status": "not_evaluated",
+                    "sdt": {"file": next(item for item in registry.get(stage_id).exports if item.kind == ground.export
+                                         ).file_name, "sha256": sha256(built[(stage_id, ground.export)])},
+                    "files": {kind: {"file": file_name, "sha256": sha256(calculated.files[kind])}
+                              for kind, file_name in (*ground.files, *(ground.liquefaction if ground.liquefied(pier)
+                                                                       else ()))},
+                    "report": {"file": f"{stage_id}.pdf", "sha256": sha256(calculated.report)},
+                    "runner_summary": dict(calculated.summary),
+                    "messages": [dict(message) for message in calculated.messages]}
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
-            facts = (_export_facts(registry, post, drawn, figures) if post.export is not None
+            facts = (_export_facts(registry, post, drawn, figures, grounded, built) if post.export is not None
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging, checked) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
                      else _seismic_facts(registry, post, staging, checked) if post.seismic is not None
+                     else _ground_facts(post, grounded, built[(post.stage, post.soil.export)])
+                     if post.soil is not None
                      else _analysis_facts(registry, post, analyzed, built, selected))
             content = _sidecar(post, staging, artifacts, {**common, "selected_stages": list(selected)}, facts)
             staging.path_for(post.sidecar.path).write_bytes(content)

@@ -34,6 +34,12 @@ before any runner, and may be absent when everything waits for ``complete``. Sta
 file declare the same files and share one analysis: a generation runs it once and publishes its files once (decision
 54).
 
+A stage with ``soil_jr`` (0500 for a pile foundation, decision 85, ADR-0013) has SOIL-JR calculate the .sdt of its
+export with the JRSNAP runner: its report is SOIL-JR's as the runner printed it, its .sdr and .sdc (and the two for the
+liquefaction, when a layer along the pile liquefies) are published under post/ as returned, and ``complete`` finishes its
+result with them. A stage with ``foundations`` is the one of the direct foundation; the stages of the other 基礎形式 are its
+values, and ``Registry.for_foundation`` makes the registry of a 基礎形式 once the input is read.
+
 Which stages a generation makes is decided by the input's 出力項目 alone (decision 72, ADR-0011): ``OUTPUT_STAGES``
 gives the stages of each item, and the registry checks that a stage reads only the stages of its own item and of the
 items that item uses (inputs.outputs), so the stages of the chosen items are all a generation calculates.
@@ -71,6 +77,7 @@ from ..calc.generic.cantilever import calculate_generic_cantilever, complete_gen
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
+from ..calc.pile_ground import calculate_pile_ground
 from ..calc.reaction import calculate_dead_reaction, calculate_reaction
 from ..calc.seismic_longitudinal import calculate_seismic_longitudinal
 from ..calc.seismic_transverse import calculate_seismic_transverse
@@ -86,7 +93,7 @@ from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_
 from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
-from ..inputs import PierInput
+from ..inputs import PierInput, choices
 from ..inputs.outputs import OUTPUT_KEYS, uses
 from ..reporting.stages import cantilever as cantilever_report
 from ..reporting.stages import cantilever_check as cantilever_check_report
@@ -128,6 +135,7 @@ from ..reporting.stages.seismic_check import render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
+from . import soiljr
 from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
 from .fempython import ANALYSIS_FILES, support_reactions
 
@@ -245,6 +253,21 @@ class SeismicCheck:
 
 
 @dataclass(frozen=True)
+class SoilJrCalculation:
+    """SOIL-JR calculates the .sdt of an export of the stage (decision 85, ADR-0013).
+
+    The runner returns the 基礎照査連携用データ and the 解析連携データ, and the same two for the liquefaction only for an
+    input that considers it (``liquefied``, decided from the input before any runner), and prints the report, which is
+    the stage's report as it is. Each file is published under post/ as returned, by its kind, with a provenance sidecar.
+    """
+
+    export: str  # the kind of the export whose bytes (a .sdt) SOIL-JR calculates, "sdt"
+    files: tuple[tuple[str, str], ...]  # (kind, file name) of the files it always returns, e.g. ("sdr", "杭基礎.sdr")
+    liquefaction: tuple[tuple[str, str], ...]  # the files it returns besides when ``liquefied``
+    liquefied: Callable[[PierInput], bool]
+
+
+@dataclass(frozen=True)
 class JrsnapFigures:
     """JRSNAP draws the データ確認図 and the 荷重図 of the stage's NDU into its report (decisions 50, 51)."""
 
@@ -274,10 +297,15 @@ class StageSpec:
     # (the result of calculate or None, the files it reads, the input, the results so far) → the stage's result
     # (decisions 54, 59), or none. The files are those of the stage's frame analysis by kind, and those of the seismic
     # checks of its dependencies by seismic_file(stage, kind).
+    # SOIL-JR calculates the .sdt of an export; its report is the stage's report (decision 85)
+    soil_jr: SoilJrCalculation | None = None
     complete: Callable[[Any, Mapping[str, bytes], PierInput, Results], Any] | None = None
     # (results, pier, pages) → the documents of the report WebPier lays out, in order, without the pages of other
     # programs: its grid Excel workbook (export/). None: a report with none of WebPier's pages (0711, 0721)
     grid_documents: Callable[[Results, PierInput, Mapping[str, bytes]], Sequence[Any]] | None = None
+    # the stage of each pile foundation (a 基礎形式 of choices.PILE_FOUNDATIONS) in place of this one, which is the direct
+    # foundation's: the same id, and its own stem, files and runners (decision 85)
+    foundations: Mapping[str, StageSpec] = field(default_factory=dict)
 
     @property
     def has_report(self) -> bool:
@@ -347,7 +375,7 @@ class Registry:
                 outputs += analysis.files
             if stage.complete is not None and not stage.has_report:
                 raise ValueError(f"{stage.id}の結果を仕上げるには計算書が必要です")
-            if stage.complete is not None and analysis is None and not any(
+            if stage.complete is not None and analysis is None and stage.soil_jr is None and not any(
                     self.get(name).seismic_check is not None or self.get(name).complete is not None
                     for name in self.closure(stage.depends_on)):
                 raise ValueError(f"{stage.id}の結果を仕上げるには、骨組解析か、耐震性能照査または仕上げる結果を持つ依存段階が必要です")
@@ -370,6 +398,14 @@ class Registry:
                 if sorted(kind for kind, _ in seismic.files) != sorted(AGGRESE_FILES):
                     raise ValueError(f"{stage.id}の耐震性能照査の出力は {'・'.join(AGGRESE_FILES)} です")
                 outputs += seismic.files
+            if (ground := stage.soil_jr) is not None:
+                if ground.export not in {item.kind for item in stage.exports}:
+                    raise ValueError(f"{stage.id}が SOIL-JR で計算する出力{ground.export}がありません")
+                if stage.complete is None:  # (a report is checked with every completion)
+                    raise ValueError(f"{stage.id}の SOIL-JR の結果の仕上げがありません")
+                if stage.frame_analysis is not None or stage.nonlinear_analysis is not None:
+                    raise ValueError(f"{stage.id}は SOIL-JR の計算と解析の両方はできません")
+                outputs += [*ground.files, *ground.liquefaction]
             own = item_of[stage.id]
             for dependency in stage.depends_on:
                 if item_of[dependency] != own and item_of[dependency] not in uses(own):
@@ -399,6 +435,19 @@ class Registry:
                 if stage.load_diagram:  # both put pages into the report as its load diagram
                     raise ValueError(f"{stage.id}にFEMPythonの荷重図とJRSNAPの荷重図の両方は差し込めません")
             seen.append(stage.id)
+        for stage in self.stages:
+            for foundation, variant in stage.foundations.items():
+                if foundation not in choices.PILE_FOUNDATIONS or variant.id != stage.id or variant.foundations:
+                    raise ValueError(f"{stage.id}の{foundation}の段階が不正です")
+        for foundation in sorted({name for stage in self.stages for name in stage.foundations}):
+            self.for_foundation(foundation)  # the registry of each 基礎形式 is checked as a registry is
+
+    def for_foundation(self, foundation: str | None) -> Registry:
+        """The registry of the 基礎形式 *foundation*: each stage that has a stage for it is replaced by that; the registry
+        itself when none has (the direct foundation, decision 85)."""
+        if not any(foundation in stage.foundations for stage in self.stages):
+            return self
+        return replace(self, stages=tuple(stage.foundations.get(foundation, stage) for stage in self.stages))
 
     def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
         if source not in stage.depends_on:
@@ -594,6 +643,16 @@ def _cantilever_check(stem: str, name: str) -> StageSpec:
                          results["0910"], pier, pages))
 
 
+def _pile_ground() -> StageSpec:
+    """0500 of a pile foundation (decision 85, ADR-0013): the ground rows WebPier derives, the .sdt of them, SOIL-JR's
+    calculation of it, and SOIL-JR's report as the stage's report."""
+    return StageSpec("0500", f"0500_{soiljr.STEM}", (),
+                     lambda pier, results: calculate_pile_ground(pier), soiljr.render,
+                     (Export("sdt", soiljr.SDT, soiljr.sdt, metadata=soiljr.SDT_FACTS),),
+                     soil_jr=SoilJrCalculation("sdt", soiljr.FILES, soiljr.LIQUEFACTION, soiljr.liquefied),
+                     complete=soiljr.complete)
+
+
 # A normal generation only writes the NDU; reading it in JRSNAP and running an analysis are separate records.
 _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_run": False}
 # The same generation has Aggre-SE read the project and check with it (decision 56): the sidecar names that report.
@@ -612,7 +671,8 @@ STAGES = Registry((
               lambda results, pier, path, pages: render_foundation(
                   results["0500"], pier, applicable_embedment(pier, results["0500"]), path),
               grid_documents=lambda results, pier, pages: foundation_report.grid_documents(
-                  results["0500"], pier, applicable_embedment(pier, results["0500"]))),
+                  results["0500"], pier, applicable_embedment(pier, results["0500"])),
+              foundations={foundation: _pile_ground() for foundation in choices.PILE_FOUNDATIONS}),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
               lambda results, pier, path, pages: render_reaction(results["0600"], pier, path),

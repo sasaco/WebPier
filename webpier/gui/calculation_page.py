@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from ..core.errors import InputError
 from ..core.integrity import file_sha256
 from ..inputs import parse_input
+from ..inputs.choices import PILE_FOUNDATIONS
 from ..inputs.outputs import OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, requires, users
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
@@ -218,7 +219,10 @@ class CalculationPage:
     # preview ------------------------------------------------------------------------------------------------
 
     def catalog(self) -> pdf_catalog.PdfCatalog:
-        stems = tuple(stage.stem for stage in self.controller.registry.stages if stage.has_report)
+        # the reports of every 基礎形式, so that those of an earlier calculation stay listed (as not the current result)
+        registry = self.controller.registry
+        stems = tuple(dict.fromkeys(stage.stem for variant in (registry, *(registry.for_foundation(name) for name in PILE_FOUNDATIONS))
+                                    for stage in variant.stages if stage.has_report))
         try:
             paths = pdf_catalog.find_pdfs(self.controller.output_dir, stems)
         except OSError as exc:

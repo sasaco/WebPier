@@ -178,14 +178,14 @@ def analyze_nonlinear(name: str, document: bytes, runner: Path, *, timeout: floa
     return NonlinearFiles(files, envelope["engineVersion"], envelope["summary"], tuple(envelope["messages"]))
 
 
-def _pages(name: str, file: str, content: bytes) -> list[Any]:
+def _pages(name: str, file: str, content: bytes, action: str = _FIGURES) -> list[Any]:
     """The pages of the returned PDF *file*, which must have some."""
     try:
         pages = list(PdfReader(BytesIO(content), strict=True).pages)
     except (PyPdfError, ValueError, OSError) as exc:
-        raise _fail(name, f"{file} を読めません（{exc}）", _FIGURES) from exc
+        raise _fail(name, f"{file} を読めません（{exc}）", action) from exc
     if not pages:
-        raise _fail(name, f"{file} にページがありません", _FIGURES)
+        raise _fail(name, f"{file} にページがありません", action)
     return pages
 
 
@@ -256,3 +256,55 @@ def draw_figures(name: str, document: bytes, runner: Path, load_cases: Sequence[
         pages.append(drawn[combination][case])
     return FigurePages(data_check, _pdf(pages), tuple((case, combination) for case, combination in load_cases),
                        envelope["engineVersion"], envelope["summary"])
+
+
+# SOIL-JR's calculation of the ground of a pile foundation (decision 85, ADR-0013): one call of the runner's ``soil``.
+SOIL_TIMEOUT = 600  # the runner's time; WebPier waits a minute longer
+SOIL_REPORT = "soil-jr-report"  # the name the stage's report takes SOIL-JR's report (reporting.stages.insertion's kind)
+_SOIL = "を SOIL-JR で計算できません"
+
+
+@dataclass(frozen=True)
+class SoilFiles:
+    files: Mapping[str, bytes]  # the files by kind: "sdr", "sdc", and "liquefiedsdr", "liquefiedsdc" with a liquefaction
+    report: bytes  # SOIL-JR's report as the runner printed it (a PDF of every output item)
+    engine_version: str
+    summary: Mapping[str, Any]  # what the runner reports of JRSNAP and of the input
+    messages: tuple[Mapping[str, Any], ...]  # SOIL-JR's warnings during the calculation
+
+    @property
+    def pages(self) -> dict[str, bytes]:
+        """The report by the name the stage's report takes it: SOIL-JR's own, with no page of WebPier's."""
+        return {SOIL_REPORT: self.report}
+
+
+def calculate_ground(name: str, document: bytes, runner: Path, *, liquefaction: bool,
+                     timeout: float | None = None) -> SoilFiles:
+    """SOIL-JR's files and report for the .sdt *document*, given to the runner as *name* (``<stem>.sdt``): the
+    基礎照査連携用データ (``<stem>.sdr``) and 解析連携データ (``<stem>.sdc``), the same two for the liquefaction
+    (``<stem>(液状化時用).sdr``, ``.sdc``) when *liquefaction* (the runner returns them only for an input that considers
+    it), and the report ``<stem>.pdf``. The runner's account of the input (its name and SHA256) and of the liquefaction
+    must be this document's."""
+    stem = name.removesuffix(".sdt")
+    expected = [(f"{stem}.sdr", "soil-sdr", "sdr"), (f"{stem}.sdc", "soil-sdc", "sdc")]
+    if liquefaction:
+        expected += [(f"{stem}(液状化時用).sdr", "soil-sdr-liquefaction", "liquefiedsdr"),
+                     (f"{stem}(液状化時用).sdc", "soil-sdc-liquefaction", "liquefiedsdc")]
+    expected.append((f"{stem}.pdf", "soil-report", "report"))
+    envelope, files = _call(
+        name, document, runner, "soil", ("--timeout-seconds", str(SOIL_TIMEOUT)),
+        SOIL_TIMEOUT + 60 if timeout is None else timeout, _SOIL,
+        lambda artifacts: ([item.get("relativePath") for item in artifacts] == [file for file, _, _ in expected]
+                           and [item.get("kind") for item in artifacts] == [kind for _, kind, _ in expected]),
+        "SOIL-JR の連携ファイルと帳票")
+    summary = envelope["summary"]
+    reported = summary.get("input")
+    if (not isinstance(reported, dict) or reported.get("name") != name
+            or reported.get("sha256") != hashlib.sha256(document).hexdigest()
+            or summary.get("liquefaction") is not liquefaction):
+        raise _fail(name, f"runner が計算した入力か液状化の有無が渡した .sdt と違います（{reported!r}、"
+                          f"liquefaction {summary.get('liquefaction')!r}）", _SOIL)
+    report = files[f"{stem}.pdf"]
+    _pages(name, f"{stem}.pdf", report, _SOIL)
+    return SoilFiles({key: files[file] for file, _, key in expected if key != "report"}, report,
+                     envelope["engineVersion"], summary, tuple(envelope["messages"]))

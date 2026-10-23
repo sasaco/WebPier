@@ -1,6 +1,7 @@
 """The stage registry (ADR-0004): one table of stages, a generic dependency closure, and the stages of each 出力項目
 (decision 72)."""
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ import pytest
 from webpier.core.errors import InputError
 from webpier.inputs.outputs import OUTPUT_KEYS, uses
 from webpier.pipeline.stages import (OUTPUT_STAGES, STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project,
-                                     Registry, SeismicCheck, StageSpec)
+                                     Registry, SeismicCheck, SoilJrCalculation, StageSpec)
 
 
 def spec(stage_id, *depends_on, exports=()):
@@ -315,3 +316,86 @@ def test_stage_callables_are_kept_as_given():
     render = lambda results, pier, path, pages: Path(path)  # noqa: E731
     stage = StageSpec("A", "A_名前", (), calculate, render)
     assert (stage.calculate, stage.render, stage.exports) == (calculate, render, ())
+
+
+# --- the stages of a pile foundation (decision 85) -------------------------------------------------------------------
+
+def soil(kind="sdt", files=(("sdr", "x.sdr"), ("sdc", "x.sdc")), liquefaction=(("liquefiedsdr", "x(液状化時用).sdr"),)):
+    return SoilJrCalculation(kind, files, liquefaction, lambda pier: False)
+
+
+def calculating(stage_id="A", *, exports=(export("sdt", "x.sdt"),), soil_jr=None, **changes):
+    """A stage whose .sdt SOIL-JR calculates: it has a report and finishes its result with SOIL-JR's files."""
+    fields = {"complete": lambda result, files, pier, results: result, "soil_jr": soil() if soil_jr is None else soil_jr}
+    return StageSpec(stage_id, f"{stage_id}_杭基礎", (), lambda pier, results: stage_id,
+                     lambda results, pier, path, pages: path, exports, **{**fields, **changes})
+
+
+def test_the_real_ground_stage_of_a_pile_foundation_replaces_the_direct_foundations():
+    direct, piles = STAGES.get("0500"), STAGES.for_foundation("場所打ち杭")
+    assert (direct.stem, direct.soil_jr) == ("0500_直接基礎", None)
+    assert set(direct.foundations) == {"場所打ち杭", "鋼管ソイルセメント杭"}
+    ground = piles.get("0500")
+    assert ground.stem == "0500_杭基礎" and ground.id == "0500" and ground.foundations == {}
+    assert [(item.kind, item.file_name) for item in ground.exports] == [("sdt", "杭基礎.sdt")]
+    assert ground.soil_jr.export == "sdt" and ground.soil_jr.files == (("sdr", "杭基礎.sdr"), ("sdc", "杭基礎.sdc"))
+    assert ground.soil_jr.liquefaction == (("liquefiedsdr", "杭基礎(液状化時用).sdr"),
+                                          ("liquefiedsdc", "杭基礎(液状化時用).sdc"))
+    assert ground.grid_documents is None  # SOIL-JR's report has no page of WebPier's
+    assert [stage.id for stage in piles.stages] == list(STAGES.ids)
+    assert STAGES.for_foundation("鋼管ソイルセメント杭").get("0500").stem == "0500_杭基礎"
+
+
+@pytest.mark.parametrize("foundation", ["直接基礎", None, "鋼管杭"])
+def test_the_registry_of_a_foundation_without_stages_of_its_own_is_the_registry(foundation):
+    assert STAGES.for_foundation(foundation) is STAGES
+
+
+def test_a_load_model_and_the_items_stay_with_the_registry_of_a_foundation():
+    registry = Registry((replace(spec("A"), foundations={"場所打ち杭": spec("A")}),), outputs={"ground_model": ("A",)})
+    assert registry.for_foundation("場所打ち杭").outputs == registry.outputs
+    assert registry.for_foundation("場所打ち杭").load_model is registry.load_model
+
+
+@pytest.mark.parametrize("foundations,message", [
+    ({"直接基礎": spec("A")}, "Aの直接基礎の段階が不正です"),
+    ({"場所打ち杭": spec("B")}, "Aの場所打ち杭の段階が不正です"),
+    ({"場所打ち杭": replace(spec("A"), foundations={"場所打ち杭": spec("A")})}, "Aの場所打ち杭の段階が不正です"),
+])
+def test_the_stage_of_a_foundation_is_a_stage_of_a_pile_type_with_the_same_id_and_none_of_its_own(foundations, message):
+    with pytest.raises(ValueError, match=message):
+        Registry((replace(spec("A"), foundations=foundations),), outputs={"ground_model": ("A",)})
+
+
+def test_the_registry_of_a_foundation_is_checked_as_a_registry_is():
+    broken = StageSpec("A", "名前の違い", (), lambda pier, results: None, lambda results, pier, path, pages: path)
+    with pytest.raises(ValueError, match="Aのファイル名前の違いの名前は「A_」で始まる必要があります"):
+        Registry((replace(spec("A"), foundations={"場所打ち杭": broken}),), outputs={"ground_model": ("A",)})
+
+
+def test_a_stage_that_soil_jr_calculates_has_its_export_a_report_and_a_completion():
+    assert one_item(calculating()).get("A").soil_jr.export == "sdt"
+    with pytest.raises(ValueError, match="Aが SOIL-JR で計算する出力sdtがありません"):
+        one_item(calculating(exports=(export("jrsnap", "x.ndu"),)))
+    with pytest.raises(ValueError, match="Aの結果を仕上げるには計算書が必要です"):
+        one_item(StageSpec("A", "A_杭基礎", (), lambda pier, results: 1, None, (export("sdt", "x.sdt"),),
+                           soil_jr=soil(), complete=lambda result, files, pier, results: result))
+    with pytest.raises(ValueError, match="Aの SOIL-JR の結果の仕上げがありません"):
+        one_item(calculating(complete=None))
+
+
+def test_a_stage_cannot_have_soil_jr_calculate_and_an_analysis_run():
+    both = StageSpec("A", "A_杭基礎", ("S",), lambda pier, results: 1, lambda results, pier, path, pages: path,
+                     (export("sdt", "x.sdt"),), soil_jr=soil(), complete=lambda result, files, pier, results: result,
+                     frame_analysis=FrameAnalysis("S", "frameweb", PICKUPS))
+    with pytest.raises(ValueError, match="Aは SOIL-JR の計算と解析の両方はできません"):
+        Registry((spec("S", exports=FRAMEWEB), both), outputs={"ground_model": ("S", "A")})
+
+
+def test_the_files_soil_jr_returns_are_checked_like_any_output():
+    with pytest.raises(ValueError, match="出力ファイル名が重複しています: x.sdt"):
+        one_item(calculating(soil_jr=soil(files=(("sdr", "x.sdt"),))))
+    with pytest.raises(ValueError, match="出力の種類が重複しています: sdr"):
+        one_item(calculating(soil_jr=soil(files=(("sdr", "x.sdr"), ("sdr", "y.sdr")))))
+    with pytest.raises(ValueError, match="出力の種類の名前が不正です: sdr-liquefied"):
+        one_item(calculating(soil_jr=soil(liquefaction=(("sdr-liquefied", "x.sdl"),))))

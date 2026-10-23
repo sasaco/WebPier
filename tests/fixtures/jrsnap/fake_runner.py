@@ -21,6 +21,16 @@ DIAGRAM COMB <k> CASE <n> <the same 16 digits>`` (ASCII, which the standard font
 ``summary.dataCheck`` and ``summary.loadDiagram`` (titles ``CASE-<n> FAKE``). reportlab writes the PDFs without a date,
 so the same input gives the same bytes.
 
+``soil`` (decision 85, ADR-0013) answers only the arguments of ``webpier.pipeline.jrsnap.calculate_ground`` (``--input
+<.sdt> --output-dir <folder> --timeout-seconds 600``). It returns ``<stem>.sdr`` (the SOIL-JR 5.2 sample's .sdr, tests/
+fixtures/soiljr/pile_cast.sdr, with its title line replaced by ``FAKE SOIL-JR <the first 16 digits of the SHA256 of the
+input bytes>``), ``<stem>.sdc`` (``FAKE SDC <SHA256>``), with ``<stem>(液状化時用).sdr`` (pile_steel_liquefaction.sdr) and
+``.sdc`` when the input's 液状化の低減係数 section starts with 1, and ``<stem>.pdf`` of two pages (``FAKE SOIL-JR REPORT
+<16 digits>``), and the runner's ``summary.input`` (name and SHA256), ``summary.liquefaction`` and one warning.
+``FAKE_JRSNAP_SOIL`` makes it misbehave: fail, input (a SOIL-JR rejection of the input), exit, text, protocol, summary,
+sha, kind, missing, extra, header (a .sdr of another pile), pdf (a PDF without pages), broken, name (another input name in the summary), digest (another
+SHA256), liquefaction (the opposite flag), slow.
+
 ``FAKE_JRSNAP`` makes ``run`` misbehave, for the error tests: fail, text, list, protocol, version, summary (no summary),
 artifacts (one artifact listed twice), kind (an unknown kind), nested (a path in a folder), nondt (no .ndt), missing
 (the last file not written), extra (a file not listed), sha (the last file's SHA256 wrong), exit, slow (sleeps).
@@ -154,10 +164,82 @@ def figures(argv, mode):
     return 0
 
 
+SOIL = ["--timeout-seconds", "600"]
+
+
+def soil(argv, mode):
+    if mode == "exit":
+        return 3
+    if mode == "text":
+        sys.stdout.write("not json")
+        return 1
+    if mode == "slow":
+        time.sleep(2)
+    if len(argv) != 7 or argv[1] != "--input" or argv[3] != "--output-dir" or argv[5:] != SOIL:
+        return failure("INVALID_ARGUMENT", " ".join(argv), "input")
+    source, output = Path(argv[2]), Path(argv[4])
+    if output.exists() and any(output.iterdir()):
+        return failure("OUTPUT_NOT_EMPTY", str(output), "output")
+    if mode == "fail":
+        return failure("UNKNOWN_DIALOG", "SOIL_JR showed: 計算中にエラーが発生しました。", "execution")
+    if mode == "input":
+        return failure("SDT_REJECTED", "SOIL-JR rejected the .sdt (入力の検査): 杭長Lを入力してください", "input")
+    document = source.read_bytes()
+    digest = hashlib.sha256(document).hexdigest()
+    lines = document.decode("cp932").split("\r\n")
+    liquefied = lines[lines.index("●液状化の低減係数") + 1].strip() == "1"
+    stem, folder = source.stem, Path(__file__).parents[1] / "soiljr"
+
+    # the pile of the input: the header of a .sdr names it (type, length, diameter, columns, piles)
+    base, pile = lines.index("●基本条件●"), lines[lines.index("●杭条件●") + 1].split(",")
+    second = lines[lines.index("●杭条件●") + 2].split(",")
+    piles = float(lines[base + 3 + int(lines[base + 2]) + 2])
+    header = (f"1, {pile[9]}, {float(second[0]):g}, {float(second[6]):.3f}, {pile[1]}, {pile[2]}, {pile[3]}, {pile[4]}, "
+              f"{piles:g}")
+
+    def sdr(name):
+        text = (folder / name).read_bytes().decode("cp932").split("\r\n")
+        text[1] = f"FAKE SOIL-JR {digest[:16]}"
+        text[3] = "1, 9, 99, 9.999, 9, 9, 9, 9, 99" if mode == "header" else header
+        return "\r\n".join(text).encode("cp932")
+
+    pdf_content = (b"not a pdf" if mode == "broken" else pdf() if mode == "pdf"
+                   else pdf(f"FAKE SOIL-JR REPORT {digest[:16]}", f"FAKE SOIL-JR REPORT 2 {digest[:16]}"))
+    files = [(f"{stem}.sdr", "soil-sdr", sdr("pile_cast.sdr")),
+             (f"{stem}.sdc", "soil-sdc", f"FAKE SDC {digest}".encode())]
+    if liquefied:
+        files += [(f"{stem}(液状化時用).sdr", "soil-sdr-liquefaction", sdr("pile_steel_liquefaction.sdr")),
+                  (f"{stem}(液状化時用).sdc", "soil-sdc-liquefaction", f"FAKE SDC LIQUEFACTION {digest}".encode())]
+    files.append((f"{stem}.pdf", "soil-report", pdf_content))
+    output.mkdir(parents=True, exist_ok=True)
+    artifacts = []
+    for number, (name, kind, content) in enumerate(files, 1):
+        last = number == len(files)
+        if not (mode == "missing" and last):
+            (output / name).write_bytes(content)
+        artifacts.append({"kind": "soil-sdc" if mode == "kind" and last else kind,
+                          "mediaType": "application/pdf" if name.endswith(".pdf") else "application/octet-stream",
+                          "relativePath": name, "bytes": len(content),
+                          "sha256": hashlib.sha256(b"other" if mode == "sha" and last else content).hexdigest()})
+    if mode == "extra":
+        (output / "extra.txt").write_bytes(b"x")
+    summary = {"jrsnap": {"product": "5.2-L03", "assemblyVersion": "5.2.3.1", "soilVersion": "5.2.3.0"},
+               "input": {"name": "other.sdt" if mode == "name" else source.name,
+                         "sha256": "0" * 64 if mode == "digest" else digest},
+               "liquefaction": (not liquefied) if mode == "liquefaction" else liquefied, "reportPages": 2}
+    messages = [{"level": "warning", "code": "SOIL_WARNING", "text": "FAKE SOIL WARNING"}]
+    changes = {"protocol": {"protocolVersion": 2}, "summary": {"summary": None}}.get(mode, {})
+    print(json.dumps({**envelope(True, artifacts), "summary": summary, "messages": messages, **changes},
+                     ensure_ascii=False))
+    return 0
+
+
 def main(argv):
     sys.stdout.reconfigure(encoding="utf-8")  # the envelope names JRSNAP's files, as the real runner does
     if argv[:1] == ["figures"]:
         return figures(argv, os.environ.get("FAKE_JRSNAP_FIGURES", ""))
+    if argv[:1] == ["soil"]:
+        return soil(argv, os.environ.get("FAKE_JRSNAP_SOIL", ""))
     mode = os.environ.get("FAKE_JRSNAP", "")
     if mode == "exit":
         return 3

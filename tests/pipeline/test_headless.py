@@ -316,11 +316,31 @@ def test_the_contract_is_the_registry(capsys):
     outputs = {item["key"]: item for item in contract["outputs"]}
     assert list(outputs) == list(OUTPUT_KEYS)
     assert [stage for item in contract["outputs"] for stage in item["stages"]] == list(STAGES.ids)
-    assert outputs["ground_model"] == {
+    ground = outputs["ground_model"]
+    assert {key: ground[key] for key in ("key", "requires", "stages", "runners", "files")} == {
         "key": "ground_model", "requires": [], "stages": ["0500"], "runners": [],
         "files": [{"role": "0500.pdf", "path": "output/0500_直接基礎.pdf", "folder": False},
                   {"role": "0500.json", "path": "output/0500_直接基礎.json", "folder": False},
                   {"role": "0500.xlsx", "path": "export/0500_直接基礎.xlsx", "folder": False}]}
+    # Decision 85: the same item of a pile foundation — SOIL-JR's files, the JRSNAP runner, and the files only some
+    # inputs have; which items it can make so far
+    assert ground["pileFoundation"] == {
+        "supported": True, "runners": ["jrsnap"],
+        "files": [{"role": role, "path": path, "folder": False} for role, path in (
+            ("0500.pdf", "output/0500_杭基礎.pdf"), ("0500.json", "output/0500_杭基礎.json"),
+            ("0500.sdt", "post/杭基礎.sdt"), ("0500.sdr", "post/杭基礎.sdr"), ("0500.sdc", "post/杭基礎.sdc"),
+            ("0500.sdt.provenance", "post/杭基礎.sdt.provenance.json"),
+            ("0500.sdr.provenance", "post/杭基礎.sdr.provenance.json"),
+            ("0500.sdc.provenance", "post/杭基礎.sdc.provenance.json"))],
+        "conditionalFiles": [
+            {"role": "0500.liquefiedsdr", "path": "post/杭基礎(液状化時用).sdr", "folder": False,
+             "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"},
+            {"role": "0500.liquefiedsdc", "path": "post/杭基礎(液状化時用).sdc", "folder": False,
+             "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}]}
+    assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
+        "detailing", "ground_model", "reactions"]
+    assert outputs["reactions"]["pileFoundation"]["conditionalFiles"] == []
+    assert outputs["longitudinal"]["pileFoundation"]["runners"] == ["fempython", "jrsnap"]  # 0500 of piles needs it too
     assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (
         [], ["0400"], [])  # decision 73: the input alone
     assert (outputs["longitudinal"]["requires"], outputs["longitudinal"]["runners"]) == (

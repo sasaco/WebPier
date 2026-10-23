@@ -1,0 +1,87 @@
+{
+  "kind": "pile_ground_acceptance",
+  "schema_version": 1,
+  "input": {
+    "path": "tests/fixtures/inputs/pile.json",
+    "sha256": "7aebcb29e52f6c8e1362ad03e3d3ce54eebb091ff283fb6c4ddb14ef66e20894"
+  },
+  "runner": {
+    "engine_version": "1.0.0+d4068b9ce1ba7798856b25f59c86a8503207fc78",
+    "summary": {
+      "jrsnap": {
+        "product": "5.2-L03",
+        "assemblyVersion": "5.2.3.1",
+        "soilVersion": "5.2.3.0",
+        "installDir": "C:\\RTRI_Program\\JRSNAP(Ver5.2-L03)"
+      },
+      "input": {
+        "name": "杭基礎.sdt",
+        "sha256": "253fa295c3f36ccd7add88e32a1b0657e5c22fb49b8498c8b01868e5e8b39960"
+      },
+      "liquefaction": false,
+      "reportPages": 26,
+      "diagnostics": {
+        "header": [
+          1,
+          1,
+          1,
+          1,
+          0,
+          2
+        ],
+        "frChkFlg": 0,
+        "koho": 1,
+        "kind": 1
+      }
+    }
+  },
+  "sample": {
+    "file": "サンプルデータ/SOILデータ(SDT)/RC橋脚（杭基礎）サンプルデータE.sdt",
+    "sha256": "52b9c92f46cb810b8d5af7d2af3bc78f5c55f23efaae6fadb11111af8e662fbc",
+    "runner_summary": {
+      "jrsnap": {
+        "product": "5.2-L03",
+        "assemblyVersion": "5.2.3.1",
+        "soilVersion": "5.2.3.0",
+        "installDir": "C:\\RTRI_Program\\JRSNAP(Ver5.2-L03)"
+      },
+      "input": {
+        "name": "sample.sdt",
+        "sha256": "52b9c92f46cb810b8d5af7d2af3bc78f5c55f23efaae6fadb11111af8e662fbc"
+      },
+      "liquefaction": false,
+      "reportPages": 26,
+      "diagnostics": {
+        "header": [
+          1,
+          1,
+          1,
+          1,
+          0,
+          2
+        ],
+        "frChkFlg": 2,
+        "koho": 1,
+        "kind": 1
+      }
+    }
+  },
+  "written": {
+    "sdt_sha256": "253fa295c3f36ccd7add88e32a1b0657e5c22fb49b8498c8b01868e5e8b39960",
+    "sdr_sha256": "20eca3523b4ce848822113dc15ab06243c7e418396bb0a1e5a6b88ddfd2939ca",
+    "sdc_sha256": "76086c92b08a2dfdaf2e4b8085d9a000830d34f6be19e1fc5d110eb81234bc95",
+    "report_pages": 26
+  },
+  "sample_result": {
+    "sdr_sha256": "7ed9a6af3403952bc7f30dea6b98fef3f973757e7eab9f51ed52088539ba748a",
+    "sdc_sha256": "ce2f5d1ad6d1d8a8dee2843b37015d8be56604b181c7b36fbf6d5ecee5e1c7fc",
+    "report_pages": 26
+  },
+  "same_as_sample_but_for_the_title": {
+    "sdr": true,
+    "sdc": true
+  },
+  "soil_jr_judged": false,
+  "accepted": true,
+  "failures": []
+}

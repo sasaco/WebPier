@@ -28,6 +28,7 @@ import pymupdf
 
 from ..core.errors import InputError
 from ..core.integrity import content_sha256, file_sha256, load_json
+from ..inputs import parse_input
 from ..pipeline.cli import post_dir as default_post_dir
 from ..pipeline.generate import Artifact, GenerationOptions, planned
 from ..pipeline.publication import check_incomplete_publications
@@ -155,7 +156,9 @@ def validate_outputs(job: CalculationJob, *, registry: Registry = STAGES,
     """
     _main_thread_only()
     try:
-        artifacts = list(planned(job.options, job.stages, registry=registry))
+        # the files of the input's 基礎形式 and of what it decides (decision 85): planned from the input it was calculated from
+        pier = parse_input(load_json(job.input_path.read_bytes()))
+        artifacts = list(planned(job.options, job.stages, registry=registry, pier=pier))
         paths = [artifact.path for artifact in artifacts]
         kinds = {artifact.path: artifact.folder for artifact in artifacts}
         check_incomplete_publications(paths)

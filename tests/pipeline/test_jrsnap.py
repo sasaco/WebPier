@@ -17,7 +17,7 @@ import pytest
 
 from webpier.pipeline import jrsnap
 from webpier.pipeline.fempython import RunnerError
-from webpier.pipeline.jrsnap import RUNNER_KEY, analyze_nonlinear, draw_figures, runner_path
+from webpier.pipeline.jrsnap import RUNNER_KEY, SOIL_REPORT, analyze_nonlinear, calculate_ground, draw_figures, runner_path
 from webpier.reporting.stages.insertion import DATA_CHECK, LOAD_DIAGRAM
 
 CASE = "線路方向(Case1_ρm10_αf1_正向)"
@@ -213,3 +213,70 @@ def test_figures_that_do_not_finish_are_an_error(fake_jrsnap_runner: Path, monke
     monkeypatch.setenv("FAKE_JRSNAP_FIGURES", "slow")
     with pytest.raises(RunnerError, match="データ確認図と荷重図を JRSNAP で描けません: 0.5 秒で終わりませんでした"):
         draw_figures("線路方向.ndu", SMALL, fake_jrsnap_runner, SMALL_CASES, timeout=0.5)
+
+
+# --- SOIL-JR's calculation of the ground of a pile foundation (decision 85, ADR-0013) -----------------------------------
+
+def soil_input(liquefied: bool = False) -> bytes:
+    """What the stand-in reads of an .sdt: the pile's columns, the basic condition and the liquefaction flag."""
+    return ("\r\n".join(["Ver.5.2.3.T08", "●基本条件●", "t", " 1 ", "d", " 1 ", "1,1", " 8 ", "", "●杭条件●",
+                         "1,3,3,3,3,3,3,3,3,1,1,0,0,1,0,0", "19,0,1,2.8,-1,22.4,1,-1,-1,-1,-1,0.785398,0.049087,24.5",
+                         "", "●液状化の低減係数", " 1 " if liquefied else " 0 ", "1,1", ""]) + "\r\n").encode("cp932")
+
+
+def test_the_stand_in_calculates_the_given_sdt(fake_jrsnap_runner: Path):
+    document = soil_input()
+    found = calculate_ground("杭基礎.sdt", document, fake_jrsnap_runner, liquefaction=False)
+    digest = hashlib.sha256(document).hexdigest()
+    assert sorted(found.files) == ["sdc", "sdr"] and found.files["sdc"] == f"FAKE SDC {digest}".encode()
+    assert f"FAKE SOIL-JR REPORT {digest[:16]}" in texts(found.report)[0]
+    assert found.pages == {SOIL_REPORT: found.report}
+    assert found.engine_version == "fake-1" and found.summary["input"] == {"name": "杭基礎.sdt", "sha256": digest}
+    assert found.messages == ({"level": "warning", "code": "SOIL_WARNING", "text": "FAKE SOIL WARNING"},)
+
+
+def test_the_files_for_the_liquefaction_are_asked_for_and_returned_with_the_input_that_considers_it(
+        fake_jrsnap_runner: Path):
+    found = calculate_ground("杭基礎.sdt", soil_input(True), fake_jrsnap_runner, liquefaction=True)
+    assert sorted(found.files) == ["liquefiedsdc", "liquefiedsdr", "sdc", "sdr"]
+    assert found.summary["liquefaction"] is True
+    with pytest.raises(RunnerError, match="一覧と一致しません|渡した .sdt と違います|成果物が"):
+        calculate_ground("杭基礎.sdt", soil_input(True), fake_jrsnap_runner, liquefaction=False)
+    with pytest.raises(RunnerError, match="一覧と一致しません|渡した .sdt と違います|成果物が"):
+        calculate_ground("杭基礎.sdt", soil_input(False), fake_jrsnap_runner, liquefaction=True)
+
+
+@pytest.mark.parametrize("mode,message", [
+    ("fail", "UNKNOWN_DIALOG: SOIL_JR showed"), ("input", "SDT_REJECTED: SOIL-JR rejected the .sdt"),
+    ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("protocol", "やり取りの版が違います"),
+    ("summary", "summary・messages がありません"), ("kind", "SOIL-JR の連携ファイルと帳票ではありません"),
+    ("missing", "出力先のファイルが成果物の一覧と一致しません"), ("extra", "出力先のファイルが成果物の一覧と一致しません"),
+    ("sha", "が runner の応答の SHA256・バイト数と一致しません"), ("name", "渡した .sdt と違います"),
+    ("digest", "渡した .sdt と違います"), ("liquefaction", "渡した .sdt と違います"), ("pdf", "杭基礎.pdf にページがありません"),
+    ("broken", "杭基礎.pdf を読めません"),
+])
+def test_a_runner_that_does_not_calculate_the_sdt_is_an_error(fake_jrsnap_runner: Path, monkeypatch: pytest.MonkeyPatch,
+                                                               mode, message):
+    monkeypatch.setenv("FAKE_JRSNAP_SOIL", mode)
+    with pytest.raises(RunnerError, match=f"杭基礎.sdt を SOIL-JR で計算できません: .*{message}"):
+        calculate_ground("杭基礎.sdt", soil_input(), fake_jrsnap_runner, liquefaction=False)
+
+
+def test_a_calculation_that_does_not_finish_is_an_error(fake_jrsnap_runner: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("FAKE_JRSNAP_SOIL", "slow")
+    with pytest.raises(RunnerError, match="杭基礎.sdt を SOIL-JR で計算できません: 1 秒で終わりませんでした"):
+        calculate_ground("杭基礎.sdt", soil_input(), fake_jrsnap_runner, liquefaction=False, timeout=1)
+
+
+def test_the_stand_in_refuses_arguments_it_was_not_given_as_the_runner_takes_them(fake_jrsnap_runner: Path, tmp_path: Path):
+    import subprocess
+    source = tmp_path / "杭基礎.sdt"
+    source.write_bytes(soil_input())
+    done = subprocess.run([str(fake_jrsnap_runner), "soil", "--input", str(source), "--output-dir", str(tmp_path / "o"),
+                           "--timeout-seconds", "60"], capture_output=True, check=False)
+    assert done.returncode == 1 and "INVALID_ARGUMENT" in done.stdout.decode("utf-8")
+    (tmp_path / "full").mkdir()
+    (tmp_path / "full" / "x").write_bytes(b"")
+    done = subprocess.run([str(fake_jrsnap_runner), "soil", "--input", str(source), "--output-dir", str(tmp_path / "full"),
+                           "--timeout-seconds", "600"], capture_output=True, check=False)
+    assert done.returncode == 1 and "OUTPUT_NOT_EMPTY" in done.stdout.decode("utf-8")

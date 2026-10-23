@@ -45,14 +45,15 @@ from typing import Any
 from ..core.errors import InputError
 from ..core.integrity import sha256
 from ..inputs.fields import FIELDS, Field
-from ..inputs.outputs import OUTPUT_ITEMS, uses
+from ..inputs.choices import CAST_IN_PLACE_PILE
+from ..inputs.outputs import OUTPUT_ITEMS, PILE_OUTPUT_KEYS, uses
 from ..inputs.parse import BEARING_SLOTS, SCHEMA_VERSION as INPUT_SCHEMA_VERSION, TOP_KEYS, load_model_item
 from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
 from .addin import AddinError
 from .fempython import RunnerError
-from .generate import (RUNNERS, Candidate, GenerationError, GenerationOptions, generate, planned, required_runners,
-                       selection, validate, with_addin)
+from .generate import (RUNNERS, Candidate, GenerationError, GenerationOptions, generate, planned, required_runners, resolve,
+                       validate, with_addin)
 from .publication import RecoveryError
 from .stages import STAGES, Registry
 
@@ -213,8 +214,7 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
     options = _options(arguments, root)
     summary: dict[str, Any] = {"command": arguments.command}
     try:
-        registry = with_addin(options, registry)
-        selected = selection(options, registry=registry)
+        registry, selected = resolve(options, registry)  # the stages of the input's 基礎形式 (decision 85)
     except AddinError as exc:
         return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except InputError as exc:
@@ -263,7 +263,8 @@ def _validate(arguments: argparse.Namespace, registry: Registry) -> tuple[int, d
     summary: dict[str, Any] = {"command": arguments.command}
     try:
         registry = with_addin(options, registry)
-        selected = validate(options, registry=registry)
+        validate(options, registry=registry)
+        registry, selected = resolve(options, registry)
         needed = required_runners(selected, registry=registry)
     except AddinError as exc:
         return _failure("ADDIN_ERROR", exc, summary, category="addin")
@@ -305,16 +306,35 @@ def _schema(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dic
 
 def contract(registry: Registry = STAGES) -> dict[str, Any]:
     """The stages, and for each 出力項目 (decision 72) its stages, the items it uses, the runners choosing it calls
-    (with the items it uses, which are chosen with it) and the files it publishes (``planned``), from the registry."""
+    (with the items it uses, which are chosen with it) and the files it publishes (``planned``), from the registry. For
+    a pile foundation (decision 85) each item says whether it can be chosen yet (``supported``) and, as the direct
+    foundation's, its stages, runners and files; a file that only some inputs have (SOIL-JR's two for the liquefaction)
+    is listed as ``conditional``."""
     options = GenerationOptions(Path("input.json"), Path("output"), Path("post"), export_dir=Path("export"))
+    piles = registry.for_foundation(CAST_IN_PLACE_PILE)
+
+    def files(artifacts: Any) -> list[dict[str, Any]]:
+        return [{"role": artifact.role, "path": f"{artifact.directory}/{artifact.path.name}",
+                 "folder": artifact.folder} for artifact in artifacts]
+
+    def conditional(stages: Sequence[str]) -> list[dict[str, Any]]:
+        """The files of the stages of a pile foundation that only some inputs have."""
+        return [{"role": f"{stage_id}.{kind}", "path": f"post/{name}", "folder": False,
+                 "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}
+                for stage_id in stages if (stage := piles.get(stage_id)).soil_jr is not None
+                for kind, name in stage.soil_jr.liquefaction]
 
     def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
         stages = registry.outputs.get(key, ())
         needed = [stage_id for item in (*uses(key), key) for stage_id in registry.outputs.get(item, ())]
         return {"key": key, "requires": list(requires), "stages": list(stages),
                 "runners": [module.ENGINE for module in required_runners(needed, registry=registry)],
-                "files": [{"role": artifact.role, "path": f"{artifact.directory}/{artifact.path.name}",
-                           "folder": artifact.folder} for artifact in planned(options, stages, registry=registry)]}
+                "files": files(planned(options, stages, registry=registry)),
+                "pileFoundation": {
+                    "supported": key in PILE_OUTPUT_KEYS,
+                    "runners": [module.ENGINE for module in required_runners(needed, registry=piles)],
+                    "files": files(planned(options, stages, registry=piles)),
+                    "conditionalFiles": conditional(stages)}}
 
     return {"command": "contract",
             "stages": [{"id": stage.id, "stem": stage.stem, "dependsOn": list(stage.depends_on),
