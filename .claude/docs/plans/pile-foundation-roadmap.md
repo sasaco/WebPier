@@ -14,7 +14,7 @@
 | P3 0500（杭基礎） | ✅ 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
 | P4〜P9 | 未着手 | — | — |
 
-### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`） ✅
+### P3 で決めたこと（決定85。詳細は `refactoring-decisions.md`）
 
 - 登録表：`StageSpec.foundations`（基礎形式→その段階）と `Registry.for_foundation`。杭基礎の 0500 は `0500_杭基礎`。
 - .sdt は入力から導いた値（`calc/pile_ground.py`）を `export/soiljr/` が SOIL-JR 5.2.3 の形に書く。地盤抵抗係数は未入力の目印で SOIL-JR に求めさせる（P0 で確かめた）。
