@@ -35,7 +35,7 @@ class LongitudinalResult:
     buoyancy: tuple[Row, Row, Row]  # 8-3: high, normal, low water
     snow: tuple[TopTable, TopTable, TopTable] | None  # 8-4: 2, 10, 30 year; None without snow (decision 69)
     train: Trains  # 8-4
-    impact: Impacts  # 8-5 (girder coefficients, decision 26)
+    impact: Impacts  # 8-5 (coefficients on the pier body, decision 77)
     horizontal: tuple[HorizontalRow, ...]  # 8-5: bearing horizontal forces of the 0600 cases
     basic_cases: tuple[BasicAction, ...]  # 8-6 to 8-9: the 20 basic cases (17 without snow)
     define_cases: tuple[DefineCase, ...]  # 8-9

@@ -39,7 +39,7 @@ class TransverseResult:
     buoyancy: tuple[Row, Row, Row]  # 9-4: high, normal, low water
     snow: tuple[TopTable, TopTable, TopTable] | None  # 9-4: 2, 10, 30 year; None without snow (decision 69)
     train: Trains  # 9-5: up, down, double
-    impact: Impacts  # 9-6 (girder coefficients, decision 26), and the serviceability tables
+    impact: Impacts  # 9-6 (coefficients on the pier body, decision 77), and the serviceability tables
     lateral: Lateral  # 9-7
     wind_with_train: Wind  # 9-7
     wind_without_train: Wind  # 9-8

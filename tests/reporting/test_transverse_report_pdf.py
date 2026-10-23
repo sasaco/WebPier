@@ -100,7 +100,7 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
     with pymupdf.open(render("curve", tmp_path / "0620.pdf")) as pdf:
         found = spans(pdf)
         placed = (("§9. 線路直角方向の計算（地震時以外）", 0, HEADING), ("9.2 作用の計算", 1, HEADING), ("(8) 風荷重", 2, HEADING),
-                  ("1) 列車荷重がある場合", 3, HEADING), ("鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．", 4, BODY))
+                  ("1) 列車荷重がある場合", 3, HEADING), ("鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．", 4, BODY))
         assert [error for text, column, face in placed for error in placement_errors(first(found, text), column, face)] == []
         assert len({round(row_offset(first(found, text)), 2) for text, *_ in placed}) == 1
         page_one = [span for span in found if span.page == 1]

@@ -63,8 +63,10 @@ def test_bearing_loads_act_at_the_pedestal_top():
     # Snow 2: 710.00, 19.25 − 106.50 = −87.25; train single 567.39, 110.52 − 85.1085 = 25.4115 -> 25.41.
     assert anchored(result.basic(BasicCase.SNOW2)) == [(seat, 1, 710.0, 0.0, -87.25)]
     assert anchored(result.basic(BasicCase.TRAIN_SINGLE)) == [(seat, 1, 567.39, 0.0, 25.41)]
-    # 227.79 × 0.150 = 34.1685; 87.00 − 34.1685 = 52.8315 -> 52.83.
-    assert anchored(result.basic(BasicCase.IMPACT_SINGLE)) == [(seat, 1, 227.79, 0.0, 52.83)]
+    # Impact (decision 77): Ds 3085.36 with the pedestal, 3085.36 / (567.39 + 8380 + 3085.36) = 0.25640 -> ratio 0.744;
+    # i = 0.245 × 0.744 = 0.182, 0.546 × 0.744 = 0.406. N = 272.47 × 0.182 + 294.92 × 0.406 = 49.59 + 119.74 = 169.33;
+    # M = 49.59 × −0.325 + 119.74 × 0.675 = −16.12 + 80.82 = 64.70; 169.33 × 0.150 = 25.3995; 64.70 − 25.3995 = 39.30.
+    assert anchored(result.basic(BasicCase.IMPACT_SINGLE)) == [(seat, 1, 169.33, 0.0, 39.3)]
     # The horizontal bearing force acts at the seat: the frame carries H × H1 (0.300).
     assert anchored(result.basic(BasicCase.SAFETY_LR10_B)) == [(seat, 1, 0.0, 473.43, 0.0)]
     # A resolved combination keeps the anchors.

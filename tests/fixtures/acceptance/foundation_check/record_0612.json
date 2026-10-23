@@ -1,105 +1,190 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0612",
-  "verified_at": "2026-10-21T20:28:43+09:00",
-  "method": "WebPier が 0610 で書く FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0612 が読む作用を Example2 8-30 と比べた。",
+  "verified_at": "2026-10-23T19:44:16+09:00",
+  "method": "WebPier が 0610 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0612 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 8-30 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+    "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
+    "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
   },
-  "frameweb_sha256": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+  "frameweb_sha256": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
   "reaction": {
-    "file": "線路方向_ピックアップ反力.csv",
-    "sha256": "0c017670dae4c60f38821d36d0c45744e1a14d579c149b73bf8b221040cb18ce"
+    "file": "線路方向_ピックアップ反力_橋脚く体の衝撃.csv",
+    "sha256": "5d7525d39087bfae310d4f771681e6fd27dcba625668e7523b8e1bf9e6ac8b11"
   },
   "node": 6,
-  "compared": [
-    "vd",
-    "hd",
-    "md"
-  ],
-  "tolerance": 0.25,
+  "hand_tolerance": 0.05,
   "columns": {
     "long_term": {
-      "ours": {
+      "real": {
         "combination": 14,
-        "vd": 16348.95,
-        "hd": 0.0,
-        "md": 584.25
+        "vd": 16348.948,
+        "fx": -0.0,
+        "mz": 584.25
       },
-      "sample": {
-        "combination": 14,
-        "vd": 16348.95,
-        "hd": 0.0,
-        "md": 584.25
+      "by_hand": {
+        "vd": 16348.948,
+        "fx": -0.0,
+        "mz": 584.25
       },
       "differences": {
         "vd": 0.0,
-        "hd": 0.0,
-        "md": 0.0
+        "fx": 0.0,
+        "mz": 0.0
       }
     },
     "short_term": {
-      "ours": {
+      "real": {
         "combination": 15,
-        "vd": 18788.39,
-        "hd": 0.0,
-        "md": 408.4
+        "vd": 18745.778,
+        "fx": -0.0,
+        "mz": 424.63
       },
-      "sample": {
-        "combination": 15,
-        "vd": 18788.17,
-        "hd": 0.0,
-        "md": 408.49
+      "by_hand": {
+        "vd": 18745.778,
+        "fx": -0.0,
+        "mz": 424.63
       },
       "differences": {
-        "vd": 0.22,
-        "hd": 0.0,
-        "md": -0.09
+        "vd": 0.0,
+        "fx": 0.0,
+        "mz": 0.0
       }
     },
     "safety_vertical": {
-      "ours": {
+      "real": {
         "combination": 10,
-        "vd": 22585.15,
-        "hd": 473.43,
-        "md": 4767.97
+        "vd": 22448.2033,
+        "fx": -473.43,
+        "mz": -4714.535
       },
-      "sample": {
-        "combination": 10,
-        "vd": 22585.12,
-        "hd": 473.43,
-        "md": 4767.98
+      "by_hand": {
+        "vd": 22448.22,
+        "fx": -473.43,
+        "mz": -4714.539
       },
       "differences": {
-        "vd": 0.03,
-        "hd": 0.0,
-        "md": -0.01
+        "vd": -0.0167,
+        "fx": 0.0,
+        "mz": 0.004
       }
     },
     "safety_moment": {
-      "ours": {
-        "combination": 11,
-        "vd": 21870.78,
-        "hd": 495.01,
-        "md": 5460.44
+      "real": {
+        "combination": 12,
+        "vd": 22272.8077,
+        "fx": 513.89,
+        "mz": 5496.8082
       },
-      "sample": {
-        "combination": 11,
-        "vd": 21870.77,
-        "hd": 495.01,
-        "md": 5460.42
+      "by_hand": {
+        "vd": 22272.83,
+        "fx": 513.89,
+        "mz": 5496.807
       },
       "differences": {
-        "vd": 0.01,
-        "hd": 0.0,
-        "md": 0.02
+        "vd": -0.0223,
+        "fx": 0.0,
+        "mz": 0.0012
+      }
+    }
+  },
+  "reference": {
+    "fempython": {
+      "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+    },
+    "frameweb_sha256": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+    "reaction": {
+      "file": "線路方向_ピックアップ反力.csv",
+      "sha256": "0c017670dae4c60f38821d36d0c45744e1a14d579c149b73bf8b221040cb18ce"
+    },
+    "compared": [
+      "vd",
+      "hd",
+      "md"
+    ],
+    "tolerance": 0.25,
+    "columns": {
+      "long_term": {
+        "ours": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 584.25
+        },
+        "sample": {
+          "combination": 14,
+          "vd": 16348.95,
+          "hd": 0.0,
+          "md": 584.25
+        },
+        "differences": {
+          "vd": 0.0,
+          "hd": 0.0,
+          "md": 0.0
+        }
+      },
+      "short_term": {
+        "ours": {
+          "combination": 15,
+          "vd": 18788.39,
+          "hd": 0.0,
+          "md": 408.4
+        },
+        "sample": {
+          "combination": 15,
+          "vd": 18788.17,
+          "hd": 0.0,
+          "md": 408.49
+        },
+        "differences": {
+          "vd": 0.22,
+          "hd": 0.0,
+          "md": -0.09
+        }
+      },
+      "safety_vertical": {
+        "ours": {
+          "combination": 10,
+          "vd": 22585.15,
+          "hd": 473.43,
+          "md": 4767.97
+        },
+        "sample": {
+          "combination": 10,
+          "vd": 22585.12,
+          "hd": 473.43,
+          "md": 4767.98
+        },
+        "differences": {
+          "vd": 0.03,
+          "hd": 0.0,
+          "md": -0.01
+        }
+      },
+      "safety_moment": {
+        "ours": {
+          "combination": 11,
+          "vd": 21870.78,
+          "hd": 495.01,
+          "md": 5460.44
+        },
+        "sample": {
+          "combination": 11,
+          "vd": 21870.77,
+          "hd": 495.01,
+          "md": 5460.42
+        },
+        "differences": {
+          "vd": 0.01,
+          "hd": 0.0,
+          "md": 0.02
+        }
       }
     }
   },

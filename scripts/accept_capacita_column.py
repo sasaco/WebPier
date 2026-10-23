@@ -3,7 +3,11 @@
 The WDJ is rebuilt as ``python -m webpier`` writes it for the stage (calc.column_check, export.capacita) from
 tests/fixtures/inputs/current.json (the Example2 input), and the PIK is the real FEMPython's analysis of the same
 0610 / 0620 FrameWeb file (FrameWebforCS.Headless, as the stage calls it). Both are given to the real
-WebDanforCS.Headless ``run-rc --pickup``. The values its report prints for 安全性（破壊）の曲げ and
+WebDanforCS.Headless ``run-rc --pickup``. Example2 has no impact reduction on the pier body (decision 77), so the values
+are compared with it for the PIK of the reference file, the impact with the girder coefficients
+(``tests/acceptance/reactions_by_hand.py: reference_frameweb``); the PIK of the file the generator writes now is given
+to Capacita too, which must check the same sections and skip the same ones, and its values are recorded
+(``current``) as Capacita's, not compared. The values its report prints for 安全性（破壊）の曲げ and
 使用性（損傷）の曲げ are compared with Example2 (tests/fixtures/example2/column_section_check.json and
 column_section_check_09.json, ``acceptance``):
 
@@ -32,6 +36,7 @@ import pymupdf
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
+sys.path.insert(0, str(PROJECT / "tests" / "acceptance"))
 
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check  # noqa: E402
 from webpier.calc.foundation import calculate_foundation  # noqa: E402
@@ -44,6 +49,7 @@ from webpier.inputs import parse_input  # noqa: E402
 from webpier.pipeline import capacita, fempython  # noqa: E402
 from webpier.pipeline.generate import export_bytes  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
+from reactions_by_hand import reference_frameweb  # noqa: E402
 
 INPUT = "tests/fixtures/inputs/current.json"
 EXAMPLE2 = PROJECT / "tests" / "fixtures" / "example2"
@@ -69,7 +75,7 @@ STAGES = {
     "0611": Stage(
         RECORDS / "record.json", EXAMPLE2 / "column_section_check.json", "0610", "線路方向", False,
         "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した"
-        " PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の"
+        " PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の"
         " 8-15・8-26 と比べた。",
         ("照査値（γi・Md/Mud＝0.132、γi・Md/Myd＝0.114）は見本と一致する。耐力（Mud・Myd）は見本の WebDan といまの Capacita で"
          " 0.2% 未満違う（Mud 37426.2／37449.1、Myd 38200.7／38260.8）（見本自身の WDJ と PIK をいまの Capacita で計算しても"
@@ -82,7 +88,7 @@ STAGES = {
     "0621": Stage(
         RECORDS / "record_0621.json", EXAMPLE2 / "column_section_check_09.json", "0620", "線路直角方向", True,
         "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した"
-        " PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2"
+        " PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2"
         " 09_直角.pdf の 9-19・9-23 と比べた。",
         ("照査値は見本と比べない。WebPier の 0620 の風荷重は見本と違う（決定12・35）ので Md が違う（安全性（破壊）の"
          " Md 10939.1／見本 8256.6）。軸力 N'd は見本と同じなので、耐力（Mud・Myd）を比べる。",
@@ -110,6 +116,19 @@ def _after(lines: list[str], label: str) -> str:
         raise AcceptanceError(f"「{label}」が計算書にありません") from exc
 
 
+def _check(wdj: bytes, stage: Stage, pik: bytes, check, runner):
+    """Capacita's report for *pik*: (the pages, {section: page, ratio, capacity}, the page count)."""
+    pages = capacita.check_column(wdj, f"{stage.name}.pik", pik, runner, check.sections)
+    values = {}
+    with pymupdf.open(stream=pages.pdf, filetype="pdf") as document:
+        page_count = len(document)
+        for section, (ratio, capacity, _) in CHECKS.items():
+            first, _ = pages.section(section)
+            lines = [line.strip() for line in document[first - 1].get_text().splitlines() if line.strip()]
+            values[section] = {"page": first, "ratio": _after(lines, ratio), "capacity": _after(lines, capacity)}
+    return pages, values, page_count
+
+
 def main(stage_id: str) -> int:
     stage = STAGES[stage_id]
     data = (PROJECT / INPUT).read_bytes()
@@ -118,21 +137,14 @@ def main(stage_id: str) -> int:
     check = (calculate_column_check(pier, calculate_transverse(pier, foundation, reaction), TRANSVERSE)
              if stage.transverse else
              calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL))
-    frameweb = export_bytes(pier, stage.source, "frameweb")
+    frameweb, reference = export_bytes(pier, stage.source, "frameweb"), reference_frameweb(pier, stage.source)
     fempython_runner, capacita_runner = fempython.runner_path(), capacita.runner_path()
-    analysis = fempython.analyze_frame(f"{stage.name}.json", frameweb, fempython_runner)
+    analysis = fempython.analyze_frame(f"{stage.name}.json", reference, fempython_runner)
     pik = analysis.files["pik"]
     index = point_index(pik, check.member)
     wdj = write_wdj(build_wdj(check, index))
-    pages = capacita.check_column(wdj, f"{stage.name}.pik", pik, capacita_runner, check.sections)
+    pages, values, page_count = _check(wdj, stage, pik, check, capacita_runner)
     sample = load_json(stage.sample.read_bytes())["acceptance"]
-    values, with_pdf = {}, pymupdf.open(stream=pages.pdf, filetype="pdf")
-    with with_pdf as document:
-        page_count = len(document)
-        for section, (ratio, capacity, _) in CHECKS.items():
-            first, _ = pages.section(section)
-            lines = [line.strip() for line in document[first - 1].get_text().splitlines() if line.strip()]
-            values[section] = {"page": first, "ratio": _after(lines, ratio), "capacity": _after(lines, capacity)}
     expected = {section: (sample[section]["ratio"], sample[section][key]) for section, (_, _, key) in CHECKS.items()}
     for section, (ratio, capacity) in expected.items():
         if not stage.transverse and values[section]["ratio"] != ratio:
@@ -141,9 +153,18 @@ def main(stage_id: str) -> int:
             raise AcceptanceError(f"{section}: 耐力 {values[section]['capacity']}（見本は {capacity}）")
     if sorted(pages.skipped) != sorted(sample.get("skipped_by_capacita", [])):
         raise AcceptanceError(f"Capacita が省略した照査 {list(pages.skipped)}（見本は {sample.get('skipped_by_capacita', [])}）")
+    current_analysis = fempython.analyze_frame(f"{stage.name}.json", frameweb, fempython_runner)
+    current_pik = current_analysis.files["pik"]
+    current_index = point_index(current_pik, check.member)
+    if current_index != index:
+        raise AcceptanceError(f"着目点の番号が参照と違います（{current_index}、参照 {index}）")
+    current_pages, current_values, _ = _check(wdj, stage, current_pik, check, capacita_runner)
+    if sorted(current_pages.skipped) != sorted(pages.skipped):
+        raise AcceptanceError(f"橋脚く体の衝撃の低減ありで Capacita が省略した照査 {list(current_pages.skipped)}"
+                              f"（参照 {list(pages.skipped)}）")
     runner_dll = capacita_runner.with_suffix(".dll")
     record = {
-        "schema_version": 1, "kind": "capacita_column_check_acceptance", "stage": stage_id,
+        "schema_version": 2, "kind": "capacita_column_check_acceptance", "stage": stage_id,
         "date": datetime.now().astimezone().date().isoformat(),
         "verified_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "method": stage.method,
@@ -160,6 +181,9 @@ def main(stage_id: str) -> int:
                                                        "last": section.last} for section in pages.sections],
                    "skipped": list(pages.skipped)},
         "values": values,
+        "current": {"frameweb_sha256": sha256(frameweb), "reference_frameweb_sha256": sha256(reference),
+                    "pik_sha256": sha256(current_pik), "values": current_values,
+                    "skipped": list(current_pages.skipped)},
         "sample": {section: {"ratio": ratio, "capacity": capacity} for section, (ratio, capacity) in expected.items()},
         "expected_differences": list(stage.differences),
     }

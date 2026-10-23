@@ -266,7 +266,7 @@ def expected(case: str) -> dict[str, str]:
     add("train.double", top(double.rows, double.n, double.m))
     add("train.double.seat", seat(frame, double.n, double.m, result.basic(BasicCase.TRAIN_DOUBLE).points[0]))
     add("impact.heading", f"{item(6)}衝撃荷重")
-    add("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
+    add("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
     impact = result.impact
     for key, label, table, train, case_ in (
             ("ultimate_single", "1)単線載荷（安全性・復旧性）", impact.ultimate_single, single, BasicCase.IMPACT_SINGLE),
@@ -382,7 +382,10 @@ def test_variants_change_what_is_printed():
     assert pedestal["0610/fixed.top.seat"] == "・はり天端" and "0610/fixed.top.seat" not in current
     assert pedestal["0610/fixed.pedestal.note"] == "（アームは桁受けの中心から）"
     assert "0610/additional.top.pedestal" in pedestal and "0610/additional.top" not in pedestal
-    assert pedestal["0610/impact.service_double.seat"].startswith("桁受け天端M=126.10−321.63×0.175=")
+    # Decision 77: Ds 3013.33, 1 − 3013.33/(1134.78 + 8380 + 3013.33) = 0.759; 0.167 × 0.759 = 0.127 and
+    # 0.391 × 0.759 = 0.297; N = 544.94 × 0.127 + 589.84 × 0.297 = 69.21 + 175.18 = 244.39 and
+    # M = 69.21 × −0.325 + 175.18 × 0.675 = −22.49 + 118.25 = 95.76; 95.76 − 244.39 × 0.175 = 52.99.
+    assert pedestal["0610/impact.service_double.seat"].startswith("桁受け天端M=95.76−244.39×0.175=")
     assert "0610/fixed.footing.moment" in asymmetric and "0610/fixed.footing.moment" not in current
     assert "柱上端" in merged["0610/model.nodes"] and merged["0610/model.nodes"].count("はり天端・はり下端・柱上端") == 1
 

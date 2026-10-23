@@ -4,6 +4,10 @@ tests/fixtures/acceptance/foundation_check/record_<stage>.json and the reaction 
 scripts/accept_foundation_check.py recorded with the real FrameWebforCS.Headless. These tests do not run it. They
 fail (never skip) when the FrameWeb file WebPier writes for the fixture input is no longer the one analyzed: then
 redo the acceptance with ``uv run --project "." --locked python -X utf8 scripts/accept_foundation_check.py <stage>``.
+
+Two files were analyzed (decision 77): the one the generator writes now, whose real reactions are held to the sum of the
+loads of each combination, and the reference with the impact of the girder coefficients, whose real reactions are those
+of Example2 (which has no reduction on the pier body) and give the independent hand calculation.
 """
 
 import json
@@ -11,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from reactions_by_hand import by_hand, reference_frameweb
 from recorded_input_support import input_sha256s
 from webpier.calc import foundation_check as fc
 from webpier.calc.foundation import calculate_foundation
@@ -28,6 +33,7 @@ HAND = json.loads((FIXTURES / "example2" / "foundation_check.json").read_text(en
 STAGES = {"0612": ("0610", fc.LONGITUDINAL, "8-30", ("vd", "hd", "md")),
           "0622": ("0620", fc.TRANSVERSE, "9-27", ("vd",))}
 TOLERANCE = 0.25  # kN, kN m: the sample's hidden digits (longitudinal_notes.md 3, 4)
+HAND_TOLERANCE = 0.05  # kN, kN m: the real run's unrounded factors against the printed ones
 
 
 def redo(stage: str) -> str:
@@ -42,8 +48,9 @@ def accepted(request):
     record = json.loads((records / f"record_{stage}.json").read_text(encoding="utf-8"))
     data = (ROOT / record["input"]["path"]).read_bytes()
     assert record["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{redo(stage)}"
-    csv = (records / record["reaction"]["file"]).read_bytes()
-    assert sha256(csv) == record["reaction"]["sha256"]
+    csv = (records / record["reference"]["reaction"]["file"]).read_bytes()
+    assert sha256(csv) == record["reference"]["reaction"]["sha256"]
+    assert sha256((records / record["reaction"]["file"]).read_bytes()) == record["reaction"]["sha256"]
     return stage, record, parse_input(load_json(data)), csv, source, direction
 
 
@@ -57,9 +64,31 @@ def _check(pier, csv, source, direction) -> fc.FoundationCheckResult:
 def test_the_analyzed_frameweb_file_is_what_the_generator_writes_now(accepted):
     stage, record, pier, _, source, _ = accepted
     assert (record["kind"], record["schema_version"], record["stage"], record["accepted"]) == (
-        "foundation_check_acceptance", 1, stage, True)
+        "foundation_check_acceptance", 2, stage, True)
     assert sha256(export_bytes(pier, source, "frameweb")) == record["frameweb_sha256"], (
         f"{source} の FrameWeb 入力が変わりました。{redo(stage)}")
+    assert sha256(reference_frameweb(pier, source)) == record["reference"]["frameweb_sha256"], (
+        f"{source} の参照の FrameWeb 入力が変わりました。{redo(stage)}")
+
+
+def test_the_real_reactions_of_the_current_file_are_the_sum_of_the_loads(accepted):
+    """The frame is statically determinate: the reaction of the combination a column reads is the sum of the loads
+    WebPier gives it (Vd within the unrounded factors; 0610 also Fx and Mz; 0620 tells no alternative from the row)."""
+    stage, record, pier, _, source, direction = accepted
+    records = FIXTURES / "acceptance" / "foundation_check"
+    csv = (records / record["reaction"]["file"]).read_bytes()
+    foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
+    frame = (calculate_longitudinal if source == "0610" else calculate_transverse)(pier, foundation, reaction)
+    basis = fc.prepare(pier, foundation, frame, direction)
+    reactions = support_reactions(csv, basis.node)
+    for spec in fc.COLUMNS:
+        row = fc.pick(reactions, basis.pickups[spec.key], spec.focus)
+        hand = by_hand(frame, row.combination, row.fx, basis.node)
+        assert abs(-row.fy - hand.vd) <= HAND_TOLERANCE, (stage, spec.key, "vd")
+        if hand.fx is not None:
+            assert abs(row.fx - hand.fx) <= HAND_TOLERANCE and abs(row.mz - hand.mz) <= HAND_TOLERANCE, (
+                stage, spec.key)
+        assert record["columns"][spec.key]["real"]["combination"] == row.combination
 
 
 def test_the_actions_read_from_the_real_reactions_are_those_of_example2(accepted):
@@ -73,8 +102,8 @@ def test_the_actions_read_from_the_real_reactions_are_those_of_example2(accepted
         assert column.combination == expected["combination"], column.key
         for name in compared:
             assert abs(getattr(column, name).value - expected[name]) <= TOLERANCE, (column.key, name)
-        assert record["columns"][column.key]["ours"] == {"combination": column.combination, "vd": column.vd.value,
-                                                         "hd": column.hd.value, "md": column.md.value}
+        assert record["reference"]["columns"][column.key]["ours"] == {
+            "combination": column.combination, "vd": column.vd.value, "hd": column.hd.value, "md": column.md.value}
 
 
 def test_the_real_reactions_give_the_independent_hand_calculation(accepted):

@@ -152,3 +152,17 @@ Source: `.claude/docs/Example橋脚2/08_線路.pdf`, 32 pages, printed 8-1 to 8-
   kept.
 - Rows or columns printed entirely as '-' in the check sheets are omitted (listed under
   `omitted_rows`).
+
+## Classification 3: the sample does not reduce the impact on the pier body (decision 77)
+
+- 08 uses the girder impact coefficients as they are (8-5: 0.245 / 0.546, double 0.222 / 0.521, serviceability
+  0.184 / 0.410, 0.167 / 0.391). WebPier applies RC標準 解4.4.4 to every vehicle
+  (Example橋脚3 Ⅱ-2-6): i = i0 × (1 − Ds/(L + Du + Ds)), with the ratio 0.751 (single) and 0.763 (double) for this pier
+  (Ds 2961.88, Du 8380.00, L 567.39 / 1134.78).
+- The transcribed values stay as printed. The values that no longer agree with WebPier, and are therefore not
+  compared with it (the tests use an independent hand calculation, `tests/calc/test_longitudinal_loads.py`):
+  - 8-5 impact loads I1 227.78 / 86.99 and I2 428.28 / 168.11 (WebPier: 171.05 / 65.33 and 326.85 / 128.53).
+  - everything that adds the impact load: the 8-6 to 8-9 load diagrams I1 / I2, the 8-10 combinations, the
+    8-11 onward sectional forces and reactions of the combinations with an impact load.
+- Not affected: the train load (8-4), the bearing forces (8-5 horizontal), the girder wind, and the seismic
+  stages.

@@ -1,16 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "capacita_column_check_acceptance",
   "stage": "0621",
-  "date": "2026-10-21",
-  "verified_at": "2026-10-21T20:35:40+09:00",
-  "method": "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
+  "date": "2026-10-23",
+  "verified_at": "2026-10-23T19:56:35+09:00",
+  "method": "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+    "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
   },
-  "implementation_sha256": "fe29fa5d996a7433137147bcca93617388798530150b3ef4dc4d539ef875e637",
+  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",
@@ -18,7 +18,7 @@
   },
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+b2584ced9908bb5b415a7efb32b4aef74c9c3d02"
+    "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
   },
   "point_index": 7,
   "wdj_given_sha256": "8bd7f20c22422c8d55842cddd30b5f57b425cd5ad141a1fa8d33191f2c5284d7",
@@ -79,6 +79,27 @@
       "ratio": "0.151",
       "capacity": "48634.5"
     }
+  },
+  "current": {
+    "frameweb_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
+    "reference_frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
+    "pik_sha256": "a42ed5aeb8d04cf42763c631f6378269a843deca65ae2bb14dc417395e16dadb",
+    "values": {
+      "bending_safety_destruction": {
+        "page": 3,
+        "ratio": "0.448",
+        "capacity": "29326.7"
+      },
+      "bending_restorability": {
+        "page": 8,
+        "ratio": "0.152",
+        "capacity": "48445.6"
+      }
+    },
+    "skipped": [
+      "shear_durability",
+      "bending_serviceability"
+    ]
   },
   "sample": {
     "bending_safety_destruction": {

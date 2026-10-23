@@ -70,3 +70,10 @@ Transcribed by hand from page images (130 dpi) and checked against PyMuPDF text 
   - The end-side total 2360.00 is labeled "HB" (presumably HC); the key is `seismic_transverse.end.total`, and `printed_label` keeps "HB".
   - Train with Kh = 0.30: H = 7-2 seismic train reaction (320 / 160) × 0.30, y1 = … + 1.100 + 1.500 = 5.350.
 - Not present in 05/07: pier self weight, pier centroid heights, centrifugal load, and any explicit longitudinal wind. reaction.json lists these under `not_present_in_05_07`.
+
+## Classification 3: the impact on the pier body (decision 77)
+
+- 07 7-2 prints only the girder impact coefficients. Example橋脚3 Ⅱ-2-6 (2.1.5 (b), RC標準 解4.4.4) reduces them for the
+  pier body: i = i0 × (1 − Ds/(L + Du + Ds)). WebPier prints that after the girder coefficients in 6.3 (2) and uses it in
+  0610 / 0620. The values in this file are the girder coefficients and stay as printed; the pier-body coefficients have
+  no sample value in Example2 and are checked by hand in `tests/calc/test_reaction_train.py`.

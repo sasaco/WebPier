@@ -7,9 +7,10 @@ D25@125 中心 100、D29@125 中心 127、D16 2本/m@250、SD390、f'ck 27), as 
 footing WDJs. Recorded in tests/fixtures/acceptance/footing/record.json and compared:
 
 - the four non-seismic columns of each direction (the combination and the Vd・Hd・Md 0800 reads from the real
-  reactions) with the sample 244 / 249: 線路方向 within 0.25 kN (kN m) as 0612's acceptance, but the Vd of the 使用性
-  columns within 0.5 kN (the sample rounds hidden intermediates; owner 2026-10-19); 線路直角方向 only Vd (WebPier's
-  0620 wind differs from the sample's: decisions 12, 35);
+  reactions), held to the sum of the loads WebPier gives that combination (``reactions_by_hand.py``; decision 77: the
+  impact on the pier body has no value in the sample 244 / 249, which is recorded beside them for the difference):
+  線路方向 Vd・Hd・Md and 線路直角方向 Vd only (WebPier's 0620 wind differs from the sample's: decisions 12, 35), within
+  0.05 kN (kN m), the real run's unrounded factors against the printed ones;
 - the Rvd到達ステップ of each direction (Case, step, Vd・Hd・Md, Rvd), recorded beside the sample's 10-23 / 11-24
   values (its step 31 is JRSNAP's output list number; the input's Df 4.70 differs from the sample's 3.78, so the step
   and the forces need not agree) and the design forces of the chosen overhang (Md, Vd, La of every column);
@@ -35,19 +36,19 @@ import pymupdf
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
+sys.path.insert(0, str(PROJECT / "tests" / "acceptance"))
 
 from webpier.core.integrity import canonical_sha256, dump_json, load_json, sha256  # noqa: E402
 from webpier.pipeline import aggrese, capacita, fempython, generate, jrsnap  # noqa: E402
 from webpier.inputs.outputs import OUTPUT_KEYS  # noqa: E402
 from webpier.pipeline.generate import GenerationOptions  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
+from reactions_by_hand import by_hand_absolute  # noqa: E402
 
 INPUT = "tests/fixtures/inputs/current.json"
 RECORDS = PROJECT / "tests" / "fixtures" / "acceptance" / "footing"
 SAMPLE = PROJECT / "tests" / "fixtures" / "example2" / "footing.json"
-TOLERANCE = 0.25  # kN, kN m: the sample's hidden digits (as scripts/accept_foundation_check.py)
-SERVICE_VD_TOLERANCE = 0.5  # kN: the Vd of the 使用性 columns (owner 2026-10-19)
-SERVICE = ("short_term", "long_term")
+HAND_TOLERANCE = 0.05  # kN, kN m: the real run's unrounded factors against the printed ones (decision 77)
 CAPACITY_TOLERANCE = 0.002  # the sample's WebDan and the current Capacita (as scripts/accept_capacita_column.py)
 SAMPLE_MUD = {"0810": 3670.5}  # 12_フーチング.pdf 255: Mud of 安全性（破壊）の曲げ, 線路方向
 NON_SEISMIC = ("safety_moment", "safety_shear", "short_term", "long_term")
@@ -100,7 +101,7 @@ def _number(printed) -> float:
     return printed.value
 
 
-def _columns(found, sample: dict, compared: tuple[str, ...], failures: list[str], label: str) -> dict:
+def _columns(found, sample: dict, compared: tuple[str, ...], failures: list[str], label: str, frame) -> dict:
     columns = {}
     for column in found.columns:
         source = column.source
@@ -111,12 +112,15 @@ def _columns(found, sample: dict, compared: tuple[str, ...], failures: list[str]
         if column.key in NON_SEISMIC:
             expected = sample[column.key]
             ours["combination"] = source.combination
+            hand = by_hand_absolute(frame, source.combination, ours["hd"], ours["md"], found.basis.node)
+            by_hand = {"vd": hand.vd, "hd": hand.fx, "md": hand.mz}
             differences = {key: round(ours[key] - expected[key.capitalize()], 2) for key in ("vd", "hd", "md")}
+            differences_by_hand = {key: round(ours[key] - by_hand[key], 4) for key in compared}
             columns[column.key] = {"ours": ours, "sample": {key: expected[key] for key in ("Vd", "Hd", "Md")},
-                                   "differences": differences}
-            failures += [f"{label} {column.key}: {key} の差 {differences[key]}" for key in compared
-                         if abs(differences[key]) > (SERVICE_VD_TOLERANCE if key == "vd" and column.key in SERVICE
-                                                     else TOLERANCE)]
+                                   "differences": differences, "by_hand": by_hand,
+                                   "differences_by_hand": differences_by_hand}
+            failures += [f"{label} {column.key}: 荷重の和との差 {key} {differences_by_hand[key]}" for key in compared
+                         if abs(differences_by_hand[key]) > HAND_TOLERANCE]
         else:
             ours |= {"case_index": source.case_index, "case_name": source.case_name, "step": source.step,
                      "rvd": _number(source.rvd)}
@@ -148,6 +152,7 @@ def main() -> int:
             result = candidate.results["0800"]
             given = {stage: candidate.staged(f"{stage}.wdj").read_bytes() for stage in ("0810", "0820")}
             checks = {stage: candidate.results[stage] for stage in ("0810", "0820")}
+            frames = {"longitudinal": candidate.results["0610"], "transverse": candidate.results["0620"]}
             engines = {"frameweb": {name: sha256(candidate.staged(f"{stage}.frameweb").read_bytes())
                                     for stage, name in (("0610", "線路方向.json"), ("0620", "線路直角方向.json"))},
                        "reaction": {name: sha256(candidate.staged(f"{stage}.reaction").read_bytes())
@@ -163,7 +168,7 @@ def main() -> int:
     directions = {}
     for direction, (key, page, compared, seismic_page, stage, name) in DIRECTIONS.items():
         found = getattr(result, direction)
-        columns = _columns(found, sample[key]["columns"], compared, failures, direction)
+        columns = _columns(found, sample[key]["columns"], compared, failures, direction, frames[direction])
         capacities = _capacities(name, given[stage], checks[stage].sections, runners["capacita"])
         if stage in SAMPLE_MUD:
             mud = float(capacities["sections"]["bending_safety_destruction"]["capacity"])
@@ -176,15 +181,15 @@ def main() -> int:
     RECORDS.mkdir(parents=True, exist_ok=True)
     (RECORDS / "input.json").write_bytes(input_bytes)
     record = {
-        "schema_version": 1, "kind": "footing_acceptance",
+        "schema_version": 2, "kind": "footing_acceptance",
         "verified_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "method": ("current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を"
-                   "本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md、Rvd到達"
+                   "本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md（その組合せの荷重の和と比べる、決定77）、Rvd到達"
                    "ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。"),
         "input": {"path": INPUT, "footing_bars": FOOTING, "file": "input.json", "sha256": input_sha256},
         "implementation_sha256": canonical_sha256({str(path): digest for path, digest in dependency_hashes().items()}),
         "runners": {name: str(path) for name, path in runners.items()},
-        "engines": engines, "tolerance": TOLERANCE, "service_vd_tolerance": SERVICE_VD_TOLERANCE,
+        "engines": engines, "hand_tolerance": HAND_TOLERANCE,
         "capacity_tolerance": CAPACITY_TOLERANCE,
         "sample_mud": SAMPLE_MUD, "directions": directions, "accepted": not failures, "failures": failures,
     }

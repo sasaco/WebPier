@@ -20,6 +20,8 @@ from webpier.calc.transverse import calculate_transverse
 from webpier.core.integrity import load_json, sha256
 from webpier.export.capacita import build_wdj, write_wdj
 from webpier.inputs import parse_input
+from webpier.pipeline.generate import export_bytes
+from reactions_by_hand import reference_frameweb
 
 ROOT = Path(__file__).parents[2]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -76,9 +78,25 @@ def test_the_values_are_those_of_example2(accepted):
     stage, recorded, _ = accepted
     acceptance, values = sample(stage)["acceptance"], recorded["values"]
     assert (recorded["kind"], recorded["schema_version"], recorded["stage"]) == (
-        "capacita_column_check_acceptance", 1, stage)
+        "capacita_column_check_acceptance", 2, stage)
     for section, key in (("bending_safety_destruction", "Mud_kNm"), ("bending_restorability", "Myd_kNm")):
         if stage == "0611":
             assert values[section]["ratio"] == acceptance[section]["ratio"], section
         printed, expected = float(values[section]["capacity"]), float(acceptance[section][key])
         assert abs(printed - expected) / expected < 0.002, section
+
+
+def test_capacita_checked_the_pik_of_the_current_frameweb_file_too(accepted):
+    """Decision 77: the values above are for the reference file (the impact of the girder coefficients, which is what
+    Example2 has). The PIK of the file the generator writes now was given to Capacita as well, which checked the same
+    sections and skipped the same ones; its values are Capacita's and are not compared."""
+    stage, recorded, _ = accepted
+    data = (ROOT / recorded["input"]["path"]).read_bytes()
+    pier = parse_input(load_json(data))
+    source = "0620" if stage == "0621" else "0610"
+    current = recorded["current"]
+    assert sha256(export_bytes(pier, source, "frameweb")) == current["frameweb_sha256"], (
+        f"{stage} の FrameWeb 入力が変わりました。{redo(stage)}")
+    assert sha256(reference_frameweb(pier, source)) == current["reference_frameweb_sha256"], redo(stage)
+    assert sorted(current["skipped"]) == sorted(recorded["report"]["skipped"])
+    assert set(current["values"]) == set(recorded["values"])

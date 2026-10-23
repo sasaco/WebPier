@@ -150,3 +150,15 @@ Source: `.claude/docs/Example橋脚2/09_直角.pdf`, 29 pages, printed 9-1 to 9-
 - All-'-' rows and columns of the check sheets are omitted (`omitted_rows`).
 - Pages 9-24 to 9-26 and 9-28 are text identical to 8-27 to 8-29 and 8-31. They are summarised, not
   copied verbatim.
+
+## Classification 3: the sample does not reduce the impact on the pier body (decision 77)
+
+- 09 uses the girder impact coefficients as they are (9-6: 0.245 / 0.546, double 0.222 / 0.521, serviceability
+  0.184 / 0.410, 0.167 / 0.391). WebPier applies RC標準 解4.4.4 to every vehicle
+  (Example橋脚3 Ⅱ-2-6): i = i0 × (1 − Ds/(L + Du + Ds)), the ratio 0.751 (single) and 0.763 (double) here.
+- The transcribed values stay as printed. The values that no longer agree with WebPier, and are not compared with
+  it (the tests use an independent hand calculation, `tests/calc/test_transverse_loads.py`):
+  - 9-6 impact loads: single track 227.78 / ±483.45 (WebPier 171.05 / ±363.04), both tracks 428.28 (WebPier 326.86).
+  - everything that adds the impact load: the 9-9 to 9-13 load diagrams I1 to I3, the 9-14 combinations, the
+    9-16 onward sectional forces and reactions of the combinations with an impact load.
+- Not affected: the train load (9-5), the horizontal actions, and the seismic stages.

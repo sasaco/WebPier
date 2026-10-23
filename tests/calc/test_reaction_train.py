@@ -4,9 +4,12 @@
 import pytest
 
 from reaction_support import D, SELF_WEIGHT_08, example2, pier, q, value
+from webpier.calc._exact import put
 from webpier.calc.reaction.dead import calculate_dead
-from webpier.calc.reaction.train import calculate_train
+from webpier.calc.reaction.self_weight import calculate_self_weight
+from webpier.calc.reaction.train import _pier_ratio, calculate_train
 from webpier.core.errors import InputError
+from webpier.core.printed import FORCE
 
 TABLE = example2("07_7-1_support_reactions_and_service_train")
 FACTORS = example2("07_7-2_load_factors_seismic_train_impact")
@@ -14,7 +17,7 @@ FACTORS = example2("07_7-2_load_factors_seismic_train_impact")
 
 def train(p=None):
     p = p or pier()
-    return calculate_train(p, calculate_dead(p))
+    return calculate_train(p, calculate_dead(p), calculate_self_weight(p))
 
 
 def supports(track):
@@ -85,11 +88,46 @@ def test_group_tables_by_hand():
                 double, coefficient_d, q(double * coefficient_d, 2)), (group, s)
 
 
-def test_no_pier_impact_reduction():
-    # Decision 27: the pier impact coefficient (RC標準 解4.4.4, Ds and DU) is used by no stage and is not computed.
-    result = train()
-    for name in ("pier_ultimate", "pier_service", "pier_weight", "superstructure_dead"):
-        assert not hasattr(result, name)
+def test_pier_impact_ratio_by_hand():
+    # Decision 77, RC標準 解4.4.4: 1 − Ds/(L + Du + Ds), the ratio printed to 3 decimals.
+    # Ds 2961.88 (the pier-bottom weight, see test_reaction_self_weight), Du = D1 + D2 at B and C
+    # = 5740 + 520 + 1860 + 260 = 8380 (snow not included), L = RB + RC of the serviceability train without ρf.
+    on_pier = train().pier_impact
+    assert (on_pier.dead.value, on_pier.weight.value) == (8380.0, 2961.88)
+    # single: L = 272.47 + 294.92 = 567.39; 2961.88 / (567.39 + 8380 + 2961.88) = 0.24870 -> 1 − 0.24870 = 0.751
+    assert (on_pier.single.train.value, on_pier.single.ratio.value) == (567.39, 0.751)
+    # double: L = 2 × 272.47 + 2 × 294.92 = 1134.78; 2961.88 / 12476.66 = 0.23739 -> 0.763
+    assert (on_pier.double.train.value, on_pier.double.ratio.value) == (1134.78, 0.763)
+    assert not on_pier.single.limited and not on_pier.double.limited
+
+
+@pytest.mark.parametrize("group,usage", [("ultimate", "safety_restorability"), ("service", "serviceability_fatigue"),
+                                         ("fatigue", "serviceability_fatigue")])
+def test_impact_on_the_pier_body_is_the_girder_coefficient_times_the_ratio(group, usage):
+    result = getattr(train(), group)
+    ratio = {"single": D(0.751), "double": D(0.763)}
+    for girder, pier_impact, impact in (("start_girder", result.origin_pier_impact, result.origin_impact),
+                                        ("end_girder", result.end_pier_impact, result.end_impact)):
+        for track in ("single", "double"):
+            girder_value = D(FACTORS[f"impact.{usage}.{track}.{girder}"])
+            assert value(getattr(impact, track)) == girder_value
+            assert value(getattr(pier_impact, track)) == q(girder_value * ratio[track], 3), (group, girder, track)
+
+
+@pytest.mark.parametrize("train_load,dead,weight,limited,ratio", [
+    (50.0, 50.0, 900.0, True, 0.0),  # 900 / 1000 = 0.9: no impact on the pier body
+    (50.0, 50.1, 900.0, False, 0.1),  # 900 / 1000.1 = 0.89991 -> 1 − 0.89991 = 0.100
+    (200.0, 200.0, 600.0, False, 0.4),  # 600 / 1000 = 0.6
+])
+def test_pier_impact_is_zero_when_the_weight_share_reaches_0_9(train_load, dead, weight, limited, ratio):
+    result = _pier_ratio(put(FORCE, D(train_load)), put(FORCE, D(dead)), put(FORCE, D(weight)))
+    assert (result.limited, result.ratio.value) == (limited, ratio)
+
+
+def test_pier_impact_needs_a_nonzero_denominator():
+    zero = put(FORCE, D(0))
+    with pytest.raises(InputError, match="分母"):
+        _pier_ratio(zero, zero, zero)
 
 
 @pytest.mark.parametrize("side", ["起点側", "終点側"])

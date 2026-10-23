@@ -13,10 +13,11 @@ from webpier.calc.longitudinal import BasicCase
 from webpier.export.frameweb import build_frameweb
 
 # Example2 prints these from unrounded intermediates; we use the printed operands (see tests/calc):
-# 8-4 L2 1134.77 / 221.04 -> 1134.78 / 221.03, 8-5 I1 227.78 / 86.99 -> 227.79 / 87.00, I2 428.28 -> 428.29.
-# The Example2 FrameWeb file also has I1 / I2 of these values.
-DIFFERENT = {"10": [("1", None, 1134.78, 221.03)], "11": [("1", None, 227.79, 87)],
-             "12": [("1", None, 428.29, 168.11)]}
+# 8-4 L2 1134.77 / 221.04 -> 1134.78 / 221.03. Decision 77: the impact is on the pier body, so I1 / I2 differ from
+# Example2 8-5 (227.78 / 86.99, 428.28 / 168.11), which has no reduction:
+# I1 171.05 / 65.33 and I2 92.09 + 234.76 = 326.85, −29.93 + 158.46 = 128.53 (hand: test_longitudinal_loads).
+DIFFERENT = {"10": [("1", None, 1134.78, 221.03)], "11": [("1", None, 171.05, 65.33)],
+             "12": [("1", None, 326.85, 128.53)]}
 
 
 @pytest.fixture(scope="module")
@@ -83,7 +84,7 @@ def test_load_case_headers(current):
 
 
 def test_serviceability_impacts_are_two_more_load_cases(current, result):
-    # The serviceability impact (8-5, 0.75 i already in the 0600 girder coefficient) is another action than the
+    # The serviceability impact (8-5, 0.75 i already in the 0600 serviceability coefficient) is another action than the
     # basic I; combinations 5, 7, 15 and 16 analyse it, so it is a load case of its own after the 20 basic cases.
     assert list(current["load"]) == [str(n) for n in range(1, 23)]
     for number, impact in (("21", result.impact.service_single), ("22", result.impact.service_double)):
@@ -91,9 +92,10 @@ def test_serviceability_impacts_are_two_more_load_cases(current, result):
         assert (case["fix_node"], case["symbol"]) == (2, {"21": "I1s", "22": "I2s"}[number])
         assert case["name"] == {"21": "衝撃荷重　使用性　単線", "22": "衝撃荷重　使用性　複線"}[number]
         assert node_rows(case) == [("1", None, impact.n.value, impact.m.value)]
-    # Hand, 8-4 single track × 07 7-2 serviceability coefficients 0.184 / 0.41: 272.47 × 0.184 = 50.134 -> 50.13,
-    # 294.92 × 0.41 = 120.917 -> 120.92, N = 171.05; 50.13 × −0.325 = −16.29, 120.92 × 0.675 = 81.62, M = 65.33.
-    assert node_rows(current["load"]["21"]) == [("1", None, 171.05, 65.33)]
+    # Hand, 8-4 single track × the serviceability coefficients on the pier body (decision 77), 0.184 × 0.751 = 0.138 and
+    # 0.41 × 0.751 = 0.308: 272.47 × 0.138 = 37.601 -> 37.60, 294.92 × 0.308 = 90.835 -> 90.84, N = 128.44;
+    # 37.60 × −0.325 = −12.22, 90.84 × 0.675 = 61.317 -> 61.32, M = 49.10.
+    assert node_rows(current["load"]["21"]) == [("1", None, 128.44, 49.1)]
 
 
 def test_every_load_is_the_printed_action(current, result):

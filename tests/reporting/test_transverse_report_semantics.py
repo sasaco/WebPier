@@ -161,7 +161,7 @@ def expected(case: str) -> dict[str, str]:
                                                              for r in table.rows], table))
         add(f"train.{track.value}.seat", seat(frame, table.n, table.m, result.basic(case_).points[0]))
     add("impact.heading", f"{item(6)}衝撃荷重")
-    add("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
+    add("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
     impacts = {Track.UP: BasicCase.IMPACT_UP, Track.DOWN: BasicCase.IMPACT_DOWN, Track.DOUBLE: BasicCase.IMPACT_DOUBLE}
     for usage, label, impact_set in (("ultimate", "安全性・復旧性", result.impact.ultimate),
                                      ("service", "使用性", result.impact.service)):

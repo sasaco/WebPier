@@ -17,10 +17,10 @@ On a curve the centrifugal load adds Define 16 (single track: up or down) and
 combination: it enters exactly the combinations that hold L, on the track of L
 (decision 33). It acts toward the outside of the curve only, so it has one sign.
 
-As in 0610, the basic impact uses the girder coefficients of safety and
-restorability (decision 26), so there the factor is the nominal coefficient;
+As in 0610, the basic impact uses the pier-body coefficients of safety and
+restorability (decision 77), so there the factor is the nominal coefficient;
 in the serviceability combinations the 0.75 is already in the 0600
-serviceability girder coefficient, and only ρ remains. The vehicle lateral
+serviceability coefficient, and only ρ remains. The vehicle lateral
 load is 0.2 P without ρf (07 7-14), so it takes ρ (1.23) or 1.1 ρ (1.35) of
 9-14 like the train.
 """

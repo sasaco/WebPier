@@ -24,14 +24,15 @@ from webpier.export.frameweb.cases import Cases, LoadCase
 
 B = BasicCase
 # Example2 prints these from unrounded intermediates; the calc uses the printed operands (tests/calc
-# test_transverse_loads): 9-5 567.39 / ±1210.08 -> 567.38 / ±1210.09, 1134.77 -> 1134.78; 9-6 227.78 / ±483.45
-# -> 227.77 / ±483.47. Case 15: Example2 saves H −111.69 with rz −430.01, a moment of the other direction; the
+# test_transverse_loads): 9-5 567.39 / ±1210.08 -> 567.38 / ±1210.09, 1134.77 -> 1134.78.
+# Decision 77: 9-6 has no pier reduction (227.78 / ±483.45, 428.28); the impact on the pier body is 171.05 / ±363.04 and
+# 326.86 for both tracks (tests/calc test_transverse_loads). Case 15: Example2 saves H −111.69 with rz −430.01, a moment of the other direction; the
 # calc's H +111.69 at 3.850 above the seat gives M = +430.01 (rz 430.01), and Define 13 takes both signs anyway.
 # Cases 16 and 17: the M of the girder wind is the calc's (tests/calc test_transverse_horizontal: the shelter is
 # folded into h4, 2124.50 / 4248.93 for Example2's 1001.33 / 2002.64); the pier wind is in load_member.
 DIFFERENT = {"9": [("1", None, 567.38, 1210.09)], "10": [("1", None, 567.38, -1210.09)],
-             "11": [("1", None, 1134.78, None)], "12": [("1", None, 227.77, 483.47)],
-             "13": [("1", None, 227.77, -483.47)], "15": [("1", 111.69, None, 430.01)],
+             "11": [("1", None, 1134.78, None)], "12": [("1", None, 171.05, 363.04)],
+             "13": [("1", None, 171.05, -363.04)], "14": [("1", None, 326.86, None)], "15": [("1", 111.69, None, 430.01)],
              "16": [("1", 305.88, None, 2124.5)], "17": [("1", 611.75, None, 4248.93)]}
 # The nature of each basic case (Example2 9-13 names), for the spring rule of decision 36.
 NATURES = {B.D1: Nature.DEAD, B.D2: Nature.DEAD, B.BUOYANCY_HIGH: Nature.WATER, B.BUOYANCY_NORMAL: Nature.WATER,
