@@ -14,26 +14,33 @@ inclined and the springs stay at the centre of the base they belong to.
 
 Example2 gives the beam, haunch and column the column section (8-2 / 9-2
 print only the column) and makes the footing rigid. A pedestal (H1 > 0) is a
-B3 × W3 stub on the beam top at its own centre, joined by a rigid arm; the
-bearing loads act at its top (decision 29), so the frame carries H × H1.
+B3 × W3 stub on the beam top at its own centre, joined by a rigid arm. The
+bearings of a girder sit on the pedestal top when its bearing line (the lever
+∓f from the column axis) is within B3 about the pedestal centre, and on the
+beam top otherwise (``seats``, decision 81, which replaces decision 29's "on
+the pedestal top"); a load at the pedestal top makes the frame carry H × H1.
 
 0710 cuts a 0.010 m micro member from the bottom of the column (CONTEXT.md
 柱下端の微小部材) and makes the rest rigid; ``column_base_micro_member`` and
 ``elastic_regions`` express that. 0720 adds the girder level of each side,
-h1 + h2 above the bearing seat (Example2 11-1 node 1, 2.750), and the control
-node between them (decision 65), joined to the seat by rigid members and
-numbered first (``girder_levels``). No drawing data is kept here.
+h1 + h2 above the seat of that girder (Example2 11-1 node 1, 2.750), joined
+by rigid members above the pier top and numbered first; the control node is
+the level of the girder with the larger inertia force (``girder_levels``,
+decision 81, which replaces the weighted level of decision 65). No drawing
+data is kept here.
 """
 
 from __future__ import annotations
 
 from collections.abc import Collection
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 
 from ..core.errors import InputError
 from ..core.printed import AREA, FORCE, INERTIA, LENGTH, LINE_LOAD, MOMENT, Printed
 from ..inputs import PierInput
+from ..loadmodel import Side
 from ._exact import d, put
 from .foundation import FoundationResult, SpringSet
 from .materials import Concrete, MaterialsResult
@@ -135,6 +142,7 @@ class Frame:
     materials: MaterialsResult
     support: Support
     pier_height: Printed  # H2 + H3 + H4: the beam top above the footing top (Example2 8-1 7.600)
+    seats: tuple[NodeRole, NodeRole]  # where the bearings of the origin and the end girder sit (decision 81)
 
     def node(self, role: NodeRole) -> Node:
         for node in self.nodes:
@@ -142,15 +150,42 @@ class Frame:
                 return node
         raise KeyError(role)
 
+    def seat_role(self, side: Side) -> NodeRole:
+        """PEDESTAL_TOP or CAP_TOP: the seat of the bearings of the girder of *side* (decision 81)."""
+        return self.seats[side is Side.END]
+
+    def seat_offset(self, side: Side) -> Printed:
+        """x of the seat of *side* from the beam-top node: shifts a lever from the column axis to that seat."""
+        return put(LENGTH, d(self.node(self.seat_role(side)).x) - d(self.node(NodeRole.CAP_TOP).x))
+
+    def girder(self, side: Side) -> Node | None:
+        """The girder level of *side* (0720), None on a frame without the girder levels."""
+        role = NodeRole.GIRDER_ORIGIN if side is Side.ORIGIN else NodeRole.GIRDER_END
+        return next((node for node in self.nodes if role in node.roles), None)
+
+    @property
+    def top(self) -> Node:
+        """The pier top: the pedestal top, or the beam top without a pedestal."""
+        return self.node(NodeRole.PEDESTAL_TOP if self.pedestal_section is not None else NodeRole.CAP_TOP)
+
     @property
     def bearing_seat(self) -> Node:
-        """Where the bearing loads act (decision 29): the pedestal top, or the beam top without a pedestal."""
-        return self.node(NodeRole.PEDESTAL_TOP if self.pedestal_section is not None else NodeRole.CAP_TOP)
+        """The one seat of both girders, where the train path puts the bearing loads (decisions 29, 81); an input
+        error when they sit on two (the pedestal top and the beam top)."""
+        if self.seats[0] is not self.seats[1]:
+            raise InputError("上部構造.起点側.支承位置_f: 起点側と終点側の支承が別の座（はり天端と桁受け天端）に載る橋脚は、"
+                             "列車荷重では計算できません。荷重モデル（--addin）で計算してください（決定81）")
+        return self.node(self.seats[0])
 
     @property
     def bearing_offset(self) -> Printed:
         """x of the bearing seat from the beam-top node: shifts a lever from the column axis to the seat."""
         return put(LENGTH, d(self.bearing_seat.x) - d(self.node(NodeRole.CAP_TOP).x))
+
+    @property
+    def pedestal_members(self) -> tuple[Member, ...]:
+        """The pedestal stub (H1 > 0): the pedestal line load of D1 acts on it (decision 81)."""
+        return tuple(member for member in self.members if member.region is Region.PEDESTAL)
 
     @property
     def column_line(self) -> tuple[Member, ...]:
@@ -187,6 +222,11 @@ def column_line_load(frame: Frame, *, n: Printed = LINE_LOAD(0), h: Printed = LI
     return LineLoad(members=tuple(member.number for member in frame.column_line), n=n, h=h)
 
 
+def pedestal_line_load(frame: Frame, *, n: Printed) -> LineLoad:
+    """The pedestal weight along its stub (decision 81)."""
+    return LineLoad(members=tuple(member.number for member in frame.pedestal_members), n=n, h=LINE_LOAD(0))
+
+
 def _section(width: Printed, depth: Printed, path: str) -> Section:
     area = put(AREA, d(width) * d(depth))
     inertia = put(INERTIA, d(width) * d(depth) ** 3 / 12)
@@ -200,31 +240,44 @@ def _springs(springs: SpringSet, direction: Direction) -> Springs:
     return Springs(kv=springs.Kv, ks=springs.Ks, kr=kr)
 
 
-def control_level(heights: tuple[Printed, Printed], forces: tuple[Printed, Printed]) -> Printed:
-    """The control node above the bearing seat (decision 65): h1 + h2 of the two girders weighted by their
-    seismic inertia forces, Σ Hi × (h1 + h2)i / Σ Hi; the common height when both are the same."""
-    if heights[0] == heights[1]:
-        return heights[0]
-    weight = d(forces[0]) + d(forces[1])
-    if weight <= 0:
-        raise InputError("上部工反力: 桁の地震時慣性力の合計が0以下で、制御節点の高さ（慣性力による重み付け）が求まりません")
-    return put(LENGTH, (d(forces[0]) * d(heights[0]) + d(forces[1]) * d(heights[1])) / weight)
+def _seats(pier: PierInput, self_weight: SelfWeightResult) -> tuple[NodeRole, NodeRole]:
+    """Where the bearings of the origin and the end girder sit (decision 81): the pedestal top when the bearing line,
+    the lever −f / +f from the column axis, is within B3 about the pedestal centre (its xL from the column axis, 0600),
+    the beam top otherwise or without a pedestal."""
+    s = pier.substructure
+    if s.h[1].value <= 0:
+        return NodeRole.CAP_TOP, NodeRole.CAP_TOP
+    half, centre = d(s.b[3]) / 2, d(self_weight.pedestal.x_l)
+    levers = (-d(pier.spans.origin.f), d(pier.spans.end.f))
+    origin, end = (NodeRole.PEDESTAL_TOP if abs(lever - centre) <= half else NodeRole.CAP_TOP for lever in levers)
+    return origin, end
 
 
 def _girder_levels(pier: PierInput, nodes: list[Node], links: list[tuple[int, int, Region]],
-                   forces: tuple[Printed, Printed]) -> tuple[list[Node], list[tuple[int, int, Region]]]:
-    """The girder levels above the bearing seat, numbered first from the top (Example2 11-1, 11-2), and the
-    control node at the level weighted by the girder inertia *forces* (origin, end; decision 65).
+                   forces: tuple[Printed, Printed], seats: tuple[NodeRole, NodeRole]
+                   ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+    """The girder levels, h1 + h2 of each girder above the seat it sits on (*seats*, decision 81), on the pier top and
+    numbered first from the top (Example2 11-1, 11-2). The control node is the level of the girder with the larger
+    inertia force of *forces* (origin, end), the higher level when they are the same (decision 81, which replaces
+    the level weighted by the forces of decision 65).
 
-    Levels at the same height share a node; a level at the seat (h1 + h2 = 0) is the seat itself.
+    Levels at the same height share a node; a level at the pier top is that node. A level below the pier top (a girder
+    on the beam top whose level is below the pedestal top) is an input error.
     """
-    seat = next((node for node in nodes if NodeRole.PEDESTAL_TOP in node.roles), nodes[0])
+    top = next((node for node in nodes if NodeRole.PEDESTAL_TOP in node.roles), nodes[0])
     levels: dict[Printed, set[NodeRole]] = {}
-    heights = tuple(LENGTH.total((span.heights[1], span.heights[2])) for span in (pier.spans.origin, pier.spans.end))
-    for role, height in zip((NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END), heights):
-        levels.setdefault(LENGTH.total((seat.y, height)), set()).add(role)
-    control = control_level(heights, forces)  # type: ignore[arg-type]  # two sides
-    levels.setdefault(LENGTH.total((seat.y, control)), set()).add(NodeRole.CONTROL)
+    found = []
+    for role, span, seat, force, name in zip((NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END),
+                                             (pier.spans.origin, pier.spans.end), seats, forces, ("起点側", "終点側")):
+        base = next(node for node in nodes if seat in node.roles)
+        level = LENGTH.total((base.y, span.heights[1], span.heights[2]))
+        if level.value < top.y.value:
+            raise InputError(f"上部構造.{name}.高さ: 桁の高さ（支承の座から h1 + h2 = {level.value:.3f} m）が桁受け天端"
+                             f"（{top.y.value:.3f} m）より低い桁は計算できません（決定81）")
+        levels.setdefault(level, set()).add(role)
+        found.append((d(force), Decimal(repr(level.value)), level))
+    levels[max(found, key=lambda item: item[:2])[2]].add(NodeRole.CONTROL)
+    seat = top
     above = sorted((y for y in levels if y != seat.y), key=lambda y: y.value, reverse=True)
     shift = len(above)
     added = [Node(number, seat.x, y, frozenset(levels[y])) for number, y in enumerate(above, 1)]
@@ -311,8 +364,9 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
         previous = len(nodes)
         if start:
             links.append((start, previous, region))  # type: ignore[arg-type]  # only the beam top has no region
+    seats = _seats(pier, self_weight)
     if girder_levels is not None:
-        nodes, links = _girder_levels(pier, nodes, links, girder_levels)
+        nodes, links = _girder_levels(pier, nodes, links, girder_levels, seats)
     nodes, links = _numbered_from_the_upper_left(nodes, links)
 
     by_number = {node.number: node for node in nodes}
@@ -329,4 +383,5 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
                       long_term=_springs(foundation.long_term, direction),
                       short_term=_springs(foundation.short_term, direction))
     return Frame(direction=direction, nodes=tuple(nodes), members=tuple(members), column_section=column_section,
-                 pedestal_section=pedestal_section, materials=materials, support=support, pier_height=pier_height)
+                 pedestal_section=pedestal_section, materials=materials, support=support, pier_height=pier_height,
+                 seats=seats)

@@ -12,7 +12,7 @@ import pymupdf
 import pytest
 from gridlayoutpdf import Circle, Text
 
-from frame_report_cases import TRANSVERSE_CASES, transverse_chain
+from frame_report_cases import TRANSVERSE_CASES, dead_tables, transverse_chain
 from jrsnap_pages_support import (
     DATA_CHECK_PAGES, TRANSVERSE_LOAD_CASES, data_check_page, inserted, layout, load_diagram_page,
     page_order, pages as stand_ins,
@@ -71,7 +71,7 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     rows = table_checks(path)
     # The two trains and the two inertia tables, after D1, D2 and the 2-year snow (decision 78; none without snow).
     _, _, _, result = transverse_chain(case)
-    dead = [result.fixed.table, result.additional.table, *([result.snow] if result.snow else [])]
+    dead = [*dead_tables(result), *([result.snow] if result.snow else [])]
     assert Counter(check.kind for check in rows) == {"row": 16 + sum(len(t.rows) for t in dead), "total": 4 + len(dead)}
     assert [check for check in rows if not check.ok] == []
 

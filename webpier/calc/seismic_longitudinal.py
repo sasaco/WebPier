@@ -277,7 +277,7 @@ def calculate_seismic_longitudinal(pier: PierInput, foundation: FoundationResult
     points: dict[SeismicCase, tuple[PointLoad, ...]] = {case: dead.points[basic] for case, basic in DEAD_CASES.items()}
     if snow is not None:
         points[SeismicCase.SNOW] = (bearing_point(frame, snow.n, snow.m),)
-    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: (dead.column,)}
+    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: dead.lines}
     points[SeismicCase.TRAIN] = (bearing_point(frame, train.n, train.m),)
     points[SeismicCase.GIRDER_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(girder.forces.total)),)
     points[SeismicCase.TRAIN_INERTIA] = (bearing_point(frame, FORCE(0), h=toward(train_inertia.forces.total)),)

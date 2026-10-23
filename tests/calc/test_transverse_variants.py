@@ -11,8 +11,9 @@ from webpier.calc.transverse import BasicCase, Define, Item, Track
 from webpier.core.errors import InputError
 
 B = BasicCase
-# Pedestal 1.000 (B3) × 7.000 (W3) × 0.300 across the track at xC = (2·0.5 + 7.0 − 9.0 − 2.25 + 2.25)/2 = −0.500.
-PEDESTAL = dims(B2=0.85, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
+# Pedestal 1.000 (B3) × 7.000 (W3) × 0.300 across the track at xC = (2·0.5 + 7.0 − 9.0 − 2.25 + 2.25)/2 = −0.500; along
+# it at (2·1.025 + 1.0 − 2.7)/2 = 0.175 ± 0.500, both bearing lines −0.325 and +0.675 on it (decision 81).
+PEDESTAL = dims(B2=1.025, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
 
 
 def anchored(action):
@@ -24,15 +25,15 @@ def test_pedestal_row_and_loads_at_the_pedestal_top():
     seat, cap, footing = NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP, NodeRole.FOOTING_CENTROID
     assert result.frame.bearing_seat.number == 1 and result.frame.bearing_offset.value == -0.5
     fixed = result.fixed
-    pedestal = fixed.table.row(Item.PEDESTAL)
-    # 1.000 × 7.000 × 0.300 = 2.100 m3 × 24.5 = 51.45 kN; M = 51.45 × −0.500 = −25.725 -> −25.73.
-    assert (pedestal.n.value, pedestal.arm.value, value(pedestal.m)) == (51.45, -0.5, q(D(51.45) * D(-0.5), 2))
-    assert [row.item for row in fixed.table.rows][-2:] == [Item.PEDESTAL, Item.BEAM]
-    # N = (7600 + 51.45 + 1503.27) − 297.68 × 2.700 = 8350.984; M = 0.00 − 25.73 + 0.00 about the column axis.
-    assert (fixed.n.value, fixed.m.value) == (8350.98, -25.73)
-    # Decision 29: the bearings at the pedestal top, M about it = Σ M − Σ N × (−0.500): 0.00 + 7600 × 0.5 = 3800.
-    # The pier parts at the beam top: 51.45 + 1503.27 − 803.736 = 750.984 -> 750.98, M −25.73.
-    assert anchored(result.basic(B.D1)) == [(seat, 1, 7600.0, 0.0, 3800.0), (cap, 3, 750.98, 0.0, -25.73),
+    # Decision 80: the pedestal is the line load q = 7.000 × 1.000 × 24.5 = 171.50 kN/m (× 0.300 = 51.45 kN), the
+    # beam-top table the beam only: N = 1503.27 − 297.68 × 2.700 = 699.534.
+    assert fixed.pedestal_q.value == 171.5
+    assert [row.item for row in fixed.table.rows] == [Item.BEAM]
+    assert (fixed.n.value, fixed.m.value) == (699.53, 0.0)
+    # The bearings at the pedestal top, each lever from its centre (−0.500): Σ N × (position + 0.500) = 3800.00.
+    assert [row.arm.value for row in fixed.pedestal.rows] == [-3.3, -1.0, 2.0, 4.3, -2.45, 3.45]
+    assert (fixed.pedestal.n.value, fixed.pedestal.m.value) == (7600.0, 3800.0)
+    assert anchored(result.basic(B.D1)) == [(cap, 3, 699.53, 0.0, 0.0), (seat, 1, 7600.0, 0.0, 3800.0),
                                            (footing, 7, 4167.45, 0.0, 0.0)]
     assert anchored(result.basic(B.D2)) == [(seat, 1, 780.0, 0.0, 390.0), (footing, 7, 1830.6, 0.0, 0.0)]
     # Train up: 567.38, M = 1210.09 + 567.38 × 0.500 = 1493.78.
@@ -42,7 +43,7 @@ def test_pedestal_row_and_loads_at_the_pedestal_top():
     assert anchored(result.basic(B.WIND_WITH_TRAIN))[0][:4] == (seat, 1, 0.0, 305.88)
     # The pier wind: the pedestal stub (member 1, decision 35) and the column line (3, 4, 5).
     assert [m.member for m in result.basic(B.WIND_WITH_TRAIN).member_loads] == [1, 3, 4, 5]
-    assert result.basic(B.D1).line_loads[0].members == (3, 4, 5)
+    assert [line.members for line in result.basic(B.D1).line_loads] == [(1,), (3, 4, 5)]
     # 変動作用 (7): the serviceability impact acts at the seat too.
     impact = result.combinations[6].component(Define.IMPACT_SINGLE).alternatives[0]
     assert impact.points[0].node == 1
@@ -51,7 +52,7 @@ def test_pedestal_row_and_loads_at_the_pedestal_top():
 
 
 def test_centred_pedestal_shares_the_beam_top_node():
-    result = transverse(pier(**dims(B2=0.85, B3=1.0, W2=1.0, W3=7.0, H1=0.3)))  # xC = 0
+    result = transverse(pier(**dims(B2=1.025, B3=1.0, W2=1.0, W3=7.0, H1=0.3)))  # xC = 0
     assert result.frame.bearing_offset.value == 0.0
     assert anchored(result.basic(B.TRAIN_UP))[0] == (NodeRole.PEDESTAL_TOP, 1, 567.38, 0.0, 1210.09)
 

@@ -89,14 +89,15 @@ def test_swapped_fixed_and_movable_bearings():
     assert points(result.basic(C.TRAIN_INERTIA)) == {1: (0.0, -160.0, 0.0)}
 
 
-PEDESTAL = dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3)
+# The pedestal centre (2·1.025 + 1.0 − 2.7)/2 = 0.175, half 0.500: the bearing lines −0.325 and +0.675 on its edges.
+PEDESTAL = dims(B2=1.025, B3=1.0, W2=1.0, W3=7.0, H1=0.3)
 
 
 def test_pedestal_inertia_and_bearing_loads_at_the_pedestal_top():
     _, reaction, _, result = chain(pier(**PEDESTAL))
     frame = result.frame
     top, base = frame.node(NodeRole.PEDESTAL_TOP), frame.node(NodeRole.PEDESTAL_BASE)
-    assert (base.x.value, base.y.value, top.x.value, top.y.value) == (-0.35, 10.3, -0.35, 10.6)
+    assert (base.x.value, base.y.value, top.x.value, top.y.value) == (0.175, 10.3, 0.175, 10.6)
     # 桁受け: B3 × W3 × γ × Kh = 1.000 × 7.000 × 24.5 × 1.00 = 171.50 kN/m over its height H1 = 0.300 m,
     # resultant 51.45 kN = the 0600 pedestal weight, at 0.150 m above the beam top.
     pedestal = result.self_weight.pedestal
@@ -105,7 +106,7 @@ def test_pedestal_inertia_and_bearing_loads_at_the_pedestal_top():
     member = next(m for m in frame.members if m.region is Region.PEDESTAL)
     loads = {load.member: (load.start.value, load.end.value) for load in result.basic(C.SELF_INERTIA).member_loads}
     assert loads[member.number] == (-171.5, -171.5)
-    # Decision 29: the bearing loads act at the pedestal top, so the frame carries H × H1.
+    # Decisions 29, 80: the bearing loads act at the pedestal top, so the frame carries H × H1.
     # Moment about the footing base of case 6: 11530.00 × 10.600 = 122218.00 (= 11530 × 10.300 + 11530 × 0.300).
     (girder,) = result.basic(C.GIRDER_INERTIA).points
     assert (girder.anchor, girder.node, girder.h.value, girder.m.value) == (NodeRole.PEDESTAL_TOP, top.number,
@@ -114,14 +115,15 @@ def test_pedestal_inertia_and_bearing_loads_at_the_pedestal_top():
     (train,) = result.basic(C.TRAIN_INERTIA).points
     assert (train.node, train.h.value) == (top.number, -128.0)
     # The train table keeps the levers −f / +f from the column axis (M = −104.00 + 108.00 = 4.00); at the seat,
-    # 0.350 m toward the origin side, M = 4.00 − 480.00 × (−0.350) = 172.00.
+    # 0.175 m toward the end side, M = 4.00 − 480.00 × 0.175 = −80.00.
     assert result.train.m.value == 4.0
     (vertical,) = result.basic(C.TRAIN).points
-    assert (vertical.node, vertical.n.value, vertical.h.value, vertical.m.value) == (top.number, 480.0, 0.0, 172.0)
-    # D1: the girder loads at the seat, the pier parts at the beam top, as in 0610 (on this frame's nodes).
+    assert (vertical.node, vertical.n.value, vertical.h.value, vertical.m.value) == (top.number, 480.0, 0.0, -80.0)
+    # D1: the girder loads at the seat, the levers from the pedestal centre, the beam at the beam top, as in 0610.
     d1 = points(result.basic(C.D1))
     assert d1[top.number][0] == 7600.0  # 5740 + 1860
-    assert d1[top.number][2] == float(q(D(-610.0) - D(7600) * D(-0.35), 2))  # 2050.00
+    # 5740 × (−0.500) + 1860 × 0.500 = −1940.00 (= −610.00 − 7600.00 × 0.175)
+    assert d1[top.number][2] == float(q(D(-610.0) - D(7600) * D("0.175"), 2)) == -1940.0
     assert set(d1) == {top.number, frame.node(NodeRole.CAP_TOP).number, frame.node(NodeRole.FOOTING_CENTROID).number}
 
 

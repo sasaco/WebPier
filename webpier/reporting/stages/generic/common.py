@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from ....calc.bearing_actions import BearingTable
-from ....calc.frame import Frame, PointLoad
+from ....calc.frame import Frame, NodeRole, PointLoad
 from ....calc.longitudinal.combinations import EXTRACTION_NAMES
 from ....loadmodel import Paragraph, Section, bearing_label
 from ...styles import BODY_COLUMNS
-from ..frame_report import BODY_LEFT, Manuscript, Span, TableSpec, seat_moment, value
+from ..frame_report import BODY_LEFT, Manuscript, Span, TableSpec, pedestal_lever_note, seat_heading, value
 
 NO_COMBINATION = "該当する組合せなし（断面力0）"
 @dataclass(frozen=True)
@@ -56,16 +56,21 @@ def sections(m: Manuscript, key: str, heading: str, items: Sequence[Section], le
 
 
 def bearing_table(m: Manuscript, key: str, frame: Frame, table: BearingTable, arm: str) -> None:
-    """The 支承作用 of a case on the frame: N × lever + H × y by bearing and the sums at the bearing seat."""
-    rows: list[tuple[Any, ...]] = [("支承", "鉛直力\n(kN)", f"{arm}\n(m)", "N×アーム\n(kN・m)", "水平力\n(kN)",
-                                    "作用高さ\n(m)", "H×y\n(kN・m)", "モーメント\n(kN・m)")]
-    for row in table.rows:
-        rows.append((Span(bearing_label(row.bearing), align="left"), value(row.n), value(row.arm), value(row.nm),
-                     value(row.h), value(row.y), value(row.hm), value(row.m)))
-    rows.append(("合計", value(table.n), "", "", value(table.h), "", "", value(table.m)))
-    m.table(key, TableSpec((3, 3, 3, 4, 3, 3, 3, 4), tuple(rows), (2,) + (1,) * (len(rows) - 1),
-                           numeric=frozenset(range(1, 8)), left=BODY_LEFT, open=True))
-    seat_moment(m, key + ".seat", frame, table.n, table.m, table.point)
+    """The 支承作用 of a case on the frame by seat (decision 81): N × lever + H × y by bearing and the sums at the seat,
+    on the pedestal the lever from its centre."""
+    for seat in table.seats:
+        where = key if seat.anchor is NodeRole.CAP_TOP else f"{key}.pedestal"
+        seat_heading(m, f"{where}.seat", frame, seat.anchor)
+        rows: list[tuple[Any, ...]] = [("支承", "鉛直力\n(kN)", f"{arm}\n(m)", "N×アーム\n(kN・m)", "水平力\n(kN)",
+                                        "作用高さ\n(m)", "H×y\n(kN・m)", "モーメント\n(kN・m)")]
+        for row in seat.rows:
+            rows.append((Span(bearing_label(row.bearing), align="left"), value(row.n), value(row.arm), value(row.nm),
+                         value(row.h), value(row.y), value(row.hm), value(row.m)))
+        rows.append(("合計", value(seat.n), "", "", value(seat.h), "", "", value(seat.m)))
+        m.table(where, TableSpec((3, 3, 3, 4, 3, 3, 3, 4), tuple(rows), (2,) + (1,) * (len(rows) - 1),
+                                 numeric=frozenset(range(1, 8)), left=BODY_LEFT, open=True))
+        if seat.anchor is NodeRole.PEDESTAL_TOP:
+            pedestal_lever_note(m, f"{where}.note", frame, arm)
 
 
 def extraction_table(m: Manuscript, extractions: Sequence[Any], empty: frozenset[Any]) -> None:

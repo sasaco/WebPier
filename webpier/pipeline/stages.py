@@ -685,7 +685,7 @@ def _generic_seismic_stage(stage_id: str, stem: str, base: NduProfile, file_name
     ndu = _generic_ndu(stage_id, base)
     return StageSpec(stage_id, stem, ("0500", "0600"),
                      lambda pier, results: calculate_generic_seismic(pier, results["0500"], results["0600"],
-                                                                     source.result(pier), direction, stage_id),
+                                                                     source.result(pier), direction),
                      lambda results, pier, path, pages: render_generic_seismic(results[stage_id], results["0600"],
                                                                                pier, path, pages),
                      (Export("jrsnap", file_name, lambda results, pier: write_ndu(ndu(results, pier)), metadata=_NDU),),

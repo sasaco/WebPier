@@ -74,7 +74,7 @@ def pier_wind(pier: PierInput, frame: Frame, pressure: Printed) -> PierWind:
     s = pier.substructure
     footing_top = d(frame.node(NodeRole.FOOTING_TOP).y)
     ground = put(LENGTH, footing_top + min(d(s.df1), d(s.df2)))
-    exposure = put(LENGTH, max(d(frame.bearing_seat.y) - d(ground), Decimal(0)))  # the pedestal top or beam top
+    exposure = put(LENGTH, max(d(frame.top.y) - d(ground), Decimal(0)))  # the pedestal top or beam top
     widths = _widths(pier)
     nodes = {node.number: node for node in frame.nodes}
     p = d(pressure)

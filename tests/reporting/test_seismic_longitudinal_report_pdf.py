@@ -13,7 +13,7 @@ import pymupdf
 import pytest
 from gridlayoutpdf import Circle, Text
 
-from frame_report_cases import CASES, chain
+from frame_report_cases import CASES, chain, dead_tables
 from jrsnap_pages_support import (
     DATA_CHECK_PAGES, LONGITUDINAL_LOAD_CASES, data_check_page, inserted, layout, load_diagram_page,
     page_order, pages as stand_ins,
@@ -77,7 +77,7 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
     # D1, D2, the 2-year snow (decision 78; none without snow, decision 69) and the train, each with its total.
-    tables = [result.fixed.table, result.additional.table, *([result.snow] if result.snow else []), result.train]
+    tables = [*dead_tables(result), *([result.snow] if result.snow else []), result.train]
     assert Counter(check.kind for check in rows) == {"row": sum(len(t.rows) for t in tables), "total": len(tables),
                                                      "horizontal": 2}
     assert [check for check in rows if not check.ok] == []

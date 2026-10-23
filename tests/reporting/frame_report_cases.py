@@ -46,7 +46,7 @@ def _no_snow() -> dict[str, object]:
 
 CASES: dict[str, dict[str, object]] = {
     "current": {},
-    "pedestal": _dims(B2=0.5, B3=1.0, W2=1.0, W3=7.0, H1=0.3),
+    "pedestal": _dims(B2=1.025, B3=1.0, W2=1.0, W3=7.0, H1=0.3),  # both bearing lines on its edges (0.175 ± 0.500)
     "asymmetric": _dims(B7=2.5, B9=1.8, H5=0.5, H6=2.2, B8=3.0, W8=5.0),
     "merged": _dims(H2=0.0, H3=0.0),
     "no_snow": _no_snow(),
@@ -127,3 +127,12 @@ def transverse_chain(case: str):
     reaction = calculate_reaction(pier)
     transverse = calculate_transverse(pier, foundation, reaction)
     return pier, reaction, transverse, calculate_seismic_transverse(pier, foundation, reaction)
+
+
+def dead_tables(result) -> list:
+    """The D1 and D2 tables 8.2 / 9.2 (and 10.2 / 11.2) print (decision 81): D1 at the beam top and, with girders on
+    the pedestal, at its top; D2 the seats with rows and a load (all with rows when none has a load)."""
+    fixed, additional = result.fixed, result.additional
+    d2 = [table for table in (additional.table, additional.pedestal) if table is not None and table.rows]
+    loaded = [table for table in d2 if any(row.n.value for row in table.rows)] or d2
+    return [fixed.table, *([fixed.pedestal] if fixed.pedestal is not None else []), *loaded]

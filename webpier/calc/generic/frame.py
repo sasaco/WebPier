@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from ...core.printed import FORCE, PRESSURE, Printed
+from ...core.printed import PRESSURE, Printed
 from ...inputs import PierInput
 from ...loadmodel import (
     D1, D2, WP_HIGH, WP_LOW, WP_NORMAL, Combination as ModelCombination, ExtractionGroup, LoadModelResult, Section,
@@ -25,9 +25,8 @@ from ...loadmodel import (
 )
 from ..bearing_actions import BearingTable, bearing_table
 from ..foundation import FoundationResult
-from ..frame import Direction, Frame, LineLoad, PointLoad, build_frame
+from ..frame import Direction, Frame, LineLoad, NodeRole, PointLoad, build_frame, point_load
 from ..longitudinal import actions as longitudinal
-from ..longitudinal.actions import bearing_point
 from ..longitudinal.combinations import Extraction
 from ..materials import calculate_materials
 from ..reaction import DeadReactionResult
@@ -124,7 +123,7 @@ def calculate_generic_frame(pier: PierInput, foundation: FoundationResult, react
     kinds = longitudinal.BasicCase if along else transverse.BasicCase
     for case, name, kind in _DEAD:
         add(id=case, name=name, spring=SpringTerm.LONG, points=dead.points[kinds[kind]],
-            line_loads=(dead.column,) if case == D1 else ())
+            line_loads=dead.lines if case == D1 else ())
     winds = () if along else tuple(pier_wind(pier, frame, PRESSURE(float(p))) for p in model.pier_wind_pressures)
     for number, wind in enumerate(winds, 1):
         add(id=wind_id(number), name=f"躯体の風（{wind.pressure.value:.1f} kN/m2）", spring=SpringTerm.SHORT,
@@ -133,14 +132,14 @@ def calculate_generic_frame(pier: PierInput, foundation: FoundationResult, react
     for case in model.cases:
         if case.id in used:
             table = bearing_table(pier, frame, case)
-            add(id=case.id, name=case.name, spring=case.spring, points=(table.point,), bearings=table)
+            add(id=case.id, name=case.name, spring=case.spring, points=table.points, bearings=table)
     defines = _defines(combinations)
     found = [FrameCombination(number, c.name, tuple(FrameTerm(defines[tuple((x.case, x.sign) for x in t.candidates)],
                                                               printed_factor(t.factor)) for t in c.terms), c.groups)
              for number, c in enumerate(combinations, 1)]
     empty = frozenset(ExtractionGroup) - {group for c in combinations for group in c.groups}
     if empty:
-        add(id=ZERO, name=ZERO_NAME, spring=SpringTerm.LONG, points=(bearing_point(frame, FORCE(0)),), zero=True)
+        add(id=ZERO, name=ZERO_NAME, spring=SpringTerm.LONG, points=(point_load(frame, NodeRole.CAP_TOP),), zero=True)
         defines[((ZERO, 1),)] = len(defines) + 1
         found.append(FrameCombination(len(found) + 1, NO_COMBINATION,
                                       (FrameTerm(len(defines), printed_factor(Decimal("1.0"))),), empty, zero=True))

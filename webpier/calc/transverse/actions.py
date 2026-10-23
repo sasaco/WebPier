@@ -3,10 +3,13 @@
 Every action is computed from the printed 0600 and input values (decision 2).
 Each bearing of B (origin girder) and C (end girder) is a row of its own with
 its entered position across the track as the lever from the column axis; the
-loads act at the bearing seat, the beam top or, with a pedestal, the pedestal
-top (decision 29), where their moment is taken about the seat. The 0600 pier
-parts act at the beam top with their own centroids xC; footing, soil and water
-act at the footing centroid with the lever from the footing centre. Tables
+loads act at the seat of their girder (decision 81): the beam top, or the
+pedestal top when the girder's bearing line is on the pedestal. D1 and D2 are
+tabled by seat, the lever on the pedestal taken from its centre; the train
+path's other cases need both girders on one seat, where their moment is taken
+about it. The beam acts at the beam top with its own centroid xC, the pedestal
+and the column as line loads; footing, soil and water act at the footing
+centroid with the lever from the footing centre. Tables
 print N and M to 2 decimals and the lever to 3; every moment is N × lever of
 its own row and every total is the sum of the printed rows (ADR-0003).
 
@@ -33,9 +36,10 @@ from typing import Any
 
 from ...core.printed import FORCE, LENGTH, LINE_LOAD, MOMENT, Printed
 from ...inputs import PierInput
+from ...loadmodel import Side
 from .._exact import d, put, total
-from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, point_load
-from ..longitudinal.actions import SpringTerm, bearing_point
+from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, pedestal_line_load, point_load
+from ..longitudinal.actions import SpringTerm, bearing_point, seat_lever, seat_points
 from ..reaction import ReactionResult
 from ..reaction.dead import BearingLoads
 from ..reaction.self_weight import Body, SelfWeightResult
@@ -47,7 +51,6 @@ from .wind import MemberLoad, PierWind, pier_wind
 class Item(Enum):
     ORIGIN = "origin"  # a bearing of RB, the origin girder on this pier
     END = "end"  # a bearing of RC, the end girder on this pier
-    PEDESTAL = "pedestal"  # 桁受け (0600)
     BEAM = "beam"  # はり: prism and haunch (0600)
     FOOTING = "footing"
     OVERBURDEN = "overburden"
@@ -86,21 +89,25 @@ class TopTable:
 
 @dataclass(frozen=True)
 class FixedDead:
-    """D1 (9-3): bearings, pedestal and beam at the beam top, the column as a line load, the footing at its centroid."""
+    """D1 (9-3): the bearings on the beam top and the beam at the beam top, the bearings on the pedestal at its top, the
+    pedestal and the column as line loads, the footing at its centroid (decision 81)."""
 
-    table: TopTable  # bearings of RB and RC, pedestal (H1 > 0), beam
+    table: TopTable  # at the beam top: the bearings of the girders on it and the beam
+    pedestal: TopTable | None  # at the pedestal top: the bearings of the girders on it, the lever from its centre
+    pedestal_q: Printed | None  # q = W3 × B3 × γ along the pedestal (H1 > 0)
     column_q: Printed  # q = W6 × B6 × γ, over the column line from the beam top to the footing top
     overlap: Printed  # H2 + H3: where q runs through the beam already weighed in the table
-    n: Printed  # N = Σ N − q × (H2 + H3)
-    m: Printed  # Σ M
+    n: Printed  # N at the beam top = Σ N − q × (H2 + H3)
+    m: Printed  # Σ M of the beam-top table
     footing: Row  # W3 at the footing centroid
 
 
 @dataclass(frozen=True)
 class AdditionalDead:
-    """D2 (9-3): bearing loads at the beam top, the overburden soil at the footing centroid."""
+    """D2 (9-3): the bearing loads at their seats (decision 81), the overburden soil at the footing centroid."""
 
-    table: TopTable
+    table: TopTable  # at the beam top
+    pedestal: TopTable | None  # at the pedestal top, the lever from its centre; None if no girder sits there
     soil: Row
 
 
@@ -374,50 +381,64 @@ class DeadActions:
     buoyancy: tuple[Row, Row, Row]  # high, normal, low water
     points: dict[BasicCase, tuple[PointLoad, ...]]  # D1, D2, BUOYANCY_HIGH, BUOYANCY_NORMAL, BUOYANCY_LOW
     column: LineLoad  # the D1 column line load
+    pedestal: LineLoad | None = None  # the D1 pedestal line load (H1 > 0, decision 81)
+
+    @property
+    def lines(self) -> tuple[LineLoad, ...]:
+        """The D1 line loads, the pedestal first (from the top)."""
+        return (*((self.pedestal,) if self.pedestal is not None else ()), self.column)
 
 
-def _loads(dead: Any, field: str) -> list[Row]:
-    return [_row(item, b.slot, getattr(b.bearing, field), b.bearing.position)
+_SIDES = {Item.ORIGIN: Side.ORIGIN, Item.END: Side.END}
+
+
+def _loads(dead: Any, field: str, frame: Frame | None = None, anchor: NodeRole | None = None) -> list[Row]:
+    """*field* of each bearing, the lever from the column axis; with *frame*, the bearings on the seat *anchor* only,
+    the lever from the axis of that seat (decision 81)."""
+    return [_row(item, b.slot, getattr(b.bearing, field),
+                 b.bearing.position if frame is None else seat_lever(frame, _SIDES[item], b.bearing.position))
             for item, bearings in ((Item.ORIGIN, dead.origin.bearings), (Item.END, dead.end.bearings))
+            if frame is None or frame.seat_role(_SIDES[item]) is anchor
             for b in bearings]
 
 
 def dead_actions(pier: PierInput, frame: Frame, dead: Any, weights: SelfWeightResult) -> DeadActions:
     """D1, D2 and the buoyancy from the dead loads of each bearing (*dead*: the DeadResult of 0600, or the
-    DeadLoadsResult of a load model's 0600) and the pier parts."""
+    DeadLoadsResult of a load model's 0600) and the pier parts, tabled by the seat of each girder (decision 81)."""
     s = pier.substructure
-    parts = ([_body(Item.PEDESTAL, weights.pedestal)] if s.h[1].value > 0 else []) + [_body(Item.BEAM, weights.beam)]
-    bearings_d1 = _loads(dead, "d1")
-    table = _table(bearings_d1 + parts)
+    cap, top = NodeRole.CAP_TOP, NodeRole.PEDESTAL_TOP
+    table = _table(_loads(dead, "d1", frame, cap) + [_body(Item.BEAM, weights.beam)])
+    pedestal = _table(rows) if (rows := _loads(dead, "d1", frame, top)) else None
     q = put(LINE_LOAD, d(s.w[6]) * d(s.b[6]) * d(s.unit_weight_body))
+    pedestal_q = put(LINE_LOAD, d(s.w[3]) * d(s.b[3]) * d(s.unit_weight_body)) if s.h[1].value > 0 else None
     overlap = LENGTH.total((s.h[2], s.h[3]))
-    fixed = FixedDead(table=table, column_q=q, overlap=overlap, n=put(FORCE, d(table.n) - d(q) * d(overlap)),
-                      m=table.m, footing=_body(Item.FOOTING, weights.footing))
-    additional = AdditionalDead(table=_table(_loads(dead, "d2")), soil=_body(Item.OVERBURDEN, weights.overburden))
+    fixed = FixedDead(table=table, pedestal=pedestal, pedestal_q=pedestal_q, column_q=q, overlap=overlap,
+                      n=put(FORCE, d(table.n) - d(q) * d(overlap)), m=table.m,
+                      footing=_body(Item.FOOTING, weights.footing))
+    additional = AdditionalDead(table=_table(_loads(dead, "d2", frame, cap)),
+                                pedestal=_table(rows) if (rows := _loads(dead, "d2", frame, top)) else None,
+                                soil=_body(Item.OVERBURDEN, weights.overburden))
     buoyancy = tuple(_body(Item.WATER, water.body)
                      for water in (weights.buoyancy_high, weights.buoyancy_normal, weights.buoyancy_low))
-
-    def top(n: Printed, m: Printed) -> PointLoad:
-        return bearing_point(frame, n, m)
 
     def footing(row: Row) -> PointLoad:
         return point_load(frame, NodeRole.FOOTING_CENTROID, n=row.n, m=row.m)
 
-    if frame.bearing_seat.number == frame.node(NodeRole.CAP_TOP).number:
-        d1: tuple[PointLoad, ...] = (point_load(frame, NodeRole.CAP_TOP, n=fixed.n, m=fixed.m),)
-    else:  # the bearings on the pedestal; the pier parts, less the column-line overlap, at the beam top
-        d1 = (top(put(FORCE, total(r.n for r in bearings_d1)), put(MOMENT, total(r.m for r in bearings_d1))),
-              point_load(frame, NodeRole.CAP_TOP, n=put(FORCE, total(r.n for r in parts) - d(q) * d(overlap)),
-                         m=put(MOMENT, total(r.m for r in parts))))
+    d1 = (point_load(frame, cap, n=fixed.n, m=fixed.m),
+          *((point_load(frame, top, n=pedestal.n, m=pedestal.m),) if pedestal is not None else ()))
+    d2 = seat_points(frame, [(cap, additional.table.n, additional.table.m),
+                             *(((top, additional.pedestal.n, additional.pedestal.m),)
+                               if additional.pedestal is not None else ())])
     c = BasicCase
     points: dict[BasicCase, tuple[PointLoad, ...]] = {
         c.D1: (*d1, footing(fixed.footing)),
-        c.D2: (top(additional.table.n, additional.table.m), footing(additional.soil)),
+        c.D2: (*d2, footing(additional.soil)),
         c.BUOYANCY_HIGH: (footing(buoyancy[0]),),
         c.BUOYANCY_NORMAL: (footing(buoyancy[1]),),
         c.BUOYANCY_LOW: (footing(buoyancy[2]),),
     }
-    return DeadActions(fixed, additional, buoyancy, points, column_line_load(frame, n=q))  # type: ignore[arg-type]
+    return DeadActions(fixed, additional, buoyancy, points, column_line_load(frame, n=q),  # type: ignore[arg-type]
+                       pedestal_line_load(frame, n=pedestal_q) if pedestal_q is not None else None)
 
 
 def snow_table(dead: Any, field: str) -> TopTable:
@@ -477,7 +498,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
                c.WIND_WITHOUT_TRAIN: without_train.pier.member_loads}
     basic_cases = tuple(
         BasicAction(number=number, case=case, spring=SpringTerm.LONG if case in LONG_TERM else SpringTerm.SHORT,
-                    points=points[case], line_loads=(app.column,) if case is c.D1 else (),
+                    points=points[case], line_loads=app.lines if case is c.D1 else (),
                     member_loads=members.get(case, ()))
         for number, case in enumerate((case for case in BasicCase if case in points), 1))
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]

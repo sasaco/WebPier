@@ -77,7 +77,7 @@ def test_10_8_footing_inertia_less_the_displaced_soil():
 
 
 # The bearings on an offset pedestal (H1 > 0): D1 splits at the seat and the bearing moments move to it.
-PEDESTAL = {"下部構造/寸法/側面/B2": 0.5, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
+PEDESTAL = {"下部構造/寸法/側面/B2": 1.025, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
             "下部構造/寸法/正面/W3": 7.0, "下部構造/寸法/高さ/H1": 0.3}
 
 

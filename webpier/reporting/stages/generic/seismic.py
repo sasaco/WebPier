@@ -2,36 +2,44 @@
 
 n.1 the model is the train path's (reporting.stages.seismic_longitudinal / seismic_transverse), JRSNAP's データ確認図
 before n.2 and its load diagram after n.3 as there (decisions 50, 51). n.2 the actions: those of D1, D2 and the
-buoyancy at the normal water level the combinations use, written as 8.2 / 9.2 write them (decision 78), the load
-model's sections, the 支承作用 of each of its cases on this frame (a horizontal force toward the
-earthquake signed toward it), across the track the weights of the control node (decision 65), and the self-weight
-inertia EQ2; n.4 the basic cases with their direction and increment and the combinations.
+buoyancy at the normal water level the combinations use, written as 8.2 / 9.2 write them (decision 78), each case of
+the load model under its name (without the direction of the stage), and the self-weight inertia EQ2; n.4 the basic
+cases with their direction and increment and the combinations.
+
+A case of the load model prints its vertical forces by seat as D2 does, and its horizontal forces by girder (decision
+80): along the track as 10-8 summarises the bearing horizontal forces (起点桁・終点桁・合計, toward the earthquake
+positive), across the track at the girder levels (水平力, the height above the level and the moment, "-" where they are
+none). The load model's sections, its 支承作用 tables and the weights of the control node
+are not printed (decision 81).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from gridlayoutpdf import Document, Row
 
-from ....calc.frame import Direction
+from ....calc.bearing_actions import BearingTable
+from ....calc.frame import Direction, NodeRole
 from ....calc.generic.seismic import GenericSeismicResult
+from ....calc.seismic_longitudinal import toward
 from ....inputs import PierInput
-from ....loadmodel import D1, D2, WP_NORMAL
+from ....loadmodel import D1, D2, WP_NORMAL, Side, bearing_label
 from .. import longitudinal as frame_longitudinal, transverse as frame_transverse
 from .. import seismic_longitudinal as train_longitudinal, seismic_transverse as train_transverse
 from ..frame_report import (
-    Manuscript, Span, TableSpec, Unit, document, self_weight_inertia, semantic_records as records, sub, value,
-    with_unit,
+    BODY_LEFT, Manuscript, Span, TableSpec, Unit, document, pedestal_lever_note, seat_heading, self_weight_inertia,
+    semantic_records as records, sub, top_table, value, with_unit,
 )
 from ..insertion import diagrams_heading, documents, render_with_pages
 from ..seismic_longitudinal import ARROWS, INCREMENTS, DeadItems, dead_items
-from .common import bearing_table, sections
 
-_STAGES = {Direction.LONGITUDINAL: (train_longitudinal, "10", frame_longitudinal, "アーム", "§6"),
-           Direction.TRANSVERSE: (train_transverse, "11", frame_transverse, "支承位置", "§6")}
+_STAGES = {Direction.LONGITUDINAL: (train_longitudinal, "10", frame_longitudinal, "（線路方向）", "§6"),
+           Direction.TRANSVERSE: (train_transverse, "11", frame_transverse, "（直角方向）", "§6")}
+_GIRDERS = {Side.ORIGIN: ("起点桁 (kN)", "起点側　桁"), Side.END: ("終点桁 (kN)", "終点側　桁")}
 
 
 def _dead(result: GenericSeismicResult) -> DeadItems:
@@ -39,38 +47,71 @@ def _dead(result: GenericSeismicResult) -> DeadItems:
     made = {case.id for case in result.basic_cases}
     dead = result.dead
     return DeadItems(
-        frame=result.frame,
-        fixed=dead.fixed if D1 in made else None, d1_points=result.basic(D1).points if D1 in made else (),
+        frame=result.frame, fixed=dead.fixed if D1 in made else None,
         additional=dead.additional if D2 in made else None,
-        d2_point=result.basic(D2).points[0] if D2 in made else None,
         buoyancy=dead.buoyancy[1] if WP_NORMAL in made else None)
 _ARROWS = {**ARROWS, **train_transverse.ARROWS}
 
 
+def _vertical(m: Manuscript, key: str, result: GenericSeismicResult, table: BearingTable) -> None:
+    """The vertical forces of a case by seat, N × lever (as D2 prints its girder loads)."""
+    for seat in table.seats:
+        if not any(row.n.value for row in seat.rows):
+            continue
+        where = key if seat.anchor is NodeRole.CAP_TOP else f"{key}.pedestal"
+        seat_heading(m, f"{where}.seat", result.frame, seat.anchor)
+        rows = [(bearing_label(row.bearing), row.n, row.arm, row.nm) for row in seat.rows]
+        m.table(where, top_table(rows, (seat.n, seat.nm)))
+        if seat.anchor is NodeRole.PEDESTAL_TOP:
+            pedestal_lever_note(m, f"{where}.note", result.frame, "アーム")
+
+
+def _along(m: Manuscript, key: str, case: Any, table: BearingTable, earthquake: Decimal) -> None:
+    """The horizontal forces of a case along the track by girder and their sum, toward the earthquake positive as 10-8
+    1) 支承に働く水平荷重のまとめ prints them."""
+    forces = {girder.side: toward(girder.h, earthquake) for girder in table.girders}
+    rows: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), *(_GIRDERS[side][0] for side in Side), "合計 (kN)")]
+    rows.append((Span("地震時", vertical=True), Span(f"1.0 {case.id}", align="left"),
+                 *(Span(value(forces[side]) if side in forces else "－", align="right") for side in Side),
+                 Span(value(toward(table.h, earthquake)), align="right")))
+    m.table(key, TableSpec((2, 12, 4, 4, 4), tuple(rows), (2, 3)))  # 地震時 standing in one row
+    for girder in table.girders:
+        if girder.m.value:  # H above the seat
+            m.equation(f"{key}.{girder.side.value}", _GIRDERS[girder.side][1], "M", with_unit(girder.m))
+
+
+def _across(m: Manuscript, key: str, table: BearingTable) -> None:
+    """The horizontal forces of a case across the track at the girder levels: H, the height above the level and
+    H × that height, "-" where they are none (decision 81)."""
+    rows: list[tuple[Any, ...]] = [("", "水平力 (kN)", "高さ (m)", "モーメント (kN・m)")]
+    for girder in table.girders:
+        height = value(girder.height) if girder.height is not None and girder.height.value else "-"
+        rows.append((Span(_GIRDERS[girder.side][1], align="left"), value(girder.h), height,
+                     value(girder.m) if girder.m.value else "-"))
+    rows.append(("合計", value(table.h), "", ""))
+    m.table(key, TableSpec((7, 6, 6, 7), tuple(rows), (1,) * len(rows), numeric=frozenset({1, 2, 3}),
+                           left=BODY_LEFT, open=True))
+
+
+def _title(name: str, own: str) -> str:
+    """A case's name without the direction of the stage: 上部工の慣性力（線路方向） in 0710 is 上部工の慣性力."""
+    return name.removesuffix(own) or name
+
+
 def _actions(m: Manuscript, result: GenericSeismicResult, reaction: Any, pier: PierInput, chapter: str,
-             frame_stage: Any, arm: str, self_weight: str) -> None:
+             frame_stage: Any, own: str, self_weight: str) -> None:
     m.heading(train_longitudinal.ACTIONS, f"{chapter}.2 作用の計算", 1)
     number = dead_items(m, _dead(result), reaction, pier, frame_stage)
-    if result.sections:
-        sections(m, "loadmodel", f"({number}) 荷重モデルの作用の根拠", result.sections)
-        number += 1
-    cases = [case for case in result.basic_cases if case.bearings is not None]
-    if cases:
-        m.heading("bearings.heading", f"({number}) 荷重モデルの支承作用", 2)
-        m.paragraph("bearings.note", "地震の向きに作用する水平力は，その向きを正負に含めて示す．"
-                                     "M = N × アーム ＋ H × y（y は支承からの作用高さ）．")
-        for index, case in enumerate(cases, 1):
-            m.heading(f"bearings.{case.id}.heading", f"{index}) {case.name}（{case.id}，{INCREMENTS[case.increment]}）",
-                      3)
-            bearing_table(m, f"bearings.{case.id}", result.frame, case.bearings, arm)  # type: ignore[arg-type]
-        number += 1
-    if result.girder_weights is not None:
-        origin, end = result.girder_weights
-        m.heading("control.heading", f"({number}) 制御節点の重み", 2)
-        m.paragraph("control.note", "制御節点の高さは，荷重モデルの増分の地震時ケースの直角方向の支承作用を起点側・終点側ごとに"
-                                    "合計した値で，両側の桁の高さを重み付けて求める（決定65）．")
-        m.equation("control.origin", "起点側", sub("H", "B"), with_unit(origin))
-        m.equation("control.end", "終点側", sub("H", "C"), with_unit(end))
+    along = result.frame.direction is Direction.LONGITUDINAL
+    for case in result.basic_cases:
+        if case.bearings is None:
+            continue
+        key = f"case.{case.id}"
+        m.heading(f"{key}.heading", f"({number}) {_title(case.name, own)}", 2)
+        _vertical(m, f"{key}.vertical", result, case.bearings)
+        if case.bearings.girders:
+            (_along(m, f"{key}.horizontal", case, case.bearings, result.earthquake) if along
+             else _across(m, f"{key}.horizontal", case.bearings))
         number += 1
     self_weight_inertia(m, result.self_weight, f"({number}) 自重による地震時慣性力", self_weight)
 
@@ -98,10 +139,10 @@ def _combinations(m: Manuscript, result: GenericSeismicResult, chapter: str) -> 
 
 def content(result: GenericSeismicResult, reaction: Any, pier: PierInput) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
-    train, chapter, frame_stage, arm, self_weight = _STAGES[result.frame.direction]
+    train, chapter, frame_stage, own, self_weight = _STAGES[result.frame.direction]
     m = Manuscript(train.PREFIX)
     train._model(m, result, pier)  # type: ignore[arg-type]  # the frame only
-    _actions(m, result, reaction, pier, chapter, frame_stage, arm, self_weight)
+    _actions(m, result, reaction, pier, chapter, frame_stage, own, self_weight)
     diagrams_heading(m, f"{chapter}.3 荷重図")
     _combinations(m, result, chapter)
     return tuple(m.units)

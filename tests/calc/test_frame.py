@@ -7,11 +7,12 @@ import pytest
 
 from reaction_support import FIXTURES, D, pier, q
 from webpier.calc.foundation import calculate_foundation
-from webpier.calc.frame import BODY_REGIONS, Direction, NodeRole, Region, build_frame, control_level
+from webpier.calc.frame import BODY_REGIONS, Direction, NodeRole, Region, build_frame
 from webpier.calc.materials import calculate_materials
 from webpier.calc.reaction import calculate_reaction
 from webpier.core.printed import FORCE, LENGTH
 from webpier.core.errors import InputError
+from webpier.loadmodel import Side
 
 L08 = json.loads((FIXTURES / "example2" / "longitudinal.json").read_text(encoding="utf-8"))
 T09 = json.loads((FIXTURES / "example2" / "transverse.json").read_text(encoding="utf-8"))
@@ -185,9 +186,13 @@ def test_pedestal_with_offset():
     assert (transverse.width.value, transverse.depth.value) == (1.0, 7.0)
     assert Decimal(repr(transverse.inertia.value)) == q(D(1.0) * D(7.0) ** 3 / 12, 5)  # 28.58333
     assert [m.number for m in result.column_line] == [3, 4, 5]  # the pedestal is not on the column line
-    # Decision 29: the bearings sit on the pedestal top.
-    assert result.bearing_seat is top
-    assert result.bearing_offset.value == -0.35  # pedestal top from the beam-top node
+    # Decision 80: the origin bearing line −0.325 is within −0.350 ± 1.000/2 (on the pedestal), the end one +0.675
+    # is not (on the beam top).
+    assert result.seats == (NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP) and result.top is top
+    assert result.seat_offset(Side.ORIGIN).value == -0.35 and result.seat_offset(Side.END).value == 0.0
+    assert [m.number for m in result.pedestal_members] == [1]
+    with pytest.raises(InputError, match="別の座"):  # the train path needs both girders on one seat
+        result.bearing_seat
 
 
 def test_centred_pedestal_shares_the_cap_top_node():
@@ -197,12 +202,31 @@ def test_centred_pedestal_shares_the_cap_top_node():
     assert result.members[0].region is Region.PEDESTAL  # the pedestal top is node 1, the beam top 2
     assert Region.PEDESTAL_ARM not in {m.region for m in result.members}
     assert (result.members[0].start, result.members[0].end) == (2, 1)
-    assert result.bearing_seat.number == 1 and result.bearing_offset.value == 0.0
+    # The origin bearing line −0.325 is on it (0 ± 0.500), the end one +0.675 is not: no offset on either seat.
+    assert result.seats == (NodeRole.PEDESTAL_TOP, NodeRole.CAP_TOP)
+    assert result.seat_offset(Side.ORIGIN).value == result.seat_offset(Side.END).value == 0.0
+
+
+def test_both_girders_on_the_pedestal_share_its_top():
+    # Centre (2 × 0.3 + 2.4 − 2.7)/2 = 0.150, half 1.200: −0.325 and +0.675 are both on it (decision 81).
+    result = frame(dims(B2=0.3, B3=2.4, W2=0.5, W3=8.0, H1=0.3))
+    top = result.node(NodeRole.PEDESTAL_TOP)
+    assert result.seats == (NodeRole.PEDESTAL_TOP, NodeRole.PEDESTAL_TOP)
+    assert result.bearing_seat is top and result.bearing_offset.value == 0.15
+
+
+@pytest.mark.parametrize("b2,end", [(1.175, NodeRole.PEDESTAL_TOP), (1.174, NodeRole.CAP_TOP)])
+def test_a_bearing_line_on_the_pedestal_edge_is_on_it(b2, end):
+    # Centre b2 + 0.425 − 1.350, half 0.425: its end edge 0.675 (b2 = 1.175) is the end bearing line, 0.674 not.
+    result = frame(dims(B2=b2, B3=0.85, W2=1.0, W3=7.0, H1=0.3))
+    assert result.seats == (NodeRole.CAP_TOP, end)
 
 
 def test_no_pedestal_without_h1():
     result = frame(dims(B2=0.5, B3=1.0, W3=7.0))
     assert result.bearing_seat is result.node(NodeRole.CAP_TOP)  # H1 = 0: the bearings sit on the beam top
+    assert result.seats == (NodeRole.CAP_TOP, NodeRole.CAP_TOP) and result.top is result.bearing_seat
+    assert result.pedestal_members == () and result.girder(Side.ORIGIN) is None
     assert result.bearing_offset.value == 0.0
     assert result.pedestal_section is None
     with pytest.raises(KeyError):
@@ -233,9 +257,39 @@ def test_pier_height_is_the_beam_top_above_the_footing_top():
     assert frame(column_base_micro_member=True).pier_height.value == 7.6
 
 
-def test_the_control_level_weights_the_girder_heights_by_their_inertia():
-    # Decision 65: Σ Hi × (h1 + h2)i / Σ Hi; the common height when both girders are as high
-    assert control_level((LENGTH(2.5), LENGTH(2.5)), (FORCE(0), FORCE(0))) == LENGTH(2.5)
-    assert control_level((LENGTH(2.0), LENGTH(3.0)), (FORCE(300), FORCE(100))) == LENGTH(2.25)
-    with pytest.raises(InputError, match="桁の地震時慣性力の合計が0以下"):
-        control_level((LENGTH(2.0), LENGTH(3.0)), (FORCE(0), FORCE(0)))
+SPLIT = dict(B2=1.175, B3=0.85, W2=1.0, W3=7.0, H1=0.3)  # the origin girder on the beam top, the end one on the pedestal
+
+
+def girders(sizes, forces=(6720, 2370), **changes):
+    """The 0720 frame of *sizes* (B3=.. style) and other input *changes*, with the girder *forces* (origin, end)."""
+    groups = {"B": SIDE, "W": FRONT, "H": HEIGHT}
+    changes = {DIMS.format(group=groups[key[0]], key=key): value for key, value in sizes.items()} | changes
+    return frame(pier(**changes), Direction.TRANSVERSE, column_base_micro_member=True,
+                 elastic_regions={Region.COLUMN_BASE}, girder_levels=tuple(FORCE(force) for force in forces))
+
+
+def test_girder_levels_above_the_seat_of_each_girder():
+    # Decision 80: the origin girder on the beam top 10.300 + 2.750 = 13.050, the end one on the pedestal top
+    # 10.600 + 2.750 = 13.350; both above the pier top (10.600), chained down to it.
+    result = girders(SPLIT)
+    origin, end, top = (result.node(role) for role in (NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END,
+                                                       NodeRole.PEDESTAL_TOP))
+    assert [(n.number, n.y.value) for n in (end, origin, top)] == [(1, 13.35), (2, 13.05), (3, 10.6)]
+    chain = [(m.start, m.end, m.height.value) for m in result.members if m.region is Region.GIRDER]
+    assert chain == [(1, 2, 0.3), (2, 3, 2.45)]
+    assert result.girder(Side.ORIGIN) is origin and result.girder(Side.END) is end
+    # The control node is the girder with the larger force: the origin's 6720 kN (not a weighted level).
+    assert result.node(NodeRole.CONTROL) is origin and len(result.nodes) == 10  # the pedestal base is the beam top
+
+
+@pytest.mark.parametrize("forces,role", [((2370, 6720), NodeRole.GIRDER_END), ((100, 100), NodeRole.GIRDER_END),
+                                         ((0, 0), NodeRole.GIRDER_END)])
+def test_the_control_node_is_the_girder_with_the_larger_force(forces, role):
+    result = girders(SPLIT, forces)  # equal forces: the higher level, the end girder's
+    assert result.node(NodeRole.CONTROL) is result.node(role)
+
+
+def test_a_girder_level_below_the_pier_top_is_an_input_error():
+    # The origin girder on the beam top at 10.300 + 0.100 = 10.400, below the pedestal top 10.600.
+    with pytest.raises(InputError, match=r"上部構造\.起点側\.高さ.*桁受け天端"):
+        girders(SPLIT, **{"上部構造/起点側/高さ/h1": 0.0, "上部構造/起点側/高さ/h2": 0.1})

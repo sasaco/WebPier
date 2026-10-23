@@ -100,6 +100,6 @@ def test_both_curves_add_both_sides():
 
 
 def test_centrifugal_at_the_pedestal_top():
-    result = transverse(pier(**ORIGIN_CURVE, **dims(B2=0.85, B3=1.0, W2=0.5, W3=7.0, H1=0.3)))
+    result = transverse(pier(**ORIGIN_CURVE, **dims(B2=1.025, B3=1.0, W2=0.5, W3=7.0, H1=0.3)))
     (point,) = result.basic(B.CENTRIFUGAL_UP).points
     assert (point.node, point.h, point.m) == (1, result.centrifugal.up.h, result.centrifugal.up.m)  # top left

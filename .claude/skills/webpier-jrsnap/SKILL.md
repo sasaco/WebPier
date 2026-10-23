@@ -21,7 +21,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - 実アプリでの受入：`scripts/accept_jrsnap_ndu.py`（記録 `tests/fixtures/acceptance/jrsnap_v52/`）。補助に `.claude/skills/jrsnap-input-open-save/scripts/save-ndu.ps1`・`roundtrip.cs` を使い、記録がその SHA を持ち、`.gitattributes` が LF に固定している。**このフォルダーは動かさない**（同じ道具の正は `structural-jrsnap-input` の scripts。WebPier の複製はスキルではなく受入の補助として残している）。
 - 見本 `Example橋脚2` の NDU と PDF の照合の記録は `references/example-pier2-seismic-verification.md`。
 - 節点は上から・同じ高さでは左から番号を振る（操作説明書 2.1.6、決定67）。`calc/frame` が振り、角の節点を足す NDU の書出しがもう一度振り直す。末尾に足した節点（桁受けなど）があると、JRSNAP は警告なしに読み込み、解析が1回目の変位増分で収斂せず降伏震度 0.0 前後の破綻した結果になる（P7、2026-10-20）。
-- 直角方向の制御節点は `NodeRole.CONTROL`（決定65）：両側の桁の高さが同じならその桁の節点、違えば桁の地震時慣性力で重み付けした高さの節点を `calc/frame._girder_levels` が置く。La はそこからフーチング天端。
+- 直角方向の制御節点は `NodeRole.CONTROL`（決定81、決定65 を改めた）：両側の桁の節点（それぞれの支承の座から h1＋h2）のうち、桁の水平力（列車荷重の経路は 0600 の桁の慣性力、荷重モデルは増分の直角方向の支承作用の側ごとの和）の大きい側の節点に `calc/frame._girder_levels` が付ける。同じなら高い方。La はそこからフーチング天端。
 - La/d＜2 は `NonLinInfo1` の第4欄（破壊形態）を 2（せん断、NDT の AP カードの `S`）にする（決定66、`section.py`・`records.py`、検証器も La/d との組を確かめる）。1.25 未満は入力エラー。見本は Batch の `JRSNAP_Ver5.2-L03/05_参考(V52)：T形両端固定` の地中梁（`NonLinInfo7=1,3,1,2,…`、La/d≈1.4）。P7（La/d 1.73）で実アプリが解析し、Aggre-SE の損傷レベルの制限値が降伏にそろった（θ1＝0.001143）ことを確かめた（2026-10-20）。受入の記録（scripts/accept_*）はまだない。
 
 ## 0711・0721 の静的非線形解析（決定47）

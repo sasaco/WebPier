@@ -103,9 +103,7 @@ class DeadItems:
 
     frame: Any
     fixed: Any = None
-    d1_points: tuple[Any, ...] = ()
     additional: Any = None
-    d2_point: Any = None  # the D2 load at the seat
     buoyancy: Any = None  # the row at the normal water level
     snow: Any = None  # the 2-year table
     snow_point: Any = None
@@ -113,8 +111,7 @@ class DeadItems:
     @classmethod
     def of(cls, result: Any, cases: Any) -> DeadItems:
         """The items of a 0710 / 0720 result, its basic cases named by *cases* (the SeismicCase of the stage)."""
-        return cls(frame=result.frame, fixed=result.fixed, d1_points=result.basic(cases.D1).points,
-                   additional=result.additional, d2_point=result.basic(cases.D2).points[0], buoyancy=result.buoyancy,
+        return cls(frame=result.frame, fixed=result.fixed, additional=result.additional, buoyancy=result.buoyancy,
                    snow=result.snow,
                    snow_point=result.basic(cases.SNOW).points[0] if result.snow is not None else None)
 
@@ -125,11 +122,10 @@ def dead_items(m: Manuscript, result: Any, reaction: Any, pier: PierInput, stage
     number of the next item."""
     weights = reaction.self_weight
     if result.fixed is not None:
-        stage.fixed_dead(m, f"({number}) 固定死荷重", pier, weights, result.frame, result.fixed, result.d1_points)
+        stage.fixed_dead(m, f"({number}) 固定死荷重", pier, weights, result.frame, result.fixed)
         number += 1
     if result.additional is not None:
-        stage.additional_dead(m, f"({number}) 付加死荷重", weights, result.frame, result.additional,
-                              result.d2_point)
+        stage.additional_dead(m, f"({number}) 付加死荷重", weights, result.frame, result.additional)
         number += 1
     if result.buoyancy is not None:
         m.heading("buoyancy.heading", f"({number}) 浮力（平水位）", 2)

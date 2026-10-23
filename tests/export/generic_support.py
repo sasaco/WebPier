@@ -38,5 +38,4 @@ def generic_seismic(direction: Direction = Direction.LONGITUDINAL):
     """(pier, 0500, the generic 0710 / 0720) of current.json and the test load model."""
     from webpier.calc.generic.seismic import calculate_generic_seismic
     pier, foundation, reaction, model = generic_chain()
-    stage = "0710" if direction is Direction.LONGITUDINAL else "0720"
-    return pier, foundation, calculate_generic_seismic(pier, foundation, reaction, model, direction, stage)
+    return pier, foundation, calculate_generic_seismic(pier, foundation, reaction, model, direction)

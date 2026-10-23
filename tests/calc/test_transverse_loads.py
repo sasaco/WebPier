@@ -52,8 +52,8 @@ def test_9_3_fixed_dead_load():
     # = 8299.534 -> 8299.53 = 8894.89 − 297.68 × 2.00.
     beam = fixed.table.row(Item.BEAM)
     assert cells(beam) == [1503.27, 0.0, 0.0]
-    assert [row.item for row in fixed.table.rows][-1] is Item.BEAM and Item.PEDESTAL not in {
-        row.item for row in fixed.table.rows}
+    assert [row.item for row in fixed.table.rows][-1] is Item.BEAM  # no pedestal: no pedestal table nor q
+    assert fixed.pedestal is None and fixed.pedestal_q is None
     assert fixed.table.n.value == 9103.27
     assert fixed.overlap.value == 2.7
     assert fixed.n.value == printed["top_N"]["value"] == 8299.53

@@ -205,7 +205,7 @@ def test_the_wind_pressures_on_the_pier(pressures, message):
 
 
 @pytest.mark.parametrize("sections,message", [
-    ({"0611": ()}, "アドイン:sections.0611: 根拠の節を差し込む段階は 0610・0620・0710・0720・0900 です"),
+    ({"0611": ()}, "アドイン:sections.0611: 根拠の節を差し込む段階は 0610・0620・0900 です"),
     ({"0610": ("x",)}, "アドイン:sections.0610: Section のタプルが必要です"),
     ({"0610": []}, "アドイン:sections.0610: Section のタプルが必要です"),
     (["0610"], "アドイン:sections: 段階ごとの辞書が必要です"),
@@ -251,8 +251,15 @@ def test_a_case_in_several_seismic_combinations_is_one_case_of_the_ndu():
     Section("根拠", ("x",)),
 ])
 def test_a_section_has_a_title_and_paragraphs_or_tables_of_text(section):
-    fails(result(sections={"0720": (section,)}),
-          "アドイン:sections.0720: 節は題名と、段落（Paragraph）か列の数がそろった文字列の表（Table）のタプルが必要です")
+    fails(result(sections={"0900": (section,)}),
+          "アドイン:sections.0900: 節は題名と、段落（Paragraph）か列の数がそろった文字列の表（Table）のタプルが必要です")
+
+
+@pytest.mark.parametrize("stage", ["0710", "0720"])
+def test_the_seismic_reports_print_no_sections(stage):
+    # Decision 80: 0710 and 0720 print the load model's cases, not its sections.
+    fails(result(sections={stage: (Section("根拠", (Paragraph("x"),)),)}),
+          f"アドイン:sections.{stage}: 根拠の節を差し込む段階は 0610・0620・0900 です")
 
 
 def test_the_provenance_may_nest_json_values():

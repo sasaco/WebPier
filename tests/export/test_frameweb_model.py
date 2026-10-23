@@ -80,13 +80,13 @@ def test_pedestal_adds_an_arm_and_its_own_section():
     frame = result.frame
     seat = frame.node(NodeRole.PEDESTAL_TOP)
     base = frame.node(NodeRole.PEDESTAL_BASE)
-    assert document["node"][str(base.number)] == {"x": -0.35, "y": -10.3, "z": None}
-    assert document["node"][str(seat.number)] == {"x": -0.35, "y": -10.6, "z": None}
-    # numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; members in the order of their ends: pedestal 1, arm 2
+    assert document["node"][str(base.number)] == {"x": 0.175, "y": -10.3, "z": None}
+    assert document["node"][str(seat.number)] == {"x": 0.175, "y": -10.6, "z": None}
+    # numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, beam top 2, base 3; members in the order of their ends: pedestal 1, arm 2
     arm, pedestal = document["member"]["2"], document["member"]["1"]
     cap = frame.node(NodeRole.CAP_TOP)
     assert (arm["ni"], arm["nj"], pedestal["ni"], pedestal["nj"]) == (cap.number, base.number, base.number, seat.number)
-    assert (seat.number, base.number, cap.number) == (1, 2, 3)
+    assert (seat.number, base.number, cap.number) == (1, 3, 2)
     elements = document["element"]["1"]
     assert elements[str(arm["e"])]["n"] == "剛域"
     section = frame.pedestal_section

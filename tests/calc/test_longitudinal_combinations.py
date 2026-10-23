@@ -142,7 +142,7 @@ def test_unknown_component_lookup():
         longitudinal().combinations[13].component(B.TRAIN_DOUBLE)
 
 
-PEDESTAL = {"下部構造/寸法/側面/B2": 0.5, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
+PEDESTAL = {"下部構造/寸法/側面/B2": 1.025, "下部構造/寸法/側面/B3": 1.0, "下部構造/寸法/正面/W2": 1.0,
             "下部構造/寸法/正面/W3": 7.0, "下部構造/寸法/高さ/H1": 0.3}
 
 
@@ -161,8 +161,9 @@ def test_each_component_keeps_the_action_its_factor_applies_to(changes):
                 impact = (result.impact.service_single if component.case is B.IMPACT_SINGLE
                           else result.impact.service_double)
                 (point,) = component.source.points
-                # The seat moment: M − N × offset; the pedestal top is −0.350 from the column axis.
-                offset = D(-0.35) if changes else D(0)
+                # The seat moment: M − N × offset; the pedestal top is +0.175 from the column axis, both bearing
+                # lines −0.325 and +0.675 on its edges (0.175 ± 0.500, decision 81).
+                offset = D("0.175") if changes else D(0)
                 assert (component.source.case, component.source.spring, component.source.line_loads) == (
                     basic.case, basic.spring, ())
                 assert (point.node, value(point.n), value(point.h), value(point.m)) == (

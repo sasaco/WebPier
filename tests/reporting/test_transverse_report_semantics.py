@@ -15,7 +15,7 @@ import pytest
 
 from frame_report_cases import TRANSVERSE_CASES, part_weight, text, transverse_chain
 from test_longitudinal_report_semantics import (
-    material, member_rows, node_rows, paren, section, springs, squeeze,
+    material, member_rows, node_rows, paren, pedestal_note, seat_tables, section, springs, squeeze,
 )
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal.actions import SpringTerm
@@ -43,7 +43,7 @@ def bearing(item, slot) -> str:
 
 
 def top(table) -> str:
-    names = {Item.PEDESTAL: "桁受け", Item.BEAM: "はり"}
+    names = {Item.BEAM: "はり"}
     return ("鉛直力(kN)アーム(m)モーメント(kN・m)"
             + "".join((bearing(r.item, r.slot) if r.slot is not None else names[r.item]) + t(r.n) + t(r.arm) + t(r.m)
                       for r in table.rows) + f"合計{t(table.n)}{t(table.m)}")
@@ -60,31 +60,36 @@ def seat(frame, n, m, point) -> str | None:
     return None if not e.value else f"桁受け天端M={t(m)}−{t(n)}×{paren(e)}={t(point.m)}kN・m"
 
 
-def dead_records(add, pier, reaction, frame, fixed, additional, d2_point, number: int = 1) -> None:
+def dead_records(add, pier, reaction, frame, fixed, additional, number: int = 1) -> None:
     """The records of (1) 固定死荷重 and (2) 付加死荷重 as 9.2 prints them; 11.2 prints the same (decision 78)."""
     s, sw = pier.substructure, reaction.self_weight
     add("fixed.heading", f"({number})固定死荷重")
+    if fixed.pedestal_q is not None:
+        add("fixed.pedestal", f"桁受けq={t(s.w[3])}×{t(s.b[3])}×{t(s.unit_weight_body)}={t(fixed.pedestal_q)}kN/m")
     add("fixed.column", f"柱q={t(s.w[6])}×{t(s.b[6])}×{t(s.unit_weight_body)}={t(fixed.column_q)}kN/m")
     add("fixed.footing", f"フーチングP={part_weight(sw.footing)}={t(fixed.footing.n)}kN")
     if fixed.footing.arm.value:
         add("fixed.footing.moment", f"MP={t(fixed.footing.n)}×{paren(fixed.footing.arm)}={t(fixed.footing.m)}kN・m")
     add("fixed.top.heading", "・橋脚天端に作用する荷重")
-    if s.h[1].value > 0:
-        add("fixed.top.pedestal", f"桁受けN={part_weight(sw.pedestal)}={t(fixed.table.row(Item.PEDESTAL).n)}kN")
     add("fixed.top.beam", f"はり・ハンチN={part_weight(sw.beam)}={t(fixed.table.row(Item.BEAM).n)}kN")
+    if frame.pedestal_section is not None:
+        add("fixed.top.seat", "・はり天端")
     add("fixed.top", top(fixed.table))
     add("fixed.overlap", f"重複区間Δh={t(s.h[2])}+{t(s.h[3])}={t(fixed.overlap)}m")
     add("fixed.overlap.note", "ここに、Δh：はりの高さ＋ハンチの高さ（柱のqと重なる長さ）")
     add("fixed.n", f"鉛直力N={t(fixed.table.n)}−{t(fixed.column_q)}×{t(fixed.overlap)}={t(fixed.n)}kN")
     add("fixed.m", f"モーメントM={t(fixed.m)}kN・m")
+    if fixed.pedestal is not None:
+        add("fixed.pedestal.seat", "・桁受け天端")
+        add("fixed.pedestal.top", top(fixed.pedestal))
+        add("fixed.pedestal.note", pedestal_note(frame))
     add("additional.heading", f"({number + 1})付加死荷重")
     soil = additional.soil
     add("additional.soil", f"載荷土P={part_weight(sw.overburden)}={t(soil.n)}kN")
     if soil.arm.value:
         add("additional.soil.moment", f"MP={t(soil.n)}×{paren(soil.arm)}={t(soil.m)}kN・m")
-    add("additional.top.heading", "・橋脚天端に作用する荷重")
-    add("additional.top", top(additional.table))
-    add("additional.top.seat", seat(frame, additional.table.n, additional.table.m, d2_point))
+    seat_tables(add, frame, "additional.top", ((NodeRole.CAP_TOP, additional.table),
+                                               (NodeRole.PEDESTAL_TOP, additional.pedestal)), top)
 
 
 def expected(case: str) -> dict[str, str]:
@@ -129,8 +134,7 @@ def expected(case: str) -> dict[str, str]:
     key, label = ("body", "く体") if elastic & {Region.BEAM, Region.HAUNCH} else ("column", "柱")
     out.update({"0620/" + k: v for k, v in material(f"section.material.{key}", label, frame.materials.column).items()})
     add("actions.heading", "9.2作用の計算")
-    dead_records(add, pier, reaction, frame, result.fixed, result.additional,
-                 result.basic(BasicCase.D2).points[0])
+    dead_records(add, pier, reaction, frame, result.fixed, result.additional)
     add("buoyancy.heading", "(3)浮力")
     for (key, label, suffix), row, water in zip((("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3")),
                                                 result.buoyancy, (sw.buoyancy_high, sw.buoyancy_normal, sw.buoyancy_low)):

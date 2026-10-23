@@ -351,16 +351,12 @@ REGION_NAMES = {
 
 
 def node_table(frame: Frame, *, springs: bool = True) -> TableSpec:
-    """Nodes and their roles; with *springs* the footing bottom is named as the spring node (0610, 0620)."""
+    """Nodes and their roles; with *springs* the footing bottom is named as the spring node (0610, 0620). The control
+    node is a girder level and is not named (decision 81)."""
     rows = [("節点番号", "X座標 (m)", "Y座標 (m)", "位置")]
-    girders = {NodeRole.GIRDER_ORIGIN, NodeRole.GIRDER_END}
     for node in frame.nodes:
         names = "・".join(name + ("（ばね）" if springs and role is NodeRole.FOOTING_BOTTOM else "")
                          for role, name in _ROLE_NAMES.items() if role in node.roles)
-        if NodeRole.CONTROL in node.roles and not girders <= node.roles:
-            # decision 65: girders at different heights; the control node is named (with both girders it is the
-            # common girder level, Example2 node 1)
-            names = "・".join(filter(None, (names, "制御節点")))
         rows.append((str(node.number), value(node.x), value(node.y), names))
     return TableSpec((4, 5, 5, 13), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 1, 2}))
 
@@ -445,7 +441,8 @@ def top_table(rows: Sequence[tuple[Any, Printed, Printed, Printed]], total: tupl
 
 
 def seat_moment(m: Manuscript, key: str, frame: Frame, n: Printed, moment: Printed, point: PointLoad) -> None:
-    """With an offset pedestal the bearing moment moves to the seat: M' = M − N × e (decision 29)."""
+    """The train path's tables with both girders on an offset pedestal: the bearing moment moves to the seat,
+    M' = M − N × e (decisions 29, 81)."""
     offset = frame.bearing_offset
     if not offset.value:
         return
@@ -471,26 +468,34 @@ def joined(parts: list[Any]) -> list[Any]:
     return found
 
 
-def seat_split(m: Manuscript, fixed: Any, points: Sequence[PointLoad], frame: Frame,
-               bearing: Callable[[Any], bool]) -> None:
-    """With the bearings on an offset pedestal, D1 splits into the seat and the beam top (decision 29).
+SEATS = {NodeRole.CAP_TOP: "はり天端", NodeRole.PEDESTAL_TOP: "桁受け天端"}
 
-    *fixed* is the D1 of the stage (its table, q and the overlap), *points* the D1 point loads and
-    *bearing* tells the bearing rows of the table from the pier parts.
-    """
-    seat = next(p for p in points if p.anchor is NodeRole.PEDESTAL_TOP)
-    cap = next(p for p in points if p.anchor is NodeRole.CAP_TOP)
-    bearings = [row for row in fixed.table.rows if bearing(row)]
-    body = [row for row in fixed.table.rows if not bearing(row)]
-    m.paragraph("fixed.seat.heading", "・桁受け天端とはり天端への載荷", keep=True)
-    m.equation("fixed.seat.n", "桁受け天端", "N", terms(*joined([value(r.n) for r in bearings])), seat.n)
-    moments = joined([operand(r.m) if i else value(r.m) for i, r in enumerate(bearings)])
-    m.equation("fixed.seat.m", "", "M", terms(*moments, "−", value(seat.n), "×", operand(frame.bearing_offset)),
-               seat.m)
-    m.equation("fixed.cap.n", "はり天端", "N'", terms(*joined([value(r.n) for r in body]), "−",
-                                                  value(fixed.column_q), "×", value(fixed.overlap)), cap.n)
-    m.equation("fixed.cap.m", "", "M'", terms(*joined([operand(r.m) if i else value(r.m)
-                                                        for i, r in enumerate(body)])), cap.m)
+
+def seat_heading(m: Manuscript, key: str, frame: Frame, anchor: NodeRole) -> None:
+    """・はり天端 or ・桁受け天端 above the table of a seat, on a pier with a pedestal (decision 81)."""
+    if frame.pedestal_section is not None:
+        m.paragraph(key, f"・{SEATS[anchor]}", keep=True)
+
+
+def pedestal_lever_note(m: Manuscript, key: str, frame: Frame, lever: str) -> None:
+    """Under a table at the pedestal top off the column axis: its levers are from the pedestal centre (decision 81)."""
+    if frame.node(NodeRole.PEDESTAL_TOP).x != frame.node(NodeRole.CAP_TOP).x:
+        m.paragraph(key, f"（{lever}は桁受けの中心から）")
+
+
+def seat_tables(m: Manuscript, key: str, frame: Frame, tables: Sequence[tuple[NodeRole, Any]],
+                rows: Callable[[Any], list[tuple[Any, Any, Any, Any]]]) -> None:
+    """D2 by seat (decision 81): with a pedestal, the tables of the seats with a load (all, when none has), each under
+    its seat; without one, the table of the beam top under ・橋脚天端に作用する荷重 (8-3, 9-3)."""
+    if frame.pedestal_section is None:
+        m.paragraph(f"{key}.heading", "・橋脚天端に作用する荷重", keep=True)
+    found = [(anchor, table) for anchor, table in tables if table is not None and table.rows]
+    for anchor, table in [item for item in found if any(row.n.value for row in item[1].rows)] or found:
+        where = key if anchor is NodeRole.CAP_TOP else f"{key}.pedestal"
+        seat_heading(m, f"{where}.seat", frame, anchor)
+        m.table(where, top_table(rows(table), (table.n, table.m)))
+        if anchor is NodeRole.PEDESTAL_TOP:
+            pedestal_lever_note(m, f"{where}.note", frame, "アーム")
 
 
 def self_weight_inertia(m: Manuscript, inertia: Any, heading: str, chapter: str) -> None:
@@ -662,6 +667,7 @@ __all__ = [
     "BODY_LEFT", "Definitions", "FigureSpec", "LEVELS", "Labelled", "Manuscript", "Span",
     "TableSpec", "Unit", "bearing_symbol", "document",
     "frame_figure", "material_lines", "member_table", "node_table", "operand", "plain", "section_lines",
-    "seat_moment", "semantic_records", "spring_table", "sub", "sup", "top_table", "used_concretes", "value",
+    "seat_heading", "seat_moment", "seat_tables", "semantic_records", "spring_table", "sub", "sup", "top_table",
+    "pedestal_lever_note", "used_concretes", "value",
     "with_unit",
 ]

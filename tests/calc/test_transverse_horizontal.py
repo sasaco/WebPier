@@ -183,7 +183,7 @@ def test_horizontal_actions_print_two_decimals():
 
 
 # Decision 35: the pedestal takes the wind over its width B3 (1.000), above the ground like the rest.
-PEDESTAL = dims(B2=0.85, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
+PEDESTAL = dims(B2=1.025, B3=1.0, W2=0.5, W3=7.0, H1=0.3)
 
 
 def test_pedestal_takes_the_wind_over_b3():

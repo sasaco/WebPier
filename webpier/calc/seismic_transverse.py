@@ -179,7 +179,7 @@ def calculate_seismic_transverse(pier: PierInput, foundation: FoundationResult,
         case: actions.points[basic] for case, basic in DEAD_CASES.items()}
     if snow is not None:
         points[SeismicCase.SNOW] = (bearing_point(frame, snow.n, snow.m),)
-    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: (actions.column,)}
+    lines: dict[SeismicCase, tuple[LineLoad, ...]] = {SeismicCase.D1: actions.lines}
     for case, track in TRAIN_CASES.items():
         points[case] = (bearing_point(frame, trains[track].n, trains[track].m),)
     points[SeismicCase.GIRDER_INERTIA] = (_seat(frame, girder),)

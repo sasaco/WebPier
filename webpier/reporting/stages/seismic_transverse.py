@@ -72,6 +72,16 @@ def case_symbol(case: SeismicCase) -> Any:
     return sub(base, suffix) if suffix else base
 
 
+def _girder_note(frame: Any) -> str:
+    """The girder levels of 11-1: one node for both girders, or one each above its own seat (decision 81)."""
+    origin, end = frame.node(NodeRole.GIRDER_ORIGIN), frame.node(NodeRole.GIRDER_END)
+    if origin is end:
+        return "最上段の節点は桁の高さ（支承位置から h1 + h2）である．"
+    first, second = sorted(((origin, "起点側"), (end, "終点側")), key=lambda item: item[0].number)
+    return (f"節点 {first[0].number}・{second[0].number} は{first[1]}・{second[1]}の桁の高さ"
+            "（それぞれの支承位置から h1 + h2）である．")
+
+
 def _model(m: Manuscript, result: SeismicTransverseResult, pier: PierInput) -> None:
     frame = result.frame
     m.heading("title", "§11. 線路直角方向の計算（地震時）", 0)
@@ -80,7 +90,7 @@ def _model(m: Manuscript, result: SeismicTransverseResult, pier: PierInput) -> N
     m.figure("model.figure", frame_figure(frame, pier_outline(pier, frame), springs=False,
                                           block_id=PREFIX + "model.figure"))
     m.paragraph("model.figure.note", f"太線は剛域を示す．◎は柱下端の微小部材（長さ {value(MICRO_MEMBER)} m）を示す．"
-                                     "最上段の節点は桁の高さ（支承位置から h1 + h2）である．寸法の単位は m．")
+                                     f"{_girder_note(frame)}寸法の単位は m．")
     m.heading("model.nodes.heading", "(2) 節点と部材", 2)
     m.table("model.nodes", node_table(frame, springs=False))
     m.table("model.members", member_table(frame))

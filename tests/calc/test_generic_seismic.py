@@ -1,10 +1,12 @@
 """0710 / 0720 with a load model (decision 70): the cases fixed, incremental and limited incremental, their directions,
-the application's D1, D2, buoyancy and EQ2, and the control node weighted by the incremental cases across the track.
+the application's D1, D2, buoyancy and EQ2, the horizontal forces across the track at the girder levels and the control
+node at the girder with the larger incremental force across the track (decision 81).
 """
 
 from addin_support import CURRENT, chain
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.frame import Direction, NodeRole
+from webpier.loadmodel import Side
 from webpier.calc.generic.frame import calculate_generic_frame
 from webpier.calc.generic.seismic import calculate_generic_seismic, girder_weights
 from webpier.calc.longitudinal import calculate_longitudinal
@@ -22,8 +24,7 @@ ORDER = ["D1", "D2", "WP_NORMAL", "LE", "EQ1", "EQL", "EQ2"]
 
 def generic(direction: Direction):
     p, foundation, reaction, model = chain()
-    stage = "0710" if direction is Direction.LONGITUDINAL else "0720"
-    return model, calculate_generic_seismic(p, foundation, reaction, model, direction, stage)
+    return model, calculate_generic_seismic(p, foundation, reaction, model, direction)
 
 
 def train(direction: Direction):
@@ -59,8 +60,8 @@ def test_the_longitudinal_bearing_actions_by_hand():
     assert (le.n.value, le.h.value, le.m.value) == (170.0, 0.0, 24.75)
     eq1 = result.basic("EQ1").points[0]
     assert (eq1.n.value, eq1.h.value, eq1.m.value) == (0.0, -750.0, 0.0)  # toward the origin side, −x
-    eql = result.basic("EQL").bearings
-    assert (eql.h.value, eql.m.value) == (-110.0, 0.0)
+    (eql,) = result.basic("EQL").bearings.seats
+    assert (eql.anchor, eql.h.value, eql.m.value) == (NodeRole.CAP_TOP, -110.0, 0.0)
     assert eq1.node == result.frame.node(NodeRole.CAP_TOP).number
 
 
@@ -71,7 +72,6 @@ def test_one_combination_with_every_case_in_order_by_pattern():
             for c in result.combinations] == [
         (number, "地震時", tuple(ORDER), rho_m, alpha_f, A.TOWARD_ORIGIN, False)
         for number, (rho_m, alpha_f) in enumerate(((1.0, 1.0), (1.2, 1.0), (1.0, 2.0), (1.2, 2.0)), 1)]
-    assert [section.title for section in result.sections] == ["地震時の作用の根拠"]
 
 
 def test_the_transverse_cases_toward_w9():
@@ -80,10 +80,17 @@ def test_the_transverse_cases_toward_w9():
     assert result.basic("EQ1").direction is A.TOWARD_W9 and result.earthquake == 1
     eq1 = result.basic("EQ1").bearings
     # 400.00 × 1.000 + 350.00 × 1.200 at the seat, toward W9
-    assert (eq1.h.value, eq1.m.value) == (750.0, 820.0)
+    (seat,) = eq1.seats
+    assert (seat.h.value, seat.m.value, eq1.h.value) == (750.0, 820.0, 750.0)
+    # Decision 80: across the track H acts at the girder level (node 1, h1 + h2 = 2.750 above the seat) with
+    # H × (y − 2.750): 400.00 × (−1.750) = −700.00, 350.00 × (−1.550) = −542.50; 820.00 at the seat all the same
+    # (−700.00 − 542.50 + 750.00 × 2.750 = 820.00).
+    assert [(g.side, g.anchor, g.h.value, g.height.value, g.m.value) for g in eq1.girders] == [
+        (Side.ORIGIN, NodeRole.GIRDER_ORIGIN, 400.0, -1.75, -700.0), (Side.END, NodeRole.GIRDER_END, 350.0, -1.55, -542.5)]
+    assert [(p.node, p.n.value, p.h.value, p.m.value) for p in result.basic("EQ1").points] == [
+        (1, 0.0, 400.0, -700.0), (1, 0.0, 350.0, -542.5)]
     old = train(Direction.TRANSVERSE)
     assert result.basic("EQ2").member_loads == old.basic(TransverseCase.SELF_INERTIA).member_loads
-    assert result.sections == ()
 
 
 def test_the_control_node_is_weighted_by_the_incremental_cases_across_the_track():
@@ -101,7 +108,7 @@ def test_only_the_cases_the_combinations_use():
     p, foundation, reaction, model = chain()
     model = replace(model, seismic_longitudinal=(SeismicCombination("車なし", ("D1", "D2", "EQ1")),
                                                  SeismicCombination("車あり", ("D1", "D2", "LE", "EQ1"), reverse=True)))
-    result = calculate_generic_seismic(p, foundation, reaction, model, Direction.LONGITUDINAL, "0710")
+    result = calculate_generic_seismic(p, foundation, reaction, model, Direction.LONGITUDINAL)
     assert [c.id for c in result.basic_cases] == ["D1", "D2", "LE", "EQ1"]  # no buoyancy, no EQ2
     assert [c.cases for c in result.combinations] == [*[("D1", "D2", "EQ1")] * 4, *[("D1", "D2", "LE", "EQ1")] * 4]
     # A reversed (逆向) combination pushes away from the earthquake: → along the track (decision 76).

@@ -15,7 +15,7 @@ import pymupdf
 import pytest
 from gridlayoutpdf import Text
 
-from frame_report_cases import CASES, chain
+from frame_report_cases import CASES, chain, dead_tables
 from frame_report_pdf_checks import (
     BODY, HEADING, band_errors, column_x, drawn_order_errors, first, outside_body, placement_errors, relation_centres, row_bands, row_offset,
     spans, table_checks,
@@ -76,9 +76,11 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     rows = table_checks(path)
     kinds = Counter(check.kind for check in rows)
     # D1, D2, 3 snow, 2 train tables (2 or 3 rows each) and 4 impact tables of 2 rows; 11 totals; 8 horizontal.
-    # Without snow, no snow table (decision 69).
-    snow = 3 if chain(case)[2].snow is not None else 0
-    assert kinds["total"] == 8 + snow and kinds["horizontal"] == 8 and kinds["row"] >= 17 + 2 * snow
+    # Without snow, no snow table (decision 69); with girders on the pedestal, D1 at its top too (decision 81).
+    result = chain(case)[2]
+    snow = 3 if result.snow is not None else 0
+    assert kinds["total"] == 6 + len(dead_tables(result)) + snow and kinds["horizontal"] == 8
+    assert kinds["row"] >= 17 + 2 * snow
     assert [check for check in rows if not check.ok] == []
 
 

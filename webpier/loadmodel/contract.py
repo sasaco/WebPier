@@ -210,8 +210,8 @@ class Section:
     blocks: tuple[Paragraph | Table, ...]
 
 
-# The stages whose reports print the load model's sections.
-SECTION_STAGES = ("0610", "0620", "0710", "0720", "0900")
+# The stages whose reports print the load model's sections (not 0710 / 0720, decision 81).
+SECTION_STAGES = ("0610", "0620", "0900")
 
 
 @dataclass(frozen=True)

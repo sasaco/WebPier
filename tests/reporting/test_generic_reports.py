@@ -87,11 +87,22 @@ def test_0710_and_0720_print_the_seismic_cases(tmp_path, direction):
     prefix = "0710/" if direction is Direction.LONGITUDINAL else "0720/"
     assert printed[prefix + "combination"].endswith("1 + 2 + 3 + 4 + 5 + 6 + 71")
     assert "限定増分" in printed[prefix + "basic"] and "自重による地震時慣性力" in printed[prefix + "basic"]
+    # Decision 80: each case of the load model under its name; no sections, 支承作用 tables or control weights.
+    assert [printed[prefix + f"case.{case}.heading"] for case in ("LE", "EQ1", "EQL")] == [
+        "(4) 地震時の車荷重", "(5) 上部工の慣性力", "(6) 活荷重慣性力"]
+    assert printed[prefix + "inertia.heading"] == "(7) 自重による地震時慣性力"
+    assert not [key for key in printed if "loadmodel" in key or "bearings" in key or "control" in key]
+    flat = {key: text.replace("|", "").replace("−", "-") for key, text in printed.items()}
     if direction is Direction.LONGITUDINAL:
-        assert printed[prefix + "loadmodel.1.heading"] == "1) 地震時の作用の根拠"
-        assert prefix + "control.heading" not in printed
+        # 90.00 × (−0.325) + 80.00 × 0.675 = −29.25 + 54.00
+        assert flat[prefix + "case.LE.vertical"].endswith("合計170.0024.75")
+        # Toward the earthquake positive, as 10-8 prints the bearing horizontal forces: 400.00 + 350.00 = 750.00.
+        assert flat[prefix + "case.EQ1.horizontal"].endswith("1.0 EQ1400.00350.00750.00")
     else:
-        assert "400.00" in printed[prefix + "control.origin"] and "350.00" in printed[prefix + "control.end"]
+        assert flat[prefix + "case.LE.vertical"].endswith("合計170.00-106.00")  # −342.00 + 236.00
+        # At the girder level 2.750 above the seat: 400.00 × (1.000 − 2.750), 350.00 × (1.200 − 2.750).
+        assert "起点側　桁400.00-1.750-700.00終点側　桁350.00-1.550-542.50合計750.00" in flat[
+            prefix + "case.EQ1.horizontal"]
     no_train(printed)
     rendered_twice(tmp_path, lambda path: seismic_report.render_generic_seismic(result, reaction, pier, path,
                                                                                 jrsnap_pages(7)))
@@ -125,7 +136,7 @@ def test_the_optional_parts():
     printed = texts(frame_report.semantic_records(frame_result, reaction, pier))
     assert "0610/loadmodel.heading" not in printed and printed["0610/bearings.heading"] == "(4) 荷重モデルの支承作用"
     assert frame_report.build_generic_frame(frame_result, reaction, pier).blocks
-    seismic_result = calculate_generic_seismic(pier, foundation, reaction, bare, Direction.LONGITUDINAL, "0710")
+    seismic_result = calculate_generic_seismic(pier, foundation, reaction, bare, Direction.LONGITUDINAL)
     printed = texts(seismic_report.semantic_records(seismic_result, reaction, pier))
     assert "0710/bearings.heading" not in printed and printed["0710/inertia.heading"] == "(3) 自重による地震時慣性力"
     # Decision 78: only the dead cases the combinations use, numbered in turn; no buoyancy here.

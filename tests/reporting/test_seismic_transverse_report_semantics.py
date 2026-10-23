@@ -63,7 +63,7 @@ def expected(case: str) -> dict[str, str]:
     add("actions.heading", "11.2作用の計算")
     # Decision 78: D1, D2, the buoyancy at the normal water level and the 2-year snow as 9.2, no reference to §9.
     sw = reaction.self_weight
-    dead_records(add, pier, reaction, frame, result.fixed, result.additional, result.basic(SeismicCase.D2).points[0])
+    dead_records(add, pier, reaction, frame, result.fixed, result.additional)
     add("buoyancy.heading", "(3)浮力（平水位）")
     row, water = result.buoyancy, sw.buoyancy_normal
     add("buoyancy", f"ω={t(water.body.unit_weight)}×{t(water.body.volume)}={t(row.n)}kN")

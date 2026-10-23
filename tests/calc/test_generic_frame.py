@@ -49,7 +49,7 @@ def test_the_longitudinal_cases():
     # The load model's cases are their 支承作用 on the frame.
     case = next(c for c in model.cases if c.id == "L")
     table = bearing_table(p, result.frame, case)
-    assert result.basic("L").bearings == table and result.basic("L").points == (table.point,)
+    assert result.basic("L").bearings == table and result.basic("L").points == table.points
     zero = result.basic(ZERO)
     assert zero.zero and zero.name == "断面力0" and len(zero.points) == 1
     point = zero.points[0]

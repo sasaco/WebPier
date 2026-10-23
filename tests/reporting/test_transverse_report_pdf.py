@@ -13,7 +13,7 @@ import pymupdf
 import pytest
 from gridlayoutpdf import Text
 
-from frame_report_cases import TRANSVERSE_CASES, transverse_chain
+from frame_report_cases import TRANSVERSE_CASES, dead_tables, transverse_chain
 from frame_report_pdf_checks import (
     BODY, HEADING, band_errors, column_x, drawn_order_errors, first, outside_body, placement_errors, relation_centres, row_bands, row_offset,
     spans, table_checks,
@@ -61,7 +61,8 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     kinds = Counter(check.kind for check in rows)
     # D1, D2, 3 snow, 3 train, 6 impact tables, 2 wind tables (+3 centrifugal on a curve, −3 snow without: decision 69)
     pier, _, result, _ = transverse_chain(case)
-    assert kinds["total"] == 13 + (3 if result.centrifugal is not None else 0) + (3 if result.snow is not None else 0)
+    assert kinds["total"] == 11 + len(dead_tables(result)) + (3 if result.centrifugal is not None else 0) + (
+        3 if result.snow is not None else 0)  # D1 at the pedestal top too with girders on it (decision 81)
     assert kinds["row"] >= 80 - (0 if result.snow is not None else 18)  # 6 bearing rows in each snow table
     assert [check for check in rows if not check.ok] == []
 

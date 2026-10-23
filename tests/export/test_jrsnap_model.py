@@ -198,8 +198,8 @@ def test_a_blank_aggregate_size_of_the_column_is_an_error(direction):
 def test_a_pedestal_adds_a_rigid_arm_and_a_reversed_member():
     built = model("longitudinal", **PEDESTAL)
     pedestal, arm = built.elements[0], built.elements[1]  # numbered from the upper left (JRSNAP 2.1.6)
-    assert (pedestal.i, pedestal.j, arm.i, arm.j) == (1, 2, 2, 3)  # the smaller number at the top or the left
-    assert arm.title == "桁受け腕" and arm.length.value == 0.35  # horizontal, left to right
+    assert (pedestal.i, pedestal.j, arm.i, arm.j) == (1, 3, 2, 3)  # the smaller number at the top or the left
+    assert arm.title == "桁受け腕" and arm.length.value == 0.175  # horizontal, left to right
     left, right = (built.joints[n - 1] for n in (arm.i, arm.j))
     assert left.y == right.y and left.x.value < right.x.value
     assert pedestal.title == "桁受け" and pedestal.length.value == 0.3
@@ -207,7 +207,11 @@ def test_a_pedestal_adds_a_rigid_arm_and_a_reversed_member():
     assert top.y.value == -7.9 and bottom.y.value == -7.6  # upper end first
     loads = {m.element: m for m in built.cases[7].member_loads}
     assert loads[pedestal.number].start == loads[pedestal.number].end  # uniform B3 × W3 × γ
-    assert [load.node for load in built.cases[0].joint_loads][0] == pedestal.i  # the bearing seat (decision 29)
+    # D1: the girders at the pedestal top (decisions 29, 81), first as the joints are numbered; the pedestal weight
+    # along it, titled 桁受け自重, before the column's.
+    assert [load.node for load in built.cases[0].joint_loads][0] == pedestal.i
+    assert [(m.element, m.start.value, m.label) for m in built.cases[0].member_loads][:2] == [
+        (pedestal.number, 171.5, "桁受け自重"), (3, 297.68, "柱自重")]
 
 
 def test_a_reversed_member_swaps_its_end_values():
@@ -315,12 +319,12 @@ def test_an_inclined_elastic_member_is_not_supported():
         build_ndu(PROFILES["longitudinal"], p, foundation, embedment, layout, broken)
 
 
-def test_girders_at_different_heights_put_the_control_node_at_their_weighted_level():
-    # decision 65: h1 + h2 = 0.15 + 2.60 = 2.750 (origin) and 0.50 + 2.65 = 3.150 (end), weighted by the 0600
-    # girder inertia forces 6720.00 and 2370.00 kN: (6720 × 2.750 + 2370 × 3.150) / 9090 = 2.85429… → 2.854;
-    # La = H2 + H3 + H4 + 2.854 = 7.600 + 2.854 = 10.454 m. Nodes from the top: end 3.150, control, origin 2.750.
+def test_girders_at_different_heights_put_the_control_node_at_the_girder_with_the_larger_force():
+    # decision 81: h1 + h2 = 0.15 + 2.60 = 2.750 (origin) and 0.50 + 2.65 = 3.150 (end); the 0600 girder inertia
+    # forces 6720.00 and 2370.00 kN make the origin girder (node 2, below the end's node 1) the control node:
+    # La = H2 + H3 + H4 + 2.750 = 7.600 + 2.750 = 10.350 m.
     transverse = model("transverse", **{"上部構造/終点側/高さ/h1": 0.5})
-    assert transverse.control == 2 and transverse.section.shear_span == Printed(10454, 1, "mm")
+    assert transverse.control == 2 and transverse.section.shear_span == Printed(10350, 1, "mm")
     assert model("transverse").control == 1  # the same heights: the common girder level (Example2 node 1)
 
 

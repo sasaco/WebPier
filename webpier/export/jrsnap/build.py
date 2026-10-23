@@ -12,7 +12,8 @@
 - Load cases: the basic cases in order, with their fixed / incremental / limited incremental kind. A point load
   keeps N (downward), H (+x) and M (N × +x lever) of the frame: JRSNAP's y down and M clockwise give the same
   signs. A horizontal load along a member is −h on the local y of the top-to-bottom element; the D1 column
-  weight is an axial load. A load without a component has no row.
+  and pedestal weights are axial loads (the pedestal's titled 桁受け自重, decision 81). A load without a
+  component has no row.
 - Combinations: one per calc combination, coefficient 1 for its cases and 0 for the others, with its ρm, αf and
   whether it is reversed (逆向, decision 76).
 
@@ -28,7 +29,7 @@ from ...calc._exact import d, put
 from ...calc.column_rebar import ColumnLayout
 from ...calc.embedment import EmbedmentResult
 from ...calc.foundation import FoundationResult
-from ...calc.frame import Frame, Member, Node, NodeRole
+from ...calc.frame import Frame, Member, Node, NodeRole, Region
 from ...calc.seismic_longitudinal import Increment
 from ...core.errors import InputError
 from ...core.printed import LENGTH, Printed
@@ -40,6 +41,7 @@ from .profile import REGION_TITLES, SANDY_SOILS, Profile
 from .section import column_section, need
 
 INCREMENTS = {Increment.FIXED: 0, Increment.INCREMENTAL: 1, Increment.LIMITED: 4}
+PEDESTAL_WEIGHT = "桁受け自重"  # the title of the D1 pedestal line load (decision 81)
 HORIZONTAL, VERTICAL = 1, 2
 
 
@@ -115,12 +117,14 @@ def _footing(pier: PierInput, foundation: FoundationResult, embedment: Embedment
                    gamma1=support.unit_weight_submerged, gamma2=embedment.unit_weight, phi=support.friction_angle)
 
 
-def _case(number: int, action: Any, profile: Profile, elements: _Elements) -> LoadCase:
+def _case(number: int, action: Any, profile: Profile, elements: _Elements, regions: dict[int, Region]) -> LoadCase:
     members = []
     for line in action.line_loads:
+        pedestal = all(regions[member] is Region.PEDESTAL for member in line.members)
         for element in (elements.first[member] for member in line.members):
             if line.n.value:
-                members.append(MemberLoad(element, AXIAL, line.n, None, profile.member_labels[action.case]))
+                members.append(MemberLoad(element, AXIAL, line.n, None,
+                                          PEDESTAL_WEIGHT if pedestal else profile.member_labels[action.case]))
             if line.h.value:
                 h = _negative(line.h)
                 members.append(MemberLoad(element, LOCAL_Y, h, h, profile.member_labels[action.case]))
@@ -129,7 +133,7 @@ def _case(number: int, action: Any, profile: Profile, elements: _Elements) -> Lo
         members.append(MemberLoad(elements.first[load.member], LOCAL_Y, _negative(start), _negative(end),
                                   profile.member_labels[action.case]))
     joints = []
-    for point in action.points:
+    for point in sorted(action.points, key=lambda point: point.node):  # from the top, as JRSNAP numbers them
         if point.n.value or point.h.value or point.m.value:
             labels = profile.footing_labels if point.anchor is NodeRole.FOOTING_CENTROID else profile.seat_labels
             joints.append(JointLoad(point.node, point.h, point.n, point.m, labels[action.case]))
@@ -157,7 +161,9 @@ def build_ndu(profile: Profile, pier: PierInput, foundation: FoundationResult, e
     support = frame.support
     springs = (Spring(support.node, HORIZONTAL, support.short_term.ks), Spring(support.node, VERTICAL,
                                                                                 support.short_term.kv))
-    cases = tuple(_case(number, action, profile, elements) for number, action in enumerate(seismic.basic_cases, 1))
+    regions = {member.number: member.region for member in frame.members}
+    cases = tuple(_case(number, action, profile, elements, regions)
+                  for number, action in enumerate(seismic.basic_cases, 1))
     order = [action.case for action in seismic.basic_cases]
     combinations = tuple(Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
                                      coefficients=tuple(int(case in c.cases) for case in order), reverse=c.reverse)

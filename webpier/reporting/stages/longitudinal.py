@@ -12,7 +12,7 @@ the input.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +32,8 @@ from ..numbers import constant
 from .frame_report import (
     BODY_LEFT, FigureSpec, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
     frame_figure, material_lines, member_table, part_weight, node_table, operand, overlap_lines, section_lines, seat_moment,
-    coefficient_table, extraction_table, factor_lines, seat_split, semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
+    coefficient_table, extraction_table, factor_lines, pedestal_lever_note, seat_heading, seat_tables,
+    semantic_records as records, spring_table, sub, top_table, used_concretes, value, with_unit,
 )
 from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 
@@ -78,7 +79,7 @@ _CHECKS = {
     Check.SUPPORT_SHORT_TERM_HIGH_WATER: ("使用性", "短期", ""),
 }
 _WATER = (("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3"))
-_ROW_NAMES = {Item.PEDESTAL: "桁受け", Item.BEAM: "はり"}
+_ROW_NAMES = {Item.BEAM: "はり"}
 
 
 def brake_text(reaction: ReactionResult, case: LongitudinalCase) -> tuple[str, str]:
@@ -180,37 +181,40 @@ def _footing_moment(m: Manuscript, key: str, symbol: Any, n: Any, arm: Any, mome
         m.equation(key, "", symbol, terms(value(n), "×", operand(arm)), moment)
 
 
-def fixed_dead(m: Manuscript, heading: str, pier: PierInput, weights: Any, frame: Any, fixed: Any,
-               points: Sequence[Any]) -> None:
-    """8.2 (1) 固定死荷重, and of 10.2 (decision 78): *points* are the D1 point loads on *frame*."""
+def fixed_dead(m: Manuscript, heading: str, pier: PierInput, weights: Any, frame: Any, fixed: Any) -> None:
+    """8.2 (1) 固定死荷重, and of 10.2 (decision 78): with a pedestal, its q and the tables of the beam top and of the
+    pedestal top, its levers from the pedestal centre (decision 81)."""
     s = pier.substructure
     m.heading("fixed.heading", heading, 2)
+    if fixed.pedestal_q is not None:
+        m.equation("fixed.pedestal", "桁受け", "q", terms(value(s.w[3]), "×", value(s.b[3]), "×",
+                                                       value(s.unit_weight_body)), fixed.pedestal_q)
     m.equation("fixed.column", "柱", "q", terms(value(s.w[6]), "×", value(s.b[6]), "×",
                                                value(s.unit_weight_body)), fixed.column_q)
     m.equation("fixed.footing", "フーチング", "P", part_weight(weights.footing), fixed.footing.n)
     _footing_moment(m, "fixed.footing.moment", sub("M", "P"), fixed.footing.n, fixed.footing.arm, fixed.footing.m)
     m.paragraph("fixed.top.heading", "・橋脚天端に作用する荷重", keep=True)
-    if s.h[1].value > 0:
-        m.equation("fixed.top.pedestal", "桁受け", "N", part_weight(weights.pedestal),
-                   fixed.table.row(Item.PEDESTAL).n)
     m.equation("fixed.top.beam", "はり・ハンチ", "N", part_weight(weights.beam), fixed.table.row(Item.BEAM).n)
+    seat_heading(m, "fixed.top.seat", frame, NodeRole.CAP_TOP)
     m.table("fixed.top", top_table(_top_rows(fixed.table), (fixed.table.n, fixed.table.m)))
     overlap_lines(m, s, fixed)
     m.equation("fixed.n", "鉛直力", "N", terms(value(fixed.table.n), "−", value(fixed.column_q), "×",
                                               value(fixed.overlap)), fixed.n)
     m.equation("fixed.m", "モーメント", "M", with_unit(fixed.m))
-    if frame.bearing_offset.value:
-        seat_split(m, fixed, points, frame, lambda row: row.item in (Item.ORIGIN, Item.END))
+    if fixed.pedestal is not None:
+        seat_heading(m, "fixed.pedestal.seat", frame, NodeRole.PEDESTAL_TOP)
+        m.table("fixed.pedestal.top", top_table(_top_rows(fixed.pedestal), (fixed.pedestal.n, fixed.pedestal.m)))
+        pedestal_lever_note(m, "fixed.pedestal.note", frame, "アーム")
 
 
-def additional_dead(m: Manuscript, heading: str, weights: Any, frame: Any, additional: Any, point: Any) -> None:
-    """8.2 (2) 付加死荷重, and of 10.2: *point* is the D2 load at the seat."""
+def additional_dead(m: Manuscript, heading: str, weights: Any, frame: Any, additional: Any) -> None:
+    """8.2 (2) 付加死荷重, and of 10.2: the girder loads by seat (decision 81)."""
     m.heading("additional.heading", heading, 2)
     soil = additional.soil
     m.equation("additional.soil", "載荷土", "P", part_weight(weights.overburden), soil.n)
     _footing_moment(m, "additional.soil.moment", sub("M", "P"), soil.n, soil.arm, soil.m)
-    m.paragraph("additional.top.heading", "・橋脚天端に作用する荷重", keep=True)
-    top_with_seat(m, "additional.top", frame, additional.table, point)
+    seat_tables(m, "additional.top", frame, ((NodeRole.CAP_TOP, additional.table),
+                                             (NodeRole.PEDESTAL_TOP, additional.pedestal)), _top_rows)
 
 
 def buoyancy_line(m: Manuscript, key: str, label: str, symbol: Any, row: Any, water: Any) -> None:
@@ -222,9 +226,8 @@ def buoyancy_line(m: Manuscript, key: str, label: str, symbol: Any, row: Any, wa
 def _dead(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
     weights = reaction.self_weight
     m.heading("actions.heading", "8.2 作用の計算", 1)
-    fixed_dead(m, "(1) 固定死荷重", pier, weights, result.frame, result.fixed, result.basic(BasicCase.D1).points)
-    additional_dead(m, "(2) 付加死荷重", weights, result.frame, result.additional,
-                    result.basic(BasicCase.D2).points[0])
+    fixed_dead(m, "(1) 固定死荷重", pier, weights, result.frame, result.fixed)
+    additional_dead(m, "(2) 付加死荷重", weights, result.frame, result.additional)
     m.heading("buoyancy.heading", "(3) 浮力", 2)
     for (key, label, suffix), row, water in zip(_WATER, result.buoyancy, (weights.buoyancy_high,
                                                                          weights.buoyancy_normal,
