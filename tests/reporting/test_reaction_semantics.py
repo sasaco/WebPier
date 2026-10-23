@@ -244,10 +244,22 @@ def test_table_6_2_1_writes_each_row_and_the_parts_of_more_rows_are_summed():
     assert "weight.column.sum.weight" not in found
 
 
-def test_no_pier_impact_is_printed():
-    """Decision 27: the pier impact (RC標準 解4.4.4, Ds, Du) is not part of 0600."""
-    actual = "\n".join(records(*case("current")).values())
-    assert "橋脚く体に対する衝撃" not in actual and "Ds" not in actual and "Du" not in actual
+def test_the_impact_on_the_pier_body_is_printed_as_in_the_sample():
+    """Decision 77 (Example3 Ⅱ-2-6, 2.1.5 (b)): L, Du, Ds, the ratios and i = i0 × ratio, without a sentence."""
+    actual = records(*case("current"))
+    text = "\n".join(actual.values())
+    assert "3) 橋脚く体に対する衝撃係数" in text
+    # Example2 by hand: L = 272.47 + 294.92 = 567.39, 2 × that for both tracks; Du = 5740 + 520 + 1860 + 260;
+    # Ds = 2961.88; 1 − 2961.88/(567.39 + 8380 + 2961.88) = 0.751 and 1 − 2961.88/(1134.78 + 8380 + 2961.88) = 0.763.
+    for line in ("L(単線)=567.39 kN", "L(複線)=1134.78 kN", "DU=8380.00 kN", "DS=2961.88 kN"):
+        assert line in text
+    assert actual["0600/train.impact.pier.single.ratio"].endswith("=0.751")
+    assert actual["0600/train.impact.pier.double.ratio"].endswith("=0.763")
+    # 0.245 × 0.751 = 0.184 and 0.546 × 0.751 = 0.410 (safety), 0.222 × 0.763 = 0.169 and 0.521 × 0.763 = 0.398.
+    assert actual["0600/train.impact.pier.ultimate.origin.single"].endswith("=0.245×0.751=0.184")
+    assert actual["0600/train.impact.pier.ultimate.end.single"].endswith("=0.546×0.751=0.410")
+    assert actual["0600/train.impact.pier.ultimate.origin.double"].endswith("=0.222×0.763=0.169")
+    assert actual["0600/train.impact.pier.ultimate.end.double"].endswith("=0.521×0.763=0.398")
 
 
 # The sentences and symbolic formulas of the samples (07 7-4, 7-5, 7-14; Example橋脚 0600 p14, p33).

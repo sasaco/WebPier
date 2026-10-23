@@ -42,6 +42,19 @@ def q(value, digits):
     return Decimal(value).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP)
 
 
+def pier_ratios(reaction):
+    """Hand ratio 1 − Ds/(L + Du + Ds) of decision 77 for (single, double), 3 decimals, from printed 0600 values.
+
+    L = RB + RC of the train without ρf (times the track total for both tracks), Du = D1 + D2 at B and C.
+    """
+    dead, train = reaction.dead, reaction.train
+    ds = D(reaction.self_weight.pier_bottom.weight.value)
+    du = sum(D(part.value) for part in (dead.origin.pier.d1, dead.origin.pier.d2, dead.end.pier.d1, dead.end.pier.d2))
+    rb, rc = D(train.loading.rb.value), D(train.loading.rc.value)
+    double = q(rb * D(dead.origin.track_total.value), 2) + q(rc * D(dead.end.track_total.value), 2)
+    return tuple(q(1 - ds / (load + du + ds), 3) for load in (rb + rc, double))
+
+
 def example2(section_id):
     """Printed values of one 05/07 section, by key."""
     section = next(item for item in REACTION["sections"] if item["id"] == section_id)

@@ -99,7 +99,7 @@ class Trains:
 class ImpactRow:
     item: Item
     train: Printed  # train load of the support
-    coefficient: Printed  # 0600 girder impact coefficient (07 7-2)
+    coefficient: Printed  # 0600 impact coefficient on the pier body (decision 77)
     n: Printed  # train × coefficient
     arm: Printed
     m: Printed
@@ -117,7 +117,7 @@ class ImpactTable:
 
 @dataclass(frozen=True)
 class Impacts:
-    """Impact with the girder coefficients as they are (decision 26, Example2 8-5)."""
+    """Impact with the coefficients on the pier body (decision 77)."""
 
     ultimate_single: ImpactTable  # safety and restorability coefficients: basic case 11
     ultimate_double: ImpactTable  # i × (1 − L/200): basic case 12
@@ -355,10 +355,10 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
                               put(FORCE, d(train.loading.rc) * d(dead.end.track_total)), arms))
     ultimate, service = train.ultimate, train.service
     impact = Impacts(
-        ultimate_single=_impact(single, ultimate.origin_impact, ultimate.end_impact, double=False),
-        ultimate_double=_impact(double, ultimate.origin_impact, ultimate.end_impact, double=True),
-        service_single=_impact(single, service.origin_impact, service.end_impact, double=False),
-        service_double=_impact(double, service.origin_impact, service.end_impact, double=True))
+        ultimate_single=_impact(single, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=False),
+        ultimate_double=_impact(double, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=True),
+        service_single=_impact(single, service.origin_pier_impact, service.end_pier_impact, double=False),
+        service_double=_impact(double, service.origin_pier_impact, service.end_pier_impact, double=True))
     bearing_cases = {basic: reaction.longitudinal.case(case) for basic, case in HORIZONTAL_CASES.items()}
     horizontal = tuple(HorizontalRow(case=c.case, origin=c.origin.force, end=c.end.force, total=c.total)
                        for c in bearing_cases.values())

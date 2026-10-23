@@ -261,7 +261,7 @@ def _train_impact(m: Manuscript, result: TransverseResult) -> None:
         m.table(f"train.{track.value}", _train_table(table))
         seat_moment(m, f"train.{track.value}.seat", result.frame, table.n, table.m, result.basic(case).points[0])
     m.heading("impact.heading", f"{action_item(snow, 6)} 衝撃荷重", 2)
-    m.paragraph("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
+    m.paragraph("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
     impacts = {Track.UP: BasicCase.IMPACT_UP, Track.DOWN: BasicCase.IMPACT_DOWN, Track.DOUBLE: BasicCase.IMPACT_DOUBLE}
     for usage, label, impact_set in (("ultimate", "安全性・復旧性", result.impact.ultimate),
                                      ("service", "使用性", result.impact.service)):

@@ -54,7 +54,7 @@ def calculate_reaction(pier: PierInput) -> ReactionResult:
     try:
         dead = calculate_dead(pier)
         self_weight = calculate_self_weight(pier)
-        train = calculate_train(pier, dead)
+        train = calculate_train(pier, dead, self_weight)
         return ReactionResult(
             dead=dead, self_weight=self_weight, train=train,
             longitudinal=calculate_longitudinal(pier, dead, train),

@@ -4,10 +4,10 @@ The table holds the nominal coefficients as printed. Each combination is also
 resolved into actions (README 用途別解決): a component is its factor times the
 printed basic action, every N, H, M and q rounded once to its digits.
 
-The impact differs by use: the basic I (cases 11, 12) uses the girder impact
-coefficients of safety and restorability (decision 26), so in those
+The impact differs by use: the basic I (cases 11, 12) uses the pier-body impact
+coefficients of safety and restorability (decision 77), so in those
 combinations the factor is the nominal coefficient (1.23, 1.35). The
-serviceability 0.75 is already in the 0600 serviceability girder coefficient
+serviceability 0.75 is already in the 0600 serviceability coefficient
 (07 7-2: 0.245 -> 0.184), so there the serviceability impact is taken and only
 ρ remains (nominal 0.75 = ρ × 0.75).
 

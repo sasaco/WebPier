@@ -15,8 +15,8 @@ its own row and every total is the sum of the printed rows (ADR-0003).
 
 Tracks: up = L2, down = L1, double = L1 + L2 (Example2 9-5, consistent with
 11-8 and decision 21). The train is the 0600 reaction of one track without ρf
-times the share of the bearing; the impact is that train load times the girder
-impact coefficient as it is (decision 26). The horizontal actions are the 0600
+times the share of the bearing; the impact is that train load times the pier-body
+impact coefficient (decision 77). The horizontal actions are the 0600
 transverse forces at B and C: vehicle lateral, and wind with and without the
 train together with the wind on the pier body (decision 12, ``wind``).
 
@@ -147,7 +147,7 @@ class ImpactRow:
     item: Item
     slot: int
     train: Printed  # train load of the bearing (9-5)
-    coefficient: Printed  # 0600 girder impact coefficient (07 7-2)
+    coefficient: Printed  # 0600 impact coefficient on the pier body (decision 77)
     n: Printed  # train × coefficient
     arm: Printed
     m: Printed
@@ -173,7 +173,7 @@ class ImpactSet:
 
 @dataclass(frozen=True)
 class Impacts:
-    """Impact with the girder coefficients as they are (decision 26, Example2 9-6)."""
+    """Impact with the coefficients on the pier body (decision 77)."""
 
     ultimate: ImpactSet  # safety and restorability coefficients: basic cases 12-14
     service: ImpactSet  # serviceability coefficients, 0.75 i (07 7-2)
@@ -344,7 +344,7 @@ def train_table(track: Track, girders: Girders, reactions: dict[Item, Printed]) 
 def _impact(train: TrainTable, group: GroupTrain) -> ImpactTable:
     rows = []
     for load in train.rows:
-        girder: GirderImpact = group.origin_impact if load.item is Item.ORIGIN else group.end_impact
+        girder: GirderImpact = group.origin_pier_impact if load.item is Item.ORIGIN else group.end_pier_impact
         coefficient = girder.double if train.track is Track.DOUBLE else girder.single
         n = put(FORCE, d(load.n) * d(coefficient))
         rows.append(ImpactRow(item=load.item, slot=load.slot, train=load.n, coefficient=coefficient, n=n,

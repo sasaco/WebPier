@@ -221,3 +221,9 @@ Differences:
 - **B′ 8.832 / 7.962 vs 8.833 / 7.961**, and **A′ 61.824 / 55.734 vs 61.831 / 55.727**. As in 8-32, the
   sample uses the unrounded ex and its own B′ × L. The vertical-maximum column is 8.694 / 60.858 either way.
 - **Rhb 4892.03 vs 4892.00, 6758.05 vs 6758.00, and 5997.98 vs 5998.00.** The sample rounds to 0.1.
+
+## Classification 3: the reactions come from the sample's FrameWeb file (decision 77)
+
+- The reaction CSV strings in `inputs.reactions` are the sample's, whose impact loads have no pier-body reduction. They are
+  fixed inputs here, so these values are unchanged. The input that WebPier itself writes for the frame analysis now has the
+  reduced impact loads, so its reactions differ from these (re-accepted with the real runners, see the acceptance records).

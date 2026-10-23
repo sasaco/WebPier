@@ -6,10 +6,12 @@ from gridlayoutpdf import Row
 
 from ....calc.moving_load import Girder, MovingLoadResult
 from ....calc.reaction import ReactionResult
-from ....calc.reaction.train import DOUBLE_TRACK_SPAN, SEISMIC_SHARE, SERVICE_RATIO, GirderImpact, GroupTrain
+from ....calc.reaction.train import (
+    DOUBLE_TRACK_SPAN, SEISMIC_SHARE, SERVICE_RATIO, GirderImpact, GroupTrain, PierImpact, PierImpactRatio,
+)
 from ....inputs import PierInput
 from .manuscript import (
-    BODY, DETAIL, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, join, sub,
+    BODY, DETAIL, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, cells, expr, join, sub,
 )
 from .figures import loading_figure
 from .tables import header
@@ -95,6 +97,46 @@ def _coefficients(m: Manuscript, result: ReactionResult, pier: PierInput) -> Non
             m.value(f"train.impact.fatigue.{key}.{track}", Row(sub("i", "F"), label, gap=0), getattr(fatigue, track),
                     medium=True)
         m.end()
+    _pier_coefficients(m, result)
+
+
+def _ratio(m: Manuscript, key: str, label: str, on_pier: PierImpact, ratio: PierImpactRatio) -> None:
+    lhs = Row("r", label, gap=0)
+    if ratio.limited:
+        m.value(key, lhs, ratio.ratio)  # Ds/(L + Du + Ds) of 0.9 or more: no impact on the pier body
+        return
+    symbolic = expr(1, "−", sub("D", "S"), "/", "(", "L", "+", sub("D", "U"), "+", sub("D", "S"), ")")
+    m.formula(key, lhs, symbolic,
+              (1, "−", on_pier.weight, "/", "(", ratio.train, "+", on_pier.dead, "+", on_pier.weight, ")"),
+              ratio.ratio, medium=True)
+
+
+def _pier_coefficients(m: Manuscript, result: ReactionResult) -> None:
+    """Impact on the pier body: i = i0 × (1 − Ds/(L + Du + Ds)) (RC標準 解4.4.4, Example3 Ⅱ-2-6; decision 77)."""
+    train = result.train
+    on_pier = train.pier_impact
+    m.heading("train.impact.pier.heading", "3) 橋脚く体に対する衝撃係数", ITEM)
+    m.start("train.impact.pier.loads")
+    for track, label in (("single", "(単線)"), ("double", "(複線)")):
+        m.value(f"train.impact.pier.{track}.l", Row("L", label, gap=0), getattr(on_pier, track).train, medium=True)
+    m.value("train.impact.pier.du", sub("D", "U"), on_pier.dead, medium=True)
+    m.value("train.impact.pier.ds", sub("D", "S"), on_pier.weight, medium=True)
+    m.end()
+    m.start("train.impact.pier.ratios")
+    for track, label in (("single", "(単線)"), ("double", "(複線)")):
+        _ratio(m, f"train.impact.pier.{track}.ratio", label, on_pier, getattr(on_pier, track))
+    m.end()
+    for usage, title in (("ultimate", "安全性（破壊）および復旧性"), ("service", "使用性"), ("fatigue", "安全性（疲労破壊）")):
+        group: GroupTrain = getattr(train, usage)
+        for key, name in (("origin", "起点側桁"), ("end", "終点側桁")):
+            girder: GirderImpact = getattr(group, key + "_impact")
+            on: GirderImpact = getattr(group, key + "_pier_impact")
+            m.start(f"train.impact.pier.{usage}.{key}")
+            m.paragraph(f"train.impact.pier.{usage}.{key}.label", f"{title}　{name}", gap=True)
+            for track, label in (("single", "(単線)"), ("double", "(複線)")):
+                m.formula(f"train.impact.pier.{usage}.{key}.{track}", Row("i", label, gap=0), None,
+                          (getattr(girder, track), "×", getattr(on_pier, track).ratio), getattr(on, track), medium=True)
+            m.end()
 
 
 def section(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:

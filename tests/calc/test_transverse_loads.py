@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from reaction_support import D, value
+from reaction_support import D, pier_ratios, q, value
 from transverse_support import (
     SECTIONS, chain, diagram, items, key, product, points, table, transverse,
 )
@@ -155,54 +155,47 @@ def test_9_5_train_per_bearing(track, name):
 
 @pytest.mark.parametrize("track,name", [(Track.UP, "single_track_up"), (Track.DOWN, "single_track_down"),
                                         (Track.DOUBLE, "double_track")])
-def test_9_6_impact_with_the_girder_coefficients(track, name):
-    # Decision 26: the girder impact coefficients as they are (9-6: 0.245 / 0.546, double 0.222 / 0.521).
+def test_9_6_impact_with_the_coefficients_on_the_pier_body(track, name):
+    # Decision 77: i = i0 × (1 − Ds/(L + Du + Ds)). Example2 9-6 prints the girder coefficients 0.245 / 0.546, double
+    # 0.222 / 0.521 (no reduction, classification 3 in transverse_notes.md); with the ratios 0.751 (single) and
+    # 0.763 (double) of test_reaction_train: 0.245 × 0.751 = 0.184, 0.546 × 0.751 = 0.410, 0.222 × 0.763 = 0.169,
+    # 0.521 × 0.763 = 0.398.
     _, reaction, result = chain()
     impact = result.impact.ultimate.table(track)
     train = result.train.table(track)
     group = reaction.train.ultimate
+    ratio = dict(zip(("single", "double"), pier_ratios(reaction)))["double" if track is Track.DOUBLE else "single"]
     for row, load in zip(impact.rows, train.rows, strict=True):
         girder = group.origin_impact if row.item is Item.ORIGIN else group.end_impact
-        assert row.coefficient == (girder.double if track is Track.DOUBLE else girder.single)
+        i0 = girder.double if track is Track.DOUBLE else girder.single
+        assert value(row.coefficient) == q(D(i0.value) * ratio, 3)
         assert (row.item, row.slot, row.train, row.arm) == (load.item, load.slot, load.n, load.arm)
     hand, n, m = hand_table(impact.rows, lambda r: r.coefficient.value, lambda r: r.train.value)
     assert ours(impact, "train", "coefficient") == hand
     assert (value(impact.n), value(impact.m)) == (n, m)
-    printed, total = printed_rows("impact_load", name)
-    diff = {k: tuple(str(x) for x in (h[0], p_[0], h[2], p_[2], h[3], p_[3])) for k, (h, p_) in
-            differences(hand, printed).items()}
-    if track is Track.UP:
-        # −1.34 × −3.8 = 5.092 (9-6 5.07); 11.75 × −1.5 = −17.625; 31.44 × 3.8 = 119.472;
-        # 42.17 × 0.546 = 23.02482 -> 23.02 (9-6 23.03), × −2.95 = −67.909.
-        assert diff == {"RB_G1": ("-5.45", "-5.45", "-1.34", "-1.34", "5.09", "5.07"),
-                        "RB_G2": ("47.95", "47.95", "11.75", "11.75", "-17.63", "-17.62"),
-                        "RB_G4": ("128.33", "128.33", "31.44", "31.44", "119.47", "119.48"),
-                        "RC_G1": ("42.17", "42.17", "23.02", "23.03", "-67.91", "-67.93")}
-        assert (str(n), str(m), total[2], total[4]) == ("227.77", "483.47", 227.78, 483.45)
-    elif track is Track.DOWN:
-        assert set(diff) == {"RB_G1", "RB_G3", "RB_G4", "RC_G2"}
-        assert (str(n), str(m), total[2], total[4]) == ("227.77", "-483.47", 227.78, -483.45)
-    else:
-        # The train 149.59 (see 9-5 above; 9-6 prints 149.58); × 0.222 = 33.20898 -> 33.21 as printed.
-        assert diff == {"RB_G2": ("149.59", "149.58", "33.21", "33.21", "-49.82", "-49.82"),
-                        "RB_G3": ("149.59", "149.58", "33.21", "33.21", "49.82", "49.82")}
-        assert (str(n), str(m), total[2], total[4]) == ("428.28", "0.00", 428.28, 0.0)
-    # 9-6 prints RC G2 M 407.1 with 1 decimal; ours keeps 2 (407.10).
+    # The sums of the printed rows, by hand: UP −1.00 + 8.82 + 18.70 + 23.61 + 17.29 + 103.63 = 171.05 and
+    # 3.80 − 13.23 + 28.05 + 89.72 − 51.01 + 305.71 = 363.04; DOWN mirrors it; DOUBLE
+    # 20.77 + 25.28 + 25.28 + 20.77 + 117.38 + 117.38 = 326.86, the moments cancel.
+    expected = {Track.UP: ("171.05", "363.04"), Track.DOWN: ("171.05", "-363.04"), Track.DOUBLE: ("326.86", "0.00")}
+    assert (str(n), str(m)) == expected[track]
+    # 9-6 prints RC G2 M 407.1 with 1 decimal; ours keeps 2.
     assert all(row.m.digits == 2 for row in impact.rows)
 
 
 @pytest.mark.parametrize("track", list(Track))
-def test_serviceability_impact_uses_the_serviceability_girder_coefficients(track):
+def test_serviceability_impact_uses_the_serviceability_coefficients_on_the_pier_body(track):
     _, reaction, result = chain()
     impact = result.impact.service.table(track)
-    group = reaction.train.service  # 07 7-2: 0.75 i = 0.184 / 0.41, double 0.167 / 0.391
+    group = reaction.train.service  # 07 7-2: 0.75 i = 0.184 / 0.41, double 0.167 / 0.391; times the ratio
+    ratio = dict(zip(("single", "double"), pier_ratios(reaction)))["double" if track is Track.DOUBLE else "single"]
     for row, load in zip(impact.rows, result.train.table(track).rows, strict=True):
         girder = group.origin_impact if row.item is Item.ORIGIN else group.end_impact
-        assert row.coefficient == (girder.double if track is Track.DOUBLE else girder.single)
+        i0 = girder.double if track is Track.DOUBLE else girder.single
+        assert value(row.coefficient) == q(D(i0.value) * ratio, 3)
         assert row.train == load.n
     hand, n, m = hand_table(impact.rows, lambda r: r.coefficient.value, lambda r: r.train.value)
     assert ours(impact, "train", "coefficient") == hand and (value(impact.n), value(impact.m)) == (n, m)
-    expected = {0.167, 0.391} if track is Track.DOUBLE else {0.184, 0.41}
+    expected = {0.127, 0.298} if track is Track.DOUBLE else {0.138, 0.308}  # 0.167 × 0.763, 0.391 × 0.763; 0.184 × 0.751, 0.41 × 0.751
     assert {row.coefficient.value for row in impact.rows} == expected
 
 
@@ -230,7 +223,7 @@ def test_9_9_to_9_11_load_diagrams_vertical():
         impact = result.impact.ultimate.table(track)
         assert points(result.basic(case)) == {CAP: (impact.n.value, 0.0, impact.m.value)}
     assert [points(result.basic(c))[CAP] for c in (B.TRAIN_UP, B.IMPACT_UP)] == [(567.38, 0.0, 1210.09),
-                                                                                 (227.77, 0.0, 483.47)]
+                                                                                 (171.05, 0.0, 363.04)]
     for action in result.basic_cases:
         if action.case is not B.D1:
             assert action.line_loads == ()

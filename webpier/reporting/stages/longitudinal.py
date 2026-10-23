@@ -276,7 +276,7 @@ def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
 
 def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
     m.heading("impact.heading", f"{_item(result, 6)} 衝撃荷重", 2)
-    m.paragraph("impact.note", "鉛直力は列車荷重に桁の衝撃係数を乗じた値とする．")
+    m.paragraph("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
     impact = result.impact
     for key, label, table, train, case in (
             ("ultimate_single", "1) 単線載荷（安全性・復旧性）", impact.ultimate_single, result.train.single,

@@ -176,30 +176,30 @@ def combination_1():
 def test_a_combination_differs_from_the_printed_one_only_by_rounding_each_action(combination_1):
     """Decision 38, current.json 0610 combination 1 (破壊 列車最大), by hand:
 
-    printed:   9129.48 + 4584.2 + 327.45 × 7.6 + 936.0 + 2196.72 + 1140.0 + 1531.95 + 578.19 = 22585.160
+    printed:   9129.48 + 4584.2 + 327.45 × 7.6 + 936.0 + 2196.72 + 1140.0 + 1531.95 + 441.25 = 22448.220
     unrounded: 1.1 × (8299.53 + 4167.45 + 297.68 × 7.6) + 1.2 × (780.0 + 1830.6) + 1140.0 + 1.35 × 1134.78
-               + 1.35 × 428.29 = 22585.1473
+               + 1.35 × 326.85 = 22448.2033   (decision 77: the double-track impact 92.09 + 234.76 = 326.85)
     The largest action difference is 4584.2 − 1.1 × 4167.45 = 0.005.
     """
     combination, document = combination_1
-    checked = combination_vertical(combination, document, combine_result(22585.1473))
-    assert checked["printed"] == pytest.approx(22585.16, abs=1e-9)
-    assert checked["unrounded"] == pytest.approx(22585.1473, abs=1e-9)
-    assert checked["frameweb"] == 22585.1473
-    assert checked["difference"] == pytest.approx(0.0127, abs=1e-9)
+    checked = combination_vertical(combination, document, combine_result(22448.2033))
+    assert checked["printed"] == pytest.approx(22448.22, abs=1e-9)
+    assert checked["unrounded"] == pytest.approx(22448.2033, abs=1e-9)
+    assert checked["frameweb"] == 22448.2033
+    assert checked["difference"] == pytest.approx(0.0167, abs=1e-9)
     assert checked["largest_action_difference"] == pytest.approx(0.005, abs=1e-9)
 
 
 def test_a_combined_reaction_that_is_not_the_unrounded_sum_is_an_error(combination_1):
     combination, document = combination_1
-    with pytest.raises(ReadbackError, match="Combine 1: 鉛直反力 22585.16"):
-        combination_vertical(combination, document, combine_result(22585.16))
+    with pytest.raises(ReadbackError, match="Combine 1: 鉛直反力 22448.22"):
+        combination_vertical(combination, document, combine_result(22448.22))
 
 
 def test_a_vertical_reaction_with_alternatives_is_not_a_spot_check(combination_1):
     combination, document = combination_1
     with pytest.raises(ReadbackError, match="Combine 1: 鉛直反力の最大と最小が異なります"):
-        combination_vertical(combination, document, combine_result(22585.1473, upward_min=22000.0))
+        combination_vertical(combination, document, combine_result(22448.2033, upward_min=22000.0))
 
 
 def test_an_action_rounded_by_more_than_decision_38_allows_is_an_error(combination_1):
@@ -212,4 +212,4 @@ def test_an_action_rounded_by_more_than_decision_38_allows_is_an_error(combinati
     changed = replace(combination, components=(replace(first, points=(first.points[0], point)),
                                                *combination.components[1:]))
     with pytest.raises(ReadbackError, match="0.005 を超えます"):
-        combination_vertical(changed, document, combine_result(22585.1473))
+        combination_vertical(changed, document, combine_result(22448.2033))
