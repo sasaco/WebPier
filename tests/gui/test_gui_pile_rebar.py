@@ -4,7 +4,7 @@ bound to the field table, the f'ck shared with the 杭基礎 page."""
 import pytest
 
 from webpier.gui import app as gui
-from webpier.gui import rebar_edit, rebar_page
+from webpier.gui import pile_window, rebar_edit, rebar_page
 
 PILE = ("鉄筋", "杭")
 CAST = ("杭基礎", "場所打ち杭")
@@ -108,9 +108,37 @@ def test_the_cutoff_group_has_the_section_after_it_the_lengths_and_the_rules(edi
     assert page(editor).status.get() == ""
 
 
-def test_the_pile_has_no_outline_window_yet(editor):
+def test_the_pile_window_draws_the_zones_the_cutoff_and_the_section(editor):
     assert page(editor).select_member("杭")
-    assert page(editor).member not in rebar_page.WINDOWS
+    editor.document.data["杭基礎"]["場所打ち杭"]["杭径"] = 1.0
+    assert page(editor).toggle_window()
+    window = page(editor).window()
+    assert window.notice.get() == "" or "空欄" in window.notice.get()  # the blank rebar: the section needs values
+    for path, text in (((*PILE, "pure_cover_mm"), "100"), ((*PILE, "main_bars", "diameter_mm"), "32"),
+                       ((*PILE, "main_bars", "count"), "20")):
+        enter(editor, path, text)
+    assert page(editor).select_group("hoops")
+    for path, text in (((*PILE, "hoops", "zone_2d", "diameter_mm"), "16"), ((*PILE, "hoops", "zone_2d", "pitch_mm"), "200"),
+                       ((*PILE, "hoops", "zone_2d", "sets"), "1"), ((*PILE, "hoops", "footing", "diameter_mm"), "16"),
+                       ((*PILE, "hoops", "footing", "pitch_mm"), "100"), ((*PILE, "hoops", "footing", "sets"), "1")):
+        enter(editor, path, text)
+    editor.root.update()
+    assert len(window.section.find_withtag("rebar")) == 20 and window.notice.get() == ""
+    assert window.rows == ["主鉄筋 20-D32　帯鉄筋 D16", "芯かぶり 132.0 mm", "芯間隔 " + f"{pile_window.spacing(500 - 132, 20):.1f} mm"]
+    assert len(window.side.find_withtag("zone")) >= 2 and not window.side.find_withtag("cutoff")
+    assert page(editor).add_row((*PILE, "hoops", "lower"))
+    editor.document.data["鉄筋"]["杭"]["cutoff"].update(cutoff_length_mm=5000.0)
+    editor.document.data["鉄筋"]["杭"]["cutoff"]["main_bars"].update(diameter_mm=32, count=10)
+    window.select("cutoff")
+    assert "段落し後" in window.notice.get() and window.view == "cutoff"
+    window.refresh()
+    assert len(window.side.find_withtag("cutoff")) == 2
+    assert page(editor).toggle_window() is False
+
+
+def test_the_pile_section_helpers():
+    assert pile_window.bar_ring(1000, 100, 16, 32) == (132.0, 368.0, 392.0)
+    assert round(pile_window.spacing(368, 20), 1) == 115.1 and pile_window.spacing(368, 0) == 0.0
 
 
 def test_the_members_are_children_of_the_rebar_page_in_the_tree(editor):

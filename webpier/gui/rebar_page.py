@@ -23,6 +23,7 @@ from .beam_window import BeamWindow
 from .column_window import ColumnWindow
 from .document import EditorError
 from .footing_window import FootingWindow
+from .pile_window import PileWindow
 from .form import Form
 from .rebar_edit import FootingPreview
 
@@ -33,7 +34,7 @@ GROUPS = {"柱": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("check", "断�
           "梁": (("main", "配筋"), ("check", "断面照査の条件")),
           "フーチング": (("main", "配筋"),),
           "杭": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("cutoff", "段落し"))}
-WINDOWS = {"柱": ColumnWindow, "梁": BeamWindow, "フーチング": FootingWindow}  # the member's window (toggle_window)
+WINDOWS = {"柱": ColumnWindow, "梁": BeamWindow, "フーチング": FootingWindow, "杭": PileWindow}  # the member's window (toggle_window)
 CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
 CHECK_LABELS = (("水掛かりの程度", "水掛かりの程度"), ("外観の照査", "外観の照査"),
                 ("ε'csd", "ε'csd（収縮・クリープによるひび割れ幅の増加）"), ("適用基準の機関", "適用基準の機関"),
@@ -80,8 +81,7 @@ class RebarPage:
         if self.group not in self.group_buttons:
             self.group = state["group"] = "main"
         column = self.member == "柱"
-        if self.member in WINDOWS:  # the pile has no 配筋略図 yet (decision 92)
-            ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
+        ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
         left = ttk.Frame(self.frame)
         left.pack(fill="both", expand=True)
         self.inputs_canvas = tk.Canvas(left, highlightthickness=0, background="white", height=480)
@@ -207,7 +207,7 @@ class RebarPage:
 
     # the member's window ------------------------------------------------------------------------------------
 
-    def window(self) -> ColumnWindow | BeamWindow | FootingWindow | None:
+    def window(self) -> ColumnWindow | BeamWindow | FootingWindow | PileWindow | None:
         """The open window of the member (the column's section and tables, the beam's or the footing's 配筋略図), kept
         by the editor while the page is rebuilt."""
         window = self.editor.rebar_state.get("window")
@@ -244,6 +244,8 @@ class RebarPage:
         if self.member == rebar_edit.PILE:  # nothing to lay out: the cards show only what is entered
             self.layout = None
             self.status.set("")
+            if (window := self.window()) is not None:
+                window.refresh()
             return
         if self.member == "柱":
             self.layout = None
