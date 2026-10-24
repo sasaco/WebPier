@@ -11,8 +11,8 @@ from webpier.export.capacita.pile_wdj import build_pile_wdj, name, write_pile_wd
 from webpier.export.capacita.wdj import SCHEMA, VERSION
 
 
-def document(lines=LINES, **changes):
-    found = section(cast_input(**changes))
+def document(lines=LINES, rebar=None, **changes):
+    found = section(cast_input(rebar, **changes))
     rows = [select(1, 7, 3, lines), select(2, 8, 2, lines)]
     return build_pile_wdj(found, pile_factor(found), rows)
 
@@ -56,7 +56,8 @@ def test_the_bars_are_the_first_face_only_all_round_the_pile_at_the_centre_cover
     assert bar["rebar1"] == {"title": "全周", "rebar_dia": 32, "rebar_n": 20, "rebar_cover": 132, "rebar_lines": None,
                              "rebar_space": None, "rebar_ss": None, "cos": None, "enable": True}
     assert all(value is None for key, value in bar["rebar2"].items() if key not in ("title", "enable"))
-    assert bar["stirrup"] == {"stirrup_dia": 16, "stirrup_n": 2, "stirrup_ss": 200}  # a hoop crosses the section twice
+    assert bar["stirrup"] == {"stirrup_dia": 16, "stirrup_n": 2, "stirrup_ss": 200}  # a hoop (1 組) crosses the section twice
+    assert document(rebar={"hoops": {"zone_2d": {"sets": 2}}})["bar"][0]["stirrup"]["stirrup_n"] == 4  # stirrup_n = 2 × 組
     assert (bar["b"], bar["h"]) == (1000, 1000) and all(value is None for value in bar["sidebar1"].values())
 
 
@@ -75,6 +76,7 @@ def test_the_safety_factors_are_the_columns_r5_rows_and_the_pile_factors_select_
     assert (destruction["M_rc"], destruction["M_rbs"], destruction["V_rbc"], destruction["V_rbs"], destruction["ri"]) == (
         1.3, 1.1, 1.3, 1.1, 1.2)
     assert safety["material_concrete"]["1"] == {"fck": 18.8, "dmax": 25.0}
+    assert document(rebar={"aggregate_max_mm": 20.0})["safety"]["material_concrete"]["1"]["dmax"] == 20.0
     assert [(row["id"], row["selected"]) for row in safety["pile_factor"]["1"]] == [
         ("pile-000", False), ("pile-001", True), ("pile-002", False), ("pile-003", False), ("pile-004", False)]
     assert safety["material_bar"]["1"][0]["tensionBar"] == {"fsy": 345, "fsu": 490}

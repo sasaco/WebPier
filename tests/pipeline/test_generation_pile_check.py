@@ -17,9 +17,10 @@ from webpier.pipeline import generate
 from webpier.pipeline.generate import GenerationOptions
 
 PILE = json.loads((FIXTURES / "inputs" / "pile.json").read_text(encoding="utf-8"))
-# the bars of the pile body of pile.json's cast-in-place pile (D1.0 m): 20-D32 with 100 mm of cover, D16 hoops at 200
-CAST = {"杭基礎/場所打ち杭/軸方向鉄筋": {"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 100.0},
-        "杭基礎/場所打ち杭/帯鉄筋": {"径": 16, "材質": "SD345", "間隔": 200.0}}
+# the 鉄筋.杭 of pile.json's cast-in-place pile (D1.0 m): 20-D32 with 100 mm of cover, D16 hoops (1 組) at 200 in the 2D zone
+CAST = {"鉄筋/杭/materials": {"main": "SD345", "transverse": "SD345"}, "鉄筋/杭/pure_cover_mm": 100.0,
+        "鉄筋/杭/aggregate_max_mm": 25.0, "鉄筋/杭/main_bars": {"diameter_mm": 32, "count": 20},
+        "鉄筋/杭/hoops/zone_2d": {"diameter_mm": 16, "sets": 1, "pitch_mm": 200.0}}
 ITEMS = ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
          "transverse_frame_analysis")
 
@@ -219,8 +220,8 @@ def test_the_report_has_capacitas_pages_after_the_headings_of_the_two_checks(mad
 def test_the_cast_in_place_pile_needs_its_bars_before_any_runner_is_asked(tmp_path):
     from webpier.core.errors import InputError
 
-    with pytest.raises(InputError, match="杭基礎.場所打ち杭.帯鉄筋.間隔: 杭体の照査に必要です"):
-        generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST, **{"杭基礎/場所打ち杭/帯鉄筋/間隔": None}),
+    with pytest.raises(InputError, match="鉄筋.杭.hoops.zone_2d.pitch_mm: 杭体の照査に必要です"):
+        generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST, **{"鉄筋/杭/hoops/zone_2d/pitch_mm": None}),
                                             tmp_path / "output", tmp_path / "post"))
     assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
 

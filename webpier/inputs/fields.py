@@ -224,14 +224,6 @@ def _piles() -> dict[str, Field]:
         f"{cast}.杭径": number(LENGTH, "positive", nullable=True),
         f"{cast}.f'ck": number(STRENGTH, "positive", nullable=True),
         f"{cast}.施工条件": choice(choices.CAST_IN_PLACE_CONDITIONS, nullable=True),
-        # 場所打ち杭の杭体の照査 (decision 91): the main bars all along the pile and the hoops, blank until the check asks
-        f"{cast}.軸方向鉄筋.径": number(DIAMETER, "positive", nullable=True),
-        f"{cast}.軸方向鉄筋.本数": integer(1, MAX_PILE_BARS, nullable=True),
-        f"{cast}.軸方向鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
-        f"{cast}.軸方向鉄筋.純かぶり": number(LENGTH_MM, "positive", nullable=True),
-        f"{cast}.帯鉄筋.径": number(DIAMETER, "positive", nullable=True),
-        f"{cast}.帯鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
-        f"{cast}.帯鉄筋.間隔": number(LENGTH_MM, "positive", nullable=True),
         f"{steel}.ソイルセメント径": number(LENGTH, "positive", nullable=True),
         f"{steel}.鋼管外径": number(LENGTH, "positive", nullable=True),
         f"{steel}.鋼管厚": number(THICKNESS_MM, "positive", nullable=True),
@@ -319,6 +311,8 @@ _PITCH_MM = number(LENGTH_MM, "positive", nullable=True)
 _DIAMETER = number(DIAMETER, "positive", nullable=True)
 _STEEL = choice(choices.STEEL_GRADES, nullable=True)
 _COUNT = integer(0, MAX_COUNT, nullable=True)
+_PILE_COUNT = integer(1, MAX_PILE_BARS, nullable=True)
+_AGGREGATE_MAX = number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))
 
 
 def _optional_choice(options: Iterable[str]) -> Field:
@@ -331,6 +325,9 @@ HOOP_ROW = {"direction": _optional_choice(choices.REBAR_DIRECTIONS), "diameter_m
 OVERRIDE_ROW = {"source_center_mm": number(LENGTH_MM), "source_diameter_mm": number(DIAMETER, "positive"),
                 "center_mm": _LENGTH_MM, "diameter_mm": _DIAMETER}
 MEMBERS = ("梁", "柱", "フーチング")
+PILE_HOOP_ZONES = ("footing", "zone_2d")  # the hoops of the part inside the footing and of the 2D zone
+PILE_MEMBER = "杭"  # 鉄筋.杭, the reinforcement of a cast-in-place pile (decisions 87 and 92): no f'ck of its own (杭基礎's)
+_PILE_HOOP = {"diameter_mm": _DIAMETER, "sets": integer(1, MAX_COUNT, nullable=True), "pitch_mm": _PITCH_MM}
 
 
 def _prefixed(prefix: str, rows: dict[str, Field]) -> dict[str, Field]:
@@ -405,7 +402,7 @@ def _rebar() -> dict[str, Field]:
         table |= {f"{base}.concrete_strength_mpa": number(STRENGTH, "positive"),
                   # Dmax: a property of each member's concrete, read by 0611 and the JRSNAP export for the column
                   # (decision 48), by 0900 and 0910 for the beam (decision 59), by 0810 and 0820 for the footing (60)
-                  f"{base}.aggregate_max_mm": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm"))}
+                  f"{base}.aggregate_max_mm": _AGGREGATE_MAX}
         if member == "柱":
             table |= _column(base)
             continue
@@ -413,6 +410,29 @@ def _rebar() -> dict[str, Field]:
             table |= _beam(base)
             continue
         table |= _footing(base)
+    return table | _pile(f"鉄筋.{PILE_MEMBER}")
+
+
+def _pile(prefix: str) -> dict[str, Field]:
+    """The cast-in-place pile (decisions 87 and 92): one steel and cover for the pile; the main bars all along it; the hoops
+    of the part inside the footing, of the 2D zone (the pile body check's) and of up to three zones below it; the
+    cut-off of the bars (the main bars after it are blank when there is none)."""
+    table = {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
+             f"{prefix}.pure_cover_mm": _PITCH_MM, f"{prefix}.aggregate_max_mm": _AGGREGATE_MAX,  # a cover is positive
+             f"{prefix}.main_bars.diameter_mm": _DIAMETER, f"{prefix}.main_bars.count": _PILE_COUNT}
+    for zone in PILE_HOOP_ZONES:
+        table |= _prefixed(f"{prefix}.hoops.{zone}", _PILE_HOOP)
+    table |= _prefixed(f"{prefix}.hoops.lower[*]", {"length_m": number(LENGTH, "positive", nullable=True), **_PILE_HOOP})
+    cutoff = f"{prefix}.cutoff"
+    table |= {f"{cutoff}.main_bars.diameter_mm": _DIAMETER, f"{cutoff}.main_bars.count": _PILE_COUNT,
+              **_prefixed(f"{cutoff}.hoops", _PILE_HOOP),
+              f"{cutoff}.head_anchorage_mm": _PITCH_MM, f"{cutoff}.cutoff_length_mm": _PITCH_MM,
+              f"{cutoff}.cutoff_anchorage_mm": _PITCH_MM, f"{cutoff}.joint_reduction": number(RATIO, "positive", nullable=True),
+              f"{cutoff}.margin_mm": _LENGTH_MM, f"{cutoff}.no_joint.from_head_mm": _LENGTH_MM,
+              f"{cutoff}.no_joint.above_mm": _LENGTH_MM, f"{cutoff}.no_joint.below_mm": _LENGTH_MM,
+              f"{cutoff}.margin_ratio.moment": number(RATIO, "positive", nullable=True),
+              f"{cutoff}.margin_ratio.shear": number(RATIO, "positive", nullable=True),
+              f"{cutoff}.anchorage_stirrup": _optional_choice(choices.PILE_ANCHORAGE_STIRRUPS)}
     return table
 
 

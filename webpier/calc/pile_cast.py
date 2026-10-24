@@ -46,17 +46,15 @@ DISTANCE = Precision(3, "m")
 AREA = Precision(1, "mm2")
 _MILLI = Decimal(1000)
 _PATH = "杭基礎.場所打ち杭"
+_REBAR = "鉄筋.杭"
 STATUS = "not_evaluated"  # Capacita returns no judgement (ADR-0008)
 # The sections of Capacita's report this check asks for, in report order.
 REPORT_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction")
 # 安全性（破壊）: the row of the safety factors of RC標準 R5 (calc.column_check.SAFETY_FACTORS)
 SAFETY_ID = 5
-# A closed hoop crosses the section twice: its two legs are the shear reinforcement (``stirrup_n``, Aw = 2 × the bar's area).
-# Capacita's example of a circular section has no hoops, so this is an assumption about RcDan's reading (decision 91).
-HOOP_LEGS = 2
-# 粗骨材の最大寸法 of the concrete of a cast-in-place pile, mm: not an input (decision 87 leaves it open); 25 is the
-# size 場所打ち杭 uses (an assumption, decision 91).
-AGGREGATE_MAX = Printed(25.0, 1, "mm")
+# A closed circular hoop (one 組, CONTEXT.md 帯鉄筋の組) crosses the section twice: its two legs are the shear
+# reinforcement, so Capacita's ``stirrup_n`` is 2 × the 組 (its Aw is ``stirrup_n`` × the bar's area; decision 92).
+LEGS_PER_SET = 2
 # 杭の施工条件 of Capacita (the default table of RcDan / WebDanforCS): id, name and the factors that reduce f'ck, the bond
 # strength, Ec and Vcd (the one selected applies; Capacita reads the table whole).
 PILE_FACTORS = (("pile-000", "使用しない", 1.0, 1.0, 1.0, 1.0), ("pile-001", "泥水中に打込む", 0.8, 0.7, 0.8, 0.9),
@@ -84,6 +82,7 @@ class CastSection:
     diameter: Printed  # D
     fck: Printed  # f'ck of the input (before the reduction of the 施工条件)
     condition: str  # 施工条件
+    aggregate_max: Printed  # 粗骨材の最大寸法 Dmax, mm
     bar_diameter: Printed
     bar_count: int
     bar_area: Printed  # As of all the bars
@@ -92,6 +91,7 @@ class CastSection:
     centre: Printed  # 芯かぶり of the main bars
     hoop_diameter: Printed
     hoop_steel: Steel
+    hoop_sets: int  # 組 of the hoops of the 2D zone
     hoop_pitch: Printed
 
 
@@ -131,30 +131,35 @@ class PileCastResult:
 
 def section(pier: PierInput) -> CastSection:
     """The section of the input; a blank item is an input error naming it."""
-    pile = pier.piles.cast_in_place
-    items = {"軸方向鉄筋.径": pile.bars.diameter, "軸方向鉄筋.本数": pile.bars.count, "軸方向鉄筋.材質": pile.bars.grade,
-             "軸方向鉄筋.純かぶり": pile.bars.cover, "帯鉄筋.径": pile.hoops.diameter, "帯鉄筋.材質": pile.hoops.grade,
-             "帯鉄筋.間隔": pile.hoops.pitch}
+    pile, bars = pier.piles.cast_in_place, pier.rebar.pile
+    hoop = bars.hoops.zone_2d  # the pile body check is of the section at the head (decision 92)
+    items = {"materials.main": bars.materials.main, "materials.transverse": bars.materials.transverse,
+             "pure_cover_mm": bars.pure_cover, "aggregate_max_mm": bars.aggregate_max,
+             "main_bars.diameter_mm": bars.main_diameter, "main_bars.count": bars.main_count,
+             "hoops.zone_2d.diameter_mm": hoop.diameter, "hoops.zone_2d.sets": hoop.sets,
+             "hoops.zone_2d.pitch_mm": hoop.pitch}
     for name, value in items.items():
         if value is None:
-            raise InputError(f"{_PATH}.{name}: 杭体の照査に必要です")
+            raise InputError(f"{_REBAR}.{name}: 杭体の照査に必要です")
     # the sizes of a cast-in-place pile foundation are required by the input (inputs.parse)
     assert (pile.diameter is not None and pile.fck is not None and pile.condition is not None
-            and pile.bars.diameter is not None and pile.bars.count is not None and pile.bars.grade is not None
-            and pile.bars.cover is not None and pile.hoops.diameter is not None and pile.hoops.grade is not None
-            and pile.hoops.pitch is not None)
+            and bars.materials.main is not None and bars.materials.transverse is not None
+            and bars.pure_cover is not None and bars.aggregate_max is not None and bars.main_diameter is not None
+            and bars.main_count is not None and hoop.diameter is not None and hoop.sets is not None
+            and hoop.pitch is not None)
     diameter = put(LENGTH, d(pile.diameter) * _MILLI)
-    centre = put(LENGTH, d(pile.bars.cover) + d(pile.hoops.diameter) + d(pile.bars.diameter) / 2)
+    centre = put(LENGTH, d(bars.pure_cover) + d(hoop.diameter) + d(bars.main_diameter) / 2)
     if 2 * d(centre) >= d(diameter):
-        raise InputError(f"{_PATH}.軸方向鉄筋.純かぶり: 杭径に対して大きすぎます（主鉄筋の芯かぶり {centre.value:g} mm が"
+        raise InputError(f"{_REBAR}.pure_cover_mm: 杭径に対して大きすぎます（主鉄筋の芯かぶり {centre.value:g} mm が"
                          f"杭の半径 {diameter.value / 2:g} mm 以上になります）")
-    area = put(AREA, d(bar_area(pile.bars.diameter, f"{_PATH}.軸方向鉄筋.径")) * pile.bars.count)
-    bar_area(pile.hoops.diameter, f"{_PATH}.帯鉄筋.径")  # a size with no nominal area is an input error
-    return CastSection(diameter, pile.fck, pile.condition, pile.bars.diameter, pile.bars.count, area,
-                       Steel(pile.bars.grade, yield_strength(pile.bars.grade), tensile_strength(pile.bars.grade)),
-                       pile.bars.cover, centre, pile.hoops.diameter,
-                       Steel(pile.hoops.grade, yield_strength(pile.hoops.grade), tensile_strength(pile.hoops.grade)),
-                       pile.hoops.pitch)
+    area = put(AREA, d(bar_area(bars.main_diameter, f"{_REBAR}.main_bars.diameter_mm")) * bars.main_count)
+    bar_area(hoop.diameter, f"{_REBAR}.hoops.zone_2d.diameter_mm")  # a size with no nominal area is an input error
+    return CastSection(
+        diameter, pile.fck, pile.condition, bars.aggregate_max, bars.main_diameter, bars.main_count, area,
+        Steel(bars.materials.main, yield_strength(bars.materials.main), tensile_strength(bars.materials.main)),
+        bars.pure_cover, centre, hoop.diameter,
+        Steel(bars.materials.transverse, yield_strength(bars.materials.transverse),
+              tensile_strength(bars.materials.transverse)), hoop.sets, hoop.pitch)
 
 
 def select(row: int, member: int, piles: int, lines: Sequence[PointForces]) -> RowForces:

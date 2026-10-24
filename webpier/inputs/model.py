@@ -169,33 +169,13 @@ class Materials:
 
 
 @dataclass(frozen=True)
-class CastBars:
-    """The main bars of a 場所打ち杭 (decision 91): one set all along the pile, spaced evenly round it; None is blank."""
-
-    diameter: Printed | None  # 径 (D32 → 32), mm
-    count: int | None  # 本数, all round the pile
-    grade: str | None  # 材質, one of choices.STEEL_GRADES
-    cover: Printed | None  # 純かぶり, mm: from the face of the pile to the face of the hoops
-
-
-@dataclass(frozen=True)
-class CastHoops:
-    """The hoops of a 場所打ち杭 (decision 91): one set all along the pile; None is blank."""
-
-    diameter: Printed | None  # 径 (D16 → 16), mm
-    grade: str | None  # 材質, one of choices.STEEL_GRADES
-    pitch: Printed | None  # 間隔, mm
-
-
-@dataclass(frozen=True)
 class CastInPlacePile:
-    """場所打ち杭: its diameter, concrete strength, construction condition and the bars of its body; None is blank."""
+    """場所打ち杭: its diameter, concrete strength and construction condition (its reinforcement is 鉄筋.杭, decision 92);
+    None is blank."""
 
     diameter: Printed | None  # 杭径 D, m
     fck: Printed | None  # f'ck, N/mm2
     condition: str | None  # 施工条件, one of choices.CAST_IN_PLACE_CONDITIONS
-    bars: CastBars  # 軸方向鉄筋 (the pile body check, decision 91)
-    hoops: CastHoops  # 帯鉄筋
 
 
 @dataclass(frozen=True)

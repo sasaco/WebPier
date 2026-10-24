@@ -1,6 +1,8 @@
 """The pile body of a cast-in-place pile (decision 91): the section from the input, the design force cases WebPier chooses and the result
 it holds; Capacita's check itself (RcDan's circular section) is the engine's, tried on the real runner."""
 
+import re
+
 import pytest
 
 from pile_cast_support import COMPRESSED, LINES, cast_input, cast_result, line
@@ -15,31 +17,41 @@ def test_the_section_is_the_input_with_the_centre_of_the_bars_from_the_clear_cov
     assert (found.bar_diameter.value, found.bar_count, found.bar_area.value) == (32.0, 20, 15884.0)  # 794.2 mm2 × 20
     assert (found.cover.value, found.centre.value) == (100.0, 132.0)  # 100 + 16 + 32 / 2
     assert (found.bar_steel.fsy.value, found.bar_steel.fsu.value, found.hoop_steel.grade) == (345.0, 490.0, "SD345")
-    assert (found.hoop_diameter.value, found.hoop_pitch.value) == (16.0, 200.0)
+    assert (found.hoop_diameter.value, found.hoop_sets, found.hoop_pitch.value) == (16.0, 1, 200.0)
+    assert found.aggregate_max.value == 25.0
 
 
-@pytest.mark.parametrize("group, key, name", [
-    ("軸方向鉄筋", "径", "軸方向鉄筋.径"), ("軸方向鉄筋", "本数", "軸方向鉄筋.本数"), ("軸方向鉄筋", "材質", "軸方向鉄筋.材質"),
-    ("軸方向鉄筋", "純かぶり", "軸方向鉄筋.純かぶり"), ("帯鉄筋", "径", "帯鉄筋.径"), ("帯鉄筋", "材質", "帯鉄筋.材質"),
-    ("帯鉄筋", "間隔", "帯鉄筋.間隔")])
-def test_a_blank_item_of_the_bars_is_named(group, key, name):
-    bars = {"軸方向鉄筋": {"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 100.0},
-            "帯鉄筋": {"径": 16, "材質": "SD345", "間隔": 200.0}}
-    bars[group][key] = None
-    with pytest.raises(InputError, match=f"杭基礎.場所打ち杭.{name}: 杭体の照査に必要です"):
-        section(cast_input(**bars))
+def nested(path, value):
+    """{"a": {"b": value}} for the path ("a", "b")."""
+    return value if not path else {path[0]: nested(path[1:], value)}
+
+
+@pytest.mark.parametrize("path", [
+    ("materials", "main"), ("materials", "transverse"), ("pure_cover_mm",), ("aggregate_max_mm",),
+    ("main_bars", "diameter_mm"), ("main_bars", "count"), ("hoops", "zone_2d", "diameter_mm"),
+    ("hoops", "zone_2d", "sets"), ("hoops", "zone_2d", "pitch_mm")])
+def test_a_blank_item_of_the_reinforcement_is_named(path):
+    with pytest.raises(InputError, match=re.escape(f"鉄筋.杭.{'.'.join(path)}: 杭体の照査に必要です")):
+        section(cast_input(nested(path, None)))
 
 
 def test_a_cover_that_leaves_no_room_for_the_bars_is_an_input_error():
-    with pytest.raises(InputError, match="軸方向鉄筋.純かぶり: 杭径に対して大きすぎます"):
-        section(cast_input(軸方向鉄筋={"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 480.0}))
+    with pytest.raises(InputError, match="鉄筋.杭.pure_cover_mm: 杭径に対して大きすぎます"):
+        section(cast_input({"pure_cover_mm": 480.0}))
 
 
 def test_a_size_with_no_nominal_area_is_an_input_error():
-    with pytest.raises(InputError, match="軸方向鉄筋.径: D33 の公称断面積がありません"):
-        section(cast_input(軸方向鉄筋={"径": 33, "本数": 20, "材質": "SD345", "純かぶり": 100.0}))
-    with pytest.raises(InputError, match="帯鉄筋.径: D17 の公称断面積がありません"):
-        section(cast_input(帯鉄筋={"径": 17, "材質": "SD345", "間隔": 200.0}))
+    with pytest.raises(InputError, match="鉄筋.杭.main_bars.diameter_mm: D33 の公称断面積がありません"):
+        section(cast_input({"main_bars": {"diameter_mm": 33}}))
+    with pytest.raises(InputError, match="鉄筋.杭.hoops.zone_2d.diameter_mm: D17 の公称断面積がありません"):
+        section(cast_input({"hoops": {"zone_2d": {"diameter_mm": 17}}}))
+
+
+def test_the_hoops_of_the_2d_zone_are_the_ones_the_section_takes_whatever_the_other_zones_are():
+    other = {"footing": {"diameter_mm": 13, "sets": 2, "pitch_mm": 100.0},
+             "lower": [{"length_m": 2.5, "diameter_mm": 13, "sets": 1, "pitch_mm": 300.0}]}
+    found = section(cast_input({"hoops": other}))
+    assert (found.hoop_diameter.value, found.hoop_sets, found.hoop_pitch.value) == (16.0, 1, 200.0)
 
 
 def test_the_cases_are_the_largest_moment_shear_compression_and_tension_below_the_head_per_pile():

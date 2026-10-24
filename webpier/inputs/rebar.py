@@ -20,10 +20,11 @@ from dataclasses import dataclass
 from ..core.printed import Printed
 from ..core.reader import Reader
 from . import choices
-from .fields import LENGTH_MM, read
+from .fields import LENGTH_MM, PILE_HOOP_ZONES, PILE_MEMBER, read
 
-__all__ = ["LENGTH_MM", "RebarInput", "parse_rebar"]  # the digits come from the field table
+__all__ = ["LENGTH_MM", "PILE_LOWER_HOOPS", "RebarInput", "parse_rebar"]  # the digits come from the field table
 REBAR_VERSION = 3
+PILE_LOWER_HOOPS = 3  # the zones of hoops below the 2D zone of a cast-in-place pile (decision 87)
 
 
 @dataclass(frozen=True)
@@ -198,10 +199,69 @@ class FootingBars:
 
 
 @dataclass(frozen=True)
+class PileHoop:
+    """The hoops of one zone of a 場所打ち杭: size, 組 (a closed circular hoop is one 組, which crosses the section twice)
+    and pitch."""
+
+    diameter: Printed | None
+    sets: int | None
+    pitch: Printed | None
+
+
+@dataclass(frozen=True)
+class PileLowerHoop:
+    length: Printed | None  # 区間長, m
+    hoop: PileHoop
+
+
+@dataclass(frozen=True)
+class PileHoops:
+    footing: PileHoop  # the part inside the footing
+    zone_2d: PileHoop  # the 2D zone from the head (D: the pile diameter), the one the pile body check uses
+    lower: tuple[PileLowerHoop, ...]  # the zones below it, at most PILE_LOWER_HOOPS
+
+
+@dataclass(frozen=True)
+class PileCutoff:
+    """The cut-off of the bars of a 場所打ち杭 (decision 87): the section after it, the lengths and the rules. There is none
+    while its main bars are blank."""
+
+    main_diameter: Printed | None
+    main_count: int | None
+    hoop: PileHoop
+    head_anchorage: Printed | None  # 杭頭定着長, mm
+    cutoff_length: Printed | None  # 段落し長, mm
+    cutoff_anchorage: Printed | None  # 段落し定着長, mm
+    joint_reduction: Printed | None  # 継手低減係数
+    margin: Printed | None  # 設計余裕長, mm
+    no_joint_from_head: Printed | None  # 継ぎ手を設けない範囲: from the head, mm
+    no_joint_above: Printed | None  # from the cut-off point, upward, mm
+    no_joint_below: Printed | None  # from the cut-off point, downward, mm
+    margin_moment: Printed | None  # 余裕率: bending moment
+    margin_shear: Printed | None  # 余裕率: shear force
+    anchorage_stirrup: str | None  # 杭頭定着長に使うスターラップ, one of choices.PILE_ANCHORAGE_STIRRUPS
+
+
+@dataclass(frozen=True)
+class PileBars:
+    """The reinforcement of a 場所打ち杭 (decisions 87 and 92); its f'ck, diameter and construction condition are the
+    杭基礎's."""
+
+    materials: SteelMaterials
+    pure_cover: Printed | None  # 純かぶり
+    aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax, mm
+    main_diameter: Printed | None  # 主鉄筋 (all along the pile)
+    main_count: int | None  # all round the pile
+    hoops: PileHoops
+    cutoff: PileCutoff
+
+
+@dataclass(frozen=True)
 class RebarInput:
     beam: BeamBars
     column: ColumnBars
     footing: FootingBars
+    pile: PileBars
 
 
 def _value(node: Reader, key: str):
@@ -352,8 +412,54 @@ def _footing(node: Reader) -> FootingBars:
         aggregate_max=_value(node, "aggregate_max_mm"))
 
 
+def _pile_hoop(node: Reader) -> PileHoop:
+    return PileHoop(diameter=_value(node, "diameter_mm"), sets=_value(node, "sets"), pitch=_value(node, "pitch_mm"))
+
+
+def _pile_lower(node: Reader) -> tuple[PileLowerHoop, ...]:
+    rows = list(node.items())
+    if len(rows) > PILE_LOWER_HOOPS:
+        raise node.error(f"区間は{PILE_LOWER_HOOPS}つまでです")
+    found = []
+    for row in rows:
+        row.only("length_m", "diameter_mm", "sets", "pitch_mm")
+        found.append(PileLowerHoop(length=_value(row, "length_m"), hoop=_pile_hoop(row)))
+    return tuple(found)
+
+
+def _pile_cutoff(node: Reader) -> PileCutoff:
+    node.only("main_bars", "hoops", "head_anchorage_mm", "cutoff_length_mm", "cutoff_anchorage_mm", "joint_reduction",
+              "margin_mm", "no_joint", "margin_ratio", "anchorage_stirrup")
+    bars = node.at("main_bars").only("diameter_mm", "count")
+    no_joint = node.at("no_joint").only("from_head_mm", "above_mm", "below_mm")
+    ratio = node.at("margin_ratio").only("moment", "shear")
+    return PileCutoff(
+        main_diameter=_value(bars, "diameter_mm"), main_count=_value(bars, "count"),
+        hoop=_pile_hoop(node.at("hoops").only("diameter_mm", "sets", "pitch_mm")),
+        head_anchorage=_value(node, "head_anchorage_mm"), cutoff_length=_value(node, "cutoff_length_mm"),
+        cutoff_anchorage=_value(node, "cutoff_anchorage_mm"), joint_reduction=_value(node, "joint_reduction"),
+        margin=_value(node, "margin_mm"), no_joint_from_head=_value(no_joint, "from_head_mm"),
+        no_joint_above=_value(no_joint, "above_mm"), no_joint_below=_value(no_joint, "below_mm"),
+        margin_moment=_value(ratio, "moment"), margin_shear=_value(ratio, "shear"),
+        anchorage_stirrup=_value(node, "anchorage_stirrup"))
+
+
+def _pile(node: Reader) -> PileBars:
+    node.only("materials", "pure_cover_mm", "aggregate_max_mm", "main_bars", "hoops", "cutoff")
+    bars = node.at("main_bars").only("diameter_mm", "count")
+    hoops = node.at("hoops").only(*PILE_HOOP_ZONES, "lower")
+    return PileBars(
+        materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
+        aggregate_max=_value(node, "aggregate_max_mm"), main_diameter=_value(bars, "diameter_mm"),
+        main_count=_value(bars, "count"),
+        hoops=PileHoops(footing=_pile_hoop(hoops.at("footing").only("diameter_mm", "sets", "pitch_mm")),
+                        zone_2d=_pile_hoop(hoops.at("zone_2d").only("diameter_mm", "sets", "pitch_mm")),
+                        lower=_pile_lower(hoops.at("lower"))),
+        cutoff=_pile_cutoff(node.at("cutoff")))
+
+
 def parse_rebar(root: Reader) -> RebarInput:
-    rebar = root.at("鉄筋").only("version", "梁", "柱", "フーチング")
+    rebar = root.at("鉄筋").only("version", "梁", "柱", "フーチング", PILE_MEMBER)
     rebar.at("version").integer(REBAR_VERSION, REBAR_VERSION)
     return RebarInput(beam=_beam(rebar.at("梁")), column=_column(rebar.at("柱")),
-                      footing=_footing(rebar.at("フーチング")))
+                      footing=_footing(rebar.at("フーチング")), pile=_pile(rebar.at(PILE_MEMBER)))

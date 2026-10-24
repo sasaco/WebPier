@@ -22,7 +22,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ...calc._exact import d, put
-from ...calc.pile_cast import AGGREGATE_MAX, FORCE, HOOP_LEGS, PILE_FACTORS, CaseForces, CastSection, RowForces
+from ...calc.pile_cast import FORCE, LEGS_PER_SET, PILE_FACTORS, CaseForces, CastSection, RowForces
 from ...calc.column_check import SAFETY_FACTORS
 from ...core.integrity import dump_json
 from ...core.printed import Printed
@@ -88,7 +88,7 @@ def _bar(section: CastSection, index: int, row: RowForces, case: CaseForces) -> 
         "rebar2": {"title": "", "rebar_dia": None, "rebar_n": None, "rebar_cover": None, "rebar_lines": None,
                    "rebar_space": None, "rebar_ss": None, "cos": None, "enable": True},
         "sidebar1": dict(none), "sidebar2": dict(none),
-        "stirrup": {"stirrup_dia": _number(section.hoop_diameter), "stirrup_n": HOOP_LEGS,
+        "stirrup": {"stirrup_dia": _number(section.hoop_diameter), "stirrup_n": section.hoop_sets * LEGS_PER_SET,
                     "stirrup_ss": _number(section.hoop_pitch)},
         "bend": {"bending_dia": None, "bending_n": None, "bending_ss": None, "bending_angle": None},
         "tan": None, "g_name": None, "p_name": name(row, case), "b": _number(section.diameter),
@@ -108,7 +108,7 @@ def _safety(section: CastSection, factor: tuple[str, str, float, float, float, f
     return {
         "safety_factor": {GROUP: [_safety_row(factors) for factors in SAFETY_FACTORS]},
         "material_bar": {GROUP: [{"separate": separate, **bars} for separate in _SEPARATE]},
-        "material_concrete": {GROUP: {"fck": _number(section.fck), "dmax": _number(AGGREGATE_MAX)}},
+        "material_concrete": {GROUP: {"fck": _number(section.fck), "dmax": _number(section.aggregate_max)}},
         "pile_factor": {GROUP: [{"id": id_, "title": title, "rfck": rfck, "rfbok": rfbok, "rEc": rec, "rVcd": rvcd,
                                  "selected": id_ == factor[0]} for id_, title, rfck, rfbok, rec, rvcd in PILE_FACTORS]},
     }

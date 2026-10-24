@@ -20,7 +20,7 @@ from ..core.reader import Reader
 from . import choices
 from .fields import BEAM_SURFACES, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
-    Bearing, CantileverCheck, CastBars, CastHoops, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
+    Bearing, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
     Materials, PierInput, PileFoundation, PileJoint, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
     Spans, Substructure, SteelSoilCementPile, Train,
 )
@@ -303,20 +303,14 @@ def _pile_layout_rules(node: Reader, layout: PileLayout) -> None:
 def _piles(root: Reader, foundation: str) -> PileFoundation:
     """杭基礎 (decision 80): form and digits whatever the 基礎形式; a pile foundation also needs the values of its type."""
     node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
-    cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件", "軸方向鉄筋", "帯鉄筋")
-    cast_bars = cast.at("軸方向鉄筋").only("径", "本数", "材質", "純かぶり")
-    cast_hoops = cast.at("帯鉄筋").only("径", "材質", "間隔")
+    cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
     steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部")
     joint = steel.at("結合部").only("軸方向鉄筋", "中詰めコンクリート_f'ck")
     bars = joint.at("軸方向鉄筋").only("径", "本数", "材質", "重心位置")
     piles = PileFoundation(
         length=read(node.at("杭長")), unit_weight=read(node.at("杭の単位体積重量")),
         cast_in_place=CastInPlacePile(diameter=read(cast.at("杭径")), fck=read(cast.at("f'ck")),
-                                      condition=read(cast.at("施工条件")),
-                                      bars=CastBars(diameter=read(cast_bars.at("径")), count=read(cast_bars.at("本数")),
-                                                    grade=read(cast_bars.at("材質")), cover=read(cast_bars.at("純かぶり"))),
-                                      hoops=CastHoops(diameter=read(cast_hoops.at("径")), grade=read(cast_hoops.at("材質")),
-                                                      pitch=read(cast_hoops.at("間隔")))),
+                                      condition=read(cast.at("施工条件"))),
         steel_soil_cement=SteelSoilCementPile(
             soil_cement_diameter=read(steel.at("ソイルセメント径")), steel_diameter=read(steel.at("鋼管外径")),
             thickness=read(steel.at("鋼管厚")), corrosion=read(steel.at("腐食代")),

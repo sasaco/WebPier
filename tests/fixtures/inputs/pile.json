@@ -267,18 +267,7 @@
     "場所打ち杭": {
       "杭径": 1.0,
       "f'ck": 18.8,
-      "施工条件": "自然泥水",
-      "軸方向鉄筋": {
-        "径": null,
-        "本数": null,
-        "材質": null,
-        "純かぶり": null
-      },
-      "帯鉄筋": {
-        "径": null,
-        "材質": null,
-        "間隔": null
-      }
+      "施工条件": "自然泥水"
     },
     "鋼管ソイルセメント杭": {
       "ソイルセメント径": 1.2,
@@ -578,6 +567,57 @@
         "diameter_mm": 22,
         "effective_legs": 4,
         "pitch_mm": 125
+      }
+    },
+    "杭": {
+      "materials": {
+        "main": null,
+        "transverse": null
+      },
+      "pure_cover_mm": null,
+      "aggregate_max_mm": null,
+      "main_bars": {
+        "diameter_mm": null,
+        "count": null
+      },
+      "hoops": {
+        "footing": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "zone_2d": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "lower": []
+      },
+      "cutoff": {
+        "main_bars": {
+          "diameter_mm": null,
+          "count": null
+        },
+        "hoops": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "head_anchorage_mm": null,
+        "cutoff_length_mm": null,
+        "cutoff_anchorage_mm": null,
+        "joint_reduction": null,
+        "margin_mm": null,
+        "no_joint": {
+          "from_head_mm": null,
+          "above_mm": null,
+          "below_mm": null
+        },
+        "margin_ratio": {
+          "moment": null,
+          "shear": null
+        },
+        "anchorage_stirrup": null
       }
     }
   },

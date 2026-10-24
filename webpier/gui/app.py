@@ -40,10 +40,15 @@ HINTS = {
     "上部工反力": "支点・支承の並びに沿って、支承位置、死荷重、雪荷重、列車分担を入力します。",
     "地盤データ": "上から順に1層ずつ入力します。行を選ぶと、その層を複製・移動・削除できます。",
     "杭基礎": "基礎形式が杭基礎のときの杭の諸元と配置を入力します（直接基礎では使いません）。",
-    REBAR: "部材ごとに配筋を入力します。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁とフーチングの配筋略図は「配筋略図」で開きます。",
+    REBAR: "部材ごとに配筋を入力します。部材は左の「鉄筋」の下で選びます。柱の断面図と方向別の鉄筋配置表は「断面図・配置表」、梁とフーチングの配筋略図は「配筋略図」で開きます。",
     JRSNAP: "JRSNAP入力（NDU）に書く解析の条件を、方向ごとに入力します。",
     CALCULATION: "出力項目を選び、入力を保存して選んだ計算書を作り直し、PDFで確認します。",
 }
+
+
+def member_item(member: str) -> str:
+    """The item of a member of the 鉄筋 page in the tree."""
+    return f"{REBAR}/{member}"
 
 
 class InputEditor:
@@ -116,6 +121,7 @@ class InputEditor:
         self.tree.pack(fill="both", expand=True)
         for index, page in enumerate(PAGES, 1):
             self.tree.insert("", "end", iid=page, text=f"{index:02}  {page}")
+        self.sync_members()
         self.tree.bind("<<TreeviewSelect>>", self._tree_selected)
         ttk.Label(left, text="空欄：未入力\n赤：入力が必要／入力できない値", style="Muted.TLabel", padding=10).pack(anchor="w")
         self.heading = tk.StringVar(master=self.root)
@@ -166,18 +172,58 @@ class InputEditor:
     def busy(self) -> bool:
         return self.view is not None and getattr(self.view, "busy", False)
 
+    @property
+    def tree_item(self) -> str:
+        """The item of the tree that shows where the editor is: a page, or the member of the 鉄筋 page (decision 87)."""
+        if self.page == REBAR:
+            member = self.rebar_state.get("member", rebar_edit.MEMBERS[1])
+            if member in rebar_edit.members(self.document.data):
+                return member_item(member)
+        return self.page
+
+    def sync_members(self) -> None:
+        """The members under 鉄筋: 柱・梁・フーチング, and 杭 when the 基礎形式 is a cast-in-place pile."""
+        wanted = [member_item(member) for member in rebar_edit.members(self.document.data)]
+        if list(self.tree.get_children(REBAR)) == wanted:
+            return
+        self.tree.delete(*self.tree.get_children(REBAR))
+        for member in rebar_edit.members(self.document.data):
+            self.tree.insert(REBAR, "end", iid=member_item(member), text=member)
+        self.tree.item(REBAR, open=True)
+
     def _tree_selected(self, event: Any = None) -> None:
         selection = self.tree.selection()
-        if selection and selection[0] != self.page:
+        if not selection or selection[0] == self.tree_item:
+            return
+        if "/" in selection[0]:
+            self.select_member(selection[0].partition("/")[2])
+        else:
             self.select(selection[0])
 
     def select(self, page: str) -> bool:
         if page not in PAGES:
             return False
         if self.busy or not self.ready_to_leave():
-            self.tree.selection_set(self.page)
+            self.tree.selection_set(self.tree_item)
             return False
         self.page = page
+        self.render()
+        return True
+
+    def select_member(self, member: str) -> bool:
+        """A member of the 鉄筋 page, from the tree (or the page itself when it is shown)."""
+        if member not in rebar_edit.members(self.document.data):
+            return False
+        if self.page == REBAR and self.view is not None:
+            ok = self.view.select_member(member)
+            if not ok:
+                self.tree.selection_set(self.tree_item)
+            return ok
+        if self.busy or not self.ready_to_leave():
+            self.tree.selection_set(self.tree_item)
+            return False
+        self.rebar_state.update(member=member, group="main")
+        self.page = REBAR
         self.render()
         return True
 
@@ -211,7 +257,8 @@ class InputEditor:
         self.reaction_sheets.clear()
         self.same_buttons.clear()
         self.b7_button = self.soil_sheet = None
-        self.tree.selection_set(self.page)
+        self.sync_members()
+        self.tree.selection_set(self.tree_item)
         self.heading.set(self.page)
         self.hint.set(HINTS[self.page])
         self.cell_message.set("")
@@ -247,6 +294,7 @@ class InputEditor:
         return self.document.dirty or bool(self.bindings.refused) or self.bindings.pending
 
     def changed(self) -> None:
+        self.sync_members()  # the 基礎形式 may have been changed on the page
         dirty = self.dirty
         if dirty and self.calculation is not None and self.calculation.state == "success":
             self.calculation.mark_stale()

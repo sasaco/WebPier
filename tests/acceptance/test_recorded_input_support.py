@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from recorded_input_support import before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles
+from recorded_input_support import (
+    before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -47,19 +48,26 @@ def test_upgrading_the_input_of_before_the_pile_foundation_gives_the_input_of_to
     today = json.loads(data.decode("utf-8"))
     before = json.loads(before_piles(before_joint(before_rebar(data))).decode("utf-8"))
     assert "杭基礎" not in before and "杭種" in before["下部構造"]
-    assert upgrade_to_piles(before) == today
-    assert list(upgrade_to_piles(before)) == list(today)
-    assert list(upgrade_to_piles(before)["下部構造"]) == list(today["下部構造"])
+    upgraded = with_blank_rebar(upgrade_to_piles(before))
+    assert upgraded == today
+    assert list(upgraded) == list(today)
+    assert list(upgraded["下部構造"]) == list(today["下部構造"])
 
 
 def test_an_input_recorded_before_the_bars_of_the_cast_in_place_pile_is_the_input_without_them():
-    """Decision 91: the blank 軸方向鉄筋 and 帯鉄筋 are no condition of an acceptance recorded before them, and entered ones are."""
+    """Decisions 91 and 92: the blank 鉄筋.杭 (and the blank bars of the 杭基礎 of decision 91) are no condition of an acceptance
+    recorded before them, and entered ones are."""
     data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
     older = before_rebar(data)
     document = json.loads(older.decode("utf-8"))
     assert list(document["杭基礎"]["場所打ち杭"]) == ["杭径", "f'ck", "施工条件"] and sha256(older) in input_sha256s(data)
+    assert "杭" not in document["鉄筋"]
     assert b"\r\n" in older  # the line ends of the input are kept
+    under_91 = json.loads(with_bars_in_piles(data).decode("utf-8"))
+    assert list(under_91["杭基礎"]["場所打ち杭"]) == ["杭径", "f'ck", "施工条件", "軸方向鉄筋", "帯鉄筋"]
+    assert "杭" not in under_91["鉄筋"] and sha256(with_bars_in_piles(data)) in input_sha256s(data)
     entered = json.loads(data.decode("utf-8"))
-    entered["杭基礎"]["場所打ち杭"]["帯鉄筋"]["径"] = 16
+    entered["鉄筋"]["杭"]["pure_cover_mm"] = 100.0
     text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
-    assert before_rebar(text) is None and sha256(older) not in input_sha256s(text)
+    assert before_rebar(text) is None and with_bars_in_piles(text) is None
+    assert sha256(older) not in input_sha256s(text) and sha256(with_bars_in_piles(data)) not in input_sha256s(text)

@@ -1,0 +1,167 @@
+"""The 鉄筋 page's member 杭 (decisions 87 and 92): shown only for a cast-in-place pile foundation, the reinforcement on cards
+bound to the field table, the f'ck shared with the 杭基礎 page."""
+
+import pytest
+
+from webpier.gui import app as gui
+from webpier.gui import rebar_edit, rebar_page
+
+PILE = ("鉄筋", "杭")
+CAST = ("杭基礎", "場所打ち杭")
+
+
+@pytest.fixture
+def editor(tk_root, input_path, quiet):
+    editor = gui.InputEditor(tk_root, input_path)
+    editor.document.data["下部構造"]["基礎形式"] = "場所打ち杭"
+    assert editor.select("鉄筋")
+    tk_root.update()
+    return editor
+
+
+def page(editor) -> rebar_page.RebarPage:
+    return editor.view
+
+
+def cell(editor, *path):
+    return editor.bindings.items[path].cell
+
+
+def enter(editor, path, text):
+    bound = editor.bindings.items[path]
+    bound.cell.show(text)
+    editor.bindings.entered(bound)
+    editor.root.update()
+
+
+def test_the_pile_is_a_member_only_for_a_cast_in_place_pile_foundation(editor):
+    assert page(editor).members() == ("梁", "柱", "フーチング", "杭")
+    editor.document.data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
+    assert rebar_edit.members(editor.document.data) == rebar_edit.MEMBERS
+    editor.document.data["下部構造"]["基礎形式"] = "直接基礎"
+    assert rebar_edit.members(editor.document.data) == rebar_edit.MEMBERS
+
+
+def test_a_pile_member_left_over_from_another_foundation_falls_back_to_the_column(editor):
+    assert page(editor).select_member("杭")
+    editor.document.data["下部構造"]["基礎形式"] = "直接基礎"
+    assert editor.select("下部構造") and editor.select("鉄筋")
+    assert page(editor).member == "柱" and page(editor).members() == rebar_edit.MEMBERS
+
+
+def test_the_main_bars_group_has_the_steels_concrete_cover_and_the_main_bars(editor):
+    assert page(editor).select_member("杭")
+    shown = set(editor.bindings.items)
+    assert {(*PILE, "materials", "main"), (*PILE, "materials", "transverse"), (*PILE, "pure_cover_mm"),
+            (*PILE, "aggregate_max_mm"), (*PILE, "main_bars", "diameter_mm"), (*PILE, "main_bars", "count"),
+            (*CAST, "f'ck")} <= shown
+    assert not any(path[:2] == PILE and path[2] in ("hoops", "cutoff") for path in shown)
+    assert cell(editor, *PILE, "aggregate_max_mm").widget.master.winfo_children()[0].cget("text") == "粗骨材の最大寸法 mm"
+
+
+def test_the_fck_is_the_pile_foundations_one_value(editor):
+    assert page(editor).select_member("杭")
+    enter(editor, (*CAST, "f'ck"), "24.04")
+    assert editor.document.data["杭基礎"]["場所打ち杭"]["f'ck"] == 24.0 and cell(editor, *CAST, "f'ck").get() == "24.0"
+
+
+def test_the_values_are_entered_rounded_and_saved_in_the_rebar(editor):
+    assert page(editor).select_member("杭")
+    for path, text in (((*PILE, "materials", "main"), "SD345"), ((*PILE, "pure_cover_mm"), "100.04"),
+                       ((*PILE, "aggregate_max_mm"), "25"), ((*PILE, "main_bars", "diameter_mm"), "32"),
+                       ((*PILE, "main_bars", "count"), "20")):
+        enter(editor, path, text)
+    assert not editor.bindings.refused
+    saved = editor.document.data["鉄筋"]["杭"]
+    assert saved["materials"]["main"] == "SD345" and saved["pure_cover_mm"] == 100.0 and saved["main_bars"] == {
+        "diameter_mm": 32, "count": 20}
+    enter(editor, (*PILE, "main_bars", "count"), "2.5")
+    assert (*PILE, "main_bars", "count") in editor.bindings.refused
+
+
+def test_the_hoops_have_the_footing_the_2d_zone_and_up_to_three_zones_below(editor):
+    assert page(editor).select_member("杭") and page(editor).select_group("hoops")
+    editor.root.update()
+    assert {(*PILE, "hoops", zone, key) for zone in ("footing", "zone_2d") for key in ("diameter_mm", "sets", "pitch_mm")} <= set(
+        editor.bindings.items)
+    for number in (1, 2, 3):
+        assert page(editor).add_row((*PILE, "hoops", "lower"))
+        assert len(editor.document.data["鉄筋"]["杭"]["hoops"]["lower"]) == number
+        assert (*PILE, "hoops", "lower", number - 1, "length_m") in editor.bindings.items
+    enter(editor, (*PILE, "hoops", "lower", 2, "pitch_mm"), "300")
+    assert editor.document.data["鉄筋"]["杭"]["hoops"]["lower"][2]["pitch_mm"] == 300.0
+    assert page(editor).remove_row((*PILE, "hoops", "lower"), 1)
+    assert len(editor.document.data["鉄筋"]["杭"]["hoops"]["lower"]) == 2
+    assert (*PILE, "hoops", "lower", 2, "length_m") not in editor.bindings.items
+
+
+def test_the_cutoff_group_has_the_section_after_it_the_lengths_and_the_rules(editor):
+    assert page(editor).select_member("杭") and page(editor).select_group("cutoff")
+    editor.root.update()
+    cutoff = (*PILE, "cutoff")
+    assert {(*cutoff, "main_bars", "diameter_mm"), (*cutoff, "main_bars", "count"), (*cutoff, "hoops", "sets"),
+            (*cutoff, "head_anchorage_mm"), (*cutoff, "joint_reduction"), (*cutoff, "no_joint", "from_head_mm"),
+            (*cutoff, "margin_ratio", "moment"), (*cutoff, "anchorage_stirrup")} <= set(editor.bindings.items)
+    enter(editor, (*cutoff, "margin_ratio", "shear"), "1.1")
+    assert editor.document.data["鉄筋"]["杭"]["cutoff"]["margin_ratio"]["shear"] == 1.1
+    page(editor).refresh()
+    assert page(editor).status.get() == ""
+
+
+def test_the_pile_has_no_outline_window_yet(editor):
+    assert page(editor).select_member("杭")
+    assert page(editor).member not in rebar_page.WINDOWS
+
+
+def test_the_members_are_children_of_the_rebar_page_in_the_tree(editor):
+    assert editor.tree.get_children() == gui.PAGES  # the pages stay the top level
+    assert editor.tree.get_children("鉄筋") == ("鉄筋/梁", "鉄筋/柱", "鉄筋/フーチング", "鉄筋/杭")
+    assert [editor.tree.item(item, "text") for item in editor.tree.get_children("鉄筋")] == ["梁", "柱", "フーチング", "杭"]
+    assert editor.tree.item("鉄筋", "open")
+    assert editor.tree.selection() == (editor.tree_item,) == ("鉄筋/柱",)
+
+
+def test_choosing_a_member_in_the_tree_shows_its_cards(editor):
+    editor.tree.selection_set("鉄筋/杭")
+    editor.root.update()
+    assert editor.page == "鉄筋" and page(editor).member == "杭" and (*PILE, "main_bars", "count") in editor.bindings.items
+    editor.tree.selection_set("鉄筋/梁")
+    editor.root.update()
+    assert page(editor).member == "梁" and ("鉄筋", "梁", "pure_cover_mm") in editor.bindings.items
+    assert editor.tree.selection() == ("鉄筋/梁",)
+
+
+def test_choosing_a_member_from_another_page_opens_the_rebar_page_at_it(editor):
+    assert editor.select("下部構造")
+    editor.tree.selection_set("鉄筋/フーチング")
+    editor.root.update()
+    assert editor.page == "鉄筋" and page(editor).member == "フーチング" and page(editor).group == "main"
+
+
+def test_the_rebar_page_itself_opens_at_the_member_last_shown(editor):
+    assert page(editor).select_member("梁")
+    assert editor.select("上部構造") and editor.select("鉄筋")
+    assert page(editor).member == "梁" and editor.tree.selection() == ("鉄筋/梁",)
+
+
+def test_the_pile_leaves_and_joins_the_tree_with_the_foundation_type(editor):
+    assert page(editor).select_member("杭")
+    assert editor.select("下部構造")
+    cell(editor, "下部構造", "基礎形式").type("直接基礎")
+    assert editor.tree.get_children("鉄筋") == ("鉄筋/梁", "鉄筋/柱", "鉄筋/フーチング")
+    cell(editor, "下部構造", "基礎形式").type("場所打ち杭")
+    assert editor.tree.get_children("鉄筋") == ("鉄筋/梁", "鉄筋/柱", "鉄筋/フーチング", "鉄筋/杭")
+
+
+def test_a_member_that_is_not_there_cannot_be_chosen(editor):
+    editor.document.data["下部構造"]["基礎形式"] = "直接基礎"
+    assert not editor.select_member("杭")
+    assert editor.select_member("梁") and page(editor).member == "梁"
+
+
+def test_a_refused_entry_keeps_the_page_when_a_member_is_chosen_in_the_tree(editor):
+    assert page(editor).select_member("杭")
+    enter(editor, (*PILE, "main_bars", "count"), "2.5")
+    assert (*PILE, "main_bars", "count") in editor.bindings.refused
+    assert not editor.select_member("梁")
+    assert page(editor).member == "杭" and editor.tree.selection() == ("鉄筋/杭",)

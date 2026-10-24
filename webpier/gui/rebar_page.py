@@ -18,7 +18,7 @@ from tksheet import Sheet
 
 from ..calc.beam_rebar import BeamLayout
 from ..calc.column_rebar import ColumnLayout
-from . import beam_cards, column_cards, footing_cards, rebar_edit
+from . import beam_cards, column_cards, footing_cards, pile_cards, rebar_edit
 from .beam_window import BeamWindow
 from .column_window import ColumnWindow
 from .document import EditorError
@@ -31,7 +31,8 @@ if TYPE_CHECKING:
 
 GROUPS = {"柱": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("check", "断面照査の条件")),
           "梁": (("main", "配筋"), ("check", "断面照査の条件")),
-          "フーチング": (("main", "配筋"),)}
+          "フーチング": (("main", "配筋"),),
+          "杭": (("main", "主鉄筋"), ("hoops", "帯鉄筋"), ("cutoff", "段落し"))}
 WINDOWS = {"柱": ColumnWindow, "梁": BeamWindow, "フーチング": FootingWindow}  # the member's window (toggle_window)
 CHECK = "柱の断面照査"  # one set for the column, shared by both directions (decision 48)
 CHECK_LABELS = (("水掛かりの程度", "水掛かりの程度"), ("外観の照査", "外観の照査"),
@@ -62,17 +63,15 @@ class RebarPage:
         self.editor = editor
         state = editor.rebar_state
         self.member: str = state.setdefault("member", "柱")
+        if self.member not in self.members():  # the pile of a foundation that is no longer a cast-in-place pile
+            self.member = state["member"] = "柱"
         self.group: str = state.setdefault("group", "main")
         self.layout: ColumnLayout | BeamLayout | FootingPreview | None = None
         self.frame = ttk.Frame(parent)
         self.frame.pack(fill="both", expand=True)
         bar = ttk.Frame(self.frame)
         bar.pack(fill="x", pady=(0, 8))
-        ttk.Label(bar, text="部材", style="Symbol.TLabel").pack(side="left")
-        self.member_choice = ttk.Combobox(bar, values=rebar_edit.MEMBERS, state="readonly", width=12)
-        self.member_choice.set(self.member)
-        self.member_choice.pack(side="left", padx=(8, 18))
-        self.member_choice.bind("<<ComboboxSelected>>", lambda event: self.select_member(self.member_choice.get()))
+        ttk.Label(bar, text=self.member, style="Symbol.TLabel").pack(side="left", padx=(0, 18))  # chosen in the tree
         self.group_buttons = {}
         for name, title in GROUPS[self.member]:
             button = ttk.Button(bar, text=title, command=lambda name=name: self.select_group(name))
@@ -81,7 +80,8 @@ class RebarPage:
         if self.group not in self.group_buttons:
             self.group = state["group"] = "main"
         column = self.member == "柱"
-        ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
+        if self.member in WINDOWS:  # the pile has no 配筋略図 yet (decision 92)
+            ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
         left = ttk.Frame(self.frame)
         left.pack(fill="both", expand=True)
         self.inputs_canvas = tk.Canvas(left, highlightthickness=0, background="white", height=480)
@@ -116,6 +116,8 @@ class RebarPage:
             self.form.properties(self.inputs, [((CHECK, key), label) for key, label in CHECK_LABELS])
             ttk.Label(self.inputs, text="柱の断面照査（0611・0621）の条件です。線路方向・線路直角方向で共通です。",
                       style="Muted.TLabel").pack(anchor="w")
+        elif self.member == rebar_edit.PILE:
+            {"main": pile_cards.main, "hoops": pile_cards.hoops, "cutoff": pile_cards.cutoff}[self.group](self)
         elif self.group == "hoops":
             column_cards.hoops(self)
         elif self.member == "柱":
@@ -127,6 +129,9 @@ class RebarPage:
 
     # actions ------------------------------------------------------------------------------------------------
 
+    def members(self) -> tuple[str, ...]:
+        return rebar_edit.members(self.editor.document.data)
+
     def _save_state(self) -> None:
         self.editor.rebar_state.update(member=self.member, group=self.group)
 
@@ -135,8 +140,7 @@ class RebarPage:
         self.editor.rebuild()
 
     def select_member(self, member: str) -> bool:
-        if member not in rebar_edit.MEMBERS or not self.ready_to_leave() or not self.editor.ready_to_restructure():
-            self.member_choice.set(self.member)
+        if member not in self.members() or not self.ready_to_leave() or not self.editor.ready_to_restructure():
             return False
         self.member, self.group = member, "main"
         self._rebuild()
@@ -237,6 +241,10 @@ class RebarPage:
 
     def refresh(self) -> None:
         data = self.editor.document.data
+        if self.member == rebar_edit.PILE:  # nothing to lay out: the cards show only what is entered
+            self.layout = None
+            self.status.set("")
+            return
         if self.member == "柱":
             self.layout = None
             try:

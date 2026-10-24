@@ -2,14 +2,15 @@
 
 The real-runner acceptances recorded so far were made before the input had ``outputs``, and before it had the pile
 foundation (``基礎形式``, ``杭基礎``, ``粘着力_c``, ``De``), and before the joint of the steel soil cement pile
-(``結合部``, decision 90) and the bars of the cast-in-place pile (``軸方向鉄筋``, ``帯鉄筋``, decision 91). None is a condition of the calculation of a direct
+(``結合部``, decision 90) and the bars of the cast-in-place pile (``軸方向鉄筋``, ``帯鉄筋`` of the 杭基礎, decision 91;
+``鉄筋.杭`` from decision 92). None is a condition of the calculation of a direct
 foundation: the 出力項目 only choose which reports a generation makes (ADR-0011), and the pile items are not read for a
 direct foundation, whose layers keep their values (c replaced qu, which was 0 or blank). So such an acceptance still
 belongs to current.json when everything but them is the recorded bytes. ``input_sha256s`` gives the SHA256 of the input
-as it is (an acceptance recorded from now on), without its last item ``outputs`` (one recorded before decision 72), and
-as it was before the bars of the cast-in-place pile (one recorded before decision 91), before the joint (one recorded
-before decision 90) and before the pile foundation (one recorded before decision 84), also without ``outputs``; the tests
-still compare the files the engines are given.
+as it is (an acceptance recorded from now on), without its last item ``outputs`` (one recorded before decision 72), as it
+was with the bars in the 杭基礎 (one recorded under decision 91), as it was before the bars of the cast-in-place pile (one
+recorded before decision 91), before the joint (one recorded before decision 90) and before the pile foundation (one
+recorded before decision 84), also without ``outputs``; the tests still compare the files the engines are given.
 """
 
 import json
@@ -32,19 +33,45 @@ def _blank_piles(piles: object) -> bool:
 
 
 BLANK_BARS = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "純かぶり": None},
-              "帯鉄筋": {"径": None, "材質": None, "間隔": None}}
+              "帯鉄筋": {"径": None, "材質": None, "間隔": None}}  # decision 91: in the 杭基礎; decision 92 moved them
+_HOOP = {"diameter_mm": None, "sets": None, "pitch_mm": None}
+BLANK_PILE_REBAR = {  # 鉄筋.杭 with nothing entered (decision 92)
+    "materials": {"main": None, "transverse": None}, "pure_cover_mm": None, "aggregate_max_mm": None,
+    "main_bars": {"diameter_mm": None, "count": None},
+    "hoops": {"footing": dict(_HOOP), "zone_2d": dict(_HOOP), "lower": []},
+    "cutoff": {"main_bars": {"diameter_mm": None, "count": None}, "hoops": dict(_HOOP), "head_anchorage_mm": None,
+               "cutoff_length_mm": None, "cutoff_anchorage_mm": None, "joint_reduction": None, "margin_mm": None,
+               "no_joint": {"from_head_mm": None, "above_mm": None, "below_mm": None},
+               "margin_ratio": {"moment": None, "shear": None}, "anchorage_stirrup": None}}
+
+
+def _text(document: dict, data: bytes) -> bytes:
+    text = json.dumps(document, indent=2, ensure_ascii=False) + ("\n" if data.endswith(b"\n") else "")
+    return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
+
+
+def with_bars_in_piles(data: bytes) -> bytes | None:
+    """The input as it was under decision 91 (the blank 軸方向鉄筋 and 帯鉄筋 in the 杭基礎, no 鉄筋.杭), or None when
+    something is entered in 鉄筋.杭."""
+    document = json.loads(data.decode("utf-8"))
+    rebar = document.get("鉄筋") if isinstance(document, dict) else None
+    cast = document.get("杭基礎", {}).get("場所打ち杭") if isinstance(document, dict) else None
+    if not isinstance(rebar, dict) or not isinstance(cast, dict) or rebar.get("杭") != BLANK_PILE_REBAR:
+        return None
+    del rebar["杭"]
+    cast.update(BLANK_BARS)
+    return _text(document, data)
 
 
 def before_rebar(data: bytes) -> bytes | None:
-    """The input as it was before decision 91 (the 軸方向鉄筋 and 帯鉄筋 of 場所打ち杭), or None when something is entered in them."""
+    """The input as it was before decision 91 (no bars of 場所打ち杭 anywhere), or None when something is entered in
+    鉄筋.杭."""
     document = json.loads(data.decode("utf-8"))
-    cast = document.get("杭基礎", {}).get("場所打ち杭") if isinstance(document, dict) else None
-    if not isinstance(cast, dict) or any(cast.get(name) != blank for name, blank in BLANK_BARS.items()):
+    rebar = document.get("鉄筋") if isinstance(document, dict) else None
+    if not isinstance(rebar, dict) or rebar.get("杭") != BLANK_PILE_REBAR:
         return None
-    for name in BLANK_BARS:
-        del cast[name]
-    text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
-    return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
+    del rebar["杭"]
+    return _text(document, data)
 
 
 def before_joint(data: bytes) -> bytes | None:
@@ -94,22 +121,19 @@ def before_piles(data: bytes) -> bytes | None:
 
 
 def without_blank_rebar(document: dict) -> dict:
-    """The input of today as it was recorded before decision 91: the blank bars of 場所打ち杭 left out (entered ones stay, and
+    """The input of today as it was recorded before decision 91: the blank 鉄筋.杭 left out (an entered one stays, and
     then the bytes differ from the recorded ones)."""
-    cast = document["杭基礎"]["場所打ち杭"]
-    if any(cast.get(name) != blank for name, blank in BLANK_BARS.items()):
+    if document["鉄筋"].get("杭") != BLANK_PILE_REBAR:
         return document
-    return {**document, "杭基礎": {**document["杭基礎"], "場所打ち杭": {
-        name: item for name, item in cast.items() if name not in BLANK_BARS}}}
+    return {**document, "鉄筋": {name: item for name, item in document["鉄筋"].items() if name != "杭"}}
 
 
 def with_blank_rebar(document: dict) -> dict:
-    """An input recorded before decision 91 in the form of today: the blank bars of 場所打ち杭 added (for a test that
-    parses the recorded file)."""
-    cast = document["杭基礎"]["場所打ち杭"]
-    if any(name in cast for name in BLANK_BARS):
+    """An input recorded before decision 91 in the form of today: the blank 鉄筋.杭 added (for a test that parses the
+    recorded file)."""
+    if "杭" in document["鉄筋"]:
         return document
-    return {**document, "杭基礎": {**document["杭基礎"], "場所打ち杭": {**cast, **BLANK_BARS}}}
+    return {**document, "鉄筋": {**document["鉄筋"], "杭": json.loads(json.dumps(BLANK_PILE_REBAR))}}
 
 
 def without_blank_joint(document: dict) -> dict:
@@ -144,7 +168,7 @@ def upgrade_to_piles(document: dict) -> dict:
                 for name, item in value.items() if name not in ("場所打ち杭の施工条件", "杭の配置")}
             new["杭基礎"] = {
                 "杭長": None, "杭の単位体積重量": None,
-                "場所打ち杭": {"杭径": None, "f'ck": None, "施工条件": None, **BLANK_BARS},
+                "場所打ち杭": {"杭径": None, "f'ck": None, "施工条件": None},
                 "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None,
                               "鋼管材質": None, "結合部": {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}},
                 "配置": {"形式": None, "線路方向の列の位置": [], "線路直角方向の列の位置": [], "抜く杭": []}}
@@ -162,9 +186,12 @@ def _before_outputs(data: bytes) -> set[str]:
 
 
 def input_sha256s(data: bytes) -> set[str]:
-    """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, and as it
-    was before the bars of the cast-in-place pile, the joint and the pile foundation (each with and without the 出力項目)."""
+    """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, as it was with
+    the bars of the cast-in-place pile in the 杭基礎, before them, before the joint and before the pile foundation (each
+    with and without the 出力項目)."""
     found = _before_outputs(data)
+    if (newest := with_bars_in_piles(data)) is not None:
+        found |= _before_outputs(newest)
     if (newer := before_rebar(data)) is not None:
         found |= _before_outputs(newer)
         data = newer
