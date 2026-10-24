@@ -1,7 +1,9 @@
 """The Capacita runner of the joint of a steel pipe pile (decision 90): the stand-in of tests/fixtures/capacita answers
 ``run-pile-joint`` (its modes stand for the runner's failures); the calculation it stands for is HsCalc's, in Capacita."""
 
+import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -58,5 +60,37 @@ def test_the_moments_are_those_of_the_runner_by_row(runner):
 ])
 def test_a_runner_that_fails_or_answers_wrongly_stops_the_check(monkeypatch, runner, mode, message):
     monkeypatch.setenv("FAKE_CAPACITA", mode)
+    with pytest.raises(RunnerError, match=f"pile-joint.json で鋼管杭の結合部の照査ができません: .*{message}"):
+        check_joint(content(), IDS, runner)
+
+
+def _answer(monkeypatch, *, stdout=None, result=None, error=None):
+    """Replace the process: it raises *error*, or answers *stdout*, or answers the envelope of a result.json of *result*."""
+    def run(command, **options):
+        if error is not None:
+            raise error
+        if result is not None:
+            output = Path(command[command.index("--output-dir") + 1])
+            output.mkdir(parents=True)
+            (output / "result.json").write_bytes(result)
+            artifact = {"kind": "result", "relativePath": "result.json", "bytes": len(result),
+                        "sha256": hashlib.sha256(result).hexdigest()}
+            body = {"protocolVersion": 1, "engine": "webdan2", "ok": True, "executionStatus": "success",
+                    "engineVersion": "fake-1", "artifacts": [artifact]}
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps(body).encode(), stderr=b"")
+        return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
+    monkeypatch.setattr("webpier.pipeline.pilejoint.subprocess.run", run)
+
+
+@pytest.mark.parametrize("answer, message", [
+    ({"error": subprocess.TimeoutExpired("runner", 5)}, "秒で終わりませんでした"),
+    ({"error": OSError("no such file")}, "runner を起動できません"),
+    ({"stdout": b"\xff"}, "runner の応答が JSON ではありません"),
+    ({"stdout": b"[]"}, "runner の応答が JSON のオブジェクトではありません"),
+    ({"result": b"\xff"}, "計算結果が JSON ではありません"),
+    ({"result": b"[]"}, "計算結果に rows がありません"),
+])
+def test_a_process_that_does_not_start_or_does_not_answer_in_json_stops_the_check(monkeypatch, runner, answer, message):
+    _answer(monkeypatch, **answer)
     with pytest.raises(RunnerError, match=f"pile-joint.json で鋼管杭の結合部の照査ができません: .*{message}"):
         check_joint(content(), IDS, runner)
