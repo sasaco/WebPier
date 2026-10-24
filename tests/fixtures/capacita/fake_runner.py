@@ -24,6 +24,12 @@ bending_restorability_eq, shear_restorability_eq and bending_rebar_amount, the b
 appearance), with the warnings WD-408 / WD-409 the real runner gives for the bending / shear rows without forces (the
 beam's table has them all: none); no ``model.wdj`` comes back.
 
+A circular WDJ (``shape`` 3: the pile body of a cast-in-place pile of 0612 and 0622, decision 91) is answered as the real runner of
+2026-10-24 answers it: the force table gives bending_safety_destruction (1 page) and shear_safety_destruction (2 pages), but only
+when every point has both ``isUpperCalc`` and ``isLowerCalc`` (with the lower side not calculated the real runner returns no
+section at all), and its bars are the circle's: ``rebar1`` only, ``members[].n`` the piles and ``c_type`` set. Mode ``pile-skip``
+leaves shear_safety_destruction out with the info message WD-1920 (Capacita skipped the shear check for zero forces).
+
 ``run-steel --input <wsj> --output-dir <dir>`` (the pile body of a steel pipe pile of 0612 and 0622, decision 89) writes ``result.json``
 only, with the verifications SteelDan returns (engine steeldan, readiness experimental): for each point and force case 6, 7 and 8 of the
 WSJ the checks pipePileBending, pipePileShear and pipePileCombined with their values, calculated by the same formulas as
@@ -83,7 +89,23 @@ def force_sections(document):
     crack = (document.get("crack") or [{}])[0]
     if crack.get("vis_u") and "bending_durability" in asked:
         asked.add("bending_serviceability")
+    if any(member.get("shape") == 3 for member in document.get("members") or ()) and not all(
+            point.get("isUpperCalc") and point.get("isLowerCalc") for point in document.get("points") or ()):
+        asked.clear()
     return [(name, pages) for name, pages in FORCE_SECTIONS if name in asked]
+
+
+def circle_error(document):
+    """What the real runner would not read of a circular WDJ (None when it reads it): a circle has a diameter B, a ``c_type`` and the
+    piles in ``n``, and its bars are the first face's only."""
+    for member in document.get("members") or ():
+        if member.get("shape") == 3 and (not member.get("B") or member.get("c_type") not in (1, 2, 3) or not member.get("n")):
+            return f"部材 {member.get('m_no')} の円形断面の入力が不足しています（B・c_type・n）"
+    if any(member.get("shape") == 3 for member in document.get("members") or ()):
+        for bar in document.get("bar") or ():
+            if any(value is not None for key, value in bar["rebar2"].items() if key not in ("title", "enable")):
+                return "円形断面は rebar2 を読みません"
+    return None
 
 
 def envelope(ok, artifacts=(), errors=(), summary=None, **changes):
@@ -203,6 +225,41 @@ def run_steel(argv, mode):
     return 0
 
 
+def run_pile_joint(argv, mode):
+    """``run-pile-joint`` (the joint of a steel pipe pile, decision 90): ``result.json`` alone with Mu by row id. The Mu is a
+    stand-in (2400 + 0.145 N'd, kN m) and the confinement is not calculated. Modes ``joint-fail``, ``joint-engine``, ``joint-version``,
+    ``joint-artifacts``, ``joint-missing``, ``joint-sha``, ``joint-short``, ``joint-duplicate`` and ``joint-text-value`` misbehave in it."""
+    if len(argv) != 5 or argv[1] != "--input" or argv[3] != "--output-dir":
+        return failure("invalid_arguments", " ".join(argv), 2)
+    source, output = Path(argv[2]), Path(argv[4])
+    if output.exists() and any(output.iterdir()):
+        return failure("output_not_empty", str(output), 5)
+    if mode == "joint-fail":
+        print(json.dumps({**envelope(False, errors=[{"code": "calculation_failed", "message": "x"}]),
+                          "messages": [{"level": "error", "code": "calculation_failed", "text": "HsCalc が計算できません"}]},
+                         ensure_ascii=False))
+        return 4
+    document = json.loads(source.read_bytes().decode("utf-8"))
+    rows = [{"id": row["id"], "axialForce": row["axialForce"],
+             "mu": "x" if mode == "joint-text-value" else round_half_up(2400 + 0.145 * row["axialForce"], 1)}
+            for row in document["rows"]]
+    if mode == "joint-short":
+        rows.pop()
+    if mode == "joint-duplicate":
+        rows.append(rows[0])
+    result = json.dumps({"rows": rows}, ensure_ascii=False).encode("utf-8")
+    output.mkdir(parents=True, exist_ok=True)
+    if mode != "joint-missing":
+        (output / "result.json").write_bytes(result)
+    artifact = {"kind": "result", "mediaType": "application/json; charset=utf-8", "relativePath": "result.json",
+                "bytes": len(result), "sha256": hashlib.sha256(b"other" if mode == "joint-sha" else result).hexdigest()}
+    changes = {"joint-engine": {"engine": "steeldan"}, "joint-version": {"engineVersion": ""},
+               "joint-artifacts": {"artifacts": [artifact, artifact]}}.get(mode, {})
+    print(json.dumps({**envelope(True, [artifact], summary={"rowCount": len(rows)}), "readiness": "experimental", **changes},
+                     ensure_ascii=False))
+    return 0
+
+
 def main(argv):
     sys.stdout.reconfigure(encoding="utf-8")
     mode = os.environ.get("FAKE_CAPACITA", "")
@@ -216,6 +273,8 @@ def main(argv):
         return 0
     if argv and argv[0] == "run-steel":
         return run_steel(argv, mode)
+    if argv and argv[0] == "run-pile-joint":
+        return run_pile_joint(argv, mode)
     if (len(argv) not in (7, 9) or argv[0] != "run-rc" or argv[1] != "--input" or argv[3] != "--output-dir"
             or argv[5:7] != ["--output-format", "pdf"] or (len(argv) == 9 and argv[7] != "--pickup")):
         return failure("invalid_arguments", " ".join(argv), 2)
@@ -233,13 +292,19 @@ def main(argv):
     skipped = {"skip": {"shear_durability": "WD-1919", "bending_serviceability": "WD-1914"},
                "skipnocode": {"shear_durability": None}}.get(mode, {})
     if pickup is None:
+        if (message := circle_error(document)) is not None:
+            return failure("calculation_failed", message, 4)
         shown = force_sections(document)
+        if mode == "pile-skip":
+            shown = [(name, pages) for name, pages in shown if name != "shear_safety_destruction"]
         row = (document.get("force") or [{}])[0]
         missing = {"WD-408": any(row.get(f"Md{id_}_Md") is None for id_ in (0, 1, 3, 4, 5, 6, 7, 8)),
                    "WD-409": any(row.get(f"Vd{id_}_Vd") is None for id_ in range(8))}
         messages = [{"level": "warn", "code": code, "text": text} for code, text in (
             ("WD-408", "曲げ照査用断面力データが見つかりませんでした。"), ("WD-409", "せん断照査用断面力データが見つかりませんでした。"))
             if missing[code]]
+        if mode == "pile-skip":
+            messages.append({"level": "info", "code": "WD-1920", "text": "shear_safety_destruction をスキップしました"})
     else:
         shown = [(name, pages) for name, pages in SECTIONS
                  if (name != "bending_serviceability" or document["crack"][0]["vis_u"]) and name not in skipped]

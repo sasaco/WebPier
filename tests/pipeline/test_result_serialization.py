@@ -115,3 +115,15 @@ def test_a_decimal_of_a_load_model_is_its_number_and_the_addin_is_recorded():
     added = result_document("0600", None, input_file="input.json", input_sha256="a", implementation_sha256="b",
                             addin={"name": "x"})
     assert list(added) == ["schema_version", "stage", "input", "implementation_sha256", "addin", "result"]
+
+
+def test_a_field_marked_not_json_is_left_out_of_the_document():
+    """The pages of another program's report a result carries (decision 91) are bytes: not the result's own data."""
+    from dataclasses import field
+
+    @dataclass(frozen=True)
+    class WithPages:
+        version: str
+        pages: dict[str, bytes] = field(default_factory=dict, metadata={"json": False})
+
+    assert to_json(WithPages("5.0", {"bending": b"%PDF"})) == {"version": "5.0"}

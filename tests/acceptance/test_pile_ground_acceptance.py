@@ -10,6 +10,7 @@ and the real SOIL-JR 5.2-L03: the .sdt WebPier wrote for tests/fixtures/inputs/p
 import json
 from pathlib import Path
 
+from recorded_input_support import input_sha256s
 from webpier.core.integrity import load_json, sha256
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes
@@ -29,7 +30,7 @@ def test_the_record_is_accepted():
 
 def test_the_input_is_the_one_accepted():
     data = (ROOT / RECORD["input"]["path"]).read_bytes()
-    assert sha256(data) == RECORD["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
+    assert RECORD["input"]["sha256"] in input_sha256s(data), f"受入時の入力から変わっています。{REDO}"
 
 
 def test_the_generator_still_writes_the_sdt_that_was_calculated():

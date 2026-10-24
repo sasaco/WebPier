@@ -72,15 +72,37 @@ def test_a_cast_in_place_pile_foundation_shows_its_own_items(editor):
     shown = {path for path in editor.bindings.items if path[:1] == PILES}
     assert {(*PILES, "杭長"), (*PILES, "杭の単位体積重量"), (*PILES, "場所打ち杭", "杭径"), (*PILES, "場所打ち杭", "f'ck"),
             (*PILES, "場所打ち杭", "施工条件"), (*LAYOUT, "形式")} <= shown
+    assert {(*PILES, "場所打ち杭", "軸方向鉄筋", key) for key in ("径", "本数", "材質", "純かぶり")} <= shown  # decision 91
+    assert {(*PILES, "場所打ち杭", "帯鉄筋", key) for key in ("径", "材質", "間隔")} <= shown
     assert not any(path[1:2] == ("鋼管ソイルセメント杭",) for path in shown)
     condition = cell(editor, *PILES, "場所打ち杭", "施工条件")
     assert condition.sheet.get_dropdown_values(condition.row, condition.column) == ["", "自然泥水", "安定液使用"]
+    grade = cell(editor, *PILES, "場所打ち杭", "軸方向鉄筋", "材質")
+    assert grade.sheet.get_dropdown_values(grade.row, grade.column) == ["", "SD295", "SD345", "SD390"]
+
+
+def test_the_bars_of_the_cast_in_place_pile_are_entered_rounded_and_saved(editor):
+    choose(editor, "場所打ち杭")
+    bars = (*PILES, "場所打ち杭", "軸方向鉄筋")
+    hoops = (*PILES, "場所打ち杭", "帯鉄筋")
+    for path, text in (((*bars, "径"), "32"), ((*bars, "本数"), "20"), ((*bars, "材質"), "SD345"),
+                       ((*bars, "純かぶり"), "100.04"), ((*hoops, "径"), "16"), ((*hoops, "材質"), "SD345"),
+                       ((*hoops, "間隔"), "200")):
+        type_in(editor, path, text)
+    assert not editor.bindings.refused and cell(editor, *bars, "純かぶり").get() == "100.0"
+    saved = editor.document.data["杭基礎"]["場所打ち杭"]
+    assert saved["軸方向鉄筋"] == {"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 100.0}
+    assert saved["帯鉄筋"] == {"径": 16, "材質": "SD345", "間隔": 200.0}
+    type_in(editor, (*bars, "本数"), "2.5")
+    assert (*bars, "本数") in editor.bindings.refused
 
 
 def test_a_steel_soil_cement_pile_foundation_shows_its_own_items(editor):
     choose(editor, "鋼管ソイルセメント杭")
     shown = {path for path in editor.bindings.items if path[:1] == PILES}
     assert {(*PILES, "鋼管ソイルセメント杭", key) for key in ("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質")} <= shown
+    assert {(*PILES, "鋼管ソイルセメント杭", "結合部", "軸方向鉄筋", key) for key in ("径", "本数", "材質", "重心位置")} <= shown
+    assert (*PILES, "鋼管ソイルセメント杭", "結合部", "中詰めコンクリート_f'ck") in shown
     assert not any(path[1:2] == ("場所打ち杭",) for path in shown)
 
 

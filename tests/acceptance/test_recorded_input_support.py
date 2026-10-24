@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from recorded_input_support import before_piles, input_sha256s, upgrade_to_piles
+from recorded_input_support import before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -45,8 +45,21 @@ def test_upgrading_the_input_of_before_the_pile_foundation_gives_the_input_of_to
     """The way back and the way forward are inverses on the checked-in input (decision 84)."""
     data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
     today = json.loads(data.decode("utf-8"))
-    before = json.loads(before_piles(data).decode("utf-8"))
+    before = json.loads(before_piles(before_joint(before_rebar(data))).decode("utf-8"))
     assert "杭基礎" not in before and "杭種" in before["下部構造"]
     assert upgrade_to_piles(before) == today
     assert list(upgrade_to_piles(before)) == list(today)
     assert list(upgrade_to_piles(before)["下部構造"]) == list(today["下部構造"])
+
+
+def test_an_input_recorded_before_the_bars_of_the_cast_in_place_pile_is_the_input_without_them():
+    """Decision 91: the blank 軸方向鉄筋 and 帯鉄筋 are no condition of an acceptance recorded before them, and entered ones are."""
+    data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
+    older = before_rebar(data)
+    document = json.loads(older.decode("utf-8"))
+    assert list(document["杭基礎"]["場所打ち杭"]) == ["杭径", "f'ck", "施工条件"] and sha256(older) in input_sha256s(data)
+    assert b"\r\n" in older  # the line ends of the input are kept
+    entered = json.loads(data.decode("utf-8"))
+    entered["杭基礎"]["場所打ち杭"]["帯鉄筋"]["径"] = 16
+    text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
+    assert before_rebar(text) is None and sha256(older) not in input_sha256s(text)

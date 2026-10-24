@@ -169,12 +169,45 @@ class Materials:
 
 
 @dataclass(frozen=True)
+class CastBars:
+    """The main bars of a 場所打ち杭 (decision 91): one set all along the pile, spaced evenly round it; None is blank."""
+
+    diameter: Printed | None  # 径 (D32 → 32), mm
+    count: int | None  # 本数, all round the pile
+    grade: str | None  # 材質, one of choices.STEEL_GRADES
+    cover: Printed | None  # 純かぶり, mm: from the face of the pile to the face of the hoops
+
+
+@dataclass(frozen=True)
+class CastHoops:
+    """The hoops of a 場所打ち杭 (decision 91): one set all along the pile; None is blank."""
+
+    diameter: Printed | None  # 径 (D16 → 16), mm
+    grade: str | None  # 材質, one of choices.STEEL_GRADES
+    pitch: Printed | None  # 間隔, mm
+
+
+@dataclass(frozen=True)
 class CastInPlacePile:
-    """場所打ち杭: its diameter, concrete strength and construction condition; None is blank."""
+    """場所打ち杭: its diameter, concrete strength, construction condition and the bars of its body; None is blank."""
 
     diameter: Printed | None  # 杭径 D, m
     fck: Printed | None  # f'ck, N/mm2
     condition: str | None  # 施工条件, one of choices.CAST_IN_PLACE_CONDITIONS
+    bars: CastBars  # 軸方向鉄筋 (the pile body check, decision 91)
+    hoops: CastHoops  # 帯鉄筋
+
+
+@dataclass(frozen=True)
+class PileJoint:
+    """杭とフーチングの結合部 (CONTEXT.md, decision 90) of a steel soil cement pile: the anchor bars inside the pipe and the
+    strength of the concrete filling it; None is blank."""
+
+    bar_diameter: Printed | None  # 軸方向鉄筋の径 (D38 → 38), mm
+    bar_count: int | None  # 軸方向鉄筋の本数
+    bar_grade: str | None  # 軸方向鉄筋の材質, one of choices.STEEL_GRADES
+    bar_centroid: Printed | None  # 鉄筋重心位置, mm from the outer edge of the pipe (the outer diameter less the corrosion)
+    fill_fck: Printed | None  # 中詰めコンクリートの f'ck, N/mm2
 
 
 @dataclass(frozen=True)
@@ -186,6 +219,7 @@ class SteelSoilCementPile:
     thickness: Printed | None  # 鋼管厚 t, mm (it includes the corrosion allowance)
     corrosion: Printed | None  # 腐食代 c, mm
     grade: str | None  # 鋼管材質, one of choices.STEEL_PIPE_GRADES (the pile body check, decision 89)
+    joint: PileJoint  # 結合部 (the joint check, decision 90)
 
 
 @dataclass(frozen=True)

@@ -2,13 +2,13 @@
   "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0622",
-  "verified_at": "2026-10-23T19:44:55+09:00",
+  "verified_at": "2026-10-24T07:29:07+09:00",
   "method": "WebPier が 0620 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 9-27 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "86da6fb090c7d46f20d11214d9bd557bd02dc3649888d73af659a305d6f1344f"
+    "sha256": "45dc26a69bbf6f0c118fa77224084eebe9c0449dce6215c22f487c2957a7268a"
   },
-  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
+  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"

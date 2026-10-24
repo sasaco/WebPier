@@ -28,6 +28,8 @@ from ..inputs import PierInput
 from ._exact import d, put
 from .foundation_check import FrameResult, LONGITUDINAL, TRANSVERSE, Direction, Requirement
 from .pile_body import PileBodyResult, PileResponseError
+from .pile_cast import PileCastResult
+from .pile_joint import PileJointResult
 from .frame import NodeRole
 from .longitudinal.combinations import ExtractionGroup
 
@@ -141,8 +143,10 @@ class Column:
 class PileCheckResult:
     basis: Basis
     columns: tuple[Column, ...]
-    engineering_status: str  # "ok" when every check of every column (and of the pile body) is satisfied, else "not_ok"
+    engineering_status: str  # "ok" when every check WebPier judges is satisfied (the columns, the steel pile body and joint), else "not_ok"
     body: PileBodyResult | None = None  # the pile body of a steel pipe pile (decision 89), SteelDan's checks
+    joint: PileJointResult | None = None  # the joint of the pile with the footing (decision 90), Capacita's Mud
+    cast: PileCastResult | None = None  # the pile body of a cast-in-place pile (decision 91), Capacita's pages
 
 
 def prepare(pier: PierInput, frame_result: FrameResult, direction: Direction) -> Basis:
@@ -210,6 +214,18 @@ def with_body(result: PileCheckResult, body: PileBodyResult) -> PileCheckResult:
     return replace(result, body=body, engineering_status="ok" if ok else "not_ok")
 
 
+def with_joint(result: PileCheckResult, joint: PileJointResult) -> PileCheckResult:
+    """The check with the joint of the pile with the footing: the status is not_ok when a check of the joint is not satisfied too."""
+    ok = result.engineering_status == "ok" and joint.ok
+    return replace(result, joint=joint, engineering_status="ok" if ok else "not_ok")
+
+
+def with_cast(result: PileCheckResult, cast: PileCastResult) -> PileCheckResult:
+    """The check with the pile body of a cast-in-place pile. Capacita returns no judgement (ADR-0008): the status stays what
+    WebPier's own checks make it, and the body's own status is ``not_evaluated``."""
+    return replace(result, cast=cast)
+
+
 __all__ = ["Basis", "Column", "Displacements", "Extreme", "HeadForce", "HeadForces", "LONGITUDINAL", "Limits",
-           "PileCheckResult", "PileMember", "with_body", "REQUIREMENTS", "PileResponseError", "SDR_DIRECTION", "TRANSVERSE", "check",
+           "PileCheckResult", "PileMember", "with_body", "with_cast", "with_joint", "REQUIREMENTS", "PileResponseError", "SDR_DIRECTION", "TRANSVERSE", "check",
            "prepare"]

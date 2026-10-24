@@ -181,7 +181,7 @@ def steel(pier: PierInput) -> PileSteel:
                      put(THICKNESS, d(pile.thickness) - d(pile.corrosion)))
 
 
-def _largest(focus: str, rows: Sequence[PointForces], key) -> tuple[SectionForce, float] | None:
+def largest_case(focus: str, rows: Sequence[PointForces], key) -> tuple[SectionForce, float] | None:
     """The case of the *focus* lines of the points below the head with the largest *key* of its forces."""
     best: tuple[SectionForce, float] | None = None
     for line in rows:
@@ -196,9 +196,9 @@ def _largest(focus: str, rows: Sequence[PointForces], key) -> tuple[SectionForce
 def select(row: int, member: int, piles: int, lines: Sequence[PointForces]) -> PileRowForces:
     """The three design force cases of a pile row from the PIK lines of its member (``PileResponseError`` when the member has
     no point below its head for a case)."""
-    chosen = {Case.MOMENT: _largest("M", lines, lambda force: abs(force.md)),
-              Case.SHEAR: _largest("S", lines, lambda force: abs(force.vd)),
-              Case.AXIAL: _largest("N", lines, lambda force: -force.nd)}  # the largest compression: the smallest Nd
+    chosen = {Case.MOMENT: largest_case("M", lines, lambda force: abs(force.md)),
+              Case.SHEAR: largest_case("S", lines, lambda force: abs(force.vd)),
+              Case.AXIAL: largest_case("N", lines, lambda force: -force.nd)}  # the largest compression: the smallest Nd
     for case, found in chosen.items():
         if found is None:
             raise PileResponseError(f"杭列 {row}（部材 {member}）の杭頭より下の断面力（{case.name}）がありません")

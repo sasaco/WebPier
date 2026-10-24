@@ -19,7 +19,7 @@ JTAN, so the place of a point (export.capacita.point_index) is the real runner's
 runner's protocol changes, change this too (the real-runner tests are the signal).
 
 A FrameWeb document of a pile foundation (it has ``fix_member``, decision 88) also has, for the 基礎の照査 of 0612 / 0622 (decision 89),
-a line of the axial force N at the head (ITAN) of each member that has a distributed spring, for every pickup, after the
+a line of the axial force N and a line of the bending moment M (``head_moment(member, pickup)``) at the head (ITAN) of each member that has a distributed spring, for every pickup, after the
 points (``head(member, pickup)``), and a displacement pickup CSV in the real runner's columns, for every pickup, node and
 focus component (dx, dy, rz) one row of the largest and the smallest extreme (``motion(node, pickup, focus)``).
 
@@ -81,8 +81,16 @@ def points(document):
 
 def pik(source, digest):
     document = json.loads(source.read_text(encoding="utf-8"))
-    rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}" + f"{0:>10.2f}" * 6
-            for number, point, position in points(document)]
+    piles = pile_members(document)
+
+    def forces(number, point):
+        if point == "ITAN" and int(number) in piles:  # the first pickup's head line of the focus M, of a pile member
+            moment, axial = head_moment(int(number), 1)
+            return (moment, 20.0, axial, -moment / 2, -20.0, axial)
+        return (0,) * 6
+
+    rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
+            + "".join(f"{value:>10.2f}" for value in forces(number, point)) for number, point, position in points(document)]
     return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document), *pile_points(document)]).encode()
 
 
@@ -111,7 +119,17 @@ def pile_heads(document):
             largest, smallest = head(member, int(number))
             lines.append(f"{number:>5}{'N':>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{'ITAN':>5}{0.0:>10.3f}"
                          + f"{0.0:>10.2f}" * 2 + f"{largest:>10.2f}" + f"{0.0:>10.2f}" * 2 + f"{smallest:>10.2f}")
+            moment, axial = head_moment(member, int(number))
+            if number != "1":  # the first pickup's line is in the points
+                lines.append(f"{number:>5}{'M':>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{'ITAN':>5}{0.0:>10.3f}"
+                             + f"{moment:>10.2f}{20.0:>10.2f}{axial:>10.2f}" + f"{-moment / 2:>10.2f}{-20.0:>10.2f}{axial:>10.2f}")
     return lines
+
+
+def head_moment(member, pickup):
+    """(largest bending moment, axial force) of the head of a pile member in a pickup (the focus M line): the moment grows with
+    the pickup and the member, the compression with the member (the larger member is the push side)."""
+    return 100.0 * pickup + 10.0 * member, -(1000.0 * member + 100.0 * pickup)
 
 
 def pile_points(document):

@@ -17,6 +17,9 @@ from webpier.pipeline import generate
 from webpier.pipeline.generate import GenerationOptions
 
 PILE = json.loads((FIXTURES / "inputs" / "pile.json").read_text(encoding="utf-8"))
+# the bars of the pile body of pile.json's cast-in-place pile (D1.0 m): 20-D32 with 100 mm of cover, D16 hoops at 200
+CAST = {"杭基礎/場所打ち杭/軸方向鉄筋": {"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 100.0},
+        "杭基礎/場所打ち杭/帯鉄筋": {"径": 16, "材質": "SD345", "間隔": 200.0}}
 ITEMS = ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
          "transverse_frame_analysis")
 
@@ -30,7 +33,7 @@ def write(directory: Path, **changes) -> Path:
         *parents, key = path.split("/")
         for part in parents:
             node = node[part]
-        node[key] = value
+        node[key] = deepcopy(value)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / "input.json"
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -45,7 +48,7 @@ def identity(monkeypatch):
 @pytest.fixture(scope="module")
 def made(tmp_path_factory):
     root = tmp_path_factory.mktemp("pile-check")
-    return root, generate.generate(GenerationOptions(write(root / "pre"), root / "output", root / "post"))
+    return root, generate.generate(GenerationOptions(write(root / "pre", **CAST), root / "output", root / "post"))
 
 
 def text(pdf: bytes) -> str:
@@ -102,7 +105,7 @@ def test_a_failure_to_read_the_frame_analysis_stops_the_generation(monkeypatch, 
 
     monkeypatch.setattr(stages, "head_forces", refuse)
     with pytest.raises(generate.GenerationError, match="骨組解析の結果で0612の杭基礎の照査ができません: 読めません"):
-        generate.generate(GenerationOptions(write(tmp_path / "pre"), tmp_path / "output", tmp_path / "post"))
+        generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST), tmp_path / "output", tmp_path / "post"))
     assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
 
 
@@ -120,11 +123,13 @@ def test_the_report_has_the_checks_the_table_and_the_grid_workbook(made, tmp_pat
     assert report.LONGITUDINAL.number == 8 and LONGITUDINAL.prefix == "0612/"
 
 
-STEEL = {"下部構造/基礎形式": "鋼管ソイルセメント杭"}
+STEEL = {"下部構造/基礎形式": "鋼管ソイルセメント杭",
+         "杭基礎/鋼管ソイルセメント杭/結合部/軸方向鉄筋/径": 38, "杭基礎/鋼管ソイルセメント杭/結合部/軸方向鉄筋/本数": 16, "杭基礎/鋼管ソイルセメント杭/結合部/軸方向鉄筋/材質": "SD390",
+         "杭基礎/鋼管ソイルセメント杭/結合部/軸方向鉄筋/重心位置": 75.0, "杭基礎/鋼管ソイルセメント杭/結合部/中詰めコンクリート_f'ck": 27.0}
 
 
 def steel_options(root: Path, **changes) -> GenerationOptions:
-    return GenerationOptions(write(root / "pre", **STEEL, **changes), root / "output", root / "post")
+    return GenerationOptions(write(root / "pre", **{**STEEL, **changes}), root / "output", root / "post")
 
 
 @pytest.fixture(scope="module")
@@ -156,10 +161,84 @@ def test_the_pile_body_of_a_steel_pipe_pile_is_checked_by_steeldan(steel):
     assert result["engineering_status"] in ("ok", "not_ok")
 
 
-def test_the_pile_body_is_not_checked_for_a_cast_in_place_pile(made):
+def test_the_pile_body_of_a_cast_in_place_pile_is_checked_by_capacita_not_steeldan(made):
     root, _ = made
-    assert load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]["body"] is None
+    result = load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]
+    assert result["body"] is None and result["joint"] is None and result["cast"] is not None
 
+
+def cast_of(root: Path, name: str = "0612_線路方向基礎") -> dict:
+    return load_json((root / "output" / f"{name}.json").read_bytes())["result"]["cast"]
+
+
+def test_the_cast_in_place_pile_is_checked_with_the_cases_of_each_pile_row(made):
+    """The section is the input's (D 1000 mm; 芯かぶり 100 + 16 + 16 = 132 mm), the forces those of the stand-in's PIK below the
+    head, per pile (compression positive); the stand-in of Capacita gives the pages and the version, not values."""
+    root, _ = made
+    cast = cast_of(root)
+    section = cast["section"]
+    assert (section["diameter"], section["fck"], section["condition"]) == (1000.0, 18.8, "自然泥水")
+    assert (section["bar_count"], section["bar_area"], section["cover"], section["centre"]) == (20, 15884.0, 100.0, 132.0)
+    assert (section["hoop_pitch"], section["bar_steel"]["fsy"], section["hoop_steel"]["fsu"]) == (200.0, 345.0, 490.0)
+    assert cast["pile_factor"] == ["pile-001", "泥水中に打込む", 0.8, 0.7, 0.8, 0.9]
+    assert cast["safety"]["ri"] == 1.2 and cast["safety"]["id"] == 5
+    assert [row["row"] for row in cast["rows"]] == [1, 2, 3] and [row["piles"] for row in cast["rows"]] == [3, 2, 3]
+    first = cast["rows"][0]["cases"]
+    assert [case["kind"] for case in first][:3] == ["曲げ最大", "せん断最大", "圧縮最大"]
+    # the same forces as the steel pipe pile's body (the same pickup of the same stand-in): row 1, member 7, three piles
+    assert [(case["md"], case["vd"], case["nd"]) for case in first[:3]] == [(69.0, 6.7, 335.7), (16.7, 102.3, 666.7),
+                                                                           (10.0, 13.3, 1356.7)]
+    assert all(case["distance"] == 3.75 for case in first[:3])
+    assert cast["engine_version"] == "fake-1" and len(cast["wdj_sha256"]) == 64 and cast["skipped"] == []
+    assert cast["engineering_status"] == "not_evaluated" and "pages" not in cast  # Capacita returns no judgement (ADR-0008)
+
+
+def test_the_tension_case_is_checked_only_for_a_row_that_has_a_tension(made):
+    root, _ = made
+    cast = cast_of(root)
+    for row in cast["rows"]:
+        kinds = [case["kind"] for case in row["cases"]]
+        assert kinds[:3] == ["曲げ最大", "せん断最大", "圧縮最大"]
+        assert kinds[3:] in ([], ["引張最大"])
+        for case in row["cases"]:
+            assert (case["nd"] < 0) == (case["kind"] == "引張最大")
+
+
+def test_the_report_has_capacitas_pages_after_the_headings_of_the_two_checks(made):
+    root, _ = made
+    report = text((root / "output" / "0612_線路方向基礎.pdf").read_bytes())
+    order = ["(1) 杭体の照査（場所打ち杭）", "場所打ち杭の諸元", "杭列 1 の設計断面力（杭1本当り，3本）",
+             "a) 曲げモーメントと軸方向力に対する照査", "FAKE CAPACITA bending_safety_destruction 1/1",
+             "b) せん断力に対する照査", "FAKE CAPACITA shear_safety_destruction 1/2", "FAKE CAPACITA shear_safety_destruction 2/2",
+             "(2) 杭基礎の安定に対する検討"]
+    positions = [report.index(words) for words in order]
+    assert positions == sorted(positions)
+    assert "杭とフーチングの結合部" not in report and "(1) 杭体の照査（鋼管杭）" not in report
+
+
+def test_the_cast_in_place_pile_needs_its_bars_before_any_runner_is_asked(tmp_path):
+    from webpier.core.errors import InputError
+
+    with pytest.raises(InputError, match="杭基礎.場所打ち杭.帯鉄筋.間隔: 杭体の照査に必要です"):
+        generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST, **{"杭基礎/場所打ち杭/帯鉄筋/間隔": None}),
+                                            tmp_path / "output", tmp_path / "post"))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
+
+
+def test_a_failure_of_capacita_stops_the_generation_of_a_cast_in_place_pile(monkeypatch, tmp_path):
+    monkeypatch.setenv("FAKE_CAPACITA", "fail")
+    with pytest.raises(generate.GenerationError, match="pile.wdj で断面照査ができません: .*RcDanが計算を完了できませんでした"):
+        generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST), tmp_path / "output", tmp_path / "post"))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
+
+
+def test_a_check_capacita_skipped_for_zero_forces_ends_with_the_reason(monkeypatch, tmp_path):
+    monkeypatch.setenv("FAKE_CAPACITA", "pile-skip")
+    generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST), tmp_path / "output", tmp_path / "post"))
+    assert cast_of(tmp_path)["skipped"] == ["shear_safety_destruction"]
+    report = text((tmp_path / "output" / "0612_線路方向基礎.pdf").read_bytes())
+    assert "FAKE CAPACITA bending_safety_destruction 1/1" in report and "FAKE CAPACITA shear_safety_destruction" not in report
+    assert report.index("b) せん断力に対する照査") < report.index("せん断力が生じないため，せん断に対する照査を省略する．")
 
 
 def test_a_pipe_too_thin_for_its_forces_fails_the_body_and_the_status(tmp_path):
@@ -186,5 +265,35 @@ def test_the_pile_body_needs_the_grade_of_the_pipe(tmp_path):
 def test_a_failure_of_steeldan_stops_the_generation(monkeypatch, tmp_path):
     monkeypatch.setenv("FAKE_CAPACITA", "steel-fail")
     with pytest.raises(generate.GenerationError, match="pile.wsj で鋼管杭の杭体の照査ができません: .*SD-FORCE-CASE"):
+        generate.generate(steel_options(tmp_path))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
+
+
+def test_the_joint_of_the_pile_with_the_footing_is_calculated_by_capacita(steel):
+    """The stand-in's Mu is 2400 + 0.145 N'd (kN m); the forces are the head's of one pile, the push side the largest compression."""
+    root, _ = steel
+    result = load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]
+    joint = result["joint"]
+    assert (joint["engine_version"], len(joint["input_sha256"])) == ("fake-1", 64)
+    assert [row["row"] for row in joint["rows"]] == [1, 2, 3]
+    for row in joint["rows"]:
+        check = row["check"]
+        assert check["mud"] == round(2400 + 0.145 * check["nd"], 1)
+        assert check["ratio"] == round(1.2 * check["md"] / check["mud"], 2)
+    by_force = sorted(joint["rows"], key=lambda row: row["check"]["nd"])
+    assert (by_force[0]["check"]["side"], by_force[-1]["check"]["side"]) == ("引抜き側", "押込み側")
+    assert "杭とフーチングの結合部" in text((root / "output" / "0612_線路方向基礎.pdf").read_bytes())
+
+
+def test_the_joint_needs_the_bars_of_the_input(tmp_path):
+    from webpier.core.errors import InputError
+
+    with pytest.raises(InputError, match="結合部.軸方向鉄筋.径: 結合部の照査に必要です"):
+        generate.generate(steel_options(tmp_path, **{"杭基礎/鋼管ソイルセメント杭/結合部/軸方向鉄筋/径": None}))
+
+
+def test_a_failure_of_hscalc_stops_the_generation(monkeypatch, tmp_path):
+    monkeypatch.setenv("FAKE_CAPACITA", "joint-fail")
+    with pytest.raises(generate.GenerationError, match="pile-joint.json で鋼管杭の結合部の照査ができません: .*HsCalc が計算できません"):
         generate.generate(steel_options(tmp_path))
     assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")

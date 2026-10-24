@@ -1,8 +1,9 @@
 """Calculation results as deterministic JSON.
 
 A ``Printed`` becomes its printed number, a Decimal (a load model's value, decision 70) its number, an enum its
-value, a tuple a list, a set a list sorted by its JSON, and a mapping key a string. Anything else is a programming
-error: the result JSON never guesses.
+value, a tuple a list, a set a list sorted by its JSON, and a mapping key a string. A dataclass field with
+``metadata={"json": False}`` is left out (the pages of another program's report a result carries, decision 91). Anything
+else is a programming error: the result JSON never guesses.
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ def to_json(value: Any) -> Any:
             raise ValueError(f"有限でない数値はJSONにできません: {value!r}")
         return value
     if is_dataclass(value) and not isinstance(value, type):
-        return {item.name: to_json(getattr(value, item.name)) for item in fields(value)}
+        return {item.name: to_json(getattr(value, item.name)) for item in fields(value) if item.metadata.get("json", True)}
     if isinstance(value, Mapping):
         encoded: dict[str, Any] = {}
         for key, item in value.items():

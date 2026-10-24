@@ -84,7 +84,10 @@ from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
 from ..calc.pile_body import assemble as assemble_pile_body, select as select_pile_forces, steel as pile_steel
-from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check, with_body
+from ..calc.pile_cast import REPORT_SECTIONS as PILE_CAST_SECTIONS, assemble as assemble_pile_cast
+from ..calc.pile_cast import pile_factor, section as pile_cast_section, select as select_pile_cast
+from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check, with_body, with_cast, with_joint
+from ..calc.pile_joint import assemble as assemble_pile_joint, section as pile_joint_section, select as select_pile_joint
 from ..calc.pile_frame import PileFoundation
 from ..calc.pile_ground import calculate_pile_ground
 from ..calc.reaction import calculate_dead_reaction, calculate_reaction
@@ -102,6 +105,8 @@ from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_
 from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
+from ..export.capacita.pile_joint import row_id, write as write_pile_joint
+from ..export.capacita.pile_wdj import build_pile_wdj, write_pile_wdj
 from ..export.steeldan import write_wsj
 from ..inputs import PierInput, choices
 from ..inputs.outputs import OUTPUT_KEYS, uses
@@ -149,6 +154,7 @@ from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
 from . import capacita, soiljr
 from .pile_check import limits as pile_limits
+from .pilejoint import check_joint as run_pile_joint
 from .steeldan import check_pile as run_pile_body
 from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
 from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, member_forces, support_reactions
@@ -616,19 +622,38 @@ def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: Fou
         found = check_pile(basis, pile_limits(results["0500"].sdr, direction),
                            head_forces(files["pik"], [member.member for member in basis.members]),
                            footing_displacements(files["displacement"], basis.node))
-        if pier.substructure.foundation != choices.STEEL_SOIL_CEMENT_PILE:
-            return found
+        lines = member_forces(files["pik"], [member.member for member in basis.members], basis.body_pickup)
+        if pier.substructure.foundation == choices.CAST_IN_PLACE_PILE:
+            # the pile body of a cast-in-place pile: WebPier chooses the design forces, Capacita checks the circular section
+            # and returns its pages (decision 91)
+            cast = pile_cast_section(pier)
+            rows = [select_pile_cast(member.row, member.member, member.piles, lines[member.member])
+                    for member in basis.members]
+            wdj = write_pile_wdj(build_pile_wdj(cast, pile_factor(cast), rows))
+            checked = capacita.check_section(wdj, "pile.wdj", capacita.runner_path(), PILE_CAST_SECTIONS)
+            return with_cast(found, assemble_pile_cast(cast, rows, checked.engine_version, sha256(wdj), checked.skipped,
+                                                       checked.pages))
         # the pile body of a steel pipe pile: WebPier chooses the design forces, Capacita's SteelDan calculates (decision 89)
         steel = pile_steel(pier)
-        lines = member_forces(files["pik"], [member.member for member in basis.members], basis.body_pickup)
         rows = [select_pile_forces(member.row, member.member, member.piles, lines[member.member])
                 for member in basis.members]
         wsj = write_wsj(steel, rows)
         values, version = run_pile_body(wsj, {row.row for row in rows}, capacita.runner_path())
-        return with_body(found, assemble_pile_body(steel, rows, values, version, sha256(wsj)))
+        found = with_body(found, assemble_pile_body(steel, rows, values, version, sha256(wsj)))
+        # the joint with the footing (decision 90): the same pickup's head lines, Capacita's HsCalc calculates Mud
+        forces = [select_pile_joint(member.row, member.member, member.piles, lines[member.member]) for member in basis.members]
+        joint = pile_joint_section(pier, steel)
+        content = write_pile_joint(joint, forces)
+        moments, joint_version = run_pile_joint(content, {row_id(row.row) for row in forces}, capacita.runner_path())
+        return with_joint(found, assemble_pile_joint(joint, forces, {row.row: moments[row_id(row.row)] for row in forces},
+                                                     joint_version, sha256(content)))
 
-    return StageSpec(stage_id, stem, ("0500", source),
-                     lambda pier, results: prepare_pile_check(pier, results[source], direction),
+    def prepare(pier: PierInput, results: Results) -> Any:
+        if pier.substructure.foundation == choices.CAST_IN_PLACE_PILE:
+            pile_cast_section(pier)  # a blank item of the pile body is an input error before any runner is called
+        return prepare_pile_check(pier, results[source], direction)
+
+    return StageSpec(stage_id, stem, ("0500", source), prepare,
                      lambda results, pier, path, pages: render_pile_check(results[stage_id], path, chapter),
                      frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)), complete=complete,
                      grid_documents=lambda results, pier, pages: pile_check_report.grid_documents(

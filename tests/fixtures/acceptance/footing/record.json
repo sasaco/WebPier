@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "kind": "footing_acceptance",
-  "verified_at": "2026-10-23T19:55:09+09:00",
+  "verified_at": "2026-10-24T07:28:55+09:00",
   "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md（その組合せの荷重の和と比べる、決定77）、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
@@ -67,9 +67,9 @@
       }
     },
     "file": "input.json",
-    "sha256": "59bfa4dba47c8e140932911e9bb643a0cb668a8b0c4f84e5c8c3eedaa026e388"
+    "sha256": "8464305249f8da2e219fc1c0850588376e04aa5bd463bc11758b295e5b5ffcc6"
   },
-  "implementation_sha256": "77b2f707dbbeceba51e98dc75bb78bf6afe295e7063a36d599af288c09aa1fd9",
+  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
   "runners": {
     "fempython": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "jrsnap": "C:\\Users\\sasai\\Documents\\structural-mcp\\JRSNAPHeadless\\bin\\Release\\JRSNAP.Headless.exe",

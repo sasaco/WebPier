@@ -33,9 +33,13 @@ def pile_input(kind="場所打ち杭"):
     piles = data["杭基礎"]
     piles["杭長"] = 19.0
     piles["杭の単位体積重量"] = 24.5
-    piles["場所打ち杭"] = {"杭径": 1.0, "f'ck": 24.0, "施工条件": "自然泥水"}
+    piles["場所打ち杭"] = {"杭径": 1.0, "f'ck": 24.0, "施工条件": "自然泥水",
+                        "軸方向鉄筋": {"径": 32, "本数": 20, "材質": "SD345", "純かぶり": 100.0},
+                        "帯鉄筋": {"径": 16, "材質": "SD345", "間隔": 200.0}}
     piles["鋼管ソイルセメント杭"] = {"ソイルセメント径": 1.2, "鋼管外径": 1.0, "鋼管厚": 18.0, "腐食代": 1.0,
-                                  "鋼管材質": "SKK490"}
+                                  "鋼管材質": "SKK490",
+                                  "結合部": {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0},
+                                          "中詰めコンクリート_f'ck": 27.0}}
     piles["配置"] = {"形式": "格子", "線路方向の列の位置": [-3.0, 0.0, 3.0], "線路直角方向の列の位置": [-3.0, 0.0, 3.0],
                    "抜く杭": [{"線路方向の列": 2, "線路直角方向の列": 2}]}
     return data
@@ -83,6 +87,12 @@ def test_a_staggered_layout_has_piles_where_the_column_numbers_add_to_an_even_nu
 def test_the_values_of_the_other_pile_type_are_not_needed(kind, item):
     data = pile_input(kind)
     data["杭基礎"][item] = {key: None for key in data["杭基礎"][item]}
+    if item == "鋼管ソイルセメント杭":
+        data["杭基礎"][item]["結合部"] = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None},
+                                    "中詰めコンクリート_f'ck": None}
+    else:
+        data["杭基礎"][item]["軸方向鉄筋"] = {"径": None, "本数": None, "材質": None, "純かぶり": None}
+        data["杭基礎"][item]["帯鉄筋"] = {"径": None, "材質": None, "間隔": None}
     parse_input(data)
 
 
@@ -299,3 +309,52 @@ def test_the_grade_of_the_steel_pipe_is_one_of_the_grades_and_may_stay_blank():
     assert parse_input(data).piles.steel_soil_cement.grade is None  # the pile body asks for it (decision 89)
     data["杭基礎"]["鋼管ソイルセメント杭"]["鋼管材質"] = "SS400"
     fails(data, "杭基礎.鋼管ソイルセメント杭.鋼管材質")
+
+
+def test_the_joint_of_the_steel_pipe_pile_is_read_and_may_stay_blank():
+    data = pile_input("鋼管ソイルセメント杭")
+    joint = parse_input(data).piles.steel_soil_cement.joint
+    assert (joint.bar_diameter.value, joint.bar_count, joint.bar_grade) == (38, 16, "SD390")
+    assert (joint.bar_centroid.value, joint.fill_fck.value) == (75.0, 27.0)
+    blank = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}
+    data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"] = blank
+    joint = parse_input(data).piles.steel_soil_cement.joint
+    assert joint.bar_diameter is None and joint.bar_count is None and joint.fill_fck is None  # the joint check asks
+
+
+@pytest.mark.parametrize("path, value", [
+    (("軸方向鉄筋", "径"), 0), (("軸方向鉄筋", "本数"), 0), (("軸方向鉄筋", "本数"), 1.5), (("軸方向鉄筋", "材質"), "SD490"),
+    (("軸方向鉄筋", "重心位置"), -1.0), (("中詰めコンクリート_f'ck",), 0)])
+def test_a_value_of_the_joint_outside_its_range_is_an_input_error(path, value):
+    data = pile_input("鋼管ソイルセメント杭")
+    node = data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = value
+    fails(data, "杭基礎.鋼管ソイルセメント杭.結合部." + ".".join(path))
+
+
+def test_the_bars_of_the_cast_in_place_pile_are_read_and_may_stay_blank():
+    data = pile_input()
+    cast = parse_input(data).piles.cast_in_place
+    assert (cast.bars.diameter.value, cast.bars.count, cast.bars.grade, cast.bars.cover.value) == (32, 20, "SD345", 100.0)
+    assert (cast.hoops.diameter.value, cast.hoops.grade, cast.hoops.pitch.value) == (16, "SD345", 200.0)
+    data["杭基礎"]["場所打ち杭"]["軸方向鉄筋"] = {"径": None, "本数": None, "材質": None, "純かぶり": None}
+    data["杭基礎"]["場所打ち杭"]["帯鉄筋"] = {"径": None, "材質": None, "間隔": None}
+    cast = parse_input(data).piles.cast_in_place
+    assert cast.bars.diameter is None and cast.bars.count is None and cast.hoops.pitch is None  # the pile body check asks
+
+
+@pytest.mark.parametrize("path, value", [
+    (("軸方向鉄筋", "径"), 0), (("軸方向鉄筋", "本数"), 0), (("軸方向鉄筋", "本数"), 1.5), (("軸方向鉄筋", "材質"), "SD490"),
+    (("軸方向鉄筋", "純かぶり"), 0), (("帯鉄筋", "径"), -16), (("帯鉄筋", "材質"), "SR235"), (("帯鉄筋", "間隔"), 0)])
+def test_a_value_of_the_bars_of_the_cast_in_place_pile_outside_its_range_is_an_input_error(path, value):
+    data = pile_input()
+    data["杭基礎"]["場所打ち杭"][path[0]][path[1]] = value
+    fails(data, "杭基礎.場所打ち杭." + ".".join(path))
+
+
+def test_an_unknown_item_of_the_bars_of_the_cast_in_place_pile_is_an_input_error():
+    data = pile_input()
+    data["杭基礎"]["場所打ち杭"]["帯鉄筋"]["組"] = 1
+    fails(data, "杭基礎.場所打ち杭.帯鉄筋")

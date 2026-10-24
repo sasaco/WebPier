@@ -49,6 +49,7 @@ AGGREGATE_RANGE = (0.1, 999_999)
 MAX_STEPS = 100_000
 MAX_COUNT = 10_000
 MAX_PILE_COLUMNS = 99  # SOIL-JR: 1..99 columns of piles in each direction
+MAX_PILE_BARS = 999  # the anchor bars of the joint of a steel soil cement pile (decision 90), the main bars of a cast-in-place pile (decision 91)
 MAX_TRAINS = 10_000  # 列車本数, per track per day
 MAX_YEARS = 1_000  # 設計耐用年数
 BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own 水掛かりの程度 (decision 59)
@@ -223,11 +224,25 @@ def _piles() -> dict[str, Field]:
         f"{cast}.杭径": number(LENGTH, "positive", nullable=True),
         f"{cast}.f'ck": number(STRENGTH, "positive", nullable=True),
         f"{cast}.施工条件": choice(choices.CAST_IN_PLACE_CONDITIONS, nullable=True),
+        # 場所打ち杭の杭体の照査 (decision 91): the main bars all along the pile and the hoops, blank until the check asks
+        f"{cast}.軸方向鉄筋.径": number(DIAMETER, "positive", nullable=True),
+        f"{cast}.軸方向鉄筋.本数": integer(1, MAX_PILE_BARS, nullable=True),
+        f"{cast}.軸方向鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
+        f"{cast}.軸方向鉄筋.純かぶり": number(LENGTH_MM, "positive", nullable=True),
+        f"{cast}.帯鉄筋.径": number(DIAMETER, "positive", nullable=True),
+        f"{cast}.帯鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
+        f"{cast}.帯鉄筋.間隔": number(LENGTH_MM, "positive", nullable=True),
         f"{steel}.ソイルセメント径": number(LENGTH, "positive", nullable=True),
         f"{steel}.鋼管外径": number(LENGTH, "positive", nullable=True),
         f"{steel}.鋼管厚": number(THICKNESS_MM, "positive", nullable=True),
         f"{steel}.腐食代": number(THICKNESS_MM, nullable=True),
         f"{steel}.鋼管材質": choice(choices.STEEL_PIPE_GRADES, nullable=True),
+        # 杭とフーチングの結合部 (decision 90): blank until the joint check asks
+        f"{steel}.結合部.軸方向鉄筋.径": number(DIAMETER, "positive", nullable=True),
+        f"{steel}.結合部.軸方向鉄筋.本数": integer(1, MAX_PILE_BARS, nullable=True),
+        f"{steel}.結合部.軸方向鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
+        f"{steel}.結合部.軸方向鉄筋.重心位置": number(THICKNESS_MM, "positive", nullable=True),
+        f"{steel}.結合部.中詰めコンクリート_f'ck": number(STRENGTH, "positive", nullable=True),
         f"{layout}.形式": choice(choices.PILE_ARRANGEMENTS, nullable=True),
         f"{layout}.線路方向の列の位置[*]": number(LENGTH, "any"),
         f"{layout}.線路直角方向の列の位置[*]": number(LENGTH, "any"),
