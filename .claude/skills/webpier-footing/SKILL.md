@@ -64,3 +64,25 @@ description: WebPier の 0800・0810・0820 フーチングの照査（決定60�
 ## 知見を更新する
 
 見本や原資料との新しい差、runner の挙動、受入で見つかった値の違いは、根拠（コード・実アプリ・推定の別）を付けてこのスキルに足す。決定は `.claude/docs/plans/refactoring-decisions.md` の決定60に。計算書を使う人向けの 0800〜0820 の説明（応答値の5列、Capacita の照査、既知の差）は structural-mcp のスキル `structural-webpier` の checks.md にある（ここには書かない）。式・既知の差を変えたら、そちらも直して structural-mcp で commit する。
+
+
+## 杭基礎のフーチング（決定96、2026-10-26。場所打ち杭だけ）
+
+直接基礎の 0800〜0820 とは別の段（`StageSpec.foundations` の杭基礎版、`stages.py` の `_pile_footing`・`_pile_footing_check`）。反力から地盤反力の分布を決める作りは使わず、骨組と耐震性能照査のピックアップの部材の端の値をそのまま断面力にする。
+
+| もの | 場所 |
+|---|---|
+| 断面と断面力（`prepare` は骨組と入力から、`complete` は PIK・ピックアップ・NDU の要素の番号で） | `webpier/calc/pile_footing.py`（`Point`・`Width`・`End`・`Force`、`CASES`、`SEISMIC_PICKUP`＝2） |
+| Capacita の条件 | `webpier/calc/pile_footing_check.py`（`calculate_pile_footing_check`、`REPORT_SECTIONS` 5 節、`scaled` で 1 m 当たりの鉄筋を幅に比例） |
+| WDJ | `webpier/export/capacita/pile_footing_wdj.py`（5 点・5 部材、`shear[].deep_beam`） |
+| く体前面の節点 | `webpier/calc/frame.py` の `_pile_rows(faces=)`・`NodeRole.COLUMN_FACE`。NDU の要素の番号は `webpier/export/jrsnap/build_pile.py: element_numbers(frame)` |
+| 帳票 | `webpier/reporting/stages/pile_footing.py`（0800）、0810・0820 は `footing_check.py`（`shear_deep_beam_safety_destruction` の見出しを足した） |
+| 鉄筋 | `webpier/calc/footing_rebar.py: main_bars(pier, direction, face)`（上面も読む） |
+| 偽 runner | `tests/fixtures/fempython/fake_runner.py`（`base_lines`：フーチング底面の部材の M・S）、`aggrese/fake_runner.py`（`pickup_lines`：ピックアップ 2）、`capacita/fake_runner.py`（`deep_beam` の節） |
+| 受入 | `scripts/accept_pile_footing.py` → `tests/fixtures/acceptance/pile_footing/` |
+
+- **端の値を使う理由**：PIK もピックアップも最大・最小が別々のケースの値なので、途中の点を補間できない。部材をく体の面で分け、端の値をその面の値にする。
+- **PIK の M の向き**：下側引張が正で、部材の i→j で連続（`M(j) = M(i) − V·L` が同じ組合せで成り立つ）。上側引張は最小の M が負のときだけ。
+- **有効幅**：calc の docstring に式。ディープビームのせん断の幅が曲げと違うので、く体前面の下側引張のせん断だけ別の点（点 5）。
+- **Capacita の `deep_beam`**：Capacita の README「shear[].deep_beam」が契約。引張側は点の `isUpperCalc`・`isLowerCalc` ではなく `mode` で決まる。Md3・Md4・Md6 と Vd0〜7 がない WD-408・WD-409 の警告は無害。
+- **杭基礎の見本との差**：見本は鋼管杭・別の荷重なので断面力そのものは照合しない。値は、PIK の杭頭の力と静力学でつり合うことを受入で確かめる。見本 2.3.10・2.3.11 の式と値は Capacita のテスト（`R5DeepBeamShearTests`）で固定している。

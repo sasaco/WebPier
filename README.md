@@ -72,7 +72,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | `footing` | フーチングの計算 | 0800・0810・0820 | 両方向の `*_frame_analysis` と `*_nonlinear_analysis` |
 | `cantilever` | 片持ち梁の計算 | 0900・0910 | 両方向の `*_nonlinear_analysis` |
 
-杭基礎（`下部構造.基礎形式` が場所打ち杭・鋼管ソイルセメント杭）では、選べる項目を段ごとに広げます。いま選べるのは `detailing`・`ground_model`・`reactions`・`longitudinal`・`longitudinal_frame_analysis`・`transverse`・`transverse_frame_analysis` と、場所打ち杭だけ `longitudinal_seismic`・`transverse_seismic`（0710・0720、決定93）・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis`（0711・0721、決定94）です（ほかは `outputs.<項目>` の入力エラー）。`ground_model` は 0500 の杭基礎用（下の「杭基礎の 0500」）で、SOIL-JR を動かす JRSNAP の runner が要ります。`longitudinal`・`transverse` は杭を入れた骨組（下の「杭基礎の 0610・0620」）で、SOIL-JR の runner と FEMPython の runner が要ります。
+杭基礎（`下部構造.基礎形式` が場所打ち杭・鋼管ソイルセメント杭）では、選べる項目を段ごとに広げます。いま選べるのは `detailing`・`ground_model`・`reactions`・`longitudinal`・`longitudinal_frame_analysis`・`transverse`・`transverse_frame_analysis` と、場所打ち杭だけ `longitudinal_seismic`・`transverse_seismic`（0710・0720、決定93）・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis`（0711・0721、決定94）・`footing`（0800・0810・0820、決定96）です（ほかは `outputs.<項目>` の入力エラー）。`ground_model` は 0500 の杭基礎用（下の「杭基礎の 0500」）で、SOIL-JR を動かす JRSNAP の runner が要ります。`longitudinal`・`transverse` は杭を入れた骨組（下の「杭基礎の 0610・0620」）で、SOIL-JR の runner と FEMPython の runner が要ります。
 
 項目と段階の対応は `webpier/inputs/outputs.py`（項目と使う項目）と `webpier/pipeline/stages.py` の `OUTPUT_STAGES` が持ちます。地震時の項目は地震時以外の項目を使いません（決定78）。0710・0720 は、使う固定死荷重・付加死荷重・浮力（平水位）・雪荷重（2年確率）を 0610・0620 と同じ計算で自分の骨組に求めるので、0610・0620 を選ばずに作れ、FEMPython の runner も要りません。
 
@@ -123,6 +123,20 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
    - 0711・0721 は、液状化時用の NDU の解析結果も同じフォルダーに置き、Aggre-SE のプロジェクトに、通常の Case のあとに液状化時の順向・逆向を 1 Case ずつ足します（`dgEkijoCase21`・`dgEkijoCase2` の旗、照査項目 ②③⑤⑦⑨）。制限値は `杭基礎(液状化時用).sdr` から runner が読みます（`--sdr-liquefied`）。`耐震設計条件.液状化指数`（`5<PL<20`・`20<PL`）が要り、空欄なら入力エラー（`StageSpec.precheck`）です。
    - L1 地震動の液状化と応答変位法（P6d）は未対応です。
 6. 実アプリでの受入：`scripts/accept_pile_nonlinear.py`。`pile_seismic.json` の 0711・0721（4 Case・8 Case）を本物の JRSNAP と Aggre-SE で生成し、計算書の杭基礎の照査の制限値が `.sdr` の値と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1の杭基礎の照査が同じことを確かめて `tests/fixtures/acceptance/pile_nonlinear/record.json` に記録します（`tests/acceptance/test_pile_nonlinear_acceptance.py`）。
+
+### 杭基礎の 0800・0810・0820（場所打ち杭だけ、決定96）
+
+杭基礎のフーチングは、く体前面と杭位置の 2 断面を下側引張・上側引張で照査します（見本 Example橋脚4 第V編 2・3）。計算書の章立てと番号は直接基礎と同じで（0800＝12.1、0810＝12.2〜12.5、0820＝12.6〜12.9）、`footing` を選ぶには両方向の `*_frame_analysis` と `*_nonlinear_analysis` が要ります。鋼管ソイルセメント杭は `outputs.footing` の入力エラーです。
+
+1. く体前面の節点：杭基礎の骨組（0610・0620）と NDU（0710・0720）は、杭頭の節点をつなぐフーチング底面の剛な水平部材を、く体の両側の面（柱の幅の半分）の位置で分けます（`NodeRole.COLUMN_FACE`）。面が最も外側の杭頭より外にあれば節点を作りません。部材と節点の番号が変わるので、このとき杭基礎の NDU・FrameWeb 入力の受入記録を取り直しました。
+2. 断面力（`webpier/calc/pile_footing.py`）：補間せず、部材の端の値をそのまま使います。く体前面は面にある節点の部材の端、杭位置は最も外側の杭頭の部材の端で、両側のうち照査に厳しい側を採ります。
+   - 安全性（破壊）・耐久性（永久＋変動、永久）は、骨組解析（0612・0622）の PIK の同じ抽出グループのピックアップ。
+   - 復旧性（地震時）は、Aggre-SE の耐震性能照査（0711・0721）のピックアップ 2（復旧性L2。各部材の端の M・S・N の最大・最小）。NDU の要素の番号は、骨組の部材の端の x から `export/jrsnap/build_pile.py: element_numbers` で求めます。
+   - 曲げモーメントは、下側引張が最大の正（PIK の M は下側引張が正）、上側引張が最大の負で、その向きの曲げがなければ 0。せん断力は、その端の S の最大絶対値と、そのケースの曲げモーメント。
+3. 有効幅 be（見本 2.3.1）：d は引張鉄筋の重心までの有効高さ、D は杭径、a はく体前面から最も近い杭列の中心まで、B はフーチングの幅（面に直交する向き）として、く体前面の下側引張は b＋2d、上側引張は D＋2(d/2＋a)、杭位置は各杭の D＋d を並べた和集合（重なれば最初から最後の杭まで）で、どれも B まで。ディープビームのせん断は、く体前面（下側引張、Vfdd）が最外の杭の中心間隔＋D、杭位置（上側引張、Vsd）が杭位置の有効幅です。
+4. Capacita に渡す WDJ（`export/capacita/pile_footing_wdj.py`）：5 点（く体前面・杭位置の下側引張と上側引張の曲げ、く体前面の下側引張のせん断）、各点が有効幅を幅 B にした部材 1 つで、`鉄筋.フーチング` の鉄筋（1 m 当たり）を幅に比例させて渡します（上面の鉄筋も読むので、空欄で上側引張の照査に入れば入力エラー）。せん断は Capacita の `shear[].deep_beam`（`lower_tension`＝Vfdd、`upper_tension`＝Vsd。RC標準 R5 の 3 基準）で、く体前面は a1・杭径・スターラップの幅の間隔 b1、杭位置は d の範囲にあるスターラップの本数（有効幅 ÷ b1 と d ÷ 柱面方向の間隔を切り捨てた積）。耐久性のせん断・復旧性のせん断は照査しません（耐久性は面部材のため省略、見本の文）。
+5. 計算書：0800 は両方向の有効幅（算定式と各量）と各点の設計断面力（着目端・組合せ・Md・せん断力）、0810・0820 は直接基礎の 12.2〜12.5 と同じ構成で、各節に Capacita のページ（点の名前つき）を挟みます。ほかの断面で断面力のない点（上側引張に曲げがないなど）は Capacita が省略します。
+6. 実アプリでの受入：`scripts/accept_pile_footing.py`。`pile_seismic.json` の 0800・0810・0820 を本物の FEMPython・JRSNAP・Aggre-SE・Capacita で生成し、PIK の断面力が杭頭の力と静力学でつり合うこと（面と杭位置の曲げモーメントの差＝せん断力×部材の長さ、せん断力＝杭頭の軸力）、地震時のピックアップが杭頭の力と整合すること、Capacita のページが各節にそろうことを確かめて `tests/fixtures/acceptance/pile_footing/` に記録します。
 
 本物の SOIL-JR での受入：`scripts/accept_pile_ground.py`。見本 RC橋脚（杭基礎）サンプルデータE.sdt（場所打ち杭 3×3 中抜き）を表す `tests/fixtures/inputs/pile.json` から書いた .sdt を計算させ、.sdr・.sdc が見本の .sdt の結果と表題を除いてバイトまで同じであることを確かめて `tests/fixtures/acceptance/pile_ground/record.json` に記録します（`tests/acceptance/test_pile_ground_acceptance.py`）。
 
@@ -316,7 +330,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 
 - 斜角、遠心の作用方向は、近い将来の機能のための予約項目です。計算には使わず、形式と桁だけを検査します（決定19）。`出典` は検査しない自由記述です。
 - **杭基礎**（決定80・84、ADR-0013）：`下部構造.基礎形式` が杭基礎のとき、最上位の `杭基礎` を使います。`杭長`・`杭の単位体積重量`・`場所打ち杭`（`杭径`・`f'ck`・`施工条件`）・`鋼管ソイルセメント杭`（`ソイルセメント径`・`鋼管外径`・`鋼管厚`〔腐食代を含む〕・`腐食代`・`鋼管材質` SKK400／SKK490）・`配置`（`形式`、`線路方向の列の位置`・`線路直角方向の列の位置`＝フーチングの中心からの符号付きの距離の配列、`抜く杭`＝`線路方向の列`・`線路直角方向の列` の番号の配列）です。選んだ基礎形式の項目だけを使い、使わない項目は形式と桁だけを検査します（直接基礎では `杭基礎` 全体）。列ごとの本数・間隔・SOIL-JR の行は入力にせず、配置から導きます。規則：列は両方向とも1〜99列で位置は小さい順、千鳥は両方向とも奇数列で番号の和が偶数の位置にだけ杭があり、抜く杭はその位置の中で重ならず、どの列も杭が1本は残る、鋼管外径＜ソイルセメント径、腐食代≦鋼管厚、鋼管厚は鋼管外径の半分より小さい。杭基礎の地盤の層は表層・支持層の約束を持たず（40層まで）、フーチング底面と杭先端で切る処理は 0500（杭基礎）の段階が行います。
-- **杭基礎で選べる出力項目**は段ごとに広げます。まだ対応していない項目を杭基礎で `true` にすると、その項目のパス（`outputs.<項目>`）で入力エラーです（いま杭基礎で選べる項目は `webpier/inputs/outputs.py` の `PILE_OUTPUT_KEYS`、そのうち 0710・0720・0711・0721 の `longitudinal_seismic`・`transverse_seismic`・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis` は場所打ち杭だけ〔`CAST_IN_PLACE_ONLY`〕です）。エディタの「計算・印刷」は、杭基礎で選べない項目を灰色にします（すでにチェックのある項目は外せます）。
+- **杭基礎で選べる出力項目**は段ごとに広げます。まだ対応していない項目を杭基礎で `true` にすると、その項目のパス（`outputs.<項目>`）で入力エラーです（いま杭基礎で選べる項目は `webpier/inputs/outputs.py` の `PILE_OUTPUT_KEYS`、そのうち 0710・0720・0711・0721・0800〜0820 の `longitudinal_seismic`・`transverse_seismic`・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis`・`footing` は場所打ち杭だけ〔`CAST_IN_PLACE_ONLY`〕です）。エディタの「計算・印刷」は、杭基礎で選べない項目を灰色にします（すでにチェックのある項目は外せます）。
 - `復旧性制動係数` は側ごとの任意入力です。入力すると復旧性の制動係数としてそのまま使い、空欄なら安全性の ρu×γB を使います。Example2 07 p.7-11 の終点側は 1.0 を入力します。
 - `outputs` は作る計算書を選ぶ13の項目です（[出力項目](#出力項目outputs決定72adr-0011)）。計算の条件ではありません。
 - `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位の大きさ、0.001 m 単位の正の値。向きは入力せず、NDU にはその段階の地震の向き（0710 は −x、0720 は +x）の符号を付けて書きます。決定43）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。

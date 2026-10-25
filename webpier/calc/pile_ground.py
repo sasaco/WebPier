@@ -265,7 +265,8 @@ def _section(pier: PierInput, rows: tuple[SoilRow, ...]) -> PileSection:
         minimum_embedment=put(LENGTH, d(steel.soil_cement_diameter) / (2 if half else 1)))
 
 
-def _has_pile(staggered: bool, along: int, across: int) -> bool:
+def has_pile(staggered: bool, along: int, across: int) -> bool:
+    """Whether a pile stands at the 1-based column *along* × *across* (a staggered layout has every other one)."""
     return not staggered or (along + across) % 2 == 0
 
 
@@ -280,9 +281,9 @@ def _rows(pier: PierInput) -> PileRows:
     staggered = layout.pattern == choices.STAGGERED
     along, across = len(layout.along), len(layout.across)
     removed = set(layout.removed)
-    counts_along = [sum(1 for j in range(1, across + 1) if _has_pile(staggered, i, j) and (i, j) not in removed)
+    counts_along = [sum(1 for j in range(1, across + 1) if has_pile(staggered, i, j) and (i, j) not in removed)
                     for i in range(1, along + 1)]
-    counts_across = [sum(1 for i in range(1, along + 1) if _has_pile(staggered, i, j) and (i, j) not in removed)
+    counts_across = [sum(1 for i in range(1, along + 1) if has_pile(staggered, i, j) and (i, j) not in removed)
                      for j in range(1, across + 1)]
     columns_along, columns_across = _columns(layout.along, counts_along), _columns(layout.across, counts_across)
 

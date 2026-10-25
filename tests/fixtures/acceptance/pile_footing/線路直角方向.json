@@ -1,0 +1,1328 @@
+{
+  "node": {
+    "1": {
+      "x": 0,
+      "y": -10.3,
+      "z": null
+    },
+    "2": {
+      "x": 0,
+      "y": -8.3,
+      "z": null
+    },
+    "3": {
+      "x": 0,
+      "y": -7.6,
+      "z": null
+    },
+    "4": {
+      "x": 0,
+      "y": -2.7,
+      "z": null
+    },
+    "5": {
+      "x": 0,
+      "y": -1.35,
+      "z": null
+    },
+    "6": {
+      "x": -3,
+      "y": 0,
+      "z": null
+    },
+    "7": {
+      "x": -2.25,
+      "y": 0,
+      "z": null
+    },
+    "8": {
+      "x": 0,
+      "y": 0,
+      "z": null
+    },
+    "9": {
+      "x": 2.25,
+      "y": 0,
+      "z": null
+    },
+    "10": {
+      "x": 3,
+      "y": 0,
+      "z": null
+    },
+    "11": {
+      "x": -3,
+      "y": 19,
+      "z": null
+    },
+    "12": {
+      "x": 0,
+      "y": 19,
+      "z": null
+    },
+    "13": {
+      "x": 3,
+      "y": 19,
+      "z": null
+    }
+  },
+  "fix_node": {
+    "1": [
+      {
+        "row": 1,
+        "n": "11",
+        "tx": null,
+        "ty": 117810,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      },
+      {
+        "row": 2,
+        "n": "12",
+        "tx": null,
+        "ty": 78540,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      },
+      {
+        "row": 3,
+        "n": "13",
+        "tx": null,
+        "ty": 117810,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      }
+    ],
+    "2": [
+      {
+        "row": 1,
+        "n": "11",
+        "tx": null,
+        "ty": 235621,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      },
+      {
+        "row": 2,
+        "n": "12",
+        "tx": null,
+        "ty": 157081,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      },
+      {
+        "row": 3,
+        "n": "13",
+        "tx": null,
+        "ty": 235621,
+        "tz": null,
+        "rx": null,
+        "ry": null,
+        "rz": null
+      }
+    ]
+  },
+  "fix_member": {
+    "1": [
+      {
+        "m": "7",
+        "tx": 13464,
+        "ty": 18959,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 1
+      },
+      {
+        "m": "7",
+        "tx": 20196,
+        "ty": 28439,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 2
+      },
+      {
+        "m": "7",
+        "tx": 2693,
+        "ty": 3792,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 3
+      },
+      {
+        "m": "7",
+        "tx": 4207,
+        "ty": 5924,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 4
+      },
+      {
+        "m": "7",
+        "tx": 67320,
+        "ty": 94794,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 5
+      },
+      {
+        "m": "10",
+        "tx": 8976,
+        "ty": 12639,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 6
+      },
+      {
+        "m": "10",
+        "tx": 13464,
+        "ty": 18959,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 7
+      },
+      {
+        "m": "10",
+        "tx": 1795,
+        "ty": 2528,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 8
+      },
+      {
+        "m": "10",
+        "tx": 2805,
+        "ty": 3949,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 9
+      },
+      {
+        "m": "10",
+        "tx": 44880,
+        "ty": 63196,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 10
+      },
+      {
+        "m": "12",
+        "tx": 13464,
+        "ty": 18959,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 11
+      },
+      {
+        "m": "12",
+        "tx": 20196,
+        "ty": 28439,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 12
+      },
+      {
+        "m": "12",
+        "tx": 2693,
+        "ty": 3792,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 13
+      },
+      {
+        "m": "12",
+        "tx": 4207,
+        "ty": 5924,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 14
+      },
+      {
+        "m": "12",
+        "tx": 67320,
+        "ty": 94794,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 15
+      }
+    ],
+    "2": [
+      {
+        "m": "7",
+        "tx": 26928,
+        "ty": 37918,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 1
+      },
+      {
+        "m": "7",
+        "tx": 40393,
+        "ty": 56877,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 2
+      },
+      {
+        "m": "7",
+        "tx": 5385,
+        "ty": 7583,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 3
+      },
+      {
+        "m": "7",
+        "tx": 8414,
+        "ty": 11848,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 4
+      },
+      {
+        "m": "7",
+        "tx": 134640,
+        "ty": 189589,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 5
+      },
+      {
+        "m": "10",
+        "tx": 17952,
+        "ty": 25279,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 6
+      },
+      {
+        "m": "10",
+        "tx": 26928,
+        "ty": 37918,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 7
+      },
+      {
+        "m": "10",
+        "tx": 3590,
+        "ty": 5055,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 8
+      },
+      {
+        "m": "10",
+        "tx": 5610,
+        "ty": 7899,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 9
+      },
+      {
+        "m": "10",
+        "tx": 89760,
+        "ty": 126392,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 10
+      },
+      {
+        "m": "12",
+        "tx": 26928,
+        "ty": 37918,
+        "tz": null,
+        "tr": null,
+        "length": 2.6,
+        "row": 11
+      },
+      {
+        "m": "12",
+        "tx": 40393,
+        "ty": 56877,
+        "tz": null,
+        "tr": null,
+        "length": 5,
+        "row": 12
+      },
+      {
+        "m": "12",
+        "tx": 5385,
+        "ty": 7583,
+        "tz": null,
+        "tr": null,
+        "length": 4,
+        "row": 13
+      },
+      {
+        "m": "12",
+        "tx": 8414,
+        "ty": 11848,
+        "tz": null,
+        "tr": null,
+        "length": 6.4,
+        "row": 14
+      },
+      {
+        "m": "12",
+        "tx": 134640,
+        "ty": 189589,
+        "tz": null,
+        "tr": null,
+        "length": 1,
+        "row": 15
+      }
+    ]
+  },
+  "member": {
+    "1": {
+      "ni": 1,
+      "nj": 2,
+      "e": 1,
+      "cg": null
+    },
+    "2": {
+      "ni": 2,
+      "nj": 3,
+      "e": 1,
+      "cg": null
+    },
+    "3": {
+      "ni": 3,
+      "nj": 4,
+      "e": 1,
+      "cg": null
+    },
+    "4": {
+      "ni": 4,
+      "nj": 5,
+      "e": 2,
+      "cg": null
+    },
+    "5": {
+      "ni": 5,
+      "nj": 8,
+      "e": 2,
+      "cg": null
+    },
+    "6": {
+      "ni": 6,
+      "nj": 7,
+      "e": 2,
+      "cg": null
+    },
+    "7": {
+      "ni": 6,
+      "nj": 11,
+      "e": 3,
+      "cg": null
+    },
+    "8": {
+      "ni": 7,
+      "nj": 8,
+      "e": 2,
+      "cg": null
+    },
+    "9": {
+      "ni": 8,
+      "nj": 9,
+      "e": 2,
+      "cg": null
+    },
+    "10": {
+      "ni": 8,
+      "nj": 12,
+      "e": 4,
+      "cg": null
+    },
+    "11": {
+      "ni": 9,
+      "nj": 10,
+      "e": 2,
+      "cg": null
+    },
+    "12": {
+      "ni": 10,
+      "nj": 13,
+      "e": 3,
+      "cg": null
+    }
+  },
+  "element": {
+    "1": {
+      "1": {
+        "E": 26500000,
+        "G": null,
+        "Xp": 1e-05,
+        "A": 12.15,
+        "J": null,
+        "Iy": null,
+        "Iz": 20.50313,
+        "n": "はり・ハンチ・柱"
+      },
+      "2": {
+        "E": 26500000,
+        "G": null,
+        "Xp": 1e-05,
+        "A": 1000,
+        "J": null,
+        "Iy": null,
+        "Iz": 1000,
+        "n": "剛域"
+      },
+      "3": {
+        "E": 28000000,
+        "G": null,
+        "Xp": 1e-05,
+        "A": 2.3562,
+        "J": null,
+        "Iy": null,
+        "Iz": 0.14727,
+        "n": "杭"
+      },
+      "4": {
+        "E": 28000000,
+        "G": null,
+        "Xp": 1e-05,
+        "A": 1.5708,
+        "J": null,
+        "Iy": null,
+        "Iz": 0.09818,
+        "n": "杭"
+      }
+    }
+  },
+  "load": {
+    "1": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "D1",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "固定死荷重",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 8299.53,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        },
+        {
+          "n": "5",
+          "tx": null,
+          "ty": 4167.45,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 2
+        }
+      ],
+      "load_member": [
+        {
+          "m1": "1",
+          "m2": "1",
+          "direction": "gy",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 297.68,
+          "P2": 297.68,
+          "row": 1
+        },
+        {
+          "m1": "2",
+          "m2": "2",
+          "direction": "gy",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 297.68,
+          "P2": 297.68,
+          "row": 2
+        },
+        {
+          "m1": "3",
+          "m2": "3",
+          "direction": "gy",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 297.68,
+          "P2": 297.68,
+          "row": 3
+        }
+      ]
+    },
+    "2": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "D2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "付加死荷重",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 780,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        },
+        {
+          "n": "5",
+          "tx": null,
+          "ty": 91.53,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 2
+        }
+      ]
+    },
+    "3": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Wp1",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "浮力　高水位",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "5",
+          "tx": null,
+          "ty": -1883.07,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "4": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Wp2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "浮力　平水位",
+      "fix_member": 1
+    },
+    "5": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Wp3",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "浮力　低水位",
+      "fix_member": 1
+    },
+    "6": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Ss2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "雪荷重　2年確率",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 710,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "7": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Ss10",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "雪荷重　10年確率",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 1140,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "8": {
+      "fix_node": 1,
+      "element": 1,
+      "symbol": "Ss30",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "雪荷重　30年確率",
+      "fix_member": 1,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 1270,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "9": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "L1",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "列車荷重　単線　上り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 567.38,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 1210.09,
+          "row": 1
+        }
+      ]
+    },
+    "10": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "L2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "列車荷重　単線　下り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 567.38,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": -1210.09,
+          "row": 1
+        }
+      ]
+    },
+    "11": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "L3",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "列車荷重　複線",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 1134.78,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "12": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I1",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　安全性・復旧性　単線　上り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 171.05,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 363.04,
+          "row": 1
+        }
+      ]
+    },
+    "13": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　安全性・復旧性　単線　下り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 171.05,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": -363.04,
+          "row": 1
+        }
+      ]
+    },
+    "14": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I3",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　安全性・復旧性　複線",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 326.86,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    },
+    "15": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "Lf",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "車両横荷重",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": 111.69,
+          "ty": null,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 430.01,
+          "row": 1
+        }
+      ]
+    },
+    "16": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "W1",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "風荷重　列車荷重がある場合",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": 305.88,
+          "ty": null,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 2124.5,
+          "row": 1
+        }
+      ],
+      "load_member": [
+        {
+          "m1": "1",
+          "m2": "1",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 4.05,
+          "P2": 4.05,
+          "row": 1
+        },
+        {
+          "m1": "2",
+          "m2": "2",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 4.05,
+          "P2": 4.05,
+          "row": 2
+        },
+        {
+          "m1": "3",
+          "m2": "3",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0.1,
+          "P1": 4.05,
+          "P2": 4.05,
+          "row": 3
+        }
+      ]
+    },
+    "17": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "W2",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "風荷重　列車荷重がない場合",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": 611.75,
+          "ty": null,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 4248.93,
+          "row": 1
+        }
+      ],
+      "load_member": [
+        {
+          "m1": "1",
+          "m2": "1",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 8.1,
+          "P2": 8.1,
+          "row": 1
+        },
+        {
+          "m1": "2",
+          "m2": "2",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0,
+          "P1": 8.1,
+          "P2": 8.1,
+          "row": 2
+        },
+        {
+          "m1": "3",
+          "m2": "3",
+          "direction": "gx",
+          "mark": 2,
+          "L1": 0,
+          "L2": 0.1,
+          "P1": 8.1,
+          "P2": 8.1,
+          "row": 3
+        }
+      ]
+    },
+    "18": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I1s",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　使用性　単線　上り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 128.44,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": 272.59,
+          "row": 1
+        }
+      ]
+    },
+    "19": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I2s",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　使用性　単線　下り",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 128.44,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": -272.59,
+          "row": 1
+        }
+      ]
+    },
+    "20": {
+      "fix_node": 2,
+      "element": 1,
+      "symbol": "I3s",
+      "LL_pitch": 0.1,
+      "rate": 1,
+      "name": "衝撃荷重　使用性　複線",
+      "fix_member": 2,
+      "load_node": [
+        {
+          "n": "1",
+          "tx": null,
+          "ty": 245,
+          "tz": null,
+          "rx": null,
+          "ry": null,
+          "rz": null,
+          "row": 1
+        }
+      ]
+    }
+  },
+  "define": {
+    "1": {
+      "row": 1,
+      "C1": 1
+    },
+    "2": {
+      "row": 2,
+      "C1": 2
+    },
+    "3": {
+      "row": 3,
+      "C1": 3
+    },
+    "4": {
+      "row": 4,
+      "C1": 4
+    },
+    "5": {
+      "row": 5,
+      "C1": 5
+    },
+    "6": {
+      "row": 6,
+      "C1": 6
+    },
+    "7": {
+      "row": 7,
+      "C1": 7
+    },
+    "8": {
+      "row": 8,
+      "C1": 8
+    },
+    "9": {
+      "row": 9,
+      "C1": 9,
+      "C2": 10
+    },
+    "10": {
+      "row": 10,
+      "C1": 11
+    },
+    "11": {
+      "row": 11,
+      "C1": 12,
+      "C2": 13
+    },
+    "12": {
+      "row": 12,
+      "C1": 14
+    },
+    "13": {
+      "row": 13,
+      "C1": 15,
+      "C2": -15
+    },
+    "14": {
+      "row": 14,
+      "C1": 16,
+      "C2": -16
+    },
+    "15": {
+      "row": 15,
+      "C1": 17,
+      "C2": -17
+    },
+    "16": {
+      "row": 16,
+      "C1": 18,
+      "C2": 19
+    },
+    "17": {
+      "row": 17,
+      "C1": 20
+    }
+  },
+  "combine": {
+    "1": {
+      "row": 1,
+      "name": "破壊 列車最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C7": 1,
+      "C10": 1.35,
+      "C12": 1.35,
+      "C13": 1.23,
+      "C14": 1
+    },
+    "2": {
+      "row": 2,
+      "name": "破壊 車横最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C7": 1,
+      "C10": 1.23,
+      "C12": 1.23,
+      "C13": 1.35,
+      "C14": 1
+    },
+    "3": {
+      "row": 3,
+      "name": "破壊 風最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C6": 1,
+      "C15": 1.2
+    },
+    "4": {
+      "row": 4,
+      "name": "破壊 雪最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C8": 1
+    },
+    "5": {
+      "row": 5,
+      "name": "ひび割れ 縁応力度",
+      "C1": 1,
+      "C2": 1,
+      "C6": 1,
+      "C10": 1,
+      "C17": 1
+    },
+    "6": {
+      "row": 6,
+      "name": "ひび割れ 永久荷重",
+      "C1": 1,
+      "C2": 1,
+      "C6": 1
+    },
+    "7": {
+      "row": 7,
+      "name": "ひび割れ 変動荷重",
+      "C9": 1,
+      "C16": 1
+    },
+    "8": {
+      "row": 8,
+      "name": "損傷 列車最大",
+      "C1": 1,
+      "C2": 1,
+      "C7": 1,
+      "C10": 1.23,
+      "C12": 1.23,
+      "C13": 1.23,
+      "C14": 1
+    },
+    "9": {
+      "row": 9,
+      "name": "損傷 雪最大",
+      "C1": 1,
+      "C2": 1,
+      "C8": 1,
+      "C14": 1
+    },
+    "10": {
+      "row": 10,
+      "name": "地盤の安定 列車最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C5": 1,
+      "C7": 1,
+      "C10": 1.35,
+      "C12": 1.35,
+      "C13": 1.23,
+      "C14": 1
+    },
+    "11": {
+      "row": 11,
+      "name": "地盤の安定 車横最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C5": 1,
+      "C7": 1,
+      "C10": 1.23,
+      "C12": 1.23,
+      "C13": 1.35,
+      "C14": 1
+    },
+    "12": {
+      "row": 12,
+      "name": "地盤の安定 風最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C5": 1,
+      "C6": 1,
+      "C15": 1.2
+    },
+    "13": {
+      "row": 13,
+      "name": "地盤の安定 雪最大",
+      "C1": 1.1,
+      "C2": 1.2,
+      "C5": 1,
+      "C8": 1
+    },
+    "14": {
+      "row": 14,
+      "name": "長期支持",
+      "C1": 1,
+      "C2": 1,
+      "C4": 1,
+      "C6": 1
+    },
+    "15": {
+      "row": 15,
+      "name": "短期支持 低水位",
+      "C1": 1,
+      "C2": 1,
+      "C5": 1,
+      "C6": 1,
+      "C9": 1,
+      "C16": 1
+    },
+    "16": {
+      "row": 16,
+      "name": "短期支持 高水位",
+      "C1": 1,
+      "C2": 1,
+      "C3": 1,
+      "C6": 1,
+      "C9": 1,
+      "C16": 1
+    }
+  },
+  "pickup": {
+    "1": {
+      "row": 1,
+      "name": "安全性（破壊）",
+      "C1": 1,
+      "C2": 2,
+      "C3": 3,
+      "C4": 4
+    },
+    "2": {
+      "row": 2,
+      "name": "永久＋変動",
+      "C1": 5
+    },
+    "3": {
+      "row": 3,
+      "name": "永久作用",
+      "C1": 6
+    },
+    "4": {
+      "row": 4,
+      "name": "変動作用",
+      "C1": 7
+    },
+    "5": {
+      "row": 5,
+      "name": "使用性（損傷）",
+      "C1": 8,
+      "C2": 9
+    },
+    "6": {
+      "row": 6,
+      "name": "安全性（安定）",
+      "C1": 10,
+      "C2": 11,
+      "C3": 12,
+      "C4": 13
+    },
+    "7": {
+      "row": 7,
+      "name": "長期支持性能",
+      "C1": 14
+    },
+    "8": {
+      "row": 8,
+      "name": "短期支持性能",
+      "C1": 15,
+      "C2": 16
+    }
+  },
+  "dimension": 2
+}

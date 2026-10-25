@@ -83,15 +83,52 @@ def pik(source, digest):
     document = json.loads(source.read_text(encoding="utf-8"))
     piles = pile_members(document)
 
+    base = base_members(document)
+
     def forces(number, point):
         if point == "ITAN" and int(number) in piles:  # the first pickup's head line of the focus M, of a pile member
             moment, axial = head_moment(int(number), 1)
             return (moment, 20.0, axial, -moment / 2, -20.0, axial)
+        if int(number) in base:  # the footing base of a pile foundation (decision 96)
+            return base_forces(int(number), 1)
         return (0,) * 6
 
     rows = [f"{1:>5}{'M':>5}{number:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
             + "".join(f"{value:>10.2f}" for value in forces(number, point)) for number, point, position in points(document)]
-    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document), *pile_points(document)]).encode()
+    return "".join(f"{line}\n" for line in [f"FAKE PIK {source.name} {digest}", *rows, *pile_heads(document),
+                                              *pile_points(document), *base_lines(document)]).encode()
+
+
+def base_members(document):
+    """The members along the footing base of a pile foundation (decision 96): horizontal, at the height of the pile heads (y 0),
+    in a document that has piles."""
+    nodes = document.get("node", {})
+    if not pile_members(document):
+        return []
+    return [int(number) for number, member in document.get("member", {}).items()
+            if nodes[str(member["ni"])]["y"] == nodes[str(member["nj"])]["y"] == 0]
+
+
+def base_forces(member, pickup):
+    """(Md, Vd, Nd of the largest case, Md, Vd, Nd of the smallest) at an end of a footing base member: a sagging moment that
+    grows with the pickup and the member, a hogging one that does not."""
+    return (1000.0 + 100.0 * pickup + member, -(300.0 + member), 0.0, -(50.0 + pickup + member), 200.0 + member, 0.0)
+
+
+def base_lines(document):
+    """The lines of the footing base members: the focus M and S at both ends, in every pickup (the M line of the first pickup
+    is in the points)."""
+    lines = []
+    for number, pickup in document.get("pickup", {}).items():
+        combinations = [pickup[key] for key in pickup if key.startswith("C")]
+        for member in base_members(document):
+            for focus in ("M", "S"):
+                if focus == "M" and number == "1":
+                    continue
+                for point, position in (("ITAN", 0.0), ("JTAN", 1.0)):
+                    lines.append(f"{number:>5}{focus:>5}{member:>5}{combinations[0]:>5}{combinations[-1]:>5}{point:>5}"
+                                 f"{position:>10.3f}" + "".join(f"{value:>10.2f}" for value in base_forces(member, int(number))))
+    return lines
 
 
 def head(member, pickup):

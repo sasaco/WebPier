@@ -4,6 +4,8 @@ stand-ins of tests/fixtures (the .sdr of the SOIL-JR stand-in is the 5.2 sample'
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
+
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -83,9 +85,9 @@ def test_the_responses_are_those_of_the_stand_in_files(made):
     root, _ = made
     result = load_json((root / "output" / "0612_線路方向基礎.json").read_bytes())["result"]
     long_term, short_term, safety = result["columns"]
-    assert (long_term["vd"], long_term["vd_row"], long_term["vud"]) == (1895.0, 2, None)  # member 9, two piles: 3790 / 2
+    assert (long_term["vd"], long_term["vd_row"], long_term["vud"]) == (1900.0, 2, None)  # member 10 (decision 96: the footing base is cut at the column faces), two piles: 3800 / 2
     assert (long_term["delta"], long_term["theta"]) == (14.4, 0.00144)
-    assert (safety["pickup"], safety["vud"], safety["vud_row"]) == (6, 34.5, 2)  # the even pickups have a tension 60 + m: member 9, 69 / 2 piles
+    assert (safety["pickup"], safety["vud"], safety["vud_row"]) == (6, 35.0, 2)  # the even pickups have a tension 60 + m: member 10, 70 / 2 piles
     assert short_term["limits"]["rud"] == 1671.3 and safety["limits"]["delta"] == 33.941
     assert result["engineering_status"] == "not_ok"  # the stand-in's responses exceed the long term limits
 
@@ -279,7 +281,7 @@ def test_the_joint_of_the_pile_with_the_footing_is_calculated_by_capacita(steel)
     assert [row["row"] for row in joint["rows"]] == [1, 2, 3]
     for row in joint["rows"]:
         check = row["check"]
-        assert check["mud"] == round(2400 + 0.145 * check["nd"], 1)
+        assert check["mud"] == float(Decimal(str(2400 + 0.145 * check["nd"])).quantize(Decimal("0.1"), ROUND_HALF_UP))
         assert check["ratio"] == round(1.2 * check["md"] / check["mud"], 2)
     by_force = sorted(joint["rows"], key=lambda row: row["check"]["nd"])
     assert (by_force[0]["check"]["side"], by_force[-1]["check"]["side"]) == ("引抜き側", "押込み側")

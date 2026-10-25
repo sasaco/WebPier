@@ -52,26 +52,26 @@ def model(profile=LONGITUDINAL, reverse=False, lower=False, springs=SPRINGS):
 def test_the_joints_of_the_frame_come_first_from_the_top_left_then_those_of_the_piles_row_by_row():
     found = model()
     joints = found.joints
-    assert [j.number for j in joints] == list(range(1, 70))
-    frame = [(j.x.value, j.y.value) for j in joints[:9]]
+    assert [j.number for j in joints] == list(range(1, 72))  # decision 96: two more, the faces of the column on the footing base
+    frame = [(j.x.value, j.y.value) for j in joints[:11]]
     assert frame == sorted(frame, key=lambda xy: (xy[1], xy[0]))  # from the top, at one height from the left
     assert (joints[found.origin - 1].x.value, joints[found.origin - 1].y.value) == (0.0, 0.0)
     heads = [m.i for m in found.members if m.pile]
     assert [(joints[h - 1].x.value, joints[h - 1].y.value) for h in heads] == [(-3.0, 2.7), (0.0, 2.7), (3.0, 2.7)]
-    # the nodes of the first row (below its head) are joints 10.. 29: x = -3, from the head down
-    ys = [joints[n - 1].y.value for n in range(10, 30)]
-    assert ys == sorted(ys) and ys[0] > 2.7 and {joints[n - 1].x.value for n in range(10, 30)} == {-3.0}
+    # the nodes of the first row (below its head) are joints 12.. 31: x = -3, from the head down
+    ys = [joints[n - 1].y.value for n in range(12, 32)]
+    assert ys == sorted(ys) and ys[0] > 2.7 and {joints[n - 1].x.value for n in range(12, 32)} == {-3.0}
 
 
 def test_each_pile_row_is_one_member_from_its_head_with_its_elements_after_those_of_the_frame():
     found = model()
     piles = [m for m in found.members if m.pile]
     assert [(m.title, m.depth_piles) for m in piles] == [("杭（３本杭）", 3), ("杭（２本杭）", 2), ("杭（３本杭）", 3)]
-    assert [m.number for m in found.members] == list(range(1, 12)) and found.members[0].nonlinear
-    assert [e.kind for e in found.elements[:8]].count(PILE) == 0 and len(found.elements) == 68
-    assert [(p.first, p.last) for p in found.piles] == [(9, 28), (29, 48), (49, 68)]
+    assert [m.number for m in found.members] == list(range(1, 14)) and found.members[0].nonlinear
+    assert [e.kind for e in found.elements[:10]].count(PILE) == 0 and len(found.elements) == 70
+    assert [(p.first, p.last) for p in found.piles] == [(11, 30), (31, 50), (51, 70)]
     # no rigid element at the head: the member starts with its first pile element
-    assert all(e.ground is not None for e in found.elements[8:]) and found.elements[8].i == piles[0].i
+    assert all(e.ground is not None for e in found.elements[10:]) and found.elements[10].i == piles[0].i
 
 
 def test_the_section_of_an_element_is_the_one_of_the_zone_its_upper_end_is_in():
@@ -154,7 +154,7 @@ def test_the_rows_of_the_sdc_must_be_the_rows_of_the_input():
 
 def test_the_frame_nodes_the_ndu_leaves_out_are_the_pile_tips():
     frame = chain()[2].frame
-    assert len([n for n in frame.nodes if NodeRole.PILE_TIP in n.roles]) == 3 and len(model().joints) == 69
+    assert len([n for n in frame.nodes if NodeRole.PILE_TIP in n.roles]) == 3 and len(model().joints) == 71
 
 
 def test_the_ndu_for_the_liquefaction_has_the_one_combination_of_rho_m_1_and_alpha_f_1_of_its_push():

@@ -342,7 +342,7 @@ _ROLE_NAMES = {
     NodeRole.FOOTING_CENTROID: "フーチング重心", NodeRole.FOOTING_BOTTOM: "フーチング底面",
     NodeRole.PEDESTAL_BASE: "桁受け下端", NodeRole.PEDESTAL_TOP: "桁受け天端",
     NodeRole.GIRDER_ORIGIN: "起点側の桁", NodeRole.GIRDER_END: "終点側の桁",
-    NodeRole.PILE_HEAD: "杭頭", NodeRole.PILE_TIP: "杭先端",
+    NodeRole.PILE_HEAD: "杭頭", NodeRole.PILE_TIP: "杭先端", NodeRole.COLUMN_FACE: "く体前面",
 }
 REGION_NAMES = {
     Region.FOOTING_BASE: "フーチング底面の剛域", Region.PILE: "杭",

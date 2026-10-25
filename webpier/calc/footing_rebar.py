@@ -150,12 +150,12 @@ def face_layout(footing: FootingBars, face: str) -> FaceLayout:
     return FaceLayout(face=face, layers=tuple(layers), crossings=crossings)
 
 
-def _main(footing: FootingBars, direction: str) -> MainBars:
-    here = f"{_FOOTING}.faces.{_LOWER}.{direction}"
-    layers = _layers(footing, _LOWER, direction)
+def _main(footing: FootingBars, direction: str, face: str = _LOWER) -> MainBars:
+    here = f"{_FOOTING}.faces.{face}.{direction}"
+    layers = _layers(footing, face, direction)
     diameter, pitch, cover = layers[0].diameter, layers[0].pitch, layers[0].center
     counts = [layer.per_metre for layer in layers]
-    gaps = {layer.clear_gap for layer in footing.faces[_LOWER].bars[direction].inner_layers}  # read by _layers
+    gaps = {layer.clear_gap for layer in footing.faces[face].bars[direction].inner_layers}  # read by _layers
     if len(gaps) > 1:
         raise InputError(f"{here}.inner_layers: 段のあきが一定ではないため表せません")
     first, total = d(counts[0]), sum(d(count) for count in counts)
@@ -201,3 +201,9 @@ def footing_reinforcement(pier: PierInput, direction: str) -> FootingReinforceme
     footing = pier.rebar.footing
     return FootingReinforcement(direction=direction, main=_main(footing, direction),
                                 stirrups=stirrups(footing, direction), fck=pier.materials.footing)
+
+
+def main_bars(pier: PierInput, direction: str, face: str) -> MainBars:
+    """The main bars of *direction* on *face* (choices.BEAM_FACES) per 1 m of width, for the footing of a pile foundation, which
+    reads the bars of both faces (decision 96); a blank item is an input error naming its path."""
+    return _main(pier.rebar.footing, direction, face)

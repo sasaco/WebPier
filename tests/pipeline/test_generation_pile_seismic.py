@@ -63,7 +63,7 @@ def test_the_ndu_is_the_one_of_the_piles(made):
     lines = dict(line.split("=", 1) for line in text.split("\r\n") if "=" in line)
     assert lines["KGNum"] == "3" and lines["SuppotNum"] == lines["SuppotRow"] and lines["FootRow"] == "0"
     assert lines["SRenkeiNum" if "SRenkeiNum" in lines else "FootRow"] == "0"
-    assert [lines[f"MemberKUI{n}"] for n in (9, 10, 11)] == ["1", "1", "1"]
+    assert [lines[f"MemberKUI{n}"] for n in (11, 12, 13)] == ["1", "1", "1"]
 
 
 def test_a_steel_pile_foundation_does_not_make_0710_yet():
@@ -96,6 +96,6 @@ def test_0720_has_a_second_ndu_for_the_reversed_combinations(tmp_path):
     assert forward_lines["SNAPConbNum"] == reverse_lines["SNAPConbNum"] == "4"
     assert {line.split(",")[2] for key, line in forward_lines.items() if key.startswith("SNAPConb") and key[8:].isdigit()} == {"0"}
     assert {line.split(",")[2] for key, line in reverse_lines.items() if key.startswith("SNAPConb") and key[8:].isdigit()} == {"1"}
-    assert forward_lines["JibanShogenInfo10"] != reverse_lines["JibanShogenInfo10"]  # the columns of the .sdc go the other way
+    assert any(forward_lines[key] != reverse_lines[key] for key in forward_lines if key.startswith("JibanShogenInfo"))  # the columns of the .sdc go the other way
     provenance = json.loads((tmp_path / "post" / "線路直角方向.ndu.provenance.json").read_text(encoding="utf-8"))
     assert provenance["jrsnap_figures"]["also"][0]["export"] == "jrsnapreverse"

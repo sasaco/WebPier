@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from decimal import Decimal
+from typing import Any
 
 from ...calc._exact import d, put
 from ...calc.column_rebar import ColumnLayout, yield_strength
@@ -99,6 +100,28 @@ def _front(profile: Profile, reverse: bool) -> int:
 LIQUEFACTION_PATTERN = (Decimal("1.0"), Decimal("1.0"))  # the (ρm, αf) of the one combination of the NDU for the liquefaction
 
 
+def _frame_elements(frame: Any) -> tuple[list[Any], dict[int, int], build._Elements]:
+    """The nodes above the pile tips (from the top, at one height from the left), the number of each in the temporary
+    numbering, and the elements of the members that are not piles."""
+    top = frame.node(NodeRole.FOOTING_TOP)
+    base = sorted((node for node in frame.nodes if NodeRole.PILE_TIP not in node.roles),
+                  key=lambda node: (-node.y.value, node.x.value))
+    temporary = {node.number: index for index, node in enumerate(base, 1)}
+    joints = {temporary[node.number]: Joint(temporary[node.number], node.x, put(LENGTH, d(top.y) - d(node.y)))
+              for node in base}
+    elements = build._Elements(joints)
+    for member in frame.members:
+        if not member.pile:
+            elements.add(replace(member, start=temporary[member.start], end=temporary[member.end]))
+    return base, temporary, elements
+
+
+def element_numbers(frame: Any) -> dict[int, int]:
+    """The element of the NDU (and so the member of Aggre-SE's pickup) that each member of *frame* that is not a pile
+    becomes, by the frame's member number (a member the NDU splits has its first element; decision 96)."""
+    return dict(_frame_elements(frame)[2].first)
+
+
 def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seismic, springs: SeismicSprings, *,
                    reverse: bool = False, liquefied: bool = False) -> PileNduModel:
     """*seismic* is a SeismicLongitudinalResult or a SeismicTransverseResult of the same input on piles; *reverse* the NDU of
@@ -116,15 +139,7 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
     if not combinations:
         raise InputError("向きを反転した（逆向の）組合せがありません" if reverse else "組合せがありません")
     top = frame.node(NodeRole.FOOTING_TOP)
-    base = sorted((node for node in frame.nodes if NodeRole.PILE_TIP not in node.roles),
-                  key=lambda node: (-node.y.value, node.x.value))
-    temporary = {node.number: index for index, node in enumerate(base, 1)}
-    joints = {temporary[node.number]: Joint(temporary[node.number], node.x, put(LENGTH, d(top.y) - d(node.y)))
-              for node in base}
-    elements = build._Elements(joints)
-    for member in frame.members:
-        if not member.pile:
-            elements.add(replace(member, start=temporary[member.start], end=temporary[member.end]))
+    base, temporary, elements = _frame_elements(frame)
     # the joints of the frame and of the footing offset, from the top and the left, then those of the piles
     final = {joint.number: number for number, joint in enumerate(
         sorted(elements.joints.values(), key=lambda joint: (joint.y.value, joint.x.value)), 1)}

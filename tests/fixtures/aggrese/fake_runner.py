@@ -130,6 +130,19 @@ def foundation_steps(databases):
     return ("\r\n".join(rows) + "\r\n").encode("utf-8")
 
 
+def seismic_forces(member):
+    """(Md, Vd, Nd of the largest case, Md, Vd, Nd of the smallest) at an end of the member *member* in the pickup of 復旧性L2."""
+    return (2000.0 + member, -(500.0 + member), 0.0, -(80.0 + member), 400.0 + member, 0.0)
+
+
+def pickup_lines():
+    """The lines of pickup 2 (復旧性L2) of the members 1 to 99 (the stand-in does not read the NDU: the member numbers the
+    footing reads are the elements of its model): the focus M and S at both ends, in the pickup's fixed columns."""
+    return "".join(f"{2:>5}{focus:>5}{member:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
+                   + "".join(f"{value:>10.2f}" for value in seismic_forces(member)) + "\r\n"
+                   for member in range(1, 100) for focus in ("M", "S") for point, position in (("ITAN", 0.0), ("JTAN", 1.0)))
+
+
 def blank():
     stream = io.BytesIO()
     PdfWriter().write(stream)
@@ -205,7 +218,7 @@ def main(argv):
                                                                                             and number == 1)}
              for number, path in enumerate(databases, 1)]
     result = json.dumps({"command": "run", "cases": cases}, ensure_ascii=False).encode("utf-8")
-    pik = f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(data).hexdigest()[:16]}\r\n".encode("cp932")
+    pik = f"Batch ver1.0.0\r\nFAKE PIK {hashlib.sha256(data).hexdigest()[:16]}\r\n{pickup_lines() if piled else ''}".encode("cp932")
     xlsx = (b"not a zip" if mode == "notzip"
             else workbook(f"FAKE XLSX {hashlib.sha256(data).hexdigest()[:16]}", [path.stem for path in databases]))
     csv = {"badcsv": b"case,step\r\n0,1\r\n", "notutf8csv": "直接基礎\r\n".encode("cp932")}.get(

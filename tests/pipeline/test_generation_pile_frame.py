@@ -155,6 +155,8 @@ def test_a_load_model_has_no_frame_on_piles(tmp_path):
 
 def test_the_stages_that_are_not_made_yet_are_not_items_of_a_pile_foundation(tmp_path):
     data = deepcopy(PILE)
-    data["outputs"] = {key: key in (*ITEMS, "longitudinal_seismic", "footing") for key in data["outputs"]}
+    chosen = (*ITEMS, "longitudinal_seismic", "transverse_seismic", "longitudinal_nonlinear_analysis",
+              "transverse_nonlinear_analysis", "cantilever")  # (0900 is not made for piles yet)
+    data["outputs"] = {key: key in chosen for key in data["outputs"]}
     with pytest.raises(InputError, match="場所打ち杭は未対応です"):
         parse_input(data)

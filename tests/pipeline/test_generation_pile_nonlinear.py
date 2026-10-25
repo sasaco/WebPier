@@ -175,7 +175,7 @@ def test_an_input_that_liquefies_has_the_ndus_for_the_liquefaction_with_the_spri
     assert liquefied["SNAPConbNum"] == "1" and normal["SNAPConbNum"] == "4"  # one combination: ρm 1.0, αf 1.0
     assert liquefied["SNAPConb1"] == normal["SNAPConb1"]
     assert liquefied["SuppotNum"] == normal["SuppotNum"] and liquefied["ElementNum"] == normal["ElementNum"]
-    assert liquefied["JibanShogenInfo10"] != normal["JibanShogenInfo10"]  # the springs are those of the liquefaction
+    assert liquefied["JibanShogenInfo11"] != normal["JibanShogenInfo11"]  # the springs are those of the liquefaction
     assert any(liquefied[key] != normal[key] for key in liquefied if key.startswith("SuppotInfo"))
     sidecar = load_json((root / "post" / "線路方向_液状化.ndu.provenance.json").read_bytes())
     assert sidecar["metadata"]["target_version"] and "jrsnap_figures" not in sidecar  # no figures of its own

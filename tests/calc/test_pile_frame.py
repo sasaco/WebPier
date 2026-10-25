@@ -183,7 +183,12 @@ def test_the_footing_base_is_rigid_and_each_pile_is_one_member(longitudinal):
     frame = longitudinal.frame
     base = [m for m in frame.members if m.region is Region.FOOTING_BASE]
     piles = [m for m in frame.members if m.region is Region.PILE]
-    assert len(base) == 2 and all(m.rigid and m.height.value == 0 and m.offset.value == 2.5 for m in base)
+    # decision 96: the base is cut at the faces of the column (く体前面), so that the footing's section forces at the face are those of
+    # a member end; the column of the example is 2.5 m wide, the rows are ±2.5 m
+    assert len(base) == 4 and all(m.rigid and m.height.value == 0 and m.offset.value == 1.25 for m in base)
+    faces = [n for n in frame.nodes if NodeRole.COLUMN_FACE in n.roles]
+    assert [(n.x.value, n.y.value) for n in faces] == [(-1.25, 0.0), (1.25, 0.0)]
+    assert [frame.nodes[m.start - 1].x.value for m in sorted(base, key=lambda m: m.number)] == [-2.5, -1.25, 0.0, 1.25]
     assert len(piles) == 2 and not any(m.rigid for m in piles)
     assert all(m.height.value == 26.5 and m.modulus.value == 2.0e8 for m in piles)
     assert {m.section.area.value for m in piles} == {0.12513}
@@ -198,7 +203,9 @@ def test_a_row_under_the_footing_centre_shares_its_node():
     assert [n.x.value for n in heads] == [-3.0, 0.0, 3.0]
     centre = frame.node(NodeRole.FOOTING_BOTTOM)
     assert {NodeRole.FOOTING_BOTTOM, NodeRole.PILE_HEAD} <= centre.roles and centre is heads[1]
-    assert len([m for m in frame.members if m.region is Region.FOOTING_BASE]) == 2
+    # the base is cut at the two faces of the column too (decision 96)
+    assert len([m for m in frame.members if m.region is Region.FOOTING_BASE]) == 4
+    assert sum(NodeRole.COLUMN_FACE in n.roles for n in frame.nodes) == 2
 
 
 def test_the_upper_part_is_the_pier_of_the_input(longitudinal, pier):

@@ -118,6 +118,21 @@ def _safety_shear(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
     _shear(m, "safety.shear", _factors(check, SAFETY))
 
 
+def _safety_deep_beam(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
+    """2) せん断力に対する照査 of the footing of a pile foundation (decision 96): the deep beam checks of the face (Vfdd, lower
+    tension) and of the pile position (Vsd, upper tension), whose pages are Capacita's."""
+    gamma_i = value(_factors(check, SAFETY).ri)
+    m.heading("safety.deep.heading", "2) せん断力に対する照査", 2)
+    m.heading("safety.deep.face.heading", "(a) く体前面（下側引張）", 3)
+    m.line("safety.deep.face.check", "γi・Vd / Vfdd ≦ 1.0")
+    _definitions(m, "safety.deep.face.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
+                 Definition("Vd", "設計せん断力"), Definition("Vfdd", "設計せん断圧縮破壊耐力"))
+    m.heading("safety.deep.pile.heading", "(b) 杭位置（上側引張）", 3)
+    m.line("safety.deep.pile.check", "γi・Vd / Vsd ≦ 1.0")
+    _definitions(m, "safety.deep.pile.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
+                 Definition("Vd", "設計せん断力"), Definition("Vsd", "設計引抜きせん断耐力"))
+
+
 def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     key = "durability.flexure"
     m.heading("durability.heading", f"{chapter.section(DURABILITY_SECTION)} 耐久性の照査", 1)
@@ -176,6 +191,7 @@ def _rebar_amount(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
 
 
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
+          "shear_deep_beam_safety_destruction": _safety_deep_beam,
           "bending_durability": _durability, "bending_restorability_eq": _restorability_moment,
           "shear_restorability_eq": _restorability_shear, "bending_rebar_amount": _rebar_amount}
 

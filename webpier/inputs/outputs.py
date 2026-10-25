@@ -42,15 +42,15 @@ _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
 # The items a pile foundation can make so far (roadmap pile-foundation-roadmap.md; widened a stage at a time): 0400,
 # 0500 (SOIL-JR's ground model, decision 85), 0600 (which does not read the foundation), 0610, 0620 (the frame on the
 # piles, decision 88), the frame analyses 0611, 0612, 0621, 0622 (decision 89), the seismic loads 0710, 0720 (decision 93) and
-# the static nonlinear analyses with their seismic checks 0711, 0721 (decision 94).
+# the static nonlinear analyses with their seismic checks 0711, 0721 (decision 94) and the footing 0800, 0810, 0820 (decision 96).
 PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis",
                                      "transverse", "transverse_frame_analysis", "longitudinal_seismic",
                                      "longitudinal_nonlinear_analysis", "transverse_seismic",
-                                     "transverse_nonlinear_analysis")
+                                     "transverse_nonlinear_analysis", "footing")
 # The items only a 場所打ち杭 makes so far: the NDU of the piles of 0710 and 0720 is made for it only (decision 93), and so
 # are the analyses and checks of that NDU (decision 94).
 CAST_IN_PLACE_ONLY: tuple[str, ...] = ("longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
-                                       "transverse_nonlinear_analysis")
+                                       "transverse_nonlinear_analysis", "footing")
 
 
 def foundation_makes(foundation: str | None, key: str) -> bool:

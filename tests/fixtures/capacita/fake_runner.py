@@ -60,7 +60,8 @@ SECTIONS = (("section_forces", 2), ("bending_safety_destruction", 1), ("shear_sa
             ("bending_durability", 1), ("shear_durability", 1), ("bending_serviceability", 1),
             ("bending_restorability", 1), ("shear_restorability", 1), ("bending_rebar_amount", 1))
 # The sections of a WDJ calculated as given, in the real runner's order with its page counts (2026-10-19).
-FORCE_SECTIONS = (("bending_safety_destruction", 1), ("shear_safety_destruction", 2), ("torsion_safety_destruction", 3),
+FORCE_SECTIONS = (("bending_safety_destruction", 1), ("shear_safety_destruction", 2),
+                  ("shear_deep_beam_safety_destruction", 1), ("torsion_safety_destruction", 3),
                   ("bending_safety_fatigue", 1), ("shear_safety_fatigue", 2), ("bending_durability", 2),
                   ("shear_durability", 2), ("torsion_durability", 2), ("bending_serviceability", 1),
                   ("bending_restorability", 1), ("shear_restorability", 2), ("torsion_restorability", 3),
@@ -89,10 +90,19 @@ def force_sections(document):
     crack = (document.get("crack") or [{}])[0]
     if crack.get("vis_u") and "bending_durability" in asked:
         asked.add("bending_serviceability")
+    # the points with a shear[].deep_beam (the footing of a pile foundation, decision 96) have the deep beam check in a section of
+    # its own, a page each, and are not in the ordinary shear's
+    deep = [row for row in document.get("shear") or () if row.get("deep_beam")]
+    if deep:
+        asked.discard("shear_safety_destruction")
+        asked.add("shear_deep_beam_safety_destruction")
+    else:
+        asked.discard("shear_deep_beam_safety_destruction")
     if any(member.get("shape") == 3 for member in document.get("members") or ()) and not all(
             point.get("isUpperCalc") and point.get("isLowerCalc") for point in document.get("points") or ()):
         asked.clear()
-    return [(name, pages) for name, pages in FORCE_SECTIONS if name in asked]
+    return [(name, len(deep) if name == "shear_deep_beam_safety_destruction" else pages)
+            for name, pages in FORCE_SECTIONS if name in asked]
 
 
 def circle_error(document):

@@ -340,7 +340,7 @@ def test_the_contract_is_the_registry(capsys):
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
         "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
-        "transverse_nonlinear_analysis"]
+        "transverse_nonlinear_analysis", "footing"]
     # decision 93: 0710 and 0720 of piles are made for the 場所打ち杭 only so far
     assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic")] == [
         ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭"]]

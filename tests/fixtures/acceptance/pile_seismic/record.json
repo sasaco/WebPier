@@ -7,7 +7,7 @@
   },
   "ndus": {
     "線路方向.ndu": {
-      "sha256": "3f69b98b5c069fef5f9bd4418d6258d68298e349597ba3167c1edf05cb7f7587",
+      "sha256": "bbd4dae74e299875aae1b9c1c4f1dc5f40101db33901a69fd8a3b34c2392dde0",
       "cases": [
         "線路方向(Case1_ρm10_αf1_正向).ndt",
         "線路方向(Case2_ρm12_αf1_正向).ndt",
@@ -15,10 +15,10 @@
         "線路方向(Case4_ρm12_αf2_正向).ndt"
       ],
       "db1_sha256": {
-        "線路方向(Case1_ρm10_αf1_正向).ndt": "5c0c8e61aa8a84dbfc408399bc70ead5040ba97389b90e704352c19d0a473952",
-        "線路方向(Case2_ρm12_αf1_正向).ndt": "f8bd430dc306d5f1e93e1bac1f4349ed9605d4f8b1762f4c1a0cd3b96e8c4907",
-        "線路方向(Case3_ρm10_αf2_正向).ndt": "16b40d2f0ca82b8b8445c74be124dd5c3513d5ec1e636bc05ea39edf3d54b14b",
-        "線路方向(Case4_ρm12_αf2_正向).ndt": "77fb7f60be93c2971f7dd2a1778ba6e66513d9fa4a7e5fffdbf790a533c96741"
+        "線路方向(Case1_ρm10_αf1_正向).ndt": "600b0910c60c13dd6877be8d451998cab9f2a8424b43302920d6adbab071ead3",
+        "線路方向(Case2_ρm12_αf1_正向).ndt": "e5262b3c7cb619b04fd94a99292f1136fd879f845e6ae5e417c53c4858979a11",
+        "線路方向(Case3_ρm10_αf2_正向).ndt": "0b92637d458faedd1d4a11a0f057a40d28fe6b9560edfe1069c431046bf14680",
+        "線路方向(Case4_ρm12_αf2_正向).ndt": "d3587956354c064179c325a2d1d426ec60c50015c9d8fb6391a08ccb1b46bbe5"
       },
       "analysis_ok_messages": 4,
       "warnings": {
@@ -31,7 +31,7 @@
       }
     },
     "線路直角方向.ndu": {
-      "sha256": "900e500c7dc0bbe98c391af05a8972998fa78902e80d3ffa1f0f682113d8db1a",
+      "sha256": "7c86d66f49071a395de1fe1dab11f8b2757af2afe4f6c2a92bc7a89e16bc3b58",
       "cases": [
         "線路直角方向(Case1_ρm10_αf1_正向).ndt",
         "線路直角方向(Case2_ρm12_αf1_正向).ndt",
@@ -39,10 +39,10 @@
         "線路直角方向(Case4_ρm12_αf2_正向).ndt"
       ],
       "db1_sha256": {
-        "線路直角方向(Case1_ρm10_αf1_正向).ndt": "6266d7357b3a168c50bce34acbfa236387c50a7d9f036013783433aa7251e917",
-        "線路直角方向(Case2_ρm12_αf1_正向).ndt": "13cfc4ada20bb677e448447a5d209c650d8c7c50f981804e50696b11e3e424e9",
-        "線路直角方向(Case3_ρm10_αf2_正向).ndt": "29e7b1d1af2617128f0a000d28b79c7aa9cc8310e94057fb362f8de19685c283",
-        "線路直角方向(Case4_ρm12_αf2_正向).ndt": "ebab7fe9d4136b8fe1e095398b408bcd87f3859a5626c8926f9f48a5b6037421"
+        "線路直角方向(Case1_ρm10_αf1_正向).ndt": "8d17e473461a975041f19f0575b0c3132ad64db8912f6536e81e31e265b27ccf",
+        "線路直角方向(Case2_ρm12_αf1_正向).ndt": "7477c58aff9f125f05bd7172eedfd2d266177a5e14c5315b6301ee9e6be2d773",
+        "線路直角方向(Case3_ρm10_αf2_正向).ndt": "d1fc0363242a604b43df55b8694962c00aa746dcd5be43c3021439ba9ed1ead7",
+        "線路直角方向(Case4_ρm12_αf2_正向).ndt": "d685cb01dd96d37a9ab001d69e7e0d5fc2070a65776a2c7e0273751faa5b5d49"
       },
       "analysis_ok_messages": 4,
       "warnings": {
@@ -55,7 +55,7 @@
       }
     },
     "線路直角方向_逆向.ndu": {
-      "sha256": "9223f3c1e9786e245170a2d06c46c536681fa5538cd50543e72a65d790e8d23d",
+      "sha256": "d3bbe3dc086f996d2bf5c70de34fad6a359d546735330c3364a0b26ee33f380c",
       "cases": [
         "線路直角方向_逆向(Case1_ρm10_αf1_逆向).ndt",
         "線路直角方向_逆向(Case2_ρm12_αf1_逆向).ndt",
@@ -63,10 +63,10 @@
         "線路直角方向_逆向(Case4_ρm12_αf2_逆向).ndt"
       ],
       "db1_sha256": {
-        "線路直角方向_逆向(Case1_ρm10_αf1_逆向).ndt": "bb81eb2280b4650b264234f1023b8aed0ae1df56aaff85f89d192701d77a32ec",
-        "線路直角方向_逆向(Case2_ρm12_αf1_逆向).ndt": "30f3c0ef218452933ba6ff27db88f0f8d1266870851cd18700c90299bfeb4f54",
-        "線路直角方向_逆向(Case3_ρm10_αf2_逆向).ndt": "a6c694749b244f7c1b9c60a9f7231ecfd8c4965f42103511880a03dcd650723f",
-        "線路直角方向_逆向(Case4_ρm12_αf2_逆向).ndt": "5110ef25d04428f367c1beedcbf6a509704df2e75031c3aa2dea1ceb5bcdedd8"
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向).ndt": "3856deb881b35136b1dade1a248de1d4b8ef1d415024ea362a268a3a7846e782",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向).ndt": "9734f5be9fbb83280bed6889a66279cbf9e9f229a6c0904f769bcd2ae2837b98",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向).ndt": "8fcc8a2afe4212e8359eee399131086929e69fdcf67da851b779a5517e91d35e",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向).ndt": "fe982f1a3cb5e4c909fb31461cd78f381147153cb6b9743a6adb96e14b48190d"
       },
       "analysis_ok_messages": 4,
       "warnings": {
@@ -80,8 +80,8 @@
     }
   },
   "report_pages": {
-    "0710": 20,
-    "0720": 22
+    "0710": 21,
+    "0720": 23
   },
   "accepted": true,
   "failures": []

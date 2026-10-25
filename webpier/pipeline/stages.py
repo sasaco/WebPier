@@ -74,11 +74,13 @@ from ..calc.detailing import calculate_detailing
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.footing import calculate_footing, complete_footing
 from ..calc.footing_check import calculate_footing_check
+from ..calc.pile_footing import SEISMIC_PICKUP, calculate_footing as calculate_pile_footing, complete_footing as complete_pile_footing
+from ..calc.pile_footing_check import calculate_pile_footing_check
 from ..calc.foundation import calculate_foundation
 from ..calc.foundation_check import LONGITUDINAL as FOUNDATION_LONGITUDINAL, TRANSVERSE as FOUNDATION_TRANSVERSE
 from ..calc.foundation_check import Direction as FoundationDirection, check as check_foundation
 from ..calc.foundation_check import prepare as prepare_foundation_check
-from ..calc.frame import Direction as FrameDirection
+from ..calc.frame import Direction as FrameDirection, Region
 from ..calc.generic.cantilever import calculate_generic_cantilever, complete_generic_cantilever
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
@@ -99,10 +101,12 @@ from ..core.integrity import dump_json, sha256
 from ..export.aggrese import BATCH_VERSION, build_pile_project, build_project, databases, ndu_databases, write_project
 from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wdj, point_index, write_footing_wdj,
                                write_wdj)
+from ..export.capacita.pile_footing_wdj import build_pile_footing_wdj, write_pile_footing_wdj
 from ..export.drawing import drawing_dxf, drawing_figures
 from ..export.frameweb import build_frameweb, build_frameweb_generic, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, build_pile_ndu, diagram_combinations, write_ndu, write_pile_ndu
+from ..export.jrsnap.build_pile import element_numbers
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.pile_model import PileNduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
@@ -118,6 +122,7 @@ from ..reporting.stages import column_check as column_check_report
 from ..reporting.stages import detailing as detailing_report
 from ..reporting.stages import footing as footing_report
 from ..reporting.stages import footing_check as footing_check_report
+from ..reporting.stages import pile_footing as pile_footing_report
 from ..reporting.stages import foundation as foundation_report
 from ..reporting.stages import foundation_check as foundation_check_report
 from ..reporting.stages import longitudinal as longitudinal_report
@@ -729,6 +734,62 @@ def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter:
                          results[stage_id], chapter))
 
 
+def pile_footing_forces(basis: Any, frame_pik: bytes, seismic_pik: bytes, seismic_frame: Any
+                        ) -> tuple[dict[tuple[int, int], Any], Any, dict[int, int]]:
+    """What ``calc.pile_footing.complete`` reads for one direction: the PIK lines of the frame analysis by (pickup, member), the
+    pickup lines of Aggre-SE by its member, and the element of the NDU of each base member of the frame (found by where the member
+    is in *seismic_frame*, the frame of 0710 / 0720, whose NDU the pickup is of; decision 96)."""
+    frame_forces: dict[tuple[int, int], Any] = {}
+    for pickup in sorted(set(basis.pickups.values())):
+        for member, lines in member_forces(frame_pik, list(basis.members), pickup).items():
+            frame_forces[(pickup, member)] = lines
+    numbers = element_numbers(seismic_frame)
+    by_ends = {(seismic_frame.nodes[member.start - 1].x, seismic_frame.nodes[member.end - 1].x): member.number
+               for member in seismic_frame.members if member.region is Region.FOOTING_BASE}
+    elements = {member: numbers[by_ends[ends]] for member, ends in basis.chain.items() if ends in by_ends}
+    return frame_forces, member_forces(seismic_pik, sorted(set(elements.values())), SEISMIC_PICKUP), elements
+
+
+def _pile_footing(stem: str) -> StageSpec:
+    """0800 of a pile foundation (decision 96): the section forces of the footing of both directions, prepared from the
+    pile frames of 0610 and 0620 before any runner, finished with the PIK of the frame analyses of 0612 and 0622 and the
+    pickup of 復旧性L2 of the seismic checks of 0711 and 0721."""
+    def complete(bases: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
+        def analyses(reactions_of: str, seismic_check: str, seismic: str, basis: Any) -> tuple[Any, Any, Any]:
+            return pile_footing_forces(basis, files[seismic_file(reactions_of, "pik")],
+                                       files[seismic_file(seismic_check, "pik")], results[seismic].frame)
+        return complete_pile_footing(bases, analyses("0612", "0711", "0710", bases.longitudinal),
+                                     analyses("0622", "0721", "0720", bases.transverse))
+
+    return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
+                     lambda pier, results: calculate_pile_footing(pier, results["0610"], results["0620"]),
+                     lambda results, pier, path, pages: pile_footing_report.render_pile_footing(results["0800"], path),
+                     complete=complete,
+                     grid_documents=lambda results, pier, pages: pile_footing_report.grid_documents(results["0800"]))
+
+
+def _pile_footing_check(stage: StageSpec, direction: str) -> StageSpec:
+    """0810 / 0820 of a pile foundation (decision 96): the WDJ of the five points of the footing."""
+    stage_id = stage.id
+    chapter = FOOTING_CHAPTER_LONGITUDINAL if direction == "longitudinal" else FOOTING_CHAPTER_TRANSVERSE
+    return StageSpec(stage_id, stage.stem, ("0800",), None,
+                     lambda results, pier, path, pages: render_footing_check(results[stage_id], path, pages, chapter),
+                     section_check=SectionCheck(
+                         "wdj", stage.section_check.file_name if stage.section_check else f"{stage_id}.wdj",
+                         lambda results, pier, pik: write_pile_footing_wdj(build_pile_footing_wdj(results[stage_id])),
+                         lambda results: results[stage_id].sections),
+                     complete=lambda result, files, pier, results: calculate_pile_footing_check(
+                         pier, getattr(results["0800"], direction)),
+                     grid_documents=lambda results, pier, pages: footing_check_report.grid_documents(
+                         results[stage_id], chapter))
+
+
+def _with_pile_footing(stage: StageSpec, direction: str | None = None) -> StageSpec:
+    """The direct footing's *stage* with its stage for a 場所打ち杭 (decision 96)."""
+    piled = _pile_footing(stage.stem) if direction is None else _pile_footing_check(stage, direction)
+    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
+
+
 def _max_responses(files: Mapping[str, bytes], *stages: str) -> list[Any]:
     """The 最大応答震度 of the summary workbook of each seismic check of *stages* (decision 59)."""
     return [read_max_response(files[seismic_file(stage_id, "xlsx")], dict(_aggrese_files(stage_id).files)["xlsx"])
@@ -955,9 +1016,9 @@ STAGES = Registry((
             Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
         seismic_check=_aggrese_files("線路直角方向")),
         "0720", NDU_TRANSVERSE, ("線路直角方向.ndu", "線路直角方向_逆向.ndu"), TRANSVERSE),
-    _footing("0800_フーチング"),
-    _footing_check("0810", "0810_線路方向フーチング照査", "線路方向", "longitudinal", FOOTING_CHAPTER_LONGITUDINAL),
-    _footing_check("0820", "0820_直角方向フーチング照査", "線路直角方向", "transverse", FOOTING_CHAPTER_TRANSVERSE),
+    _with_pile_footing(_footing("0800_フーチング")),
+    _with_pile_footing(_footing_check("0810", "0810_線路方向フーチング照査", "線路方向", "longitudinal", FOOTING_CHAPTER_LONGITUDINAL), "longitudinal"),
+    _with_pile_footing(_footing_check("0820", "0820_直角方向フーチング照査", "線路直角方向", "transverse", FOOTING_CHAPTER_TRANSVERSE), "transverse"),
     _cantilever("0900_片持ち梁", "0711", "0721"),
     _cantilever_check("0910_片持ち梁照査", "片持ち梁"),
 ))

@@ -69,6 +69,7 @@ class NodeRole(Enum):
     FOOTING_CENTROID = "footing_centroid"  # footing loads act here (load anchor)
     FOOTING_BOTTOM = "footing_bottom"  # the spring support
     PILE_HEAD = "pile_head"  # the head of a pile row, on the footing base
+    COLUMN_FACE = "column_face"  # the face of the column (く体前面) on the footing base between the pile rows (decision 96)
     PILE_TIP = "pile_tip"  # the tip of a pile row: the vertical spring of the tip
     PEDESTAL_BASE = "pedestal_base"
     PEDESTAL_TOP = "pedestal_top"
@@ -280,10 +281,14 @@ def _seats(pier: PierInput, self_weight: SelfWeightResult) -> tuple[NodeRole, No
     return origin, end
 
 
-def _pile_rows(group: PileGroup, nodes: list[Node], links: list[tuple[int, int, Region]]
-               ) -> tuple[list[Node], list[tuple[int, int, Region]]]:
+def _pile_rows(group: PileGroup, nodes: list[Node], links: list[tuple[int, int, Region]],
+               faces: tuple[Printed, ...] = ()) -> tuple[list[Node], list[tuple[int, int, Region]]]:
     """The heads of the pile rows on the footing base, the rigid members along the base between them (through the
-    footing centre, the base node of the footing), and each row's member down to its tip (decision 88)."""
+    footing centre, the base node of the footing), and each row's member down to its tip (decision 88).
+
+    The *faces* are the x of the faces of the column (く体前面): each that lies between the outermost heads is a node of the
+    base too (a member ends there, so that the section forces of the footing at the face are those of a member end, decision 96);
+    one at a node already there only adds its role, and one beyond the heads is not on the footing."""
     nodes, links = list(nodes), list(links)
     base = next(node for node in nodes if NodeRole.FOOTING_BOTTOM in node.roles)
     zero = LENGTH(0)
@@ -298,6 +303,18 @@ def _pile_rows(group: PileGroup, nodes: list[Node], links: list[tuple[int, int, 
             heads[row.number] = len(nodes)
     along_base = sorted([(base.x.value, base.number), *((row.x.value, heads[row.number]) for row in group.rows
                                                          if heads[row.number] != base.number)])
+    reach = (along_base[0][0], along_base[-1][0])
+    for face in faces:
+        if not reach[0] <= face.value <= reach[1]:
+            continue
+        found = next((number for x, number in along_base if x == face.value), None)
+        if found is not None:
+            nodes[found - 1] = Node(found, nodes[found - 1].x, nodes[found - 1].y,
+                                    nodes[found - 1].roles | {NodeRole.COLUMN_FACE})
+        else:
+            nodes.append(Node(len(nodes) + 1, face, zero, frozenset({NodeRole.COLUMN_FACE})))
+            along_base.append((face.value, len(nodes)))
+    along_base.sort()
     links += [(left, right, Region.FOOTING_BASE) for (_, left), (_, right) in zip(along_base, along_base[1:])]
     tip = LENGTH(-group.length.value)
     for row in group.rows:
@@ -421,7 +438,8 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
     group = None
     if isinstance(foundation, PileFoundation):
         group = pile_group(pier, foundation, PILE_LONGITUDINAL if longitudinal else PILE_TRANSVERSE)
-        nodes, links = _pile_rows(group, nodes, links)
+        half = d(plane[6]) / 2  # the faces of the column, from its axis (decision 96)
+        nodes, links = _pile_rows(group, nodes, links, tuple(put(LENGTH, d(axis) + sign * half) for sign in (-1, 1)))
     seats = _seats(pier, self_weight)
     if girder_levels is not None:
         nodes, links = _girder_levels(pier, nodes, links, girder_levels, seats)
