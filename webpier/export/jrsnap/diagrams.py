@@ -7,17 +7,21 @@ each basic case is taken from the .ndt of the first combination, by number, that
 
 from __future__ import annotations
 
-from .model import NduModel
+from typing import Any
 
 
-def diagram_combinations(model: NduModel) -> tuple[tuple[int, int], ...]:
+def diagram_combinations(model: Any, *, used_only: bool = False) -> tuple[tuple[int, int], ...]:
     """(basic case number, combination number), in case order; combinations are numbered from 1 in model order.
 
-    ``ValueError`` when a basic case is used by no combination (it would be drawn with no loads).
+    ``ValueError`` when a basic case is used by no combination (it would be drawn with no loads), unless *used_only*: the
+    NDU of one push of a pile foundation (decision 93) leaves out the cases of the other push, which are drawn from the
+    NDU of that one.
     """
     found = []
     for index, case in enumerate(model.cases):
         using = [number for number, combination in enumerate(model.combinations, 1) if combination.coefficients[index]]
+        if not using and used_only:
+            continue
         if not using:
             raise ValueError(f"基本ケース{case.number}（{case.title}）を使う組合せがありません")
         found.append((case.number, using[0]))

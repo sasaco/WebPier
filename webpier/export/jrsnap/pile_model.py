@@ -11,6 +11,7 @@ surface. The first element of the member, from the head to the footing base, is 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 from ...core.printed import Printed
 from .model import Analysis, Combination, Joint, LoadCase
@@ -120,3 +121,4 @@ class PileSection:
     hoop_diameter: Printed
     hoop_legs: int  # 1 組 is 2
     hoop_pitch: Printed
+    safety: tuple[Printed | Decimal | int, ...]  # SectSafe: the factors of the manual's 表2-29, the shear ones are inputs

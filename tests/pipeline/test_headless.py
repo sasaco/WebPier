@@ -325,7 +325,7 @@ def test_the_contract_is_the_registry(capsys):
     # Decision 85: the same item of a pile foundation — SOIL-JR's files, the JRSNAP runner, and the files only some
     # inputs have; which items it can make so far
     assert ground["pileFoundation"] == {
-        "supported": True, "runners": ["jrsnap"],
+        "supported": True, "foundations": ["場所打ち杭", "鋼管ソイルセメント杭"], "runners": ["jrsnap"],
         "files": [{"role": role, "path": path, "folder": False} for role, path in (
             ("0500.pdf", "output/0500_杭基礎.pdf"), ("0500.json", "output/0500_杭基礎.json"),
             ("0500.sdt", "post/杭基礎.sdt"), ("0500.sdr", "post/杭基礎.sdr"), ("0500.sdc", "post/杭基礎.sdc"),
@@ -339,7 +339,11 @@ def test_the_contract_is_the_registry(capsys):
              "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}]}
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
-        "transverse_frame_analysis"]
+        "transverse_frame_analysis", "longitudinal_seismic", "transverse_seismic"]
+    # decision 93: 0710 and 0720 of piles are made for the 場所打ち杭 only so far
+    assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic")] == [
+        ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭"]]
+    assert "post/線路直角方向_逆向.ndu" in [item["path"] for item in outputs["transverse_seismic"]["pileFoundation"]["files"]]
     assert outputs["reactions"]["pileFoundation"]["conditionalFiles"] == []
     assert outputs["longitudinal"]["pileFoundation"]["runners"] == ["fempython", "jrsnap"]  # 0500 of piles needs it too
     assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (

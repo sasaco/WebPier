@@ -45,8 +45,8 @@ from typing import Any
 from ..core.errors import InputError
 from ..core.integrity import sha256
 from ..inputs.fields import FIELDS, Field
-from ..inputs.choices import CAST_IN_PLACE_PILE
-from ..inputs.outputs import OUTPUT_ITEMS, PILE_OUTPUT_KEYS, uses
+from ..inputs.choices import CAST_IN_PLACE_PILE, PILE_FOUNDATIONS
+from ..inputs.outputs import OUTPUT_ITEMS, PILE_OUTPUT_KEYS, foundation_makes, uses
 from ..inputs.parse import BEARING_SLOTS, SCHEMA_VERSION as INPUT_SCHEMA_VERSION, TOP_KEYS, load_model_item
 from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
@@ -332,6 +332,7 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
                 "files": files(planned(options, stages, registry=registry)),
                 "pileFoundation": {
                     "supported": key in PILE_OUTPUT_KEYS,
+                    "foundations": [name for name in PILE_FOUNDATIONS if foundation_makes(name, key)],
                     "runners": [module.ENGINE for module in required_runners(needed, registry=piles)],
                     "files": files(planned(options, stages, registry=piles)),
                     "conditionalFiles": conditional(stages)}}

@@ -12,13 +12,13 @@ from dataclasses import replace
 from decimal import Decimal
 
 import pytest
-from pile_ndu_support import pile_section, printed, sample_model, sample_records
+from pile_ndu_support import SAFETY, pile_section, printed, sample_model, sample_records
 
 from webpier.core.errors import InputError
 from webpier.core.printed import LENGTH
 from webpier.export.jrsnap.pile_build import pile_row_parts, support_values
 from webpier.export.jrsnap.pile_model import PILE, RIGID, GroundElement, PileRange, Support
-from webpier.export.jrsnap.pile_records import PILE_SAFETY, pile_section_records, records
+from webpier.export.jrsnap.pile_records import pile_section_records, records
 from webpier.export.jrsnap.writer import line, write_pile_ndu
 
 KNOWN = {
@@ -73,7 +73,7 @@ def test_a_circular_section_has_the_axial_force_only_when_it_is_given():
     assert section["SectInfo2"][5].value == 210 and section["SectConc2"][1:3] == (-3, -3)
     assert section["SectSher2"][2] == 2 and section["SectRein2-1"][0].value == 156
     assert dict(pile_section_records(2, pile_section(100, None)))["SectInfo2"][5] == 0
-    assert section["SectSafe2"] == PILE_SAFETY and len(PILE_SAFETY) == 12
+    assert section["SectSafe2"] == SAFETY and len(SAFETY) == 12
 
 
 def test_the_nodes_of_a_row_have_the_supports_that_have_springs_and_the_sections_of_their_depths():
@@ -151,6 +151,8 @@ def test_the_pile_rows_must_be_the_members_that_are_piles_and_their_elements_bel
     invalid("部材 1 は杭の部材ではありません", piles=(PileRange(1, 7, 26), *model.piles[1:]))
     invalid("部材 9 は杭の部材ではありません", piles=(PileRange(9, 7, 26), *model.piles[1:]))
     invalid("KGInfo の要素（8〜26）", piles=(PileRange(4, 8, 26), *model.piles[1:]))
+    invalid("要素 6 の種類と地盤ばね", piles=(PileRange(4, 6, 26), *model.piles[1:]))
+    invalid("KGInfo の要素（7〜25）", piles=(PileRange(4, 7, 25), *model.piles[1:]))
     elements = list(model.elements)
     elements[6] = replace(elements[6], kind=RIGID, ground=None)
     invalid("種類と地盤ばね", elements=tuple(elements))

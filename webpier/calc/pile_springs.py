@@ -126,6 +126,7 @@ class SeismicDirection:
     columns: tuple[str, ...]
     depth_piles: tuple[int, ...]
     inverse_beta: float
+    distances: tuple[float, ...]  # m from the first row: where the rows are, as a) lists them
     layers: tuple[SeismicLayer, ...]
     tip: SeismicTip
 

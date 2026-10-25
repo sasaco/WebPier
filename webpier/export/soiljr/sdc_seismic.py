@@ -118,7 +118,7 @@ def _direction(name: str, lines: list[str]) -> SeismicDirection:
     rotation = _group(sections["f"], "杭先端の回転", 2, count, f"{name}: f）")[1]
     yield_load, ultimate = _group(sections["g"], "地震時：杭先端の鉛直", 2, count, f"{name}: g）")
     return SeismicDirection(name=name, rows=rows, columns=columns, depth_piles=piles, inverse_beta=inverse,
-                            layers=tuple(layers),
+                            distances=tuple(row.distance for row in listed), layers=tuple(layers),
                             tip=SeismicTip(first=first, second=second, yield_load=yield_load, ultimate=ultimate,
                                            horizontal=horizontal, rotation=rotation))
 

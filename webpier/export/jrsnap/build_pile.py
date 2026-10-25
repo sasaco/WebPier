@@ -1,0 +1,182 @@
+"""The NDU model of a pile foundation of a 0710 or 0720 result (decision 93, CONTEXT.md JRSNAP入力モデル).
+
+The frame is the one of the direct foundation without its springs: the column with the micro member, the footing (rigid,
+with the rigid member along its base through the heads of the pile rows), numbered from the top left; each pile row is one
+member from its head down, cut into elements and given the ground springs of the .sdc as JRSNAP's 連携 gives them
+(``build.pile_row_parts``). The pile starts at the head joint on the footing base, so there is no rigid part of it.
+
+- **Which row is the first column.** The springs of the .sdc are by column, the first column being the front row of the push
+  (JRSNAP's connection screen takes the column of the pile row by hand). The front row is the one the earthquake pushes
+  toward: the smallest x for −x (0710) and the largest for +x (0720); a reversed (逆向) combination pushes the other way, so
+  its NDU takes the columns the other way round (``reverse``). The distances of the rows from the front row must be the ones
+  the .sdc lists.
+- **Sections.** Section 1 is the column's. A section of the pile follows for each zone of the hoops from the head: the 2D zone,
+  then the zones below it (鉄筋.杭.hoops.lower). The section of a pile element is the one of the zone its upper end is in; the
+  last zone goes on to the tip. The main bars (all along: a 段落し is not made yet), the cover, the steels, f'ck of the pile
+  and its 施工条件 (the code of the manual's 表2-30) are common; the axial force is not given (JRSNAP takes the one of the
+  analysis, as for the column).
+- **Combinations.** Those of the push of this NDU: the forward ones, or the reversed ones with ``reverse``.
+"""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from decimal import Decimal
+
+from ...calc._exact import d, put
+from ...calc.column_rebar import ColumnLayout, yield_strength
+from ...calc.frame import NodeRole
+from ...calc.pile_seismic import pile_row
+from ...calc.pile_springs import SeismicSprings
+from ...core.errors import InputError
+from ...core.printed import LENGTH, Printed
+from ...inputs import PierInput, choices
+from ...inputs.rebar import LENGTH_MM
+from . import build
+from .model import Combination, Joint
+from .pile_build import pile_row_parts, row_title
+from .pile_model import COLUMN, M_THETA, RIGID, FrameElement, Member, NonLinear, PileNduModel, PileSection
+from .pile_records import pile_section_records
+from .profile import NONLINEAR_TITLE, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile
+from .records import column_section_records
+from .section import column_section, need
+
+REBAR = "鉄筋.杭"
+# the code of the construction condition in the CTS and EC' fields of the pile's concrete (表2-30): 自然泥水 or the CMC stabiliser
+# is -3, the bentonite one -4 (SOIL-JR's 安定液使用: taken to be it)
+CONSTRUCTION = {"自然泥水": -3, "安定液使用": -4}
+DISTANCE_TOLERANCE = Decimal("0.0005")
+
+
+def _hoop(hoop, path: str):
+    return (need(hoop.diameter, f"{path}.diameter_mm"), need(hoop.sets, f"{path}.sets"),
+            need(hoop.pitch, f"{path}.pitch_mm"))
+
+
+def pile_sections(pier: PierInput, profile: Profile, diameter: Printed) -> tuple[tuple[PileSection, ...], list[Decimal]]:
+    """The sections of the zones of the hoops and where each zone ends (m below the head; the last one has no end)."""
+    bars, cast = pier.rebar.pile, pier.piles.cast_in_place
+    if bars.cutoff.main_diameter is not None or bars.cutoff.main_count is not None:
+        raise InputError(f"{REBAR}.cutoff.main_bars: 段落しのある杭の NDU は未対応です（決定93）")
+    main = need(bars.main_diameter, f"{REBAR}.main_bars.diameter_mm")
+    count = need(bars.main_count, f"{REBAR}.main_bars.count")
+    cover = need(bars.pure_cover, f"{REBAR}.pure_cover_mm")
+    grade = need(bars.materials.main, f"{REBAR}.materials.main")
+    transverse = need(bars.materials.transverse, f"{REBAR}.materials.transverse")
+    condition = need(cast.condition, "杭基礎.場所打ち杭.施工条件")
+    conditions = getattr(pier.jrsnap, profile.jrsnap)
+    key = f"jrsnap_{profile.jrsnap}"
+    factors = [need(getattr(conditions, name), f"{key}.{name}")
+               for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd")]
+    safety = (*SAFETY_BEFORE, factors[0], factors[1], SAFETY_GBS, SAFETY_K, factors[2], SAFETY_GBVO)
+    zones = [(f"{REBAR}.hoops.zone_2d", bars.hoops.zone_2d, put(LENGTH, 2 * d(diameter)))]
+    for index, lower in enumerate(bars.hoops.lower):
+        length = need(lower.length, f"{REBAR}.hoops.lower[{index}].length_m")
+        zones.append((f"{REBAR}.hoops.lower[{index}]", lower.hoop, length))
+    sections, ends, end = [], [], Decimal(0)
+    for path, hoop, length in zones:
+        hoop_diameter, sets, pitch = _hoop(hoop, path)
+        end += d(length)
+        ends.append(end)
+        title = f"杭(φ{d(diameter) * 1000:.0f})：帯鉄筋ctc{pitch.value:g}"
+        sections.append(PileSection(
+            title=title, radius=put(LENGTH_MM, d(diameter) * 500), axial_force=None,
+            fck=need(cast.fck, "杭基礎.場所打ち杭.f'ck"), construction=CONSTRUCTION[condition],
+            aggregate_max=need(bars.aggregate_max, f"{REBAR}.aggregate_max_mm"), yield_strength=yield_strength(grade),
+            center=put(LENGTH_MM, d(cover) + d(hoop_diameter) + d(main) / 2), diameter=main, count=count,
+            hoop_yield=yield_strength(transverse), hoop_diameter=hoop_diameter, hoop_legs=2 * sets, hoop_pitch=pitch,
+            safety=safety))
+    return tuple(sections), ends[:-1]
+
+
+def _front(profile: Profile, reverse: bool) -> int:
+    """−1 when the front row of the push is the one at the smallest x, +1 at the largest."""
+    return int(profile.earthquake) * (-1 if reverse else 1)
+
+
+def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seismic, springs: SeismicSprings, *,
+                   reverse: bool = False) -> PileNduModel:
+    """*seismic* is a SeismicLongitudinalResult or a SeismicTransverseResult of the same input on piles; *reverse* the NDU of
+    the reversed (逆向) combinations."""
+    if pier.substructure.foundation != choices.CAST_IN_PLACE_PILE:
+        raise InputError("地震時の杭基礎の NDU は場所打ち杭だけに対応します（鋼管ソイルセメント杭は未対応です、決定93）")
+    frame = seismic.frame
+    group = frame.piles
+    assert group is not None  # the frame of a pile foundation
+    combinations = tuple(
+        Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
+                    coefficients=tuple(int(action.case in c.cases) for action in seismic.basic_cases), reverse=c.reverse)
+        for c in seismic.combinations if c.reverse == reverse)
+    if not combinations:
+        raise InputError("向きを反転した（逆向の）組合せがありません")
+    top = frame.node(NodeRole.FOOTING_TOP)
+    base = sorted((node for node in frame.nodes if NodeRole.PILE_TIP not in node.roles),
+                  key=lambda node: (-node.y.value, node.x.value))
+    temporary = {node.number: index for index, node in enumerate(base, 1)}
+    joints = {temporary[node.number]: Joint(temporary[node.number], node.x, put(LENGTH, d(top.y) - d(node.y)))
+              for node in base}
+    elements = build._Elements(joints)
+    for member in frame.members:
+        if not member.pile:
+            elements.add(replace(member, start=temporary[member.start], end=temporary[member.end]))
+    # the joints of the frame and of the footing offset, from the top and the left, then those of the piles
+    final = {joint.number: number for number, joint in enumerate(
+        sorted(elements.joints.values(), key=lambda joint: (joint.y.value, joint.x.value)), 1)}
+    placed = {final[joint.number]: replace(joint, number=final[joint.number]) for joint in elements.joints.values()}
+    of_frame = {number: final[tmp] for number, tmp in temporary.items()}
+    frame_elements = [FrameElement(e.number, final[e.i], final[e.j], COLUMN if e.nonlinear else RIGID,
+                                   1 if e.nonlinear else 0) for e in elements.elements]
+    members = [Member(e.number, e.title, final[e.i], final[e.j], e.length, ((e.length, 1),), nonlinear=True)
+               for e in elements.elements]
+    control = of_frame[build._control(frame, profile).number]
+    column = column_section(profile, pier, layout, frame, build._control(frame, profile))
+    nonlinear = [NonLinear(section=1, model=M_THETA, failure=2 if column.shear_failure else 1, ends=(1, 1),
+                           depth_piles=1, title=NONLINEAR_TITLE)]
+    diameter = group.section.diameter
+    pile_sections_, boundaries = pile_sections(pier, profile, diameter)
+    ends = [LENGTH(float(end)) for end in boundaries]
+
+    def section(depth: Printed) -> int:
+        return 2 + sum(1 for end in ends if depth.value >= end.value)
+
+    direction = springs.direction(group.direction)
+    rows = group.rows
+    if direction.rows != len(rows):
+        raise InputError(f".sdc の{group.direction}の杭列数（{direction.rows}）が入力の杭の列（{len(rows)}列）と違います")
+    forward = _front(profile, reverse) < 0  # the front row is the first of the rows by x
+    zone = put(LENGTH, 2 * d(diameter))
+    piles, supports, next_joint = [], [], len(placed) + 1
+    for index, (row, nodes) in enumerate(zip(rows, frame.pile_nodes)):
+        column_number = index + 1 if forward else len(rows) - index
+        front = rows[0].x if forward else rows[-1].x
+        if abs(abs(d(row.x) - d(front)) - Decimal(repr(direction.distances[column_number - 1]))) > DISTANCE_TOLERANCE:
+            raise InputError(f".sdc の{group.direction}の杭列 {column_number} の位置（先頭の列から"
+                             f"{direction.distances[column_number - 1]} m）が入力の杭の列の位置と違います")
+        if direction.depth_piles[column_number - 1] != row.piles:
+            raise InputError(f".sdc の{group.direction}の杭列 {column_number} の奥行き本数"
+                             f"（{direction.depth_piles[column_number - 1]}）が入力の杭の列（{row.piles}本）と違います")
+        model = pile_row(direction, column_number, diameter)
+        head = of_frame[nodes.head]
+        parts = pile_row_parts(model, member=len(members) + 1, head_joint=head, first_joint=next_joint, x=row.x,
+                               top=placed[head].y, rigid=None, first_element=len(frame_elements) + 1,
+                               first_nonlinear=len(nonlinear) + 1, section=section, zone=zone, title=row_title(row.piles))
+        next_joint += len(model.nodes) - 1
+        placed.update({joint.number: joint for joint in parts.joints})
+        members.append(parts.member)
+        frame_elements += parts.elements
+        nonlinear += parts.nonlinear
+        piles.append(parts.pile)
+        supports += parts.supports
+    regions = {member.number: member.region for member in frame.members}
+    cases = []
+    for number, action in enumerate(seismic.basic_cases, 1):
+        case = build._case(number, action, profile, elements, regions)
+        loads = sorted((replace(load, node=of_frame[load.node]) for load in case.joint_loads), key=lambda load: load.node)
+        cases.append(replace(case, joint_loads=tuple(loads)))
+    sections = (tuple(column_section_records(1, column)),
+                *(tuple(pile_section_records(number, s)) for number, s in enumerate(pile_sections_, 2)))
+    return PileNduModel(
+        profile=profile, analysis=build._analysis(pier, profile), control=control, origin=of_frame[top.number],
+        joints=tuple(placed[number] for number in sorted(placed)), members=tuple(members), elements=tuple(frame_elements),
+        nonlinear=tuple(nonlinear), sections=sections, piles=tuple(piles), supports=tuple(supports), cases=tuple(cases),
+        combinations=combinations)

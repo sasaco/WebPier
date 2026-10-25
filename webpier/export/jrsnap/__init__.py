@@ -7,10 +7,11 @@ decides which combination each basic case of the 荷重図 is drawn from.
 """
 
 from .build import build_ndu
+from .build_pile import build_pile_ndu
 from .diagrams import diagram_combinations
 from .profile import LONGITUDINAL, TRANSVERSE, Profile
 from .validate import validate_ndu
 from .writer import write_ndu, write_pile_ndu
 
-__all__ = ["LONGITUDINAL", "TRANSVERSE", "Profile", "build_ndu", "diagram_combinations", "validate_ndu", "write_ndu",
-           "write_pile_ndu"]
+__all__ = ["LONGITUDINAL", "TRANSVERSE", "Profile", "build_ndu", "build_pile_ndu", "diagram_combinations", "validate_ndu",
+           "write_ndu", "write_pile_ndu"]

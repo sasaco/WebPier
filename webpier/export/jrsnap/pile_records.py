@@ -9,16 +9,10 @@ where the file is put, and the springs it would let the screen recompute are in 
 from __future__ import annotations
 
 from collections.abc import Iterator
-from decimal import Decimal
-
 from .pile_model import PileNduModel, PileSection
-from .profile import (
-    RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, STEEL_MODULUS,
-)
+from .profile import RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS, STEEL_MODULUS
 from .records import BLANK, CONSTANT_RECORDS, RESISTANCE, UNSET, Record, head_records, loads_records, tail_records
 
-# SectSafe of a pile: the factors of the manual's 表2-29 (γb of the concrete 1.3, of the hoops 1.1 for Vsd and 1.2 for Vdd)
-PILE_SAFETY = (*SAFETY_BEFORE, Decimal("1.3"), Decimal("1.1"), SAFETY_GBS, SAFETY_K, Decimal("1.2"), SAFETY_GBVO)
 YIELD_ANGLE = 45  # 着目降伏角度: the tension side at 45°
 
 
@@ -34,7 +28,7 @@ def pile_section_records(number: int, s: PileSection) -> Iterator[Record]:
     yield f"SectRein{number}-1", (s.center, s.diameter, s.count)
     hoop = (s.hoop_yield, s.hoop_diameter, s.hoop_legs, s.hoop_pitch)
     yield f"SectSher{number}", (*hoop, 0, 0, *hoop)
-    yield f"SectSafe{number}", PILE_SAFETY
+    yield f"SectSafe{number}", s.safety
 
 
 def _frame(model: PileNduModel) -> Iterator[Record]:

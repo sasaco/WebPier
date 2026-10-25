@@ -13,7 +13,7 @@ SOIL-JR returns no judgement: the check is recorded as run, not as passed.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +42,10 @@ class PileGroundModel:
     sdr: SdrFile
     springs: GroundSprings  # the 解析用地盤ばね値 of the .sdc: the frame of 0610 and 0620 stands on them (decision 88)
     liquefied_sdr: SdrFile | None  # the .sdr for the liquefaction, when some layer along the pile liquefies
+    sdc_sha256: str = ""
+    # the .sdc as SOIL-JR returned it: the model of 0710 and 0720 reads its seismic tables (decision 93), the layouts it does
+    # not support only when it is built
+    sdc: bytes = field(default=b"", repr=False, metadata={"json": False})
 
 
 def sdt(results: Mapping[str, Any], pier: PierInput) -> bytes:
@@ -77,7 +81,7 @@ def complete(result: PileGroundResult, files: Mapping[str, bytes], pier: PierInp
         springs = parse_sdc(files["sdc"])
     except SdcError as exc:
         raise SdrError(f"{FILES[1][1]} を読めません: {exc}") from exc
-    return PileGroundModel(result, sha256(files["sdt"]), found, springs, other)
+    return PileGroundModel(result, sha256(files["sdt"]), found, springs, other, sha256(files["sdc"]), files["sdc"])
 
 
 def render(results: Mapping[str, Any], pier: PierInput, path: Path, pages: Mapping[str, bytes]) -> None:

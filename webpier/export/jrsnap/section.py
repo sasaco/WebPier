@@ -84,7 +84,7 @@ def _shear(profile: Profile, pier: PierInput) -> Shear:
 
 def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, frame: Frame, control: Node
                    ) -> SectionData:
-    (micro,) = [member for member in frame.members if not member.rigid]  # 0710 / 0720: the micro member only
+    (micro,) = [member for member in frame.members if not member.rigid and not member.pile]  # the micro member only
     section, concrete = micro.section, micro.material
     assert section is not None and concrete is not None  # an elastic member has both
     width, height = _mm(section.width), _mm(section.depth)

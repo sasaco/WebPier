@@ -57,3 +57,14 @@ def test_each_case_is_drawn_from_the_first_combination_that_uses_it(usage):
     for index, ((_, combination), mask) in enumerate(zip(found, masks, strict=True)):
         using = [slot + 1 for slot in range(count) if combinations[slot].coefficients[index] == 1]
         assert combination == min(using) == (mask & -mask).bit_length()  # the lowest set bit of the mask
+
+
+def test_the_ndu_of_one_push_leaves_out_the_cases_of_the_other_push(  # decision 93
+):
+    base = model("transverse")
+    forward = replace(base, combinations=tuple(c for c in base.combinations if not c.reverse))
+    assert diagram_combinations(forward, used_only=True) == tuple((n, 1) for n in range(1, 10) if n != 6)
+    reverse = replace(base, combinations=tuple(c for c in base.combinations if c.reverse))
+    assert [case for case, _ in diagram_combinations(reverse, used_only=True)] == [1, 2, 3, 4, 6, 7, 8, 9]
+    with pytest.raises(ValueError, match="を使う組合せがありません"):
+        diagram_combinations(forward)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .choices import PILE_FOUNDATIONS
+from .choices import PILE_FOUNDATIONS, STEEL_SOIL_CEMENT_PILE
 
 
 @dataclass(frozen=True)
@@ -43,11 +43,16 @@ _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
 # 0500 (SOIL-JR's ground model, decision 85), 0600 (which does not read the foundation), 0610, 0620 (the frame on the
 # piles, decision 88) and the frame analyses 0611, 0612, 0621, 0622 (decision 89).
 PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis",
-                                     "transverse", "transverse_frame_analysis")
+                                     "transverse", "transverse_frame_analysis", "longitudinal_seismic",
+                                     "transverse_seismic")
+# The items only a 場所打ち杭 makes so far: the NDU of the piles of 0710 and 0720 is made for it only (decision 93).
+CAST_IN_PLACE_ONLY: tuple[str, ...] = ("longitudinal_seismic", "transverse_seismic")
 
 
 def foundation_makes(foundation: str | None, key: str) -> bool:
     """Whether a generation can make the item *key* for the 基礎形式 (a direct foundation makes every item)."""
+    if foundation == STEEL_SOIL_CEMENT_PILE and key in CAST_IN_PLACE_ONLY:
+        return False
     return foundation not in PILE_FOUNDATIONS or key in PILE_OUTPUT_KEYS
 
 

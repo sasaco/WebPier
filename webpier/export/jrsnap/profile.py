@@ -51,7 +51,7 @@ MIN_SHEAR_SPAN_RATIO = Decimal("1.25")
 REGION_TITLES = {
     Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端",
     Region.FOOTING_UPPER: "フーチング上", Region.FOOTING_LOWER: "フーチング下", Region.PEDESTAL_ARM: "桁受け腕",
-    Region.PEDESTAL: "桁受け", Region.GIRDER: "桁",
+    Region.PEDESTAL: "桁受け", Region.GIRDER: "桁", Region.FOOTING_BASE: "フーチング底面",
 }
 
 

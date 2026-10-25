@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from .pile_model import PILE, PileNduModel
+from .pile_model import PILE, RIGID, PileNduModel
 from .validate import _error, _File
 
 SUPPORT_KINDS = (1, 2, 3)  # the horizontal, vertical and rotational spring of a node; a pile row has the vertical one
@@ -56,8 +56,11 @@ def check_model(model: PileNduModel) -> None:
         if member is None or not member.pile:
             raise _error(f"KGInfo の部材 {pile.member} は杭の部材ではありません")
         first, last = starts[pile.member]
-        if (pile.first, pile.last) != (first + 1, last):
-            raise _error(f"KGInfo の要素（{pile.first}〜{pile.last}）が部材 {pile.member} の杭の要素（{first + 1}〜{last}）と違います")
+        # the elements of a pile row are those of its member, but for a rigid one at the head (a pile that starts below it)
+        rigid_head = all(e.kind == RIGID for e in model.elements[first - 1:pile.first - 1])
+        if pile.last != last or not first <= pile.first <= last or not rigid_head:
+            raise _error(f"KGInfo の要素（{pile.first}〜{pile.last}）が部材 {pile.member} の杭の要素（{first}〜{last}、"
+                         "頭の剛な要素を除く）と合いません")
     for e in model.elements:
         in_pile = any(p.first <= e.number <= p.last for p in model.piles)
         if (e.kind == PILE) != in_pile or (e.ground is not None) != in_pile:

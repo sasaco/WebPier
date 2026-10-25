@@ -404,6 +404,10 @@ def _export_facts(registry: Registry, post: _PostFile, drawn: Mapping[str, LoadD
                                    "load_diagram": [{"case": case, "combination": combination}
                                                     for case, combination in pages.load_cases],
                                    "runner_summary": dict(pages.summary)}
+        if pages.also:  # the load diagrams of the cases the first NDU does not have are from the NDUs of the push the other way
+            facts["jrsnap_figures"]["load_diagram_from"] = list(pages.drawn_from)
+            facts["jrsnap_figures"]["also"] = [{"export": kind, "engine_version": more.engine_version,
+                                                "runner_summary": dict(more.summary)} for kind, more in pages.also]
     return facts
 
 
@@ -634,6 +638,22 @@ def _draw_figures(name: str, document: bytes, runner: Path, load_cases: Sequence
         raise GenerationError(str(exc)) from exc
 
 
+def _stage_figures(registry: Registry, results: Mapping[str, Any], pier: PierInput, post: _PostFile,
+                   posted: Mapping[tuple[str, str], _PostFile], built: Mapping[tuple[str, str], bytes],
+                   runner: Path) -> jrsnap.FigurePages:
+    """The figures of the NDU of *post*, and the load diagrams of the cases it has none of from the other NDUs of its stage."""
+    figures = registry.get(post.stage).jrsnap_figures
+    assert figures is not None
+    own = _own(registry, results, post.stage)
+    pages = _draw_figures(post.native.path.name, built[(post.stage, post.kind)], runner, figures.load_cases(own, pier))
+    for other in figures.also:
+        second = posted[(post.stage, other.export)]
+        more = _draw_figures(second.native.path.name, built[(post.stage, other.export)], runner,
+                             other.load_cases(own, pier))
+        pages = jrsnap.add_load_diagrams(pages, other.export, more)
+    return pages
+
+
 def _analyze(name: str, document: bytes, runner: Path) -> AnalysisFiles:
     try:
         return analyze_frame(name, document, runner)
@@ -765,10 +785,10 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
         drawn = {post.stage: _draw(staging.path_for(post.native.path), runner) for post in posts
                  if runner is not None and post.kind == registry.get(post.stage).load_diagram}
-        figures = {post.stage: _draw_figures(post.native.path.name, built[(post.stage, post.kind)], jrsnap_runner,
-                                             spec.jrsnap_figures.load_cases(_own(registry, results, post.stage), pier))
-                   for post in posts if post.export is not None
-                   and (spec := registry.get(post.stage)).jrsnap_figures is not None
+        posted = {(post.stage, post.kind): post for post in posts if post.export is not None}
+        figures = {post.stage: _stage_figures(registry, results, pier, post, posted, built, jrsnap_runner)
+                   for post in posted.values()
+                   if (spec := registry.get(post.stage)).jrsnap_figures is not None
                    and post.kind == spec.jrsnap_figures.export}
         runs: dict[tuple[str, str], AnalysisFiles] = {}  # one call for each FrameWeb file (decision 54)
         for analysis in analyses.values():

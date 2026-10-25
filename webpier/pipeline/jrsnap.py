@@ -73,6 +73,10 @@ class FigurePages:
     load_cases: tuple[tuple[int, int], ...]  # (basic case, combination) of each load diagram page
     engine_version: str
     summary: Mapping[str, Any]  # what the runner reports of JRSNAP, the .ndt and the pages
+    # the pages of a basic case drawn from another NDU of the stage (decision 93: the NDU of a reversed push), as that NDU's
+    # export kind and the pages it drew; ``load_cases`` then lists all, each combination being the one of its own NDU
+    also: tuple[tuple[str, FigurePages], ...] = ()
+    drawn_from: tuple[str, ...] = ()  # the export kind each load diagram page was drawn from (empty: all from the one NDU)
 
     @property
     def pages(self) -> dict[str, bytes]:
@@ -187,6 +191,20 @@ def _pages(name: str, file: str, content: bytes, action: str = _FIGURES) -> list
     if not pages:
         raise _fail(name, f"{file} にページがありません", action)
     return pages
+
+
+def add_load_diagrams(pages: FigurePages, export: str, more: FigurePages) -> FigurePages:
+    """*pages* with the load diagrams of the basic cases it has none of taken from *more*, drawn from the NDU of *export*
+    (decision 93): the pages stay in the order of the basic cases, each from the first NDU that has it."""
+    found: dict[int, tuple[int, str, Any]] = {}
+    own = pages.drawn_from or ("",) * len(pages.load_cases)
+    for source, kinds in ((pages, own), (more, (export,) * len(more.load_cases))):
+        for (case, combination), page, kind in zip(source.load_cases, PdfReader(BytesIO(source.load_diagram)).pages, kinds):
+            found.setdefault(case, (combination, kind, page))
+    order = sorted(found)
+    return FigurePages(pages.data_check, _pdf([found[case][2] for case in order]),
+                       tuple((case, found[case][0]) for case in order), pages.engine_version, pages.summary,
+                       (*pages.also, (export, more)), tuple(found[case][1] for case in order))
 
 
 def _pdf(pages: Sequence[Any]) -> bytes:

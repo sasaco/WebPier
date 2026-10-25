@@ -280,3 +280,23 @@ def test_the_stand_in_refuses_arguments_it_was_not_given_as_the_runner_takes_the
     done = subprocess.run([str(fake_jrsnap_runner), "soil", "--input", str(source), "--output-dir", str(tmp_path / "full"),
                            "--timeout-seconds", "600"], capture_output=True, check=False)
     assert done.returncode == 1 and "OUTPUT_NOT_EMPTY" in done.stdout.decode("utf-8")
+
+
+def test_the_load_diagrams_of_a_second_ndu_fill_the_cases_the_first_has_none_of(fake_jrsnap_runner: Path):
+    """Decision 93: the NDU of a pile foundation has the cases of its push only; the pages of the others come from the NDU of
+    the other push, and every page stays where its basic case is, each from the first NDU that has it."""
+    first_ndu, second_ndu = b"Virsion=5.2.3.S.4\r\nLoadNum=9\r\nSNAPConbNum=2\r\nA", b"Virsion=5.2.3.S.4\r\nLoadNum=9\r\nSNAPConbNum=2\r\nB"
+    first = draw_figures("a.ndu", first_ndu, fake_jrsnap_runner, tuple((case, 1) for case in range(1, 10) if case != 6))
+    second = draw_figures("b.ndu", second_ndu, fake_jrsnap_runner, tuple((case, 2) for case in (5, 6, 7)))
+    merged = jrsnap.add_load_diagrams(first, "jrsnapreverse", second)
+    one, two = (hashlib.sha256(ndu).hexdigest()[:16] for ndu in (first_ndu, second_ndu))
+    assert texts(merged.load_diagram) == [
+        f"FAKE LOAD DIAGRAM COMB 2 CASE {case} {two}" if case == 6 else f"FAKE LOAD DIAGRAM COMB 1 CASE {case} {one}"
+        for case in range(1, 10)]
+    assert merged.load_cases == tuple((case, 2 if case == 6 else 1) for case in range(1, 10))
+    assert merged.drawn_from == tuple("jrsnapreverse" if case == 6 else "" for case in range(1, 10))
+    assert merged.also == (("jrsnapreverse", second),) and merged.data_check == first.data_check
+    assert merged.summary is first.summary
+    again = jrsnap.add_load_diagrams(merged, "other", second)  # a merged one can take more: the first NDU of a case stays
+    assert again.load_cases == merged.load_cases and again.drawn_from == merged.drawn_from
+    assert [export for export, _ in again.also] == ["jrsnapreverse", "other"]

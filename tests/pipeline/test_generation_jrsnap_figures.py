@@ -20,7 +20,7 @@ from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
 from webpier.pipeline import fempython, generate, jrsnap
 from webpier.pipeline.generate import GenerationError, GenerationOptions, figure_cases
-from webpier.pipeline.stages import STAGES, Export, JrsnapFigures, Registry, StageSpec
+from webpier.pipeline.stages import STAGES, AlsoFigures, Export, JrsnapFigures, Registry, StageSpec
 from webpier.reporting.stages.insertion import DATA_CHECK, LOAD_DIAGRAM
 
 # The shape of 0720: two combinations, nine basic cases, CASE-6 from combination 2 (tests/fixtures/jrsnap).
@@ -153,6 +153,10 @@ def _figures() -> JrsnapFigures:
     (dict(exports=(Export("jrsnap", "a.ndu", lambda results, pier: b""),
                    Export("frameweb", "a.json", lambda results, pier: b"")), jrsnap_figures=_figures(),
           load_diagram="frameweb"), "AにFEMPythonの荷重図とJRSNAPの荷重図の両方は差し込めません"),
+    (dict(exports=(Export("jrsnap", "a.ndu", lambda results, pier: b""),),
+          jrsnap_figures=JrsnapFigures("jrsnap", lambda results, pier: ((1, 1),),
+                                       (AlsoFigures("jrsnapreverse", lambda results, pier: ((2, 1),)),))),
+     "Aのデータ確認図と荷重図の出力jrsnapreverseがありません"),
 ])
 def test_the_figures_must_name_an_export_of_a_stage_with_a_report(spec, message):
     recorder = Recorder()

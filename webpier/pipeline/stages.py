@@ -102,11 +102,13 @@ from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wd
 from ..export.drawing import drawing_dxf, drawing_figures
 from ..export.frameweb import build_frameweb, build_frameweb_generic, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
-from ..export.jrsnap import build_ndu, diagram_combinations, write_ndu
+from ..export.jrsnap import build_ndu, build_pile_ndu, diagram_combinations, write_ndu, write_pile_ndu
 from ..export.jrsnap.model import NduModel
+from ..export.jrsnap.pile_model import PileNduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
 from ..export.capacita.pile_joint import row_id, write as write_pile_joint
 from ..export.capacita.pile_wdj import build_pile_wdj, write_pile_wdj
+from ..export.soiljr.sdc_seismic import parse_seismic
 from ..export.steeldan import write_wsj
 from ..inputs import PierInput, choices
 from ..inputs.outputs import OUTPUT_KEYS, uses
@@ -288,11 +290,20 @@ class SoilJrCalculation:
 
 
 @dataclass(frozen=True)
+class AlsoFigures:
+    """The 荷重図 of the basic cases another NDU of the stage draws: the NDU of the reversed push of a pile foundation."""
+
+    export: str
+    load_cases: Callable[[Results, PierInput], tuple[tuple[int, int], ...]]
+
+
+@dataclass(frozen=True)
 class JrsnapFigures:
     """JRSNAP draws the データ確認図 and the 荷重図 of the stage's NDU into its report (decisions 50, 51)."""
 
     export: str  # the kind of the NDU export, "jrsnap"
     load_cases: Callable[[Results, PierInput], tuple[tuple[int, int], ...]]  # (basic case, combination) to draw
+    also: tuple[AlsoFigures, ...] = ()  # the cases the first NDU does not have, from other NDUs of the stage (decision 93)
 
 
 @dataclass(frozen=True)
@@ -455,8 +466,9 @@ class Registry:
             if stage.load_diagram and not stage.has_report:
                 raise ValueError(f"{stage.id}の荷重図を差し込む計算書がありません")
             if (figures := stage.jrsnap_figures) is not None:
-                if figures.export not in {item.kind for item in stage.exports}:
-                    raise ValueError(f"{stage.id}のデータ確認図と荷重図の出力{figures.export}がありません")
+                for kind in (figures.export, *(item.export for item in figures.also)):
+                    if kind not in {item.kind for item in stage.exports}:
+                        raise ValueError(f"{stage.id}のデータ確認図と荷重図の出力{kind}がありません")
                 if not stage.has_report:
                     raise ValueError(f"{stage.id}のデータ確認図と荷重図を差し込む計算書がありません")
                 if stage.load_diagram:  # both put pages into the report as its load diagram
@@ -756,6 +768,38 @@ def _pile_foundation(results: Results) -> PileFoundation:
     return PileFoundation(model.ground, model.springs)
 
 
+def _pile_ndu_model(stage_id: str, profile: NduProfile, results: Results, pier: PierInput,
+                    reverse: bool = False) -> PileNduModel:
+    """The NDU model of the piles of the 0710 or 0720 result, from the seismic tables of SOIL-JR's .sdc (decision 93): the
+    one of the combinations that push forward, or of the reversed (逆向) ones, whose columns of the .sdc go the other way."""
+    return build_pile_ndu(profile, pier, column_layout(pier), results[stage_id], parse_seismic(results["0500"].sdc),
+                          reverse=reverse)
+
+
+def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any], profile: NduProfile,
+                        file_name: str, reverse_file_name: str | None = None) -> StageSpec:
+    """*stage* (0710 or 0720) with its stage for a 場所打ち杭: the frame on the piles, the NDU of the piles (decision 93) and the
+    figures JRSNAP draws of it. A stage with reversed combinations (0720) has a second NDU for them, *reverse_file_name*, and
+    the cases of the reversed push only are drawn from that one."""
+    split = reverse_file_name is not None
+
+    def ndu(reverse: bool) -> Callable[[Results, PierInput], bytes]:
+        return lambda results, pier: write_pile_ndu(_pile_ndu_model(stage.id, profile, results, pier, reverse))
+
+    def figures(reverse: bool) -> Callable[[Results, PierInput], tuple[tuple[int, int], ...]]:
+        return lambda results, pier: diagram_combinations(_pile_ndu_model(stage.id, profile, results, pier, reverse),
+                                                         used_only=split)
+
+    exports = (Export("jrsnap", file_name, ndu(False), metadata=_NDU),)
+    also: tuple[AlsoFigures, ...] = ()
+    if reverse_file_name is not None:
+        exports += (Export("jrsnapreverse", reverse_file_name, ndu(True), metadata=_NDU),)
+        also = (AlsoFigures("jrsnapreverse", figures(True)),)
+    piles = replace(_on_piles(stage, calculate), exports=exports,
+                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also))
+    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piles})
+
+
 def _on_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any]) -> StageSpec:
     """*stage* of the direct foundation as it is for a pile foundation: the frame stands on the piles and the springs of
     SOIL-JR, so it is calculated and its files are built once 0500 is complete (decision 88)."""
@@ -811,27 +855,28 @@ STAGES = Registry((
         _foundation_check("0622", "0622_直角方向基礎", "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
         "0620", "線路直角方向", FOUNDATION_TRANSVERSE, FOUNDATION_CHAPTER_9),
     # 0710 / 0720 calculate D1, D2, the buoyancy and the snow themselves and read no 0610 / 0620 (decision 78).
-    StageSpec("0710", "0710_線路方向荷重", ("0500", "0600"),
-              lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"]),
-              lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], results["0600"], pier,
-                                                                             path, pages),
-              (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
-              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
-              grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
-                  results["0710"], results["0600"], pier)),
+    _with_seismic_piles(StageSpec(
+        "0710", "0710_線路方向荷重", ("0500", "0600"),
+        lambda pier, results: calculate_seismic_longitudinal(pier, results["0500"], results["0600"]),
+        lambda results, pier, path, pages: render_seismic_longitudinal(results["0710"], results["0600"], pier, path, pages),
+        (Export("jrsnap", "線路方向.ndu", _jrsnap("0710", NDU_LONGITUDINAL), metadata=_NDU),),
+        jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
+        grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
+            results["0710"], results["0600"], pier)), calculate_seismic_longitudinal, NDU_LONGITUDINAL, "線路方向.ndu"),
     StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(
                   "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
                   Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
               seismic_check=_aggrese_files("線路方向")),
-    StageSpec("0720", "0720_線路直角方向荷重", ("0500", "0600"),
-              lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"]),
-              lambda results, pier, path, pages: render_seismic_transverse(results["0720"], results["0600"], pier,
-                                                                           path, pages),
-              (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
-              jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE)),
-              grid_documents=lambda results, pier, pages: seismic_transverse_report.grid_documents(
-                  results["0720"], results["0600"], pier)),
+    _with_seismic_piles(StageSpec(
+        "0720", "0720_線路直角方向荷重", ("0500", "0600"),
+        lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"]),
+        lambda results, pier, path, pages: render_seismic_transverse(results["0720"], results["0600"], pier, path, pages),
+        (Export("jrsnap", "線路直角方向.ndu", _jrsnap("0720", NDU_TRANSVERSE), metadata=_NDU),),
+        jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0720", NDU_TRANSVERSE)),
+        grid_documents=lambda results, pier, pages: seismic_transverse_report.grid_documents(
+            results["0720"], results["0600"], pier)),
+        calculate_seismic_transverse, NDU_TRANSVERSE, "線路直角方向.ndu", "線路直角方向_逆向.ndu"),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
     StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check,
               nonlinear_analysis=NonlinearAnalysis(

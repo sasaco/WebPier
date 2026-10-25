@@ -21,7 +21,7 @@ from decimal import Decimal
 from ..core.errors import InputError
 from ..core.printed import LENGTH, UNIT_WEIGHT, Printed
 from ..inputs import PierInput
-from ..inputs.choices import LAYER_SUPPORT
+from ..inputs.choices import LAYER_SUPPORT, PILE_FOUNDATIONS
 from ._exact import d, put, total
 from .foundation import FoundationResult, surface_thickness
 
@@ -188,8 +188,29 @@ class Displaced:
     unit_weight: Printed
 
 
+def pile_cover_layers(pier: PierInput, depth: Printed) -> tuple[CoverLayer, ...]:
+    """The layers within Df from the ground down on a pile foundation: the layers go on below the footing along the piles,
+    so the cover is what the layers fill of Df, the last one cut at it (a blank 層厚 takes what is left)."""
+    result, left = [], d(depth)
+    for index, layer in enumerate(pier.soil.layers):
+        if left <= 0:
+            break
+        thickness = left if layer.thickness is None else min(d(layer.thickness), left)
+        wet, submerged = layer.unit_weight_wet, layer.unit_weight_submerged
+        if wet is None or submerged is None:
+            key = "湿潤" if wet is None else "水中"
+            raise InputError(f"{_LAYERS}[{index}].単位体積重量.{key}: 値が必要です（Df の範囲の層）")
+        left -= thickness
+        result.append(CoverLayer(index=index, name=layer.name, bottom=put(LENGTH, left), thickness=put(LENGTH, thickness),
+                                 unit_weight_wet=wet, unit_weight_submerged=submerged))
+    if left > 0:
+        raise InputError(f"{_LAYERS}: 層厚の合計が Df（{depth.value:.3f} m）に足りません")
+    return tuple(result)
+
+
 def displaced_soil(pier: PierInput, height: Printed) -> Displaced:
-    layers = cover_layers(pier, surface_thickness(pier))
+    depth = surface_thickness(pier)
+    layers = pile_cover_layers(pier, depth) if pier.substructure.foundation in PILE_FOUNDATIONS else cover_layers(pier, depth)
     parts = []
     for layer in layers:
         low, high = d(layer.bottom), d(layer.bottom) + d(layer.thickness)
