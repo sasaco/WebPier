@@ -80,3 +80,65 @@ class GroundSprings:
             if item.name == name:
                 return item
         raise InputError(f".sdc に {name} がありません")
+
+
+@dataclass(frozen=True)
+class SurfaceSide:
+    """The vertical shear spring and the bearing capacity of the pile surface of a layer, on the push or the pull side
+    (the L2 / 地震時 tables d) and e) of the .sdc; decision 93)."""
+
+    length: float  # ⊿l (m): the part of the layer that has the spring
+    first: tuple[float, ...]  # kN/m2 per column: the first slope
+    second: tuple[float, ...]  # the second slope
+    yield_load: tuple[float, ...]  # kN/m per column: 降伏点 of the surface bearing capacity
+    ultimate: tuple[float, ...]  # 終局点
+
+
+@dataclass(frozen=True)
+class SeismicLayer:
+    number: int
+    thickness: float  # m
+    horizontal: tuple[float, ...]  # kN/m2 per column: the 短期(非線形) horizontal spring
+    pressure_upper: tuple[float, ...]  # kN/m per column: the effective resistance earth pressure at the top of the layer
+    pressure_lower: tuple[float, ...]  # … at the bottom
+    push: SurfaceSide
+    pull: SurfaceSide
+
+
+@dataclass(frozen=True)
+class SeismicTip:
+    """f) and g): the springs and the bearing capacity at the pile tip, per column."""
+
+    first: tuple[float, ...]  # kN/m: vertical, 短期 first slope
+    second: tuple[float, ...]  # vertical, 短期 second slope
+    yield_load: tuple[float, ...]  # kN: the vertical bearing capacity, push side, 降伏点
+    ultimate: tuple[float, ...]  # 終局点
+    horizontal: tuple[float, ...]  # kN/m: the horizontal spring, 短期
+    rotation: tuple[float, ...]  # the rotational spring, 短期
+
+
+@dataclass(frozen=True)
+class SeismicDirection:
+    """What the JRSNAP model of a pile foundation takes of one direction of the .sdc (decision 93)."""
+
+    name: str
+    rows: int
+    columns: tuple[str, ...]
+    depth_piles: tuple[int, ...]
+    inverse_beta: float
+    layers: tuple[SeismicLayer, ...]
+    tip: SeismicTip
+
+
+@dataclass(frozen=True)
+class SeismicSprings:
+    version: str  # "Ver.5.2.3" or "Ver.5.3.1"
+    title: str
+    pile: dict[str, float | str]
+    directions: tuple[SeismicDirection, ...]
+
+    def direction(self, name: str) -> SeismicDirection:
+        for item in self.directions:
+            if item.name == name:
+                return item
+        raise InputError(f".sdc に {name} がありません")

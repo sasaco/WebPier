@@ -10,6 +10,7 @@ from .build import build_ndu
 from .diagrams import diagram_combinations
 from .profile import LONGITUDINAL, TRANSVERSE, Profile
 from .validate import validate_ndu
-from .writer import write_ndu
+from .writer import write_ndu, write_pile_ndu
 
-__all__ = ["LONGITUDINAL", "TRANSVERSE", "Profile", "build_ndu", "diagram_combinations", "validate_ndu", "write_ndu"]
+__all__ = ["LONGITUDINAL", "TRANSVERSE", "Profile", "build_ndu", "diagram_combinations", "validate_ndu", "write_ndu",
+           "write_pile_ndu"]

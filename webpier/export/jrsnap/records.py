@@ -12,10 +12,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from decimal import Decimal
-from typing import Union
+from typing import Any, Union
 
 from ...core.printed import Printed
-from .model import NduModel
+from .model import NduModel, SectionData
 from .profile import (
     CONVERGENCE, LOAD_DIVISIONS, NATIVE_VERSION, NONLINEAR_TITLE, RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS,
     ROTATION_KR2, ROTATION_KR3, SECTION_TITLE, SOIL_TYPE, STEEL_MODULUS, TRIALS,
@@ -54,7 +54,7 @@ CONSTANT_RECORDS = {
 }
 
 
-def _data_info(model: NduModel) -> tuple[Field, ...]:
+def _data_info(model: Any) -> tuple[Field, ...]:
     analysis, first = model.analysis, model.combinations[0]
     return (1, 1, analysis.steps, model.control, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, BLANK, BLANK,
             TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, analysis.target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
@@ -98,20 +98,24 @@ def _frame(model: NduModel) -> Iterator[Record]:
     yield "NonLinInfo1", (1, 1, 1, 2 if model.section.shear_failure else 1, 1, 1, 1, 1, 0, NONLINEAR_TITLE)
 
 
-def _section(model: NduModel) -> Iterator[Record]:
-    s = model.section
-    yield "SectNum", (1,)
-    yield "SectTitle1", (SECTION_TITLE,)
-    yield "SectInfo1", (1, 1, 0, 1, s.width, s.height, 0, 0, 0, s.shear_span, UNSET, 0, 0, 0)
-    yield "TanbuShiji1", CONSTANT_RECORDS["TanbuShiji1"]
-    yield "SectConc1", (s.fck, 0, s.ec, 0, s.aggregate_max)
-    yield "SectJikuNum1", (len(s.rows), *(s.main_layers,) * 4, 0)
-    yield "SectJiku1", (s.yield_strength, STEEL_MODULUS, 0, 0, s.main_pitch, s.main_pitch, 0, 0, 0)
+def column_section_records(number: int, s: SectionData) -> Iterator[Record]:
+    """SectTitle … SectSafe of section *number*, the rectangular section of the column."""
+    yield f"SectTitle{number}", (SECTION_TITLE,)
+    yield f"SectInfo{number}", (1, 1, 0, 1, s.width, s.height, 0, 0, 0, s.shear_span, UNSET, 0, 0, 0)
+    yield f"TanbuShiji{number}", CONSTANT_RECORDS["TanbuShiji1"]
+    yield f"SectConc{number}", (s.fck, 0, s.ec, 0, s.aggregate_max)
+    yield f"SectJikuNum{number}", (len(s.rows), *(s.main_layers,) * 4, 0)
+    yield f"SectJiku{number}", (s.yield_strength, STEEL_MODULUS, 0, 0, s.main_pitch, s.main_pitch, 0, 0, 0)
     for index, row in enumerate(s.rows, 1):
-        yield f"SectRein1-{index}", (row.center, row.diameter, row.count)
+        yield f"SectRein{number}-{index}", (row.center, row.diameter, row.count)
     hoop = (s.shear.yield_strength, s.shear.diameter, s.shear.legs, s.shear.pitch)
-    yield "SectSher1", (*hoop, 0, 0, *hoop)
-    yield "SectSafe1", s.safety
+    yield f"SectSher{number}", (*hoop, 0, 0, *hoop)
+    yield f"SectSafe{number}", s.safety
+
+
+def _section(model: NduModel) -> Iterator[Record]:
+    yield "SectNum", (1,)
+    yield from column_section_records(1, model.section)
 
 
 def _supports(model: NduModel) -> Iterator[Record]:
@@ -140,7 +144,7 @@ def _blank_zero(value: Printed) -> Field:
     return value if value.value else BLANK
 
 
-def _loads(model: NduModel) -> Iterator[Record]:
+def loads_records(model: Any) -> Iterator[Record]:
     yield "LoadNum", (len(model.cases),)
     yield "MLoadNum", (sum(len(case.member_loads) for case in model.cases),)
     yield "JLoadNum", (sum(len(case.joint_loads) for case in model.cases),)
@@ -173,7 +177,7 @@ def _loads(model: NduModel) -> Iterator[Record]:
         yield f"ConbAlpf{index}", c.coefficients
 
 
-def _tail(model: NduModel) -> Iterator[Record]:
+def tail_records(model: Any) -> Iterator[Record]:
     for key in ("PickNum", "Conb2Num", "Pick2Num", "TishouNum"):
         yield key, (0,)
     yield "Tisou", (EMPTY,)
@@ -188,9 +192,14 @@ def _tail(model: NduModel) -> Iterator[Record]:
         yield key, CONSTANT_RECORDS[key]
 
 
-def records(model: NduModel) -> list[Record]:
+def head_records(model: Any) -> list[Record]:
+    """Virsion … ExOptDisp: the header, the titles (empty) and the analysis settings of any NDU model of WebPier."""
     head: list[Record] = [("Virsion", (Token(NATIVE_VERSION),)), ("DataName", (model.profile.data_name,))]
     head += [(f"DataTitle{index}", (EMPTY,)) for index in range(1, TITLES + 1)]
     head += [("DataInfo", _data_info(model)), ("ExOptLoad", CONSTANT_RECORDS["ExOptLoad"]),
              ("ExOptDisp", CONSTANT_RECORDS["ExOptDisp"])]
-    return [*head, *_frame(model), *_section(model), *_supports(model), *_loads(model), *_tail(model)]
+    return head
+
+
+def records(model: NduModel) -> list[Record]:
+    return [*head_records(model), *_frame(model), *_section(model), *_supports(model), *loads_records(model), *tail_records(model)]

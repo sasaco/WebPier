@@ -10,7 +10,10 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ...core.printed import Printed
+from . import pile_records
 from .model import NduModel
+from .pile_model import PileNduModel
+from .pile_validate import validate_pile_ndu
 from .records import Field, Record, Token, records
 from .validate import TEXT_BYTES, check_text, validate_ndu
 
@@ -45,4 +48,11 @@ def write_ndu(model: NduModel) -> bytes:
     # check_text has rejected unencodable text; the tokens and numbers are ASCII.
     data = "".join(line(record) + NEWLINE for record in records(model)).encode(ENCODING, errors="strict")
     validate_ndu(data, model.profile)
+    return data
+
+
+def write_pile_ndu(model: PileNduModel) -> bytes:
+    """The NDU of a pile foundation (decision 93), checked as ``validate_pile_ndu`` does before it is returned."""
+    data = "".join(line(record) + NEWLINE for record in pile_records.records(model)).encode(ENCODING, errors="strict")
+    validate_pile_ndu(data, model)
     return data

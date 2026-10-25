@@ -1,0 +1,120 @@
+{
+  "kind": "pile_ndu_acceptance",
+  "schema_version": 1,
+  "model": "tests/pile_ndu_support.py: sample_model()",
+  "written": {
+    "ndu_sha256": "9976715e4ba82516a813261f27fec658f20197e58cda5d604d4cd59fb18e4708",
+    "ndt_sha256": "38421959224c3f7f427162cc0ab674ef51e5436db3f497935fa6f0b381961495"
+  },
+  "sample": {
+    "ndu_sha256": "7d4b5769cf38ac4a5a2fed3292a0277734009a28b6903d2d737e79533b682fcf",
+    "ndt_sha256": "81a6314b6e978a6e1cbebee5ab8c707f8405760dbb3f88549c2081417bce92a5"
+  },
+  "runner": {
+    "summary": {
+      "jrsnap": {
+        "product": "5.2-L03",
+        "assemblyVersion": "5.2.3.1",
+        "installDir": "C:\\RTRI_Program\\JRSNAP(Ver5.2-L03)"
+      },
+      "input": "ndu",
+      "viewFlags": [
+        1,
+        0,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        0,
+        1,
+        2,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        0
+      ],
+      "cases": [
+        {
+          "case": 1,
+          "name": "model(Case1_ρm10_αf1_正向).ndt"
+        }
+      ],
+      "analyzed": false
+    }
+  },
+  "differences": [
+    {
+      "region": "header",
+      "sample_lines": [
+        2,
+        6
+      ],
+      "count": 5
+    },
+    {
+      "region": "header",
+      "sample_lines": [
+        9,
+        9
+      ],
+      "count": 1
+    },
+    {
+      "region": "header",
+      "sample_lines": [
+        12,
+        12
+      ],
+      "count": 1
+    },
+    {
+      "region": "tie",
+      "sample_lines": [
+        173,
+        173
+      ],
+      "count": 1
+    },
+    {
+      "region": "tie",
+      "sample_lines": [
+        207,
+        207
+      ],
+      "count": 1
+    },
+    {
+      "region": "loads",
+      "sample_lines": [
+        304,
+        307
+      ],
+      "count": 4
+    },
+    {
+      "region": "loads",
+      "sample_lines": [
+        309,
+        333
+      ],
+      "count": 25
+    }
+  ],
+  "analyzed": false,
+  "accepted": true,
+  "failures": []
+}
