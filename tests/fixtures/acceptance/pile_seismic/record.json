@@ -1,0 +1,88 @@
+{
+  "kind": "pile_seismic_acceptance",
+  "schema_version": 1,
+  "input": {
+    "path": "tests/fixtures/inputs/pile_seismic.json",
+    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715"
+  },
+  "ndus": {
+    "線路方向.ndu": {
+      "sha256": "3f69b98b5c069fef5f9bd4418d6258d68298e349597ba3167c1edf05cb7f7587",
+      "cases": [
+        "線路方向(Case1_ρm10_αf1_正向).ndt",
+        "線路方向(Case2_ρm12_αf1_正向).ndt",
+        "線路方向(Case3_ρm10_αf2_正向).ndt",
+        "線路方向(Case4_ρm12_αf2_正向).ndt"
+      ],
+      "db1_sha256": {
+        "線路方向(Case1_ρm10_αf1_正向).ndt": "5c0c8e61aa8a84dbfc408399bc70ead5040ba97389b90e704352c19d0a473952",
+        "線路方向(Case2_ρm12_αf1_正向).ndt": "f8bd430dc306d5f1e93e1bac1f4349ed9605d4f8b1762f4c1a0cd3b96e8c4907",
+        "線路方向(Case3_ρm10_αf2_正向).ndt": "16b40d2f0ca82b8b8445c74be124dd5c3513d5ec1e636bc05ea39edf3d54b14b",
+        "線路方向(Case4_ρm12_αf2_正向).ndt": "77fb7f60be93c2971f7dd2a1778ba6e66513d9fa4a7e5fffdbf790a533c96741"
+      },
+      "analysis_ok_messages": 4,
+      "warnings": {
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値が入力されています。確認して下さい": 12
+      },
+      "engine_messages": {
+        "■■■解析途中で高軸方向圧縮力を受ける要素が発生しました．非": 44,
+        "■■■解析途中で高軸方向引張力を受ける要素が発生しました．非": 48,
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値": 12
+      }
+    },
+    "線路直角方向.ndu": {
+      "sha256": "900e500c7dc0bbe98c391af05a8972998fa78902e80d3ffa1f0f682113d8db1a",
+      "cases": [
+        "線路直角方向(Case1_ρm10_αf1_正向).ndt",
+        "線路直角方向(Case2_ρm12_αf1_正向).ndt",
+        "線路直角方向(Case3_ρm10_αf2_正向).ndt",
+        "線路直角方向(Case4_ρm12_αf2_正向).ndt"
+      ],
+      "db1_sha256": {
+        "線路直角方向(Case1_ρm10_αf1_正向).ndt": "6266d7357b3a168c50bce34acbfa236387c50a7d9f036013783433aa7251e917",
+        "線路直角方向(Case2_ρm12_αf1_正向).ndt": "13cfc4ada20bb677e448447a5d209c650d8c7c50f981804e50696b11e3e424e9",
+        "線路直角方向(Case3_ρm10_αf2_正向).ndt": "29e7b1d1af2617128f0a000d28b79c7aa9cc8310e94057fb362f8de19685c283",
+        "線路直角方向(Case4_ρm12_αf2_正向).ndt": "ebab7fe9d4136b8fe1e095398b408bcd87f3859a5626c8926f9f48a5b6037421"
+      },
+      "analysis_ok_messages": 4,
+      "warnings": {
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値が入力されています。確認して下さい": 12
+      },
+      "engine_messages": {
+        "■■■解析途中で高軸方向圧縮力を受ける要素が発生しました．非": 64,
+        "■■■解析途中で高軸方向引張力を受ける要素が発生しました．非": 74,
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値": 12
+      }
+    },
+    "線路直角方向_逆向.ndu": {
+      "sha256": "9223f3c1e9786e245170a2d06c46c536681fa5538cd50543e72a65d790e8d23d",
+      "cases": [
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向).ndt",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向).ndt",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向).ndt",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向).ndt"
+      ],
+      "db1_sha256": {
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向).ndt": "bb81eb2280b4650b264234f1023b8aed0ae1df56aaff85f89d192701d77a32ec",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向).ndt": "30f3c0ef218452933ba6ff27db88f0f8d1266870851cd18700c90299bfeb4f54",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向).ndt": "a6c694749b244f7c1b9c60a9f7231ecfd8c4965f42103511880a03dcd650723f",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向).ndt": "5110ef25d04428f367c1beedcbf6a509704df2e75031c3aa2dea1ceb5bcdedd8"
+      },
+      "analysis_ok_messages": 4,
+      "warnings": {
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値が入力されています。確認して下さい": 12
+      },
+      "engine_messages": {
+        "■■■解析途中で高軸方向圧縮力を受ける要素が発生しました．非": 64,
+        "■■■解析途中で高軸方向引張力を受ける要素が発生しました．非": 74,
+        "警告:部材係数(γb_vwd:せん断補強筋)に#.#以外の値": 12
+      }
+    }
+  },
+  "report_pages": {
+    "0710": 20,
+    "0720": 22
+  },
+  "accepted": true,
+  "failures": []
+}

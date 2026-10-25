@@ -107,7 +107,8 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 4. SOIL-JR の連携の項目（`SRenkei`）は書きません（絶対パスが入ると成果物が出力先で変わるため）。ばねの値は NDU に書き込み済みです。
 5. 計算書（0710・0720）は直接基礎と同じ内容で、杭のための記述は足しません（杭の要素分割・断面の鉄筋・ばねは JRSNAP のデータ確認図に出るものだけ。地盤変位は含めず慣性力だけです。地盤変位は P6d）。組合せ Case の表の「地盤抵抗TYPE」の列は直接基礎のものなので、杭基礎では出しません（決定93）。
 6. フーチングが排除する土（フーチングの慣性力の γ'）は、杭基礎では表層から Df までの層で求めます（`calc/embedment.py: pile_cover_layers`）。
-7. 実アプリでの受入：`scripts/accept_pile_ndu.py`。JRSNAP の見本 01_サンプル(V53)：RC橋脚L（壁式橋脚、杭 8 本）を表すモデル（`tests/pile_ndu_support.py`。杭は SOIL-JR 5.3 の .sdc から）の NDU を、JRSNAP の runner に NDT へ書き出させ、見本の NDT と、名前・荷重・DA カードの旗・Kv2 の 2 行の最後の 1 桁を除いて同じことを確かめて `tests/fixtures/acceptance/pile_ndu/record.json` に記録します（`tests/acceptance/test_pile_ndu_acceptance.py`）。0711・0721（静的非線形解析と Aggre-SE）と液状化は未実装です。
+7. 実アプリでの解析の受入：`scripts/accept_pile_seismic.py`（入力 `tests/fixtures/inputs/pile_seismic.json`）。0710・0720（逆向を含む）で書いた3つの NDU を本物の JRSNAP が全組合せ最後まで解析する（記録 `tests/fixtures/acceptance/pile_seismic/record.json`。NDU の SHA256、組合せごとの DB1 の SHA256、警告）。`tests/acceptance/test_pile_seismic_acceptance.py` が、生成器がその NDU をバイト単位で書くことを確かめる
+8. 実アプリでの受入：`scripts/accept_pile_ndu.py`。JRSNAP の見本 01_サンプル(V53)：RC橋脚L（壁式橋脚、杭 8 本）を表すモデル（`tests/pile_ndu_support.py`。杭は SOIL-JR 5.3 の .sdc から）の NDU を、JRSNAP の runner に NDT へ書き出させ、見本の NDT と、名前・荷重・DA カードの旗・Kv2 の 2 行の最後の 1 桁を除いて同じことを確かめて `tests/fixtures/acceptance/pile_ndu/record.json` に記録します（`tests/acceptance/test_pile_ndu_acceptance.py`）。0711・0721（静的非線形解析と Aggre-SE）と液状化は未実装です。
 
 本物の SOIL-JR での受入：`scripts/accept_pile_ground.py`。見本 RC橋脚（杭基礎）サンプルデータE.sdt（場所打ち杭 3×3 中抜き）を表す `tests/fixtures/inputs/pile.json` から書いた .sdt を計算させ、.sdr・.sdc が見本の .sdt の結果と表題を除いてバイトまで同じであることを確かめて `tests/fixtures/acceptance/pile_ground/record.json` に記録します（`tests/acceptance/test_pile_ground_acceptance.py`）。
 
