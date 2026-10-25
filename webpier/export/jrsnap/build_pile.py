@@ -179,4 +179,4 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
         profile=profile, analysis=build._analysis(pier, profile), control=control, origin=of_frame[top.number],
         joints=tuple(placed[number] for number in sorted(placed)), members=tuple(members), elements=tuple(frame_elements),
         nonlinear=tuple(nonlinear), sections=sections, piles=tuple(piles), supports=tuple(supports), cases=tuple(cases),
-        combinations=combinations)
+        combinations=combinations, shear_span=column.shear_span)

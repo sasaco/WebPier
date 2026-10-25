@@ -9,11 +9,17 @@ P1_直角.xml), and the values that follow from the NDU are taken from its model
 - the shear span La of the one nonlinear (M-θ) member, in mm, as the NDU's section has it;
 - the focus joint 0: Aggre-SE then uses the control joint stored in each DB1;
 - the check items of each Case, by the 照査パターン (ρm, αf) of its combination (decision 76).
+
+The project of a pile foundation (decision 94) differs in what it checks: the members are the column and the sections of the
+piles (部材照査タイプ 杭), the reactions are taken at the head of each pile row and the displacement at the footing top, and
+the limit values of the foundation's stability are SOIL-JR's, which the runner reads from the .sdr it is given (``--sdr``). The
+check ⑧ 杭の段落し is not made (a 段落し is not supported yet). The Cases are those of the combinations of every NDU of the
+stage in turn: the NDU of the forward push, then the one of the reversed push (decision 93).
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 import re
@@ -23,6 +29,7 @@ from ...core.printed import Printed
 from ...inputs import PierInput
 from ...inputs.choices import GROUND_CLASSES, REGIONS
 from ..jrsnap.model import NduModel
+from ..jrsnap.pile_model import COLUMN, PileNduModel
 
 SECTION = "耐震設計条件"
 _CASE = re.compile(r".*\(Case(\d+)_[^()]*\)\.db1", re.IGNORECASE)  # JRSNAP's <data>(Case<n>_ρm…_αf…_…).DB1
@@ -50,8 +57,22 @@ class Project:
     region: int  # index of REGIONS (A, B, C)
     ground_class: int  # index of GROUND_CLASSES (G0 .. G5)
     shear_span: Printed  # La of the nonlinear member, mm
-    footing_joint: int  # FootInfo joint: the direct foundation that is checked
+    footing_joint: int  # FootInfo joint: the direct foundation that is checked; of piles, the footing top joint
     cases: tuple[Checks, ...]  # the check items ①..⑨ of each combination of the NDU, one DB1 each
+    pile_rows: tuple["PileRow", ...] = ()  # a pile foundation: where the reaction of each pile row is taken
+    pile_sections: int = 0  # a pile foundation: the sections of the piles, each a member of the 杭 type
+
+    @property
+    def piled(self) -> bool:
+        return bool(self.pile_rows)
+
+
+@dataclass(frozen=True)
+class PileRow:
+    """The reaction Aggre-SE takes at the head of a pile row: its joint and the piles of the row in the depth."""
+
+    head: int
+    piles: int
 
 
 def _choice(value: str | None, options: tuple[str, ...], key: str) -> int:
@@ -60,13 +81,17 @@ def _choice(value: str | None, options: tuple[str, ...], key: str) -> int:
     return options.index(value)
 
 
-def _checks(model: NduModel) -> tuple[Checks, ...]:
+PILE_ANCHOR_BAR = 7  # the index of ⑧ 杭の段落し in the check items
+
+
+def _checks(model: NduModel | PileNduModel, *, piled: bool = False) -> tuple[Checks, ...]:
     found = []
     for number, combination in enumerate(model.combinations, 1):
         pattern = (Decimal(repr(combination.rho_m.value)), Decimal(repr(combination.alpha_f.value)))
         if pattern not in CHECKS:
             raise ValueError(f"組合せ {number} の照査パターン ρm={pattern[0]}・αf={pattern[1]} の照査項目がありません")
-        found.append(CHECKS[pattern])
+        checks = CHECKS[pattern]
+        found.append(tuple(item and not (piled and index == PILE_ANCHOR_BAR) for index, item in enumerate(checks)))
     return tuple(found)
 
 
@@ -79,6 +104,51 @@ def build_project(model: NduModel, pier: PierInput) -> Project:
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"),
                    shear_span=model.section.shear_span, footing_joint=model.footing.node, cases=_checks(model))
+
+
+def _rows(model: PileNduModel) -> tuple[PileRow, ...]:
+    elements = {element.number: element for element in model.elements}
+    members = {member.number: member for member in model.members}
+    return tuple(PileRow(elements[pile.first].i, members[pile.member].depth_piles) for pile in model.piles)
+
+
+def build_pile_project(models: Sequence[PileNduModel], pier: PierInput) -> Project:
+    """The project of the piles of the NDU *models* of a stage (the forward NDU, then the reversed one); a blank 耐震設計条件
+    is an input error. Every NDU has the frame, the piles and the sections of the first, and the Cases follow its combinations."""
+    design = pier.seismic_design
+    first = models[0]
+    columns = [element for element in first.elements if element.kind == COLUMN]
+    if len(columns) != 1:  # the one M-θ member is the column base; Aggre-SE's member type 2 is it
+        raise InputError(f"JRSNAP の非線形部材（柱）が{len(columns)}個です（耐震照査の入力は1個だけに対応します）")
+    rows = _rows(first)
+    for other in models[1:]:
+        if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
+            raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
+    return Project(region=_choice(design.region, REGIONS, "地域別"),
+                   ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"), shear_span=first.shear_span,
+                   footing_joint=columns[0].j, cases=tuple(case for model in models for case in _checks(model, piled=True)),
+                   pile_rows=rows, pile_sections=len(first.sections) - 1)
+
+
+def ndu_databases(folder: str, names: Iterable[str], groups: Sequence[tuple[str, int]]) -> tuple[str, ...]:
+    """The DB1 of the Cases of each NDU in *groups* (its name without the extension, its Cases), among the result files *names*,
+    in order, as a path from the XML (``folder/name``): JRSNAP names a file ``<NDU>(Case<n>_…).DB1`` and numbers the Cases of
+    each NDU from 1."""
+    names = list(names)
+    found: list[str] = []
+    for stem, cases in groups:
+        own = re.compile(rf"{re.escape(stem)}\(Case(\d+)_[^()]*\)\.db1", re.IGNORECASE)
+        by_case: dict[int, str] = {}
+        for name in names:
+            if match := own.fullmatch(name):
+                case = int(match[1])
+                if case in by_case:
+                    raise ProjectError(f"{stem} の Case{case} の DB1 が2つあります: {by_case[case]}, {name}")
+                by_case[case] = name
+        if sorted(by_case) != list(range(1, cases + 1)):
+            raise ProjectError(f"JRSNAP の結果に {stem} の Case1〜{cases} の DB1 がそろっていません（{sorted(by_case.values())!r}）")
+        found += [f"{folder}/{by_case[case]}" for case in range(1, cases + 1)]
+    return tuple(found)
 
 
 def databases(folder: str, names: Iterable[str], cases: int) -> tuple[str, ...]:

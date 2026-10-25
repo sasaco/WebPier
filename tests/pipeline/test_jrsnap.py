@@ -300,3 +300,38 @@ def test_the_load_diagrams_of_a_second_ndu_fill_the_cases_the_first_has_none_of(
     again = jrsnap.add_load_diagrams(merged, "other", second)  # a merged one can take more: the first NDU of a case stays
     assert again.load_cases == merged.load_cases and again.drawn_from == merged.drawn_from
     assert [export for export, _ in again.also] == ["jrsnapreverse", "other"]
+
+
+def test_the_analyses_of_two_ndus_of_a_stage_are_one_set_of_files(fake_jrsnap_runner: Path):
+    """Decisions 93 and 94: JRSNAP names a file after its NDU, so the NDU of the forward push and the one of the reversed
+    push (`_逆向`) make one folder; the second run's summary is kept under ``also``."""
+    forward = analyze_nonlinear("線路直角方向.ndu", b"Virsion=5.2.3.S.4\r\nSNAPConbNum=1\r\n", fake_jrsnap_runner)
+    reverse = analyze_nonlinear("線路直角方向_逆向.ndu", b"Virsion=5.2.3.S.4\r\nSNAPConbNum=1\r\nSNAPConb1=1,1,1,0\r\n",
+                                fake_jrsnap_runner)
+    merged = jrsnap.merge_nonlinear(forward, reverse)
+    assert list(merged.files) == [*forward.files, *reverse.files] and len(merged.files) == 8
+    assert merged.engine_version == "fake-1" and merged.messages == (*forward.messages, *reverse.messages)
+    assert merged.summary["also"] == [dict(reverse.summary)] and "also" not in forward.summary
+
+
+def test_two_analyses_with_the_same_file_names_or_runner_versions_do_not_make_one_set(fake_jrsnap_runner: Path):
+    one = analyze_nonlinear("線路方向.ndu", b"Virsion=5.2.3.S.4\r\n", fake_jrsnap_runner)
+    changed = jrsnap.NonlinearFiles({name: content + b"x" for name, content in one.files.items()}, "fake-1", one.summary, ())
+    with pytest.raises(RunnerError, match="ファイル名が重なり、内容が違います"):
+        jrsnap.merge_nonlinear(one, changed)
+    other = jrsnap.NonlinearFiles({"x": b""}, "fake-2", one.summary, ())
+    with pytest.raises(RunnerError, match="runner の版が違います: fake-1, fake-2"):
+        jrsnap.merge_nonlinear(one, other)
+
+
+def test_the_file_both_analyses_write_under_the_same_name_is_kept_once(fake_jrsnap_runner: Path):
+    """S_ANALYSIS.exe writes an empty 解析実行Err.log beside every analysis, whatever the NDU is called."""
+    one = analyze_nonlinear("線路直角方向.ndu", b"Virsion=5.2.3.S.4\r\n", fake_jrsnap_runner)
+    other = analyze_nonlinear("線路直角方向_逆向.ndu", b"Virsion=5.2.3.S.4\r\n", fake_jrsnap_runner)
+    both = [jrsnap.NonlinearFiles({**analysis.files, "解析実行Err.log": b""}, analysis.engine_version, analysis.summary,
+                                  analysis.messages) for analysis in (one, other)]
+    merged = jrsnap.merge_nonlinear(*both)
+    assert list(merged.files).count("解析実行Err.log") == 1 and len(merged.files) == 9
+    full = jrsnap.NonlinearFiles({**other.files, "解析実行Err.log": b"error"}, other.engine_version, other.summary, ())
+    with pytest.raises(RunnerError, match="内容が違います: 解析実行Err.log"):
+        jrsnap.merge_nonlinear(both[0], full)

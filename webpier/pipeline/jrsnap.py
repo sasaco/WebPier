@@ -182,6 +182,20 @@ def analyze_nonlinear(name: str, document: bytes, runner: Path, *, timeout: floa
     return NonlinearFiles(files, envelope["engineVersion"], envelope["summary"], tuple(envelope["messages"]))
 
 
+def merge_nonlinear(first: NonlinearFiles, other: NonlinearFiles) -> NonlinearFiles:
+    """The files of the analysis of one NDU and of another of the same stage, as one set (decisions 93 and 94): their names
+    are JRSNAP's, which carry each NDU's name; the one file that has none (S_ANALYSIS's 解析実行Err.log, empty when all is well)
+    is the same in both, and a name that meets with other bytes is an error. The runner's summary of the other is kept under
+    ``also``."""
+    if clash := sorted(name for name in set(first.files) & set(other.files) if first.files[name] != other.files[name]):
+        raise RunnerError(f"2つの NDU の解析結果のファイル名が重なり、内容が違います: {'・'.join(clash)}")
+    if first.engine_version != other.engine_version:
+        raise RunnerError(f"2つの NDU の解析の runner の版が違います: {first.engine_version}, {other.engine_version}")
+    summary = {**first.summary, "also": [*first.summary.get("also", ()), dict(other.summary)]}
+    return NonlinearFiles({**first.files, **other.files}, first.engine_version, summary,
+                          (*first.messages, *other.messages))
+
+
 def _pages(name: str, file: str, content: bytes, action: str = _FIGURES) -> list[Any]:
     """The pages of the returned PDF *file*, which must have some."""
     try:

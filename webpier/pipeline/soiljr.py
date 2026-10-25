@@ -46,6 +46,8 @@ class PileGroundModel:
     # the .sdc as SOIL-JR returned it: the model of 0710 and 0720 reads its seismic tables (decision 93), the layouts it does
     # not support only when it is built
     sdc: bytes = field(default=b"", repr=False, metadata={"json": False})
+    # the .sdr as SOIL-JR returned it: Aggre-SE takes the limit values of a pile foundation's stability from it (decision 94)
+    sdr_source: bytes = field(default=b"", repr=False, metadata={"json": False})
 
 
 def sdt(results: Mapping[str, Any], pier: PierInput) -> bytes:
@@ -81,7 +83,8 @@ def complete(result: PileGroundResult, files: Mapping[str, bytes], pier: PierInp
         springs = parse_sdc(files["sdc"])
     except SdcError as exc:
         raise SdrError(f"{FILES[1][1]} を読めません: {exc}") from exc
-    return PileGroundModel(result, sha256(files["sdt"]), found, springs, other, sha256(files["sdc"]), files["sdc"])
+    return PileGroundModel(result, sha256(files["sdt"]), found, springs, other, sha256(files["sdc"]), files["sdc"],
+                           files["sdr"])
 
 
 def render(results: Mapping[str, Any], pier: PierInput, path: Path, pages: Mapping[str, bytes]) -> None:

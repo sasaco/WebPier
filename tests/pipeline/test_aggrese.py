@@ -226,3 +226,53 @@ def test_a_bom_and_lf_endings_are_tolerated():
 def test_an_unreadable_step_table_is_an_error(content, message):
     with pytest.raises(StepsError, match=message):
         foundation_steps(content)
+
+
+# --- a pile foundation (decision 94): the limit values of the stability are the .sdr's, and there is no step table ----------
+
+
+def pile_project(directory: Path, foundation: int = 0) -> Path:
+    """The project of *project* with a ``FoundationType`` (0 piles, 1 direct), as Aggre-SE writes it."""
+    path = project(directory)
+    text = path.read_bytes().decode("cp932").replace(
+        "</Datas>", f"  <Foundation>\r\n    <基礎照査>\r\n      <clsFoundation>\r\n        <FoundationType>{foundation}"
+                    "</FoundationType>\r\n      </clsFoundation>\r\n    </基礎照査>\r\n  </Foundation>\r\n</Datas>")
+    path.write_bytes(text.encode("cp932"))
+    return path
+
+
+SDR = b"Ver.5.2.3\r\nWebPier\r\n"
+
+
+def test_a_pile_foundation_is_checked_with_the_sdr_and_returns_no_step_table(tmp_path: Path, fake_aggrese_runner: Path):
+    path = pile_project(tmp_path)
+    checked = check_seismic(path, fake_aggrese_runner, limits=aggrese.Limits(SDR, aggrese.AXIAL))
+    assert sorted(checked.files) == ["pik", "xlsx"]
+    assert texts(checked.pdf)[-1] == f"FAKE AGGRESE LIMITS axial {hashlib.sha256(SDR).hexdigest()[:16]}"
+    assert checked.pages == {SEISMIC_CHECK: checked.pdf}
+    assert aggrese.PILE_PUBLISHED == {kind: item for kind, item in aggrese.PUBLISHED.items() if kind != "steps"}
+    other = check_seismic(path, fake_aggrese_runner, limits=aggrese.Limits(SDR, aggrese.TRANSVERSE))
+    assert texts(other.pdf)[-1].startswith("FAKE AGGRESE LIMITS transverse ")
+
+
+def test_the_direct_foundation_has_no_limits_and_a_step_table(tmp_path: Path, fake_aggrese_runner: Path):
+    checked = check_seismic(pile_project(tmp_path, foundation=1), fake_aggrese_runner)
+    assert sorted(checked.files) == ["pik", "steps", "xlsx"]
+    assert not any("LIMITS" in text for text in texts(checked.pdf))
+
+
+def test_a_pile_foundation_without_the_sdr_and_a_direct_one_with_it_are_refused(tmp_path: Path, fake_aggrese_runner: Path):
+    with pytest.raises(RunnerError, match="SDR_REQUIRED"):
+        check_seismic(pile_project(tmp_path / "a"), fake_aggrese_runner)
+    with pytest.raises(RunnerError, match="INVALID_ARGUMENT"):
+        check_seismic(pile_project(tmp_path / "b", foundation=1), fake_aggrese_runner,
+                      limits=aggrese.Limits(SDR, aggrese.AXIAL))
+
+
+@pytest.mark.parametrize("mode,message", [("nopik", "結果・計算書・ピックアップ・総括表の4つ"), ("noxlsx", "4つ"),
+                                          ("missing", "report.pdf がありません"), ("sha", "SHA256")])
+def test_a_pile_foundation_runner_that_misbehaves_is_an_error(tmp_path: Path, fake_aggrese_runner: Path,
+                                                              monkeypatch: pytest.MonkeyPatch, mode, message):
+    monkeypatch.setenv("FAKE_AGGRESE", mode)
+    with pytest.raises(RunnerError, match=message):
+        check_seismic(pile_project(tmp_path), fake_aggrese_runner, limits=aggrese.Limits(SDR, aggrese.AXIAL))

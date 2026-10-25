@@ -24,6 +24,19 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - 直角方向の制御節点は `NodeRole.CONTROL`（決定81、決定65 を改めた）：両側の桁の節点（それぞれの支承の座から h1＋h2）のうち、桁の水平力（列車荷重の経路は 0600 の桁の慣性力、荷重モデルは増分の直角方向の支承作用の側ごとの和）の大きい側の節点に `calc/frame._girder_levels` が付ける。同じなら高い方。La はそこからフーチング天端。
 - La/d＜2 は `NonLinInfo1` の第4欄（破壊形態）を 2（せん断、NDT の AP カードの `S`）にする（決定66、`section.py`・`records.py`、検証器も La/d との組を確かめる）。1.25 未満は入力エラー。見本は Batch の `JRSNAP_Ver5.2-L03/05_参考(V52)：T形両端固定` の地中梁（`NonLinInfo7=1,3,1,2,…`、La/d≈1.4）。P7（La/d 1.73）で実アプリが解析し、Aggre-SE の損傷レベルの制限値が降伏にそろった（θ1＝0.001143）ことを確かめた（2026-10-20）。受入の記録（scripts/accept_*）はまだない。
 
+## 杭基礎の 0711・0721（決定94、P6b。2026-10-25）
+
+- JRSNAP の runner は NDU ごとに `run`（`pipeline/generate.py: _analyze_stage`、`jrsnap.merge_nonlinear`）。0721 は順向と逆向の 2 回で、結果を 1 つのフォルダーにまとめる（ファイル名は NDU の名前から始まるが、S_ANALYSIS の `解析実行Err.log`〔正常なら空〕は名前がなく両方が書くので、同じバイトなら 1 つにし、違えばエラー）。`NonlinearAnalysis.also` が 2 つ目以降の NDU の出力の種類（`jrsnapreverse`）。付帯 JSON の `nonlinear_analysis.also_ndus`、`runner_summary.also`。
+- 液状化する地層のある入力は、0710・0720・0711・0721 とも生成の前に入力エラー（`StageSpec.precheck`、`stages._no_liquefaction`）。
+
+## 杭基礎の 0710・0720（決定93、P6a。2026-10-25）
+
+- NDU は `webpier/export/jrsnap/build_pile.py` の `build_pile_ndu(profile, pier, layout, seismic, springs, *, reverse=False)`（部品は `pile_model.py`・`pile_build.py`・`pile_records.py`・`pile_validate.py`、書出しは `writer.write_pile_ndu`）。要素分割とばねは `calc/pile_seismic.py`（厳密な Decimal）、.sdc の読取りは `export/soiljr/sdc_seismic.py`。規則・見本との対応・欄の意味は `.claude/docs/plans/pile-ndu-fields.md`、決定93。
+- 段階の配線：`pipeline/stages.py` の `_with_seismic_piles`。0710 は NDU 1つ、0720 は `jrsnapreverse` で逆向の NDU も書き、荷重図は両方の NDU から描いて基本ケース順に合わせる（`FigurePages.also`・`drawn_from`、`jrsnap.add_load_diagrams`）。
+- 計算書：杭基礎のとき組合せ Case の表（10.4・11.4）の「地盤抵抗TYPE」の列を省く（`frame.piles is not None`）。杭のための記述は足さない。
+- 受入：`scripts/accept_pile_ndu.py`（見本 RC橋脚L の NDT と照合。差は名前・荷重・DataInfo の旗・Kv2 の同値の丸め〔2086.25：JRSNAP は .2、Decimal は .3〕だけ。見本は 5.3 の .sdc に連携しているので、照合だけ固定の 5.3 の .sdc を使い、本番は 5.2 のまま）と `scripts/accept_pile_seismic.py`（`pile_seismic.json`、f'ck 30 の3つの NDU を本物の JRSNAP が全 4 組合せずつ最後まで解析する。記録 `tests/fixtures/acceptance/pile_seismic/`、テスト `tests/acceptance/test_pile_seismic_acceptance.py`）。
+- 見本の NDU の `SRenkei`（SOIL の連携）は書かない：絶対パスが決定性を壊し、NDT は連携なしでも同じ。f'ck が範囲外だと解析が `LOGFILE END` なしに止まる（エラー 808）ので、runner は `ANALYSIS_FAILED` を返す。
+
 ## 0711・0721 の静的非線形解析（決定47）
 
 - 生成が JRSNAPHeadless の `run` を呼び、JRSNAP の `.NDT` と解析結果をフォルダー `post/線路方向_JRSNAP/`・`post/線路直角方向_JRSNAP/` に丸ごと置き換えて出力する。1方向数分かかり、JRSNAP の画面が出る。

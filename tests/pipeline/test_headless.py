@@ -339,11 +339,20 @@ def test_the_contract_is_the_registry(capsys):
              "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}]}
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
-        "transverse_frame_analysis", "longitudinal_seismic", "transverse_seismic"]
+        "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
+        "transverse_nonlinear_analysis"]
     # decision 93: 0710 and 0720 of piles are made for the 場所打ち杭 only so far
     assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic")] == [
         ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭"]]
     assert "post/線路直角方向_逆向.ndu" in [item["path"] for item in outputs["transverse_seismic"]["pileFoundation"]["files"]]
+    # decision 94: their analyses and Aggre-SE's checks, without the step table of the direct foundation
+    for key, stem in (("longitudinal_nonlinear_analysis", "線路方向"), ("transverse_nonlinear_analysis", "線路直角方向")):
+        piles = outputs[key]["pileFoundation"]
+        paths = [item["path"] for item in piles["files"]]
+        assert piles["foundations"] == ["場所打ち杭"] and set(piles["runners"]) == {"jrsnap", "aggrese"}
+        assert {f"post/{stem}_JRSNAP", f"post/{stem}.xml", f"post/{stem}_Aggre-SE.pik", f"post/{stem}_Aggre-SE.xlsx"} <= set(paths)
+        assert f"post/{stem}_Aggre-SE_直接基礎.csv" not in paths
+        assert f"post/{stem}_Aggre-SE_直接基礎.csv" in [item["path"] for item in outputs[key]["files"]]
     assert outputs["reactions"]["pileFoundation"]["conditionalFiles"] == []
     assert outputs["longitudinal"]["pileFoundation"]["runners"] == ["fempython", "jrsnap"]  # 0500 of piles needs it too
     assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (

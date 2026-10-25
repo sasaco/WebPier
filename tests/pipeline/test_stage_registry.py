@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 
 from webpier.core.errors import InputError
+from webpier.inputs import choices
 from webpier.inputs.outputs import OUTPUT_KEYS, uses
+from webpier.pipeline.aggrese import AXIAL, TRANSVERSE
 from webpier.pipeline.stages import (OUTPUT_STAGES, STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project,
                                      Registry, SeismicCheck, SoilJrCalculation, StageSpec)
 
@@ -275,6 +277,17 @@ def test_get_returns_the_spec():
      "Bの耐震性能照査の出力は pik・xlsx・steps です"),
     ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path)),
      "Bの計算書には計算が必要です"),  # only Aggre-SE's report needs no calculation (decision 56)
+    ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
+                                      seismic_check=SeismicCheck((("pik", "y.pik"), ("xlsx", "y.xlsx"),
+                                                                  ("steps", "y.csv")), AXIAL))),
+     "Bの耐震性能照査の出力は pik・xlsx です"),  # the step table is of the direct foundation (decision 94)
+    ((spec("A", exports=NDU), solving("B", "A", project=project(), render=lambda r, p, path, pages: path,
+                                      seismic_check=SeismicCheck((("pik", "y.pik"), ("xlsx", "y.xlsx")), "diagonal"))),
+     "Bの耐震性能照査の方向が不正です: diagonal"),
+    ((spec("A", exports=NDU),
+      StageSpec("B", "B_解析", ("A",), nonlinear_analysis=NonlinearAnalysis("A", "jrsnap", "jrsnap", "x_JRSNAP",
+                                                                           also=("jrsnapreverse",)))),
+     "Bが静的非線形解析するAの出力jrsnapreverse がありません"),
     ((StageSpec("A", "A_名前", (), lambda p, r: 0, None, FRAMEWEB, load_diagram="frameweb"),),
      "Aの荷重図を差し込む計算書がありません"),
     ((spec("A", exports=FRAMEWEB), StageSpec("B", "B_名前", ("A",), lambda p, r: 0, lambda r, p, path, pages: path,
@@ -455,3 +468,22 @@ def test_the_frame_analyses_of_a_pile_foundation_wait_and_have_their_own_stage()
         assert piles.get("0612").stem == "0612_線路方向基礎" and piles.get("0622").stem == "0622_直角方向基礎"
     assert not any(STAGES.waits(stage_id) for stage_id in STAGES.ids)
     assert set(STAGES.get("0612").foundations) == set(STAGES.get("0622").foundations) == {"場所打ち杭", "鋼管ソイルセメント杭"}
+
+
+def test_the_nonlinear_stages_of_the_piles_analyze_both_ndus_and_check_with_the_sdr():
+    """Decision 94: 0711 and 0721 of a 場所打ち杭 have Aggre-SE check the piles with the limits of the .sdr of 0500 in their
+    direction, without the step table of the direct foundation; 0721 analyzes the NDU of the reversed push too; a layer that
+    liquefies is refused before any runner. The direct foundation's stages are as they were."""
+    piles = STAGES.for_foundation(choices.CAST_IN_PLACE_PILE)
+    for stage_id, source, direction, also in (("0711", "0710", AXIAL, ()), ("0721", "0720", TRANSVERSE, ("jrsnapreverse",))):
+        stem = {"0711": "線路方向", "0721": "線路直角方向"}[stage_id]
+        direct, piled = STAGES.get(stage_id), piles.get(stage_id)
+        assert (direct.nonlinear_analysis.also, direct.seismic_check.direction, direct.precheck) == ((), None, None)
+        assert piled.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")),
+                                                   direction)
+        assert piled.nonlinear_analysis.also == also and piled.nonlinear_analysis.stage == source
+        assert piled.precheck is not None and piles.get(source).precheck is not None
+        assert piled.depends_on == direct.depends_on and piled.render is direct.render
+    assert piles.waits("0711") and piles.waits("0721")  # they read 0710 / 0720, which wait for SOIL-JR's springs
+    assert piles.get("0720").nonlinear_analysis is None
+    assert {kind for kind in (item.kind for item in piles.get("0720").exports)} >= {"jrsnap", "jrsnapreverse"}

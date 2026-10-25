@@ -101,6 +101,7 @@ class PileNduModel:
     supports: tuple[Support, ...]
     cases: tuple[LoadCase, ...]
     combinations: tuple[Combination, ...]
+    shear_span: Printed  # La of the column's M-θ member, mm (the project of Aggre-SE takes it, not the NDU)
 
 
 @dataclass(frozen=True)

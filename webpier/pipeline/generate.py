@@ -254,6 +254,13 @@ def _source(registry: Registry, analysis: FrameAnalysis | NonlinearAnalysis) -> 
     return next(item for item in registry.get(analysis.stage).exports if item.kind == analysis.export)
 
 
+def _sources(registry: Registry, analysis: FrameAnalysis | NonlinearAnalysis) -> list[Export]:
+    """The exports an analysis reads: the first, then the other NDUs of the stage a static nonlinear analysis analyzes too."""
+    also = analysis.also if isinstance(analysis, NonlinearAnalysis) else ()
+    return [_source(registry, analysis),
+            *(next(item for item in registry.get(analysis.stage).exports if item.kind == kind) for kind in also)]
+
+
 def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registry = STAGES) -> bytes:
     """The bytes of one export of *stage_id*, as a generation writes them; no report is rendered.
 
@@ -452,6 +459,11 @@ def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStagi
                                    "ndu": {"stage": analysis.stage, "export": analysis.export,
                                            "file": _source(registry, analysis).file_name,
                                            "sha256": sha256(built[(analysis.stage, analysis.export)])},
+                                   **({"also_ndus": [{"stage": analysis.stage, "export": source.kind,
+                                                      "file": source.file_name,
+                                                      "sha256": sha256(built[(analysis.stage, source.kind)])}
+                                                     for source in _sources(registry, analysis)[1:]]}
+                                      if analysis.also else {}),
                                    "runner_summary": dict(result.summary),
                                    "messages": [dict(message) for message in result.messages]},
             "files": [{"file": name, "bytes": (folder / name).stat().st_size, "sha256": file_sha256(folder / name)}
@@ -493,8 +505,20 @@ def _project_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
     return facts
 
 
+def _limits(registry: Registry, stage_id: str, results: Mapping[str, Any]) -> aggrese.Limits | None:
+    """The limit values of a pile foundation's stability the stage's Aggre-SE check takes from the .sdr of 0500 (decision 94),
+    or none for the direct foundation."""
+    direction = registry.get(stage_id).seismic_check.direction
+    return None if direction is None else aggrese.Limits(results["0500"].sdr_source, direction)
+
+
+def _limits_facts(limits: aggrese.Limits | None) -> dict[str, Any]:
+    return {} if limits is None else {"limits": {"stage": "0500", "kind": "sdr", "sha256": sha256(limits.sdr),
+                                                 "direction": limits.direction}}
+
+
 def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
-                   checked: Mapping[str, aggrese.SeismicCheckPages]) -> dict[str, Any]:
+                   checked: Mapping[str, aggrese.SeismicCheckPages], results: Mapping[str, Any]) -> dict[str, Any]:
     # The file is Aggre-SE's (decisions 57, 58, 60): which runner returned it with which report, for which project
     # and folder, for the pickup what each of its pickups is, and for the step table what its columns are.
     analysis = registry.get(post.stage).nonlinear_analysis
@@ -503,7 +527,8 @@ def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
     facts = {"report": f"{post.stage}.pdf", "engine": aggrese.ENGINE,
              "engine_version": checked[post.stage].engine_version, "engineering_status": "not_evaluated",
              "project": {"file": project.name, "sha256": file_sha256(staging.path_for(project))},
-             "jrsnap": {"file": analysis.folder, "sha256": content_sha256(folder)}}
+             "jrsnap": {"file": analysis.folder, "sha256": content_sha256(folder)},
+             **_limits_facts(_limits(registry, post.stage, results))}
     if post.kind == "pik":
         facts["pickups"] = {str(number): name for number, name in aggrese.PICKUPS.items()}
     if post.kind == "steps":
@@ -554,12 +579,13 @@ def _runner_paths(registry: Registry, selected: tuple[str, ...]) -> dict[ModuleT
     return paths
 
 
-def _check_seismic(project: Path, folder: Path, runner: Path) -> aggrese.SeismicCheckPages:
+def _check_seismic(project: Path, folder: Path, runner: Path, limits: aggrese.Limits | None = None
+                   ) -> aggrese.SeismicCheckPages:
     """Aggre-SE's report for the staged *project* and the JRSNAP *folder* it names, which it must leave as they are:
     they are published as staged (decision 56)."""
     before = (content_sha256(project), content_sha256(folder))
     try:
-        checked = aggrese.check_seismic(project, runner)
+        checked = aggrese.check_seismic(project, runner, limits=limits)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
     if (content_sha256(project), content_sha256(folder)) != before:
@@ -675,11 +701,26 @@ def _analyze_nonlinear(name: str, document: bytes, runner: Path) -> jrsnap.Nonli
         raise GenerationError(str(exc)) from exc
 
 
+def _analyze_stage(registry: Registry, analysis: NonlinearAnalysis, built: Mapping[tuple[str, str], bytes],
+                   runner: Path) -> jrsnap.NonlinearFiles:
+    """The analysis of the NDU of a stage's nonlinear analysis, and of each of its other NDUs (decisions 93 and 94), as one
+    set of files."""
+    files = [_analyze_nonlinear(source.file_name, built[(analysis.stage, source.kind)], runner)
+             for source in _sources(registry, analysis)]
+    merged = files[0]
+    for other in files[1:]:
+        try:
+            merged = jrsnap.merge_nonlinear(merged, other)
+        except RunnerError as exc:
+            raise GenerationError(str(exc)) from exc
+    return merged
+
+
 def _build(registry: Registry, pier: PierInput, results: Mapping[str, Any], posts: list[_PostFile],
            analyses: Mapping[str, FrameAnalysis | NonlinearAnalysis]) -> dict[tuple[str, str], bytes]:
     """Each export to stage or to analyze, built once: the file a runner analyzes is the file staged."""
     wanted = [*((post.stage, post.export) for post in posts if post.export is not None),
-              *((analysis.stage, _source(registry, analysis)) for analysis in analyses.values())]
+              *((analysis.stage, source) for analysis in analyses.values() for source in _sources(registry, analysis))]
     built: dict[tuple[str, str], bytes] = {}
     for stage_id, item in wanted:
         if (stage_id, item.kind) not in built:
@@ -711,6 +752,9 @@ def with_addin(options: GenerationOptions, registry: Registry = STAGES) -> Regis
 
 def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[str, ...],
             posts: list[_PostFile]) -> _Inputs:
+    for stage_id in selected:
+        if (check := registry.get(stage_id).precheck) is not None:
+            check(pier)
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
@@ -720,8 +764,10 @@ def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[st
                    {key: analysis for key, analysis in {**analyses, **nonlinear}.items()
                     if not registry.waits(analysis.stage)})
     # The projects' input is checked now, before any analysis or report; each is written from the analysis' files.
+    # (those of a stage that reads a result waiting for SOIL-JR are written once it has returned, decision 94)
     writers = {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
-               for stage_id, analysis in nonlinear.items() if analysis.project is not None}
+               for stage_id, analysis in nonlinear.items()
+               if analysis.project is not None and not registry.waits(analysis.stage)}
     return _Inputs(data, pier, results, analyses, nonlinear, built, writers)
 
 
@@ -776,10 +822,13 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             files = {**grounded[stage_id].files, "sdt": built[(stage_id, registry.get(stage_id).soil_jr.export)]}
             results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
         late = [post for post in posts if registry.waits(post.stage)]
-        waiting = {key: analysis for key, analysis in analyses.items() if registry.waits(analysis.stage)}
+        waiting = {key: analysis for key, analysis in {**analyses, **nonlinear}.items() if registry.waits(analysis.stage)}
         if late or waiting:
             _calculate(registry, pier, selected, results, late=True)
             built |= _build(registry, pier, results, late, waiting)
+            writers |= {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
+                        for stage_id, analysis in nonlinear.items()
+                        if analysis.project is not None and stage_id not in writers}
         for post in posts:
             if post.export is not None:
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
@@ -796,8 +845,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                 runs[_analysis_key(analysis)] = _analyze(_source(registry, analysis).file_name,
                                                          built[(analysis.stage, analysis.export)], runner)
         analyzed = {stage_id: runs[_analysis_key(analysis)] for stage_id, analysis in analyses.items()}
-        solved = {stage_id: _analyze_nonlinear(_source(registry, analysis).file_name,
-                                               built[(analysis.stage, analysis.export)], jrsnap_runner)
+        solved = {stage_id: _analyze_stage(registry, analysis, built, jrsnap_runner)
                   for stage_id, analysis in nonlinear.items()}
         for post in posts:
             if post.native.folder:
@@ -813,7 +861,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         checked = {post.stage: _check_seismic(
                        staging.path_for(post.native.path),
                        staging.path_for(post.native.path.with_name(registry.get(post.stage).nonlinear_analysis.folder)),
-                       aggrese_runner)
+                       aggrese_runner, _limits(registry, post.stage, results))
                    for post in posts
                    if post.project is not None and registry.get(post.stage).seismic_check is not None}
         # A stage finishes its result with the files of its frame analysis, or of the seismic checks of its
@@ -884,6 +932,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     "project": {"file": project.name, "sha256": file_sha256(staging.path_for(project))},
                     "jrsnap": {"file": analysis.folder,
                                "sha256": content_sha256(staging.path_for(project.with_name(analysis.folder)))},
+                    **_limits_facts(_limits(registry, stage_id, results)),
                     "files": {kind: {"file": file_name, "sha256": sha256(checked[stage_id].files[kind])}
                               for kind, file_name in registry.get(stage_id).seismic_check.files}}
             if stage_id in grounded:  # that SOIL-JR calculated, with which files, not a judgement (ADR-0013)
@@ -906,7 +955,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                      else _nonlinear_facts(registry, post, staging, solved, built) if post.native.folder
                      else _project_facts(registry, post, staging, checked) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
-                     else _seismic_facts(registry, post, staging, checked) if post.seismic is not None
+                     else _seismic_facts(registry, post, staging, checked, results) if post.seismic is not None
                      else _ground_facts(post, grounded, built[(post.stage, post.soil.export)])
                      if post.soil is not None
                      else _analysis_facts(registry, post, analyzed, built, selected))

@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "kind": "pile_nonlinear_acceptance",
+  "date": "2026-10-25T16:29:33+09:00",
+  "method": "本物の JRSNAP と Aggre-SE の runner で杭基礎の 0711・0721 を生成し、杭基礎の照査の制限値が .sdr の値（SOIL-JR の表から独立に読んだ）と同じであることを計算書で確かめ、見本 RC橋脚L の結果に見本のプロジェクトとWebPier のプロジェクトを当てて、安定レベル1の杭基礎の照査が同じになることを確かめた。判定は扱わない。",
+  "seismic_check_judged": false,
+  "input": {
+    "path": "tests/fixtures/inputs/pile_seismic.json",
+    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715"
+  },
+  "runner": {
+    "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+    "sha256": "414ca35da270d5dc6923a72aab36b8d190b49c53de66f1b5a81b7e0ca9d32608"
+  },
+  "helpers": {
+    "scripts/accept_pile_nonlinear.py": "bfcd87fcff495b7049c430e893e1fd3881eb848e2bc87a1c821ccc62c6043fe4"
+  },
+  "stages": {
+    "0711": {
+      "project": {
+        "file": "線路方向.xml",
+        "sha256": "92477f24314c3f1610e18acd0fa166d554288109d444252dbf119f8df8b90ad3",
+        "databases": [
+          "線路方向(Case1_ρm10_αf1_正向).DB1",
+          "線路方向(Case2_ρm12_αf1_正向).DB1",
+          "線路方向(Case3_ρm10_αf2_正向).DB1",
+          "線路方向(Case4_ρm12_αf2_正向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路方向_JRSNAP",
+        "sha256": "77e0943f4152ba759add5148862c138a30d06380c4723769bf6d83c9754cc984"
+      },
+      "report": {
+        "file": "0711_線路方向非線形解析.pdf",
+        "pages": 36,
+        "levels": [
+          "1",
+          "3"
+        ]
+      },
+      "cases": [
+        "線路方向(Case1_ρm10_αf1_正向)",
+        "線路方向(Case2_ρm12_αf1_正向)",
+        "線路方向(Case3_ρm10_αf2_正向)",
+        "線路方向(Case4_ρm12_αf2_正向)"
+      ],
+      "limits": {
+        "direction": "axial",
+        "sdr_sha256": "37794a6ab7f76be40f05b780a78a2c744a389a23937a6e05430aa8f6244cd513",
+        "found": {
+          "L1 Rvd": {
+            "level": "1",
+            "sdr": 2975.4,
+            "in_report": true
+          },
+          "L1 Rud": {
+            "level": "1",
+            "sdr": 1930.4,
+            "in_report": true
+          },
+          "L1 δL": {
+            "level": "1",
+            "sdr": 56.569,
+            "in_report": true
+          },
+          "L1 θL": {
+            "level": "1",
+            "sdr": 10.0,
+            "in_report": true
+          },
+          "L2 Rvd": {
+            "level": "2",
+            "sdr": 4473.3,
+            "in_report": false
+          },
+          "L2 δL": {
+            "level": "2",
+            "sdr": 226.274,
+            "in_report": false
+          },
+          "L2 θL": {
+            "level": "2",
+            "sdr": 20.0,
+            "in_report": false
+          },
+          "Azen Rvd": {
+            "level": "3",
+            "sdr": 5414.3,
+            "in_report": true
+          },
+          "Azen δL": {
+            "level": "3",
+            "sdr": 282.843,
+            "in_report": true
+          },
+          "Azen θL": {
+            "level": "3",
+            "sdr": 30.0,
+            "in_report": true
+          }
+        }
+      },
+      "files": [
+        "pik",
+        "xlsx"
+      ]
+    },
+    "0721": {
+      "project": {
+        "file": "線路直角方向.xml",
+        "sha256": "963a83a0ed356ca8f6cb24e795ced8b6be928492204e65f75a3a74c679790bb4",
+        "databases": [
+          "線路直角方向(Case1_ρm10_αf1_正向).DB1",
+          "線路直角方向(Case2_ρm12_αf1_正向).DB1",
+          "線路直角方向(Case3_ρm10_αf2_正向).DB1",
+          "線路直角方向(Case4_ρm12_αf2_正向).DB1",
+          "線路直角方向_逆向(Case1_ρm10_αf1_逆向).DB1",
+          "線路直角方向_逆向(Case2_ρm12_αf1_逆向).DB1",
+          "線路直角方向_逆向(Case3_ρm10_αf2_逆向).DB1",
+          "線路直角方向_逆向(Case4_ρm12_αf2_逆向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路直角方向_JRSNAP",
+        "sha256": "9fdde554456c9fcfbd1cff1e919ece96bfc395de90cafa3e62d58749e608c87c"
+      },
+      "report": {
+        "file": "0721_線路直角方向非線形解析.pdf",
+        "pages": 69,
+        "levels": [
+          "1",
+          "3"
+        ]
+      },
+      "cases": [
+        "線路直角方向(Case1_ρm10_αf1_正向)",
+        "線路直角方向(Case2_ρm12_αf1_正向)",
+        "線路直角方向(Case3_ρm10_αf2_正向)",
+        "線路直角方向(Case4_ρm12_αf2_正向)",
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向)",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向)",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向)",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向)"
+      ],
+      "limits": {
+        "direction": "transverse",
+        "sdr_sha256": "37794a6ab7f76be40f05b780a78a2c744a389a23937a6e05430aa8f6244cd513",
+        "found": {
+          "L1 Rvd": {
+            "level": "1",
+            "sdr": 2975.4,
+            "in_report": true
+          },
+          "L1 Rud": {
+            "level": "1",
+            "sdr": 1930.4,
+            "in_report": true
+          },
+          "L1 δL": {
+            "level": "1",
+            "sdr": 56.569,
+            "in_report": true
+          },
+          "L1 θL": {
+            "level": "1",
+            "sdr": 10.0,
+            "in_report": true
+          },
+          "L2 Rvd": {
+            "level": "2",
+            "sdr": 4473.3,
+            "in_report": false
+          },
+          "L2 δL": {
+            "level": "2",
+            "sdr": 226.274,
+            "in_report": false
+          },
+          "L2 θL": {
+            "level": "2",
+            "sdr": 20.0,
+            "in_report": false
+          },
+          "Azen Rvd": {
+            "level": "3",
+            "sdr": 5414.3,
+            "in_report": true
+          },
+          "Azen δL": {
+            "level": "3",
+            "sdr": 282.843,
+            "in_report": true
+          },
+          "Azen θL": {
+            "level": "3",
+            "sdr": 30.0,
+            "in_report": true
+          }
+        }
+      },
+      "files": [
+        "pik",
+        "xlsx"
+      ]
+    }
+  },
+  "sample": {
+    "sample": {
+      "project": "01_サンプル(V53)：RC橋脚L.xml",
+      "sdr_sha256": "1adfce9bc7929e164e938540f47dc5d3d4689d57a77ed3f692367eac5182526c",
+      "db1": [
+        "01_サンプル(V53)：RC橋脚L(Case1_ρm10_αf1_正向).DB1",
+        "01_サンプル(V53)：RC橋脚L(Case2_ρm12_αf1_正向).DB1"
+      ]
+    },
+    "level1_text_equal": true,
+    "level1_sample_chars": 1118,
+    "level1_webpier_chars": 1118
+  },
+  "accepted": true,
+  "failures": []
+}

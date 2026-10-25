@@ -34,6 +34,8 @@ SHA256), liquefaction (the opposite flag), slow.
 ``FAKE_JRSNAP`` makes ``run`` misbehave, for the error tests: fail, text, list, protocol, version, summary (no summary),
 artifacts (one artifact listed twice), kind (an unknown kind), nested (a path in a folder), nondt (no .ndt), missing
 (the last file not written), extra (a file not listed), sha (the last file's SHA256 wrong), exit, slow (sleeps).
+``FAKE_JRSNAP_ERRLOG`` adds the file the real S_ANALYSIS.exe writes beside every analysis and that carries no NDU's name,
+``解析実行Err.log``: ``same`` (empty, as it is when all is well) or ``differ`` (it names the input).
 ``FAKE_JRSNAP_FIGURES`` makes ``figures`` misbehave the same way, so a test of the analysis is not disturbed by the
 figures of the same generation: fail, exit, text, protocol, summary, slow; order (the figures of the データ確認図 in
 another order), empty (the last figure a PDF without pages), broken (the last figure not a PDF); kind, missing and sha
@@ -272,6 +274,8 @@ def main(argv):
                for case in range(1, (int(count[1]) if count else 1) + 1)
                for suffix, kind, word in (("ndt", "ndt", "NDT"), ("DB1", "analysis-result", "DB1"),
                                           ("LOG", "analysis-result", "LOG"), ("OUT", "analysis-result", "OUT"))]
+    if errlog := os.environ.get("FAKE_JRSNAP_ERRLOG", ""):  # the real S_ANALYSIS.exe's file that carries no NDU's name
+        outputs.append(("解析実行Err.log", "analysis-result", b"" if errlog == "same" else f"ERR {source.name}".encode()))
     output.mkdir(parents=True, exist_ok=True)
     artifacts = []
     for number, (name, kind, content) in enumerate(outputs, 1):

@@ -98,4 +98,4 @@ def sample_model(axial: Decimal | None = Decimal(210)) -> PileNduModel:
         profile=LONGITUDINAL, analysis=Analysis(steps=200, limited_final_step=200, target=LENGTH(0.6)), control=1, origin=5,
         joints=tuple(joints), members=tuple(members), elements=tuple(elements), nonlinear=tuple(nonlinear),
         sections=(column_section(), *sections), piles=tuple(piles), supports=tuple(supports), cases=(case,),
-        combinations=(combination,))
+        combinations=(combination,), shear_span=printed(8000, 0, "mm"))

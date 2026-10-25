@@ -23,6 +23,12 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
 - ``result.json``: ``{"command": "run", "cases": [...]}``;
 and ``summary.cases`` lists each Case (caseNumber from 1, the DB1 name without its suffix, selected and aggregated).
 
+A pile foundation (the XML's ``FoundationType`` 0, decision 94) is given ``--sdr <.sdr> --sdr-direction axial|transverse``
+after the switches, without ``--foundation-steps``: the .sdr must exist (it is the limit values of the stability, which a
+pile foundation with none is refused: SDR_REQUIRED), the direction is checked, no ``foundation-steps.csv`` is returned, and the
+report has one more page ``FAKE AGGRESE LIMITS <direction> <the first 16 digits of the SHA256 of the .sdr>``. ``--sdr`` for a
+direct foundation is INVALID_ARGUMENT.
+
 When the real runner's protocol changes, change this too. ``FAKE_AGGRESE`` makes it misbehave, for the error tests:
 fail, exit, text, list, protocol, engine, version, artifacts (one artifact listed twice), missing (report.pdf not
 written), nopik (no pickup.pik returned), noxlsx (no summary.xlsx returned), notzip (summary.xlsx is not a zip), nocsv (no
@@ -48,6 +54,7 @@ from reportlab.pdfgen import canvas
 
 SWITCHES = ["--summary-xlsx", "true", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
             "--pile-anchor-bar-pdf", "false", "--foundation-steps", "true"]
+PILE_SWITCHES = SWITCHES[:-2]
 HEADER = "case_index,case_name,node,step,V,H,M,qvd,qd,Rvd,Mmd,plasticity"
 # (step, H, M, qvd, qd, Rvd, Mmd, plasticity) of node 7; V is 16825.97 throughout.
 STEPS = [(1, "0", "580.25", "8650.41", "8710.57", "543358.71", "57085.22", "0"),
@@ -135,14 +142,27 @@ def main(argv):
     if mode == "list":
         sys.stdout.write("[]")
         return 0
-    if (len(argv) != 7 + len(SWITCHES) or argv[0] != "run" or argv[1] != "--input" or argv[3] != "--output-dir"
-            or argv[5] != "--snap-map" or argv[7:] != SWITCHES):
+    piled = "--sdr" in argv
+    switches = PILE_SWITCHES if piled else SWITCHES
+    if (len(argv) != 7 + len(switches) + (4 if piled else 0) or argv[0] != "run" or argv[1] != "--input"
+            or argv[3] != "--output-dir" or argv[5] != "--snap-map" or argv[7:7 + len(switches)] != switches
+            or (piled and (argv[7 + len(switches)] != "--sdr" or argv[9 + len(switches)] != "--sdr-direction"
+                           or argv[10 + len(switches)] not in ("axial", "transverse")))):
         return failure("INVALID_ARGUMENTS", " ".join(argv), 2)
     project, output, snaps = Path(argv[2]), Path(argv[4]), Path(argv[6])
     if output.exists() and any(output.iterdir()):
         return failure("OUTPUT_NOT_EMPTY", str(output), 2)
     data = project.read_bytes()
     root = ET.fromstring(data.decode("cp932").replace('encoding="utf-16"', "", 1))
+    kind = root.find("Foundation/基礎照査/clsFoundation/FoundationType")  # (a minimal project of a test has none: direct)
+    foundation = 1 if kind is None else int(kind.text)
+    if piled and foundation != 0:
+        return failure("INVALID_ARGUMENT", "--sdr requires a project with a pile foundation.", 2)
+    if foundation == 0 and not piled:
+        return failure("SDR_REQUIRED", "A pile foundation project with blank limit values requires --sdr.", 2)
+    sdr = Path(argv[8 + len(switches)]) if piled else None
+    if sdr is not None and not sdr.is_file():
+        return failure("INVALID_SDR", f"Could not read --sdr: {sdr}", 2)
     named = {str(index): str((project.parent / item.text).resolve())
              for index, item in enumerate(root.find("SNAP/SnapDBPath")) if item.text}
     mapped = json.loads(snaps.read_text(encoding="utf-8"))
@@ -157,7 +177,9 @@ def main(argv):
         (databases[0].parent / "written.xlsx").write_bytes(b"x")
     pages = [f"FAKE AGGRESE Case{number} {hashlib.sha256(path.read_bytes()).hexdigest()[:16]}"
              for number, path in enumerate(databases, 1)]
-    pdf = report([*pages, f"FAKE AGGRESE SUMMARY {hashlib.sha256(data).hexdigest()[:16]}"])
+    limits = [] if sdr is None else [f"FAKE AGGRESE LIMITS {argv[10 + len(switches)]} "
+                                     f"{hashlib.sha256(sdr.read_bytes()).hexdigest()[:16]}"]
+    pdf = report([*pages, f"FAKE AGGRESE SUMMARY {hashlib.sha256(data).hexdigest()[:16]}", *limits])
     pdf = {"broken": b"not a pdf", "empty": blank()}.get(mode, pdf)
     cases = [{"caseNumber": number, "name": path.stem, "selected": True, "aggregated": not (mode == "unaggregated"
                                                                                             and number == 1)}
@@ -174,8 +196,9 @@ def main(argv):
              ("report-pdf", "application/pdf", "report.pdf", pdf),
              ("pickup-pik", "text/plain; charset=shift_jis", "pickup.pik", pik),
              ("summary-xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "summary.xlsx",
-              xlsx),
-             ("foundation-steps-csv", "text/csv; charset=utf-8", "foundation-steps.csv", csv)]
+              xlsx)]
+    if not piled:
+        files.append(("foundation-steps-csv", "text/csv; charset=utf-8", "foundation-steps.csv", csv))
     dropped = {"nopik": "pickup.pik", "noxlsx": "summary.xlsx", "nocsv": "foundation-steps.csv"}.get(mode)
     for kind, media, name, content in (file for file in files if file[2] != dropped):
         if not (mode == "missing" and name == "report.pdf"):
@@ -186,7 +209,8 @@ def main(argv):
     if mode == "extra":
         (output / "unlisted.txt").write_bytes(b"x")
     summary = {"command": "run", "inputVersion": "5.3.0.1", "productStyle": 1, "cases": cases,
-               "spectralDuctility": [], "outputs": ["summary.xlsx", "report.pdf", "pickup.pik", "foundation-steps.csv"],
+               "spectralDuctility": [], "outputs": ["summary.xlsx", "report.pdf", "pickup.pik"]
+               + ([] if piled else ["foundation-steps.csv"]),
                "warnings": []}
     if mode == "cases":
         del summary["cases"]

@@ -9,6 +9,9 @@ as it is by its kind: the section force pickup (``pickup.pik``, decision 57) and
 (``summary.xlsx``, decision 58) and the step table of the direct foundation (``foundation-steps.csv``, decision 60:
 every output step of each direct-foundation node, which 0800 reads for the Rvd到達ステップ); no check tables or pile
 anchor report is asked for. Every Case must be aggregated.
+A pile foundation (decision 94) gives the runner the limit values of its stability as SOIL-JR's .sdr (``Limits``: its bytes and
+the direction, ``--sdr`` and ``--sdr-direction``), which the runner reads as the foundation setting screen does; it has no
+step table of the direct foundation, so the runner is not asked for one and returns four files.
 The content and bytes of these files are Aggre-SE's (the report and the workbook differ between runs), so they are
 checked no further than being a PDF and a workbook (a zip) and are not bound to the implementation identity; the
 result JSON and the sidecars record the runner's ``engineVersion``. Aggre-SE returns no check values or judgement
@@ -58,7 +61,11 @@ PUBLISHED = {"pik": ("pickup-pik", "pickup.pik"), "xlsx": ("summary-xlsx", "summ
 # (H signed, M absolute), qvd〜plasticity as JRSNAP wrote them, step the number of JRSNAP's output list (from 1).
 FOUNDATION_STEPS_COLUMNS = ("case_index", "case_name", "node", "step", "V", "H", "M", "qvd", "qd", "Rvd", "Mmd",
                             "plasticity")
+PILE_PUBLISHED = {kind: item for kind, item in PUBLISHED.items() if kind != "steps"}  # no step table of a pile foundation
 _FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PUBLISHED.values()}
+_PILE_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PILE_PUBLISHED.values()}
+SDR_NAME = "foundation.sdr"  # the name the runner is given the .sdr as: the file's own name is not a fact of the check
+AXIAL, TRANSVERSE = "axial", "transverse"  # --sdr-direction: 橋軸方向 (線路方向), 直角方向 (線路直角方向)
 # The pickups of the PIK, by number: Batch's default (Option_PickUpFileCase = 0, reports/ExcelReportPickUpFile.vb),
 # each the envelope of every Case up to its response step (decision 57).
 PICKUPS = {1: "L1地震動", 2: "復旧性L2地震動", 3: "安全性L2地震動"}
@@ -67,6 +74,14 @@ _CHECK = "で耐震性能照査ができません"
 
 class _Failure(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class Limits:
+    """The limit values of the stability of a pile foundation: SOIL-JR's .sdr (0500) and the direction the project checks."""
+
+    sdr: bytes
+    direction: str  # AXIAL or TRANSVERSE
 
 
 @dataclass(frozen=True)
@@ -145,14 +160,20 @@ def _cases(summary: Any, mapped: Mapping[str, str]) -> tuple[Mapping[str, Any], 
     return tuple(cases)
 
 
-def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
+def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> SeismicCheckPages:
     mapped = snap_map(project)
+    published, expected = (PUBLISHED, _FILES) if limits is None else (PILE_PUBLISHED, _PILE_FILES)
+    arguments = ARGUMENTS if limits is None else ARGUMENTS[:-2]  # a pile foundation has no step table
     with tempfile.TemporaryDirectory(prefix="webpier-aggrese-") as work:
         snaps, output = Path(work) / "snap-map.json", Path(work) / "output"
         snaps.write_text(json.dumps(mapped, ensure_ascii=False), encoding="utf-8")
+        sdr = []
+        if limits is not None:
+            (Path(work) / SDR_NAME).write_bytes(limits.sdr)
+            sdr = ["--sdr", str(Path(work) / SDR_NAME), "--sdr-direction", limits.direction]
         try:
             done = subprocess.run([str(runner), "run", "--input", str(project), "--output-dir", str(output),
-                                   "--snap-map", str(snaps), *ARGUMENTS],
+                                   "--snap-map", str(snaps), *arguments, *sdr],
                                   capture_output=True, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
             raise _Failure(f"{timeout} 秒で終わりませんでした") from exc
@@ -166,11 +187,11 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         version, artifacts = envelope.get("engineVersion"), envelope.get("artifacts")
         if not isinstance(version, str) or not version:
             raise _Failure("runner の版（engineVersion）がありません")
-        if (not isinstance(artifacts, list) or len(artifacts) != len(_FILES)
+        if (not isinstance(artifacts, list) or len(artifacts) != len(expected)
                 or not all(isinstance(item, dict) for item in artifacts)
-                or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != _FILES):
-            raise _Failure("runner の成果物が結果・計算書・ピックアップ・総括表・直接基礎のステップ表の5つではありません"
-                           f"（{artifacts!r}）")
+                or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != expected):
+            raise _Failure("runner の成果物が結果・計算書・ピックアップ・総括表" + (
+                "・直接基礎のステップ表の5つ" if limits is None else "の4つ") + f"ではありません（{artifacts!r}）")
         files: dict[str, bytes] = {}
         for item in artifacts:
             path = output / item["relativePath"]
@@ -193,20 +214,22 @@ def _run(project: Path, runner: Path, timeout: float) -> SeismicCheckPages:
         raise _Failure("計算書の PDF にページがありません")
     if not zipfile.is_zipfile(BytesIO(files["summary.xlsx"])):
         raise _Failure("総括表が xlsx（zip）ではありません")
-    try:
-        steps = files["foundation-steps.csv"].decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise _Failure(f"直接基礎のステップ表を UTF-8 で読めません（{exc}）") from exc
-    if steps.split("\r\n", 1)[0] != ",".join(FOUNDATION_STEPS_COLUMNS):
-        raise _Failure("直接基礎のステップ表の列が違います")
-    return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in PUBLISHED.items()}, cases, version)
+    if limits is None:
+        try:
+            steps = files["foundation-steps.csv"].decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise _Failure(f"直接基礎のステップ表を UTF-8 で読めません（{exc}）") from exc
+        if steps.split("\r\n", 1)[0] != ",".join(FOUNDATION_STEPS_COLUMNS):
+            raise _Failure("直接基礎のステップ表の列が違います")
+    return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in published.items()}, cases, version)
 
 
-def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT) -> SeismicCheckPages:
+def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT, limits: Limits | None = None
+                  ) -> SeismicCheckPages:
     """Aggre-SE's report and published files for the project XML at *project* and the DB1 it names
-    (decisions 56〜58, 60)."""
+    (decisions 56〜58, 60); of a pile foundation, with the *limits* of its stability (decision 94)."""
     try:
-        return _run(Path(project), runner, timeout)
+        return _run(Path(project), runner, timeout, limits)
     except _Failure as exc:
         raise RunnerError(f"{Path(project).name} {_CHECK}: {exc}") from exc
 

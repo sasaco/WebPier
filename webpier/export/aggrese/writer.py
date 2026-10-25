@@ -23,6 +23,7 @@ NIL = None  # an array item written as xsi:nil
 # WebPier's conditions, those of the Example2 projects (P1_線路.xml, P1_直角.xml); the check items ①..⑨ of each Case
 # are those of its 照査パターン (project.CHECKS, decision 76):
 CHECK_ITEMS = 9  # dgCaseList_1..9
+PILE_TYPE = 4  # 部材照査タイプ of each section of the piles: 杭
 MEMBER_TYPE = 2  # 部材照査タイプ of the one nonlinear member: 柱
 SHEAR_FORMULA = 1  # せん断耐力の算定式 ① 標準せん断耐力【RC標準】
 SUPPORT = -1  # 端部支持条件: none (an M-θ member)
@@ -30,6 +31,8 @@ TYPE_TITLES = ("梁", "柱", NIL, "杭", NIL)  # 部材照査タイプ 1..5
 DAMAGE_RECOVERY = (2, 2, 0, 2, 0)  # 損傷レベルの制限値 of each type: 復旧性
 DAMAGE_SAFETY = (2, 3, 0, 2, 0)  # and 安全性
 DIRECT_FOUNDATION = 1  # 基礎形式 (0 杭基礎)
+PILE_FOUNDATION = 0
+DISPLACEMENT_POINTS = 30  # dgDispAtPoints: the rows of the 変位照査位置 table (杭基礎)
 PILE_LIMITS, DIRECT_LIMITS = 31, 11  # 制限値, blank: Aggre-SE calculates them
 SPECTRUM = (True, False, False)  # スペクトルⅠ,Ⅱ 両方 / Ⅰ / Ⅱ
 LIQUEFACTION = (True, False)  # 液状化指数 5<PL<20 / 20<PL
@@ -67,6 +70,24 @@ def _point(joint: int) -> list[Node]:
     return [("_Direction", "0"), ("pointNo", str(joint)), ("Direction", "0.000")]
 
 
+def _foundation(project: Project) -> list[Node]:
+    """The 基礎照査 of the project: the direct foundation checked at its joint, or the piles whose limit values the runner reads
+    from the .sdr (decision 94): the reaction at the head of each pile row and the displacement at the footing top."""
+    limits0 = ("dgLimitValue0", _array("string", [NIL] * PILE_LIMITS))
+    limits1 = ("dgLimitValue1", _array("string", [NIL] * DIRECT_LIMITS))
+    if not project.piled:
+        return [("sdtFilePath", None), ("dgReactAtPoint", [("clsAtPoints", _point(project.footing_joint))]),
+                ("dgDispAtPoint", _point(project.footing_joint)), ("dgDispAtPoints", None), limits0, limits1,
+                ("FoundationType", str(DIRECT_FOUNDATION))]
+    reactions = [("clsAtPoints", [("_Direction", str(row.piles)), ("pointNo", str(row.head)),
+                                  ("Direction", f"{row.piles}.000")]) for row in project.pile_rows]
+    displaced = [("clsAtPoints", [("_Direction", "0"), ("pointNo", str(project.footing_joint) if index == 0 else None),
+                                  ("Direction", "0.000")]) for index in range(DISPLACEMENT_POINTS)]
+    return [("sdtFilePath", None), ("dgReactAtPoint", reactions),
+            ("dgDispAtPoint", [("_Direction", "0"), ("pointNo", None), ("Direction", "0.000")]),
+            ("dgDispAtPoints", displaced), limits0, limits1, ("FoundationType", str(PILE_FOUNDATION))]
+
+
 def _pile_anchor_bar() -> list[Node]:
     """The empty 段落し情報 (a direct foundation has no pile); Aggre-SE's initial values."""
     values = [("_D1", "0"), ("_n1", "0"), ("_D2", "0"), ("_Aw", "0"), ("_Ss", "0"), ("dgMemberFirst", None),
@@ -91,17 +112,16 @@ def document(project: Project, databases: Sequence[str]) -> list[Node]:
                   _array("int", _cases([-1 if checks[item] else 0 for checks in project.cases], 0)))
                  for item in range(CHECK_ITEMS)]
     case_name.append(("analysisObject", _array("string", _cases([], NIL))))
-    element = [("_dgLimitLevel_SIJI", _array("int", [SUPPORT])), ("_dgLimitLevel_type", _array("int", [MEMBER_TYPE])),
-               ("_dgLimitLevel_La", _array("float", [Decimal(repr(project.shear_span.value))])),
-               ("_dgLimitLevel_VydType", _array("int", [SHEAR_FORMULA])),
+    # the nonlinear members: the column, then (of piles) each section of the piles, which has no shear span of its own
+    piles = project.pile_sections
+    element = [("_dgLimitLevel_SIJI", _array("int", [SUPPORT] * (1 + piles))),
+               ("_dgLimitLevel_type", _array("int", [MEMBER_TYPE, *[PILE_TYPE] * piles])),
+               ("_dgLimitLevel_La", _array("float", [Decimal(repr(project.shear_span.value)), *[Decimal(0)] * piles])),
+               ("_dgLimitLevel_VydType", _array("int", [SHEAR_FORMULA] * (1 + piles))),
                ("dgLimitLevel_title", _array("string", TYPE_TITLES)),
                ("_dgLimitLevel", _array("int", DAMAGE_RECOVERY)), ("_dgLimitLevel2", _array("int", DAMAGE_SAFETY)),
-               ("dgLimitLevel_typeCount", "1")]
-    foundation = [("sdtFilePath", None), ("dgReactAtPoint", [("clsAtPoints", _point(project.footing_joint))]),
-                  ("dgDispAtPoint", _point(project.footing_joint)), ("dgDispAtPoints", None),
-                  ("dgLimitValue0", _array("string", [NIL] * PILE_LIMITS)),
-                  ("dgLimitValue1", _array("string", [NIL] * DIRECT_LIMITS)),
-                  ("FoundationType", str(DIRECT_FOUNDATION))]
+               ("dgLimitLevel_typeCount", str(1 + piles))]
+    foundation = _foundation(project)
     requirement = [("_AtPoint", "0"), ("_rbSpec", _array("boolean", SPECTRUM)),
                    ("_rbChiiki", _array("boolean", _one_hot(project.region, 3))),
                    ("_rbJIban", _array("boolean", _one_hot(project.ground_class, GROUND_SLOTS))),

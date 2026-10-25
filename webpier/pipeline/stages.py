@@ -96,7 +96,7 @@ from ..calc.seismic_transverse import calculate_seismic_transverse
 from ..calc.transverse import calculate_transverse
 from ..core.errors import InputError
 from ..core.integrity import dump_json, sha256
-from ..export.aggrese import BATCH_VERSION, build_project, databases, write_project
+from ..export.aggrese import BATCH_VERSION, build_pile_project, build_project, databases, ndu_databases, write_project
 from ..export.capacita import (build_cantilever_wdj, build_footing_wdj, build_wdj, point_index, write_footing_wdj,
                                write_wdj)
 from ..export.drawing import drawing_dxf, drawing_figures
@@ -158,7 +158,7 @@ from . import capacita, soiljr
 from .pile_check import limits as pile_limits
 from .pilejoint import check_joint as run_pile_joint
 from .steeldan import check_pile as run_pile_body
-from .aggrese import PUBLISHED as AGGRESE_FILES, foundation_steps
+from .aggrese import AXIAL, PILE_PUBLISHED as AGGRESE_PILE_FILES, PUBLISHED as AGGRESE_FILES, TRANSVERSE, foundation_steps
 from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, member_forces, support_reactions
 
 Results = Mapping[str, Any]
@@ -259,6 +259,9 @@ class NonlinearAnalysis:
     kind: str  # the kind the folder is published as
     folder: str  # the folder under post/, e.g. "線路方向_JRSNAP"
     project: Project | None = None  # the Aggre-SE project beside the folder (decision 49), or none
+    # the kinds of the stage's other NDUs, analyzed one by one into the same folder (the NDU of the reversed push of a pile
+    # foundation, decisions 93 and 94)
+    also: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -272,6 +275,9 @@ class SeismicCheck:
     """
 
     files: tuple[tuple[str, str], ...]  # (kind, file name) of each file, e.g. ("pik", "線路方向_Aggre-SE.pik")
+    # a pile foundation (decision 94): the direction of the .sdr of 0500 the runner takes the limit values of the stability
+    # from (aggrese.AXIAL or TRANSVERSE); the files then have no step table of the direct foundation
+    direction: str | None = None
 
 
 @dataclass(frozen=True)
@@ -339,6 +345,8 @@ class StageSpec:
     foundations: Mapping[str, StageSpec] = field(default_factory=dict)
     # the stages (with ``soil_jr``) that must be complete before this stage is calculated and its exports are built
     after: tuple[str, ...] = ()
+    # a check of the input a generation makes before any runner is called, when it selects the stage (decision 94)
+    precheck: Callable[[PierInput], None] | None = None
 
     @property
     def has_report(self) -> bool:
@@ -424,7 +432,8 @@ class Registry:
                 outputs.append((check.kind, check.file_name))
             nonlinear = stage.nonlinear_analysis
             if nonlinear is not None:
-                self._check_source(stage, nonlinear.stage, nonlinear.export, "静的非線形解析")
+                for kind in (nonlinear.export, *nonlinear.also):
+                    self._check_source(stage, nonlinear.stage, kind, "静的非線形解析")
                 outputs.append((nonlinear.kind, nonlinear.folder))
                 if nonlinear.project is not None:
                     outputs.append((nonlinear.project.kind, nonlinear.project.file_name))
@@ -433,8 +442,11 @@ class Registry:
                     raise ValueError(f"{stage.id}の耐震性能照査には静的非線形解析と Aggre-SE のプロジェクトが必要です")
                 if not stage.has_report:
                     raise ValueError(f"{stage.id}の耐震性能照査の計算書がありません")
-                if sorted(kind for kind, _ in seismic.files) != sorted(AGGRESE_FILES):
-                    raise ValueError(f"{stage.id}の耐震性能照査の出力は {'・'.join(AGGRESE_FILES)} です")
+                wanted = AGGRESE_FILES if seismic.direction is None else AGGRESE_PILE_FILES
+                if sorted(kind for kind, _ in seismic.files) != sorted(wanted):
+                    raise ValueError(f"{stage.id}の耐震性能照査の出力は {'・'.join(wanted)} です")
+                if seismic.direction not in (None, AXIAL, TRANSVERSE):
+                    raise ValueError(f"{stage.id}の耐震性能照査の方向が不正です: {seismic.direction}")
                 outputs += seismic.files
             if (ground := stage.soil_jr) is not None:
                 if ground.export not in {item.kind for item in stage.exports}:
@@ -796,8 +808,44 @@ def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFo
         exports += (Export("jrsnapreverse", reverse_file_name, ndu(True), metadata=_NDU),)
         also = (AlsoFigures("jrsnapreverse", figures(True)),)
     piles = replace(_on_piles(stage, calculate), exports=exports,
-                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also))
+                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also), precheck=_no_liquefaction(stage.id))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piles})
+
+
+def _no_liquefaction(stage_id: str) -> Callable[[PierInput], None]:
+    """The check that the input has no layer that liquefies: the seismic stages of a pile foundation are not made for the
+    liquefaction yet, and with the ordinary limits alone they would look complete (decision 94)."""
+    def check(pier: PierInput) -> None:
+        if soiljr.liquefied(pier):
+            raise InputError(f"地盤: 液状化する地層（低減係数 De が 1 より小さい層）がある杭基礎の{stage_id}は未対応です"
+                             "（液状化時用の解析は未実装です）")
+    return check
+
+
+def _pile_aggrese(stage_id: str, profile: NduProfile, file_names: Sequence[str]
+                  ) -> Callable[[Results, PierInput], Callable[[str, Sequence[str]], bytes]]:
+    """The project of the piles of the NDUs *file_names* of *stage_id* (the NDU of the forward push, then the one of the
+    reversed push, decisions 93 and 94), checked before the analysis; then its writer."""
+    def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
+        models = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0) for index in range(len(file_names))]
+        project = build_pile_project(models, pier)
+        groups = [(name.removesuffix(".ndu"), len(model.combinations)) for name, model in zip(file_names, models)]
+        return lambda folder, names: write_project(project, ndu_databases(folder, names, groups))
+    return build
+
+
+def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, file_names: Sequence[str],
+                          direction: str) -> StageSpec:
+    """*stage* (0711 or 0721) with its stage for a 場所打ち杭 (decision 94): JRSNAP analyzes each NDU of *source* (the one
+    of the reversed push too, when *file_names* has it) into the one folder, Aggre-SE checks the piles with the project of
+    all their Cases and the limits of SOIL-JR's .sdr in *direction*, and the direct foundation's step table is not made."""
+    analysis, seismic = stage.nonlinear_analysis, stage.seismic_check
+    assert analysis is not None and analysis.project is not None and seismic is not None
+    analysis = replace(analysis, project=replace(analysis.project, build=_pile_aggrese(source, profile, file_names)),
+                       also=("jrsnapreverse",) if len(file_names) > 1 else ())
+    piled = replace(stage, nonlinear_analysis=analysis, precheck=_no_liquefaction(stage.id),
+                    seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction))
+    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
 
 
 def _on_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any]) -> StageSpec:
@@ -863,11 +911,12 @@ STAGES = Registry((
         jrsnap_figures=JrsnapFigures("jrsnap", _load_cases("0710", NDU_LONGITUDINAL)),
         grid_documents=lambda results, pier, pages: seismic_longitudinal_report.grid_documents(
             results["0710"], results["0600"], pier)), calculate_seismic_longitudinal, NDU_LONGITUDINAL, "線路方向.ndu"),
-    StageSpec("0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check,
-              nonlinear_analysis=NonlinearAnalysis(
-                  "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
-                  Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
-              seismic_check=_aggrese_files("線路方向")),
+    _with_nonlinear_piles(StageSpec(
+        "0711", "0711_線路方向非線形解析", ("0710",), render=_seismic_check,
+        nonlinear_analysis=NonlinearAnalysis(
+            "0710", "jrsnap", "jrsnap", "線路方向_JRSNAP",
+            Project("aggrese", "線路方向.xml", _aggrese("0710", NDU_LONGITUDINAL), _PROJECT)),
+        seismic_check=_aggrese_files("線路方向")), "0710", NDU_LONGITUDINAL, ("線路方向.ndu",), AXIAL),
     _with_seismic_piles(StageSpec(
         "0720", "0720_線路直角方向荷重", ("0500", "0600"),
         lambda pier, results: calculate_seismic_transverse(pier, results["0500"], results["0600"]),
@@ -878,11 +927,13 @@ STAGES = Registry((
             results["0720"], results["0600"], pier)),
         calculate_seismic_transverse, NDU_TRANSVERSE, "線路直角方向.ndu", "線路直角方向_逆向.ndu"),
     # Its NDU has two combinations, so the runner analyzes both in one run of S_ANALYSIS.exe (decision 47).
-    StageSpec("0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check,
-              nonlinear_analysis=NonlinearAnalysis(
-                  "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
-                  Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
-              seismic_check=_aggrese_files("線路直角方向")),
+    _with_nonlinear_piles(StageSpec(
+        "0721", "0721_線路直角方向非線形解析", ("0720",), render=_seismic_check,
+        nonlinear_analysis=NonlinearAnalysis(
+            "0720", "jrsnap", "jrsnap", "線路直角方向_JRSNAP",
+            Project("aggrese", "線路直角方向.xml", _aggrese("0720", NDU_TRANSVERSE), _PROJECT)),
+        seismic_check=_aggrese_files("線路直角方向")),
+        "0720", NDU_TRANSVERSE, ("線路直角方向.ndu", "線路直角方向_逆向.ndu"), TRANSVERSE),
     _footing("0800_フーチング"),
     _footing_check("0810", "0810_線路方向フーチング照査", "線路方向", "longitudinal", FOOTING_CHAPTER_LONGITUDINAL),
     _footing_check("0820", "0820_直角方向フーチング照査", "線路直角方向", "transverse", FOOTING_CHAPTER_TRANSVERSE),
@@ -924,7 +975,9 @@ def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) ->
         project = build_project(ndu(results, pier), pier)
         return lambda folder, names: write_project(project, databases(folder, names, len(project.cases)))
 
-    return replace(stage, nonlinear_analysis=replace(analysis, project=replace(analysis.project, build=build)))
+    # (the stage of a pile foundation is the train load's: a load model's stages have none of the piles', decision 94)
+    return replace(stage, foundations={},
+                   nonlinear_analysis=replace(analysis, project=replace(analysis.project, build=build)))
 
 
 def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: LoadModelSource) -> StageSpec:

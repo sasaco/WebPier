@@ -7,7 +7,7 @@ description: WebPier が Aggre-SE（Batch、Docu-SE）のプロジェクトXML p
 
 **Aggre-SE 自体（XML の文字コードと項目の意味、DB1 の横に要るファイル、runner の引数と成果物、report.pdf・pickup.pik・summary.xlsx の構成、`--foundation-steps` の列と step の番号、保存し直しの道具）はスキル `structural-aggrese` を参照**。ここには WebPier の実装・決定・受入・見本との対応だけを書く。
 
-WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方向.xml`・`post/線路直角方向.xml` に書き（決定49、`webpier/export/aggrese/`、CONTEXT.md「耐震照査の入力」）、同じ生成で Aggre-SE の runner に照査させた `report.pdf` をバイト列のまま 0711・0721 の計算書にする（決定56、ADR-0009、`webpier/pipeline/aggrese.py`、CONTEXT.md「耐震性能照査」）。Batch のソースは structural-mcp の repo のルートから `Batch/`。**Batch のファイルは変更しない**。試すときは XML と DB1 のフォルダーの複製を使う。
+WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方向.xml`・`post/線路直角方向.xml` に書き（決定49、`webpier/export/aggrese/`、CONTEXT.md「耐震照査の入力」）、同じ生成で Aggre-SE の runner に照査させた `report.pdf` をバイト列のまま 0711・0721 の計算書にする（決定56、ADR-0009、`webpier/pipeline/aggrese.py`、CONTEXT.md「耐震性能照査」）。Batch のソースは structural-mcp の repo のルートから `Batch/`。Batch のファイルは、WebPier の都合で変える必要があるとき（決定94 の runner の `--sdr`）だけ変え、Batch の規則（MSBuild でビルド、`tests/Aggre-SE.Test` のテスト）に従って Batch の repo にコミットする。試すときは XML と DB1 のフォルダーの複製を使う。
 
 ## WebPier の書出しを直すとき
 
@@ -18,6 +18,13 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 - Batch の版が変わったら：見本を保存し直して書式の差を見る → `writer.py` の `BATCH_VERSION` と並びを合わせる → 期待値を作り直す（`notes.md` の手順）→ `scripts/accept_aggrese_project.py --overwrite` で受入を取り直す（本物の JRSNAP で 0711・0721 を生成するので数分かかり、画面が出る）。
 - 受入記録は `tests/fixtures/acceptance/aggrese/record.json`。入力（`current.json`）や生成する XML が変わると `tests/acceptance` が失敗する。
 - 直接基礎の照査値の既知の差（決定49）：WebPier の NDU は直接基礎の照査のデータを持たないので `_Output_Chokukiso.csv` ができず、Aggre-SE は DB1 から求める。0711 の結果で試すと、作用は見本と一致し、抵抗側は違った。ただし、JRSNAP の基礎照査との差と NDU の `FootInfo` の Df・γ2 の差が混ざっており、原因はまだ切り分けていない。
+
+## 杭基礎の 0711・0721（決定94、P6b。2026-10-25）
+
+- プロジェクトは `export/aggrese/project.py: build_pile_project(models, pier)`（杭の NDU のモデルから。順向の NDU、逆向の NDU の順に Case を並べる）と `writer.py: _foundation`。非線形部材は柱（タイプ 柱）と杭の断面ごと（タイプ 杭、せん断スパン 0）、反力は杭の各列の最初の要素の i 節点（杭頭、`_Direction` は奥行き本数）、変位は柱の下端の節点（`dgDispAtPoints` の先頭）、`FoundationType` 0、制限値 `dgLimitValue0` は空。照査項目は `CHECKS` から ⑧ を除く。`Project.pile_rows`・`pile_sections`。見本 `Batch/tests/JRSNAP_Ver5.2-L03/01_サンプル(V53)：RC橋脚L：RC/` のプロジェクト（`tests/fixtures/aggrese/pile_s.xml`）とは、書式の版・照査項目・柱のタイプ・スペクトルなど決定49・76 の既定だけが違う（`tests/export/test_aggrese_pile_project.py`）。
+- DB1 の名前は `ndu_databases(folder, names, [(NDU の名前, Case の数), …])`：JRSNAP は `<NDU>(Case<n>_…).DB1` と NDU ごとに Case を 1 から数える。
+- 制限値は runner が `--sdr <.sdr> --sdr-direction axial|transverse` で読む（`pipeline/aggrese.py: Limits`、`check_seismic(..., limits=)`）。`.sdr` は 0500 の結果（`PileGroundModel.sdr_source`）を一時ファイル `foundation.sdr` で渡す。杭基礎の runner の成果物は 4 つ（ステップ表なし）。
+- 受入：`scripts/accept_pile_nonlinear.py`（`pile_seismic.json` の 0711・0721 を本物の runner で生成、計算書の制限値が `.sdr` と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1が同じことを確かめる。記録 `tests/fixtures/acceptance/pile_nonlinear/`、テスト `tests/acceptance/test_pile_nonlinear_acceptance.py`）。
 
 ## 0711・0721 の計算書・ピックアップ・総括表（決定56〜58）
 
