@@ -28,7 +28,7 @@ from pile_ndu_support import sample_model
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.export.aggrese import ProjectError, build_pile_project, ndu_databases, write_project
-from webpier.export.aggrese.project import CHECKS, PILE_ANCHOR_BAR
+from webpier.export.aggrese.project import CHECKS, LIQUEFACTION_CHECKS, PILE_ANCHOR_BAR
 from webpier.export.jrsnap.model import Combination
 from webpier.export.jrsnap.pile_model import COLUMN
 from webpier.inputs import parse_input
@@ -168,3 +168,44 @@ def test_a_missing_or_doubled_database_is_a_project_error():
         ndu_databases("D", ["a(Case1_x).DB1"], [("a", 2)])
     with pytest.raises(ProjectError, match="b の Case1〜1"):
         ndu_databases("D", ["a(Case1_x).DB1"], [("a", 1), ("b", 1)])
+
+
+def with_index(value):
+    data = document()
+    data["耐震設計条件"]["液状化指数"] = value
+    return parse_input(data)
+
+
+def test_the_cases_for_the_liquefaction_follow_the_ordinary_ones_and_are_flagged():
+    """Decision 95: one Case for each NDU for the liquefaction, after the Cases of the other NDUs, checked ②③⑤⑦⑨ and flagged
+    for the L2 earthquake of both spectra; the 液状化指数 is the input's."""
+    forward = replace(sample_model(), combinations=combinations((1.0, 1.0), (1.2, 1.0)))
+    reverse = replace(sample_model(), combinations=combinations((1.0, 1.0)))
+    wet = replace(sample_model(), combinations=combinations((1.0, 1.0)))
+    project = build_pile_project([forward, reverse], with_index("20<PL"), liquefied=[wet, wet])
+    assert len(project.cases) == 5 and project.liquefaction_cases == (3, 4) and project.liquefaction_index == 1
+    assert project.cases[3] == project.cases[4] == LIQUEFACTION_CHECKS
+    assert tuple(index for index, item in enumerate(LIQUEFACTION_CHECKS) if item) == (1, 2, 4, 6, 8)
+    assert build_pile_project([forward], with_index("5<PL<20"), liquefied=[wet]).liquefaction_index == 0
+    plain = build_pile_project([forward], with_index(None))
+    assert (plain.liquefaction_cases, plain.liquefaction_index) == ((), 0)
+
+
+def test_the_xml_flags_the_cases_for_the_liquefaction_and_the_index():
+    model = replace(sample_model(), combinations=combinations((1.0, 1.0)))
+    project = build_pile_project([model], with_index("20<PL"), liquefied=[model])
+    root = tree(write_project(project, ["a.DB1", "b.DB1"]))
+    for tag in ("dgEkijoCase21", "dgEkijoCase2"):
+        assert [index for index, flag in enumerate(items(root, f"Requirement/{tag}")) if flag == "-1"] == [1]
+    assert set(items(root, "Requirement/dgEkijoCase1")) == {"0"}
+    assert items(root, "Requirement/_rbEkijo") == ["false", "true"]
+    assert [items(root, f"CaseName/dgCaseList_{number}")[1] for number in range(1, 10)] == [
+        "0", "-1", "-1", "0", "-1", "0", "-1", "0", "-1"]
+    plain = tree(write_project(build_pile_project([model], with_index("20<PL")), ["a.DB1"]))
+    assert items(plain, "Requirement/_rbEkijo") == ["true", "false"] and set(items(plain, "Requirement/dgEkijoCase2")) == {"0"}
+
+
+def test_a_case_for_the_liquefaction_needs_the_index():
+    model = replace(sample_model(), combinations=combinations((1.0, 1.0)))
+    with pytest.raises(InputError, match="液状化指数"):
+        build_pile_project([model], with_index(None), liquefied=[model])

@@ -36,6 +36,8 @@ SKEW_TYPES = (1, 2)
 # 耐震設計条件 (decision 49): Aggre-SE's 地域別 and 地盤区分; its 応答塑性率の直接入力 needs a μ the XML cannot hold.
 REGIONS = ("A地域", "B地域", "C地域")
 GROUND_CLASSES = ("G0地盤", "G1地盤", "G2地盤", "G3地盤", "G4地盤", "G5地盤")
+# the 液状化指数 PL's range (decision 95): Aggre-SE's _rbEkijo, which the design earthquake of its liquefaction Cases depends on
+LIQUEFACTION_INDEXES = ("5<PL<20", "20<PL")
 
 LAYER_SURFACE = "表層"
 LAYER_SUPPORT = "支持層"

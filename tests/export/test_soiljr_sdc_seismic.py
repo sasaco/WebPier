@@ -152,3 +152,20 @@ def test_the_tip_blocks_must_be_there_with_their_values():
     with pytest.raises(SdcError, match="f）の杭先端の鉛直の項目数が違います"):
         parse_seismic(broken("117810, 78540, 117810, 235621, 157081, 235621, 67320, 44880, 67320",
                              "117810, 78540, 117810, 235621, 157081, 235621, 67320, 44880"))
+
+
+def test_the_sdc_for_the_liquefaction_is_read_with_the_title_of_its_tip_and_told_apart():
+    """Decision 95: ``pile_cast_liquefaction`` is what SOIL-JR 5.2 returned for the same sample E with its layers liquefying:
+    the same tables, with 液状化時 for the short-term nonlinear ones; the springs and the pressures are smaller."""
+    normal = parse_seismic((FIXTURES / "pile_cast.sdc").read_bytes()).direction("橋軸方向")
+    liquefied = parse_seismic((FIXTURES / "pile_cast_liquefaction.sdc").read_bytes(), liquefied=True).direction("橋軸方向")
+    assert (liquefied.rows, liquefied.depth_piles) == (normal.rows, normal.depth_piles)
+    assert liquefied.inverse_beta != normal.inverse_beta  # 1/β follows the springs
+    assert normal.layers[0].horizontal == (75837.0, 50558.0, 75837.0)
+    assert liquefied.layers[0].horizontal == (25026.0, 16684.0, 25026.0)
+    assert liquefied.layers[0].pressure_upper == (390.8, 208.4, 273.6) and normal.layers[0].pressure_upper[0] == 1184.2
+    assert liquefied.tip.first == normal.tip.first and len(liquefied.layers) == len(normal.layers)
+    with pytest.raises(SdcError, match="液状化時：杭先端の鉛直がありません"):
+        parse_seismic((FIXTURES / "pile_cast.sdc").read_bytes(), liquefied=True)
+    with pytest.raises(SdcError, match="地震時：杭先端の鉛直がありません"):
+        parse_seismic((FIXTURES / "pile_cast_liquefaction.sdc").read_bytes())

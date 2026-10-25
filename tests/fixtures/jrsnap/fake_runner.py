@@ -24,7 +24,7 @@ so the same input gives the same bytes.
 ``soil`` (decision 85, ADR-0013) answers only the arguments of ``webpier.pipeline.jrsnap.calculate_ground`` (``--input
 <.sdt> --output-dir <folder> --timeout-seconds 600``). It returns ``<stem>.sdr`` (the SOIL-JR 5.2 sample's .sdr, tests/
 fixtures/soiljr/pile_cast.sdr, with its title line replaced by ``FAKE SOIL-JR <the first 16 digits of the SHA256 of the
-input bytes>``), ``<stem>.sdc`` (the sample's .sdc, tests/fixtures/soiljr/pile_cast.sdc, with its title line replaced by ``FAKE SDC <SHA256>``), with ``<stem>(液状化時用).sdr`` (pile_steel_liquefaction.sdr) and
+input bytes>``), ``<stem>.sdc`` (the sample's .sdc, tests/fixtures/soiljr/pile_cast.sdc, with its title line replaced by ``FAKE SDC <SHA256>``), with ``<stem>(液状化時用).sdr`` (pile_cast_liquefaction.sdr, the sample E's for it) and
 ``.sdc`` when the input's 液状化の低減係数 section starts with 1, and ``<stem>.pdf`` of two pages (``FAKE SOIL-JR REPORT
 <16 digits>``), and the runner's ``summary.input`` (name and SHA256), ``summary.liquefaction`` and one warning.
 ``FAKE_JRSNAP_SOIL`` makes it misbehave: fail, input (a SOIL-JR rejection of the input), exit, text, protocol, summary,
@@ -205,10 +205,11 @@ def soil(argv, mode):
         text[3] = "1, 9, 99, 9.999, 9, 9, 9, 9, 99" if mode == "header" else header
         return "\r\n".join(text).encode("cp932")
 
-    def sdc():
-        """The SOIL-JR 5.2 sample's .sdc (pile_cast.sdc), its title line replaced by ``FAKE SDC <SHA256>``."""
-        text = (folder / "pile_cast.sdc").read_bytes().decode("cp932").split("\r\n")
-        text[4] = f"FAKE SDC {digest}"
+    def sdc(name="pile_cast.sdc", word="FAKE SDC"):
+        """The SOIL-JR 5.2 sample's .sdc (pile_cast.sdc; for the liquefaction pile_cast_liquefaction.sdc), its title line
+        replaced by ``FAKE SDC <SHA256>`` (``FAKE SDC LIQUEFACTION <SHA256>``)."""
+        text = (folder / name).read_bytes().decode("cp932").split("\r\n")
+        text[4] = f"{word} {digest}"
         return "\r\n".join(text).encode("cp932")
 
     pdf_content = (b"not a pdf" if mode == "broken" else pdf() if mode == "pdf"
@@ -216,8 +217,9 @@ def soil(argv, mode):
     files = [(f"{stem}.sdr", "soil-sdr", sdr("pile_cast.sdr")),
              (f"{stem}.sdc", "soil-sdc", sdc())]
     if liquefied:
-        files += [(f"{stem}(液状化時用).sdr", "soil-sdr-liquefaction", sdr("pile_steel_liquefaction.sdr")),
-                  (f"{stem}(液状化時用).sdc", "soil-sdc-liquefaction", f"FAKE SDC LIQUEFACTION {digest}".encode())]
+        files += [(f"{stem}(液状化時用).sdr", "soil-sdr-liquefaction", sdr("pile_cast_liquefaction.sdr")),
+                  (f"{stem}(液状化時用).sdc", "soil-sdc-liquefaction",
+                   sdc("pile_cast_liquefaction.sdc", "FAKE SDC LIQUEFACTION"))]
     files.append((f"{stem}.pdf", "soil-report", pdf_content))
     output.mkdir(parents=True, exist_ok=True)
     artifacts = []

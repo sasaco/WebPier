@@ -258,6 +258,7 @@ class SeismicDesign:
 
     region: str | None  # 地域別, one of choices.REGIONS
     ground_class: str | None  # 地盤区分, one of choices.GROUND_CLASSES
+    liquefaction_index: str | None = None  # 液状化指数, one of choices.LIQUEFACTION_INDEXES (decision 95)
 
 
 @dataclass(frozen=True)

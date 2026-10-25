@@ -27,7 +27,7 @@ import re
 from ...core.errors import InputError
 from ...core.printed import Printed
 from ...inputs import PierInput
-from ...inputs.choices import GROUND_CLASSES, REGIONS
+from ...inputs.choices import GROUND_CLASSES, LIQUEFACTION_INDEXES, REGIONS
 from ..jrsnap.model import NduModel
 from ..jrsnap.pile_model import COLUMN, PileNduModel
 
@@ -61,6 +61,8 @@ class Project:
     cases: tuple[Checks, ...]  # the check items ①..⑨ of each combination of the NDU, one DB1 each
     pile_rows: tuple["PileRow", ...] = ()  # a pile foundation: where the reaction of each pile row is taken
     pile_sections: int = 0  # a pile foundation: the sections of the piles, each a member of the 杭 type
+    liquefaction_cases: tuple[int, ...] = ()  # the indexes (from 0) of the Cases for the liquefaction (decision 95)
+    liquefaction_index: int = 0  # 液状化指数: the index of choices.LIQUEFACTION_INDEXES (_rbEkijo)
 
     @property
     def piled(self) -> bool:
@@ -82,6 +84,9 @@ def _choice(value: str | None, options: tuple[str, ...], key: str) -> int:
 
 
 PILE_ANCHOR_BAR = 7  # the index of ⑧ 杭の段落し in the check items
+# the check items of a Case for the liquefaction (decision 95; the owner's sample R-7 checks ②③⑤⑦⑧⑨, and ⑧ is not made):
+# ② 安全性L2, ③ 損傷レベル, ⑤ せん断耐力, ⑦ 基礎の安定, ⑨ 断面力ピックアップ
+LIQUEFACTION_CHECKS: Checks = (False, True, True, False, True, False, True, False, True)
 
 
 def _checks(model: NduModel | PileNduModel, *, piled: bool = False) -> tuple[Checks, ...]:
@@ -112,22 +117,29 @@ def _rows(model: PileNduModel) -> tuple[PileRow, ...]:
     return tuple(PileRow(elements[pile.first].i, members[pile.member].depth_piles) for pile in model.piles)
 
 
-def build_pile_project(models: Sequence[PileNduModel], pier: PierInput) -> Project:
+def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
+                       liquefied: Sequence[PileNduModel] = ()) -> Project:
     """The project of the piles of the NDU *models* of a stage (the forward NDU, then the reversed one); a blank 耐震設計条件
-    is an input error. Every NDU has the frame, the piles and the sections of the first, and the Cases follow its combinations."""
+    is an input error. Every NDU has the frame, the piles and the sections of the first, and the Cases follow its combinations.
+    The NDUs for the liquefaction (*liquefied*, decision 95) follow with one Case each, which Aggre-SE checks as a Case for the
+    liquefaction; they need the 液状化指数."""
     design = pier.seismic_design
     first = models[0]
     columns = [element for element in first.elements if element.kind == COLUMN]
     if len(columns) != 1:  # the one M-θ member is the column base; Aggre-SE's member type 2 is it
         raise InputError(f"JRSNAP の非線形部材（柱）が{len(columns)}個です（耐震照査の入力は1個だけに対応します）")
     rows = _rows(first)
-    for other in models[1:]:
+    for other in (*models[1:], *liquefied):
         if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
+    ordinary = tuple(case for model in models for case in _checks(model, piled=True))
+    index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"), shear_span=first.shear_span,
-                   footing_joint=columns[0].j, cases=tuple(case for model in models for case in _checks(model, piled=True)),
-                   pile_rows=rows, pile_sections=len(first.sections) - 1)
+                   footing_joint=columns[0].j, cases=ordinary + tuple(LIQUEFACTION_CHECKS for _ in liquefied),
+                   pile_rows=rows, pile_sections=len(first.sections) - 1,
+                   liquefaction_cases=tuple(range(len(ordinary), len(ordinary) + len(liquefied))),
+                   liquefaction_index=index)
 
 
 def ndu_databases(folder: str, names: Iterable[str], groups: Sequence[tuple[str, int]]) -> tuple[str, ...]:

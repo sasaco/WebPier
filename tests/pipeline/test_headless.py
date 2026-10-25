@@ -354,6 +354,12 @@ def test_the_contract_is_the_registry(capsys):
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" not in paths
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" in [item["path"] for item in outputs[key]["files"]]
     assert outputs["reactions"]["pileFoundation"]["conditionalFiles"] == []
+    # decision 95: the NDUs for the liquefaction are written only for an input that liquefies, so they are conditional files
+    for key, names in (("longitudinal_seismic", ["線路方向_液状化.ndu"]),
+                       ("transverse_seismic", ["線路直角方向_液状化.ndu", "線路直角方向_液状化_逆向.ndu"])):
+        piles = outputs[key]["pileFoundation"]
+        assert [item["path"] for item in piles["conditionalFiles"]] == [f"post/{name}" for name in names]
+        assert not {f"post/{name}" for name in names} & {item["path"] for item in piles["files"]}
     assert outputs["longitudinal"]["pileFoundation"]["runners"] == ["fempython", "jrsnap"]  # 0500 of piles needs it too
     assert (outputs["detailing"]["requires"], outputs["detailing"]["stages"], outputs["detailing"]["runners"]) == (
         [], ["0400"], [])  # decision 73: the input alone

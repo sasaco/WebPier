@@ -153,15 +153,94 @@ def test_0711_has_no_also_ndu(longitudinal):
     assert "also_ndus" not in facts and "also" not in facts["runner_summary"]
 
 
-@pytest.mark.parametrize("items_", [LONGITUDINAL, TRANSVERSE, ("ground_model", "reactions", "longitudinal_seismic"),
-                                    ("ground_model", "reactions", "transverse_seismic")])
-def test_a_layer_that_liquefies_is_refused_before_any_runner(tmp_path, items_):
+def liquefying(**changes):
+    """The input with a layer that liquefies (De 0.5) and the 液状化指数 20<PL, as the owner's sample R-7 has it."""
     layers = deepcopy(PILE["地盤データ"]["層"])
     layers[2]["De"] = 0.5
-    path = write(tmp_path / "pre", items_, **{"地盤データ/層": layers})
-    with pytest.raises(InputError, match="液状化する地層.*未対応"):
+    return {"地盤データ/層": layers, "耐震設計条件/液状化指数": "20<PL", **changes}
+
+
+@pytest.fixture(scope="module")
+def wet(tmp_path_factory):
+    root = tmp_path_factory.mktemp("pile-liquefied")
+    return root, make(root, (*LONGITUDINAL, "transverse_seismic", "transverse_nonlinear_analysis"), **liquefying())
+
+
+def test_an_input_that_liquefies_has_the_ndus_for_the_liquefaction_with_the_springs_of_the_sdc_for_it(wet):
+    root, generation = wet
+    post = {name for name in tree(root / "post") if "provenance" not in name}
+    assert {"線路方向_液状化.ndu", "線路直角方向_液状化.ndu", "線路直角方向_液状化_逆向.ndu"} <= post
+    normal, liquefied = (dict(line.split("=", 1) for line in (root / "post" / name).read_bytes().decode("cp932").split("\r\n")
+                             if "=" in line) for name in ("線路方向.ndu", "線路方向_液状化.ndu"))
+    assert liquefied["SNAPConbNum"] == "1" and normal["SNAPConbNum"] == "4"  # one combination: ρm 1.0, αf 1.0
+    assert liquefied["SNAPConb1"] == normal["SNAPConb1"]
+    assert liquefied["SuppotNum"] == normal["SuppotNum"] and liquefied["ElementNum"] == normal["ElementNum"]
+    assert liquefied["JibanShogenInfo10"] != normal["JibanShogenInfo10"]  # the springs are those of the liquefaction
+    assert any(liquefied[key] != normal[key] for key in liquefied if key.startswith("SuppotInfo"))
+    sidecar = load_json((root / "post" / "線路方向_液状化.ndu.provenance.json").read_bytes())
+    assert sidecar["metadata"]["target_version"] and "jrsnap_figures" not in sidecar  # no figures of its own
+
+
+def test_the_folder_and_the_project_of_0711_have_the_case_for_the_liquefaction_last(wet):
+    root, _ = wet
+    folder = {path.name for path in (root / "post" / "線路方向_JRSNAP").iterdir()}
+    assert "線路方向_液状化(Case1_ρm10_αf1_正向).DB1" in folder
+    xml = project(root / "post" / "線路方向.xml")
+    assert database_names(xml) == [f"線路方向_JRSNAP/線路方向({name}).DB1" for name in FORWARD] + [
+        "線路方向_JRSNAP/線路方向_液状化(Case1_ρm10_αf1_正向).DB1"]
+    assert [items(xml, f"dgCaseList_{number}")[4] for number in range(1, 10)] == [
+        "0", "-1", "-1", "0", "-1", "0", "-1", "0", "-1"]  # ②③⑤⑦⑨
+    for tag in ("dgEkijoCase21", "dgEkijoCase2"):
+        assert [index for index, flag in enumerate(items(xml, tag)) if flag == "-1"] == [4]
+    assert set(items(xml, "dgEkijoCase1")) == {"0"}
+    assert items(xml, "_rbEkijo") == ["false", "true"]  # 20<PL
+
+
+def test_the_project_of_0721_has_the_cases_for_the_liquefaction_in_the_order_of_the_ndus(wet):
+    root, _ = wet
+    xml = project(root / "post" / "線路直角方向.xml")
+    assert database_names(xml)[8:] == ["線路直角方向_JRSNAP/線路直角方向_液状化(Case1_ρm10_αf1_正向).DB1",
+                                       "線路直角方向_JRSNAP/線路直角方向_液状化_逆向(Case1_ρm10_αf1_逆向).DB1"]
+    assert [index for index, flag in enumerate(items(xml, "dgEkijoCase2")) if flag == "-1"] == [8, 9]
+    folder = {path.name for path in (root / "post" / "線路直角方向_JRSNAP").iterdir()}
+    assert {"線路直角方向_液状化(Case1_ρm10_αf1_正向).DB1", "線路直角方向_液状化_逆向(Case1_ρm10_αf1_逆向).DB1"} <= folder
+    text = pdf_text(root / "output" / "0721_線路直角方向非線形解析.pdf")
+    assert text.count("FAKE AGGRESE Case") == 10
+
+
+def test_aggrese_takes_the_limits_of_the_sdr_for_the_liquefaction_too(wet):
+    root, _ = wet
+    liquefied = (root / "post" / "杭基礎(液状化時用).sdr").read_bytes()
+    text = pdf_text(root / "output" / "0711_線路方向非線形解析.pdf")
+    assert f"FAKE AGGRESE LIMITS LIQUEFIED {sha256(liquefied)[:16]}" in text
+    sidecar = load_json((root / "post" / "線路方向_Aggre-SE.pik.provenance.json").read_bytes())
+    assert sidecar["seismic_check"]["limits"]["liquefied_sha256"] == sha256(liquefied)
+    facts = load_json((root / "post" / "線路方向_JRSNAP.provenance.json").read_bytes())["nonlinear_analysis"]
+    assert [item["export"] for item in facts["also_ndus"]] == ["jrsnapliquefied"]
+    assert len(facts["runner_summary"]["also"]) == 1
+
+
+def test_an_input_that_does_not_liquefy_has_none_of_it(longitudinal):
+    root, _ = longitudinal
+    assert not [name for name in tree(root / "post") if "液状化" in name]
+    xml = project(root / "post" / "線路方向.xml")
+    assert items(xml, "_rbEkijo") == ["true", "false"] and "<int>-1</int>" not in re.search(
+        r"<dgEkijoCase2>([\s\S]*?)</dgEkijoCase2>", xml)[1]
+
+
+@pytest.mark.parametrize("items_", [LONGITUDINAL, TRANSVERSE])
+def test_a_layer_that_liquefies_needs_the_liquefaction_index_for_0711_and_0721(tmp_path, items_):
+    path = write(tmp_path / "pre", items_, **liquefying(**{"耐震設計条件/液状化指数": None}))
+    with pytest.raises(InputError, match="耐震設計条件.液状化指数: 液状化する地層がある杭基礎の0711|0721には値が必要です"):
         generate.validate(GenerationOptions(path, tmp_path / "output", tmp_path / "post"))
     assert not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
+
+
+@pytest.mark.parametrize("items_", [("ground_model", "reactions", "longitudinal_seismic"),
+                                    ("ground_model", "reactions", "transverse_seismic")])
+def test_0710_and_0720_of_a_layer_that_liquefies_need_no_index(tmp_path, items_):
+    make(tmp_path, items_, **liquefying(**{"耐震設計条件/液状化指数": None}))
+    assert [name for name in tree(tmp_path / "post") if name.endswith("液状化.ndu") or name.endswith("液状化_逆向.ndu")]
 
 
 def test_a_steel_pile_foundation_does_not_make_0711_or_0721():

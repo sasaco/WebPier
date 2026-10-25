@@ -472,17 +472,23 @@ def test_the_frame_analyses_of_a_pile_foundation_wait_and_have_their_own_stage()
 
 def test_the_nonlinear_stages_of_the_piles_analyze_both_ndus_and_check_with_the_sdr():
     """Decision 94: 0711 and 0721 of a 場所打ち杭 have Aggre-SE check the piles with the limits of the .sdr of 0500 in their
-    direction, without the step table of the direct foundation; 0721 analyzes the NDU of the reversed push too; a layer that
-    liquefies is refused before any runner. The direct foundation's stages are as they were."""
+    direction, without the step table of the direct foundation; 0721 analyzes the NDU of the reversed push too, and for an input
+    that liquefies the NDUs for the liquefaction (decision 95), whose 液状化指数 is checked before any runner. The direct
+    foundation's stages are as they were."""
     piles = STAGES.for_foundation(choices.CAST_IN_PLACE_PILE)
-    for stage_id, source, direction, also in (("0711", "0710", AXIAL, ()), ("0721", "0720", TRANSVERSE, ("jrsnapreverse",))):
+    for stage_id, source, direction, also in (
+            ("0711", "0710", AXIAL, ("jrsnapliquefied",)),
+            ("0721", "0720", TRANSVERSE, ("jrsnapreverse", "jrsnapliquefied", "jrsnapliquefiedreverse"))):
         stem = {"0711": "線路方向", "0721": "線路直角方向"}[stage_id]
         direct, piled = STAGES.get(stage_id), piles.get(stage_id)
         assert (direct.nonlinear_analysis.also, direct.seismic_check.direction, direct.precheck) == ((), None, None)
         assert piled.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")),
                                                    direction)
         assert piled.nonlinear_analysis.also == also and piled.nonlinear_analysis.stage == source
-        assert piled.precheck is not None and piles.get(source).precheck is not None
+        assert piled.precheck is not None and piles.get(source).precheck is None  # the 液状化指数 (decision 95)
+        liquefied = [item.kind for item in piles.get(source).exports if item.liquefied]
+        assert liquefied == [kind for kind in also if kind.startswith("jrsnapliquefied")]
+        assert not any(item.liquefied for item in direct.exports)
         assert piled.depends_on == direct.depends_on and piled.render is direct.render
     assert piles.waits("0711") and piles.waits("0721")  # they read 0710 / 0720, which wait for SOIL-JR's springs
     assert piles.get("0720").nonlinear_analysis is None

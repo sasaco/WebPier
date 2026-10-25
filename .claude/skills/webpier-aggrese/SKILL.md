@@ -26,6 +26,12 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 - 制限値は runner が `--sdr <.sdr> --sdr-direction axial|transverse` で読む（`pipeline/aggrese.py: Limits`、`check_seismic(..., limits=)`）。`.sdr` は 0500 の結果（`PileGroundModel.sdr_source`）を一時ファイル `foundation.sdr` で渡す。杭基礎の runner の成果物は 4 つ（ステップ表なし）。
 - 受入：`scripts/accept_pile_nonlinear.py`（`pile_seismic.json` の 0711・0721 を本物の runner で生成、計算書の制限値が `.sdr` と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1が同じことを確かめる。記録 `tests/fixtures/acceptance/pile_nonlinear/`、テスト `tests/acceptance/test_pile_nonlinear_acceptance.py`）。
 
+## 杭基礎の液状化時の Case（決定95、P6c。2026-10-25）
+
+- プロジェクトの Case は、通常の Case のあとに液状化時の NDU ごとに 1 Case（`build_pile_project(models, pier, liquefied=[...])`、`Project.liquefaction_cases`・`liquefaction_index`）。その Case は `dgEkijoCase21`・`dgEkijoCase2`（L2 のスペクトルⅠ・Ⅱ。`_rbSpec` が両方なので両方の旗。片方だけだと、その Case の応答値は片方のスペクトルだけで求まる）に -1、照査項目は `LIQUEFACTION_CHECKS`（②③⑤⑦⑨）、`_rbEkijo` は入力の液状化指数。`dgEkijoCase1`（L1 の液状化）は使わない。
+- 制限値：runner の `--sdr-liquefied`（`aggrese.Limits.liquefied`、一時ファイル名は `foundation(液状化時用).sdr`）が `dgLimitValue0` の行 10〜16 を埋める。Aggre-SE の規則で、行 10〜13 が L1 の液状化、14〜16 が復旧性L2 の液状化に使われ、安全性は液状化用の行 17〜30 が空なら通常の値（0〜9）に戻る（`CalculationFoundation.vb` の `GetLimit`）。そのため、液状化時の Case の基礎の安定の照査が計算書に出ても、液状化時用の `.sdr` の値が使われるのは復旧性（①）を ON にしたときだけ。受入はその Case だけを ① と ⑦ にして確かめる。
+- 計算書の杭基礎の照査には、各安定レベルの決定ケースの行だけが出る（液状化時の Case が決定ケースでなければ出ない）。
+
 ## 0711・0721 の計算書・ピックアップ・総括表（決定56〜58）
 
 - WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx true --report-pdf true --check-tables false --pik true --pile-anchor-bar-pdf false --foundation-steps true` を呼ぶ（返る成果物は result.json・report.pdf・pickup.pik・summary.xlsx と、直接基礎なら foundation-steps.csv）（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。成果物の組（kind と relativePath）が求めたものとちょうど一致しないと止める。

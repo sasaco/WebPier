@@ -118,7 +118,10 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 2. Aggre-SE のプロジェクト XML（`export/aggrese`、`build_pile_project`）は 1 本で、0720 の組合せ順に、順向の Case は順向の NDU の DB1、逆向の Case は逆向の NDU の DB1 を指します。非線形部材は柱（タイプ 柱）と杭の断面ごと（タイプ 杭）、反力は杭の各列の杭頭の節点、変位はフーチング天端（柱の下端）の節点です。照査項目は直接基礎と同じ 照査パターン（決定76）から ⑧杭の段落しを除いたものです（杭の段落しは未対応）。
 3. 基礎の安定の制限値は WebPier が書かず、runner が 0500 の `.sdr`（`post/杭基礎.sdr`）を `--sdr`・`--sdr-direction`（0711 は `axial`、0721 は `transverse`）で受け取り、Aggre-SE の基礎の照査条件の取り込み（`FoundationLinkData`）と同じ規則で読みます（Batch `Aggre-SE/Headless`）。液状化時用の `.sdr` は取り込みません。
 4. 直接基礎の支点のステップ表（`_Aggre-SE_直接基礎.csv`）は作りません（杭基礎では runner が何も返しません）。杭頭の反力は 0800 の杭基礎で決めます。
-5. 液状化する地層（De が 1 未満の層）がある入力では、0710・0720・0711・0721 は生成の前に入力エラーで止まります（液状化時用の解析は未実装。`StageSpec.precheck`）。
+5. 液状化する地層（De が 1 未満の層）がある入力（決定95、P6c）：
+   - 0710・0720 は、押す向きごとに液状化時用の NDU（`線路方向_液状化.ndu`、`線路直角方向_液状化.ndu`・`線路直角方向_液状化_逆向.ndu`、出力の種類 `jrsnapliquefied`・`jrsnapliquefiedreverse`）も書きます（液状化する入力だけ。`Export.liquefied`）。杭のモデルは通常の NDU と同じで、水平ばね・有効抵抗土圧・鉛直ばねは 0500 の `杭基礎(液状化時用).sdc` から取り（`parse_seismic(..., liquefied=True)`）、組合せは ρm 1.0・αf 1.0 の 1 つです。計算書とデータ確認図・荷重図は変えません。
+   - 0711・0721 は、液状化時用の NDU の解析結果も同じフォルダーに置き、Aggre-SE のプロジェクトに、通常の Case のあとに液状化時の順向・逆向を 1 Case ずつ足します（`dgEkijoCase21`・`dgEkijoCase2` の旗、照査項目 ②③⑤⑦⑨）。制限値は `杭基礎(液状化時用).sdr` から runner が読みます（`--sdr-liquefied`）。`耐震設計条件.液状化指数`（`5<PL<20`・`20<PL`）が要り、空欄なら入力エラー（`StageSpec.precheck`）です。
+   - L1 地震動の液状化と応答変位法（P6d）は未対応です。
 6. 実アプリでの受入：`scripts/accept_pile_nonlinear.py`。`pile_seismic.json` の 0711・0721（4 Case・8 Case）を本物の JRSNAP と Aggre-SE で生成し、計算書の杭基礎の照査の制限値が `.sdr` の値と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1の杭基礎の照査が同じことを確かめて `tests/fixtures/acceptance/pile_nonlinear/record.json` に記録します（`tests/acceptance/test_pile_nonlinear_acceptance.py`）。
 
 本物の SOIL-JR での受入：`scripts/accept_pile_ground.py`。見本 RC橋脚（杭基礎）サンプルデータE.sdt（場所打ち杭 3×3 中抜き）を表す `tests/fixtures/inputs/pile.json` から書いた .sdt を計算させ、.sdr・.sdc が見本の .sdt の結果と表題を除いてバイトまで同じであることを確かめて `tests/fixtures/acceptance/pile_ground/record.json` に記録します（`tests/acceptance/test_pile_ground_acceptance.py`）。
@@ -428,7 +431,7 @@ WebPier が組む頁は、同じものを方眼Excel `export/<段階>.xlsx`（1�
 0711・0721 の静的非線形解析の結果を Aggre-SE（structural-mcp の `Batch` サブモジュール、Docu-SE）で耐震照査するためのプロジェクトを、`post/線路方向.xml`・`post/線路直角方向.xml` に書きます（決定49、CONTEXT.md「耐震照査の入力」）。見本は Example2 の `10_線路(耐震)/P1_線路.xml`・`11_直角(耐震)/P1_直角.xml` です。同じ生成で Aggre-SE の runner がこの XML で照査し、その帳票が 0711・0721 の計算書になります（決定56）。
 
 - 入力にするのは `耐震設計条件`（地域別・地盤区分）だけです。そのほかの条件は Example2 のプロジェクトと同じ WebPier の定めです。
-  - スペクトルⅠ,Ⅱ両方、液状化指数 5<PL<20、M6.5以上の震源エリアなし、低減係数 α = 1.000、不整形性 η(x) は考慮しない
+  - スペクトルⅠ,Ⅱ両方、液状化指数 5<PL<20（液状化する杭基礎の 0711・0721 は入力の `耐震設計条件.液状化指数`、決定95）、M6.5以上の震源エリアなし、低減係数 α = 1.000、不整形性 η(x) は考慮しない
   - 照査項目 ①〜⑨ は Case の照査パターン（ρm, αf）で決まり、載荷の向きによりません（決定76）：①復旧性L2・②安全性L2 は全 Case、③損傷レベルは (1.0, 2.0) 以外、④破壊形態の検討は ρm 1.2、⑤せん断耐力はなし、⑥L1 は (1.0, 1.0)、⑦基礎の安定・⑧杭の段落し・⑨断面力ピックアップは αf 1.0
   - 非線形部材（柱下端の M-θ）の部材照査タイプは 2（柱）、せん断耐力式は ①RC標準。損傷レベルの制限値は梁・柱・杭の順に復旧性 2/2/2、安全性 2/3/2
   - 直接基礎の制限値は空欄（Aggre-SE が自動計算）、帳票はカスタム仕様

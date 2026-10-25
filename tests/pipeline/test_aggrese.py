@@ -231,12 +231,15 @@ def test_an_unreadable_step_table_is_an_error(content, message):
 # --- a pile foundation (decision 94): the limit values of the stability are the .sdr's, and there is no step table ----------
 
 
-def pile_project(directory: Path, foundation: int = 0) -> Path:
-    """The project of *project* with a ``FoundationType`` (0 piles, 1 direct), as Aggre-SE writes it."""
+def pile_project(directory: Path, foundation: int = 0, *, liquefied: bool = False) -> Path:
+    """The project of *project* with a ``FoundationType`` (0 piles, 1 direct), as Aggre-SE writes it; with *liquefied* its
+    first Case is a Case for the liquefaction (``dgEkijoCase2`` -1)."""
     path = project(directory)
+    flags = ("  <Requirement>\r\n    <dgEkijoCase2>\r\n      <int>-1</int>\r\n    </dgEkijoCase2>\r\n  </Requirement>\r\n"
+             if liquefied else "")
     text = path.read_bytes().decode("cp932").replace(
         "</Datas>", f"  <Foundation>\r\n    <基礎照査>\r\n      <clsFoundation>\r\n        <FoundationType>{foundation}"
-                    "</FoundationType>\r\n      </clsFoundation>\r\n    </基礎照査>\r\n  </Foundation>\r\n</Datas>")
+                    f"</FoundationType>\r\n      </clsFoundation>\r\n    </基礎照査>\r\n  </Foundation>\r\n{flags}</Datas>")
     path.write_bytes(text.encode("cp932"))
     return path
 
@@ -276,3 +279,24 @@ def test_a_pile_foundation_runner_that_misbehaves_is_an_error(tmp_path: Path, fa
     monkeypatch.setenv("FAKE_AGGRESE", mode)
     with pytest.raises(RunnerError, match=message):
         check_seismic(pile_project(tmp_path), fake_aggrese_runner, limits=aggrese.Limits(SDR, aggrese.AXIAL))
+
+
+WET = b"Ver.5.2.3\r\nliquefied\r\n"
+
+
+def test_a_pile_foundation_with_a_case_for_the_liquefaction_is_checked_with_both_sdr(tmp_path: Path, fake_aggrese_runner: Path):
+    """Decision 95: ``--sdr-liquefied`` follows the .sdr; the report says which bytes it was given."""
+    checked = check_seismic(pile_project(tmp_path, liquefied=True), fake_aggrese_runner,
+                            limits=aggrese.Limits(SDR, aggrese.TRANSVERSE, WET))
+    assert sorted(checked.files) == ["pik", "xlsx"]
+    last = texts(checked.pdf)[-2:]
+    assert last == [f"FAKE AGGRESE LIMITS transverse {hashlib.sha256(SDR).hexdigest()[:16]}",
+                    f"FAKE AGGRESE LIMITS LIQUEFIED {hashlib.sha256(WET).hexdigest()[:16]}"]
+
+
+def test_the_sdr_for_the_liquefaction_goes_with_a_case_for_it_and_only_then(tmp_path: Path, fake_aggrese_runner: Path):
+    with pytest.raises(RunnerError, match="SDR_REQUIRED"):
+        check_seismic(pile_project(tmp_path / "a", liquefied=True), fake_aggrese_runner,
+                      limits=aggrese.Limits(SDR, aggrese.AXIAL))
+    with pytest.raises(RunnerError, match="INVALID_ARGUMENT"):
+        check_seismic(pile_project(tmp_path / "b"), fake_aggrese_runner, limits=aggrese.Limits(SDR, aggrese.AXIAL, WET))

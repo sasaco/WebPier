@@ -262,7 +262,9 @@ def _soil() -> dict[str, Field]:
 def _seismic_design() -> dict[str, Field]:
     # Shared by both directions; needed only by 0711 / 0721 (decision 49).
     return {"耐震設計条件.地域別": choice(choices.REGIONS, nullable=True),
-            "耐震設計条件.地盤区分": choice(choices.GROUND_CLASSES, nullable=True)}
+            "耐震設計条件.地盤区分": choice(choices.GROUND_CLASSES, nullable=True),
+            # decision 95: needed only by 0711 / 0721 of a pile foundation whose layers liquefy
+            "耐震設計条件.液状化指数": choice(choices.LIQUEFACTION_INDEXES, nullable=True)}
 
 
 def _column_check() -> dict[str, Field]:

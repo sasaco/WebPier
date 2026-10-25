@@ -319,10 +319,12 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
 
     def conditional(stages: Sequence[str]) -> list[dict[str, Any]]:
         """The files of the stages of a pile foundation that only some inputs have."""
+        found = [(stage_id, kind, name) for stage_id in stages if (stage := piles.get(stage_id)).soil_jr is not None
+                 for kind, name in stage.soil_jr.liquefaction]
+        found += [(stage_id, item.kind, item.file_name) for stage_id in stages for item in piles.get(stage_id).exports
+                  if item.liquefied]  # the NDUs for the liquefaction (decision 95)
         return [{"role": f"{stage_id}.{kind}", "path": f"post/{name}", "folder": False,
-                 "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}
-                for stage_id in stages if (stage := piles.get(stage_id)).soil_jr is not None
-                for kind, name in stage.soil_jr.liquefaction]
+                 "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"} for stage_id, kind, name in found]
 
     def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
         stages = registry.outputs.get(key, ())

@@ -122,12 +122,15 @@ def document(project: Project, databases: Sequence[str]) -> list[Node]:
                ("_dgLimitLevel", _array("int", DAMAGE_RECOVERY)), ("_dgLimitLevel2", _array("int", DAMAGE_SAFETY)),
                ("dgLimitLevel_typeCount", str(1 + piles))]
     foundation = _foundation(project)
+    # a Case for the liquefaction is one of the L2 earthquake, for each spectrum the project checks (_rbSpec): I and II (decision 95)
+    flagged = [-1 if index in project.liquefaction_cases else 0 for index in range(CASES)]
     requirement = [("_AtPoint", "0"), ("_rbSpec", _array("boolean", SPECTRUM)),
                    ("_rbChiiki", _array("boolean", _one_hot(project.region, 3))),
                    ("_rbJIban", _array("boolean", _one_hot(project.ground_class, GROUND_SLOTS))),
-                   ("_rbEkijo", _array("boolean", LIQUEFACTION)),
-                   *((name, _array("int", _cases([], 0)))
-                     for name in ("dgEkijoCase1", "dgEkijoCase21", "dgEkijoCase2")),
+                   ("_rbEkijo", _array("boolean", _one_hot(project.liquefaction_index, 2)
+                                       if project.liquefaction_cases else LIQUEFACTION)),
+                   ("dgEkijoCase1", _array("int", _cases([], 0))), ("dgEkijoCase21", _array("int", flagged)),
+                   ("dgEkijoCase2", _array("int", flagged)),
                    ("cbM65Area", "0"), ("_tbAlfa", "1"), ("_cbηx", "false"), ("_tbηxL1", "1"), ("_tbηxL2", "1"),
                    ("tbηxL1", None), ("tbηxL2", None), ("tbAlfa", "1.000"), ("AtPoint", "0")]
     return [("cmd", "-1"), ("Version", BATCH_VERSION), ("CaseName", case_name),

@@ -155,3 +155,23 @@ def test_the_rows_of_the_sdc_must_be_the_rows_of_the_input():
 def test_the_frame_nodes_the_ndu_leaves_out_are_the_pile_tips():
     frame = chain()[2].frame
     assert len([n for n in frame.nodes if NodeRole.PILE_TIP in n.roles]) == 3 and len(model().joints) == 69
+
+
+def test_the_ndu_for_the_liquefaction_has_the_one_combination_of_rho_m_1_and_alpha_f_1_of_its_push():
+    """Decision 95: the same frame and piles; the springs are those of the .sdc for the liquefaction (read by the caller)."""
+    pier, layout, longitudinal, transverse = chain()
+    liquefied = parse_seismic((Path(__file__).parents[1] / "fixtures" / "soiljr" / "pile_cast_liquefaction.sdc").read_bytes(),
+                              liquefied=True)
+    for profile, result in ((LONGITUDINAL, longitudinal), (TRANSVERSE, transverse)):
+        for reverse in (False, True) if profile is TRANSVERSE else (False,):
+            normal = build_pile_ndu(profile, pier, layout, result, SPRINGS, reverse=reverse)
+            found = build_pile_ndu(profile, pier, layout, result, liquefied, reverse=reverse, liquefied=True)
+            assert len(found.combinations) == 1 and len(normal.combinations) == 4
+            (only,) = found.combinations
+            assert (only.rho_m.value, only.alpha_f.value, only.reverse) == (1.0, 1.0, reverse)
+            assert (found.joints, found.members) == (normal.joints, normal.members)
+            assert [(e.number, e.i, e.j, e.kind) for e in found.elements] == [(e.number, e.i, e.j, e.kind) for e in normal.elements]
+            assert found.supports != normal.supports and found.sections == normal.sections
+    stripped = replace(longitudinal, combinations=tuple(c for c in longitudinal.combinations if c.rho_m.value != 1.0))
+    with pytest.raises(InputError, match="組合せがありません"):
+        build_pile_ndu(LONGITUDINAL, pier, layout, stripped, liquefied, liquefied=True)

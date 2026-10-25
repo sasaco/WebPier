@@ -29,6 +29,11 @@ pile foundation with none is refused: SDR_REQUIRED), the direction is checked, n
 report has one more page ``FAKE AGGRESE LIMITS <direction> <the first 16 digits of the SHA256 of the .sdr>``. ``--sdr`` for a
 direct foundation is INVALID_ARGUMENT.
 
+``--sdr-liquefied <.sdr>`` (decision 95) follows ``--sdr-direction``: the .sdr for the liquefaction, for a project that has a
+Case for the liquefaction (``dgEkijoCase1``, ``dgEkijoCase21`` or ``dgEkijoCase2`` holding -1). Such a project without it is
+SDR_REQUIRED; it without such a Case is INVALID_ARGUMENT; the report then has its own page ``FAKE AGGRESE LIMITS LIQUEFIED
+<the first 16 digits of the SHA256 of that .sdr>``.
+
 When the real runner's protocol changes, change this too. ``FAKE_AGGRESE`` makes it misbehave, for the error tests:
 fail, exit, text, list, protocol, engine, version, artifacts (one artifact listed twice), missing (report.pdf not
 written), nopik (no pickup.pik returned), noxlsx (no summary.xlsx returned), notzip (summary.xlsx is not a zip), nocsv (no
@@ -143,11 +148,14 @@ def main(argv):
         sys.stdout.write("[]")
         return 0
     piled = "--sdr" in argv
+    wet = "--sdr-liquefied" in argv
     switches = PILE_SWITCHES if piled else SWITCHES
-    if (len(argv) != 7 + len(switches) + (4 if piled else 0) or argv[0] != "run" or argv[1] != "--input"
-            or argv[3] != "--output-dir" or argv[5] != "--snap-map" or argv[7:7 + len(switches)] != switches
+    if (len(argv) != 7 + len(switches) + (4 if piled else 0) + (2 if wet else 0) or argv[0] != "run"
+            or argv[1] != "--input" or argv[3] != "--output-dir" or argv[5] != "--snap-map"
+            or argv[7:7 + len(switches)] != switches
             or (piled and (argv[7 + len(switches)] != "--sdr" or argv[9 + len(switches)] != "--sdr-direction"
-                           or argv[10 + len(switches)] not in ("axial", "transverse")))):
+                           or argv[10 + len(switches)] not in ("axial", "transverse")))
+            or (wet and (not piled or argv[11 + len(switches)] != "--sdr-liquefied"))):
         return failure("INVALID_ARGUMENTS", " ".join(argv), 2)
     project, output, snaps = Path(argv[2]), Path(argv[4]), Path(argv[6])
     if output.exists() and any(output.iterdir()):
@@ -163,6 +171,16 @@ def main(argv):
     sdr = Path(argv[8 + len(switches)]) if piled else None
     if sdr is not None and not sdr.is_file():
         return failure("INVALID_SDR", f"Could not read --sdr: {sdr}", 2)
+    liquefaction = any(re.search(rf"<{tag}>([\s\S]*?)</{tag}>", data.decode("cp932")) and "<int>-1</int>" in
+                       re.search(rf"<{tag}>([\s\S]*?)</{tag}>", data.decode("cp932"))[1]
+                       for tag in ("dgEkijoCase1", "dgEkijoCase21", "dgEkijoCase2"))
+    if wet and not liquefaction:
+        return failure("INVALID_ARGUMENT", "--sdr-liquefied requires a project with a liquefaction Case.", 2)
+    if liquefaction and piled and not wet:
+        return failure("SDR_REQUIRED", "A pile foundation project with liquefaction Cases requires --sdr-liquefied.", 2)
+    wet_sdr = Path(argv[12 + len(switches)]) if wet else None
+    if wet_sdr is not None and not wet_sdr.is_file():
+        return failure("INVALID_SDR", f"Could not read --sdr-liquefied: {wet_sdr}", 2)
     named = {str(index): str((project.parent / item.text).resolve())
              for index, item in enumerate(root.find("SNAP/SnapDBPath")) if item.text}
     mapped = json.loads(snaps.read_text(encoding="utf-8"))
@@ -179,6 +197,8 @@ def main(argv):
              for number, path in enumerate(databases, 1)]
     limits = [] if sdr is None else [f"FAKE AGGRESE LIMITS {argv[10 + len(switches)]} "
                                      f"{hashlib.sha256(sdr.read_bytes()).hexdigest()[:16]}"]
+    if wet_sdr is not None:
+        limits.append(f"FAKE AGGRESE LIMITS LIQUEFIED {hashlib.sha256(wet_sdr.read_bytes()).hexdigest()[:16]}")
     pdf = report([*pages, f"FAKE AGGRESE SUMMARY {hashlib.sha256(data).hexdigest()[:16]}", *limits])
     pdf = {"broken": b"not a pdf", "empty": blank()}.get(mode, pdf)
     cases = [{"caseNumber": number, "name": path.stem, "selected": True, "aggregated": not (mode == "unaggregated"

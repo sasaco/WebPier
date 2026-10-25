@@ -351,8 +351,10 @@ def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
 
 
 def _seismic_design(root: Reader) -> SeismicDesign:
-    node = root.at("耐震設計条件").only("地域別", "地盤区分")
-    return SeismicDesign(region=read(node.at("地域別")), ground_class=read(node.at("地盤区分")))
+    node = root.at("耐震設計条件").only("地域別", "地盤区分", "液状化指数")
+    index = node.optional("液状化指数")  # absent is blank: an input made before decision 95 has none
+    return SeismicDesign(region=read(node.at("地域別")), ground_class=read(node.at("地盤区分")),
+                         liquefaction_index=None if index is None else read(index))
 
 
 COLUMN_CHECK_KEYS = ("水掛かりの程度", "外観の照査", "ε'csd", "適用基準の機関", "JR-001", "JR-004")

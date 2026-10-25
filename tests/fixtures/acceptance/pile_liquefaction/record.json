@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "kind": "pile_liquefaction_acceptance",
+  "date": "2026-10-25T19:45:46+09:00",
+  "method": "液状化する地層（De 0.5）と液状化指数 20<PL の杭基礎の 0711・0721 を本物の JRSNAP・Aggre-SE で生成し、全 Case の集計と解析の完了、液状化の Case の扱い、液状化時用の .sdr の制限値の取り込み（液状化の Case だけを杭基礎の照査にして、安定レベル2の Rvd が .sdr の表の値と同じこと）、見本 後処理C1.xml の液状化の Case との比較（⑧を除いて同じ）を確かめた。判定は扱わない。",
+  "seismic_check_judged": false,
+  "input": {
+    "path": "tests/fixtures/inputs/pile_seismic.json",
+    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715",
+    "kept": "input.json",
+    "kept_sha256": "23352901032875188cbc9f5efaaf7cb182c13aacf1bf2177b1c2712f53edbef7"
+  },
+  "runner": {
+    "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+    "sha256": "3c87241c103567a260b6f2bea7d92fb6b6f5d33ce032558a1af593542aa40fd8"
+  },
+  "helpers": {
+    "scripts/accept_pile_liquefaction.py": "3ef3ab4efeed42ab5ec746b4428745675ac5a5217bff1a31285e0152c8db5319"
+  },
+  "stages": {
+    "0711": {
+      "project": {
+        "file": "線路方向.xml",
+        "sha256": "cc017b7f8063c789fb7d965938f5b20fb747a86e18b6b14e1ee384869b9d84b8",
+        "databases": [
+          "線路方向(Case1_ρm10_αf1_正向).DB1",
+          "線路方向(Case2_ρm12_αf1_正向).DB1",
+          "線路方向(Case3_ρm10_αf2_正向).DB1",
+          "線路方向(Case4_ρm12_αf2_正向).DB1",
+          "線路方向_液状化(Case1_ρm10_αf1_正向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路方向_JRSNAP",
+        "sha256": "65064d4e68ffbce1b7441d0d00f3b52b397e0822d499f3fb226839f227ab887a"
+      },
+      "report": {
+        "file": "0711_線路方向非線形解析.pdf",
+        "pages": 44
+      },
+      "cases": [
+        "線路方向(Case1_ρm10_αf1_正向)",
+        "線路方向(Case2_ρm12_αf1_正向)",
+        "線路方向(Case3_ρm10_αf2_正向)",
+        "線路方向(Case4_ρm12_αf2_正向)",
+        "線路方向_液状化(Case1_ρm10_αf1_正向)"
+      ],
+      "analysis_ok_messages": 5,
+      "liquefaction_cases": [
+        4
+      ],
+      "liquefaction_response_pages": 1,
+      "limits": {
+        "direction": "axial",
+        "sha256": "37794a6ab7f76be40f05b780a78a2c744a389a23937a6e05430aa8f6244cd513",
+        "liquefied_sha256": "6b2f0e999358542b20a0ea566248b3092b0b3fe33c7a240d7c45ae3afe48fc02"
+      }
+    },
+    "0721": {
+      "project": {
+        "file": "線路直角方向.xml",
+        "sha256": "03c64c72fdbc70558cafea43c9dde8d901f47fba31722f371af47305ee177b0e",
+        "databases": [
+          "線路直角方向(Case1_ρm10_αf1_正向).DB1",
+          "線路直角方向(Case2_ρm12_αf1_正向).DB1",
+          "線路直角方向(Case3_ρm10_αf2_正向).DB1",
+          "線路直角方向(Case4_ρm12_αf2_正向).DB1",
+          "線路直角方向_液状化(Case1_ρm10_αf1_正向).DB1",
+          "線路直角方向_液状化_逆向(Case1_ρm10_αf1_逆向).DB1",
+          "線路直角方向_逆向(Case1_ρm10_αf1_逆向).DB1",
+          "線路直角方向_逆向(Case2_ρm12_αf1_逆向).DB1",
+          "線路直角方向_逆向(Case3_ρm10_αf2_逆向).DB1",
+          "線路直角方向_逆向(Case4_ρm12_αf2_逆向).DB1"
+        ]
+      },
+      "jrsnap": {
+        "folder": "線路直角方向_JRSNAP",
+        "sha256": "838026256cad96ff8ad336015b67e4d744e50fd90641a70de6aaecd54bdb484c"
+      },
+      "report": {
+        "file": "0721_線路直角方向非線形解析.pdf",
+        "pages": 85
+      },
+      "cases": [
+        "線路直角方向(Case1_ρm10_αf1_正向)",
+        "線路直角方向(Case2_ρm12_αf1_正向)",
+        "線路直角方向(Case3_ρm10_αf2_正向)",
+        "線路直角方向(Case4_ρm12_αf2_正向)",
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向)",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向)",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向)",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向)",
+        "線路直角方向_液状化(Case1_ρm10_αf1_正向)",
+        "線路直角方向_液状化_逆向(Case1_ρm10_αf1_逆向)"
+      ],
+      "analysis_ok_messages": 10,
+      "liquefaction_cases": [
+        8,
+        9
+      ],
+      "liquefaction_response_pages": 2,
+      "limits": {
+        "direction": "transverse",
+        "sha256": "37794a6ab7f76be40f05b780a78a2c744a389a23937a6e05430aa8f6244cd513",
+        "liquefied_sha256": "6b2f0e999358542b20a0ea566248b3092b0b3fe33c7a240d7c45ae3afe48fc02"
+      }
+    }
+  },
+  "limits_import": {
+    "case_index": 4,
+    "level2_rvd_liquefied": "4149.4",
+    "level2_rvd_ordinary": "4473.3",
+    "found": true,
+    "ordinary_absent": true
+  },
+  "sample": {
+    "sample": "後処理C1.xml",
+    "sample_flagged_cases": [
+      4,
+      12
+    ],
+    "sample_index": [
+      "false",
+      "true"
+    ],
+    "index": [
+      "false",
+      "true"
+    ],
+    "sample_items": [
+      0,
+      -1,
+      -1,
+      0,
+      -1,
+      0,
+      -1,
+      -1,
+      -1
+    ],
+    "items": [
+      0,
+      -1,
+      -1,
+      0,
+      -1,
+      0,
+      -1,
+      0,
+      -1
+    ],
+    "items_equal_but_for_8": true
+  },
+  "accepted": true,
+  "failures": []
+}

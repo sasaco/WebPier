@@ -8,6 +8,10 @@ ones of 地震時); SOIL-JR 5.3 prints two (安定レベル1 and 安定レベル
 one. Both name the part of a layer that has the spring (⊿l).
 
 Only a layout that lists the pile rows (``N列目``, K_FLG = 1) is read: the rows of the model take their columns by number.
+
+The .sdc for the liquefaction (``<名前>(液状化時用).sdc``, decision 95) has the same tables, with 液状化時 where the
+short-term nonlinear one and 地震時 are (b) and the effective resistance earth pressure, d) and e), g)); ``liquefied``
+reads it, and it is told apart by the title of g) (``液状化時：杭先端の鉛直…``, else ``地震時：…``).
 """
 
 from __future__ import annotations
@@ -83,7 +87,7 @@ def _group(lines: list[str], title: str, groups: int, columns: int, what: str) -
     return tuple(values[group * columns:(group + 1) * columns] for group in range(groups))
 
 
-def _direction(name: str, lines: list[str]) -> SeismicDirection:
+def _direction(name: str, lines: list[str], tip: str) -> SeismicDirection:
     sections = _sections(lines)
     for key in "abcdefg":
         if key not in sections:
@@ -116,15 +120,15 @@ def _direction(name: str, lines: list[str]) -> SeismicDirection:
     first, second = _group(sections["f"], "杭先端の鉛直", 3, count, f"{name}: f）")[1:]
     horizontal = _group(sections["f"], "杭先端の水平", 2, count, f"{name}: f）")[1]
     rotation = _group(sections["f"], "杭先端の回転", 2, count, f"{name}: f）")[1]
-    yield_load, ultimate = _group(sections["g"], "地震時：杭先端の鉛直", 2, count, f"{name}: g）")
+    yield_load, ultimate = _group(sections["g"], tip, 2, count, f"{name}: g）")
     return SeismicDirection(name=name, rows=rows, columns=columns, depth_piles=piles, inverse_beta=inverse,
                             distances=tuple(row.distance for row in listed), layers=tuple(layers),
                             tip=SeismicTip(first=first, second=second, yield_load=yield_load, ultimate=ultimate,
                                            horizontal=horizontal, rotation=rotation))
 
 
-def parse_seismic(data: bytes) -> SeismicSprings:
-    """The seismic ground springs of a .sdc of SOIL-JR 5.2 or 5.3."""
+def parse_seismic(data: bytes, *, liquefied: bool = False) -> SeismicSprings:
+    """The seismic ground springs of a .sdc of SOIL-JR 5.2 or 5.3, or with *liquefied* of the one for the liquefaction."""
     try:
         lines = data.decode(ENCODING).replace("\r\n", "\n").split("\n")
     except UnicodeDecodeError as exc:
@@ -144,4 +148,5 @@ def parse_seismic(data: bytes) -> SeismicSprings:
     if not blocks:
         raise SdcError(".sdc に方向（（１）橋軸方向）がありません")
     return SeismicSprings(version=lines[1].strip(), title=lines[4], pile=_header(lines[:start], "杭情報"),
-                          directions=tuple(_direction(name, body) for name, body in blocks))
+                          directions=tuple(_direction(name, body, "液状化時：杭先端の鉛直" if liquefied else "地震時：杭先端の鉛直")
+                                           for name, body in blocks))

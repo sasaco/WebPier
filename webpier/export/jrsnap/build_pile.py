@@ -16,6 +16,8 @@ member from its head down, cut into elements and given the ground springs of the
   and its 施工条件 (the code of the manual's 表2-30) are common; the axial force is not given (JRSNAP takes the one of the
   analysis, as for the column).
 - **Combinations.** Those of the push of this NDU: the forward ones, or the reversed ones with ``reverse``.
+- **Liquefaction (decision 95).** The NDU for the liquefaction (``liquefied``) is the same frame and piles with the springs of
+  the .sdc for the liquefaction (the caller reads it) and the one combination of ρm 1.0 and αf 1.0 of its push: one Case.
 """
 
 from __future__ import annotations
@@ -94,10 +96,13 @@ def _front(profile: Profile, reverse: bool) -> int:
     return int(profile.earthquake) * (-1 if reverse else 1)
 
 
+LIQUEFACTION_PATTERN = (Decimal("1.0"), Decimal("1.0"))  # the (ρm, αf) of the one combination of the NDU for the liquefaction
+
+
 def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seismic, springs: SeismicSprings, *,
-                   reverse: bool = False) -> PileNduModel:
+                   reverse: bool = False, liquefied: bool = False) -> PileNduModel:
     """*seismic* is a SeismicLongitudinalResult or a SeismicTransverseResult of the same input on piles; *reverse* the NDU of
-    the reversed (逆向) combinations."""
+    the reversed (逆向) combinations; *liquefied* the NDU for the liquefaction, whose *springs* are those of the .sdc for it."""
     if pier.substructure.foundation != choices.CAST_IN_PLACE_PILE:
         raise InputError("地震時の杭基礎の NDU は場所打ち杭だけに対応します（鋼管ソイルセメント杭は未対応です、決定93）")
     frame = seismic.frame
@@ -106,9 +111,10 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
     combinations = tuple(
         Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
                     coefficients=tuple(int(action.case in c.cases) for action in seismic.basic_cases), reverse=c.reverse)
-        for c in seismic.combinations if c.reverse == reverse)
+        for c in seismic.combinations if c.reverse == reverse
+        and (not liquefied or (d(c.rho_m), d(c.alpha_f)) == LIQUEFACTION_PATTERN))
     if not combinations:
-        raise InputError("向きを反転した（逆向の）組合せがありません")
+        raise InputError("向きを反転した（逆向の）組合せがありません" if reverse else "組合せがありません")
     top = frame.node(NodeRole.FOOTING_TOP)
     base = sorted((node for node in frame.nodes if NodeRole.PILE_TIP not in node.roles),
                   key=lambda node: (-node.y.value, node.x.value))

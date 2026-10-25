@@ -10,7 +10,8 @@ as it is by its kind: the section force pickup (``pickup.pik``, decision 57) and
 every output step of each direct-foundation node, which 0800 reads for the Rvd到達ステップ); no check tables or pile
 anchor report is asked for. Every Case must be aggregated.
 A pile foundation (decision 94) gives the runner the limit values of its stability as SOIL-JR's .sdr (``Limits``: its bytes and
-the direction, ``--sdr`` and ``--sdr-direction``), which the runner reads as the foundation setting screen does; it has no
+the direction, ``--sdr`` and ``--sdr-direction``, and for the Cases for the liquefaction the .sdr for it, ``--sdr-liquefied``),
+which the runner reads as the foundation setting screen does; it has no
 step table of the direct foundation, so the runner is not asked for one and returns four files.
 The content and bytes of these files are Aggre-SE's (the report and the workbook differ between runs), so they are
 checked no further than being a PDF and a workbook (a zip) and are not bound to the implementation identity; the
@@ -65,6 +66,7 @@ PILE_PUBLISHED = {kind: item for kind, item in PUBLISHED.items() if kind != "ste
 _FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PUBLISHED.values()}
 _PILE_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PILE_PUBLISHED.values()}
 SDR_NAME = "foundation.sdr"  # the name the runner is given the .sdr as: the file's own name is not a fact of the check
+LIQUEFIED_SDR_NAME = "foundation(液状化時用).sdr"  # and the one for the liquefaction (Aggre-SE reads "液状化" in the name)
 AXIAL, TRANSVERSE = "axial", "transverse"  # --sdr-direction: 橋軸方向 (線路方向), 直角方向 (線路直角方向)
 # The pickups of the PIK, by number: Batch's default (Option_PickUpFileCase = 0, reports/ExcelReportPickUpFile.vb),
 # each the envelope of every Case up to its response step (decision 57).
@@ -78,10 +80,12 @@ class _Failure(Exception):
 
 @dataclass(frozen=True)
 class Limits:
-    """The limit values of the stability of a pile foundation: SOIL-JR's .sdr (0500) and the direction the project checks."""
+    """The limit values of the stability of a pile foundation: SOIL-JR's .sdr (0500) and the direction the project checks; and,
+    for a project with a Case for the liquefaction (decision 95), the .sdr for the liquefaction."""
 
     sdr: bytes
     direction: str  # AXIAL or TRANSVERSE
+    liquefied: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -171,6 +175,9 @@ def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> 
         if limits is not None:
             (Path(work) / SDR_NAME).write_bytes(limits.sdr)
             sdr = ["--sdr", str(Path(work) / SDR_NAME), "--sdr-direction", limits.direction]
+            if limits.liquefied is not None:
+                (Path(work) / LIQUEFIED_SDR_NAME).write_bytes(limits.liquefied)
+                sdr += ["--sdr-liquefied", str(Path(work) / LIQUEFIED_SDR_NAME)]
         try:
             done = subprocess.run([str(runner), "run", "--input", str(project), "--output-dir", str(output),
                                    "--snap-map", str(snaps), *arguments, *sdr],

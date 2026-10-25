@@ -191,6 +191,9 @@ class Export:
     file_name: str
     build: Callable[[Results, PierInput], bytes]
     metadata: Mapping[str, Any] = field(default_factory=dict)  # fixed facts recorded in the sidecar
+    # written only for an input some layer of whose ground liquefies (``soiljr.liquefied``, decision 95), like SOIL-JR's files
+    # for the liquefaction
+    liquefied: bool = False
 
 
 @dataclass(frozen=True)
@@ -781,11 +784,14 @@ def _pile_foundation(results: Results) -> PileFoundation:
 
 
 def _pile_ndu_model(stage_id: str, profile: NduProfile, results: Results, pier: PierInput,
-                    reverse: bool = False) -> PileNduModel:
+                    reverse: bool = False, liquefied: bool = False) -> PileNduModel:
     """The NDU model of the piles of the 0710 or 0720 result, from the seismic tables of SOIL-JR's .sdc (decision 93): the
-    one of the combinations that push forward, or of the reversed (逆向) ones, whose columns of the .sdc go the other way."""
-    return build_pile_ndu(profile, pier, column_layout(pier), results[stage_id], parse_seismic(results["0500"].sdc),
-                          reverse=reverse)
+    one of the combinations that push forward, or of the reversed (逆向) ones, whose columns of the .sdc go the other way.
+    With *liquefied* it is the one for the liquefaction, from the .sdc for it (decision 95)."""
+    ground = results["0500"]
+    springs = parse_seismic(ground.liquefied_sdc, liquefied=True) if liquefied else parse_seismic(ground.sdc)
+    return build_pile_ndu(profile, pier, column_layout(pier), results[stage_id], springs, reverse=reverse,
+                          liquefied=liquefied)
 
 
 def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any], profile: NduProfile,
@@ -795,8 +801,8 @@ def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFo
     the cases of the reversed push only are drawn from that one."""
     split = reverse_file_name is not None
 
-    def ndu(reverse: bool) -> Callable[[Results, PierInput], bytes]:
-        return lambda results, pier: write_pile_ndu(_pile_ndu_model(stage.id, profile, results, pier, reverse))
+    def ndu(reverse: bool, liquefied: bool = False) -> Callable[[Results, PierInput], bytes]:
+        return lambda results, pier: write_pile_ndu(_pile_ndu_model(stage.id, profile, results, pier, reverse, liquefied))
 
     def figures(reverse: bool) -> Callable[[Results, PierInput], tuple[tuple[int, int], ...]]:
         return lambda results, pier: diagram_combinations(_pile_ndu_model(stage.id, profile, results, pier, reverse),
@@ -807,30 +813,44 @@ def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFo
     if reverse_file_name is not None:
         exports += (Export("jrsnapreverse", reverse_file_name, ndu(True), metadata=_NDU),)
         also = (AlsoFigures("jrsnapreverse", figures(True)),)
+    # the NDUs for the liquefaction (decision 95): one for each push, written for an input that liquefies; no figures of theirs
+    exports += (Export("jrsnapliquefied", file_name.replace(".ndu", "_液状化.ndu"), ndu(False, True), metadata=_NDU,
+                       liquefied=True),)
+    if reverse_file_name is not None:
+        exports += (Export("jrsnapliquefiedreverse", reverse_file_name.replace("_逆向.ndu", "_液状化_逆向.ndu"),
+                           ndu(True, True), metadata=_NDU, liquefied=True),)
     piles = replace(_on_piles(stage, calculate), exports=exports,
-                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also), precheck=_no_liquefaction(stage.id))
+                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piles})
 
 
-def _no_liquefaction(stage_id: str) -> Callable[[PierInput], None]:
-    """The check that the input has no layer that liquefies: the seismic stages of a pile foundation are not made for the
-    liquefaction yet, and with the ordinary limits alone they would look complete (decision 94)."""
+def _liquefaction_index(stage_id: str) -> Callable[[PierInput], None]:
+    """The check that an input whose ground liquefies has the 液状化指数, which Aggre-SE's Cases for the liquefaction need and
+    which is not filled in by a default (decision 95)."""
     def check(pier: PierInput) -> None:
-        if soiljr.liquefied(pier):
-            raise InputError(f"地盤: 液状化する地層（低減係数 De が 1 より小さい層）がある杭基礎の{stage_id}は未対応です"
-                             "（液状化時用の解析は未実装です）")
+        if pier.seismic_design.liquefaction_index is None and soiljr.liquefied(pier):
+            raise InputError(f"耐震設計条件.液状化指数: 液状化する地層がある杭基礎の{stage_id}には値が必要です"
+                             f"（{'・'.join(choices.LIQUEFACTION_INDEXES)}）")
     return check
 
 
 def _pile_aggrese(stage_id: str, profile: NduProfile, file_names: Sequence[str]
                   ) -> Callable[[Results, PierInput], Callable[[str, Sequence[str]], bytes]]:
     """The project of the piles of the NDUs *file_names* of *stage_id* (the NDU of the forward push, then the one of the
-    reversed push, decisions 93 and 94), checked before the analysis; then its writer."""
+    reversed push, decisions 93 and 94, and for an input that liquefies the NDUs for the liquefaction in the same order,
+    decision 95), checked before the analysis; then its writer."""
     def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
         models = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0) for index in range(len(file_names))]
-        project = build_pile_project(models, pier)
-        groups = [(name.removesuffix(".ndu"), len(model.combinations)) for name, model in zip(file_names, models)]
-        return lambda folder, names: write_project(project, ndu_databases(folder, names, groups))
+        names = list(file_names)
+        liquefied: list[PileNduModel] = []
+        if soiljr.liquefied(pier):
+            liquefied = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0, liquefied=True)
+                         for index in range(len(file_names))]
+            names += [name.replace("_逆向.ndu", "_液状化_逆向.ndu") if name.endswith("_逆向.ndu")
+                      else name.replace(".ndu", "_液状化.ndu") for name in file_names]
+        project = build_pile_project(models, pier, liquefied=liquefied)
+        groups = [(name.removesuffix(".ndu"), len(model.combinations)) for name, model in zip(names, [*models, *liquefied])]
+        return lambda folder, found: write_project(project, ndu_databases(folder, found, groups))
     return build
 
 
@@ -842,8 +862,9 @@ def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, fi
     analysis, seismic = stage.nonlinear_analysis, stage.seismic_check
     assert analysis is not None and analysis.project is not None and seismic is not None
     analysis = replace(analysis, project=replace(analysis.project, build=_pile_aggrese(source, profile, file_names)),
-                       also=("jrsnapreverse",) if len(file_names) > 1 else ())
-    piled = replace(stage, nonlinear_analysis=analysis, precheck=_no_liquefaction(stage.id),
+                       also=(*(("jrsnapreverse",) if len(file_names) > 1 else ()), "jrsnapliquefied",
+                             *(("jrsnapliquefiedreverse",) if len(file_names) > 1 else ())))
+    piled = replace(stage, nonlinear_analysis=analysis, precheck=_liquefaction_index(stage.id),
                     seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
 

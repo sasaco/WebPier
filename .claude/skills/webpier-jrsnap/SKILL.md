@@ -27,7 +27,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 ## 杭基礎の 0711・0721（決定94、P6b。2026-10-25）
 
 - JRSNAP の runner は NDU ごとに `run`（`pipeline/generate.py: _analyze_stage`、`jrsnap.merge_nonlinear`）。0721 は順向と逆向の 2 回で、結果を 1 つのフォルダーにまとめる（ファイル名は NDU の名前から始まるが、S_ANALYSIS の `解析実行Err.log`〔正常なら空〕は名前がなく両方が書くので、同じバイトなら 1 つにし、違えばエラー）。`NonlinearAnalysis.also` が 2 つ目以降の NDU の出力の種類（`jrsnapreverse`）。付帯 JSON の `nonlinear_analysis.also_ndus`、`runner_summary.also`。
-- 液状化する地層のある入力は、0710・0720・0711・0721 とも生成の前に入力エラー（`StageSpec.precheck`、`stages._no_liquefaction`）。
+- 液状化する地層のある入力（決定95、P6c）：0710・0720 が液状化時用の NDU も書き（`Export.liquefied`、`stages._with_seismic_piles`、`build_pile_ndu(..., liquefied=True)`：ばねは `parse_seismic(..., liquefied=True)` で読む液状化時用の .sdc〔表は通常と同じで 液状化時 と 地震時 の見出しだけ違う〕、組合せは ρm 1.0・αf 1.0 の 1 つ）、0711・0721 の解析にそれらも入る（`NonlinearAnalysis.also` の `jrsnapliquefied`・`jrsnapliquefiedreverse`、`generate._sources` が入力で絞る）。`耐震設計条件.液状化指数` が空なら 0711・0721 は入力エラー（`stages._liquefaction_index`）。受入：`scripts/accept_pile_liquefaction.py`。
 
 ## 杭基礎の 0710・0720（決定93、P6a。2026-10-25）
 

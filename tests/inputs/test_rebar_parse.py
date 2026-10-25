@@ -329,6 +329,18 @@ def test_the_seismic_design_conditions_are_choices(key, value, message):
         parse_input(document)
 
 
+def test_the_liquefaction_index_is_an_optional_choice_and_blank_without_it():
+    """Decision 95: 5<PL<20 or 20<PL for the Cases for the liquefaction; an input without the key is blank there."""
+    document = data()
+    assert parse_input(document).seismic_design.liquefaction_index is None
+    for value in ("5<PL<20", "20<PL", None):
+        document["耐震設計条件"]["液状化指数"] = value
+        assert parse_input(document).seismic_design.liquefaction_index == value
+    document["耐震設計条件"]["液状化指数"] = "PL=10"
+    with pytest.raises(InputError, match=re.escape("耐震設計条件.液状化指数: ") + ".*「5<PL<20」「20<PL」のいずれかを選んでください"):
+        parse_input(document)
+
+
 def test_the_seismic_design_conditions_are_one_section_with_two_keys():
     document = data()
     document["耐震設計条件"]["スペクトル"] = "Ⅰ,Ⅱ"  # WebPier's condition, not an input
