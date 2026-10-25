@@ -178,7 +178,7 @@ P9 は各段の終わりに付ける
 
 ### P6 地震時（0710・0720、0711・0721）
 
-**決定93 で P6a・P6b・P6c に分けた**（下の「作るもの」は見込み。P6a＝0710・0720 の NDU に杭を入れる、P6b＝0711・0721 と Aggre-SE の .sdr、P6c＝液状化）。見本は `Batch/tests/JRSNAP_Ver5.2-L03/01_サンプル(V53)：RC橋脚L：RC/`。
+**決定93 で P6a・P6b・P6c・P6d に分けた**（下の「作るもの」は見込み。P6a＝0710・0720 の NDU に杭を入れる、P6b＝0711・0721 と Aggre-SE の .sdr、P6c＝液状化、P6d＝地盤変位〔見本 Example橋脚4 IV-1・IV-3.1.3 (5)。SoilStructure の `SoilDisp` で求め、JRSNAP の `HendoCaseInfo`・`HendoSPDInfo` で荷重にする〕。P6a・P6b は慣性力のみ）。見本は `Batch/tests/JRSNAP_Ver5.2-L03/01_サンプル(V53)：RC橋脚L：RC/`。
 
 - **作るもの**：
   - JRSNAP 入力モデルに杭を入れる：

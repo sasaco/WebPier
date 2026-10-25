@@ -174,15 +174,16 @@ def _combinations(m: Manuscript, result: SeismicLongitudinalResult) -> None:
     m.table("basic", TableSpec((2, 3, 3, 3, 14), tuple(rows), (1,) * len(rows),
                                numeric=frozenset({0})))
     m.paragraph("combination.caption", "組合せCase", keep=True)
+    resistance = result.frame.piles is None  # the 地盤抵抗TYPE is the direct foundation's (decision 93)
     rows = [("Case", Row(sub("α", "f"), "／", sub("ρ", "m"), gap=0), "作用方向", "荷重補正係数＋基本Case",
-             "地盤抵抗TYPE")]
+             *(("地盤抵抗TYPE",) if resistance else ()))]
     for combination in result.combinations:
         rows.append((str(combination.number), Span(f"{value(combination.alpha_f)}／{value(combination.rho_m)}"),
                      Span(ARROWS[combination.direction]),
                      " + ".join(str(result.basic(case).number) for case in combination.cases),
-                     str(combination.ground_resistance_type)))
-    m.table("combination", TableSpec((2, 3, 3, 13, 5), tuple(rows), (1,) * len(rows),
-                                     numeric=frozenset({0, 4})))
+                     *((str(combination.ground_resistance_type),) if resistance else ())))
+    m.table("combination", TableSpec((2, 3, 3, 13, 5) if resistance else (2, 3, 3, 18), tuple(rows),
+                                     (1,) * len(rows), numeric=frozenset({0, 4} if resistance else {0})))
 
 
 def content(result: SeismicLongitudinalResult, reaction: Any, pier: PierInput) -> tuple[Unit, ...]:

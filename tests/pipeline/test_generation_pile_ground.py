@@ -101,7 +101,9 @@ def test_the_result_holds_what_was_derived_the_sdt_and_the_limits(made):
     root, opts, generation = made
     document = load_json((root / "output" / "0500_杭基礎.json").read_bytes())
     result = document["result"]
-    assert set(result) == {"ground", "sdt_sha256", "sdr", "springs", "liquefied_sdr"} and result["liquefied_sdr"] is None
+    assert set(result) == {"ground", "sdt_sha256", "sdc_sha256", "sdr", "springs", "liquefied_sdr"}
+    assert result["liquefied_sdr"] is None
+    assert result["sdc_sha256"] == sha256((root / "post" / "杭基礎.sdc").read_bytes())  # the seismic tables are read from it
     assert [d["name"] for d in result["springs"]["directions"]] == ["橋軸方向", "直角方向"]  # the .sdc, read (decision 88)
     assert result["sdt_sha256"] == sha256((root / "post" / "杭基礎.sdt").read_bytes())
     assert [row["thickness"] for row in result["ground"]["layers"]] == [2.6, 5.0, 4.0, 6.4, 1.0]

@@ -105,8 +105,9 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 2. 杭の断面は、帯鉄筋の区間（2D 区間、`鉄筋.杭.hoops.lower` の各区間）ごとの円形断面です。要素の断面は、その要素の杭頭側の端がある区間のものです。主鉄筋・材質・純かぶり・粗骨材の最大寸法は `鉄筋.杭`、f'ck と施工条件（表2-30 の符号：自然泥水 −3、安定液使用 −4）は `杭基礎.場所打ち杭`、せん断の部材係数は柱と同じ `JRSNAP の設定`。作用軸力は書かず、JRSNAP が解析中の軸力の変動を考慮します。
 3. .sdc の列と杭列：.sdc の1列目は押す向きの前面の列です。0710 は −x、0720 は +x に押すので、列を逆にします。0720 は下り線の逆向の組合せを向きを反転して押すので、その組合せだけの NDU（`線路直角方向_逆向.ndu`）をもう一つ書きます（列を逆向きに割り当てます）。それぞれの NDU には、その向きの組合せだけを入れます。図（データ確認図・荷重図）は先の NDU から描き、その NDU にないケース（下り線）の荷重図は逆向の NDU から描きます（`jrsnap.add_load_diagrams`）。
 4. SOIL-JR の連携の項目（`SRenkei`）は書きません（絶対パスが入ると成果物が出力先で変わるため）。ばねの値は NDU に書き込み済みです。
-5. フーチングが排除する土（フーチングの慣性力の γ'）は、杭基礎では表層から Df までの層で求めます（`calc/embedment.py: pile_cover_layers`）。
-6. 実アプリでの受入：`scripts/accept_pile_ndu.py`。JRSNAP の見本 01_サンプル(V53)：RC橋脚L（壁式橋脚、杭 8 本）を表すモデル（`tests/pile_ndu_support.py`。杭は SOIL-JR 5.3 の .sdc から）の NDU を、JRSNAP の runner に NDT へ書き出させ、見本の NDT と、名前・荷重・DA カードの旗・Kv2 の 2 行の最後の 1 桁を除いて同じことを確かめて `tests/fixtures/acceptance/pile_ndu/record.json` に記録します（`tests/acceptance/test_pile_ndu_acceptance.py`）。0711・0721（静的非線形解析と Aggre-SE）と液状化は未実装です。
+5. 計算書（0710・0720）は直接基礎と同じ内容で、杭のための記述は足しません（杭の要素分割・断面の鉄筋・ばねは JRSNAP のデータ確認図に出るものだけ。地盤変位は含めず慣性力だけです。地盤変位は P6d）。組合せ Case の表の「地盤抵抗TYPE」の列は直接基礎のものなので、杭基礎では出しません（決定93）。
+6. フーチングが排除する土（フーチングの慣性力の γ'）は、杭基礎では表層から Df までの層で求めます（`calc/embedment.py: pile_cover_layers`）。
+7. 実アプリでの受入：`scripts/accept_pile_ndu.py`。JRSNAP の見本 01_サンプル(V53)：RC橋脚L（壁式橋脚、杭 8 本）を表すモデル（`tests/pile_ndu_support.py`。杭は SOIL-JR 5.3 の .sdc から）の NDU を、JRSNAP の runner に NDT へ書き出させ、見本の NDT と、名前・荷重・DA カードの旗・Kv2 の 2 行の最後の 1 桁を除いて同じことを確かめて `tests/fixtures/acceptance/pile_ndu/record.json` に記録します（`tests/acceptance/test_pile_ndu_acceptance.py`）。0711・0721（静的非線形解析と Aggre-SE）と液状化は未実装です。
 
 本物の SOIL-JR での受入：`scripts/accept_pile_ground.py`。見本 RC橋脚（杭基礎）サンプルデータE.sdt（場所打ち杭 3×3 中抜き）を表す `tests/fixtures/inputs/pile.json` から書いた .sdt を計算させ、.sdr・.sdc が見本の .sdt の結果と表題を除いてバイトまで同じであることを確かめて `tests/fixtures/acceptance/pile_ground/record.json` に記録します（`tests/acceptance/test_pile_ground_acceptance.py`）。
 
