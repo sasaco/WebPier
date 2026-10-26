@@ -190,6 +190,7 @@ class PileJoint:
     bar_grade: str | None  # 軸方向鉄筋の材質, one of choices.STEEL_GRADES
     bar_centroid: Printed | None  # 鉄筋重心位置, mm from the outer edge of the pipe (the outer diameter less the corrosion)
     fill_fck: Printed | None  # 中詰めコンクリートの f'ck, N/mm2
+    fill_aggregate_max: Printed | None  # 中詰めコンクリートの粗骨材の最大寸法, mm (decision 99)
 
 
 @dataclass(frozen=True)

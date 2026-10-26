@@ -236,6 +236,8 @@ def _piles() -> dict[str, Field]:
         f"{steel}.結合部.軸方向鉄筋.材質": choice(choices.STEEL_GRADES, nullable=True),
         f"{steel}.結合部.軸方向鉄筋.重心位置": number(THICKNESS_MM, "positive", nullable=True),
         f"{steel}.結合部.中詰めコンクリート_f'ck": number(STRENGTH, "positive", nullable=True),
+        # decision 99: Dmax of the filling concrete, for the clear spacing of the anchor bars (0400)
+        f"{steel}.結合部.粗骨材の最大寸法": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm")),
         f"{layout}.形式": choice(choices.PILE_ARRANGEMENTS, nullable=True),
         f"{layout}.線路方向の列の位置[*]": number(LENGTH, "any"),
         f"{layout}.線路直角方向の列の位置[*]": number(LENGTH, "any"),

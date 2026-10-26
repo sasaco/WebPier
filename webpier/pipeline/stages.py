@@ -592,9 +592,14 @@ class Registry:
 _DRAWINGS = {"beam": "梁", "column": "柱", "footing": "フーチング", "pile": "杭"}
 
 
+def _pile_detailing(detailing: Any) -> Any:
+    """The 杭の構造細目 of the 0400 result *detailing*: a 場所打ち杭's, a 鋼管ソイルセメント杭's or None."""
+    return detailing.pile if detailing.pile is not None else detailing.steel_pile
+
+
 def _drawings(pier: PierInput, detailing: Any) -> dict[str, Any]:
-    """The 配筋図 of 4.1 of the 0400 result *detailing* (with the pile of a 場所打ち杭, decision 98)."""
-    drawn = drawing_figures(pier, detailing.pile)
+    """The 配筋図 of 4.1 of the 0400 result *detailing* (with the pile of a pile foundation, decisions 98 and 99)."""
+    drawn = drawing_figures(pier, _pile_detailing(detailing))
     return detailing_report.figure_specs({name: drawn[figure] for name, figure in _DRAWINGS.items() if figure in drawn})
 
 
@@ -1058,7 +1063,7 @@ _DETAILING = StageSpec(
     "0400", "0400_照査の前提", (),
     lambda pier, results: calculate_detailing(pier),
     lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier, results["0400"])),
-    (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier, results["0400"].pile)),),
+    (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier, _pile_detailing(results["0400"]))),),
     grid_documents=lambda results, pier, pages: detailing_report.grid_documents(
         results["0400"], _drawings(pier, results["0400"])))
 

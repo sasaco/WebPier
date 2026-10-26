@@ -307,7 +307,8 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
     node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
     cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
     steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部")
-    joint = steel.at("結合部").only("軸方向鉄筋", "中詰めコンクリート_f'ck")
+    joint = steel.at("結合部").only("軸方向鉄筋", "中詰めコンクリート_f'ck", "粗骨材の最大寸法")
+    aggregate = joint.optional("粗骨材の最大寸法")  # absent is blank: an input made before decision 99 has none
     bars = joint.at("軸方向鉄筋").only("径", "本数", "材質", "重心位置")
     piles = PileFoundation(
         length=read(node.at("杭長")), unit_weight=read(node.at("杭の単位体積重量")),
@@ -318,7 +319,8 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
             thickness=read(steel.at("鋼管厚")), corrosion=read(steel.at("腐食代")),
             grade=read(steel.at("鋼管材質")),
             joint=PileJoint(bar_diameter=read(bars.at("径")), bar_count=read(bars.at("本数")), bar_grade=read(bars.at("材質")),
-                            bar_centroid=read(bars.at("重心位置")), fill_fck=read(joint.at("中詰めコンクリート_f'ck")))),
+                            bar_centroid=read(bars.at("重心位置")), fill_fck=read(joint.at("中詰めコンクリート_f'ck")),
+                            fill_aggregate_max=None if aggregate is None else read(aggregate))),
         layout=_layout(node.at("配置")))
     if foundation not in choices.PILE_FOUNDATIONS:
         return piles

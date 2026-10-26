@@ -25,6 +25,9 @@ from webpier.calc.pile_ground import calculate_pile_ground
 
 PILE = json.loads((FIXTURES / "inputs" / "pile.json").read_text(encoding="utf-8"))
 PILE["鉄筋"]["杭"] = deepcopy(PILE_BARS)  # its 0400 checks the bars of the pile (decision 98)
+# a steel soil cement pile's 0400 checks its joint (decision 99): the sample Example橋脚4's
+PILE["杭基礎"]["鋼管ソイルセメント杭"]["結合部"] = {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0},
+                                          "中詰めコンクリート_f'ck": 27.0, "粗骨材の最大寸法": 25.0}
 ITEMS = ("detailing", "ground_model", "reactions")
 POST = ["杭基礎.sdc", "杭基礎.sdr", "杭基礎.sdt"]
 LIQUEFACTION = ["杭基礎(液状化時用).sdc", "杭基礎(液状化時用).sdr"]
@@ -153,6 +156,10 @@ def test_a_steel_soil_cement_pile_foundation_is_calculated_the_same_way(tmp_path
     assert sdt[sdt.index("●杭条件●") + 1].endswith(",5,7,0,0,0,0,0")
     assert load_json((tmp_path / "output" / "0500_杭基礎.json").read_bytes())["result"]["ground"]["foundation"] == "鋼管ソイルセメント杭"
     assert generation.stages == ("0500", "0400", "0600")
+    # its 0400 has the 杭の構造細目 of the steel pile and draws it (decision 99): D 1000, so lc = max(1500, 1522) → 1550
+    detailing = load_json((tmp_path / "output" / "0400_照査の前提.json").read_bytes())["result"]
+    assert detailing["pile"] is None and detailing["steel_pile"]["joint"]["filling"]["length"] == 1550
+    assert "杭（杭頭の結合部・断面と杭先端部）".encode("utf-8") in (tmp_path / "post" / "配筋図.dxf").read_bytes()
 
 
 def liquefying(layers=None):

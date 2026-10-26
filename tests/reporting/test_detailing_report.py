@@ -268,3 +268,97 @@ def test_4_5_begins_a_page_and_the_pdf_is_the_same_bytes(tmp_path):
     assert "0400/pile.heading" in firsts
     first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
     assert first == render_detailing(detailing, tmp_path / "b.pdf").read_bytes()
+
+
+# --- 4.5 杭の構造細目 of a 鋼管ソイルセメント杭 (decision 99) ------------------------------------------------------------
+
+
+def steel_document(**steel):
+    """The sample Example橋脚4's pile (D 800, t 18, 腐食代 1, Dsc 1000, D38 − 16 本 SD390 at 75 mm, 中詰め f'ck 27 and
+    Dmax 25) on pile.json, with the footing's f'ck 27."""
+    fixtures = Path(__file__).parents[1] / "fixtures" / "inputs"
+    document = json.loads((fixtures / "pile.json").read_text(encoding="utf-8"))
+    example4 = json.loads((fixtures / "example4.json").read_text(encoding="utf-8"))
+    document["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
+    document["杭基礎"]["鋼管ソイルセメント杭"] = example4["杭基礎"]["鋼管ソイルセメント杭"]
+    document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
+    document["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
+    document["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0
+    return document
+
+
+def steel_texts(document=None) -> dict[str, str]:
+    return texts(document if document is not None else steel_document())
+
+
+def test_a_steel_pile_adds_4_5_as_the_sample_ii_1_2_prints_it():
+    found = steel_texts()
+    assert found["pile.heading"] == "4.5 杭の構造細目" and found["layout.pile.heading"] == "(4) 杭"
+    assert [found[key] for key in ("steel.pipe.heading", "steel.joint.heading", "steel.soil.heading")] == [
+        "(1) 鋼管杭", "(2) 杭とフーチングの結合部", "(3) ソイルセメント"]
+    assert found["steel.pipe.diameter.result"] == "採用した杭径は800mmのため、上記条件を満足する。"
+    assert found["steel.pipe.made.ratio"] == "鋼管外径Dに対して　18 ／ 800 ＝ 0.0225 ≧ 0.01"
+    assert found["steel.pipe.effective.ratio"] == "鋼管外径Dに対して　17 ／ 800 ＝ 0.0213 ≧ 0.0125"
+    assert found["steel.pipe.joint.5"].endswith("溶接はJIS規格によるものとし、上記条件を満足する。")
+    assert found["steel.pipe.tip.ribs.result"] == "配筋図より、ずれ止めの取付け長lspiは1050mmなので、上記条件を満足する。"
+    assert found["steel.pipe.tip.penetration.value"] == "鋼管外径の1.5倍　：　800 × 1.5 ＝ 1200 mm"
+    assert found["steel.pipe.tip.margin.value"] == "ソイルセメント体径の0.5倍　：　1000 × 0.5 ＝ 500 mm"
+    assert "2.25 %" in found["steel.pipe.summary.table"] and "Df0 ＝ 1000 mm" in found["steel.pipe.summary.table"]
+    assert found["steel.joint.cover.value"] == "75 － 18 － 38 ／ 2 ＝ 38 mmである。"
+    assert "軸方向鉄筋のあき 90" in found["steel.joint.clear.table"] and "≧ 25 × 4/3 ＝ 33.3 mm" in found[
+        "steel.joint.clear.table"]
+    assert found["steel.joint.gap.value"] == "あきは、75 － 18 － 16 － 38 ／ 2 ＝ 22 mmである。"
+    assert found["steel.joint.minimum.check"] == "3.63 % ＞ 1 %" and found["steel.joint.maximum.check"] == "3.63 % ＜ 6 %"
+    assert "1054" in found["steel.joint.anchorage.basic.ld01"]
+    assert found["steel.joint.anchorage.basic.result"] == "そのため、基本定着長は、20φとする。"
+    assert found["steel.joint.anchorage.footing.l1"].endswith("＝ 760 ＋ 190 ＝ 950 mm → 950 mm")
+    assert found["steel.joint.filling.sum"].endswith("＝ 100 ＋ 1170 ＋ 152 ＋ 100 ＝ 1522 mm")
+    assert found["steel.joint.filling.value"].endswith("＝ 1522 mm → 1550 mm")
+    assert found["steel.joint.hoops.diameter.text"] == ("フーチング内のアンカー鉄筋の帯鉄筋径は、アンカー鉄筋がD29以上の場合"
+                                                         "は、D16以上とし、鋼管外径が1000mm以下の場合は、D22以下とする。")
+    assert found["steel.joint.hoops.pitch.inner"] == "1198 ／ 4 → ctc 250 mm（D10－5本）"
+    assert found["steel.joint.ribs.position.result"] == ("最上段のずれ止めの取付中心位置は、鋼管杭頭から 200 mm、最下段のずれ止め"
+                                                         "の取付中心位置は、中詰めコンクリート下端から 1100 mm なので、"
+                                                         "上記条件を満足する。")
+    assert found["steel.joint.ribs.steps.result"] == "実際に配置したずれ止めは、2 段なので、上記条件を満足する。"
+    assert "×" not in found["steel.joint.summary.table"] and "1.5φ以上" in found["steel.joint.summary.table"]
+    assert found["steel.soil.nominal.result"] == "採用したソイルセメント体の公称径は1000mm、鋼管外径は800mmのため、上記条件を満足する。"
+    assert "qu2 ＝ 15000 kN/m" in found["steel.soil.summary.table"]
+    assert not any(key.startswith("steel.") for key in pile_texts())  # a 場所打ち杭 has its own 4.5
+
+
+def pile_texts() -> dict[str, str]:
+    return {record["id"].removeprefix("0400/"): record["text"] for record in records(pile_result())}
+
+
+def test_a_steel_pile_that_breaks_the_rules_prints_that_it_does_not_satisfy_them():
+    thin = steel_texts(steel_document(鋼管厚=9.0, 鋼管外径=1.3, ソイルセメント径=1.4))
+    assert thin["steel.pipe.diameter.result"] == "採用した杭径は1300mmのため、上記条件を満足しない。"
+    assert thin["steel.pipe.effective.result"] == "となるため、上記条件を満足しない。"
+    assert thin["steel.pipe.tip.ribs.result"] == "鋼管外径 1300mm は表の範囲外のため、上記条件を満足しない。"
+    assert thin["steel.joint.gap.result"] == "ずれ止めを配置できないため、上記条件を満足しない。"
+    assert thin["steel.joint.ribs.thickness.result"] == ("鋼管の有効肉厚が8mmのため、表の厚さのずれ止めを配置できず、"
+                                                         "上記条件を満足しない。")
+    assert "steel.joint.ribs.width.text" not in thin
+    assert "－" in thin["steel.pipe.summary.table"] and "×" in thin["steel.joint.summary.table"]
+    assert thin["steel.soil.nominal.result"].endswith("上記条件を満足しない。")
+    weak = steel_document()
+    weak["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 21.0
+    assert steel_texts(weak)["steel.joint.anchorage.basic.result"] == "そのため、基本定着長は、ld01－10φとする。"
+    small = steel_document(鋼管外径=1.1, ソイルセメント径=1.3)
+    small["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["軸方向鉄筋"].update({"径": 25, "本数": 24})
+    found = steel_texts(small)
+    assert found["steel.joint.hoops.diameter.text"] == ("フーチング内のアンカー鉄筋の帯鉄筋径は、アンカー鉄筋がD25以下の場合"
+                                                        "は、D13以上とする。")
+    assert found["steel.joint.hoops.diameter.result"] == "上記より、帯鉄筋径は、D13以上となる。"
+    small["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["軸方向鉄筋"].update({"径": 16, "本数": 24})
+    assert "D16以下の場合は、D10以上" in steel_texts(small)["steel.joint.hoops.diameter.text"]
+
+
+def test_the_steel_pile_s_4_5_lays_out_on_pages_and_the_pdf_is_the_same_bytes(tmp_path):
+    for document in (steel_document(), steel_document(鋼管厚=9.0, 鋼管外径=1.3, ソイルセメント径=1.4)):
+        detailing = result(document)
+        pages = build_detailing(detailing).layout()
+        assert "0400/pile.heading" in [page.metadata["placements"][0]["block_id"] for page in pages]
+    first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
+    assert first == render_detailing(detailing, tmp_path / "b.pdf").read_bytes()
