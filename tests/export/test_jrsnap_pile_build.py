@@ -137,9 +137,15 @@ def test_what_the_ndu_cannot_express_is_an_input_error():
         build_pile_ndu(LONGITUDINAL, steel, layout, longitudinal, SPRINGS)
     with pytest.raises(InputError, match="逆向の）組合せがありません"):
         build_pile_ndu(LONGITUDINAL, pier, layout, longitudinal, SPRINGS, reverse=True)
+
+
+
+def test_a_cut_off_keeps_the_section_of_the_head():
+    """Decision 98: Aggre-SE's ⑧ calculates the capacity after the cut-off itself, so the NDU's piles are the head's."""
+    pier, _, longitudinal, _ = chain()
     cut = cast_input({"cutoff": {"main_bars": {"diameter_mm": 25, "count": 10}}})
-    with pytest.raises(InputError, match="段落しのある杭の NDU は未対応"):
-        pile_sections(cut, LONGITUDINAL, longitudinal.frame.piles.section.diameter)
+    diameter = longitudinal.frame.piles.section.diameter
+    assert pile_sections(cut, LONGITUDINAL, diameter) == pile_sections(pier, LONGITUDINAL, diameter)
 
 
 def test_the_rows_of_the_sdc_must_be_the_rows_of_the_input():

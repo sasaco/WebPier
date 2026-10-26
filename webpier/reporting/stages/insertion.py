@@ -57,7 +57,8 @@ def _parts(units: Sequence[Unit], insertions: Sequence[Insertion]) -> list[tuple
         if insertion.key not in keys:
             raise ValueError(f"差し込む位置の単位 {insertion.key} がありません")
         cuts.append(keys.index(insertion.key) + (0 if insertion.before else 1))
-    if any(cut <= previous for previous, cut in zip([0, *cuts], cuts)):
+    # the first may go before the first unit (Aggre-SE's report before WebPier's page, decision 98)
+    if any(cut <= previous for previous, cut in zip(cuts, cuts[1:])):
         raise ValueError("差し込む位置が原稿の順になっていません")
     bounds = [0, *cuts, len(units)]
     return [tuple(units[start:end]) for start, end in zip(bounds, bounds[1:])]

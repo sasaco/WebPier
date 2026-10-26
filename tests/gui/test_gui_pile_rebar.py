@@ -100,8 +100,9 @@ def test_the_cutoff_group_has_the_section_after_it_the_lengths_and_the_rules(edi
     editor.root.update()
     cutoff = (*PILE, "cutoff")
     assert {(*cutoff, "main_bars", "diameter_mm"), (*cutoff, "main_bars", "count"), (*cutoff, "hoops", "sets"),
-            (*cutoff, "head_anchorage_mm"), (*cutoff, "joint_reduction"), (*cutoff, "no_joint", "from_head_mm"),
-            (*cutoff, "margin_ratio", "moment"), (*cutoff, "anchorage_stirrup")} <= set(editor.bindings.items)
+            (*cutoff, "cutoff_length_mm"), (*cutoff, "joint_reduction"), (*cutoff, "no_joint", "from_head_mm"),
+            (*cutoff, "margin_ratio", "moment")} <= set(editor.bindings.items)
+    assert not {(*cutoff, "head_anchorage_mm"), (*cutoff, "anchorage_stirrup")} & set(editor.bindings.items)
     enter(editor, (*cutoff, "margin_ratio", "shear"), "1.1")
     assert editor.document.data["鉄筋"]["杭"]["cutoff"]["margin_ratio"]["shear"] == 1.1
     page(editor).refresh()

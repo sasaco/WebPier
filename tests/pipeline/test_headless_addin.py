@@ -51,7 +51,7 @@ def test_every_stage_is_generated(generation):
     assert code == 0, envelope["errors"]
     assert envelope["summary"]["outputs"] == list(OUTPUT_KEYS)
     assert [stage["id"] for stage in envelope["summary"]["stages"]] == [
-        "0400", "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721", "0800", "0810",
+        "0500", "0400", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721", "0800", "0810",
         "0820", "0900", "0910"]
 
 

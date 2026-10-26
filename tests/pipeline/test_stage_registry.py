@@ -56,8 +56,8 @@ def project(kind="aggrese", file_name="x.xml"):
 
 def test_the_registry_lists_every_wired_stage_in_dependency_order():
     ids = STAGES.ids
-    assert ids[:3] == ("0400", "0500", "0600")
-    assert ids == ("0400", "0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
+    assert ids[:3] == ("0500", "0400", "0600")
+    assert ids == ("0500", "0400", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
                    "0800", "0810", "0820", "0900", "0910")
     for position, stage in enumerate(STAGES.stages):
         assert set(stage.depends_on) <= set(ids[:position])
@@ -122,8 +122,8 @@ def test_each_output_item_makes_its_stages():
     assert STAGES.selected(("ground_model", "reactions", "longitudinal_seismic", "transverse_seismic")) == (
         "0500", "0600", "0710", "0720")
     assert STAGES.selected(("detailing",)) == ("0400",)
-    assert [STAGES.item(stage_id) for stage_id in ("0400", "0500", "0612", "0721", "0820", "0910")] == [
-        "detailing", "ground_model", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]
+    assert [STAGES.item(stage_id) for stage_id in ("0500", "0400", "0612", "0721", "0820", "0910")] == [
+        "ground_model", "detailing", "longitudinal_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"]
 
 
 def test_an_item_with_every_item_it_uses_has_every_stage_its_stages_read():
@@ -442,7 +442,9 @@ def test_the_frames_of_a_pile_foundation_wait_for_the_ground_and_the_direct_foun
     for foundation in ("場所打ち杭", "鋼管ソイルセメント杭"):
         piles = STAGES.for_foundation(foundation)
         # the seismic stages of a 場所打ち杭 wait too: their NDU takes the seismic tables of the .sdc (decision 93)
-        waiting = ["0610", "0620"] + (["0710", "0720"] if foundation == "場所打ち杭" else [])
+        # and its 0400: the 杭の構造細目 take 1/β of the .sdc (decision 98)
+        cast = foundation == "場所打ち杭"
+        waiting = (["0400"] if cast else []) + ["0610", "0620"] + (["0710", "0720"] if cast else [])
         assert [stage.id for stage in piles.stages if stage.after] == waiting
         assert piles.get("0610").after == piles.get("0620").after == ("0500",) and piles.get("0610").foundations == {}
         assert piles.deferred(piles.closure(("0620",))) == ("0620",)
@@ -461,7 +463,7 @@ def test_the_frame_analyses_of_a_pile_foundation_wait_and_have_their_own_stage()
         piles = STAGES.for_foundation(foundation)
         seismic = ["0710", "0711", "0720", "0721"] if foundation == "場所打ち杭" else []
         assert [stage_id for stage_id in piles.ids if piles.waits(stage_id)] == [
-            "0610", "0611", "0612", "0620", "0621", "0622", *seismic, "0800", "0810", "0820",
+            *(["0400"] if seismic else []), "0610", "0611", "0612", "0620", "0621", "0622", *seismic, "0800", "0810", "0820",
             *(["0900", "0910"] if seismic else [])]
         assert piles.get("0612").depends_on == ("0500", "0610") and piles.get("0612").complete is not None
         assert piles.get("0612").frame_analysis.files == STAGES.get("0612").frame_analysis.files  # shared with 0611

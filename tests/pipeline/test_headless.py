@@ -308,7 +308,7 @@ def test_the_contract_is_the_registry(capsys):
     assert code == 0 and list(contract) == ["command", "stages", "runners", "outputs"]
     assert contract["command"] == "contract"
     assert [stage["id"] for stage in contract["stages"]] == list(STAGES.ids)
-    assert contract["stages"][0] == {"id": "0400", "stem": "0400_照査の前提", "dependsOn": [], "output": "detailing",
+    assert contract["stages"][1] == {"id": "0400", "stem": "0400_照査の前提", "dependsOn": [], "output": "detailing",
                                      "hasReport": True}
     assert contract["stages"][3] == {"id": "0610", "stem": "0610_線路方向荷重", "dependsOn": ["0500", "0600"],
                                      "output": "longitudinal", "hasReport": True}
@@ -316,7 +316,7 @@ def test_the_contract_is_the_registry(capsys):
                                                                      "soilstructure"]
     outputs = {item["key"]: item for item in contract["outputs"]}
     assert list(outputs) == list(OUTPUT_KEYS)
-    assert [stage for item in contract["outputs"] for stage in item["stages"]] == list(STAGES.ids)
+    assert sorted(stage for item in contract["outputs"] for stage in item["stages"]) == sorted(STAGES.ids)
     ground = outputs["ground_model"]
     assert {key: ground[key] for key in ("key", "requires", "stages", "runners", "files")} == {
         "key": "ground_model", "requires": [], "stages": ["0500"], "runners": [],
@@ -326,7 +326,7 @@ def test_the_contract_is_the_registry(capsys):
     # Decision 85: the same item of a pile foundation — SOIL-JR's files, the JRSNAP runner, and the files only some
     # inputs have; which items it can make so far
     assert ground["pileFoundation"] == {
-        "supported": True, "foundations": ["場所打ち杭", "鋼管ソイルセメント杭"], "runners": ["jrsnap"],
+        "supported": True, "foundations": ["場所打ち杭", "鋼管ソイルセメント杭"], "requires": [], "runners": ["jrsnap"],
         "files": [{"role": role, "path": path, "folder": False} for role, path in (
             ("0500.pdf", "output/0500_杭基礎.pdf"), ("0500.json", "output/0500_杭基礎.json"),
             ("0500.sdt", "post/杭基礎.sdt"), ("0500.sdr", "post/杭基礎.sdr"), ("0500.sdc", "post/杭基礎.sdc"),
@@ -338,6 +338,10 @@ def test_the_contract_is_the_registry(capsys):
              "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"},
             {"role": "0500.liquefiedsdc", "path": "post/杭基礎(液状化時用).sdc", "folder": False,
              "when": "液状化を考慮する入力（地盤の層の De が 1 未満）"}]}
+    # decision 98: the 0400 of a 場所打ち杭 uses 0500 (1/β of the .sdc), so it calls the JRSNAP runner (SOIL-JR)
+    detailing = outputs["detailing"]
+    assert (detailing["requires"], detailing["runners"]) == ([], [])
+    assert (detailing["pileFoundation"]["requires"], detailing["pileFoundation"]["runners"]) == (["ground_model"], ["jrsnap"])
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
         "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",

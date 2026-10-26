@@ -36,6 +36,7 @@ from ...calc.detailing.column import ColumnDetailing, ColumnDirection
 from ...calc.detailing.common import (BarGroup, Bound, CapacityRatio, ClearSpacing, DuctilityLimit, ShearRatio,
                                       SteelRatio, StirrupSpacing)
 from ...calc.detailing.footing import FootingDetailing, FootingDirection
+from ...calc.detailing.pile import SPAN_FACTOR, SPAN_LIMIT, HoopRatio, PileDetailing
 from ...core.printed import Printed
 from ..document import blank, heading, indent_to, is_blank, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
@@ -45,7 +46,7 @@ from .frame_report import (Definitions, FigureSpec, Labelled, Span, TableSpec, U
                            value)
 
 PREFIX = "0400/"
-FIGURES = ("beam", "column", "footing")  # the 配筋図 of 4.1, by name
+FIGURES = ("beam", "column", "footing", "pile")  # the 配筋図 of 4.1, by name (the pile: a 場所打ち杭's, decision 98)
 # A 配筋図 fills the body width from column 4 (as the sample Example橋脚2 6.1 nearly does) and as many rows as its page
 # needs at that width, at most FIGURE_ROWS (a taller one is narrower).
 FIGURE_LEFT, FIGURE_COLUMNS, FIGURE_ROWS = 4, 26, 30
@@ -68,8 +69,8 @@ FACES = {"上": "上側", "下": "下側"}
 DIRECTIONS = {"線路": "線路方向", "直角": "線路直角方向"}
 # 4.2, 4.3 and 4.4 begin a page, and so does (2) 線路直角方向 of 4.2 and 4.4: it repeats the items of (1) 線路方向,
 # to be read beside them. Headings alone before one (4.1 without its figures) stay on its page.
-NEW_PAGES = frozenset(f"{PREFIX}{member}{direction}.heading" for member in ("column", "beam", "footing")
-                      for direction in ("", ".直角") if member != "beam" or not direction)
+NEW_PAGES = frozenset({*(f"{PREFIX}{member}{direction}.heading" for member in ("column", "beam", "footing")
+                         for direction in ("", ".直角") if member != "beam" or not direction), f"{PREFIX}pile.heading"})
 
 
 @dataclass(frozen=True)
@@ -574,6 +575,144 @@ def _footing(m: _Manuscript, footing: FootingDetailing, refs: References) -> Non
 # --- the document ---------------------------------------------------------------------------------------------------
 
 
+# --- 4.5 the 場所打ち杭 (decision 98) -----------------------------------------------------------------------------------
+
+# the sample 0440 (2.4), made by the sheet 杭の計算 of 照査の前提.xlsm; (1) is checked in 0711 / 0721 (minimum_bars)
+PILE_MINIMUM_TITLE = "杭頭反力の最大値から定める最小鉄筋量"
+PILE_MINIMUM_TAG = "【基礎標準 付属資料17 1.主鉄筋の配置】"
+PILE_SEISMIC_REPORTS = ("0711_線路方向非線形解析", "0721_線路直角方向非線形解析")
+_TOUGH = {True: "以上より、靭性の向上を考え帯鉄筋量は杭の側断面積の0.35％以上を配置する。",
+          False: "以上より、靭性の向上は考えず帯鉄筋量は杭の側断面積の0.30％以上を配置する。"}
+
+
+def _n_mm2(number: Printed) -> Row:
+    return Row(value(number), " ", MM2, gap=0)
+
+
+def pile_minimum_formula(m: _Manuscript, key: str) -> None:
+    """The formula of (1) and its symbols, as the sample prints them before the values."""
+    pv, fck, fsyd = sub("P", "vmax"), sub("f'", "ck"), sub("f", "syd")
+    m.line(f"{key}.formula", Row("As ＝ 0.0104・", pv, " / (0.85・", fck, " ＋ 0.008・", fsyd, ")", gap=0))
+    m.definitions(f"{key}.symbols", Definition(pv, "杭頭反力の最大値(kN)"),
+                  Definition(fck, Row("コンクリートの設計圧縮強度(N/mm", sup("", "2"), ")", gap=0)),
+                  Definition(fsyd, Row("鉄筋の降伏点強度(N/mm", sup("", "2"), ")", gap=0)))
+
+
+def _relation(number: Printed, limit: Printed) -> str:
+    return "＞" if number.value > limit.value else "≧" if number.value == limit.value else "＜"
+
+
+def _pile_bending(m: _Manuscript, pile: PileDetailing) -> None:
+    key, bending, found = "pile.bending", pile.bending, pile.section
+    m.heading(f"{key}.heading", "(2) 曲げモーメントから定まる最小鉄筋量の検討", 2, PILE_MINIMUM_TAG)
+    m.paragraph(f"{key}.text", "杭に作用する曲げモーメントに対しては、引張鉄筋比0.2％以上の鉄筋を配置する。"
+                               "引張鉄筋は引張側1/4（90°）部分にある主鉄筋としてよい。"
+                               "ただし、抵抗曲げモーメントが作用曲げモーメントの4/3以上あれば0.15％以上でよい。"
+                               "また、引張鉄筋比は次式によって求める。")
+    pt, ds = sub("p", "t"), sub("d", "s")
+    m.line(f"{key}.formula", Row(pt, " ＝ 100・As／(b・d)", gap=0))
+    m.definitions(f"{key}.symbols", Definition(pt, "引張鉄筋比(%)"),
+                  Definition("As", Row("引張鉄筋の断面積(mm", sup("", "2"), ")　( ", value(found.bar_area), " × 1/4 ＝ ",
+                                       _n_mm2(bending.tension_area), " )", gap=0)),
+                  Definition("b", Row("＝ √2・R ＝ ", _mm(bending.width), gap=0)),
+                  Definition("R", Row("半径(mm)　( ＝ ", _mm(found.radius), " )", gap=0)),
+                  Definition("d", Row("＝ 2R－", ds, " ＝ ", _mm(bending.depth), gap=0)),
+                  Definition(ds, Row("軸方向鉄筋の芯かぶり(mm)　( ＝ ", _mm(found.centre), " )", gap=0)))
+    m.equation(f"{key}.pt", "", pt, terms("100", "×", value(bending.tension_area), "/", "(", value(bending.width), "×",
+                                          value(bending.depth), ")"), value(bending.ratio), "%")
+    m.line(f"{key}.check", f"{_percent(bending.ratio)} {_relation(bending.ratio, bending.minimum)} "
+                           f"{_percent(bending.minimum)}")
+
+
+def _pile_hoop(m: _Manuscript, key: str, title: str, ratio: HoopRatio) -> None:
+    pw = sub("p", "w")
+    m.paragraph(f"{key}.lead", title, keep=True)
+    m.line(f"{key}.bars", f"帯鉄筋　{_bar(ratio.diameter)} －ctc {value(ratio.pitch)} mm")
+    m.equation(f"{key}.pw", "", pw, terms(value(ratio.unit_area), "×", value(ratio.legs), "/", "(", value(ratio.width),
+                                          "×", value(ratio.pitch), ")", "×", "100"), value(ratio.ratio), "%")
+    m.line(f"{key}.check", f"{_percent(ratio.ratio)} {_relation(ratio.ratio, ratio.minimum)} {_percent(ratio.minimum)}")
+
+
+def _pile_hoops(m: _Manuscript, pile: PileDetailing) -> None:
+    key, hoops, found = "pile.hoops", pile.hoops, pile.section
+    m.heading(f"{key}.heading", "(3) 最小帯鉄筋量の検討", 2, "【基礎標準 付属資料17 5.帯鉄筋】")
+    m.paragraph(f"{key}.text", "杭頭から2D区間には0.30％以上の帯鉄筋を配置する。ただし、せん断スパン比が2.5以下の場合は"
+                               "0.35％以上とする。2D区間を超えた第1段主鉄筋の範囲には0.20％以上配置する。")
+    m.paragraph(f"{key}.span.lead", "・せん断スパン比", keep=True)
+    both = len(hoops.spans) == 1
+    for index, span in enumerate(hoops.spans):
+        where = "" if both else f"（{'・'.join(span.directions)}）"
+        m.line(f"{key}.span.{index}.beta", f"1／β ＝ {value(span.inverse_beta)} m{where}　「0500_杭基礎より」")
+        m.line(f"{key}.span.{index}.formula", "L／d ＝ 1／(1.6・β・D)")
+        m.equation(f"{key}.span.{index}.ratio", "", "L／d",
+                   terms(value(span.inverse_beta), "/", "(", value(SPAN_FACTOR), "×", value(found.diameter_m), ")"),
+                   value(span.ratio), "")
+        m.line(f"{key}.span.{index}.check",
+               f"{value(span.ratio)} {'≦' if span.tough else '＞'} {value(SPAN_LIMIT)}")
+    m.paragraph(f"{key}.span.result", _TOUGH[hoops.tough])
+    _pile_hoop(m, f"{key}.head", "・杭頭2D区間", hoops.head)
+    for zone in hoops.lower:
+        _pile_hoop(m, f"{key}.{zone.name}", f"・2D区間を超えた範囲（{zone.name}）", zone)
+
+
+def _pile_anchorage(m: _Manuscript, pile: PileDetailing) -> None:
+    key, item = "pile.anchorage", pile.anchorage
+    ld, ab, kc, cb = sub("l", "d"), sub("α", "b"), sub("K", "c"), sub("c", "b")
+    fsyd, fbod, at = sub("f", "syd"), sub("f", "bod"), sub("A", "t")
+    m.heading(f"{key}.heading", "(4) 杭頭定着長", 2, "【RC標準第Ⅲ編2.3.7.3】")
+    m.paragraph(f"{key}.text", "鉄筋の基本定着長ldは、次式により算定する。")
+    m.line(f"{key}.formula", Row(ld, " ＝ ", ab, "・", fsyd, "／4", fbod, "・φ ≧ 20φ", gap=0))
+    m.definitions(f"{key}.symbols", Definition(ld, "鉄筋の基本定着長（mm）"),
+                  Definition(fsyd, Row("鉄筋の設計引張降伏強度（N/mm", sup("", "2"), "）", gap=0)),
+                  Definition(fbod, Row("コンクリートの設計付着強度（N/mm", sup("", "2"), "）", gap=0)),
+                  Definition("φ", "定着する鉄筋の直径（mm）"),
+                  Definition(ab, Row("＝（0.75／", kc, "）＋ 0.2　ただし、0.5 ≦ ", ab, " ≦ 1.0", gap=0)),
+                  Definition(kc, Row("＝（", cb, "／φ）＋｛15", at, "／（s・φ）｝", gap=0)),
+                  Definition(cb, "定着する鉄筋のかぶりと、定着する鉄筋のあきの1/2のうち、"),
+                  Definition("", "小さい方の値（mm）"),
+                  Definition(at, "仮定される割裂破壊断面に垂直な横方向鉄筋の"),
+                  Definition("", Row("断面積（mm", sup("", "2"), "）", gap=0)),
+                  Definition("s", "横方向鉄筋の中心間隔（mm）"))
+    pile_d, centre = value(pile.section.diameter), value(pile.section.centre)
+    lines = [
+        Row(fsyd, " ＝ ", value(item.fsyd), " N/mm", sup("", "2"), "　（γs ＝ 1.0）", gap=0),
+        Row(fbod, " ＝ ", value(item.fbok), " ／ 1.3 ＝ ", value(item.fbod), " N/mm", sup("", "2"),
+            f"　（フーチング f'ck ＝ {value(item.fck)} N/mm", sup("", "2"), "）", gap=0),
+        f"φ ＝ {value(item.diameter)} mm",
+        Row(sub("c", "b1"), f" ＝ {centre} － {value(item.diameter)} ／ 2 ＝ {value(item.clear_cover)} mm", gap=0),
+        f"主鉄筋の中心間隔 ＝ π × ({pile_d} － 2 × {centre}) ／ {pile.section.bar_count} ＝ {value(item.pitch)} mm",
+        Row(sub("c", "b2"), f" ＝ ({value(item.pitch)} － {value(item.diameter)}) ／ 2 ＝ {value(item.half_gap)} mm",
+            gap=0),
+        Row("∴ ", cb, f" ＝ {value(item.cb)} mm", gap=0),
+        Row(at, f" ＝ {_bar(item.stirrup_diameter)} × {item.stirrup_sets} 組 ＝ ", _n_mm2(item.at),
+            f"　（{item.stirrup_zone}）", gap=0),
+        f"s ＝ {value(item.s)} mm"]
+    for index, line in enumerate(lines):
+        m.line(f"{key}.value.{index}", line)
+    m.equation(f"{key}.kc", "", kc, terms(value(item.cb), "/", value(item.diameter), "+", "15", "×", value(item.at), "/",
+                                          "(", value(item.s), "×", value(item.diameter), ")"), value(item.kc), "")
+    m.equation(f"{key}.alpha", "", ab, terms("(", "0.75", "/", value(item.kc), ")", "+", "0.2"), value(item.alpha_raw), "")
+    if item.alpha != item.alpha_raw:
+        m.line(f"{key}.alpha.bound", Row("→ ", ab, f" ＝ {value(item.alpha)}", gap=0))
+    m.equation(f"{key}.ld", "", ld, terms(value(item.alpha), "×", value(item.fsyd), "/", "(", "4", "×", value(item.fbod),
+                                          ")", "×", value(item.diameter)), value(item.basic), "mm")
+    m.line(f"{key}.least", f"{value(item.basic)} mm（{item.bars}φ） {'≧' if item.basic.value >= item.least.value else '＜'} "
+                           f"20φ ＝ {value(item.least)} mm")
+    m.paragraph(f"{key}.result", f"以上より、基本定着長は、ld＝{value(item.anchorage)}mmとし、杭頭定着長は、100mm単位に"
+                                 f"切り上げて{value(item.length)}mmとする。")
+
+
+def _pile(m: _Manuscript, pile: PileDetailing) -> None:
+    m.heading("pile.heading", "4.5 杭の構造細目", 1)
+    m.heading("pile.minimum.heading", f"(1) {PILE_MINIMUM_TITLE}", 2, PILE_MINIMUM_TAG)
+    pile_minimum_formula(m, "pile.minimum")
+    m.paragraph("pile.minimum.reference", "照査は" + "と".join(f"「{report} {PILE_MINIMUM_TITLE}」"
+                                                             for report in PILE_SEISMIC_REPORTS) + "に示す。")
+    _pile_bending(m, pile)
+    _pile_hoops(m, pile)
+    _pile_anchorage(m, pile)
+
+
 def figure_specs(drawings: Mapping[str, tuple[bytes, bytes]]) -> dict[str, FigureSpec]:
     """The 配筋図 of 4.1 from their (PDF, PNG) by name (FIGURES): each page as vector artwork in a frame of the body
     width (GridLayoutPdf's PdfFigure), the PNG its picture in the grid Excel. The drawing is made elsewhere
@@ -597,13 +736,17 @@ def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = 
     refs = references(result.cantilever_appearance)
     m.heading("heading", "§4. 照査の前提", 0)
     m.heading("layout.heading", "4.1 配筋要領", 1)
-    for index, (name, title) in enumerate(zip(FIGURES, ("梁", "柱", "フーチング"))):
+    for index, (name, title) in enumerate(zip(FIGURES, ("梁", "柱", "フーチング", "杭"))):
+        if name == "pile" and result.pile is None:
+            continue
         m.heading(f"layout.{name}.heading", f"({index + 1}) {title}", 2)
         if name in figures:
             m.figure(f"layout.{name}", figures[name])
     _column(m, result.column, refs)
     _beam(m, result.beam, refs)
     _footing(m, result.footing, refs)
+    if result.pile is not None:
+        _pile(m, result.pile)
     return tuple(m.units)
 
 

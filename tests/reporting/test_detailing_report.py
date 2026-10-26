@@ -223,3 +223,48 @@ def test_the_pdf_is_the_same_bytes_and_the_workbook_the_same_document(tmp_path):
     assert "§4. 照査の前提" in text and "#REF!" not in text and "小判形" not in text
     figure = {"footing": FigureSpec(drawn("0400/test.figure"), ())}
     assert build_detailing(detailing, figure).render(tmp_path / "d.pdf", invariant=True).read_bytes() != first
+
+
+# --- 4.5 杭の構造細目 of a 場所打ち杭 (decision 98) ------------------------------------------------------------------
+
+
+def pile_result():
+    """The sample 0440's pile (D 1200, D32 − 16 本 SD390, ds 156, f'ck 21, D19 ctc125 and D16 ctc125) on pile_seismic.json,
+    with 1/β 3.55 m in both directions."""
+    from types import SimpleNamespace
+    document = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "pile_seismic.json").read_text(
+        encoding="utf-8"))
+    document["杭基礎"]["場所打ち杭"].update({"杭径": 1.2, "f'ck": 21.0})
+    document["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 24.0
+    bars = document["鉄筋"]["杭"]
+    bars.update({"pure_cover_mm": 121.0, "main_bars": {"diameter_mm": 32, "count": 16}})
+    bars["materials"]["main"] = "SD390"
+    bars["hoops"]["zone_2d"] = {"diameter_mm": 19, "sets": 1, "pitch_mm": 125.0}
+    bars["hoops"]["lower"] = [{"length_m": 5.0, "diameter_mm": 16, "sets": 1, "pitch_mm": 125.0}]
+    springs = SimpleNamespace(direction=lambda name: SimpleNamespace(inverse_beta=3.55))
+    return calculate_detailing(parse_input(document), springs)
+
+
+def test_a_cast_in_place_pile_adds_4_5_as_the_sample_0440_prints_it():
+    found = {record["id"].removeprefix("0400/"): record["text"] for record in records(pile_result())}
+    assert found["pile.heading"] == "4.5 杭の構造細目"
+    assert found["layout.pile.heading"] == "(4) 杭"
+    assert found["pile.minimum.reference"] == ("照査は「0711_線路方向非線形解析 杭頭反力の最大値から定める最小鉄筋量」と"
+                                               "「0721_線路直角方向非線形解析 杭頭反力の最大値から定める最小鉄筋量」に示す。")
+    assert "3176.8" in found["pile.bending.pt"] and "848.5" in found["pile.bending.pt"] and "0.359" in found["pile.bending.pt"]
+    assert found["pile.bending.check"] == "0.359 % ＞ 0.20 %"
+    assert found["pile.hoops.span.0.beta"] == "1／β ＝ 3.55 m　「0500_杭基礎より」"
+    assert "1.85" in found["pile.hoops.span.0.ratio"] and found["pile.hoops.span.0.check"] == "1.85 ≦ 2.5"
+    assert found["pile.hoops.span.result"] == "以上より、靭性の向上を考え帯鉄筋量は杭の側断面積の0.35％以上を配置する。"
+    assert found["pile.hoops.head.check"] == "0.382 % ＞ 0.35 %" and found["pile.hoops.第1区間.check"] == "0.265 % ＞ 0.20 %"
+    assert found["pile.anchorage.result"] == "以上より、基本定着長は、ld＝867mmとし、杭頭定着長は、100mm単位に切り上げて900mmとする。"
+    assert "pile.heading" not in texts()  # a direct foundation has no 4.5
+
+
+def test_4_5_begins_a_page_and_the_pdf_is_the_same_bytes(tmp_path):
+    detailing = pile_result()
+    pages = build_detailing(detailing).layout()
+    firsts = [page.metadata["placements"][0]["block_id"] for page in pages]
+    assert "0400/pile.heading" in firsts
+    first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
+    assert first == render_detailing(detailing, tmp_path / "b.pdf").read_bytes()

@@ -17,7 +17,7 @@ from webpier.calc.response_displacement import InertiaResponse, response_displac
 from webpier.core.printed import LENGTH, UNIT_WEIGHT, Precision
 from webpier.reporting.stages.frame_report import Manuscript, semantic_records
 from webpier.reporting.stages.ground_displacement import response_displacement, surface_ground
-from webpier.reporting.stages.seismic_check import SEISMIC_CHECK, render_response_check
+from webpier.reporting.stages.seismic_check import SEISMIC_CHECK, render_pile_seismic_check
 
 KH, TEQ, VS = Precision(3, ""), Precision(3, "s"), Precision(0, "m/s")
 LAYERS = (SurfaceLayer(0, "表層", LENGTH(0), LENGTH(2.7), UNIT_WEIGHT(17.0), VS(170)),
@@ -73,13 +73,27 @@ def _pdf(text: str) -> bytes:
         return document.tobytes()
 
 
+def _pile(response):
+    """The result of 0711 of a 場所打ち杭 with the 応答変位法 (decision 98: beside the minimum bars of the pile head reaction)."""
+    import json
+    from decimal import Decimal
+
+    from webpier.calc.detailing.pile import PileSeismicResult, minimum_bars
+    from webpier.inputs import parse_input
+    data = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "pile_seismic.json").read_text(encoding="utf-8"))
+    return PileSeismicResult(minimum_bars(parse_input(data), "線路方向", Decimal("3000")), response)
+
+
 def test_the_report_is_webpiers_pages_then_aggreses_report(tmp_path: Path):
-    path = render_response_check("0711", _result(0.428), 5, tmp_path / "0711.pdf", {SEISMIC_CHECK: _pdf("AGGRESE")})
+    path = render_pile_seismic_check("0711", _pile(_result(0.428)), 5, tmp_path / "0711.pdf",
+                                     {SEISMIC_CHECK: _pdf("AGGRESE")})
     with pymupdf.open(path) as document:
         pages = [page.get_text() for page in document]
-    assert "応答変位法による設計応答値の算定" in pages[0] and pages[-1].strip() == "AGGRESE"
+    found = next(index for index, page in enumerate(pages) if page.strip() == "AGGRESE")
+    assert "応答変位法による設計応答値の算定" in pages[0] and 0 < found < len(pages) - 1
+    assert "杭頭反力の最大値から定める最小鉄筋量" in pages[-1]
 
 
 def test_only_aggreses_report_is_taken(tmp_path: Path):
     with pytest.raises(ValueError, match="Aggre-SE の帳票だけを受け取ります"):
-        render_response_check("0711", _result(0.428), 5, tmp_path / "0711.pdf", {})
+        render_pile_seismic_check("0711", _pile(_result(0.428)), 5, tmp_path / "0711.pdf", {})

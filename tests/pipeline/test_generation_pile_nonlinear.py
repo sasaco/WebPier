@@ -272,3 +272,77 @@ def test_two_analyses_that_write_different_logs_under_one_name_stop_the_generati
     with pytest.raises(generate.GenerationError, match="内容が違います: 解析実行Err.log"):
         make(tmp_path, TRANSVERSE)
     assert not (tmp_path / "post").exists()
+
+
+# --- decision 98: 杭頭反力の最大値から定める最小鉄筋量 and ⑧ 杭の段落し ---------------------------------------------------
+
+CUTOFF = {"鉄筋/杭/cutoff/main_bars": {"diameter_mm": 25, "count": 16},
+          "鉄筋/杭/cutoff/hoops": {"diameter_mm": 13, "sets": 1, "pitch_mm": 300.0},
+          "鉄筋/杭/cutoff/cutoff_length_mm": 6000.0, "鉄筋/杭/cutoff/cutoff_anchorage_mm": 1200.0,
+          "鉄筋/杭/cutoff/joint_reduction": 0.7, "鉄筋/杭/cutoff/margin_mm": 100.0,
+          "鉄筋/杭/cutoff/no_joint": {"from_head_mm": 2000.0, "above_mm": 500.0, "below_mm": 500.0},
+          "鉄筋/杭/cutoff/margin_ratio": {"moment": 1.1, "shear": 1.2}}
+
+
+@pytest.fixture(scope="module")
+def anchored(tmp_path_factory):
+    root = tmp_path_factory.mktemp("pile-0711-cutoff")
+    return root, make(root, LONGITUDINAL, **CUTOFF)
+
+
+def head_reaction(xml: str) -> float:
+    """Pvmax the stand-in's pickup gives (tests/fixtures/aggrese/fake_runner.py axial_forces): (3000 + 10 × the first element)
+    of the row's bundle, per pile, the largest of the rows the project's 段落し情報 names."""
+    rows = zip(items(xml, "dgMemberFirst"), items(xml, "dgMemberNumber"))
+    return max((3000 + 10 * int(first)) / float(piles) for first, piles in rows)
+
+
+def test_0711_of_a_cast_in_place_pile_prints_the_minimum_bars_after_aggrese_s_report(longitudinal):
+    root, _ = longitudinal
+    text = pdf_text(root / "output" / "0711_線路方向非線形解析.pdf")
+    assert text.index("FAKE AGGRESE SUMMARY") < text.index("杭頭反力の最大値から定める最小鉄筋量")
+    assert "Ｌ２応答時：線路方向" in text and "FAKE AGGRESE ANCHOR BAR" not in text
+    minimum = load_json((root / "output" / "0711_線路方向非線形解析.json").read_bytes())["result"]["minimum"]
+    assert minimum["direction"] == "線路方向" and minimum["ok"] is True and minimum["pvmax"] > 0
+
+
+def test_0721_prints_the_minimum_bars_of_its_direction(transverse):
+    root, _ = transverse
+    text = pdf_text(root / "output" / "0721_線路直角方向非線形解析.pdf")
+    assert text.index("FAKE AGGRESE SUMMARY") < text.index("Ｌ２応答時：線路直角方向")
+
+
+def test_a_cut_off_has_aggrese_check_8_with_the_bars_after_it_and_the_calculated_head_anchorage(anchored):
+    from webpier.calc.detailing.pile import head_anchorage, section
+    root, _ = anchored
+    xml = project(root / "post" / "線路方向.xml")
+    assert [column[0] for column in ([items(xml, f"dgCaseList_{number}")[:4] for number in range(1, 10)])] == [
+        "-1", "-1", "-1", "0", "0", "-1", "-1", "-1", "-1"]  # ρm 1.0, αf 1.0 with ⑧
+    assert [items(xml, "dgCaseList_8")[index] for index in range(4)] == ["-1", "-1", "0", "0"]  # αf 1.0 only
+    pier = parse_input(json.loads((root / "pre" / "input.json").read_text(encoding="utf-8")))
+    length = head_anchorage(pier, section(pier)).length.value
+    values = {tag: scalar(xml, tag) for tag in ("_D1", "_n1", "_D2", "_Aw", "_Ss", "_PileHeadLength", "_ParagraphLength",
+                                                "_ReductionCoefficient", "_PileMidLength", "_DesignMarginLength",
+                                                "_DisabledFromPileHead", "_DisabledUpwardFromCutOffPoint",
+                                                "_DisabledDownwardFromCutOffPoint", "MudCoefficient", "VudCoefficient")}
+    assert values == {"_D1": "25", "_n1": "16", "_D2": "13", "_Aw": "1", "_Ss": "300", "_PileHeadLength": f"{length:g}",
+                      "_ParagraphLength": "6000", "_ReductionCoefficient": "0.7", "_PileMidLength": "1200",
+                      "_DesignMarginLength": "100", "_DisabledFromPileHead": "2000", "_DisabledUpwardFromCutOffPoint": "500",
+                      "_DisabledDownwardFromCutOffPoint": "500", "MudCoefficient": "1.1", "VudCoefficient": "1.2"}
+    assert scalar(xml, "D1") == "25" and scalar(xml, "PileHeadLength") == f"{length:g}"  # the property as the field
+    assert len(items(xml, "dgMemberFirst")) == len(items(xml, "dgMemberLast")) == len(items(xml, "dgMemberNumber")) >= 2
+
+
+def test_a_cut_off_appends_aggrese_s_calculation_of_it_after_the_minimum_bars(anchored):
+    root, _ = anchored
+    xml = project(root / "post" / "線路方向.xml")
+    text = pdf_text(root / "output" / "0711_線路方向非線形解析.pdf")
+    rows = "-".join(items(xml, "dgMemberFirst"))
+    assert text.index("杭頭反力の最大値から定める最小鉄筋量") < text.index(f"FAKE AGGRESE ANCHOR BAR D25-16 {rows}")
+    minimum = load_json((root / "output" / "0711_線路方向非線形解析.json").read_bytes())["result"]["minimum"]
+    assert minimum["pvmax"] == round(head_reaction(xml), 2)
+
+
+def test_a_cut_off_with_a_blank_item_aggrese_needs_is_an_input_error(tmp_path):
+    with pytest.raises(InputError, match=r"鉄筋\.杭\.cutoff\.cutoff_anchorage_mm: 杭の段落しの照査（Aggre-SE の ⑧）に必要です"):
+        make(tmp_path, LONGITUDINAL, **{**CUTOFF, "鉄筋/杭/cutoff/cutoff_anchorage_mm": None})

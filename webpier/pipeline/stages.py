@@ -72,6 +72,7 @@ from ..calc.column_check import LONGITUDINAL as COLUMN_LONGITUDINAL, TRANSVERSE 
 from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
 from ..calc.detailing import calculate_detailing
+from ..calc.detailing.pile import PileSeismicResult, minimum_bars, pile_head_reaction
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.footing import calculate_footing, complete_footing
 from ..calc.footing_check import calculate_footing_check
@@ -159,7 +160,7 @@ from ..reporting.stages.generic.seismic import render_generic_seismic
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.pile_check import render_pile_check
 from ..reporting.stages.reaction import render_reaction
-from ..reporting.stages.seismic_check import render_response_check, render_seismic_check
+from ..reporting.stages.seismic_check import render_pile_seismic_check, render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
@@ -404,6 +405,7 @@ class Registry:
     stages: tuple[StageSpec, ...]
     load_model: LoadModelSource | None = None  # stages_for: the input is read without the load model's items
     outputs: Mapping[str, tuple[str, ...]] = OUTPUT_STAGES  # the stages of each 出力項目 (decision 72)
+    foundation: str | None = None  # the 基礎形式 of for_foundation: which items an item uses (outputs.uses)
 
     def __post_init__(self) -> None:
         if not self.stages:
@@ -495,7 +497,7 @@ class Registry:
                 outputs += [*ground.files, *ground.liquefaction]
             own = item_of[stage.id]
             for dependency in stage.depends_on:
-                if item_of[dependency] != own and item_of[dependency] not in uses(own):
+                if item_of[dependency] != own and item_of[dependency] not in uses(own, self.foundation):
                     raise ValueError(f"{stage.id}（出力項目 {own}）は{dependency}（出力項目 {item_of[dependency]}）を読むので、"
                                      f"{own} は {item_of[dependency]} を使う出力項目です")
             kinds: set[str] = set()
@@ -535,7 +537,8 @@ class Registry:
         itself when none has (the direct foundation, decision 85)."""
         if not any(foundation in stage.foundations for stage in self.stages):
             return self
-        return replace(self, stages=tuple(stage.foundations.get(foundation, stage) for stage in self.stages))
+        return replace(self, stages=tuple(stage.foundations.get(foundation, stage) for stage in self.stages),
+                       foundation=foundation)
 
     def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
         if source not in stage.depends_on:
@@ -586,12 +589,13 @@ class Registry:
 
 
 # The 配筋図 of 4.1 by the report's names: export.drawing draws them, the report puts their (PDF, PNG) as they are.
-_DRAWINGS = {"beam": "梁", "column": "柱", "footing": "フーチング"}
+_DRAWINGS = {"beam": "梁", "column": "柱", "footing": "フーチング", "pile": "杭"}
 
 
-def _drawings(pier: PierInput) -> dict[str, Any]:
-    drawn = drawing_figures(pier)
-    return detailing_report.figure_specs({name: drawn[figure] for name, figure in _DRAWINGS.items()})
+def _drawings(pier: PierInput, detailing: Any) -> dict[str, Any]:
+    """The 配筋図 of 4.1 of the 0400 result *detailing* (with the pile of a 場所打ち杭, decision 98)."""
+    drawn = drawing_figures(pier, detailing.pile)
+    return detailing_report.figure_specs({name: drawn[figure] for name, figure in _DRAWINGS.items() if figure in drawn})
 
 
 def _frameweb(stage_id: str, build: Callable[[Any], dict[str, Any]]) -> Callable[[Results, PierInput], bytes]:
@@ -624,18 +628,30 @@ def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput
 
 
 def _seismic_check(results: Results, pier: PierInput, path: Any, pages: Mapping[str, bytes]) -> Any:
-    """Aggre-SE's report as the stage's report (decision 56, ADR-0009); with the 応答変位法 (decision 97) after its pages."""
-    found = _responded(results)
-    if found is None:
+    """Aggre-SE's report as the stage's report (decision 56, ADR-0009); with the 応答変位法 (decision 97) before its pages,
+    and of a 場所打ち杭 with 杭頭反力の最大値から定める最小鉄筋量 and the 杭の段落とし計算書 after them (decision 98)."""
+    piled = next(((stage_id, result) for stage_id, result in results.items() if isinstance(result, PileSeismicResult)),
+                 None)
+    if piled is None:
         return render_seismic_check(path, pages)
-    stage_id, result = found
-    return render_response_check(stage_id, result, result.first_case, path, pages)
+    stage_id, result = piled
+    first = result.response.first_case if result.response is not None else None
+    return render_pile_seismic_check(stage_id, result, first, path, pages)
 
 
-def _responded(results: Results) -> tuple[str, ResponseDisplacementResult] | None:
-    """The stage (0711 or 0721) and its 応答変位法 among *results*, the results of the stage and its dependencies."""
-    return next(((stage_id, result) for stage_id, result in results.items()
-                 if isinstance(result, ResponseDisplacementResult)), None)
+def _pile_minimum(stage_id: str, source: str, profile: NduProfile, direction: str
+                  ) -> Callable[[Any, Mapping[str, bytes], PierInput, Results], PileSeismicResult]:
+    """How 0711 / 0721 of a 場所打ち杭 finishes its result (decision 98): Pvmax from the pickup of 復旧性L2 of its own Aggre-SE
+    check, at the head element of each pile row of the NDU of *source*, for 杭頭反力の最大値から定める最小鉄筋量."""
+    def complete(result: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> PileSeismicResult:
+        model = _pile_ndu_model(source, profile, results, pier)
+        members = {member.number: member for member in model.members}
+        heads = [(pile.first, members[pile.member].depth_piles) for pile in model.piles]
+        lines = member_forces(files[seismic_file(stage_id, "pik")], [first for first, _ in heads], SEISMIC_PICKUP)
+        pvmax = pile_head_reaction([(lines[first], piles) for first, piles in heads])
+        words = "線路方向" if direction == AXIAL else "線路直角方向"
+        return PileSeismicResult(minimum_bars(pier, words, pvmax), result)
+    return complete
 
 
 def _aggrese_files(stem: str) -> SeismicCheck:
@@ -1021,7 +1037,8 @@ def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, fi
                              *(("jrsnapliquefiedreverse",) if len(file_names) > 1 else ())),
                        response=_response(source, profile, file_names))
     piled = replace(stage, nonlinear_analysis=analysis, precheck=_liquefaction_index(stage.id),
-                    seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction))
+                    seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction),
+                    complete=_pile_minimum(stage.id, source, profile, direction))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
 
 
@@ -1037,14 +1054,15 @@ _NDU = {"target_version": TARGET_VERSION, "app_read_verified": False, "analysis_
 # The same generation has Aggre-SE read the project and check with it (decision 56): the sidecar names that report.
 _PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION}
 
+_DETAILING = StageSpec(
+    "0400", "0400_照査の前提", (),
+    lambda pier, results: calculate_detailing(pier),
+    lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier, results["0400"])),
+    (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier, results["0400"].pile)),),
+    grid_documents=lambda results, pier, pages: detailing_report.grid_documents(
+        results["0400"], _drawings(pier, results["0400"])))
+
 STAGES = Registry((
-    # 照査の前提 (decision 73): the input alone; the 配筋図 in 4.1 and in post/ (one DXF of the three)
-    StageSpec("0400", "0400_照査の前提", (),
-              lambda pier, results: calculate_detailing(pier),
-              lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier)),
-              (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier)),),
-              grid_documents=lambda results, pier, pages: detailing_report.grid_documents(results["0400"],
-                                                                                          _drawings(pier))),
     StageSpec("0500", "0500_直接基礎", (),
               lambda pier, results: calculate_foundation(pier),
               lambda results, pier, path, pages: render_foundation(
@@ -1052,6 +1070,11 @@ STAGES = Registry((
               grid_documents=lambda results, pier, pages: foundation_report.grid_documents(
                   results["0500"], pier, applicable_embedment(pier, results["0500"])),
               foundations={foundation: _pile_ground() for foundation in choices.PILE_FOUNDATIONS}),
+    # 照査の前提 (decision 73): the input alone; the 配筋図 in 4.1 and in post/ (one DXF of the three). A 場所打ち杭's
+    # 杭の構造細目 read 1/β of SOIL-JR's .sdc, so its 0400 is calculated once 0500 is complete (decision 98).
+    replace(_DETAILING, foundations={choices.CAST_IN_PLACE_PILE: replace(
+        _DETAILING, depends_on=("0500",), after=("0500",),
+        calculate=lambda pier, results: calculate_detailing(pier, results["0500"].springs))}),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
               lambda results, pier, path, pages: render_reaction(results["0600"], pier, path),

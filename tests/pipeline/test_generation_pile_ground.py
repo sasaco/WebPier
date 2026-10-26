@@ -13,7 +13,8 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from pipeline_support import FIXTURES, tree
+from pipeline_support import FIXTURES, PILE_BARS, tree
+from webpier.core.errors import InputError
 from webpier.core.integrity import load_json, sha256
 from webpier.export.soiljr import build_sdt, parse_sdr
 from webpier.inputs import parse_input
@@ -23,6 +24,7 @@ from webpier.pipeline.stages import STAGES
 from webpier.calc.pile_ground import calculate_pile_ground
 
 PILE = json.loads((FIXTURES / "inputs" / "pile.json").read_text(encoding="utf-8"))
+PILE["鉄筋"]["杭"] = deepcopy(PILE_BARS)  # its 0400 checks the bars of the pile (decision 98)
 ITEMS = ("detailing", "ground_model", "reactions")
 POST = ["杭基礎.sdc", "杭基礎.sdr", "杭基礎.sdt"]
 LIQUEFACTION = ["杭基礎(液状化時用).sdc", "杭基礎(液状化時用).sdr"]
@@ -66,7 +68,7 @@ def made(tmp_path_factory):
 
 def test_a_pile_foundation_makes_the_reports_of_its_stages(made):
     root, opts, generation = made
-    assert generation.stages == ("0400", "0500", "0600")
+    assert generation.stages == ("0500", "0400", "0600")
     output, post = tree(root / "output"), tree(root / "post")
     assert sorted(output) == ["0400_照査の前提.json", "0400_照査の前提.pdf", "0500_杭基礎.json", "0500_杭基礎.pdf",
                               "0600_上部工反力.json", "0600_上部工反力.pdf"]
@@ -150,7 +152,7 @@ def test_a_steel_soil_cement_pile_foundation_is_calculated_the_same_way(tmp_path
     sdt = (tmp_path / "post" / "杭基礎.sdt").read_bytes().decode("cp932").split("\r\n")
     assert sdt[sdt.index("●杭条件●") + 1].endswith(",5,7,0,0,0,0,0")
     assert load_json((tmp_path / "output" / "0500_杭基礎.json").read_bytes())["result"]["ground"]["foundation"] == "鋼管ソイルセメント杭"
-    assert generation.stages == ("0400", "0500", "0600")
+    assert generation.stages == ("0500", "0400", "0600")
 
 
 def liquefying(layers=None):
@@ -220,20 +222,28 @@ def test_a_missing_runner_stops_the_generation_before_anything_is_calculated(tmp
 def test_validating_a_pile_input_needs_no_runner(tmp_path, monkeypatch):
     monkeypatch.delenv(jrsnap.RUNNER_KEY)
     monkeypatch.setattr(jrsnap, "ENV_FILE", tmp_path / "no.env")
-    assert generate.validate(options(tmp_path)) == ("0400", "0500", "0600")
+    assert generate.validate(options(tmp_path)) == ("0500", "0400", "0600")
 
 
 def test_the_stage_alone_needs_the_runner_and_the_items_without_it_do_not(tmp_path, monkeypatch):
     monkeypatch.delenv(jrsnap.RUNNER_KEY)
     monkeypatch.setattr(jrsnap, "ENV_FILE", tmp_path / "no.env")
-    data = deepcopy(PILE)
-    data["outputs"] = {key: key in ("detailing", "reactions") for key in data["outputs"]}
-    path = tmp_path / "pre" / "input.json"
-    path.parent.mkdir()
-    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    generation = generate.generate(GenerationOptions(path, tmp_path / "output", tmp_path / "post"))
-    assert generation.stages == ("0400", "0600")
-    assert not any(name.startswith("杭基礎") for name in tree(tmp_path / "post"))
+
+    def generated(foundation: str, *items: str) -> tuple[str, ...]:
+        data = deepcopy(PILE)
+        data["下部構造"]["基礎形式"] = foundation
+        data["outputs"] = {key: key in items for key in data["outputs"]}
+        path = tmp_path / f"{foundation}_{'_'.join(items)}" / "pre" / "input.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        return generate.generate(GenerationOptions(path, path.parents[1] / "output", path.parents[1] / "post")).stages
+
+    assert generated("場所打ち杭", "reactions") == ("0600",)
+    # the 0400 of a steel soil cement pile is the input's alone; that of a 場所打ち杭 reads 1/β of 0500 (decision 98)
+    assert generated("鋼管ソイルセメント杭", "detailing", "reactions") == ("0400", "0600")
+    assert not any(name.startswith("杭基礎") for name in tree(tmp_path))
+    with pytest.raises(InputError, match="outputs.detailing: outputs.ground_model も true が必要です"):
+        generated("場所打ち杭", "detailing", "reactions")
 
 
 def test_a_direct_foundation_is_unchanged_by_the_pile_stage(tmp_path):

@@ -104,7 +104,6 @@ def test_an_optional_insertion_without_pages_puts_nothing_in_but_still_starts_a_
     ((AFTER_HEADING, BEFORE_ACTIONS), {"first": FIRST, "second": SECOND}, "差し込む位置が原稿の順になっていません"),
     ((Insertion("first", "t/model.text"), Insertion("second", "t/actions.heading", before=True)),
      {"first": FIRST, "second": SECOND}, "差し込む位置が原稿の順になっていません"),  # the same place twice
-    ((Insertion("first", "t/model.heading", before=True),), {"first": FIRST}, "差し込む位置が原稿の順になっていません"),
     ((Insertion("first", "t/missing"),), {"first": FIRST}, "差し込む位置の単位 t/missing がありません"),
     ((Insertion("first", "t/model.text"), Insertion("first", "t/actions.text")), {"first": FIRST},
      "差し込むページの名前が重複しています"),
@@ -113,6 +112,14 @@ def test_a_wrong_insertion_is_an_error_and_writes_nothing(tmp_path: Path, insert
     with pytest.raises(ValueError, match=message):
         render_with_pages(manuscript(), insertions, pages, tmp_path / "r.pdf")
     assert list(tmp_path.iterdir()) == []
+
+
+def test_an_insertion_before_the_first_unit_puts_its_pages_first(tmp_path: Path):
+    """Aggre-SE's report before WebPier's page of a 場所打ち杭's 0711 without the 応答変位法 (decision 98)."""
+    path = render_with_pages(manuscript(), (Insertion("first", "t/model.heading", before=True),), {"first": FIRST},
+                             tmp_path / "r.pdf")
+    found = texts(path)
+    assert found[:2] == ["FAKE FIRST 1/2", "FAKE FIRST 2/2"] and found[2].startswith("1.1 検討モデル")
 
 
 def test_units_with_the_same_key_are_an_error(tmp_path: Path):

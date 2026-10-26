@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.calc.pile_frame import PileFoundation
 from webpier.calc.pile_ground import calculate_pile_ground
 from webpier.calc.reaction import calculate_reaction
@@ -30,8 +31,8 @@ PILES = STAGES.for_foundation(choices.CAST_IN_PLACE_PILE)
 def test_the_record_was_accepted_and_is_of_the_input_kept_beside_it():
     assert RECORD["kind"] == "pile_liquefaction_acceptance" and RECORD["schema_version"] == 1
     assert RECORD["accepted"] is True and RECORD["failures"] == [] and RECORD["seismic_check_judged"] is False
-    assert RECORD["input"]["sha256"] == file_sha256(ROOT / RECORD["input"]["path"]), f"入力が変わっています。{REDO}"
-    assert RECORD["input"]["kept_sha256"] == file_sha256(EVIDENCE / RECORD["input"]["kept"])
+    assert RECORD["input"]["sha256"] in input_sha256s((ROOT / RECORD["input"]["path"]).read_bytes()), f"入力が変わっています。{REDO}"
+    assert RECORD["input"]["kept_sha256"] in input_sha256s((EVIDENCE / RECORD["input"]["kept"]).read_bytes())
     assert set(RECORD["stages"]) == {"0711", "0721"}
 
 

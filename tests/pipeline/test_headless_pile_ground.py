@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from pipeline_support import PILE_BARS
 from webpier.core.integrity import sha256
 from webpier.pipeline import generate, headless, jrsnap
 
@@ -26,7 +27,9 @@ def identity(monkeypatch):
 def source(tmp_path):
     path = tmp_path / "pre" / "input.json"
     path.parent.mkdir()
-    path.write_bytes(FIXTURE.read_bytes())
+    data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    data["鉄筋"]["杭"] = PILE_BARS  # its 0400 checks the bars of the pile (decision 98)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
 
 
@@ -36,7 +39,7 @@ def test_run_makes_the_stages_of_the_pile_foundation(tmp_path, capsys, source):
     summary = envelope["summary"]
     assert summary["outputs"] == ["detailing", "ground_model", "reactions"]
     assert [(stage["id"], stage["stem"]) for stage in summary["stages"]] == [
-        ("0400", "0400_照査の前提"), ("0500", "0500_杭基礎"), ("0600", "0600_上部工反力")]
+        ("0500", "0500_杭基礎"), ("0400", "0400_照査の前提"), ("0600", "0600_上部工反力")]
     assert next(stage for stage in summary["stages"] if stage["id"] == "0500")["engineeringStatus"] == "not_evaluated"
     assert summary["runners"] == [{"engine": "jrsnap", "environmentVariable": "STRUCTURAL_MCP_JRSNAP_RUNNER",
                                    "engineVersions": ["fake-1"]}]
@@ -55,7 +58,7 @@ def test_validate_names_the_runner_of_the_ground_stage_without_calling_it(tmp_pa
     code, envelope = call(capsys, "validate", "--input", source)
     assert code == 0
     assert envelope["summary"]["outputs"] == ["detailing", "ground_model", "reactions"]
-    assert envelope["summary"]["stages"] == ["0400", "0500", "0600"]
+    assert envelope["summary"]["stages"] == ["0500", "0400", "0600"]
     assert envelope["summary"]["requiredRunners"] == [
         {"engine": "jrsnap", "environmentVariable": "STRUCTURAL_MCP_JRSNAP_RUNNER", "available": False}]
 

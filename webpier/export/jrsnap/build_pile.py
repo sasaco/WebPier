@@ -12,7 +12,8 @@ member from its head down, cut into elements and given the ground springs of the
   the .sdc lists.
 - **Sections.** Section 1 is the column's. A section of the pile follows for each zone of the hoops from the head: the 2D zone,
   then the zones below it (鉄筋.杭.hoops.lower). The section of a pile element is the one of the zone its upper end is in; the
-  last zone goes on to the tip. The main bars (all along: a 段落し is not made yet), the cover, the steels, f'ck of the pile
+  last zone goes on to the tip. The main bars (all along: a 段落し keeps the section of the head, decision 98, as Aggre-SE's
+  ⑧ calculates the capacity after it from the bars it is given), the cover, the steels, f'ck of the pile
   and its 施工条件 (the code of the manual's 表2-30) are common; the axial force is not given (JRSNAP takes the one of the
   analysis, as for the column).
 - **Combinations.** Those of the push of this NDU: the forward ones, or the reversed ones with ``reverse``.
@@ -68,8 +69,6 @@ def _hoop(hoop, path: str):
 def pile_sections(pier: PierInput, profile: Profile, diameter: Printed) -> tuple[tuple[PileSection, ...], list[Decimal]]:
     """The sections of the zones of the hoops and where each zone ends (m below the head; the last one has no end)."""
     bars, cast = pier.rebar.pile, pier.piles.cast_in_place
-    if bars.cutoff.main_diameter is not None or bars.cutoff.main_count is not None:
-        raise InputError(f"{REBAR}.cutoff.main_bars: 段落しのある杭の NDU は未対応です（決定93）")
     main = need(bars.main_diameter, f"{REBAR}.main_bars.diameter_mm")
     count = need(bars.main_count, f"{REBAR}.main_bars.count")
     cover = need(bars.pure_cover, f"{REBAR}.pure_cover_mm")

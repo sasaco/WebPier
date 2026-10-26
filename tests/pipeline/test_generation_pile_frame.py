@@ -120,7 +120,7 @@ def test_a_generation_calculates_the_late_stages_after_the_ground_is_complete(mo
     monkeypatch.setattr(stages, "_pile_foundation", foundation)
     registry = Registry(tuple(
         (StageSpec(**{**vars(stage), "complete": completing}) if stage.id == "0500" and stage.complete else stage)
-        for stage in STAGES.for_foundation("場所打ち杭").stages))
+        for stage in STAGES.for_foundation("場所打ち杭").stages), foundation="場所打ち杭")
     generate.generate(options(tmp_path), registry=registry)
     assert order[:2] == ["0500 complete", "0610 calculate"] and real["0610"].after == ()
 

@@ -46,7 +46,8 @@ from ..core.errors import InputError
 from ..core.integrity import sha256
 from ..inputs.fields import FIELDS, Field
 from ..inputs.choices import CAST_IN_PLACE_PILE, PILE_FOUNDATIONS
-from ..inputs.outputs import OUTPUT_ITEMS, PILE_OUTPUT_KEYS, foundation_makes, uses
+from ..inputs.outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, uses
+from ..inputs.outputs import requires as item_requires
 from ..inputs.parse import BEARING_SLOTS, SCHEMA_VERSION as INPUT_SCHEMA_VERSION, TOP_KEYS, load_model_item
 from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
@@ -130,8 +131,9 @@ def _options(arguments: argparse.Namespace, output_dir: Path) -> GenerationOptio
 
 
 def _chosen(registry: Registry, selected: Sequence[str]) -> list[str]:
-    """The 出力項目 of the stages *selected*, in registry order."""
-    return list(dict.fromkeys(registry.item(stage_id) for stage_id in selected))
+    """The 出力項目 of the stages *selected*, in the order of the table (outputs.OUTPUT_KEYS)."""
+    chosen = {registry.item(stage_id) for stage_id in selected}
+    return [key for key in OUTPUT_KEYS if key in chosen]
 
 
 def _runner(module: ModuleType) -> dict[str, Any]:
@@ -329,13 +331,17 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
     def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
         stages = registry.outputs.get(key, ())
         needed = [stage_id for item in (*uses(key), key) for stage_id in registry.outputs.get(item, ())]
+        pile_needed = [stage_id for item in (*uses(key, CAST_IN_PLACE_PILE), key)
+                       for stage_id in registry.outputs.get(item, ())]
         return {"key": key, "requires": list(requires), "stages": list(stages),
                 "runners": [module.ENGINE for module in required_runners(needed, registry=registry)],
                 "files": files(planned(options, stages, registry=registry)),
                 "pileFoundation": {
                     "supported": key in PILE_OUTPUT_KEYS,
                     "foundations": [name for name in PILE_FOUNDATIONS if foundation_makes(name, key)],
-                    "runners": [module.ENGINE for module in required_runners(needed, registry=piles)],
+                    # the items it uses for a 場所打ち杭 (decision 98: 0400 reads 1/β of 0500)
+                    "requires": list(item_requires(key, CAST_IN_PLACE_PILE)),
+                    "runners": [module.ENGINE for module in required_runners(pile_needed, registry=piles)],
                     "files": files(planned(options, stages, registry=piles)),
                     "conditionalFiles": conditional(stages)}}
 

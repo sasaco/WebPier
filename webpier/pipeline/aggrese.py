@@ -44,7 +44,7 @@ from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
 from ..calc.footing import FoundationStep, StepsError
-from ..reporting.stages.seismic_check import SEISMIC_CHECK
+from ..reporting.stages.seismic_check import PILE_ANCHOR_BAR, SEISMIC_CHECK
 from .fempython import ENV_FILE, RunnerError, read_env
 
 RUNNER_KEY = "STRUCTURAL_MCP_AGGRESE_RUNNER"
@@ -65,6 +65,8 @@ FOUNDATION_STEPS_COLUMNS = ("case_index", "case_name", "node", "step", "V", "H",
 PILE_PUBLISHED = {kind: item for kind, item in PUBLISHED.items() if kind != "steps"}  # no step table of a pile foundation
 _FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PUBLISHED.values()}
 _PILE_FILES = {("result-json", "result.json"), ("report-pdf", "report.pdf"), *PILE_PUBLISHED.values()}
+# the 杭の段落とし計算書 of ⑧ (decision 98), which the runner makes for a project with a cut-off of the piles
+ANCHOR_BAR_FILE = ("pile-anchor-bar-pdf", "pile-anchor-bar.pdf")
 SDR_NAME = "foundation.sdr"  # the name the runner is given the .sdr as: the file's own name is not a fact of the check
 LIQUEFIED_SDR_NAME = "foundation(液状化時用).sdr"  # and the one for the liquefaction (Aggre-SE reads "液状化" in the name)
 AXIAL, TRANSVERSE = "axial", "transverse"  # --sdr-direction: 橋軸方向 (線路方向), 直角方向 (線路直角方向)
@@ -94,11 +96,12 @@ class SeismicCheckPages:
     files: Mapping[str, bytes]  # each file of PUBLISHED as returned, by its kind
     cases: tuple[Mapping[str, Any], ...]  # the runner's summary.cases, in order
     engine_version: str
+    anchor_bar: bytes | None = None  # pile-anchor-bar.pdf as returned, for a project with a cut-off (decision 98)
 
     @property
     def pages(self) -> dict[str, bytes]:
-        """The report by the name the stage's report takes it (reporting.stages.seismic_check)."""
-        return {SEISMIC_CHECK: self.pdf}
+        """The reports by the names the stage's report takes them (reporting.stages.seismic_check)."""
+        return {SEISMIC_CHECK: self.pdf, **({PILE_ANCHOR_BAR: self.anchor_bar} if self.anchor_bar is not None else {})}
 
 
 def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None, *, dotenv: bool = True
@@ -164,10 +167,13 @@ def _cases(summary: Any, mapped: Mapping[str, str]) -> tuple[Mapping[str, Any], 
     return tuple(cases)
 
 
-def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> SeismicCheckPages:
+def _run(project: Path, runner: Path, timeout: float, limits: Limits | None, anchor_bar: bool) -> SeismicCheckPages:
     mapped = snap_map(project)
     published, expected = (PUBLISHED, _FILES) if limits is None else (PILE_PUBLISHED, _PILE_FILES)
-    arguments = ARGUMENTS if limits is None else ARGUMENTS[:-2]  # a pile foundation has no step table
+    arguments = list(ARGUMENTS if limits is None else ARGUMENTS[:-2])  # a pile foundation has no step table
+    if anchor_bar:
+        arguments[arguments.index("--pile-anchor-bar-pdf") + 1] = "true"
+        expected = expected | {ANCHOR_BAR_FILE}
     with tempfile.TemporaryDirectory(prefix="webpier-aggrese-") as work:
         snaps, output = Path(work) / "snap-map.json", Path(work) / "output"
         snaps.write_text(json.dumps(mapped, ensure_ascii=False), encoding="utf-8")
@@ -198,7 +204,8 @@ def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> 
                 or not all(isinstance(item, dict) for item in artifacts)
                 or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != expected):
             raise _Failure("runner の成果物が結果・計算書・ピックアップ・総括表" + (
-                "・直接基礎のステップ表の5つ" if limits is None else "の4つ") + f"ではありません（{artifacts!r}）")
+                "・直接基礎のステップ表" if limits is None else "") + ("・杭の段落とし計算書" if anchor_bar else "")
+                + f"の{len(expected)}つではありません（{artifacts!r}）")
         files: dict[str, bytes] = {}
         for item in artifacts:
             path = output / item["relativePath"]
@@ -213,12 +220,10 @@ def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> 
             raise _Failure(f"runner の出力先のファイルが成果物の一覧と一致しません（{present!r}）")
     cases = _cases(envelope.get("summary"), mapped)
     pdf = files["report.pdf"]
-    try:
-        pages = len(PdfReader(BytesIO(pdf), strict=True).pages)
-    except (PyPdfError, ValueError, OSError) as exc:
-        raise _Failure(f"計算書の PDF を読めません（{exc}）") from exc
-    if not pages:
-        raise _Failure("計算書の PDF にページがありません")
+    _pdf(pdf, "計算書")
+    anchor = files[ANCHOR_BAR_FILE[1]] if anchor_bar else None
+    if anchor is not None:
+        _pdf(anchor, "杭の段落とし計算書")
     if not zipfile.is_zipfile(BytesIO(files["summary.xlsx"])):
         raise _Failure("総括表が xlsx（zip）ではありません")
     if limits is None:
@@ -228,15 +233,25 @@ def _run(project: Path, runner: Path, timeout: float, limits: Limits | None) -> 
             raise _Failure(f"直接基礎のステップ表を UTF-8 で読めません（{exc}）") from exc
         if steps.split("\r\n", 1)[0] != ",".join(FOUNDATION_STEPS_COLUMNS):
             raise _Failure("直接基礎のステップ表の列が違います")
-    return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in published.items()}, cases, version)
+    return SeismicCheckPages(pdf, {kind: files[name] for kind, (_, name) in published.items()}, cases, version, anchor)
 
 
-def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT, limits: Limits | None = None
-                  ) -> SeismicCheckPages:
-    """Aggre-SE's report and published files for the project XML at *project* and the DB1 it names
-    (decisions 56〜58, 60); of a pile foundation, with the *limits* of its stability (decision 94)."""
+def _pdf(content: bytes, what: str) -> None:
     try:
-        return _run(Path(project), runner, timeout, limits)
+        pages = len(PdfReader(BytesIO(content), strict=True).pages)
+    except (PyPdfError, ValueError, OSError) as exc:
+        raise _Failure(f"{what}の PDF を読めません（{exc}）") from exc
+    if not pages:
+        raise _Failure(f"{what}の PDF にページがありません")
+
+
+def check_seismic(project: Path, runner: Path, *, timeout: float = TIMEOUT, limits: Limits | None = None,
+                  anchor_bar: bool = False) -> SeismicCheckPages:
+    """Aggre-SE's report and published files for the project XML at *project* and the DB1 it names
+    (decisions 56〜58, 60); of a pile foundation, with the *limits* of its stability (decision 94), and with its
+    杭の段落とし計算書 for a cut-off of the piles (*anchor_bar*, decision 98)."""
+    try:
+        return _run(Path(project), runner, timeout, limits, anchor_bar)
     except _Failure as exc:
         raise RunnerError(f"{Path(project).name} {_CHECK}: {exc}") from exc
 

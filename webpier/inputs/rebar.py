@@ -224,12 +224,11 @@ class PileHoops:
 @dataclass(frozen=True)
 class PileCutoff:
     """The cut-off of the bars of a 場所打ち杭 (decision 87): the section after it, the lengths and the rules. There is none
-    while its main bars are blank."""
+    while its main bars are blank. The 杭頭定着長 is calculated, not entered (decision 98: calc.detailing.pile)."""
 
     main_diameter: Printed | None
     main_count: int | None
     hoop: PileHoop
-    head_anchorage: Printed | None  # 杭頭定着長, mm
     cutoff_length: Printed | None  # 段落し長, mm
     cutoff_anchorage: Printed | None  # 段落し定着長, mm
     joint_reduction: Printed | None  # 継手低減係数
@@ -239,7 +238,6 @@ class PileCutoff:
     no_joint_below: Printed | None  # from the cut-off point, downward, mm
     margin_moment: Printed | None  # 余裕率: bending moment
     margin_shear: Printed | None  # 余裕率: shear force
-    anchorage_stirrup: str | None  # 杭頭定着長に使うスターラップ, one of choices.PILE_ANCHORAGE_STIRRUPS
 
 
 @dataclass(frozen=True)
@@ -428,20 +426,19 @@ def _pile_lower(node: Reader) -> tuple[PileLowerHoop, ...]:
 
 
 def _pile_cutoff(node: Reader) -> PileCutoff:
-    node.only("main_bars", "hoops", "head_anchorage_mm", "cutoff_length_mm", "cutoff_anchorage_mm", "joint_reduction",
-              "margin_mm", "no_joint", "margin_ratio", "anchorage_stirrup")
+    node.only("main_bars", "hoops", "cutoff_length_mm", "cutoff_anchorage_mm", "joint_reduction", "margin_mm",
+              "no_joint", "margin_ratio")
     bars = node.at("main_bars").only("diameter_mm", "count")
     no_joint = node.at("no_joint").only("from_head_mm", "above_mm", "below_mm")
     ratio = node.at("margin_ratio").only("moment", "shear")
     return PileCutoff(
         main_diameter=_value(bars, "diameter_mm"), main_count=_value(bars, "count"),
         hoop=_pile_hoop(node.at("hoops").only("diameter_mm", "sets", "pitch_mm")),
-        head_anchorage=_value(node, "head_anchorage_mm"), cutoff_length=_value(node, "cutoff_length_mm"),
+        cutoff_length=_value(node, "cutoff_length_mm"),
         cutoff_anchorage=_value(node, "cutoff_anchorage_mm"), joint_reduction=_value(node, "joint_reduction"),
         margin=_value(node, "margin_mm"), no_joint_from_head=_value(no_joint, "from_head_mm"),
         no_joint_above=_value(no_joint, "above_mm"), no_joint_below=_value(no_joint, "below_mm"),
-        margin_moment=_value(ratio, "moment"), margin_shear=_value(ratio, "shear"),
-        anchorage_stirrup=_value(node, "anchorage_stirrup"))
+        margin_moment=_value(ratio, "moment"), margin_shear=_value(ratio, "shear"))
 
 
 def _pile(node: Reader) -> PileBars:

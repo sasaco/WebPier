@@ -21,6 +21,8 @@ from webpier.pipeline.stages import Export, Registry, StageSpec
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = FIXTURES / "inputs" / "current.json"
+# 鉄筋.杭 of a 場所打ち杭 with every item its 0400 needs (decision 98), for pile.json, whose own is blank
+PILE_BARS = json.loads((FIXTURES / "inputs" / "pile_seismic.json").read_text(encoding="utf-8"))["鉄筋"]["杭"]
 FAKE_OUTPUTS = {"ground_model": ("A",), "longitudinal": ("B",), "longitudinal_seismic": ("C",)}
 # The items of the 線路方向 (decision 72): with every item each uses, the stages A, B and C of the fake registry
 LONGITUDINAL = ("ground_model", "reactions", "longitudinal")

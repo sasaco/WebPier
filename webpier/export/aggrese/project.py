@@ -13,8 +13,10 @@ P1_直角.xml), and the values that follow from the NDU are taken from its model
 The project of a pile foundation (decision 94) differs in what it checks: the members are the column and the sections of the
 piles (部材照査タイプ 杭), the reactions are taken at the head of each pile row and the displacement at the footing top, and
 the limit values of the foundation's stability are SOIL-JR's, which the runner reads from the .sdr it is given (``--sdr``). The
-check ⑧ 杭の段落し is not made (a 段落し is not supported yet). The Cases are those of the combinations of every NDU of the
-stage in turn: the NDU of the forward push, then the one of the reversed push (decision 93).
+check ⑧ 杭の段落し is made only for a pile with a cut-off (decision 98: its 段落し情報, ``AnchorBar``, with the 杭頭定着長
+WebPier calculates), on the Cases its 照査パターン checks it; Aggre-SE calculates the capacity after the cut-off from the bars
+it is given, so the NDU keeps the section of the head. The Cases are those of the combinations of every NDU of the stage in
+turn: the NDU of the forward push, then the one of the reversed push (decision 93).
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 import re
 
+from ...calc.detailing.pile import head_anchorage, section
 from ...core.errors import InputError
 from ...core.printed import Printed
 from ...inputs import PierInput
@@ -66,6 +69,7 @@ class Project:
     # the 着目点 (_AtPoint): 0, the control joint of each DB1; the NDU's control joint with the Cases of the 応答変位法, whose load
     # increment keeps none in its DB1 (decision 97; the inertia Cases have the same one)
     focus_joint: int = 0
+    anchor_bar: "AnchorBar | None" = None  # a pile with a cut-off: ⑧ 杭の段落し (decision 98)
 
     @property
     def piled(self) -> bool:
@@ -78,6 +82,69 @@ class PileRow:
 
     head: int
     piles: int
+
+
+@dataclass(frozen=True)
+class AnchorBar:
+    """The 段落し情報 of Aggre-SE's ⑧ 杭の段落し (clsPileAnchorBar, decision 98): the elements of each pile row, the bars
+    after the cut-off and the lengths (mm) and rules of 鉄筋.杭.cutoff, with the 杭頭定着長 of the calculation."""
+
+    rows: tuple[tuple[int, int, int], ...]  # (first element, last element, piles in the depth) of each pile row
+    main_diameter: Decimal  # D1: 段落し後の軸方向鉄筋径
+    main_count: int  # n1
+    hoop_diameter: Decimal  # D2: 段落し後の帯鉄筋径
+    hoop_sets: int  # Aw: 帯鉄筋組数
+    hoop_pitch: Decimal  # Ss: 帯鉄筋間隔
+    head_anchorage: Decimal  # PileHeadLength: 杭頭定着長
+    cutoff_length: Decimal  # ParagraphLength: 段落し長さ
+    concrete_strength: Decimal  # ConcreteStrength: 定着部のコンクリート強度 (the footing's)
+    joint_reduction: Decimal  # ReductionCoefficient: 継手低減係数
+    cutoff_anchorage: Decimal  # PileMidLength: 段落し定着長
+    margin: Decimal  # DesignMarginLength: 設計余裕長
+    no_joint_head: Decimal  # DisabledFromPileHead
+    no_joint_above: Decimal  # DisabledUpwardFromCutOffPoint
+    no_joint_below: Decimal  # DisabledDownwardFromCutOffPoint
+    margin_moment: Decimal  # MudCoefficient: 余裕率（曲げ）
+    margin_shear: Decimal  # VudCoefficient: 余裕率（せん断）
+
+
+_CUTOFF = "鉄筋.杭.cutoff"
+
+
+def anchored(pier: PierInput) -> bool:
+    """Whether the piles of *pier* have a cut-off, which Aggre-SE checks as ⑧ (decision 98): its main bars are entered."""
+    return pier.rebar.pile.cutoff.main_diameter is not None
+
+
+def anchor_bar(model: PileNduModel, pier: PierInput) -> AnchorBar | None:
+    """⑧ of the piles of *model* when 鉄筋.杭 has a cut-off (its main bars entered), else None; a blank item it needs is an
+    input error naming it."""
+    cutoff = pier.rebar.pile.cutoff
+    if not anchored(pier):
+        return None
+
+    def need(item, path: str) -> Decimal:
+        if item is None:
+            raise InputError(f"{_CUTOFF}.{path}: 杭の段落しの照査（Aggre-SE の ⑧）に必要です")
+        return Decimal(repr(item.value)) if isinstance(item, Printed) else Decimal(item)
+
+    members = {member.number: member for member in model.members}
+    rows = tuple((pile.first, pile.last, members[pile.member].depth_piles) for pile in model.piles)
+    length = head_anchorage(pier, section(pier)).length
+    return AnchorBar(
+        rows=rows, main_diameter=need(cutoff.main_diameter, "main_bars.diameter_mm"),
+        main_count=int(need(cutoff.main_count, "main_bars.count")),
+        hoop_diameter=need(cutoff.hoop.diameter, "hoops.diameter_mm"), hoop_sets=int(need(cutoff.hoop.sets, "hoops.sets")),
+        hoop_pitch=need(cutoff.hoop.pitch, "hoops.pitch_mm"), head_anchorage=Decimal(repr(length.value)),
+        cutoff_length=need(cutoff.cutoff_length, "cutoff_length_mm"),
+        concrete_strength=Decimal(repr(pier.materials.footing.value)),
+        joint_reduction=need(cutoff.joint_reduction, "joint_reduction"),
+        cutoff_anchorage=need(cutoff.cutoff_anchorage, "cutoff_anchorage_mm"), margin=need(cutoff.margin, "margin_mm"),
+        no_joint_head=need(cutoff.no_joint_from_head, "no_joint.from_head_mm"),
+        no_joint_above=need(cutoff.no_joint_above, "no_joint.above_mm"),
+        no_joint_below=need(cutoff.no_joint_below, "no_joint.below_mm"),
+        margin_moment=need(cutoff.margin_moment, "margin_ratio.moment"),
+        margin_shear=need(cutoff.margin_shear, "margin_ratio.shear"))
 
 
 def _choice(value: str | None, options: tuple[str, ...], key: str) -> int:
@@ -96,14 +163,16 @@ RESPONSE_CHECKS: dict[str, Checks] = {"L1": (False, False, True, False, True, Tr
                                       "L2": (True, True, True, False, True, False, True, False, True)}
 
 
-def _checks(model: NduModel | PileNduModel, *, piled: bool = False) -> tuple[Checks, ...]:
+def _checks(model: NduModel | PileNduModel, *, piled: bool = False, anchored: bool = False) -> tuple[Checks, ...]:
+    """The check items of each combination of *model*; of piles (*piled*), ⑧ only with a cut-off (*anchored*)."""
     found = []
     for number, combination in enumerate(model.combinations, 1):
         pattern = (Decimal(repr(combination.rho_m.value)), Decimal(repr(combination.alpha_f.value)))
         if pattern not in CHECKS:
             raise ValueError(f"組合せ {number} の照査パターン ρm={pattern[0]}・αf={pattern[1]} の照査項目がありません")
         checks = CHECKS[pattern]
-        found.append(tuple(item and not (piled and index == PILE_ANCHOR_BAR) for index, item in enumerate(checks)))
+        found.append(tuple(item and not (piled and not anchored and index == PILE_ANCHOR_BAR)
+                           for index, item in enumerate(checks)))
     return tuple(found)
 
 
@@ -141,7 +210,8 @@ def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
     for other in (*models[1:], *liquefied, *(model for _, model in response)):
         if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
-    ordinary = tuple(case for model in models for case in _checks(model, piled=True))
+    anchor = anchor_bar(first, pier)
+    ordinary = tuple(case for model in models for case in _checks(model, piled=True, anchored=anchor is not None))
     index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"), shear_span=first.shear_span,
@@ -149,7 +219,7 @@ def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
                    + tuple(RESPONSE_CHECKS[level] for level, _ in response),
                    pile_rows=rows, pile_sections=len(first.sections) - 1,
                    liquefaction_cases=tuple(range(len(ordinary), len(ordinary) + len(liquefied))),
-                   liquefaction_index=index, focus_joint=first.control if response else 0)
+                   liquefaction_index=index, focus_joint=first.control if response else 0, anchor_bar=anchor)
 
 
 def ndu_databases(folder: str, names: Iterable[str], groups: Sequence[tuple[str, int]]) -> tuple[str, ...]:

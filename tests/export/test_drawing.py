@@ -288,7 +288,7 @@ def test_each_figure_is_one_pdf_page_and_its_png_with_the_same_bytes(sample):
     """The PNG is the PDF page at 200 dpi: GridLayoutPdf's PdfFigure takes it as the preview of the grid Excel only when
     one scale gives both its sides to half a pixel (its aspect ratio is the page's)."""
     figures = drawing_figures(sample)
-    assert tuple(figures) == FIGURES
+    assert tuple(figures) == FIGURES[:3]  # the pile's is a 場所打ち杭's (test_drawing_pile)
     for name, (pdf, png) in figures.items():
         document_ = pymupdf.open(stream=pdf, filetype="pdf")
         assert document_.page_count == 1, name

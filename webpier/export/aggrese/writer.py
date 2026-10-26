@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from decimal import Decimal
 
-from .project import Project
+from .project import AnchorBar, Project
 
 BATCH_VERSION = "5.3.0.1"  # Batch.exe (Aggre-SE) FileVersion, which it writes as Version
 CASES = 50  # Option_ケース数: the length of every per-Case array
@@ -88,19 +88,35 @@ def _foundation(project: Project) -> list[Node]:
             ("dgDispAtPoints", displaced), limits0, limits1, ("FoundationType", str(PILE_FOUNDATION))]
 
 
-def _pile_anchor_bar() -> list[Node]:
-    """The empty 段落し情報 (a direct foundation has no pile); Aggre-SE's initial values."""
-    values = [("_D1", "0"), ("_n1", "0"), ("_D2", "0"), ("_Aw", "0"), ("_Ss", "0"), ("dgMemberFirst", None),
-              ("dgMemberLast", None), ("dgMemberNumber", None)]
-    values += [(f"_{name}", "0") for name in ("PileHeadLength", "ParagraphLength", "ConcreteStrength",
-                                               "ReductionCoefficient", "PileMidLength", "DesignMarginLength",
-                                               "DisabledFromPileHead", "DisabledUpwardFromCutOffPoint",
-                                               "DisabledDownwardFromCutOffPoint")]
-    values += [("MudCoefficient", "1.5"), ("VudCoefficient", "1.5")]
-    values += [(name, None) for name in ("D1", "n1", "D2", "Aw", "Ss", "PileHeadLength", "ParagraphLength",
-                                         "ConcreteStrength", "ReductionCoefficient", "PileMidLength",
-                                         "DesignMarginLength", "DisabledFromPileHead", "DisabledUpwardFromCutOffPoint",
-                                         "DisabledDownwardFromCutOffPoint")]
+_ANCHOR_BARS = ("D1", "n1", "D2", "Aw", "Ss")
+_ANCHOR_LENGTHS = ("PileHeadLength", "ParagraphLength", "ConcreteStrength", "ReductionCoefficient", "PileMidLength",
+                   "DesignMarginLength", "DisabledFromPileHead", "DisabledUpwardFromCutOffPoint",
+                   "DisabledDownwardFromCutOffPoint")
+
+
+def _pile_anchor_bar(anchor: AnchorBar | None) -> list[Node]:
+    """The 段落し情報: Aggre-SE's initial values (no pile, or a pile without a cut-off), or those of *anchor* (decision 98).
+    XmlSerializer writes each value twice, the field (``_D1``) and the text property (``D1``) whose setter sets the field
+    again when it is read back, so both are written alike (an empty property would set it to 0)."""
+    if anchor is None:
+        texts = {name: None for name in (*_ANCHOR_BARS, *_ANCHOR_LENGTHS)}
+        rows: list[Node] = [("dgMemberFirst", None), ("dgMemberLast", None), ("dgMemberNumber", None)]
+        moment = shear = "1.5"
+    else:
+        numbers = (anchor.main_diameter, Decimal(anchor.main_count), anchor.hoop_diameter, Decimal(anchor.hoop_sets),
+                   anchor.hoop_pitch, anchor.head_anchorage, anchor.cutoff_length, anchor.concrete_strength,
+                   anchor.joint_reduction, anchor.cutoff_anchorage, anchor.margin, anchor.no_joint_head,
+                   anchor.no_joint_above, anchor.no_joint_below)
+        texts = {name: _number(value) for name, value in zip((*_ANCHOR_BARS, *_ANCHOR_LENGTHS), numbers)}
+        rows = [("dgMemberFirst", _array("int", [first for first, _, _ in anchor.rows])),
+                ("dgMemberLast", _array("int", [last for _, last, _ in anchor.rows])),
+                ("dgMemberNumber", _array("float", [Decimal(piles) for _, _, piles in anchor.rows]))]
+        moment, shear = _number(anchor.margin_moment), _number(anchor.margin_shear)
+    values: list[Node] = [(f"_{name}", texts[name] or "0") for name in _ANCHOR_BARS]
+    values += rows
+    values += [(f"_{name}", texts[name] or "0") for name in _ANCHOR_LENGTHS]
+    values += [("MudCoefficient", moment), ("VudCoefficient", shear)]
+    values += [(name, texts[name]) for name in (*_ANCHOR_BARS, *_ANCHOR_LENGTHS)]
     return [("段落し情報", [("clsPileAnchorBar", values)])]
 
 
@@ -137,7 +153,7 @@ def document(project: Project, databases: Sequence[str]) -> list[Node]:
             ("SNAP", [("SnapDBPath", _array("string", _cases(list(databases), NIL)))]),
             ("Element", element), ("Foundation", [("基礎照査", [("clsFoundation", foundation)])]),
             ("Requirement", requirement), ("Calculation", [("_rbProduct", _array("boolean", PRODUCT))]),
-            ("PileAnchorBar", _pile_anchor_bar())]
+            ("PileAnchorBar", _pile_anchor_bar(project.anchor_bar))]
 
 
 def _escape(text: str) -> str:

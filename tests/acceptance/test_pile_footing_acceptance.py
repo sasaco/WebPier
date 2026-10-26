@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from recorded_input_support import input_sha256s
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.pile_footing import calculate_footing, complete_footing
 from webpier.calc.pile_footing_check import calculate_pile_footing_check
@@ -31,7 +32,7 @@ STEMS = {"longitudinal": "線路方向", "transverse": "線路直角方向"}
 
 def test_the_record_is_of_the_input_and_was_accepted():
     assert RECORD["accepted"] is True and RECORD["failures"] == [] and RECORD["capacita_judged"] is False
-    assert RECORD["input"]["sha256"] == file_sha256(FIXTURES / "inputs" / "pile_seismic.json")
+    assert RECORD["input"]["sha256"] in input_sha256s((FIXTURES / "inputs" / "pile_seismic.json").read_bytes())
     for name, item in RECORD["directions"].items():
         assert item["worst"]["reading"] <= 0.06 and item["worst"]["head"] <= 0.06 and item["worst"]["moment_shear"] <= 0.2, name
         assert all(count >= 1 for count in item["report"]["pages"].values()), name

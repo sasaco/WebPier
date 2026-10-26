@@ -431,13 +431,12 @@ def _pile(prefix: str) -> dict[str, Field]:
     cutoff = f"{prefix}.cutoff"
     table |= {f"{cutoff}.main_bars.diameter_mm": _DIAMETER, f"{cutoff}.main_bars.count": _PILE_COUNT,
               **_prefixed(f"{cutoff}.hoops", _PILE_HOOP),
-              f"{cutoff}.head_anchorage_mm": _PITCH_MM, f"{cutoff}.cutoff_length_mm": _PITCH_MM,
+              f"{cutoff}.cutoff_length_mm": _PITCH_MM,
               f"{cutoff}.cutoff_anchorage_mm": _PITCH_MM, f"{cutoff}.joint_reduction": number(RATIO, "positive", nullable=True),
               f"{cutoff}.margin_mm": _LENGTH_MM, f"{cutoff}.no_joint.from_head_mm": _LENGTH_MM,
               f"{cutoff}.no_joint.above_mm": _LENGTH_MM, f"{cutoff}.no_joint.below_mm": _LENGTH_MM,
               f"{cutoff}.margin_ratio.moment": number(RATIO, "positive", nullable=True),
-              f"{cutoff}.margin_ratio.shear": number(RATIO, "positive", nullable=True),
-              f"{cutoff}.anchorage_stirrup": _optional_choice(choices.PILE_ANCHORAGE_STIRRUPS)}
+              f"{cutoff}.margin_ratio.shear": number(RATIO, "positive", nullable=True)}
     return table
 
 

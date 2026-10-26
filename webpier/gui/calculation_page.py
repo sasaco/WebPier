@@ -146,7 +146,7 @@ class CalculationPage:
         for key, variable in self.outputs.items():
             variable.set(chosen[key])
             # an item the 基礎形式 cannot make yet stays enabled while it is checked, so that it can be unchecked
-            enabled = (not self.busy and all(chosen[item] for item in requires(key))
+            enabled = (not self.busy and all(chosen[item] for item in requires(key, foundation))
                        and (foundation_makes(foundation, key) or chosen[key]))
             self.output_boxes[key].state(["!disabled"] if enabled else ["disabled"])
         self.foundation_note.set("" if all(foundation_makes(foundation, key) for key in OUTPUT_KEYS) else
@@ -158,7 +158,8 @@ class CalculationPage:
         chosen = self._chosen()
         chosen[key] = self.outputs[key].get()
         if not chosen[key]:
-            chosen.update((item, False) for item in users(key))
+            foundation = self.editor.document.data.get("下部構造", {}).get("基礎形式")
+            chosen.update((item, False) for item in users(key, foundation))
         self.editor.document.data["outputs"] = {item: chosen[item] for item in OUTPUT_KEYS}
         self._show_outputs()
         self.editor.changed()

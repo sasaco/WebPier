@@ -162,7 +162,7 @@ def checked(tmp_path_factory):
 
 def test_0711_takes_teq_and_kh_of_the_forward_case_of_rho_10_and_alpha_10(checked):
     _, generation = checked
-    result = generation.results["0711"]
+    result = generation.results["0711"].response  # beside the minimum bars of a 場所打ち杭 (decision 98)
     tg = generation.results["0710"].ground_displacement.period
     assert result.inertia.case == 1 and result.inertia.teq.value == 0.982 and result.inertia.kheq.value == 0.408
     assert (result.inertia.kh_l1.value, result.inertia.kh_l2.value) == (0.321, 0.386)
@@ -174,7 +174,7 @@ def test_0711_takes_teq_and_kh_of_the_forward_case_of_rho_10_and_alpha_10(checke
 
 def test_each_case_of_the_response_is_an_ndu_analyzed_and_published_in_the_folder(checked):
     root, generation = checked
-    cases = generation.results["0711"].cases
+    cases = generation.results["0711"].response.cases
     folder = root / "post" / "線路方向_JRSNAP"
     names = [f"線路方向_応答変位法_{case.level}-{case.number}.ndu" for case in cases]
     assert all((folder / name).is_file() for name in names)
@@ -193,7 +193,7 @@ def test_each_case_of_the_response_is_an_ndu_analyzed_and_published_in_the_folde
 def test_the_project_has_the_cases_of_the_response_after_the_others_and_aggrese_checked_it(checked):
     root, generation = checked
     xml = (root / "post" / "線路方向.xml").read_bytes().decode("cp932", errors="replace")
-    assert xml.count(".DB1") == 4 + len(generation.results["0711"].cases)  # one DB1 a Case: the inertia ones, then these
+    assert xml.count(".DB1") == 4 + len(generation.results["0711"].response.cases)  # one DB1 a Case: the inertia ones, then these
     assert xml.index("線路方向(Case4_") < xml.index("線路方向_応答変位法_L1-1(Case1_") < xml.index("線路方向_応答変位法_L2-1(Case1_")
     control = dict(line.split("=", 1) for line in (root / "post" / "線路方向.ndu").read_bytes().decode("cp932").split("\r\n")
                    if "=" in line)["DataInfo"].split(",")[3]
@@ -209,16 +209,18 @@ def test_the_report_has_webpiers_pages_then_aggreses_and_a_workbook(checked):
     assert any("FAKE AGGRESE" in text for text in texts[1:]) and "FAKE AGGRESE" not in texts[0]
     assert not (root / "export" / "0711_線路方向非線形解析.xlsx").exists()  # Aggre-SE's summary has the role 0711.xlsx
     document = json.loads((root / "output" / "0711_線路方向非線形解析.json").read_text(encoding="utf-8"))
-    assert document["result"]["first_case"] == 5 and len(document["result"]["cases"]) == len(
-        generation.results["0711"].cases)
+    # decision 98: the result of a 場所打ち杭 has the minimum bars of the pile head reaction beside the 応答変位法
+    assert document["result"]["response"]["first_case"] == 5 and len(document["result"]["response"]["cases"]) == len(
+        generation.results["0711"].response.cases)
+    assert texts[-1].count("杭頭反力の最大値から定める最小鉄筋量") == 1 and "FAKE AGGRESE" not in texts[-1]
 
 
-def test_without_the_ground_displacement_0711_is_aggreses_report_alone(tmp_path):
+def test_without_the_ground_displacement_0711_has_no_pages_of_the_response_displacement_method(tmp_path):
     items = ("ground_model", "reactions", "longitudinal_seismic", "longitudinal_nonlinear_analysis")
     options = GenerationOptions(write(tmp_path / "pre", data(items, ground_class="G2地盤", velocities=())),
                                 tmp_path / "output", tmp_path / "post", export_dir=tmp_path / "export")
     generation = generate.generate(options)
-    assert generation.results.get("0711") is None
+    assert generation.results["0711"].response is None  # the minimum bars of the pile head reaction alone (decision 98)
     assert not (tmp_path / "export" / "0711_線路方向非線形解析.xlsx").exists()
     assert not any("応答変位法" in item.name for item in (tmp_path / "post" / "線路方向_JRSNAP").iterdir())
     assert "<_AtPoint>0</_AtPoint>" in (tmp_path / "post" / "線路方向.xml").read_bytes().decode("cp932", errors="replace")

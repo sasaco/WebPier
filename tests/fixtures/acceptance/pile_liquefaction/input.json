@@ -610,7 +610,6 @@
           "sets": null,
           "pitch_mm": null
         },
-        "head_anchorage_mm": null,
         "cutoff_length_mm": null,
         "cutoff_anchorage_mm": null,
         "joint_reduction": null,
@@ -623,8 +622,7 @@
         "margin_ratio": {
           "moment": null,
           "shear": null
-        },
-        "anchorage_stirrup": null
+        }
       }
     }
   },

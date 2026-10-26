@@ -46,7 +46,7 @@ def test_the_detailing_alone_from_the_input(tmp_path):
 def test_the_detailing_changes_no_other_report(tmp_path):
     _, alone = make(tmp_path / "a", "ground_model")
     _, both = make(tmp_path / "b", "detailing", "ground_model")
-    assert both.stages == ("0400", "0500")
+    assert both.stages == ("0500", "0400")
     first, second = tree(tmp_path / "a" / "output"), tree(tmp_path / "b" / "output")
     assert first["0500_直接基礎.pdf"] == second["0500_直接基礎.pdf"]
     strip = (lambda content: {key: value for key, value in json.loads(content).items() if key != "input"})

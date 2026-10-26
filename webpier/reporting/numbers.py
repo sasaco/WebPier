@@ -63,6 +63,7 @@ _UNITS: dict[str, str | tuple[str, str]] = {
     "kN/m2": ("kN/m", "2"),
     "kN/m3": ("kN/m", "3"),
     "N/mm2": ("N/mm", "2"),
+    "mm2": ("mm", "2"),  # As' of 杭頭反力の最大値から定める最小鉄筋量 (decision 98)
     "kN/mm2": ("kN/mm", "2"),
 }
 

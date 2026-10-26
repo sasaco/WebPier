@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "kind": "pile_detailing_acceptance",
+  "date": "2026-10-26T12:42:06+09:00",
+  "method": "本物の SOIL-JR・JRSNAP・Aggre-SE の runner で場所打ち杭（段落しあり）の 0400・0711・0721 を生成し、1/β を .sdc から、Pvmax を Aggre-SE のピックアップと NDU から別の読み方で読み直して照合し、⑧ の段落し情報と杭の段落とし計算書の頁を確かめた。⑧ の判定は扱わない。",
+  "aggrese_judged": false,
+  "input": {
+    "path": "tests/fixtures/inputs/pile_cutoff.json",
+    "sha256": "c09e2ac8b64ade685e3211bfcd3db6bf0fdbef7c9acd990cc494603553d4c660"
+  },
+  "inverse_beta": {
+    "線路方向": 4.377,
+    "線路直角方向": 4.377
+  },
+  "head_anchorage": 1000.0,
+  "ground_sdc_sha256": "82f6f6017724831e0b494e760887eb747df03575b5b93d6d17d91328bbebaa94",
+  "helpers": {
+    "scripts/accept_pile_detailing.py": "c323a41e8ae8a1ac98f817d18503e4300873a6a354195eeacaa646edb1ba32e4"
+  },
+  "directions": {
+    "線路方向": {
+      "pvmax": 5031.09,
+      "pvmax_found": 5031.09,
+      "rows": [
+        "11",
+        "31",
+        "51"
+      ],
+      "piles": [
+        "3",
+        "2",
+        "3"
+      ],
+      "check_8": [
+        0,
+        1
+      ],
+      "pages": 43,
+      "minimum_page": [
+        36
+      ],
+      "anchor_pages": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "files": {
+        "線路方向_Aggre-SE.pik": "7fffbb1b7614189a01eba209c01e76ef095c842da39033d58dff7263e7d28598",
+        "線路方向.ndu": "bbd4dae74e299875aae1b9c1c4f1dc5f40101db33901a69fd8a3b34c2392dde0",
+        "線路方向.xml": "f862a4fae9c1db872fde75039f4e033c9876585f9a42551d6174d9889df481eb"
+      }
+    },
+    "線路直角方向": {
+      "pvmax": 5188.48,
+      "pvmax_found": 5188.483,
+      "rows": [
+        "12",
+        "32",
+        "52"
+      ],
+      "piles": [
+        "3",
+        "2",
+        "3"
+      ],
+      "check_8": [
+        0,
+        1,
+        4,
+        5
+      ],
+      "pages": 82,
+      "minimum_page": [
+        69
+      ],
+      "anchor_pages": [
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81
+      ],
+      "files": {
+        "線路直角方向_Aggre-SE.pik": "929bc8207e1150e4a9d5f7d1924573e169a2a3b61df56ae36a2913c8cab736ed",
+        "線路直角方向.ndu": "7c86d66f49071a395de1fe1dab11f8b2757af2afe4f6c2a92bc7a89e16bc3b58",
+        "線路直角方向.xml": "72baa624b9a3e8410a6fe05ada284ea24dde7eb9fab80d90b4dde1286d4d58a2"
+      }
+    }
+  },
+  "accepted": true,
+  "failures": []
+}

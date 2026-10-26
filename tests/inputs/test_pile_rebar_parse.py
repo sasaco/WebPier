@@ -20,10 +20,10 @@ FULL = {
               "lower": [{"length_m": 2.5, "diameter_mm": 16, "sets": 1, "pitch_mm": 250.0},
                         {"length_m": 3.0, "diameter_mm": 13, "sets": 1, "pitch_mm": 300.0}]},
     "cutoff": {"main_bars": {"diameter_mm": 29, "count": 16}, "hoops": {"diameter_mm": 13, "sets": 1, "pitch_mm": 300.0},
-               "head_anchorage_mm": 1500.0, "cutoff_length_mm": 6000.0, "cutoff_anchorage_mm": 1200.0,
+               "cutoff_length_mm": 6000.0, "cutoff_anchorage_mm": 1200.0,
                "joint_reduction": 0.7, "margin_mm": 100.0,
                "no_joint": {"from_head_mm": 2000.0, "above_mm": 500.0, "below_mm": 500.0},
-               "margin_ratio": {"moment": 1.1, "shear": 1.1}, "anchorage_stirrup": "2D 区間"}}
+               "margin_ratio": {"moment": 1.1, "shear": 1.1}}}
 
 
 def pile_rebar(**changes):
@@ -57,23 +57,23 @@ def test_the_reinforcement_of_the_pile_is_read():
             for zone in bars.hoops.lower] == [(2.5, 16, 1, 250.0), (3.0, 13, 1, 300.0)]
     cutoff = bars.cutoff
     assert (cutoff.main_diameter.value, cutoff.main_count, cutoff.hoop.diameter.value) == (29, 16, 13)
-    assert (cutoff.head_anchorage.value, cutoff.cutoff_length.value, cutoff.cutoff_anchorage.value) == (1500.0, 6000.0, 1200.0)
+    assert (cutoff.cutoff_length.value, cutoff.cutoff_anchorage.value) == (6000.0, 1200.0)
     assert (cutoff.joint_reduction.value, cutoff.margin.value) == (0.7, 100.0)
     assert (cutoff.no_joint_from_head.value, cutoff.no_joint_above.value, cutoff.no_joint_below.value) == (2000.0, 500.0, 500.0)
-    assert (cutoff.margin_moment.value, cutoff.margin_shear.value, cutoff.anchorage_stirrup) == (1.1, 1.1, "2D 区間")
+    assert (cutoff.margin_moment.value, cutoff.margin_shear.value) == (1.1, 1.1)
 
 
 def test_the_current_input_has_nothing_entered_for_the_pile_reinforcement():
     bars = parse_input(deepcopy(CURRENT)).rebar.pile
     assert bars.pure_cover is None and bars.aggregate_max is None and bars.main_count is None
     assert bars.hoops.zone_2d.sets is None and bars.hoops.lower == () and bars.cutoff.main_diameter is None
-    assert bars.materials.main is None and bars.cutoff.anchorage_stirrup is None
+    assert bars.materials.main is None and bars.cutoff.cutoff_length is None
 
 
 def test_every_item_may_stay_blank_while_it_is_entered():
     data = pile_rebar()
     for path in (("materials", "main"), ("pure_cover_mm",), ("aggregate_max_mm",), ("main_bars", "count"),
-                 ("hoops", "zone_2d", "sets"), ("hoops", "lower", 0, "length_m"), ("cutoff", "anchorage_stirrup"),
+                 ("hoops", "zone_2d", "sets"), ("hoops", "lower", 0, "length_m"), ("cutoff", "cutoff_length_mm"),
                  ("cutoff", "margin_ratio", "shear")):
         set_at(data, path, None)
     bars = parse_input(data).rebar.pile
@@ -85,10 +85,18 @@ def test_every_item_may_stay_blank_while_it_is_entered():
     (("aggregate_max_mm",), 0), (("main_bars", "diameter_mm"), 0), (("main_bars", "count"), 0),
     (("main_bars", "count"), 1.5), (("hoops", "zone_2d", "diameter_mm"), -16), (("hoops", "zone_2d", "sets"), 0),
     (("hoops", "zone_2d", "pitch_mm"), 0), (("hoops", "footing", "sets"), 1.5), (("hoops", "lower", 0, "length_m"), 0),
-    (("cutoff", "joint_reduction"), 0), (("cutoff", "anchorage_stirrup"), "杭頭"), (("cutoff", "margin_ratio", "moment"), -1)])
+    (("cutoff", "joint_reduction"), 0), (("cutoff", "margin_ratio", "moment"), -1)])
 def test_a_value_outside_its_range_or_choices_is_an_input_error(path, value):
     name = ".".join(f"[{part}]" if isinstance(part, int) else part for part in path).replace(".[", "[")
     fails(set_at(pile_rebar(), path, value), f"鉄筋.杭.{name}")
+
+
+@pytest.mark.parametrize("key", ["head_anchorage_mm", "anchorage_stirrup"])
+def test_the_head_anchorage_is_not_an_input(key):
+    """Decision 98: the 杭頭定着長 is calculated (calc.detailing.pile), so neither it nor the stirrup for it is entered."""
+    data = pile_rebar()
+    data["鉄筋"]["杭"]["cutoff"][key] = None
+    fails(data, f"鉄筋.杭.cutoff.{key}")
 
 
 def test_at_most_three_zones_lie_below_the_2d_zone():

@@ -30,6 +30,15 @@ pile foundation with none is refused: SDR_REQUIRED), the direction is checked, n
 report has one more page ``FAKE AGGRESE LIMITS <direction> <the first 16 digits of the SHA256 of the .sdr>``. ``--sdr`` for a
 direct foundation is INVALID_ARGUMENT.
 
+Of a pile foundation the pickup has, after its first line, pickup 2 (復旧性L2) of the members 1 to 99: the focus M and S at
+both ends (``seismic_forces``) and the focus N with the axial forces of ``axial_forces`` (compression negative, the bundle of a
+pile row): decision 98 reads the smallest at the head (ITAN) of the first element of each row.
+
+``--pile-anchor-bar-pdf true`` (decision 98, a pile foundation whose project has a cut-off) asks for ``pile-anchor-bar.pdf``
+too: the project's 段落し情報 must have its bars after the cut-off (``_D1`` and ``_n1`` not 0, as Aggre-SE refuses a blank one)
+and the elements of the pile rows, and the PDF has one page ``FAKE AGGRESE ANCHOR BAR D<_D1>-<_n1> <the elements of the first
+row> <SHA256 of the XML, 16 hex>``. Without the switch true, a project with a cut-off is refused (INVALID_ARGUMENT).
+
 ``--sdr-liquefied <.sdr>`` (decision 95) follows ``--sdr-direction``: the .sdr for the liquefaction, for a project that has a
 Case for the liquefaction (``dgEkijoCase1``, ``dgEkijoCase21`` or ``dgEkijoCase2`` holding -1). Such a project without it is
 SDR_REQUIRED; it without such a Case is INVALID_ARGUMENT; the report then has its own page ``FAKE AGGRESE LIMITS LIQUEFIED
@@ -61,6 +70,7 @@ from reportlab.pdfgen import canvas
 SWITCHES = ["--summary-xlsx", "true", "--report-pdf", "true", "--check-tables", "false", "--pik", "true",
             "--pile-anchor-bar-pdf", "false", "--foundation-steps", "true"]
 PILE_SWITCHES = SWITCHES[:-2]
+ANCHOR_SWITCHES = [*PILE_SWITCHES[:9], "true"]  # --pile-anchor-bar-pdf true (decision 98)
 HEADER = "case_index,case_name,node,step,V,H,M,qvd,qd,Rvd,Mmd,plasticity"
 # (step, H, M, qvd, qd, Rvd, Mmd, plasticity) of node 7; V is 16825.97 throughout.
 STEPS = [(1, "0", "580.25", "8650.41", "8710.57", "543358.71", "57085.22", "0"),
@@ -141,12 +151,20 @@ def seismic_forces(member):
     return (2000.0 + member, -(500.0 + member), 0.0, -(80.0 + member), 400.0 + member, 0.0)
 
 
+def axial_forces(member):
+    """(Md, Vd, Nd of the largest case, Md, Vd, Nd of the smallest) of the focus N at an end of *member*: compression, the
+    smallest −(3000 + 10 × member) kN."""
+    return (0.0, 0.0, -(1000.0 + member), 0.0, 0.0, -(3000.0 + 10 * member))
+
+
 def pickup_lines():
     """The lines of pickup 2 (復旧性L2) of the members 1 to 99 (the stand-in does not read the NDU: the member numbers the
-    footing reads are the elements of its model): the focus M and S at both ends, in the pickup's fixed columns."""
+    footing reads are the elements of its model): the focus M, S and N at both ends, in the pickup's fixed columns."""
+    forces = {"M": seismic_forces, "S": seismic_forces, "N": axial_forces}
     return "".join(f"{2:>5}{focus:>5}{member:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
-                   + "".join(f"{value:>10.2f}" for value in seismic_forces(member)) + "\r\n"
-                   for member in range(1, 100) for focus in ("M", "S") for point, position in (("ITAN", 0.0), ("JTAN", 1.0)))
+                   + "".join(f"{value:>10.2f}" for value in forces[focus](member)) + "\r\n"
+                   for member in range(1, 100) for focus in ("M", "S", "N")
+                   for point, position in (("ITAN", 0.0), ("JTAN", 1.0)))
 
 
 def blank():
@@ -168,7 +186,8 @@ def main(argv):
         return 0
     piled = "--sdr" in argv
     wet = "--sdr-liquefied" in argv
-    switches = PILE_SWITCHES if piled else SWITCHES
+    anchored = piled and argv[7 + PILE_SWITCHES.index("--pile-anchor-bar-pdf") + 1] == "true"
+    switches = ANCHOR_SWITCHES if anchored else PILE_SWITCHES if piled else SWITCHES
     if (len(argv) != 7 + len(switches) + (4 if piled else 0) + (2 if wet else 0) or argv[0] != "run"
             or argv[1] != "--input" or argv[3] != "--output-dir" or argv[5] != "--snap-map"
             or argv[7:7 + len(switches)] != switches
@@ -197,6 +216,13 @@ def main(argv):
         return failure("INVALID_ARGUMENT", "--sdr-liquefied requires a project with a liquefaction Case.", 2)
     if liquefaction and piled and not wet:
         return failure("SDR_REQUIRED", "A pile foundation project with liquefaction Cases requires --sdr-liquefied.", 2)
+    bars = {name: root.findtext(f"PileAnchorBar/段落し情報/clsPileAnchorBar/{name}") for name in ("_D1", "_n1")}
+    cut = bars["_D1"] not in (None, "0")
+    if cut and not anchored:
+        return failure("INVALID_ARGUMENT", "A project with a cut-off of the piles is checked with --pile-anchor-bar-pdf true.", 2)
+    rows = [item.text for item in root.findall("PileAnchorBar/段落し情報/clsPileAnchorBar/dgMemberFirst/int")]
+    if anchored and (not cut or bars["_n1"] in (None, "0") or not rows):
+        return failure("CALCULATION_FAILED", "段落し情報0: 鉄筋径の入力がありません。", 1)
     wet_sdr = Path(argv[12 + len(switches)]) if wet else None
     if wet_sdr is not None and not wet_sdr.is_file():
         return failure("INVALID_SDR", f"Could not read --sdr-liquefied: {wet_sdr}", 2)
@@ -238,6 +264,10 @@ def main(argv):
               xlsx)]
     if not piled:
         files.append(("foundation-steps-csv", "text/csv; charset=utf-8", "foundation-steps.csv", csv))
+    if anchored:
+        files.append(("pile-anchor-bar-pdf", "application/pdf", "pile-anchor-bar.pdf",
+                      report([f"FAKE AGGRESE ANCHOR BAR D{bars['_D1']}-{bars['_n1']} {'-'.join(rows)} "
+                              f"{hashlib.sha256(data).hexdigest()[:16]}"])))
     dropped = {"nopik": "pickup.pik", "noxlsx": "summary.xlsx", "nocsv": "foundation-steps.csv"}.get(mode)
     for kind, media, name, content in (file for file in files if file[2] != dropped):
         if not (mode == "missing" and name == "report.pdf"):
@@ -249,7 +279,7 @@ def main(argv):
         (output / "unlisted.txt").write_bytes(b"x")
     summary = {"command": "run", "inputVersion": "5.3.0.1", "productStyle": 1, "cases": cases,
                "spectralDuctility": [], "outputs": ["summary.xlsx", "report.pdf", "pickup.pik"]
-               + ([] if piled else ["foundation-steps.csv"]),
+               + ([] if piled else ["foundation-steps.csv"]) + (["pile-anchor-bar.pdf"] if anchored else []),
                "warnings": []}
     if mode == "cases":
         del summary["cases"]

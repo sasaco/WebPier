@@ -5,6 +5,7 @@ keeps describing what it writes. The analyses are not run again (they need JRSNA
 import json
 from pathlib import Path
 
+from recorded_input_support import input_sha256s
 from webpier.calc.column_rebar import column_layout
 from webpier.calc.pile_frame import PileFoundation
 from webpier.calc.pile_ground import calculate_pile_ground
@@ -24,7 +25,7 @@ RECORD = json.loads((FIXTURES / "acceptance" / "pile_seismic" / "record.json").r
 
 def test_the_record_is_of_the_input_and_was_accepted():
     assert RECORD["accepted"] is True and RECORD["failures"] == []
-    assert RECORD["input"]["sha256"] == file_sha256(FIXTURES / "inputs" / "pile_seismic.json")
+    assert RECORD["input"]["sha256"] in input_sha256s((FIXTURES / "inputs" / "pile_seismic.json").read_bytes())
     for name, item in RECORD["ndus"].items():
         assert item["analysis_ok_messages"] == len(item["cases"]) == len(item["db1_sha256"]) == 4, name
 

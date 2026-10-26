@@ -55,6 +55,7 @@ from gridlayoutpdf import LayoutError, XlsxError
 from ..core.integrity import canonical_sha256, content_sha256, dump_json, file_sha256, load_json, sha256
 from ..core.errors import InputError
 from ..export.aggrese import ProjectError
+from ..export.aggrese.project import anchored
 from ..calc.cantilever import ResponseError
 from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
@@ -540,6 +541,11 @@ def _limits(registry: Registry, stage_id: str, results: Mapping[str, Any]) -> ag
     return aggrese.Limits(ground.sdr_source, direction, ground.liquefied_sdr_source or None)
 
 
+def _anchored(registry: Registry, stage_id: str, pier: PierInput) -> bool:
+    """Whether the stage's Aggre-SE check is of piles with a cut-off, whose 杭の段落とし計算書 it makes (decision 98)."""
+    return registry.get(stage_id).seismic_check.direction is not None and anchored(pier)
+
+
 def _limits_facts(limits: aggrese.Limits | None) -> dict[str, Any]:
     if limits is None:
         return {}
@@ -616,13 +622,13 @@ def _runner_paths(registry: Registry, selected: tuple[str, ...], pier: PierInput
     return paths
 
 
-def _check_seismic(project: Path, folder: Path, runner: Path, limits: aggrese.Limits | None = None
-                   ) -> aggrese.SeismicCheckPages:
+def _check_seismic(project: Path, folder: Path, runner: Path, limits: aggrese.Limits | None = None,
+                   anchor_bar: bool = False) -> aggrese.SeismicCheckPages:
     """Aggre-SE's report for the staged *project* and the JRSNAP *folder* it names, which it must leave as they are:
-    they are published as staged (decision 56)."""
+    they are published as staged (decision 56); with the 杭の段落とし計算書 of a cut-off of the piles (decision 98)."""
     before = (content_sha256(project), content_sha256(folder))
     try:
-        checked = aggrese.check_seismic(project, runner, limits=limits)
+        checked = aggrese.check_seismic(project, runner, limits=limits, anchor_bar=anchor_bar)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
     if (content_sha256(project), content_sha256(folder)) != before:
@@ -650,6 +656,8 @@ def _completion_files(registry: Registry, stage_id: str, analyzed: Mapping[str, 
     """The files a stage's ``complete`` reads: its frame analysis' by kind, and its dependencies' frame analyses' and
     seismic checks' by ``seismic_file`` (decisions 54, 59, 60)."""
     files: dict[str, bytes] = dict(analyzed[stage_id].files) if stage_id in analyzed else {}
+    if stage_id in checked:  # its own seismic check's (0711, 0721 of a 場所打ち杭, decision 98)
+        files |= {seismic_file(stage_id, kind): content for kind, content in checked[stage_id].files.items()}
     for name in registry.closure(registry.get(stage_id).depends_on):
         for returned in (analyzed, checked):
             if name in returned:
@@ -939,7 +947,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         checked = {post.stage: _check_seismic(
                        staging.path_for(post.native.path),
                        staging.path_for(post.native.path.with_name(registry.get(post.stage).nonlinear_analysis.folder)),
-                       aggrese_runner, _limits(registry, post.stage, results))
+                       aggrese_runner, _limits(registry, post.stage, results), _anchored(registry, post.stage, pier))
                    for post in posts
                    if post.project is not None and registry.get(post.stage).seismic_check is not None}
         # The 応答変位法 (decision 97): the NDU of each Case into the folder, the project of every Case, checked again.
@@ -965,7 +973,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             staging.path_for(post.native.path).write_bytes(
                 _write_project(post, writer, analysis.folder, list(solved[stage_id].files)))
             checked[stage_id] = _check_seismic(staging.path_for(post.native.path), folder, aggrese_runner,
-                                               _limits(registry, stage_id, results))
+                                               _limits(registry, stage_id, results), _anchored(registry, stage_id, pier))
         # A stage finishes its result with the files of its frame analysis, or of the seismic checks of its
         # dependencies, or with their finished results (decisions 54, 59), in registry order.
         for stage_id in selected:
