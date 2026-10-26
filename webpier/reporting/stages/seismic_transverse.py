@@ -38,6 +38,7 @@ from .frame_report import (
     member_table, node_table, seat_moment, section_lines, self_weight_inertia, semantic_records as records,
     sub, used_concretes, value, with_unit,
 )
+from .ground_displacement import surface_ground
 from .insertion import DATA_CHECK, DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
 from . import transverse as frame_stage
 from .seismic_longitudinal import INCREMENTS, DeadItems, dead_items
@@ -163,6 +164,8 @@ def content(result: SeismicTransverseResult, reaction: Any, pier: PierInput) -> 
     _actions(m, result, reaction, pier)
     diagrams_heading(m, "11.3 荷重図")
     _combinations(m, result)
+    if result.ground_displacement is not None:  # a pile foundation on G3〜G5 (decision 97)
+        surface_ground(m, result.ground_displacement, "11.5")
     return tuple(m.units)
 
 

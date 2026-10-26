@@ -121,8 +121,11 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 5. 液状化する地層（De が 1 未満の層）がある入力（決定95、P6c）：
    - 0710・0720 は、押す向きごとに液状化時用の NDU（`線路方向_液状化.ndu`、`線路直角方向_液状化.ndu`・`線路直角方向_液状化_逆向.ndu`、出力の種類 `jrsnapliquefied`・`jrsnapliquefiedreverse`）も書きます（液状化する入力だけ。`Export.liquefied`）。杭のモデルは通常の NDU と同じで、水平ばね・有効抵抗土圧・鉛直ばねは 0500 の `杭基礎(液状化時用).sdc` から取り（`parse_seismic(..., liquefied=True)`）、組合せは ρm 1.0・αf 1.0 の 1 つです。計算書とデータ確認図・荷重図は変えません。
    - 0711・0721 は、液状化時用の NDU の解析結果も同じフォルダーに置き、Aggre-SE のプロジェクトに、通常の Case のあとに液状化時の順向・逆向を 1 Case ずつ足します（`dgEkijoCase21`・`dgEkijoCase2` の旗、照査項目 ②③⑤⑦⑨）。制限値は `杭基礎(液状化時用).sdr` から runner が読みます（`--sdr-liquefied`）。`耐震設計条件.液状化指数`（`5<PL<20`・`20<PL`）が要り、空欄なら入力エラー（`StageSpec.precheck`）です。
-   - L1 地震動の液状化と応答変位法（P6d）は未対応です。
-6. 実アプリでの受入：`scripts/accept_pile_nonlinear.py`。`pile_seismic.json` の 0711・0721（4 Case・8 Case）を本物の JRSNAP と Aggre-SE で生成し、計算書の杭基礎の照査の制限値が `.sdr` の値と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1の杭基礎の照査が同じことを確かめて `tests/fixtures/acceptance/pile_nonlinear/record.json` に記録します（`tests/acceptance/test_pile_nonlinear_acceptance.py`）。
+   - L1 地震動の液状化と、液状化時の応答変位法は未対応です。
+6. 地盤変位（応答変位法、決定97、P6d）：杭基礎で `耐震設計条件.地盤区分` が G3〜G5 の入力だけです（G0〜G2 は今までどおり）。
+   - 0710・0720 は、地盤の層（最後の層を除く。最後の層の上面が耐震設計上の基盤面）の層厚・湿潤の単位体積重量・`せん断弾性波速度_Vs` と `耐震設計条件.地域別`（A 1.0・B 0.85・C 0.7）を SoilStructure の runner（`run-ground-displacement`、`STRUCTURAL_MCP_SOILSTRUCTURE_RUNNER`）に渡し、表層地盤の固有周期 Tg と L1・L2（スペクトルⅡ）の地盤変位 f(z) を杭の節点の深さで受け取ります（層を節点の深さでも切って渡すので、補間はしません）。計算書の末尾に「10.5 表層地盤の挙動」（0720 は 11.5。地盤条件、地表面最大水平変位量の式、Tg と ag、各層上端と基盤面の f(z)）を置き、結果JSONの `ground_displacement` に runner の版と、渡した文書と result.json の SHA-256 を記録します。SoilStructure の帳票（PDF）と JOT は使いません（PDF は作成日時が入る）。Vs・湿潤の γ・地域別が空欄なら、runner を呼ぶ前に入力エラーです。
+   - 0711・0721 は 2 回解析します。1 回目の Aggre-SE の総括表から、ρm 1.0・αf 1.0・正向の慣性力の Case の等価固有周期 Teq・全体系折曲点震度 Kheq・L1地震動の震度・L2 の最大応答震度（復旧性と安全性の大きいほう）を読み、補正係数 α＝Teq/(Tg/αg)・νU・νL（橋りょう編 解7.10.6・7.10.7。最大応答震度が Kheq を超えれば νU＝1.0）と Case（① 1.0Ra＋νU f(z)、② 1.0Ra＋νL f(z)、③ νU Ra＋1.0f(z)、④ νL Ra＋1.0f(z)、同じものは除く）を求めます。Case ごとに地盤変位の NDU（`線路方向_応答変位法_L1-1.ndu` など。荷重増分で最大応答震度まで、杭の節点に `ELoadInfo` の地盤変位）を書いて JRSNAP で解析し（NDU と結果は同じ `…_JRSNAP/` フォルダー）、すべての Case のプロジェクト（応答変位法の Case は最後。照査項目は L1 が ③⑤⑥⑦⑨、L2 が ①②③⑤⑦⑨。荷重増分の DB1 には制御節点が残らないので、着目点 `_AtPoint` に NDU の制御節点を書きます）で Aggre-SE が照査し直します。計算書は WebPier の「応答変位法による設計応答値の算定」（慣性力の Case、補正係数、荷重の組合せ）の頁のあとに Aggre-SE の report.pdf をそのまま続けたもので、この頁の方眼Excel は作りません。結果JSONの `result` は応答変位法の値です。
+7. 実アプリでの受入：`scripts/accept_pile_nonlinear.py`。6. 実アプリでの受入：`scripts/accept_pile_nonlinear.py`。`pile_seismic.json` の 0711・0721（4 Case・8 Case）を本物の JRSNAP と Aggre-SE で生成し、計算書の杭基礎の照査の制限値が `.sdr` の値と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1の杭基礎の照査が同じことを確かめて `tests/fixtures/acceptance/pile_nonlinear/record.json` に記録します（`tests/acceptance/test_pile_nonlinear_acceptance.py`）。
 
 ### 杭基礎の 0800・0810・0820（場所打ち杭だけ、決定96）
 
@@ -199,11 +202,12 @@ STRUCTURAL_MCP_WEBDAN_RUNNER='C:/Users/<user>/Documents/structural-mcp/Capacita/
 - **総括表**（決定58）：同じ呼び出しで返る総括表を、バイト列のまま `post/線路方向_Aggre-SE.xlsx`（0721 は `post/線路直角方向_Aggre-SE.xlsx`）に付帯JSON付きで書きます。シートは応答値一覧表・設計総括表・安全率一覧表・直接基礎で、計算書の最後の4ページと同じ内容です。Excel の文書 ID と更新日時が入るので、同じ入力でも毎回バイトが変わります。WebPier は中身を読まず、xlsx（zip）であることだけを確かめます。
 - **直接基礎のステップ表**（決定60）：同じ呼び出しに `--foundation-steps true` を足して返る `foundation-steps.csv` を、バイト列のまま `post/線路方向_Aggre-SE_直接基礎.csv`（0721 は `post/線路直角方向_Aggre-SE_直接基礎.csv`）に付帯JSON付きで書きます。UTF-8・CRLF、列は `case_index, case_name, node, step, V, H, M, qvd, qd, Rvd, Mmd, plasticity` で、直接基礎の支点節点の JRSNAP の全出力ステップ（`step` は JRSNAP の出力リストの増分ステップ番号、1 始まり）です。`V`・`H`・`M` は Aggre-SE が安定計算に使う支点ばね反力の合計（`H` は符号付き、`M` は絶対値）、`qvd`〜`plasticity`（底面塑性化率）は JRSNAP が DB1 に書いた値のままで、Rvd 到達後はその値に固定されます。0800 がこの表から Rvd到達ステップ（`V ≧ Rvd` の最初の行）の Vd・Hd・Md を読みます。WebPier はここでは UTF-8 で読めることと列の並びだけを確かめ、返らなければ生成を止めます。付帯JSONは runner の版、計算書、XML とフォルダーの SHA256、列の並びを記録します。
 
-JRSNAP の runner と Aggre-SE の runner の絶対パスも `.env` に書きます。JRSNAP のインストール先（5.2-L03 か 5.3-L01体験版2）は、runner の横の `jrsnap-headless.json` に書きます。WebPier は JRSNAP を直接起動しません。Aggre-SE の runner は 0711・0721 を含む生成だけが使い、Batch を Visual Studio の MSBuild でビルドしたもの（`Batch/Aggre-SE/Headless/README.md`）です。
+JRSNAP の runner と Aggre-SE の runner の絶対パスも `.env` に書きます（地盤変位を考慮する杭基礎の 0710・0720 は SoilStructure の runner も。決定97）。JRSNAP のインストール先（5.2-L03 か 5.3-L01体験版2）は、runner の横の `jrsnap-headless.json` に書きます。WebPier は JRSNAP を直接起動しません。Aggre-SE の runner は 0711・0721 を含む生成だけが使い、Batch を Visual Studio の MSBuild でビルドしたもの（`Batch/Aggre-SE/Headless/README.md`）です。
 
 ```
 STRUCTURAL_MCP_JRSNAP_RUNNER='C:/Users/<user>/Documents/structural-mcp/JRSNAPHeadless/bin/Release/JRSNAP.Headless.exe'
 STRUCTURAL_MCP_AGGRESE_RUNNER='C:/Users/<user>/Documents/structural-mcp/Batch/Aggre-SE/Headless/bin/Release/AggreSE.Headless.exe'
+STRUCTURAL_MCP_SOILSTRUCTURE_RUNNER='C:/Users/<user>/Documents/structural-mcp/SoilStructure/SoilStructure/Headless/bin/Release/net10.0/SoilStructure.Headless.exe'
 ```
 
 JRSNAP の runner がない・データ確認図・荷重図を描けない・解析できないときは、0710・0720（0711・0721）を含む生成は何も公開せずに止まります（終了コード 2）。JRSNAP の結果の中身・決定性は JRSNAP の責務で、実装の同一性（`dependency_hashes`）には含めません。
@@ -306,7 +310,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - **値を補いません。** 計算に要る値が空欄（`null`）なら入力エラーです。`0` は数値です。全項目が空欄の支承枠だけは「空き支承枠」（CONTEXT.md）として除外し、L3・L4 は空欄（2線まで、決定23）とします。
 - **選択肢はプログラムが持ちます**（`webpier/inputs/choices.py`）。入力JSONには選んだ値だけを保存し、一覧にない値は入力エラーです。車両名は `EA-17`（EA-17の規定式で制動・始動）と `P-16`（軸重式）、土質区分は「砂質土」「砂礫」「粘性土」「砂質土と粘性土の互層」、基礎形式は「直接基礎」「場所打ち杭」「鋼管ソイルセメント杭」、場所打ち杭の施工条件は「自然泥水」「安定液使用」、杭の配置の形式は「格子」「千鳥」、鉄筋の材質は SD295・SD345・SD390 です。
 - **派生値は入力にしません。** 排除した土の単位体積重量（フーチング高さの範囲の層の湿潤の平均）、B・C支点の合計は計算器が求めて印刷します。表層の層厚は空欄なら Df（H6＋H5＋min(df1, df2)）から下の層の層厚を引いた残りです（決定64）。支承位置 f は両側とも入力します。
-- **空欄を 0 とする値**：雪荷重（雪荷重なし、決定62）と支持層の粘着力 c（決定63。決定84 で一軸圧縮強度 qu を c に替えた）。ほかの空欄は補わず入力エラーです（決定5）。地盤の層の `De`（液状化時の低減係数）の空欄は「その層は液状化しない」（1）という入力です（決定80）。
+- **空欄を 0 とする値**：雪荷重（雪荷重なし、決定62）と支持層の粘着力 c（決定63。決定84 で一軸圧縮強度 qu を c に替えた）。ほかの空欄は補わず入力エラーです（決定5）。地盤の層の `De`（液状化時の低減係数）の空欄は「その層は液状化しない」（1）という入力です（決定80）。地盤の層の `せん断弾性波速度_Vs`（m/s、整数）は省略できるキーで、地盤変位を考慮する入力（杭基礎で地盤区分 G3〜G5）の 0710・0720 だけが基盤面より上の層に要ります（決定97）。
 - **入力値は印字桁に丸めてから入力します。** 印字桁より細かい値は黙って丸めず、入力エラーにします。桁は入力票（`.claude/docs/Example橋脚/pre/input-*.pdf`）に合わせています。
 
 | 項目 | 桁 |
@@ -334,7 +338,7 @@ VS Code では **F5**（「橋脚 入力データ編集 (Tkinter)」、起動先
 - `復旧性制動係数` は側ごとの任意入力です。入力すると復旧性の制動係数としてそのまま使い、空欄なら安全性の ρu×γB を使います。Example2 07 p.7-11 の終点側は 1.0 を入力します。
 - `outputs` は作る計算書を選ぶ13の項目です（[出力項目](#出力項目outputs決定72adr-0011)）。計算の条件ではありません。
 - `jrsnap_longitudinal`・`jrsnap_transverse` は方向ごとの JRSNAP の入力条件です。`shear_factor_vcd`・`shear_factor_vsd`・`shear_factor_vdd`（部材係数 γb、0より大きく99.99以下）、`analysis_steps`（荷重増分の分割数、整数）、`limited_final_step`（制限ステップ、分割数以下）、`target_displacement_m`（目標変位の大きさ、0.001 m 単位の正の値。向きは入力せず、NDU にはその段階の地震の向き（0710 は −x、0720 は +x）の符号を付けて書きます。決定43）です。0710・0720 の生成に必須で、見本値で補いません。0500〜0620 だけを選ぶ生成には使いません。
-- `耐震設計条件` は橋脚に1組の `地域別`（A地域・B地域・C地域）と `地盤区分`（G0地盤〜G5地盤）です（決定49）。2方向で共有し、0711・0721（したがって 0900・0910）を含む生成に必須です（空欄なら入力エラー）。それ以外の生成には使いません。Aggre-SE の「応答塑性率の直接入力」（任意スペクトル）は、μ がプロジェクトXMLに入らないので選べません。
+- `耐震設計条件` は橋脚に1組の `地域別`（A地域・B地域・C地域）と `地盤区分`（G0地盤〜G5地盤）です（決定49）。2方向で共有し、0711・0721（したがって 0900・0910）を含む生成に必須です（空欄なら入力エラー）。地盤区分 G3〜G5 の杭基礎の 0710・0720 は、地盤変位に地域別も使います（決定97）。それ以外の生成には使いません。Aggre-SE の「応答塑性率の直接入力」（任意スペクトル）は、μ がプロジェクトXMLに入らないので選べません。
 - 鉄筋（`鉄筋`）は全キーが必須です。空欄は未入力として保存でき、柱の配置と JRSNAP 出力が値を要するときにパス付きの入力エラーになります。0400 を含む生成では、柱・梁・フーチング（上面を含む）の配筋がすべて要ります。柱の `aggregate_max_mm` は柱のコンクリートの粗骨材最大寸法（0.1〜999999 mm、決定48）で、0611 の柱の断面照査と JRSNAP 出力の両方が使います（方向ごとの値はありません）。
 - 鉄筋の形式は `鉄筋.version` 3（決定68）です。材質は部材ごとの `materials.main`・`materials.transverse` だけで、柱は `main_bars.{線路,直角}`（1段目と `inner_layers`）・`table_overrides`・`column_hoops`、梁は `faces.{上,下}`・`side_bars`・`stirrups`、フーチングは `faces.{上,下}`（`outer_direction` と方向ごとの1段目・`inner_layers`）・`stirrups.{線路,直角}` です。旧形式（version 2）は読みません。
 - `柱の断面照査` は柱に1組の照査条件で、2方向で共有します（決定48）。`水掛かりの程度`（常時乾燥・乾湿繰返し・常時湿潤。面ごとに分けない。WDJ には 1・2・3 で書く。決定73）、`外観の照査`（行う・行わない）、`ε'csd`（×10⁻⁶、整数）、`適用基準の機関`（運輸機構・JR各社・JR東日本。Capacita の RC標準 R5 の基準 R5_Shinkansen・R5_Rail・R5_JREast を選ぶ）、`JR-001`・`JR-004`（適用する・適用しない）です。0611・0621（0810・0820 も共用）を含む生成に必須で（空欄なら入力エラー）、それ以外の生成には使いません。旧形式の「鋼材の腐食に対する環境条件」は読みません（一般の環境は常時乾燥、腐食性環境は乾湿繰返しに置き換える。曲げの制限値が H16 と同じになる対応）。安全係数・fsu・kr・k4 は入力ではなく、名前と出典を付けたプログラムの定数です（`webpier/calc/column_check.py`。WebDanforJS の R5 の既定値で、使用性（損傷）の γi は運輸機構・JR各社 1.2、JR東日本 1.0）。柱の配置のうち WDJ で表せないもの（段ごとに径・本数・間隔が違う多段、2種類以上の側方鉄筋、柱下端を含む帯鉄筋の行がちょうど1行でない）はパス付きの入力エラーです。

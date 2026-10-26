@@ -142,6 +142,8 @@ class SoilLayer:
     cohesion: Printed | None  # 粘着力 c (decision 80; it replaced the 一軸圧縮強度 qu)
     deformation_modulus: Printed | None
     reduction: Printed | None  # De of the layer in liquefaction; None is blank, 1 (the layer does not liquefy)
+    # Vs, m/s (decision 97): the 地盤変位 of a pile foundation on G3〜G5 needs it above the base; None is blank
+    shear_wave_velocity: Printed | None = None
 
 
 @dataclass(frozen=True)

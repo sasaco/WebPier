@@ -13,12 +13,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from ...core.printed import Printed
+from ...core.printed import Precision, Printed
 from .model import Analysis, Combination, Joint, LoadCase
 from .profile import Profile
 from .records import Field, Record
 
 RIGID, COLUMN, PILE = 1, 2, 3  # the kind of an element: a rigid region, a micro member with an M-θ, a pile element
+EDSPX = Precision(5, "m")  # the 地盤変位 of a node, as JRSNAP_Input takes it (‐999.99999～9999.99999 m)
 M_THETA, M_PHI = 1, 2  # the nonlinear model of a section
 
 
@@ -87,6 +88,15 @@ class Support:
 
 
 @dataclass(frozen=True)
+class GroundLoad:
+    """ELoadInfo and the load increment of DataInfo: the 地盤変位 of the 応答変位法 (decision 97), all on at the step *steps*
+    (the 最大応答震度 × the divisions of the incremental load, where the analysis stops), at each node as (joint, EDSPX)."""
+
+    steps: int
+    displacements: tuple[tuple[int, Printed], ...]
+
+
+@dataclass(frozen=True)
 class PileNduModel:
     profile: Profile
     analysis: Analysis
@@ -102,6 +112,7 @@ class PileNduModel:
     cases: tuple[LoadCase, ...]
     combinations: tuple[Combination, ...]
     shear_span: Printed  # La of the column's M-θ member, mm (the project of Aggre-SE takes it, not the NDU)
+    ground: GroundLoad | None = None  # the NDU of the 応答変位法: the load increment with the 地盤変位 (decision 97)
 
 
 @dataclass(frozen=True)

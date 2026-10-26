@@ -10,6 +10,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .pile_model import PILE, RIGID, PileNduModel
+from .profile import LOAD_DIVISIONS
 from .validate import _error, _File
 
 SUPPORT_KINDS = (1, 2, 3)  # the horizontal, vertical and rotational spring of a node; a pile row has the vertical one
@@ -73,6 +74,12 @@ def check_model(model: PileNduModel) -> None:
             raise _error(f"節点 {support.node} の支点の種類または値の数が違います")
     if not model.cases or any(len(c.coefficients) != len(model.cases) for c in model.combinations):
         raise _error("荷重の組合せの係数の数が基本ケースの数と違います")
+    if model.ground is not None:
+        nodes = [node for node, _ in model.ground.displacements]
+        if nodes != sorted(set(nodes)) or not set(nodes) <= joints:
+            raise _error("地盤変位の節点は、節点の中から昇順に重複なく並べる必要があります")
+        if not 1 <= model.ground.steps <= LOAD_DIVISIONS:
+            raise _error(f"地盤変位の最終載荷ステップ（{model.ground.steps}）は 1〜{LOAD_DIVISIONS} が必要です")
 
 
 def validate_pile_ndu(data: bytes, model: PileNduModel) -> None:

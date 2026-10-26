@@ -25,7 +25,7 @@ toward the earthquake (decision 76). No structural analysis is done here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -39,6 +39,7 @@ from .foundation import FoundationResult
 from .frame import (
     Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, point_load,
 )
+from .ground_displacement import GroundDisplacement
 from .longitudinal import BasicCase
 from .longitudinal.actions import (
     AdditionalDead, FixedDead, Item, Row, TopTable, bearing_point, dead_actions, snow_table,
@@ -194,6 +195,9 @@ class SeismicLongitudinalResult:
     self_weight: SelfWeightInertia  # 10-8 (3)
     basic_cases: tuple[SeismicAction, ...]  # 10-9 to 10-12 (without snow, 7: decision 69)
     combinations: tuple[SeismicCombination, ...]  # 10-12
+    # the 地盤変位 of a pile foundation on G3〜G5 (decision 97): SoilStructure's answer, added once 0500 is complete; None
+    # otherwise, and then not in the result JSON
+    ground_displacement: GroundDisplacement | None = field(default=None, metadata={"json": "set"})
 
     def basic(self, case: SeismicCase) -> SeismicAction:
         return made(self.basic_cases, case)

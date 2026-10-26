@@ -62,6 +62,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
+from decimal import Decimal
 from types import MappingProxyType
 from typing import Any, Protocol
 
@@ -81,6 +82,8 @@ from ..calc.foundation_check import LONGITUDINAL as FOUNDATION_LONGITUDINAL, TRA
 from ..calc.foundation_check import Direction as FoundationDirection, check as check_foundation
 from ..calc.foundation_check import prepare as prepare_foundation_check
 from ..calc.frame import Direction as FrameDirection, Region
+from ..calc.ground_displacement import considered as displaces, region_coefficient, surface_layers
+from ..calc.response_displacement import ResponseDisplacementResult
 from ..calc.generic.cantilever import calculate_generic_cantilever, complete_generic_cantilever
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
@@ -106,7 +109,8 @@ from ..export.drawing import drawing_dxf, drawing_figures
 from ..export.frameweb import build_frameweb, build_frameweb_generic, build_frameweb_transverse
 from ..export.jrsnap import LONGITUDINAL as NDU_LONGITUDINAL, TRANSVERSE as NDU_TRANSVERSE, Profile as NduProfile
 from ..export.jrsnap import build_ndu, build_pile_ndu, diagram_combinations, write_ndu, write_pile_ndu
-from ..export.jrsnap.build_pile import element_numbers
+from ..export.jrsnap.build_pile import (RESPONSE_PATTERN, element_numbers, pile_node_depths, response_ndu,
+                                       response_pattern)
 from ..export.jrsnap.model import NduModel
 from ..export.jrsnap.pile_model import PileNduModel
 from ..export.jrsnap.profile import TARGET_VERSION, generic_profile
@@ -155,7 +159,7 @@ from ..reporting.stages.generic.seismic import render_generic_seismic
 from ..reporting.stages.longitudinal import render_longitudinal
 from ..reporting.stages.pile_check import render_pile_check
 from ..reporting.stages.reaction import render_reaction
-from ..reporting.stages.seismic_check import render_seismic_check
+from ..reporting.stages.seismic_check import render_response_check, render_seismic_check
 from ..reporting.stages.seismic_longitudinal import render_seismic_longitudinal
 from ..reporting.stages.seismic_transverse import render_seismic_transverse
 from ..reporting.stages.transverse import render_transverse
@@ -255,6 +259,18 @@ class Project:
 
 
 @dataclass(frozen=True)
+class ResponseAnalysis:
+    """The 応答変位法 of the stage's piles (decision 97), for an input that considers the 地盤変位: once Aggre-SE has checked the
+    inertia Cases, ``case`` is the Case (from 1) whose Teq and Kh it takes; ``ndus`` the NDU of each of its Cases (file name,
+    bytes), which JRSNAP analyzes into the same folder and which are published in it; ``project`` the writer of the project of
+    every Case, with which Aggre-SE checks again."""
+
+    case: Callable[[Results, PierInput], int]
+    ndus: Callable[[Results, PierInput, ResponseDisplacementResult], tuple[tuple[str, bytes], ...]]
+    project: Callable[[Results, PierInput, ResponseDisplacementResult], Callable[[str, Sequence[str]], bytes]]
+
+
+@dataclass(frozen=True)
 class NonlinearAnalysis:
     """JRSNAP analyzes the NDU of a dependency (decision 47, ADR-0007).
 
@@ -270,6 +286,7 @@ class NonlinearAnalysis:
     # the kinds of the stage's other NDUs, analyzed one by one into the same folder (the NDU of the reversed push of a pile
     # foundation, decisions 93 and 94)
     also: tuple[str, ...] = ()
+    response: ResponseAnalysis | None = None  # the 応答変位法 of a pile foundation on G3〜G5 (decision 97)
 
 
 @dataclass(frozen=True)
@@ -301,6 +318,16 @@ class SoilJrCalculation:
     files: tuple[tuple[str, str], ...]  # (kind, file name) of the files it always returns, e.g. ("sdr", "杭基礎.sdr")
     liquefaction: tuple[tuple[str, str], ...]  # the files it returns besides when ``liquefied``
     liquefied: Callable[[PierInput], bool]
+
+
+@dataclass(frozen=True)
+class GroundDisplacementRun:
+    """SoilStructure calculates the 地盤変位 at the depths of the stage's pile nodes (decision 97): 0710 and 0720 of a pile
+    foundation on G3〜G5 (``calc.ground_displacement.considered``). The answer is added to the stage's result once it is
+    calculated (after 0500), before its files are built; the stage's report prints it and 0711 / 0721 put it into the NDUs of
+    the 応答変位法."""
+
+    depths: Callable[[Results, PierInput], tuple[Decimal, ...]]  # m below the ground surface
 
 
 @dataclass(frozen=True)
@@ -355,6 +382,8 @@ class StageSpec:
     after: tuple[str, ...] = ()
     # a check of the input a generation makes before any runner is called, when it selects the stage (decision 94)
     precheck: Callable[[PierInput], None] | None = None
+    # SoilStructure calculates the 地盤変位 of the stage's piles, for an input that considers it (decision 97)
+    ground_displacement: GroundDisplacementRun | None = None
 
     @property
     def has_report(self) -> bool:
@@ -595,8 +624,18 @@ def _aggrese(stage_id: str, profile: NduProfile) -> Callable[[Results, PierInput
 
 
 def _seismic_check(results: Results, pier: PierInput, path: Any, pages: Mapping[str, bytes]) -> Any:
-    """Aggre-SE's report as the stage's report (decision 56, ADR-0009)."""
-    return render_seismic_check(path, pages)
+    """Aggre-SE's report as the stage's report (decision 56, ADR-0009); with the 応答変位法 (decision 97) after its pages."""
+    found = _responded(results)
+    if found is None:
+        return render_seismic_check(path, pages)
+    stage_id, result = found
+    return render_response_check(stage_id, result, result.first_case, path, pages)
+
+
+def _responded(results: Results) -> tuple[str, ResponseDisplacementResult] | None:
+    """The stage (0711 or 0721) and its 応答変位法 among *results*, the results of the stage and its dependencies."""
+    return next(((stage_id, result) for stage_id, result in results.items()
+                 if isinstance(result, ResponseDisplacementResult)), None)
 
 
 def _aggrese_files(stem: str) -> SeismicCheck:
@@ -881,8 +920,23 @@ def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFo
         exports += (Export("jrsnapliquefiedreverse", reverse_file_name.replace("_逆向.ndu", "_液状化_逆向.ndu"),
                            ndu(True, True), metadata=_NDU, liquefied=True),)
     piles = replace(_on_piles(stage, calculate), exports=exports,
-                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also))
+                    jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also), precheck=_ground_inputs,
+                    ground_displacement=GroundDisplacementRun(lambda results, pier: _ground_depths(stage.id, profile,
+                                                                                                   results, pier)))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piles})
+
+
+def _ground_depths(stage_id: str, profile: NduProfile, results: Results, pier: PierInput) -> tuple[Decimal, ...]:
+    """The depths of the pile nodes of the NDU of *stage_id* below the ground surface: the pile heads are at Df (decision 97)."""
+    head = Decimal(repr(results["0500"].ground.depth.value))
+    return tuple(head + depth for depth in pile_node_depths(_pile_ndu_model(stage_id, profile, results, pier)))
+
+
+def _ground_inputs(pier: PierInput) -> None:
+    """The inputs of the 地盤変位 of an input that considers it, checked before any runner (decision 97)."""
+    if displaces(pier):
+        surface_layers(pier)
+        region_coefficient(pier)
 
 
 def _liquefaction_index(stage_id: str) -> Callable[[PierInput], None]:
@@ -900,19 +954,59 @@ def _pile_aggrese(stage_id: str, profile: NduProfile, file_names: Sequence[str]
     """The project of the piles of the NDUs *file_names* of *stage_id* (the NDU of the forward push, then the one of the
     reversed push, decisions 93 and 94, and for an input that liquefies the NDUs for the liquefaction in the same order,
     decision 95), checked before the analysis; then its writer."""
-    def build(results: Results, pier: PierInput) -> Callable[[str, Sequence[str]], bytes]:
-        models = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0) for index in range(len(file_names))]
-        names = list(file_names)
-        liquefied: list[PileNduModel] = []
-        if soiljr.liquefied(pier):
-            liquefied = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0, liquefied=True)
-                         for index in range(len(file_names))]
-            names += [name.replace("_逆向.ndu", "_液状化_逆向.ndu") if name.endswith("_逆向.ndu")
-                      else name.replace(".ndu", "_液状化.ndu") for name in file_names]
-        project = build_pile_project(models, pier, liquefied=liquefied)
-        groups = [(name.removesuffix(".ndu"), len(model.combinations)) for name, model in zip(names, [*models, *liquefied])]
-        return lambda folder, found: write_project(project, ndu_databases(folder, found, groups))
-    return build
+    return lambda results, pier: _pile_project(stage_id, profile, file_names, results, pier)
+
+
+def _pile_project(stage_id: str, profile: NduProfile, file_names: Sequence[str], results: Results, pier: PierInput,
+                  response: ResponseDisplacementResult | None = None) -> Callable[[str, Sequence[str]], bytes]:
+    """The writer of the project of ``_pile_aggrese``, and with *response* the Cases of the 応答変位法 after them (decision 97)."""
+    models = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0) for index in range(len(file_names))]
+    names = list(file_names)
+    liquefied: list[PileNduModel] = []
+    if soiljr.liquefied(pier):
+        liquefied = [_pile_ndu_model(stage_id, profile, results, pier, reverse=index > 0, liquefied=True)
+                     for index in range(len(file_names))]
+        names += [name.replace("_逆向.ndu", "_液状化_逆向.ndu") if name.endswith("_逆向.ndu")
+                  else name.replace(".ndu", "_液状化.ndu") for name in file_names]
+    responded = () if response is None else _response_models(stage_id, profile, results, pier, response)
+    project = build_pile_project(models, pier, liquefied=liquefied,
+                                 response=[(case.level, model) for _, case, model in responded])
+    groups = [(name.removesuffix(".ndu"), len(model.combinations)) for name, model in zip(names, [*models, *liquefied])]
+    groups += [(name.removesuffix(".ndu"), 1) for name, _, _ in responded]
+    return lambda folder, found: write_project(project, ndu_databases(folder, found, groups))
+
+
+def _response_models(stage_id: str, profile: NduProfile, results: Results, pier: PierInput,
+                     response: ResponseDisplacementResult) -> tuple[tuple[str, Any, PileNduModel], ...]:
+    """The NDU of each Case of the 応答変位法 of the piles of *stage_id* (decision 97): its file name, the Case and the model."""
+    seismic, ground = results[stage_id], results["0500"]
+    springs = parse_seismic(ground.sdc)
+    head = Decimal(repr(ground.ground.depth.value))
+    return tuple((f"{profile.data_name}_応答変位法_{case.level}-{case.number}.ndu", case,
+                  response_ndu(profile, pier, column_layout(pier), seismic, springs, seismic.ground_displacement, head,
+                               case)) for case in response.cases)
+
+
+def _inertia_case(stage_id: str, profile: NduProfile, results: Results, pier: PierInput) -> int:
+    """The Aggre-SE Case of the forward combination of ρm 1.0 and αf 1.0 (decision 97): the Cases of the forward NDU come first,
+    in its order."""
+    pattern = response_pattern(results[stage_id])
+    model = _pile_ndu_model(stage_id, profile, results, pier)
+    return 1 + next(index for index, combination in enumerate(model.combinations)
+                    if (Decimal(repr(combination.rho_m.value)), Decimal(repr(combination.alpha_f.value))) == RESPONSE_PATTERN
+                    and combination.coefficients == tuple(int(action.case in pattern.cases)
+                                                          for action in results[stage_id].basic_cases))
+
+
+def _response(stage_id: str, profile: NduProfile, file_names: Sequence[str]) -> ResponseAnalysis:
+    """The 応答変位法 of the piles of *stage_id* whose NDUs are *file_names* (decision 97)."""
+    def ndus(results: Results, pier: PierInput, response: ResponseDisplacementResult) -> tuple[tuple[str, bytes], ...]:
+        return tuple((name, write_pile_ndu(model))
+                     for name, _, model in _response_models(stage_id, profile, results, pier, response))
+
+    return ResponseAnalysis(lambda results, pier: _inertia_case(stage_id, profile, results, pier), ndus,
+                            lambda results, pier, response: _pile_project(stage_id, profile, file_names, results, pier,
+                                                                          response))
 
 
 def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, file_names: Sequence[str],
@@ -924,7 +1018,8 @@ def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, fi
     assert analysis is not None and analysis.project is not None and seismic is not None
     analysis = replace(analysis, project=replace(analysis.project, build=_pile_aggrese(source, profile, file_names)),
                        also=(*(("jrsnapreverse",) if len(file_names) > 1 else ()), "jrsnapliquefied",
-                             *(("jrsnapliquefiedreverse",) if len(file_names) > 1 else ())))
+                             *(("jrsnapliquefiedreverse",) if len(file_names) > 1 else ())),
+                       response=_response(source, profile, file_names))
     piled = replace(stage, nonlinear_analysis=analysis, precheck=_liquefaction_index(stage.id),
                     seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})

@@ -312,7 +312,8 @@ def test_the_contract_is_the_registry(capsys):
                                      "hasReport": True}
     assert contract["stages"][3] == {"id": "0610", "stem": "0610_線路方向荷重", "dependsOn": ["0500", "0600"],
                                      "output": "longitudinal", "hasReport": True}
-    assert [runner["engine"] for runner in contract["runners"]] == ["fempython", "jrsnap", "webdan2", "aggrese"]
+    assert [runner["engine"] for runner in contract["runners"]] == ["fempython", "jrsnap", "webdan2", "aggrese",
+                                                                     "soilstructure"]
     outputs = {item["key"]: item for item in contract["outputs"]}
     assert list(outputs) == list(OUTPUT_KEYS)
     assert [stage for item in contract["outputs"] for stage in item["stages"]] == list(STAGES.ids)
@@ -349,7 +350,8 @@ def test_the_contract_is_the_registry(capsys):
     for key, stem in (("longitudinal_nonlinear_analysis", "線路方向"), ("transverse_nonlinear_analysis", "線路直角方向")):
         piles = outputs[key]["pileFoundation"]
         paths = [item["path"] for item in piles["files"]]
-        assert piles["foundations"] == ["場所打ち杭"] and set(piles["runners"]) == {"jrsnap", "aggrese"}
+        # decision 97: SoilStructure for an input on G3〜G5, which the contract cannot tell
+        assert piles["foundations"] == ["場所打ち杭"] and set(piles["runners"]) == {"jrsnap", "aggrese", "soilstructure"}
         assert {f"post/{stem}_JRSNAP", f"post/{stem}.xml", f"post/{stem}_Aggre-SE.pik", f"post/{stem}_Aggre-SE.xlsx"} <= set(paths)
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" not in paths
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" in [item["path"] for item in outputs[key]["files"]]

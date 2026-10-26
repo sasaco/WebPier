@@ -21,9 +21,14 @@
    once, so the file analyzed is the bytes staged. A stage with SOIL-JR's calculation (0500 of a pile foundation, decision
    85, ADR-0013) has the JRSNAP runner calculate its .sdt in one call, before any report is rendered: the report is
    SOIL-JR's as the runner printed it, its .sdr and .sdc (and the two for the liquefaction, when the input considers it)
-   are staged as they are, and the stage finishes its result with them. The runners are looked up before anything is
-   calculated, and a missing or failing runner stops the generation. The stages are those of the input's 基礎形式
-   (``Registry.for_foundation``).
+   are staged as they are, and the stage finishes its result with them. A stage with the 地盤変位 (0710 and 0720 of a pile
+   foundation on G3〜G5, decision 97) has the SoilStructure runner calculate it at the depths of its pile nodes once the
+   stage is calculated, and adds the answer to the stage's result; stages given the same layers share one call. Their
+   static nonlinear analyses (0711, 0721) then go twice: once Aggre-SE has checked the inertia Cases, the stage reads Teq and
+   Kh from its summary workbook, has JRSNAP analyze the NDU of each Case of the 応答変位法 into the same folder (the NDUs are
+   published in it) and Aggre-SE check again with the project of every Case, whose files are the ones staged. The runners
+   are looked up before anything is calculated, and a missing or failing runner stops the generation. The stages are
+   those of the input's 基礎形式 (``Registry.for_foundation``).
 4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
    sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
    written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
@@ -40,7 +45,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -53,12 +58,15 @@ from ..export.aggrese import ProjectError
 from ..calc.cantilever import ResponseError
 from ..calc.footing import StepsError
 from ..calc.foundation_check import ReactionError
+from ..calc.ground_displacement import (GroundDisplacementError, considered as displaces, ground_displacement,
+                                        region_coefficient, runner_rows, surface_layers)
 from ..calc.pile_check import PileResponseError
+from ..calc.response_displacement import ResponseError as InertiaError, read_inertia, response_displacement
 from ..export.capacita import PickupError
 from ..export.soiljr import SdrError
 from ..inputs import PierInput, parse_input
 from ..reporting.workbook import write_workbook
-from . import aggrese, capacita, fempython, jrsnap, soiljr
+from . import aggrese, capacita, fempython, jrsnap, soiljr, soilstructure
 from .addin import load_addin
 from .fempython import ENGINE, AnalysisFiles, LoadDiagramPages, RunnerError, analyze_frame, draw_load_diagram
 from .publication import ArtifactStaging, backup_path, publish_outputs, validate_destinations
@@ -197,14 +205,20 @@ def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierIn
     return data, parse_input(load_json(data), load_model=registry.load_model is not None)
 
 
-def resolve(options: GenerationOptions, registry: Registry = STAGES) -> tuple[Registry, tuple[str, ...]]:
-    """The registry of the input of *options*, and the stages its 出力項目 choose in it, in registry order (decision 72):
-    the registry of its load model's add-in (decision 70), with the stages of its 基礎形式 (decision 85). The input is read
-    and parsed strictly, so an invalid one is an input error."""
+def resolve_input(options: GenerationOptions, registry: Registry = STAGES
+                  ) -> tuple[Registry, tuple[str, ...], PierInput]:
+    """The registry of the input of *options*, the stages its 出力項目 choose in it, in registry order (decision 72), and
+    the input: the registry of its load model's add-in (decision 70), with the stages of its 基礎形式 (decision 85). The
+    input is read and parsed strictly, so an invalid one is an input error."""
     registry = with_addin(options, registry)
     pier = _read(options, registry)[1]
     registry = registry.for_foundation(pier.substructure.foundation)
-    return registry, registry.selected(pier.outputs)
+    return registry, registry.selected(pier.outputs), pier
+
+
+def resolve(options: GenerationOptions, registry: Registry = STAGES) -> tuple[Registry, tuple[str, ...]]:
+    """``resolve_input`` without the input."""
+    return resolve_input(options, registry)[:2]
 
 
 def selection(options: GenerationOptions, *, registry: Registry = STAGES) -> tuple[str, ...]:
@@ -455,7 +469,7 @@ def _analysis_facts(registry: Registry, post: _PostFile, analyzed: Mapping[str, 
 
 def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging,
                      analyzed: Mapping[str, jrsnap.NonlinearFiles], built: Mapping[tuple[str, str], bytes],
-                     pier: PierInput) -> dict[str, Any]:
+                     pier: PierInput, responded: Mapping[str, tuple[tuple[str, bytes], ...]]) -> dict[str, Any]:
     # The returned files are JRSNAP's (decision 47): which runner returned them for which bytes, what it reports of
     # JRSNAP and of the confirmations it answered, and each file. The NDU need not be of this generation (a stage
     # chosen alone), so its SHA256 is what binds them.
@@ -463,6 +477,7 @@ def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStagi
     result = analyzed[post.stage]
     folder = staging.path_for(post.native.path)
     others = _sources(registry, analysis, pier)[1:]  # the other NDUs analyzed into the folder
+    ndus = responded.get(post.stage, ())  # the NDUs of the 応答変位法, analyzed and published in the folder (decision 97)
     return {"nonlinear_analysis": {"engine": jrsnap.ENGINE, "engine_version": result.engine_version,
                                    "engineering_status": "not_checked",
                                    "ndu": {"stage": analysis.stage, "export": analysis.export,
@@ -472,10 +487,12 @@ def _nonlinear_facts(registry: Registry, post: _PostFile, staging: ArtifactStagi
                                                       "file": source.file_name,
                                                       "sha256": sha256(built[(analysis.stage, source.kind)])}
                                                      for source in others]} if others else {}),
+                                   **({"response_ndus": [{"file": name, "sha256": sha256(content)}
+                                                         for name, content in ndus]} if ndus else {}),
                                    "runner_summary": dict(result.summary),
                                    "messages": [dict(message) for message in result.messages]},
             "files": [{"file": name, "bytes": (folder / name).stat().st_size, "sha256": file_sha256(folder / name)}
-                      for name in sorted(result.files)]}
+                      for name in sorted({*result.files, *(name for name, _ in ndus)})]}
 
 
 def _pik_name(registry: Registry, stage_id: str) -> str:
@@ -563,30 +580,35 @@ def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes
 # FEMPython draws the load diagrams and analyzes the frames (decisions 44, 46), JRSNAP draws the figures, analyzes
 # the NDU and has SOIL-JR calculate the ground of a pile foundation (decisions 47, 50, 51, 85), Capacita checks the sections (decisions 48, 59) and Aggre-SE the seismic checks
 # (decision 56).
-_RUNNERS: tuple[tuple[ModuleType, Callable[[StageSpec], bool]], ...] = (
-    (fempython, lambda stage: bool(stage.load_diagram) or stage.frame_analysis is not None),
-    (jrsnap, lambda stage: stage.jrsnap_figures is not None or stage.nonlinear_analysis is not None
+# Whether a stage calls each runner; with the input, whether it calls it for that input (decision 97: SoilStructure only for
+# an input that considers the 地盤変位), without it whether it may.
+_RUNNERS: tuple[tuple[ModuleType, Callable[[StageSpec, PierInput | None], bool]], ...] = (
+    (fempython, lambda stage, pier: bool(stage.load_diagram) or stage.frame_analysis is not None),
+    (jrsnap, lambda stage, pier: stage.jrsnap_figures is not None or stage.nonlinear_analysis is not None
      or stage.soil_jr is not None),
-    (capacita, lambda stage: stage.section_check is not None),
-    (aggrese, lambda stage: stage.seismic_check is not None),
+    (capacita, lambda stage, pier: stage.section_check is not None),
+    (aggrese, lambda stage, pier: stage.seismic_check is not None),
+    (soilstructure, lambda stage, pier: stage.ground_displacement is not None and (pier is None or displaces(pier))),
 )
 RUNNERS = tuple(module for module, _ in _RUNNERS)  # every runner a generation may call, in lookup order
 
 
-def _required(registry: Registry, selected: Sequence[str]) -> tuple[ModuleType, ...]:
+def _required(registry: Registry, selected: Sequence[str], pier: PierInput | None = None) -> tuple[ModuleType, ...]:
     return tuple(module for module, calls in _RUNNERS
-                 if any(calls(registry.get(stage_id)) for stage_id in selected))
+                 if any(calls(registry.get(stage_id), pier) for stage_id in selected))
 
 
-def required_runners(selected: Sequence[str], *, registry: Registry = STAGES) -> tuple[ModuleType, ...]:
+def required_runners(selected: Sequence[str], *, registry: Registry = STAGES, pier: PierInput | None = None
+                     ) -> tuple[ModuleType, ...]:
     """The modules of the runners a generation of the stages *selected* calls (each has ``ENGINE``, ``RUNNER_KEY``
-    and ``runner_path``), in the order they are looked up; nothing is read."""
-    return _required(registry, selected)
+    and ``runner_path``), in the order they are looked up; nothing is read. With the input *pier*, those it calls for it;
+    without, those it may call."""
+    return _required(registry, selected, pier)
 
 
-def _runner_paths(registry: Registry, selected: tuple[str, ...]) -> dict[ModuleType, Path]:
+def _runner_paths(registry: Registry, selected: tuple[str, ...], pier: PierInput) -> dict[ModuleType, Path]:
     paths: dict[ModuleType, Path] = {}
-    for module in _required(registry, selected):
+    for module in _required(registry, selected, pier):
         try:
             paths[module] = module.runner_path()
         except RunnerError as exc:
@@ -693,6 +715,43 @@ def _stage_figures(registry: Registry, results: Mapping[str, Any], pier: PierInp
                              other.load_cases(own, pier))
         pages = jrsnap.add_load_diagrams(pages, other.export, more)
     return pages
+
+
+def _displace(registry: Registry, stage_id: str, results: dict[str, Any], pier: PierInput, runner: Path,
+              answers: dict[bytes, soilstructure.GroundAnswer]) -> soilstructure.GroundAnswer:
+    """SoilStructure's 地盤変位 at the depths of the stage's pile nodes, added to its result (decision 97); one call for each
+    document."""
+    depths = registry.get(stage_id).ground_displacement.depths(_own(registry, results, stage_id), pier)
+    layers, coefficient = surface_layers(pier), region_coefficient(pier)
+    rows = runner_rows(layers, depths)
+    given = soilstructure.document(rows, coefficient)
+    try:
+        if given not in answers:
+            answers[given] = soilstructure.calculate(rows, coefficient, runner)
+        answer = answers[given]
+        found = ground_displacement(layers, coefficient, answer.period, answer.points, depths)
+    except RunnerError as exc:
+        raise GenerationError(str(exc)) from exc
+    except GroundDisplacementError as exc:
+        raise GenerationError(f"SoilStructure の答えで{stage_id}の地盤変位を読めません: {exc}") from exc
+    results[stage_id] = replace(results[stage_id], ground_displacement=found)
+    return answer
+
+
+def _respond(registry: Registry, stage_id: str, results: dict[str, Any], pier: PierInput, runner: Path,
+             checked: aggrese.SeismicCheckPages) -> tuple[tuple[str, bytes], ...]:
+    """The 応答変位法 of the stage (decision 97): its result, from Teq and Kh of Aggre-SE's summary of the inertia Cases, and
+    the NDU of each of its Cases (file name, bytes)."""
+    analysis = registry.get(stage_id).nonlinear_analysis
+    own = _own(registry, results, analysis.stage)  # the NDUs are those of the analyzed stage, with 0500
+    file_name = dict(registry.get(stage_id).seismic_check.files)["xlsx"]
+    try:
+        inertia = read_inertia(checked.files["xlsx"], file_name, analysis.response.case(own, pier))
+    except InertiaError as exc:
+        raise GenerationError(f"{stage_id}の応答変位法の慣性力を読めません: {exc}") from exc
+    found = response_displacement(inertia, results[analysis.stage].ground_displacement.period, len(checked.cases) + 1)
+    results[stage_id] = found
+    return analysis.response.ndus(own, pier, found)
 
 
 def _analyze(name: str, document: bytes, runner: Path) -> AnalysisFiles:
@@ -815,7 +874,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     validate_destinations(stale_paths, overwrite=True, input_path=Path(options.input_path), folders=_folders(stale))
     baseline = {path: _state(path) for path in [*destinations, *stale_paths]}
     identity = _identity()
-    runners = _runner_paths(registry, selected)
+    runners = _runner_paths(registry, selected, pier)
     runner, jrsnap_runner = runners.get(fempython), runners.get(jrsnap)
     capacita_runner, aggrese_runner = runners.get(capacita), runners.get(aggrese)
     found = _inputs(data, pier, registry, selected, posts)
@@ -844,6 +903,10 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             writers |= {stage_id: analysis.project.build(_own(registry, results, analysis.stage), pier)
                         for stage_id, analysis in nonlinear.items()
                         if analysis.project is not None and stage_id not in writers}
+        # SoilStructure's 地盤変位 at the pile nodes of the stages calculated now (decision 97)
+        answers: dict[bytes, soilstructure.GroundAnswer] = {}
+        displaced = {stage_id: _displace(registry, stage_id, results, pier, runners[soilstructure], answers)
+                     for stage_id in selected if registry.get(stage_id).ground_displacement is not None and displaces(pier)}
         for post in posts:
             if post.export is not None:
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
@@ -879,6 +942,30 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                        aggrese_runner, _limits(registry, post.stage, results))
                    for post in posts
                    if post.project is not None and registry.get(post.stage).seismic_check is not None}
+        # The 応答変位法 (decision 97): the NDU of each Case into the folder, the project of every Case, checked again.
+        responded: dict[str, tuple[tuple[str, bytes], ...]] = {}
+        for post in posts:
+            if post.project is None or post.stage not in checked or (
+                    registry.get(post.stage).nonlinear_analysis.response is None or not displaces(pier)):
+                continue
+            stage_id, analysis = post.stage, registry.get(post.stage).nonlinear_analysis
+            responded[stage_id] = _respond(registry, stage_id, results, pier, jrsnap_runner, checked[stage_id])
+            folder = staging.path_for(post.native.path.with_name(analysis.folder))
+            for name, content in responded[stage_id]:
+                try:
+                    solved[stage_id] = jrsnap.merge_nonlinear(solved[stage_id], _analyze_nonlinear(name, content,
+                                                                                                    jrsnap_runner))
+                except RunnerError as exc:
+                    raise GenerationError(str(exc)) from exc
+                (folder / name).write_bytes(content)
+            for name, content in solved[stage_id].files.items():
+                if not (folder / name).exists():
+                    (folder / name).write_bytes(content)
+            writer = analysis.response.project(_own(registry, results, analysis.stage), pier, results[stage_id])
+            staging.path_for(post.native.path).write_bytes(
+                _write_project(post, writer, analysis.folder, list(solved[stage_id].files)))
+            checked[stage_id] = _check_seismic(staging.path_for(post.native.path), folder, aggrese_runner,
+                                               _limits(registry, stage_id, results))
         # A stage finishes its result with the files of its frame analysis, or of the seismic checks of its
         # dependencies, or with their finished results (decisions 54, 59), in registry order.
         for stage_id in selected:
@@ -950,6 +1037,11 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     **_limits_facts(_limits(registry, stage_id, results)),
                     "files": {kind: {"file": file_name, "sha256": sha256(checked[stage_id].files[kind])}
                               for kind, file_name in registry.get(stage_id).seismic_check.files}}
+            if stage_id in displaced:  # that SoilStructure calculated, with which document, not a judgement (decision 97)
+                document["ground_displacement"] = {
+                    "engine": soilstructure.ENGINE, "engine_version": displaced[stage_id].engine_version,
+                    "engineering_status": "not_evaluated", "document_sha256": sha256(displaced[stage_id].document),
+                    "result_sha256": sha256(displaced[stage_id].result)}
             if stage_id in grounded:  # that SOIL-JR calculated, with which files, not a judgement (ADR-0013)
                 ground = registry.get(stage_id).soil_jr
                 calculated = grounded[stage_id]
@@ -967,7 +1059,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             staging.path_for(by_role[f"{stage_id}.json"].path).write_bytes(dump_json(document))
         for post in posts:
             facts = (_export_facts(registry, post, drawn, figures, grounded, built) if post.export is not None
-                     else _nonlinear_facts(registry, post, staging, solved, built, pier) if post.native.folder
+                     else _nonlinear_facts(registry, post, staging, solved, built, pier, responded) if post.native.folder
                      else _project_facts(registry, post, staging, checked) if post.project is not None
                      else _check_facts(registry, post, inspected, given, analyzed) if post.check is not None
                      else _seismic_facts(registry, post, staging, checked, results) if post.seismic is not None

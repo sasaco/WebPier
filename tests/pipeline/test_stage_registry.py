@@ -485,7 +485,8 @@ def test_the_nonlinear_stages_of_the_piles_analyze_both_ndus_and_check_with_the_
         assert piled.seismic_check == SeismicCheck((("pik", f"{stem}_Aggre-SE.pik"), ("xlsx", f"{stem}_Aggre-SE.xlsx")),
                                                    direction)
         assert piled.nonlinear_analysis.also == also and piled.nonlinear_analysis.stage == source
-        assert piled.precheck is not None and piles.get(source).precheck is None  # the 液状化指数 (decision 95)
+        assert piled.precheck is not None  # the 液状化指数 (decision 95)
+        assert piles.get(source).precheck.__name__ == "_ground_inputs"  # the 地盤変位 (decision 97)
         liquefied = [item.kind for item in piles.get(source).exports if item.liquefied]
         assert liquefied == [kind for kind in also if kind.startswith("jrsnapliquefied")]
         assert not any(item.liquefied for item in direct.exports)

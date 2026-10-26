@@ -28,6 +28,7 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 
 - JRSNAP の runner は NDU ごとに `run`（`pipeline/generate.py: _analyze_stage`、`jrsnap.merge_nonlinear`）。0721 は順向と逆向の 2 回で、結果を 1 つのフォルダーにまとめる（ファイル名は NDU の名前から始まるが、S_ANALYSIS の `解析実行Err.log`〔正常なら空〕は名前がなく両方が書くので、同じバイトなら 1 つにし、違えばエラー）。`NonlinearAnalysis.also` が 2 つ目以降の NDU の出力の種類（`jrsnapreverse`）。付帯 JSON の `nonlinear_analysis.also_ndus`、`runner_summary.also`。
 - 液状化する地層のある入力（決定95、P6c）：0710・0720 が液状化時用の NDU も書き（`Export.liquefied`、`stages._with_seismic_piles`、`build_pile_ndu(..., liquefied=True)`：ばねは `parse_seismic(..., liquefied=True)` で読む液状化時用の .sdc〔表は通常と同じで 液状化時 と 地震時 の見出しだけ違う〕、組合せは ρm 1.0・αf 1.0 の 1 つ）、0711・0721 の解析にそれらも入る（`NonlinearAnalysis.also` の `jrsnapliquefied`・`jrsnapliquefiedreverse`、`generate._sources` が入力で絞る）。`耐震設計条件.液状化指数` が空なら 0711・0721 は入力エラー（`stages._liquefaction_index`）。受入：`scripts/accept_pile_liquefaction.py`。
+- 地盤変位（応答変位法、決定97、P6d）：地盤区分 G3〜G5 の杭基礎。0710・0720 は SoilStructure の runner（`pipeline/soilstructure.py`）で Tg・f(z) を杭の節点の深さで求め（`stages.GroundDisplacementRun`、`generate._displace`。層は節点の深さでも切って渡す）、結果の `ground_displacement` に持つ。0711・0721 は 1 回目の Aggre-SE の後に Case ごとの NDU（`build_pile.response_ndu`：荷重増分の DataInfo〔第2欄 2、LiMiT5＝LiMiT6＝最大応答震度×1000〕、`ELoadInfo` に杭の全節点の EDSPX〔m、小数5桁、押す向きを正〕、SNAPConb の ELoad 旗、慣性力の基本ケースの係数に |ν|。④ νL Ra＋f は逆向の組合せで |νL| Ra と −f）を書いて JRSNAP で解析する（`generate._respond`、NDU も `…_JRSNAP/` に置く）。ED は JOT 連携（OT）と同じ解析になることを見本 R-7 で確かめた（決定97 最初の実験。いまの runner は work.wk3 の JOT のパスを空で書くので OT は効かない）。
 
 ## 杭基礎の 0710・0720（決定93、P6a。2026-10-25）
 

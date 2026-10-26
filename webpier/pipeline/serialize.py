@@ -2,8 +2,9 @@
 
 A ``Printed`` becomes its printed number, a Decimal (a load model's value, decision 70) its number, an enum its
 value, a tuple a list, a set a list sorted by its JSON, and a mapping key a string. A dataclass field with
-``metadata={"json": False}`` is left out (the pages of another program's report a result carries, decision 91). Anything
-else is a programming error: the result JSON never guesses.
+``metadata={"json": False}`` is left out (the pages of another program's report a result carries, decision 91), one with
+``metadata={"json": "set"}`` is left out while it is None (what only some inputs have, decision 97). Anything else is
+a programming error: the result JSON never guesses.
 """
 
 from __future__ import annotations
@@ -31,6 +32,11 @@ def _key(key: Any) -> str:
     raise TypeError(f"JSONのキーにできません: {key!r}")
 
 
+def _written(item: Any, value: Any) -> bool:
+    shown = item.metadata.get("json", True)
+    return getattr(value, item.name) is not None if shown == "set" else bool(shown)
+
+
 def to_json(value: Any) -> Any:
     if isinstance(value, Printed):
         return value.value
@@ -45,7 +51,7 @@ def to_json(value: Any) -> Any:
             raise ValueError(f"有限でない数値はJSONにできません: {value!r}")
         return value
     if is_dataclass(value) and not isinstance(value, type):
-        return {item.name: to_json(getattr(value, item.name)) for item in fields(value) if item.metadata.get("json", True)}
+        return {item.name: to_json(getattr(value, item.name)) for item in fields(value) if _written(item, value)}
     if isinstance(value, Mapping):
         encoded: dict[str, Any] = {}
         for key, item in value.items():

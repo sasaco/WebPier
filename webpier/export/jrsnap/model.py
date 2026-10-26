@@ -129,7 +129,7 @@ class LoadCase:
 class Combination:
     rho_m: Printed
     alpha_f: Printed
-    coefficients: tuple[int, ...]  # 1 or 0 for each load case
+    coefficients: tuple[int | Decimal, ...]  # 1 or 0 for each load case; the 応答変位法's ν of the inertia (decision 97)
     reverse: bool = False  # 逆向: the incremental cases and the target displacement turned around (decision 76)
 
 

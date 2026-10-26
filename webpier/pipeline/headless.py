@@ -52,8 +52,8 @@ from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
 from .addin import AddinError
 from .fempython import RunnerError
-from .generate import (RUNNERS, Candidate, GenerationError, GenerationOptions, generate, planned, required_runners, resolve,
-                       validate, with_addin)
+from .generate import (RUNNERS, Candidate, GenerationError, GenerationOptions, generate, planned, required_runners,
+                       resolve_input, validate, with_addin)
 from .publication import RecoveryError
 from .stages import STAGES, Registry
 
@@ -214,7 +214,7 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
     options = _options(arguments, root)
     summary: dict[str, Any] = {"command": arguments.command}
     try:
-        registry, selected = resolve(options, registry)  # the stages of the input's 基礎形式 (decision 85)
+        registry, selected, pier = resolve_input(options, registry)  # the stages of the input's 基礎形式 (decision 85)
     except AddinError as exc:
         return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except InputError as exc:
@@ -222,7 +222,7 @@ def _run(arguments: argparse.Namespace, registry: Registry) -> tuple[int, dict[s
     except OSError as exc:
         return _failure("IO_ERROR", exc, summary, category="file_system")
     summary["outputs"] = _chosen(registry, selected)
-    needed = required_runners(selected, registry=registry)
+    needed = required_runners(selected, registry=registry, pier=pier)  # what this input calls (decision 97)
     if missing := [module for module in needed if not _available(module)]:
         names = "・".join(f"{module.ENGINE}（{module.RUNNER_KEY}）" for module in missing)
         return _failure("RUNNER_UNAVAILABLE", f"この生成に必要な runner がありません: {names}",
@@ -264,8 +264,8 @@ def _validate(arguments: argparse.Namespace, registry: Registry) -> tuple[int, d
     try:
         registry = with_addin(options, registry)
         validate(options, registry=registry)
-        registry, selected = resolve(options, registry)
-        needed = required_runners(selected, registry=registry)
+        registry, selected, pier = resolve_input(options, registry)
+        needed = required_runners(selected, registry=registry, pier=pier)
     except AddinError as exc:
         return _failure("ADDIN_ERROR", exc, summary, category="addin")
     except InputError as exc:

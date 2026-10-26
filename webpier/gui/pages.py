@@ -112,7 +112,7 @@ GROUND_COLUMNS = (("層番", ("層番",)), ("層厚\n(m)", ("層厚",)), ("土�
                   ("単位体積重量\n湿潤", ("単位体積重量", "湿潤")), ("単位体積重量\n水中", ("単位体積重量", "水中")),
                   ("内部摩擦角\nφd (°)", ("内部摩擦角_φd",)), ("φd の上限値\n(°)", ("内部摩擦角の上限値",)),
                   ("粘着力\nc (kN/m²)", ("粘着力_c",)), ("変形係数\nEd (kN/m²)", ("変形係数_Ed",)),
-                  ("液状化の\n低減係数 De", ("De",)))
+                  ("液状化の\n低減係数 De", ("De",)), ("せん断弾性波\n速度 Vs (m/s)", ("せん断弾性波速度_Vs",)))
 
 
 def _layers(form: Form) -> list:
@@ -121,7 +121,8 @@ def _layers(form: Form) -> list:
 
 def blank_layer() -> dict[str, Any]:
     return {"層番": None, "層厚": None, "土質区分": None, "N値": None, "単位体積重量": {"湿潤": None, "水中": None},
-            "内部摩擦角_φd": None, "粘着力_c": None, "変形係数_Ed": None, "De": None}
+            "内部摩擦角_φd": None, "粘着力_c": None, "変形係数_Ed": None, "De": None,
+            "せん断弾性波速度_Vs": None}
 
 
 def _thickness_keys(layers: list) -> None:

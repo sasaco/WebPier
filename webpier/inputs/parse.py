@@ -161,13 +161,14 @@ def _reactions(root: Reader, load_model: bool) -> Reactions:
 
 
 LAYER_KEYS = ("層番", "層厚", "土質区分", "N値", "単位体積重量", "内部摩擦角_φd", "内部摩擦角の上限値",
-              "粘着力_c", "変形係数_Ed", "De")
+              "粘着力_c", "変形係数_Ed", "De", "せん断弾性波速度_Vs")
 
 
 def _layer(node: Reader, index: int) -> SoilLayer:
     node.only(*LAYER_KEYS)
     weights = node.at("単位体積重量").only("湿潤", "水中")
     angle_limit = node.optional("内部摩擦角の上限値")
+    velocity = node.optional("せん断弾性波速度_Vs")  # absent is blank: an input made before decision 97 has none
     # decision 64: 表層 may leave its thickness out (blank: the rest of Df); the layers below have the key
     thickness = node.optional("層厚") if index == 0 else node.at("層厚")
     return SoilLayer(
@@ -182,6 +183,7 @@ def _layer(node: Reader, index: int) -> SoilLayer:
         cohesion=read(node.at("粘着力_c")),
         deformation_modulus=read(node.at("変形係数_Ed")),
         reduction=read(node.at("De")),
+        shear_wave_velocity=None if velocity is None else read(velocity),
     )
 
 

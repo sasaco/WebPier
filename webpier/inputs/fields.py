@@ -35,6 +35,7 @@ STRESS = Precision(0, "kN/m2")
 STRENGTH = Precision(1, "N/mm2")
 THICKNESS_MM = Precision(1, "mm")  # 鋼管厚・腐食代 of the 鋼管ソイルセメント杭 (SOIL-JR t1, 腐食代)
 REDUCTION = Precision(3, "")  # De, the reduction coefficient of a layer in liquefaction (SOIL-JR's 0.000)
+SHEAR_WAVE = Precision(0, "m/s")  # Vs of a layer: its 地盤変位 (decision 97; Example橋脚4 IV-4 170, 120 …)
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
 SHRINKAGE = Precision(0, "×10⁻⁶")  # ε'csd of the flexural crack width (decision 48; Example2 300)
@@ -256,6 +257,8 @@ def _soil() -> dict[str, Field]:
         f"{layer}.変形係数_Ed": number(STRESS, nullable=True),
         # decision 80: the reduction coefficient of the layer in liquefaction; blank is 1 (the layer does not liquefy)
         f"{layer}.De": number(REDUCTION, nullable=True, limit=within(0, 1, "")),
+        # decision 97: the shear wave velocity of the layer, for the 地盤変位 of a pile foundation on G3〜G5
+        f"{layer}.せん断弾性波速度_Vs": number(SHEAR_WAVE, "positive", nullable=True),
     }
 
 

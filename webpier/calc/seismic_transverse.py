@@ -29,7 +29,7 @@ other side, reversed (逆向, decision 76). No structural analysis is done here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 
@@ -38,6 +38,7 @@ from ..inputs import PierInput
 from ._exact import put, total
 from .foundation import FoundationResult
 from .frame import Direction, Frame, LineLoad, NodeRole, PointLoad, Region, build_frame, point_load
+from .ground_displacement import GroundDisplacement
 from .longitudinal.actions import bearing_point
 from .materials import calculate_materials
 from .reaction import ReactionResult
@@ -140,6 +141,9 @@ class SeismicTransverseResult:
     self_weight: SelfWeightInertia  # 11-8 (8)
     basic_cases: tuple[SeismicAction, ...]  # 11-10 to 11-13
     combinations: tuple[SeismicCombination, ...]  # 11-13: up, then down, each by 照査パターン
+    # the 地盤変位 of a pile foundation on G3〜G5 (decision 97): SoilStructure's answer, added once 0500 is complete; None
+    # otherwise, and then not in the result JSON
+    ground_displacement: GroundDisplacement | None = field(default=None, metadata={"json": "set"})
 
     def basic(self, case: SeismicCase) -> SeismicAction:
         return made(self.basic_cases, case)

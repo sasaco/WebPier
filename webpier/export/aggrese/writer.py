@@ -124,7 +124,7 @@ def document(project: Project, databases: Sequence[str]) -> list[Node]:
     foundation = _foundation(project)
     # a Case for the liquefaction is one of the L2 earthquake, for each spectrum the project checks (_rbSpec): I and II (decision 95)
     flagged = [-1 if index in project.liquefaction_cases else 0 for index in range(CASES)]
-    requirement = [("_AtPoint", "0"), ("_rbSpec", _array("boolean", SPECTRUM)),
+    requirement = [("_AtPoint", str(project.focus_joint)), ("_rbSpec", _array("boolean", SPECTRUM)),
                    ("_rbChiiki", _array("boolean", _one_hot(project.region, 3))),
                    ("_rbJIban", _array("boolean", _one_hot(project.ground_class, GROUND_SLOTS))),
                    ("_rbEkijo", _array("boolean", _one_hot(project.liquefaction_index, 2)
@@ -132,7 +132,7 @@ def document(project: Project, databases: Sequence[str]) -> list[Node]:
                    ("dgEkijoCase1", _array("int", _cases([], 0))), ("dgEkijoCase21", _array("int", flagged)),
                    ("dgEkijoCase2", _array("int", flagged)),
                    ("cbM65Area", "0"), ("_tbAlfa", "1"), ("_cbηx", "false"), ("_tbηxL1", "1"), ("_tbηxL2", "1"),
-                   ("tbηxL1", None), ("tbηxL2", None), ("tbAlfa", "1.000"), ("AtPoint", "0")]
+                   ("tbηxL1", None), ("tbηxL2", None), ("tbAlfa", "1.000"), ("AtPoint", str(project.focus_joint))]
     return [("cmd", "-1"), ("Version", BATCH_VERSION), ("CaseName", case_name),
             ("SNAP", [("SnapDBPath", _array("string", _cases(list(databases), NIL)))]),
             ("Element", element), ("Foundation", [("基礎照査", [("clsFoundation", foundation)])]),

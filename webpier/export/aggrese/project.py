@@ -63,6 +63,9 @@ class Project:
     pile_sections: int = 0  # a pile foundation: the sections of the piles, each a member of the 杭 type
     liquefaction_cases: tuple[int, ...] = ()  # the indexes (from 0) of the Cases for the liquefaction (decision 95)
     liquefaction_index: int = 0  # 液状化指数: the index of choices.LIQUEFACTION_INDEXES (_rbEkijo)
+    # the 着目点 (_AtPoint): 0, the control joint of each DB1; the NDU's control joint with the Cases of the 応答変位法, whose load
+    # increment keeps none in its DB1 (decision 97; the inertia Cases have the same one)
+    focus_joint: int = 0
 
     @property
     def piled(self) -> bool:
@@ -87,6 +90,10 @@ PILE_ANCHOR_BAR = 7  # the index of ⑧ 杭の段落し in the check items
 # the check items of a Case for the liquefaction (decision 95; the owner's sample R-7 checks ②③⑤⑦⑧⑨, and ⑧ is not made):
 # ② 安全性L2, ③ 損傷レベル, ⑤ せん断耐力, ⑦ 基礎の安定, ⑨ 断面力ピックアップ
 LIQUEFACTION_CHECKS: Checks = (False, True, True, False, True, False, True, False, True)
+# the check items of a Case of the 応答変位法 (decision 97; the sample R-7 checks ①②③⑤⑦⑧⑨ and ⑧ is not made): Aggre-SE takes a
+# Case of the load increment as one of L1 when it checks ⑥ L1 and as one of L2 otherwise (ExcelReportPickUpFile)
+RESPONSE_CHECKS: dict[str, Checks] = {"L1": (False, False, True, False, True, True, True, False, True),
+                                      "L2": (True, True, True, False, True, False, True, False, True)}
 
 
 def _checks(model: NduModel | PileNduModel, *, piled: bool = False) -> tuple[Checks, ...]:
@@ -118,28 +125,31 @@ def _rows(model: PileNduModel) -> tuple[PileRow, ...]:
 
 
 def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
-                       liquefied: Sequence[PileNduModel] = ()) -> Project:
+                       liquefied: Sequence[PileNduModel] = (),
+                       response: Sequence[tuple[str, PileNduModel]] = ()) -> Project:
     """The project of the piles of the NDU *models* of a stage (the forward NDU, then the reversed one); a blank 耐震設計条件
     is an input error. Every NDU has the frame, the piles and the sections of the first, and the Cases follow its combinations.
     The NDUs for the liquefaction (*liquefied*, decision 95) follow with one Case each, which Aggre-SE checks as a Case for the
-    liquefaction; they need the 液状化指数."""
+    liquefaction; they need the 液状化指数. The NDUs of the 応答変位法 (*response*: the level, L1 or L2, and the NDU of each
+    Case, decision 97) follow with one Case each, checked as a Case of its level."""
     design = pier.seismic_design
     first = models[0]
     columns = [element for element in first.elements if element.kind == COLUMN]
     if len(columns) != 1:  # the one M-θ member is the column base; Aggre-SE's member type 2 is it
         raise InputError(f"JRSNAP の非線形部材（柱）が{len(columns)}個です（耐震照査の入力は1個だけに対応します）")
     rows = _rows(first)
-    for other in (*models[1:], *liquefied):
+    for other in (*models[1:], *liquefied, *(model for _, model in response)):
         if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
     ordinary = tuple(case for model in models for case in _checks(model, piled=True))
     index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"), shear_span=first.shear_span,
-                   footing_joint=columns[0].j, cases=ordinary + tuple(LIQUEFACTION_CHECKS for _ in liquefied),
+                   footing_joint=columns[0].j, cases=ordinary + tuple(LIQUEFACTION_CHECKS for _ in liquefied)
+                   + tuple(RESPONSE_CHECKS[level] for level, _ in response),
                    pile_rows=rows, pile_sections=len(first.sections) - 1,
                    liquefaction_cases=tuple(range(len(ordinary), len(ordinary) + len(liquefied))),
-                   liquefaction_index=index)
+                   liquefaction_index=index, focus_joint=first.control if response else 0)
 
 
 def ndu_databases(folder: str, names: Iterable[str], groups: Sequence[tuple[str, int]]) -> tuple[str, ...]:

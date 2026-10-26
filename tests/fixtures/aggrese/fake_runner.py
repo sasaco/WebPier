@@ -13,7 +13,8 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
 - ``summary.xlsx``: a workbook (openpyxl) with the real one's sheets 応答値一覧表・設計総括表・安全率一覧表・直接基礎;
   the 応答値一覧表 has the real layout decision 59 reads (row No with the Case numbers from column D, row 名称, rows αf
   and ρm from the DB1 name, the blocks 復旧性 and 安全性 with a row 最大応答震度 of text values: Case n gives
-  0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1)), and
+  0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1); the rows 全体系折曲点震度 0.408, 等価固有周期 0.982 + 0.01(n − 1) and
+  L1地震動 0.321 that decision 97 reads), and
   設計総括表 A1 says ``FAKE XLSX <SHA256 of the XML, 16 hex>``; its properties are dated 1980-01-01 so the bytes are the
   same each run (the real workbook's are not);
 - ``foundation-steps.csv``: the step table of the direct foundation (decision 60), UTF-8 and CRLF, with the real
@@ -98,6 +99,8 @@ def workbook(text, names):
     sheet.title = "応答値一覧表"
     sheet["A1"], sheet["A3"], sheet["A4"], sheet["B4"], sheet["B5"] = "地盤区分", "応答値一覧表", "解析ケース", "No", "名称"
     sheet["B6"], sheet["B7"], sheet["A8"], sheet["B8"], sheet["C8"] = "αf", "ρm", "降伏点", "初期降伏震度", "Khy"
+    sheet["B9"], sheet["C9"], sheet["B12"], sheet["C12"] = "全体系折曲点震度", "Kheq", "等価固有周期", "Teq(sec)"
+    sheet["B16"], sheet["C16"] = "L1地震動", "KhL1"
     sheet["A13"], sheet["B13"], sheet["C13"] = "復旧性", "応答塑性率", "μ"
     sheet["B15"], sheet["C15"] = "最大応答震度", "Khmax"
     sheet["A17"], sheet["B17"], sheet["C17"] = "安全性", "応答塑性率", "μ"
@@ -110,6 +113,9 @@ def workbook(text, names):
         rho, alpha = (f"{found[1]}.{found[2]}", f"{found[3]}.0") if found else ("1.0", "1.0")
         sheet.cell(row=6, column=column, value=alpha)
         sheet.cell(row=7, column=column, value=rho)
+        sheet.cell(row=9, column=column, value="0.408")
+        sheet.cell(row=12, column=column, value=f"{0.982 + 0.01 * index:.3f}")
+        sheet.cell(row=16, column=column, value="0.321")
         sheet.cell(row=15, column=column, value=f"{0.385 + 0.01 * index:.3f}")
         sheet.cell(row=19, column=column, value=f"{0.386 + 0.01 * index:.3f}")
     for title in ("設計総括表", "安全率一覧表", "直接基礎"):

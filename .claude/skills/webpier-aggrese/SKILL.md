@@ -32,6 +32,12 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 - 制限値：runner の `--sdr-liquefied`（`aggrese.Limits.liquefied`、一時ファイル名は `foundation(液状化時用).sdr`）が `dgLimitValue0` の行 10〜16 を埋める。Aggre-SE の規則で、行 10〜13 が L1 の液状化、14〜16 が復旧性L2 の液状化に使われ、安全性は液状化用の行 17〜30 が空なら通常の値（0〜9）に戻る（`CalculationFoundation.vb` の `GetLimit`）。そのため、液状化時の Case の基礎の安定の照査が計算書に出ても、液状化時用の `.sdr` の値が使われるのは復旧性（①）を ON にしたときだけ。受入はその Case だけを ① と ⑦ にして確かめる。
 - 計算書の杭基礎の照査には、各安定レベルの決定ケースの行だけが出る（液状化時の Case が決定ケースでなければ出ない）。
 
+## 杭基礎の応答変位法の Case（決定97、P6d。2026-10-26）
+
+- 0711・0721 は Aggre-SE を 2 回走らせる。1 回目（慣性力と液状化時の Case）の総括表の応答値一覧表から、ρm 1.0・αf 1.0・正向の Case の 全体系折曲点震度・等価固有周期・復旧性の最大応答震度と L1地震動・安全性の最大応答震度を読む（`calc/response_displacement.read_inertia`。行は列 A のブロック名と列 B の見出しで探す。ρm 1.2 の Case は '-----'）。
+- 2 回目のプロジェクトは、ほかの Case のあとに応答変位法の Case を 1 つずつ（`build_pile_project(..., response=[(level, model)])`、照査項目 `RESPONSE_CHECKS`：L1 は ③⑤⑥⑦⑨、L2 は ①②③⑤⑦⑨）。Aggre-SE は荷重増分の DB1（`KaisekiFlg≠1`）を応答変位法とみなし、⑥ の印で L1、無ければ L2 にする（`ExcelReportPickUpFile.vb`）。応答値は最終ステップ、杭基礎の水平変位から地盤変位（`DeltaG`）を引く。
+- 計算書は WebPier の「応答変位法による設計応答値の算定」の頁のあとに 2 回目の report.pdf（`seismic_check.render_response_check`）。この頁の方眼Excel は作らない（役割 `0711.xlsx` が総括表と重なる）。
+
 ## 0711・0721 の計算書・ピックアップ・総括表（決定56〜58）
 
 - WebPier の生成が `run --input <ステージングした XML> --output-dir <空の一時フォルダー> --snap-map <map> --summary-xlsx true --report-pdf true --check-tables false --pik true --pile-anchor-bar-pdf false --foundation-steps true` を呼ぶ（返る成果物は result.json・report.pdf・pickup.pik・summary.xlsx と、直接基礎なら foundation-steps.csv）（`.env` の `STRUCTURAL_MCP_AGGRESE_RUNNER`）。1方向 4 秒ほど（2026-10-19、実アプリ）。WebPier は呼ぶ前後で XML とフォルダーの SHA を比べ、変わっていれば生成を止める。成果物の組（kind と relativePath）が求めたものとちょうど一致しないと止める。

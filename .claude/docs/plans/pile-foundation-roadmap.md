@@ -14,9 +14,18 @@
 | P3 0500（杭基礎） | ✅ 済（本物の SOIL-JR で見本と一致） | 85 | WebPier `cb70d4c`、structural-mcp `d4ff59c`（下の「P3 で決めたこと」） |
 | P4 杭基礎の骨組（0610・0620） | ✅ 済（本物の SOIL-JR・FEMPython で見本と一致。杭先端の反力に既知の差） | 88 | （下の「P4 で決めたこと」） |
 | P5 0612・0622 杭基礎の照査 | ◐ 杭頭の押込み・引抜きとフーチング天端の変位（89）、鋼管杭の杭体（89）と結合部（90）、場所打ち杭の杭体（91）まで済。未：杭の段落し・杭頭定着長・帯鉄筋の区間・配筋略図・鉄筋ページのエディタ（決定87の残り） | 89・90・91 | （決定89〜91） |
-| P6 地震時 | ◐ ✅ P6a（0710・0720 の NDU、決定93）、✅ P6b（0711・0721 と Aggre-SE の .sdr、決定94）、✅ P6c（液状化、決定95）。未：P6d（地盤変位） | 93・94・95 | （決定93〜95） |
+| P6 地震時 | ✅ P6a（0710・0720 の NDU、決定93）、✅ P6b（0711・0721 と Aggre-SE の .sdr、決定94）、✅ P6c（液状化、決定95）。✅ P6d（地盤変位・応答変位法、決定97） | 93・94・95・97 | （決定93〜95・97） |
 | P7 0800・0810・0820 | ✅ 済（く体前面の節点、有効幅、ディープビームのせん断、本物の4つの runner で受入） | 96 | （決定96） |
 | P8〜P9 | 未着手 | — | — |
+
+### P6d で決めたこと（決定97。詳細は `refactoring-decisions.md`）
+
+- 杭基礎で地盤区分 G3〜G5 の入力だけ、L1・L2 の応答変位法の Case を 0711・0721 に足す（見本 Example橋脚4 IV-55〜58 の ①〜④、同じものは除く。ρm・αf は 1.0）。
+- 入力は地盤の層の `せん断弾性波速度_Vs`（湿潤の γ と、最後の層の上面を基盤面に使う）と `耐震設計条件.地域別`。Tg と f(z) は SoilStructure の runner（`run-ground-displacement`）が杭の節点の深さで求め、0710・0720 の末尾の「表層地盤の挙動」に印刷する。
+- JRSNAP へは NDU の `ELoadInfo`（ED ブロック）に節点の地盤変位を書く（JOT 連携と同じ解析になることを見本 R-7 で確かめた）。荷重増分で最大応答震度まで。
+- 0711・0721 は Aggre-SE を 2 回：1 回目の総括表の ρm 1.0・αf 1.0 正向の Case から Teq・Kheq・最大応答震度を読み、ν と Case を決め、Case ごとの NDU を解析して全 Case で照査し直す。計算書は WebPier の「応答変位法による設計応答値の算定」＋Aggre-SE の report.pdf。
+- 受入：SoilStructure は見本 IV-4 の Tg・f(z) と一致（`test_soilstructure.py`）。両方向の生成は `scripts/accept_pile_ground_displacement.py`（`tests/fixtures/acceptance/pile_ground_displacement/`）。
+- 残り：鋼管ソイルセメント杭、液状化時の応答変位法、断層からの距離による低減、スペクトルⅠの f(z)、0900（杭基礎で cantilever を選べるようになったら慣性力の Case だけから最大応答震度を取る）。
 
 ### P4 で決めたこと（決定88。詳細は `refactoring-decisions.md`）
 
@@ -179,7 +188,7 @@ P9 は各段の終わりに付ける
 
 ### P6 地震時（0710・0720、0711・0721）
 
-**決定93 で P6a・P6b・P6c・P6d に分けた**（下の「作るもの」は見込み。P6a＝0710・0720 の NDU に杭を入れる、P6b＝0711・0721 と Aggre-SE の .sdr、P6c＝液状化、P6d＝地盤変位〔見本 Example橋脚4 IV-1・IV-3.1.3 (5)。SoilStructure の `SoilDisp` で求め、JRSNAP の `HendoCaseInfo`・`HendoSPDInfo` で荷重にする〕。P6a・P6b は慣性力のみ）。見本は `Batch/tests/JRSNAP_Ver5.2-L03/01_サンプル(V53)：RC橋脚L：RC/`。
+**決定93 で P6a・P6b・P6c・P6d に分けた**（下の「作るもの」は見込み。P6a＝0710・0720 の NDU に杭を入れる、P6b＝0711・0721 と Aggre-SE の .sdr、P6c＝液状化、P6d＝地盤変位〔見本 Example橋脚4 IV-1・IV-3.1.3 (5)。決定97：SoilStructure の runner で Tg・f(z) を求め、JRSNAP の NDU の `ELoadInfo`（ED ブロック）に杭の節点の地盤変位を書く。`HendoCaseInfo`・`HendoSPDInfo` は鉛直地盤反力係数の低減の設定で、地盤変位とは関係しない〕。P6a・P6b は慣性力のみ）。見本は `Batch/tests/JRSNAP_Ver5.2-L03/01_サンプル(V53)：RC橋脚L：RC/`。
 
 - **作るもの**：
   - JRSNAP 入力モデルに杭を入れる：

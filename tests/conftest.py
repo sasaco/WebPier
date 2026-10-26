@@ -12,7 +12,9 @@ test uses tests/fixtures/jrsnap/fake_runner.py the same way, through STRUCTURAL_
 0611 has Capacita check the column (decision 48); every test uses tests/fixtures/capacita/fake_runner.py the same way,
 through STRUCTURAL_MCP_WEBDAN_RUNNER, and ``real_capacita_runner`` is the runner the user set up. A generation with
 0711 also has Aggre-SE check with its project (decision 56); every test uses tests/fixtures/aggrese/fake_runner.py the
-same way, through STRUCTURAL_MCP_AGGRESE_RUNNER.
+same way, through STRUCTURAL_MCP_AGGRESE_RUNNER. A generation with 0710 or 0720 of a pile foundation on G3〜G5 has
+SoilStructure calculate the 地盤変位 (decision 97); every test uses tests/fixtures/soilstructure/fake_runner.py the same way,
+through STRUCTURAL_MCP_SOILSTRUCTURE_RUNNER.
 """
 
 import os
@@ -22,7 +24,7 @@ import sys
 from hypothesis import HealthCheck, settings
 import pytest
 
-from webpier.pipeline import aggrese, capacita, fempython, jrsnap
+from webpier.pipeline import aggrese, capacita, fempython, jrsnap, soilstructure
 
 settings.register_profile(
     "webpier", derandomize=True, database=None, max_examples=100, deadline=None, print_blob=True,
@@ -33,10 +35,12 @@ FAKE_RUNNER = Path(__file__).parent / "fixtures" / "fempython" / "fake_runner.py
 FAKE_JRSNAP_RUNNER = Path(__file__).parent / "fixtures" / "jrsnap" / "fake_runner.py"
 FAKE_CAPACITA_RUNNER = Path(__file__).parent / "fixtures" / "capacita" / "fake_runner.py"
 FAKE_AGGRESE_RUNNER = Path(__file__).parent / "fixtures" / "aggrese" / "fake_runner.py"
+FAKE_SOILSTRUCTURE_RUNNER = Path(__file__).parent / "fixtures" / "soilstructure" / "fake_runner.py"
 _USER_RUNNER = os.environ.get(fempython.RUNNER_KEY, "")
 _USER_JRSNAP_RUNNER = os.environ.get(jrsnap.RUNNER_KEY, "")
 _USER_CAPACITA_RUNNER = os.environ.get(capacita.RUNNER_KEY, "")
 _USER_AGGRESE_RUNNER = os.environ.get(aggrese.RUNNER_KEY, "")
+_USER_SOILSTRUCTURE_RUNNER = os.environ.get(soilstructure.RUNNER_KEY, "")
 
 
 def _shim(directory: Path, script: Path, key: str, user: str):
@@ -75,6 +79,12 @@ def fake_aggrese_runner(tmp_path_factory: pytest.TempPathFactory):
                      _USER_AGGRESE_RUNNER)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def fake_soilstructure_runner(tmp_path_factory: pytest.TempPathFactory):
+    yield from _shim(tmp_path_factory.mktemp("soilstructure"), FAKE_SOILSTRUCTURE_RUNNER, soilstructure.RUNNER_KEY,
+                     _USER_SOILSTRUCTURE_RUNNER)
+
+
 @pytest.fixture
 def real_fempython_runner() -> Path:
     """The runner the user set up (environment, else .env); the test is skipped without one."""
@@ -91,3 +101,12 @@ def real_capacita_runner() -> Path:
         return capacita.runner_path({capacita.RUNNER_KEY: _USER_CAPACITA_RUNNER})
     except fempython.RunnerError as exc:
         pytest.skip(f"本物の Capacita runner がありません: {exc}")
+
+
+@pytest.fixture
+def real_soilstructure_runner() -> Path:
+    """The SoilStructure runner the user set up (environment, else .env); the test is skipped without one."""
+    try:
+        return soilstructure.runner_path({soilstructure.RUNNER_KEY: _USER_SOILSTRUCTURE_RUNNER})
+    except fempython.RunnerError as exc:
+        pytest.skip(f"本物の SoilStructure runner がありません: {exc}")

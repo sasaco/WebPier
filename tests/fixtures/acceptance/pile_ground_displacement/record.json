@@ -1,0 +1,798 @@
+{
+  "schema_version": 1,
+  "kind": "pile_ground_displacement_acceptance",
+  "date": "2026-10-26T09:54:51+09:00",
+  "method": "地盤区分 G4 と各層の Vs を入れた杭基礎の 0711・0721 を本物の SOIL-JR（JRSNAP の runner）・SoilStructure・JRSNAP・Aggre-SE で生成し、全 Case の集計、応答変位法の各 Case の DB1（荷重増分・最大応答震度のステップ・着目点・杭頭の地盤変位）を SNAPDBLib で、総括表の震度と、補正係数を総括表の Teq・Kheq と Tg からの手計算で確かめた。判定は扱わない。",
+  "seismic_check_judged": false,
+  "input": {
+    "path": "tests/fixtures/inputs/pile_seismic.json",
+    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715",
+    "kept": "input.json",
+    "kept_sha256": "095f5435da7a18cce3f0d62a01b99d2923246bafe57d63b318a3087f99de9e8f",
+    "velocities": [
+      170,
+      120,
+      140,
+      180,
+      330
+    ]
+  },
+  "runners": {
+    "soilstructure": {
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\SoilStructure\\SoilStructure\\Headless\\bin\\Release\\net10.0\\SoilStructure.Headless.exe",
+      "sha256": "678d4f7e5edfcea7e5ddd837846eaaa102bb1d863ca12c21c6592007bf69a360"
+    },
+    "aggrese": {
+      "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
+      "sha256": "3c87241c103567a260b6f2bea7d92fb6b6f5d33ce032558a1af593542aa40fd8"
+    }
+  },
+  "helpers": {
+    "scripts/accept_pile_ground_displacement.py": "44badec8ef6a010e5b5a13e7dfab9ae97dd5d5508484e275bb6e628c86cdcd5b"
+  },
+  "ground": {
+    "0710": {
+      "result": {
+        "layers": [
+          {
+            "index": 0,
+            "name": "表層",
+            "top": 0.0,
+            "thickness": 2.8,
+            "unit_weight": 18.0,
+            "velocity": 170.0
+          },
+          {
+            "index": 1,
+            "name": "第2層",
+            "top": 2.8,
+            "thickness": 2.6,
+            "unit_weight": 18.0,
+            "velocity": 120.0
+          },
+          {
+            "index": 2,
+            "name": "第3層",
+            "top": 5.4,
+            "thickness": 5.0,
+            "unit_weight": 18.0,
+            "velocity": 140.0
+          },
+          {
+            "index": 3,
+            "name": "第4層",
+            "top": 10.4,
+            "thickness": 4.0,
+            "unit_weight": 15.0,
+            "velocity": 180.0
+          },
+          {
+            "index": 4,
+            "name": "第5層",
+            "top": 14.4,
+            "thickness": 6.4,
+            "unit_weight": 16.0,
+            "velocity": 330.0
+          }
+        ],
+        "region_coefficient": 0.7,
+        "period": 0.4233,
+        "profile": [
+          {
+            "depth": 0.0,
+            "l1": 7.37,
+            "l2": 126.82
+          },
+          {
+            "depth": 2.8,
+            "l1": 7.15,
+            "l2": 123.05
+          },
+          {
+            "depth": 5.4,
+            "l1": 5.98,
+            "l2": 103.0
+          },
+          {
+            "depth": 10.4,
+            "l1": 3.14,
+            "l2": 54.12
+          },
+          {
+            "depth": 14.4,
+            "l1": 1.02,
+            "l2": 17.54
+          },
+          {
+            "depth": 20.8,
+            "l1": 0.0,
+            "l2": 0.0
+          }
+        ],
+        "nodes": [
+          {
+            "depth": 2.8,
+            "l1": 7.15,
+            "l2": 123.05
+          },
+          {
+            "depth": 3.8,
+            "l1": 6.78,
+            "l2": 116.74
+          },
+          {
+            "depth": 4.8,
+            "l1": 6.31,
+            "l2": 108.65
+          },
+          {
+            "depth": 5.4,
+            "l1": 5.98,
+            "l2": 103.0
+          },
+          {
+            "depth": 6.4,
+            "l1": 5.53,
+            "l2": 95.15
+          },
+          {
+            "depth": 7.4,
+            "l1": 5.01,
+            "l2": 86.23
+          },
+          {
+            "depth": 8.4,
+            "l1": 4.43,
+            "l2": 76.34
+          },
+          {
+            "depth": 9.4,
+            "l1": 3.81,
+            "l2": 65.6
+          },
+          {
+            "depth": 10.4,
+            "l1": 3.14,
+            "l2": 54.12
+          },
+          {
+            "depth": 11.4,
+            "l1": 2.64,
+            "l2": 45.38
+          },
+          {
+            "depth": 12.4,
+            "l1": 2.11,
+            "l2": 36.32
+          },
+          {
+            "depth": 13.4,
+            "l1": 1.57,
+            "l2": 27.02
+          },
+          {
+            "depth": 14.4,
+            "l1": 1.02,
+            "l2": 17.54
+          },
+          {
+            "depth": 15.4,
+            "l1": 0.86,
+            "l2": 14.86
+          },
+          {
+            "depth": 16.4,
+            "l1": 0.71,
+            "l2": 12.15
+          },
+          {
+            "depth": 17.4,
+            "l1": 0.55,
+            "l2": 9.41
+          },
+          {
+            "depth": 18.4,
+            "l1": 0.39,
+            "l2": 6.66
+          },
+          {
+            "depth": 19.4,
+            "l1": 0.23,
+            "l2": 3.89
+          },
+          {
+            "depth": 20.1,
+            "l1": 0.11,
+            "l2": 1.95
+          },
+          {
+            "depth": 20.8,
+            "l1": 0.0,
+            "l2": 0.0
+          },
+          {
+            "depth": 21.8,
+            "l1": 0.0,
+            "l2": 0.0
+          }
+        ]
+      },
+      "runner": {
+        "engine": "soilstructure",
+        "engine_version": "1.3.0",
+        "engineering_status": "not_evaluated",
+        "document_sha256": "386b79951df3a74e513657bd1231158b307f67b5590809a630070d69a97de898",
+        "result_sha256": "fae4e6b4e8ae5a3b6de7c1d4c2d6d420f89fd868858fe9d1c49752b5cdc3019e"
+      }
+    },
+    "0720": {
+      "result": {
+        "layers": [
+          {
+            "index": 0,
+            "name": "表層",
+            "top": 0.0,
+            "thickness": 2.8,
+            "unit_weight": 18.0,
+            "velocity": 170.0
+          },
+          {
+            "index": 1,
+            "name": "第2層",
+            "top": 2.8,
+            "thickness": 2.6,
+            "unit_weight": 18.0,
+            "velocity": 120.0
+          },
+          {
+            "index": 2,
+            "name": "第3層",
+            "top": 5.4,
+            "thickness": 5.0,
+            "unit_weight": 18.0,
+            "velocity": 140.0
+          },
+          {
+            "index": 3,
+            "name": "第4層",
+            "top": 10.4,
+            "thickness": 4.0,
+            "unit_weight": 15.0,
+            "velocity": 180.0
+          },
+          {
+            "index": 4,
+            "name": "第5層",
+            "top": 14.4,
+            "thickness": 6.4,
+            "unit_weight": 16.0,
+            "velocity": 330.0
+          }
+        ],
+        "region_coefficient": 0.7,
+        "period": 0.4233,
+        "profile": [
+          {
+            "depth": 0.0,
+            "l1": 7.37,
+            "l2": 126.82
+          },
+          {
+            "depth": 2.8,
+            "l1": 7.15,
+            "l2": 123.05
+          },
+          {
+            "depth": 5.4,
+            "l1": 5.98,
+            "l2": 103.0
+          },
+          {
+            "depth": 10.4,
+            "l1": 3.14,
+            "l2": 54.12
+          },
+          {
+            "depth": 14.4,
+            "l1": 1.02,
+            "l2": 17.54
+          },
+          {
+            "depth": 20.8,
+            "l1": 0.0,
+            "l2": 0.0
+          }
+        ],
+        "nodes": [
+          {
+            "depth": 2.8,
+            "l1": 7.15,
+            "l2": 123.05
+          },
+          {
+            "depth": 3.8,
+            "l1": 6.78,
+            "l2": 116.74
+          },
+          {
+            "depth": 4.8,
+            "l1": 6.31,
+            "l2": 108.65
+          },
+          {
+            "depth": 5.4,
+            "l1": 5.98,
+            "l2": 103.0
+          },
+          {
+            "depth": 6.4,
+            "l1": 5.53,
+            "l2": 95.15
+          },
+          {
+            "depth": 7.4,
+            "l1": 5.01,
+            "l2": 86.23
+          },
+          {
+            "depth": 8.4,
+            "l1": 4.43,
+            "l2": 76.34
+          },
+          {
+            "depth": 9.4,
+            "l1": 3.81,
+            "l2": 65.6
+          },
+          {
+            "depth": 10.4,
+            "l1": 3.14,
+            "l2": 54.12
+          },
+          {
+            "depth": 11.4,
+            "l1": 2.64,
+            "l2": 45.38
+          },
+          {
+            "depth": 12.4,
+            "l1": 2.11,
+            "l2": 36.32
+          },
+          {
+            "depth": 13.4,
+            "l1": 1.57,
+            "l2": 27.02
+          },
+          {
+            "depth": 14.4,
+            "l1": 1.02,
+            "l2": 17.54
+          },
+          {
+            "depth": 15.4,
+            "l1": 0.86,
+            "l2": 14.86
+          },
+          {
+            "depth": 16.4,
+            "l1": 0.71,
+            "l2": 12.15
+          },
+          {
+            "depth": 17.4,
+            "l1": 0.55,
+            "l2": 9.41
+          },
+          {
+            "depth": 18.4,
+            "l1": 0.39,
+            "l2": 6.66
+          },
+          {
+            "depth": 19.4,
+            "l1": 0.23,
+            "l2": 3.89
+          },
+          {
+            "depth": 20.1,
+            "l1": 0.11,
+            "l2": 1.95
+          },
+          {
+            "depth": 20.8,
+            "l1": 0.0,
+            "l2": 0.0
+          },
+          {
+            "depth": 21.8,
+            "l1": 0.0,
+            "l2": 0.0
+          }
+        ]
+      },
+      "runner": {
+        "engine": "soilstructure",
+        "engine_version": "1.3.0",
+        "engineering_status": "not_evaluated",
+        "document_sha256": "386b79951df3a74e513657bd1231158b307f67b5590809a630070d69a97de898",
+        "result_sha256": "fae4e6b4e8ae5a3b6de7c1d4c2d6d420f89fd868858fe9d1c49752b5cdc3019e"
+      }
+    }
+  },
+  "stages": {
+    "0711": {
+      "cases": [
+        "線路方向(Case1_ρm10_αf1_正向)",
+        "線路方向(Case2_ρm12_αf1_正向)",
+        "線路方向(Case3_ρm10_αf2_正向)",
+        "線路方向(Case4_ρm12_αf2_正向)",
+        "線路方向_応答変位法_L1-1(Case1_ρm10_αf1_正向)",
+        "線路方向_応答変位法_L1-2(Case1_ρm10_αf1_正向)",
+        "線路方向_応答変位法_L1-4(Case1_ρm10_αf1_逆向)",
+        "線路方向_応答変位法_L2-1(Case1_ρm10_αf1_正向)",
+        "線路方向_応答変位法_L2-2(Case1_ρm10_αf1_正向)",
+        "線路方向_応答変位法_L2-4(Case1_ρm10_αf1_逆向)"
+      ],
+      "analysis_ok_messages": 10,
+      "inertia": {
+        "case": 1,
+        "name": "線路方向(Case1_ρm10_αf1_正向)",
+        "teq": 1.245,
+        "kheq": 0.243,
+        "kh_l1": 0.264,
+        "kh_l2": 0.384
+      },
+      "first_case": 5,
+      "corrections": [
+        {
+          "level": "L1",
+          "ours": {
+            "alpha": "2.059",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          },
+          "hand": {
+            "alpha": "2.059",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          }
+        },
+        {
+          "level": "L2",
+          "ours": {
+            "alpha": "1.471",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          },
+          "hand": {
+            "alpha": "1.471",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          }
+        }
+      ],
+      "ndus": [
+        {
+          "name": "線路方向_応答変位法_L1-1.ndu",
+          "sha256": "707f7d04f1ca35d80aa8df2c4abbb2153b43e7c0e2a31f1368239e932a4d7b57",
+          "reverse": false,
+          "head": 7,
+          "edspx": "-0.00715",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 264,
+            "last_load_step": 264,
+            "head_delta_g": -0.00715,
+            "control_displacement_mm": 128.3
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.264"
+          }
+        },
+        {
+          "name": "線路方向_応答変位法_L1-2.ndu",
+          "sha256": "008c15da7d2b58e5bd888a66cfc0595ca95afbd9c84ae498a4d209c0d0d1b43c",
+          "reverse": false,
+          "head": 7,
+          "edspx": "0.00501",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 264,
+            "last_load_step": 264,
+            "head_delta_g": 0.00501,
+            "control_displacement_mm": 115.2
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.264"
+          }
+        },
+        {
+          "name": "線路方向_応答変位法_L1-4.ndu",
+          "sha256": "900970ee09547ce76c93d766e5212081b6b00332227e640e6c637c83863258cd",
+          "reverse": true,
+          "head": 7,
+          "edspx": "0.00715",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 264,
+            "last_load_step": 264,
+            "head_delta_g": -0.00715,
+            "control_displacement_mm": 67.4
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.264"
+          }
+        },
+        {
+          "name": "線路方向_応答変位法_L2-1.ndu",
+          "sha256": "395555b6d3d56d9322059262724810026b62bf40e03a246c0d56e87f6c12ef28",
+          "reverse": false,
+          "head": 7,
+          "edspx": "-0.12305",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 384,
+            "last_load_step": 384,
+            "head_delta_g": -0.12305,
+            "control_displacement_mm": 345.3
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.384"
+          }
+        },
+        {
+          "name": "線路方向_応答変位法_L2-2.ndu",
+          "sha256": "dd435c33fba0f7de488a60a218a89bcad474e39ba9040006566d41f211923795",
+          "reverse": false,
+          "head": 7,
+          "edspx": "0.08614",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 384,
+            "last_load_step": 384,
+            "head_delta_g": 0.08614,
+            "control_displacement_mm": 127.8
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.384"
+          }
+        },
+        {
+          "name": "線路方向_応答変位法_L2-4.ndu",
+          "sha256": "abffdfa0aa73ea5cb1d7e582811d2b132cf7a4e8f23e33750175e50d0f6dab3c",
+          "reverse": true,
+          "head": 7,
+          "edspx": "0.12305",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 384,
+            "last_load_step": 384,
+            "head_delta_g": -0.12305,
+            "control_displacement_mm": 7.7
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.384"
+          }
+        }
+      ],
+      "report": {
+        "pages": 75,
+        "webpier_pages_at_least": 1
+      },
+      "project": {
+        "file": "線路方向.xml",
+        "sha256": "039b8a3f97c56d832b8eca6c88faab5905d636887ed1ba77a1391c04427fbfff"
+      }
+    },
+    "0721": {
+      "cases": [
+        "線路直角方向(Case1_ρm10_αf1_正向)",
+        "線路直角方向(Case2_ρm12_αf1_正向)",
+        "線路直角方向(Case3_ρm10_αf2_正向)",
+        "線路直角方向(Case4_ρm12_αf2_正向)",
+        "線路直角方向_逆向(Case1_ρm10_αf1_逆向)",
+        "線路直角方向_逆向(Case2_ρm12_αf1_逆向)",
+        "線路直角方向_逆向(Case3_ρm10_αf2_逆向)",
+        "線路直角方向_逆向(Case4_ρm12_αf2_逆向)",
+        "線路直角方向_応答変位法_L1-1(Case1_ρm10_αf1_正向)",
+        "線路直角方向_応答変位法_L1-2(Case1_ρm10_αf1_正向)",
+        "線路直角方向_応答変位法_L1-3(Case1_ρm10_αf1_正向)",
+        "線路直角方向_応答変位法_L1-4(Case1_ρm10_αf1_逆向)",
+        "線路直角方向_応答変位法_L2-1(Case1_ρm10_αf1_正向)",
+        "線路直角方向_応答変位法_L2-2(Case1_ρm10_αf1_正向)",
+        "線路直角方向_応答変位法_L2-4(Case1_ρm10_αf1_逆向)"
+      ],
+      "analysis_ok_messages": 15,
+      "inertia": {
+        "case": 1,
+        "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+        "teq": 1.486,
+        "kheq": 0.342,
+        "kh_l1": 0.249,
+        "kh_l2": 0.468
+      },
+      "first_case": 9,
+      "corrections": [
+        {
+          "level": "L1",
+          "ours": {
+            "alpha": "2.457",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "0.30"
+          },
+          "hand": {
+            "alpha": "2.457",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "0.30"
+          }
+        },
+        {
+          "level": "L2",
+          "ours": {
+            "alpha": "1.755",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          },
+          "hand": {
+            "alpha": "1.755",
+            "upper": "0.30",
+            "lower": "-0.70",
+            "adopted": "1.00"
+          }
+        }
+      ],
+      "ndus": [
+        {
+          "name": "線路直角方向_応答変位法_L1-1.ndu",
+          "sha256": "a20e3b45b878ba3b568b9ad809a77f9e98bee3f71879ed8a720b26481fb97192",
+          "reverse": false,
+          "head": 8,
+          "edspx": "0.00215",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 249,
+            "last_load_step": 249,
+            "head_delta_g": 0.00215,
+            "control_displacement_mm": 132.1
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.249"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L1-2.ndu",
+          "sha256": "353c7b63ebdd8c6a8a27e5be3b6a6ec69a996c4e503a34de93daef6988d9edde",
+          "reverse": false,
+          "head": 8,
+          "edspx": "-0.00501",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 249,
+            "last_load_step": 249,
+            "head_delta_g": -0.00501,
+            "control_displacement_mm": 124.2
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.249"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L1-3.ndu",
+          "sha256": "f50133b82d7faa4f6260ac2e4bd049746916f80c347adbbeb9d19a92f18be311",
+          "reverse": false,
+          "head": 8,
+          "edspx": "0.00715",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 249,
+            "last_load_step": 249,
+            "head_delta_g": 0.00715,
+            "control_displacement_mm": 36.3
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.249"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L1-4.ndu",
+          "sha256": "d916f373cb9d06f3f95e3c25db2aa97ad15869be789b174aec95b5d74a5c1c2e",
+          "reverse": true,
+          "head": 8,
+          "edspx": "-0.00715",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 249,
+            "last_load_step": 249,
+            "head_delta_g": 0.00715,
+            "control_displacement_mm": 71.4
+          },
+          "summary": {
+            "復旧性/L1地震動": "0.249"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L2-1.ndu",
+          "sha256": "2af43baf524124242c86e92855bc54853312784a1909f71f15ec523ea32c3c48",
+          "reverse": false,
+          "head": 8,
+          "edspx": "0.12305",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 468,
+            "last_load_step": 468,
+            "head_delta_g": 0.12305,
+            "control_displacement_mm": 489.9
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.468"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L2-2.ndu",
+          "sha256": "32e83091c3a435ca1d778ddfca26067691323a74441e40b9e94d3a423e3f0c46",
+          "reverse": false,
+          "head": 8,
+          "edspx": "-0.08614",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 468,
+            "last_load_step": 468,
+            "head_delta_g": -0.08614,
+            "control_displacement_mm": 256.2
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.468"
+          }
+        },
+        {
+          "name": "線路直角方向_応答変位法_L2-4.ndu",
+          "sha256": "73b292fdb43a543265480fde3454dca101bc1849a5c4d2bc07defc70a4f5e267",
+          "reverse": true,
+          "head": 8,
+          "edspx": "-0.12305",
+          "db1": {
+            "kaiseki_flg": 0,
+            "jno": 0,
+            "last_step": 468,
+            "last_load_step": 468,
+            "head_delta_g": 0.12305,
+            "control_displacement_mm": 46.9
+          },
+          "summary": {
+            "復旧性/最大応答震度": "0.468"
+          }
+        }
+      ],
+      "report": {
+        "pages": 114,
+        "webpier_pages_at_least": 1
+      },
+      "project": {
+        "file": "線路直角方向.xml",
+        "sha256": "3006f803f9137d85b8e81de6f99fe957ed35623252076ec9984868b1bfeba8ff"
+      }
+    }
+  },
+  "accepted": true,
+  "failures": []
+}

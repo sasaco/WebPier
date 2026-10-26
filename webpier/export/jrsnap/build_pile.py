@@ -18,6 +18,11 @@ member from its head down, cut into elements and given the ground springs of the
 - **Combinations.** Those of the push of this NDU: the forward ones, or the reversed ones with ``reverse``.
 - **Liquefaction (decision 95).** The NDU for the liquefaction (``liquefied``) is the same frame and piles with the springs of
   the .sdc for the liquefaction (the caller reads it) and the one combination of ρm 1.0 and αf 1.0 of its push: one Case.
+- **The 応答変位法 (decision 97).** An NDU a Case (``response_ndu``): the frame, the piles and the springs of the push, the basic
+  cases of the forward combination of ρm 1.0 and αf 1.0 with the inertia (the cases that are not fixed) times |ν| of the Case,
+  and the 地盤変位 of the level at each pile node, times the Case's factor of it, in the direction of the push; the analysis is
+  the load increment up to the 最大応答震度 of the level. A Case with a negative factor of the inertia (④ νL Ra + 1.0 f(z)) is
+  the reversed push of |νL| Ra and −1.0 f(z), which JRSNAP turns around both (its NDU has the columns of the reversed push).
 """
 
 from __future__ import annotations
@@ -29,6 +34,9 @@ from typing import Any
 from ...calc._exact import d, put
 from ...calc.column_rebar import ColumnLayout, yield_strength
 from ...calc.frame import NodeRole
+from ...calc.ground_displacement import GroundDisplacement
+from ...calc.response_displacement import ResponseCase
+from ...calc.seismic_longitudinal import Increment
 from ...calc.pile_seismic import pile_row
 from ...calc.pile_springs import SeismicSprings
 from ...core.errors import InputError
@@ -38,9 +46,10 @@ from ...inputs.rebar import LENGTH_MM
 from . import build
 from .model import Combination, Joint
 from .pile_build import pile_row_parts, row_title
-from .pile_model import COLUMN, M_THETA, RIGID, FrameElement, Member, NonLinear, PileNduModel, PileSection
+from .pile_model import (COLUMN, EDSPX, M_THETA, RIGID, FrameElement, GroundLoad, Member, NonLinear, PileNduModel,
+                         PileSection)
 from .pile_records import pile_section_records
-from .profile import NONLINEAR_TITLE, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile
+from .profile import LOAD_DIVISIONS, NONLINEAR_TITLE, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile
 from .records import column_section_records
 from .section import column_section, need
 
@@ -116,6 +125,19 @@ def _frame_elements(frame: Any) -> tuple[list[Any], dict[int, int], build._Eleme
     return base, temporary, elements
 
 
+def pile_node_depths(model: PileNduModel) -> tuple[Decimal, ...]:
+    """The depth below the pile head (m) of each node of the piles of *model*, from the head down: the rows share them, as
+    they are cut at the same layers (decision 97)."""
+    joints = {joint.number: joint for joint in model.joints}
+    elements = {element.number: element for element in model.elements}
+    depths: set[Decimal] = set()
+    for pile in model.piles:
+        head = d(joints[elements[pile.first].i].y)
+        for number in range(pile.first, pile.last + 1):
+            depths.update(d(joints[node].y) - head for node in (elements[number].i, elements[number].j))
+    return tuple(sorted(depths))
+
+
 def element_numbers(frame: Any) -> dict[int, int]:
     """The element of the NDU (and so the member of Aggre-SE's pickup) that each member of *frame* that is not a pile
     becomes, by the frame's member number (a member the NDU splits has its first element; decision 96)."""
@@ -123,15 +145,17 @@ def element_numbers(frame: Any) -> dict[int, int]:
 
 
 def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seismic, springs: SeismicSprings, *,
-                   reverse: bool = False, liquefied: bool = False) -> PileNduModel:
+                   reverse: bool = False, liquefied: bool = False,
+                   combination: Combination | None = None) -> PileNduModel:
     """*seismic* is a SeismicLongitudinalResult or a SeismicTransverseResult of the same input on piles; *reverse* the NDU of
-    the reversed (逆向) combinations; *liquefied* the NDU for the liquefaction, whose *springs* are those of the .sdc for it."""
+    the reversed (逆向) combinations; *liquefied* the NDU for the liquefaction, whose *springs* are those of the .sdc for it;
+    *combination* the one combination of the NDU in place of those of *seismic* (the 応答変位法, decision 97)."""
     if pier.substructure.foundation != choices.CAST_IN_PLACE_PILE:
         raise InputError("地震時の杭基礎の NDU は場所打ち杭だけに対応します（鋼管ソイルセメント杭は未対応です、決定93）")
     frame = seismic.frame
     group = frame.piles
     assert group is not None  # the frame of a pile foundation
-    combinations = tuple(
+    combinations = (combination,) if combination is not None else tuple(
         Combination(rho_m=c.rho_m, alpha_f=c.alpha_f,
                     coefficients=tuple(int(action.case in c.cases) for action in seismic.basic_cases), reverse=c.reverse)
         for c in seismic.combinations if c.reverse == reverse
@@ -201,3 +225,39 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
         joints=tuple(placed[number] for number in sorted(placed)), members=tuple(members), elements=tuple(frame_elements),
         nonlinear=tuple(nonlinear), sections=sections, piles=tuple(piles), supports=tuple(supports), cases=tuple(cases),
         combinations=combinations, shear_span=column.shear_span)
+
+
+RESPONSE_PATTERN = (Decimal("1.0"), Decimal("1.0"))  # the (ρm, αf) of the inertia Case and of the 応答変位法 (decision 97)
+
+
+def response_pattern(seismic) -> Any:
+    """The forward combination of ρm 1.0 and αf 1.0 of *seismic*: the inertia Case the 応答変位法 takes Teq and Kh from, and
+    whose basic cases its Cases take (decision 97)."""
+    return next(c for c in seismic.combinations
+                if not c.reverse and (d(c.rho_m), d(c.alpha_f)) == RESPONSE_PATTERN)
+
+
+def response_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seismic, springs: SeismicSprings,
+                 ground: GroundDisplacement, head_depth: Decimal, case: ResponseCase) -> PileNduModel:
+    """The NDU of the Case *case* of the 応答変位法 (decision 97): the pile heads are *head_depth* (m) below the ground surface."""
+    pattern = response_pattern(seismic)
+    reverse = case.inertia.value < 0
+    inertia = abs(d(case.inertia))
+    coefficients = tuple(
+        (inertia if action.increment is not Increment.FIXED else 1) if action.case in pattern.cases else 0
+        for action in seismic.basic_cases)
+    model = build_pile_ndu(profile, pier, layout, seismic, springs, reverse=reverse,
+                           combination=Combination(pattern.rho_m, pattern.alpha_f, coefficients, reverse))
+    factor = d(case.displacement) * profile.earthquake * (-1 if reverse else 1)  # +: the way the push goes
+    joints = {joint.number: joint for joint in model.joints}
+    elements = {element.number: element for element in model.elements}
+    rows: dict[int, Printed] = {}
+    for pile in model.piles:
+        head = d(joints[elements[pile.first].i].y)
+        for number in range(pile.first, pile.last + 1):
+            for node in (elements[number].i, elements[number].j):
+                point = ground.at(head_depth + d(joints[node].y) - head)
+                displacement = point.l1 if case.level == "L1" else point.l2
+                rows[node] = put(EDSPX, d(displacement) / 1000 * factor)
+    steps = int(d(case.kh) * LOAD_DIVISIONS)
+    return replace(model, ground=GroundLoad(steps, tuple(sorted(rows.items()))))

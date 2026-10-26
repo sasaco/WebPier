@@ -56,6 +56,11 @@ CONSTANT_RECORDS = {
 
 def _data_info(model: Any) -> tuple[Field, ...]:
     analysis, first = model.analysis, model.combinations[0]
+    ground = getattr(model, "ground", None)
+    if ground is not None:  # the 応答変位法 (decision 97): the load increment, stopped where the 地盤変位 is all on; it has
+        # no control joint (JRSNAP keeps none in the DB1 of a load increment), so Aggre-SE's project names it (export.aggrese)
+        return (1, 2, BLANK, BLANK, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, ground.steps, ground.steps,
+                TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, BLANK, CONVERGENCE, 0, 1, 0, 0, 0, 0)
     return (1, 1, analysis.steps, model.control, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, BLANK, BLANK,
             TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, analysis.target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
 
@@ -165,13 +170,22 @@ def loads_records(model: Any) -> Iterator[Record]:
             n = _blank_zero(load.n) if load.h.value or load.n.value or load.m.value else load.n
             yield f"JLoadInfo{joint}", (case.number, BLANK, load.node, case.increment, _blank_zero(load.h), n,
                                         _blank_zero(load.m), load.label)
-    for key in ("ELoadNum", "ELoadRow", "DLoadNum", "DLoadRow"):
+    ground = getattr(model, "ground", None)
+    rows = () if ground is None else ground.displacements
+    # the 地盤変位 of the 応答変位法 (decision 97): a node a row (its first node blank), ALF 1
+    yield "ELoadNum", (len(rows),)
+    yield "ELoadRow", (len(rows),)
+    for index, (node, displacement) in enumerate(rows, 1):
+        yield f"ELoadInfo{index}", (BLANK, node, displacement, 1)
+    for key in ("DLoadNum", "DLoadRow"):
         yield key, (0,)
     yield "SNAPConbNum", (len(model.combinations),)
     for index, c in enumerate(model.combinations, 1):
         padding = (BLANK,) * (COMBINATION_SLOTS - len(c.coefficients))
-        # The 3rd field is the direction of the push (G_intConbHoko): 0 正向, 1 逆向 (decision 76)
-        yield f"SNAPConb{index}", (c.rho_m, c.alpha_f, int(c.reverse), 0, *c.coefficients, *padding, 0, 0)
+        # The 3rd field is the direction of the push (G_intConbHoko): 0 正向, 1 逆向 (decision 76); the last two put the
+        # 地盤変位 (ELoad) and the forced displacement on
+        yield f"SNAPConb{index}", (c.rho_m, c.alpha_f, int(c.reverse), 0, *c.coefficients, *padding,
+                                   int(ground is not None), 0)
     yield "ConbNum", (len(model.combinations),)
     for index, c in enumerate(model.combinations, 1):
         yield f"ConbAlpf{index}", c.coefficients
