@@ -56,7 +56,8 @@ def test_0610_load_diagrams_are_a_heading_only_and_it_keeps_its_springs(case: st
     found = records(longitudinal, result, reaction, pier)
     assert [text for text in found.values() if "荷重図" in text] == ["8.3荷重図"]
     assert sections(found) == ["8.1検討モデル", "8.2作用の計算", "8.3荷重図", "8.4設計作用の組合せ"]
-    assert "0610/model.springs" in found and found["0610/basic"].startswith("No荷重名称区分バネ")
+    # the basic cases with the 備考 of each 列車の配置 (decision 102)
+    assert "0610/model.springs" in found and found["0610/basic"].startswith("No荷重名称区分備考バネ")
 
 
 @pytest.mark.parametrize("case", list(TRANSVERSE_CASES))

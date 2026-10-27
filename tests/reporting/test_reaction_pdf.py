@@ -345,7 +345,9 @@ def _rows(page: pymupdf.Page, x: float, top: float) -> list[float]:
 @pytest.mark.parametrize("first_cell,rows", [
     ("固定死荷重", 6),  # the support table: header + 5 loads
     ("列車反力", 9),  # the impact table: header + R + 3 single + 4 double
-    ("荷重種別", 11),  # the horizontal summary along the track: header + 8 combinations + 2 seismic
+    # the horizontal summary along the track: header + 8 combinations + 5 with the train of ② and ③ each (decision
+    # 102) + 2 seismic
+    ("荷重種別", 21),
 ])
 def test_a_table_row_is_a_grid_row_framed_medium_and_ruled_hair(current_pdf, first_cell: str, rows: int):
     page = next(page for page in current_pdf if page.search_for(first_cell))
@@ -395,7 +397,9 @@ def test_each_bearing_derivation_is_bracketed_by_the_rule(tmp_path: Path, name: 
                 assert top == pytest.approx(row_top(above) + GRID.pitch_y, abs=.01)
                 assert bottom == pytest.approx(row_top(below), abs=.01)
                 rules += 1
-    assert rules == 2 * 8 + 2 * 2  # both girders of the eight combinations and of the two seismic actions
+    # both girders of the eight combinations of ①, the five with the train of ② and ③ (decision 102) and the two
+    # seismic actions
+    assert rules == 2 * (8 + 2 * 5) + 2 * 2
 
 
 def test_the_fixed_bearing_candidate_puts_its_result_in_the_result_column(current_pdf):
@@ -410,7 +414,7 @@ def test_the_fixed_bearing_candidate_puts_its_result_in_the_result_column(curren
         for baseline in _baselines(page, lambda text: text.startswith("T - 1/2") or text.startswith("T − 1/2")):
             assert any(abs(unit - baseline - GRID.pitch_y) < .01 for unit in units), baseline
             found += 1
-    assert found == 8
+    assert found == 8 + 2 * 5  # the fixed bearing of ① and of ② and ③ with the train (decision 102)
 
 
 def test_a_long_formula_continues_with_its_operator_in_the_relation_column(current_pdf):

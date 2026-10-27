@@ -25,6 +25,7 @@ from webpier.core.integrity import load_json
 from webpier.export.frameweb import build_frameweb
 from webpier.export.soiljr import parse_sdc
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 EXAMPLE = json.loads((FIXTURES / "example4" / "frame_responses.json").read_text(encoding="utf-8"))
@@ -34,7 +35,7 @@ SDC = (FIXTURES / "soiljr" / "pile_steel_grid.sdc").read_bytes()
 def document():
     """The FrameWeb input of the longitudinal frame of Example橋脚4 with the springs of the sdc, its D1 and D2 as the only
     load cases of one pickup."""
-    pier = parse_input(load_json((FIXTURES / "inputs" / "example4.json").read_bytes()))
+    pier = parse_input(load_json(EXAMPLE4_INPUT.read_bytes()))
     result = calculate_longitudinal(pier, PileFoundation(calculate_pile_ground(pier), parse_sdc(SDC)),
                                     calculate_reaction(pier))
     found = build_frameweb(result)

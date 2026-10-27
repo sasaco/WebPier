@@ -1,0 +1,2181 @@
+{
+  "schema_version": 1,
+  "stage": "0600",
+  "input": {
+    "file": "input.json",
+    "sha256": "d9ffe2969c73a93a5a7e5d4be8b05da6c097198e59b47cdc58f3e1c28cc0e940"
+  },
+  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
+  "result": {
+    "dead": {
+      "origin": {
+        "far": {
+          "d1": 1710.0,
+          "d2": 470.0,
+          "snow2": 0.0,
+          "snow10": 0.0,
+          "snow30": 0.0
+        },
+        "pier": {
+          "d1": 1710.0,
+          "d2": 470.0,
+          "snow2": 0.0,
+          "snow10": 0.0,
+          "snow30": 0.0
+        },
+        "bearings": [
+          {
+            "slot": 0,
+            "bearing": {
+              "position": -2.2,
+              "d1": 855.0,
+              "d2": 235.0,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": 0.932,
+                "l2": 0.068
+              }
+            },
+            "double": 1.0
+          },
+          {
+            "slot": 1,
+            "bearing": {
+              "position": 2.2,
+              "d1": 855.0,
+              "d2": 235.0,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": 0.068,
+                "l2": 0.932
+              }
+            },
+            "double": 1.0
+          }
+        ],
+        "track_total": 2.0
+      },
+      "end": {
+        "far": {
+          "d1": 4250.0,
+          "d2": 1050.0,
+          "snow2": 0.0,
+          "snow10": 0.0,
+          "snow30": 0.0
+        },
+        "pier": {
+          "d1": 4250.0,
+          "d2": 1050.0,
+          "snow2": 0.0,
+          "snow10": 0.0,
+          "snow30": 0.0
+        },
+        "bearings": [
+          {
+            "slot": 0,
+            "bearing": {
+              "position": -2.975,
+              "d1": 1062.5,
+              "d2": 262.5,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": 0.516,
+                "l2": -0.016
+              }
+            },
+            "double": 0.5
+          },
+          {
+            "slot": 1,
+            "bearing": {
+              "position": -1.325,
+              "d1": 1062.5,
+              "d2": 262.5,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": 0.369,
+                "l2": 0.131
+              }
+            },
+            "double": 0.5
+          },
+          {
+            "slot": 2,
+            "bearing": {
+              "position": 1.325,
+              "d1": 1062.5,
+              "d2": 262.5,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": 0.131,
+                "l2": 0.369
+              }
+            },
+            "double": 0.5
+          },
+          {
+            "slot": 3,
+            "bearing": {
+              "position": 2.975,
+              "d1": 1062.5,
+              "d2": 262.5,
+              "snow2": 0.0,
+              "snow10": 0.0,
+              "snow30": 0.0,
+              "shares": {
+                "l1": -0.016,
+                "l2": 0.516
+              }
+            },
+            "double": 0.5
+          }
+        ],
+        "track_total": 2.0
+      }
+    },
+    "self_weight": {
+      "pedestal_area": 0.0,
+      "pedestal": {
+        "rows": [
+          {
+            "volume": 0.0,
+            "x_l": -1.25,
+            "x_c": -3.85,
+            "y": 0.0,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 0.0
+          }
+        ],
+        "volume": 0.0,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": 0.0,
+        "unit_weight": 24.5,
+        "weights": [
+          0.0
+        ],
+        "weight": 0.0,
+        "x_l": -1.25,
+        "x_c": -3.85,
+        "y": 0.0
+      },
+      "beam_top_area": 19.25,
+      "beam_bottom_area": 8.75,
+      "beam_haunch_shape": {
+        "lower_length": 2.5,
+        "lower_width": 3.5,
+        "length_change": 0.0,
+        "width_change": 4.2
+      },
+      "beam_haunch_centroid": 0.281,
+      "beam": {
+        "rows": [
+          {
+            "volume": 28.875,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": -0.75,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": -21.656
+          },
+          {
+            "volume": 7.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": -1.719,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": -12.033
+          }
+        ],
+        "volume": 35.875,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": -33.689,
+        "unit_weight": 24.5,
+        "weights": [
+          707.44,
+          171.5
+        ],
+        "weight": 878.94,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": -0.939
+      },
+      "column_area": 8.75,
+      "column": {
+        "rows": [
+          {
+            "volume": 63.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 5.8,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 365.4
+          }
+        ],
+        "volume": 63.0,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": 365.4,
+        "unit_weight": 24.5,
+        "weights": [
+          1543.5
+        ],
+        "weight": 1543.5,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": 5.8
+      },
+      "footing_length": 7.0,
+      "footing_width": 8.0,
+      "footing_top_area": 8.75,
+      "footing_bottom_area": 56.0,
+      "footing_haunch_shape": {
+        "lower_length": 7.0,
+        "lower_width": 8.0,
+        "length_change": -4.5,
+        "width_change": -4.5
+      },
+      "footing_haunch_centroid": 0.0,
+      "footing": {
+        "rows": [
+          {
+            "volume": 0.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 2.2,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 0.0
+          },
+          {
+            "volume": 123.2,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 1.1,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 135.52
+          }
+        ],
+        "volume": 123.2,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": 135.52,
+        "unit_weight": 24.5,
+        "weights": [
+          0.0,
+          3018.4
+        ],
+        "weight": 3018.4,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": 1.1
+      },
+      "footing_height": 2.2,
+      "soil_low": 0.5,
+      "soil_step": 0.0,
+      "soil_depth_at_column": 0.5,
+      "overburden": {
+        "rows": [
+          {
+            "volume": 28.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": null,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": null
+          },
+          {
+            "volume": -4.375,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": null,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": null
+          },
+          {
+            "volume": 0.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": null,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": null
+          },
+          {
+            "volume": 0.0,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": null,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": null
+          }
+        ],
+        "volume": 23.625,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": null,
+        "unit_weight": 18.0,
+        "weights": [
+          504.0,
+          -78.75,
+          0.0,
+          0.0
+        ],
+        "weight": 425.25,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": null
+      },
+      "buoyancy_high": {
+        "level": 2.2,
+        "rise": -0.5,
+        "submerged": 0.0,
+        "wedge": 0.0,
+        "rectangle": 7.0,
+        "body": {
+          "rows": [
+            {
+              "volume": 123.2,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": -3.5,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            }
+          ],
+          "volume": 123.2,
+          "moment_l": 0.0,
+          "moment_c": 0.0,
+          "moment_y": null,
+          "unit_weight": -10.0,
+          "weights": null,
+          "weight": -1232.0,
+          "x_l": 0.0,
+          "x_c": 0.0,
+          "y": null
+        }
+      },
+      "buoyancy_normal": {
+        "level": 0.0,
+        "rise": -2.7,
+        "submerged": 0.0,
+        "wedge": 0.0,
+        "rectangle": 7.0,
+        "body": {
+          "rows": [
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": -3.5,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            }
+          ],
+          "volume": 0.0,
+          "moment_l": 0.0,
+          "moment_c": 0.0,
+          "moment_y": null,
+          "unit_weight": -10.0,
+          "weights": null,
+          "weight": 0.0,
+          "x_l": 0.0,
+          "x_c": 0.0,
+          "y": null
+        }
+      },
+      "buoyancy_low": {
+        "level": 0.0,
+        "rise": -2.7,
+        "submerged": 0.0,
+        "wedge": 0.0,
+        "rectangle": 7.0,
+        "body": {
+          "rows": [
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": -3.5,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            },
+            {
+              "volume": 0.0,
+              "x_l": 0.0,
+              "x_c": 0.0,
+              "y": null,
+              "moment_l": 0.0,
+              "moment_c": 0.0,
+              "moment_y": null
+            }
+          ],
+          "volume": 0.0,
+          "moment_l": 0.0,
+          "moment_c": 0.0,
+          "moment_y": null,
+          "unit_weight": -10.0,
+          "weights": null,
+          "weight": 0.0,
+          "x_l": 0.0,
+          "x_c": 0.0,
+          "y": null
+        }
+      },
+      "pier_bottom": {
+        "rows": [
+          {
+            "part": "pedestal",
+            "weight": 0.0,
+            "x_l": -1.25,
+            "x_c": -3.85,
+            "y": 9.2,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 0.0
+          },
+          {
+            "part": "beam",
+            "weight": 878.94,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 8.261,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 7260.923
+          },
+          {
+            "part": "column",
+            "weight": 1543.5,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 3.6,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 5556.6
+          }
+        ],
+        "weight": 2422.44,
+        "structure_weight": 2422.44,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": 12817.523,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": 5.291
+      },
+      "footing_centre": {
+        "rows": [
+          {
+            "part": "pedestal",
+            "weight": 0.0,
+            "x_l": -1.25,
+            "x_c": -3.85,
+            "y": 11.4,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 0.0
+          },
+          {
+            "part": "beam",
+            "weight": 878.94,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 10.461,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 9194.591
+          },
+          {
+            "part": "column",
+            "weight": 1543.5,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 5.8,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 8952.3
+          },
+          {
+            "part": "footing",
+            "weight": 3018.4,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": 1.1,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": 3320.24
+          },
+          {
+            "part": "overburden",
+            "weight": 425.25,
+            "x_l": 0.0,
+            "x_c": 0.0,
+            "y": null,
+            "moment_l": 0.0,
+            "moment_c": 0.0,
+            "moment_y": null
+          }
+        ],
+        "weight": 5866.09,
+        "structure_weight": 5440.84,
+        "moment_l": 0.0,
+        "moment_c": 0.0,
+        "moment_y": 21467.131,
+        "x_l": 0.0,
+        "x_c": 0.0,
+        "y": 3.946
+      }
+    },
+    "train": {
+      "loading": {
+        "train": "E-17",
+        "axle_load": 170.0,
+        "axles": [
+          {
+            "girder": "end",
+            "lever": 0.5
+          },
+          {
+            "girder": "end",
+            "lever": 3.3
+          },
+          {
+            "girder": "end",
+            "lever": 5.3
+          },
+          {
+            "girder": "end",
+            "lever": 8.1
+          },
+          {
+            "girder": "end",
+            "lever": 10.1
+          },
+          {
+            "girder": "end",
+            "lever": 12.9
+          },
+          {
+            "girder": "end",
+            "lever": 16.9
+          },
+          {
+            "girder": "end",
+            "lever": 19.7
+          },
+          {
+            "girder": "end",
+            "lever": 21.7
+          },
+          {
+            "girder": "origin",
+            "lever": 7.6
+          },
+          {
+            "girder": "origin",
+            "lever": 5.6
+          },
+          {
+            "girder": "origin",
+            "lever": 2.8
+          }
+        ],
+        "tails": [
+          {
+            "girder": "origin",
+            "load": 50.0,
+            "length": 1.2,
+            "lever": 0.2
+          }
+        ],
+        "ra": 190.56,
+        "rb": 379.44,
+        "rc": 697.71,
+        "rd": 832.29,
+        "origin_axles": 3.0,
+        "end_axles": 9.0,
+        "spacings": [
+          0.8,
+          2.0,
+          2.8,
+          2.0,
+          2.8,
+          2.0,
+          2.8,
+          4.0,
+          2.8,
+          2.0,
+          2.8,
+          2.0,
+          2.8,
+          0.5
+        ],
+        "girder_lengths": [
+          8.0,
+          25.0
+        ],
+        "tail_head": 1.2
+      },
+      "ultimate": {
+        "load_factor": 1.0,
+        "origin_impact": {
+          "single": 0.542,
+          "double": 0.522
+        },
+        "end_impact": {
+          "single": 0.591,
+          "double": 0.52
+        },
+        "origin_pier_impact": {
+          "single": 0.422,
+          "double": 0.417
+        },
+        "end_pier_impact": {
+          "single": 0.46,
+          "double": 0.415
+        },
+        "single": {
+          "a": {
+            "load": 190.56,
+            "coefficient": 0.542,
+            "impact": 103.28
+          },
+          "b": {
+            "load": 379.44,
+            "coefficient": 0.542,
+            "impact": 205.66
+          },
+          "c": {
+            "load": 697.71,
+            "coefficient": 0.591,
+            "impact": 412.35
+          },
+          "d": {
+            "load": 832.29,
+            "coefficient": 0.591,
+            "impact": 491.88
+          }
+        },
+        "double": {
+          "a": {
+            "load": 381.12,
+            "coefficient": 0.522,
+            "impact": 198.94
+          },
+          "b": {
+            "load": 758.88,
+            "coefficient": 0.522,
+            "impact": 396.14
+          },
+          "c": {
+            "load": 1395.42,
+            "coefficient": 0.52,
+            "impact": 725.62
+          },
+          "d": {
+            "load": 1664.58,
+            "coefficient": 0.52,
+            "impact": 865.58
+          }
+        }
+      },
+      "service": {
+        "load_factor": 1.0,
+        "origin_impact": {
+          "single": 0.407,
+          "double": 0.392
+        },
+        "end_impact": {
+          "single": 0.443,
+          "double": 0.39
+        },
+        "origin_pier_impact": {
+          "single": 0.317,
+          "double": 0.313
+        },
+        "end_pier_impact": {
+          "single": 0.345,
+          "double": 0.312
+        },
+        "single": {
+          "a": {
+            "load": 190.56,
+            "coefficient": 0.407,
+            "impact": 77.56
+          },
+          "b": {
+            "load": 379.44,
+            "coefficient": 0.407,
+            "impact": 154.43
+          },
+          "c": {
+            "load": 697.71,
+            "coefficient": 0.443,
+            "impact": 309.09
+          },
+          "d": {
+            "load": 832.29,
+            "coefficient": 0.443,
+            "impact": 368.7
+          }
+        },
+        "double": {
+          "a": {
+            "load": 381.12,
+            "coefficient": 0.392,
+            "impact": 149.4
+          },
+          "b": {
+            "load": 758.88,
+            "coefficient": 0.392,
+            "impact": 297.48
+          },
+          "c": {
+            "load": 1395.42,
+            "coefficient": 0.39,
+            "impact": 544.21
+          },
+          "d": {
+            "load": 1664.58,
+            "coefficient": 0.39,
+            "impact": 649.19
+          }
+        }
+      },
+      "fatigue": {
+        "load_factor": 1.0,
+        "origin_impact": {
+          "single": 0.407,
+          "double": 0.392
+        },
+        "end_impact": {
+          "single": 0.443,
+          "double": 0.39
+        },
+        "origin_pier_impact": {
+          "single": 0.317,
+          "double": 0.313
+        },
+        "end_pier_impact": {
+          "single": 0.345,
+          "double": 0.312
+        },
+        "single": {
+          "a": {
+            "load": 190.56,
+            "coefficient": 0.407,
+            "impact": 77.56
+          },
+          "b": {
+            "load": 379.44,
+            "coefficient": 0.407,
+            "impact": 154.43
+          },
+          "c": {
+            "load": 697.71,
+            "coefficient": 0.443,
+            "impact": 309.09
+          },
+          "d": {
+            "load": 832.29,
+            "coefficient": 0.443,
+            "impact": 368.7
+          }
+        },
+        "double": {
+          "a": {
+            "load": 381.12,
+            "coefficient": 0.392,
+            "impact": 149.4
+          },
+          "b": {
+            "load": 758.88,
+            "coefficient": 0.392,
+            "impact": 297.48
+          },
+          "c": {
+            "load": 1395.42,
+            "coefficient": 0.39,
+            "impact": 544.21
+          },
+          "d": {
+            "load": 1664.58,
+            "coefficient": 0.39,
+            "impact": 649.19
+          }
+        }
+      },
+      "pier_impact": {
+        "dead": 7480.0,
+        "weight": 2422.44,
+        "single": {
+          "train": 1077.15,
+          "ratio": 0.779,
+          "limited": false
+        },
+        "double": {
+          "train": 2154.3,
+          "ratio": 0.799,
+          "limited": false
+        }
+      },
+      "seismic": {
+        "line_load": 35.0,
+        "origin_length": 8.0,
+        "end_length": 25.0,
+        "origin": 140.0,
+        "end": 437.5
+      },
+      "one_girder": [
+        {
+          "layout": "起点側の桁",
+          "loading": {
+            "train": "A-17",
+            "axle_load": null,
+            "axles": [
+              {
+                "girder": "origin",
+                "lever": 3.7,
+                "load": 130.0
+              },
+              {
+                "girder": "origin",
+                "lever": 5.6,
+                "load": 190.0
+              },
+              {
+                "girder": "origin",
+                "lever": 7.6,
+                "load": 190.0
+              }
+            ],
+            "tails": [],
+            "ra": 94.86,
+            "rb": 415.14,
+            "rc": 0.0,
+            "rd": 0.0,
+            "origin_axles": 3.0,
+            "end_axles": 0.0,
+            "spacings": [
+              3.7,
+              1.9,
+              2.0,
+              24.5
+            ],
+            "girder_lengths": [
+              8.0,
+              25.0
+            ]
+          },
+          "ultimate": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.542,
+              "double": 0.522
+            },
+            "end_impact": {
+              "single": 0.591,
+              "double": 0.52
+            },
+            "origin_pier_impact": {
+              "single": 0.415,
+              "double": 0.404
+            },
+            "end_pier_impact": {
+              "single": 0.452,
+              "double": 0.402
+            },
+            "single": {
+              "a": {
+                "load": 94.86,
+                "coefficient": 0.542,
+                "impact": 51.41
+              },
+              "b": {
+                "load": 415.14,
+                "coefficient": 0.542,
+                "impact": 225.01
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.591,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.591,
+                "impact": 0.0
+              }
+            },
+            "double": {
+              "a": {
+                "load": 189.72,
+                "coefficient": 0.522,
+                "impact": 99.03
+              },
+              "b": {
+                "load": 830.28,
+                "coefficient": 0.522,
+                "impact": 433.41
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.52,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.52,
+                "impact": 0.0
+              }
+            }
+          },
+          "service": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.407,
+              "double": 0.392
+            },
+            "end_impact": {
+              "single": 0.443,
+              "double": 0.39
+            },
+            "origin_pier_impact": {
+              "single": 0.311,
+              "double": 0.303
+            },
+            "end_pier_impact": {
+              "single": 0.339,
+              "double": 0.302
+            },
+            "single": {
+              "a": {
+                "load": 94.86,
+                "coefficient": 0.407,
+                "impact": 38.61
+              },
+              "b": {
+                "load": 415.14,
+                "coefficient": 0.407,
+                "impact": 168.96
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.443,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.443,
+                "impact": 0.0
+              }
+            },
+            "double": {
+              "a": {
+                "load": 189.72,
+                "coefficient": 0.392,
+                "impact": 74.37
+              },
+              "b": {
+                "load": 830.28,
+                "coefficient": 0.392,
+                "impact": 325.47
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.39,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.39,
+                "impact": 0.0
+              }
+            }
+          },
+          "fatigue": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.407,
+              "double": 0.392
+            },
+            "end_impact": {
+              "single": 0.443,
+              "double": 0.39
+            },
+            "origin_pier_impact": {
+              "single": 0.311,
+              "double": 0.303
+            },
+            "end_pier_impact": {
+              "single": 0.339,
+              "double": 0.302
+            },
+            "single": {
+              "a": {
+                "load": 94.86,
+                "coefficient": 0.407,
+                "impact": 38.61
+              },
+              "b": {
+                "load": 415.14,
+                "coefficient": 0.407,
+                "impact": 168.96
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.443,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.443,
+                "impact": 0.0
+              }
+            },
+            "double": {
+              "a": {
+                "load": 189.72,
+                "coefficient": 0.392,
+                "impact": 74.37
+              },
+              "b": {
+                "load": 830.28,
+                "coefficient": 0.392,
+                "impact": 325.47
+              },
+              "c": {
+                "load": 0.0,
+                "coefficient": 0.39,
+                "impact": 0.0
+              },
+              "d": {
+                "load": 0.0,
+                "coefficient": 0.39,
+                "impact": 0.0
+              }
+            }
+          },
+          "pier_impact": {
+            "dead": 7480.0,
+            "weight": 2422.44,
+            "single": {
+              "train": 415.14,
+              "ratio": 0.765,
+              "limited": false
+            },
+            "double": {
+              "train": 830.28,
+              "ratio": 0.774,
+              "limited": false
+            }
+          }
+        },
+        {
+          "layout": "終点側の桁",
+          "loading": {
+            "train": "E-17",
+            "axle_load": 170.0,
+            "axles": [
+              {
+                "girder": "end",
+                "lever": 1.3
+              },
+              {
+                "girder": "end",
+                "lever": 3.3
+              },
+              {
+                "girder": "end",
+                "lever": 6.1
+              },
+              {
+                "girder": "end",
+                "lever": 8.1
+              },
+              {
+                "girder": "end",
+                "lever": 10.9
+              },
+              {
+                "girder": "end",
+                "lever": 14.9
+              },
+              {
+                "girder": "end",
+                "lever": 17.7
+              },
+              {
+                "girder": "end",
+                "lever": 19.7
+              },
+              {
+                "girder": "end",
+                "lever": 22.5
+              },
+              {
+                "girder": "end",
+                "lever": 24.5
+              }
+            ],
+            "tails": [],
+            "ra": 0.0,
+            "rb": 0.0,
+            "rc": 913.75,
+            "rd": 786.25,
+            "origin_axles": 0.0,
+            "end_axles": 10.0,
+            "spacings": [
+              7.6,
+              2.0,
+              2.8,
+              2.0,
+              2.8,
+              4.0,
+              2.8,
+              2.0,
+              2.8,
+              2.0,
+              1.3
+            ],
+            "girder_lengths": [
+              8.0,
+              25.0
+            ]
+          },
+          "ultimate": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.542,
+              "double": 0.522
+            },
+            "end_impact": {
+              "single": 0.591,
+              "double": 0.52
+            },
+            "origin_pier_impact": {
+              "single": 0.421,
+              "double": 0.414
+            },
+            "end_pier_impact": {
+              "single": 0.459,
+              "double": 0.412
+            },
+            "single": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.542,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.542,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 913.75,
+                "coefficient": 0.591,
+                "impact": 540.03
+              },
+              "d": {
+                "load": 786.25,
+                "coefficient": 0.591,
+                "impact": 464.67
+              }
+            },
+            "double": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.522,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.522,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 1827.5,
+                "coefficient": 0.52,
+                "impact": 950.3
+              },
+              "d": {
+                "load": 1572.5,
+                "coefficient": 0.52,
+                "impact": 817.7
+              }
+            }
+          },
+          "service": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.407,
+              "double": 0.392
+            },
+            "end_impact": {
+              "single": 0.443,
+              "double": 0.39
+            },
+            "origin_pier_impact": {
+              "single": 0.316,
+              "double": 0.311
+            },
+            "end_pier_impact": {
+              "single": 0.344,
+              "double": 0.309
+            },
+            "single": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.407,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.407,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 913.75,
+                "coefficient": 0.443,
+                "impact": 404.79
+              },
+              "d": {
+                "load": 786.25,
+                "coefficient": 0.443,
+                "impact": 348.31
+              }
+            },
+            "double": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.392,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.392,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 1827.5,
+                "coefficient": 0.39,
+                "impact": 712.73
+              },
+              "d": {
+                "load": 1572.5,
+                "coefficient": 0.39,
+                "impact": 613.28
+              }
+            }
+          },
+          "fatigue": {
+            "load_factor": 1.0,
+            "origin_impact": {
+              "single": 0.407,
+              "double": 0.392
+            },
+            "end_impact": {
+              "single": 0.443,
+              "double": 0.39
+            },
+            "origin_pier_impact": {
+              "single": 0.316,
+              "double": 0.311
+            },
+            "end_pier_impact": {
+              "single": 0.344,
+              "double": 0.309
+            },
+            "single": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.407,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.407,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 913.75,
+                "coefficient": 0.443,
+                "impact": 404.79
+              },
+              "d": {
+                "load": 786.25,
+                "coefficient": 0.443,
+                "impact": 348.31
+              }
+            },
+            "double": {
+              "a": {
+                "load": 0.0,
+                "coefficient": 0.392,
+                "impact": 0.0
+              },
+              "b": {
+                "load": 0.0,
+                "coefficient": 0.392,
+                "impact": 0.0
+              },
+              "c": {
+                "load": 1827.5,
+                "coefficient": 0.39,
+                "impact": 712.73
+              },
+              "d": {
+                "load": 1572.5,
+                "coefficient": 0.39,
+                "impact": 613.28
+              }
+            }
+          },
+          "pier_impact": {
+            "dead": 7480.0,
+            "weight": 2422.44,
+            "single": {
+              "train": 913.75,
+              "ratio": 0.776,
+              "limited": false
+            },
+            "double": {
+              "train": 1827.5,
+              "ratio": 0.793,
+              "limited": false
+            }
+          }
+        }
+      ]
+    },
+    "longitudinal": {
+      "origin": {
+        "length": 8.0,
+        "track_total": 2.0,
+        "long_rail": 160.0,
+        "long_rail_service": 128.0,
+        "braking_rule": "EA-17の規定",
+        "braking": 142.5,
+        "starting": 127.5,
+        "braking_adopted": 142.5,
+        "seismic_girder": 4360.0,
+        "seismic_train": 56.0,
+        "driving_axles": 510.0
+      },
+      "end": {
+        "length": 25.0,
+        "track_total": 2.0,
+        "long_rail": 500.0,
+        "long_rail_service": 400.0,
+        "braking_rule": "EA-17の規定",
+        "braking": 382.5,
+        "starting": 382.5,
+        "braking_adopted": 382.5,
+        "seismic_girder": 10600.0,
+        "seismic_train": 175.0,
+        "driving_axles": 1530.0
+      },
+      "cases": [
+        {
+          "case": "service 0.8 LR",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 128.0,
+            "vertical": 2180.0,
+            "share": 64.0,
+            "friction": 218.0,
+            "friction_floor": 6.4,
+            "fixed_candidate": null,
+            "force": 64.0
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 400.0,
+            "vertical": 5300.0,
+            "share": 200.0,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 135.0,
+            "force": 200.0
+          },
+          "total": 264.0
+        },
+        {
+          "case": "service 1.0 LR",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": null,
+            "applied": 160.0,
+            "vertical": 3236.36,
+            "share": 80.0,
+            "friction": 323.64,
+            "friction_floor": 8.0,
+            "fixed_candidate": null,
+            "force": 80.0
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": null,
+            "applied": 500.0,
+            "vertical": 7613.77,
+            "share": 250.0,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 119.31,
+            "force": 250.0
+          },
+          "total": 330.0
+        },
+        {
+          "case": "safety 1.0 LR + 1.0 B",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.1,
+            "brake_factor": 1.0,
+            "applied": 302.5,
+            "vertical": 3715.52,
+            "share": 151.25,
+            "friction": 371.55,
+            "friction_floor": 15.13,
+            "fixed_candidate": null,
+            "force": 151.25
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.1,
+            "brake_factor": 1.0,
+            "applied": 882.5,
+            "vertical": 8718.18,
+            "share": 441.25,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 446.59,
+            "force": 446.59
+          },
+          "total": 597.84
+        },
+        {
+          "case": "safety 1.1 LR + 1.0 B",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 318.5,
+            "vertical": 3600.02,
+            "share": 159.25,
+            "friction": 360.0,
+            "friction_floor": 15.93,
+            "fixed_candidate": null,
+            "force": 159.25
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 932.5,
+            "vertical": 8465.16,
+            "share": 466.25,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 509.24,
+            "force": 509.24
+          },
+          "total": 668.49
+        },
+        {
+          "case": "safety 1.0 LR + 1.1 B",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": 1.1,
+            "applied": 316.75,
+            "vertical": 3600.02,
+            "share": 158.38,
+            "friction": 360.0,
+            "friction_floor": 15.84,
+            "fixed_candidate": null,
+            "force": 158.38
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": 1.1,
+            "applied": 920.75,
+            "vertical": 8465.16,
+            "share": 460.38,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 497.49,
+            "force": 497.49
+          },
+          "total": 655.87
+        },
+        {
+          "case": "safety 1.0 LR",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 160.0,
+            "vertical": 2445.0,
+            "share": 80.0,
+            "friction": 244.5,
+            "friction_floor": 8.0,
+            "fixed_candidate": null,
+            "force": 80.0
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 500.0,
+            "vertical": 5935.0,
+            "share": 250.0,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 203.25,
+            "force": 250.0
+          },
+          "total": 330.0
+        },
+        {
+          "case": "restorability 1.0 LR + 1.0 B",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 302.5,
+            "vertical": 3335.02,
+            "share": 151.25,
+            "friction": 333.5,
+            "friction_floor": 15.13,
+            "fixed_candidate": null,
+            "force": 151.25
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 882.5,
+            "vertical": 7830.16,
+            "share": 441.25,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 490.99,
+            "force": 490.99
+          },
+          "total": 642.24
+        },
+        {
+          "case": "restorability 1.0 LR",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 160.0,
+            "vertical": 2180.0,
+            "share": 80.0,
+            "friction": 218.0,
+            "friction_floor": 8.0,
+            "fixed_candidate": null,
+            "force": 80.0
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": null,
+            "brake_factor": null,
+            "applied": 500.0,
+            "vertical": 5300.0,
+            "share": 250.0,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 235.0,
+            "force": 250.0
+          },
+          "total": 330.0
+        }
+      ],
+      "seismic_girder": {
+        "origin": {
+          "bearing": "movable",
+          "applied": 4360.0,
+          "force": 2180.0
+        },
+        "end": {
+          "bearing": "fixed",
+          "applied": 10600.0,
+          "force": 10600.0
+        },
+        "total": 12780.0
+      },
+      "seismic_train": {
+        "origin": {
+          "bearing": "movable",
+          "applied": 56.0,
+          "force": 28.0
+        },
+        "end": {
+          "bearing": "fixed",
+          "applied": 175.0,
+          "force": 175.0
+        },
+        "total": 203.0
+      },
+      "one_girder": [
+        {
+          "layout": "起点側の桁",
+          "origin": {
+            "braking": 127.5,
+            "starting": 127.5,
+            "braking_adopted": 127.5,
+            "driving_axles": 510.0
+          },
+          "end": {
+            "braking": 0.0,
+            "starting": 0.0,
+            "braking_adopted": 0.0,
+            "driving_axles": 0.0
+          },
+          "cases": [
+            {
+              "case": "service 1.0 LR",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": null,
+                "applied": 160.0,
+                "vertical": 3335.75,
+                "share": 80.0,
+                "friction": 333.58,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": null,
+                "applied": 500.0,
+                "vertical": 5300.0,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 235.0,
+                "force": 250.0
+              },
+              "total": 330.0
+            },
+            {
+              "case": "safety 1.0 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.1,
+                "brake_factor": 1.0,
+                "applied": 287.5,
+                "vertical": 3835.05,
+                "share": 143.75,
+                "friction": 383.51,
+                "friction_floor": 14.38,
+                "fixed_candidate": null,
+                "force": 143.75
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.1,
+                "brake_factor": 1.0,
+                "applied": 500.0,
+                "vertical": 5935.0,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 203.25,
+                "force": 250.0
+              },
+              "total": 393.75
+            },
+            {
+              "case": "safety 1.1 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 303.5,
+                "vertical": 3708.69,
+                "share": 151.75,
+                "friction": 370.87,
+                "friction_floor": 15.18,
+                "fixed_candidate": null,
+                "force": 151.75
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 550.0,
+                "vertical": 5935.0,
+                "share": 275.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 253.25,
+                "force": 275.0
+              },
+              "total": 426.75
+            },
+            {
+              "case": "safety 1.0 LR + 1.1 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 300.25,
+                "vertical": 3708.69,
+                "share": 150.13,
+                "friction": 370.87,
+                "friction_floor": 15.01,
+                "fixed_candidate": null,
+                "force": 150.13
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 500.0,
+                "vertical": 5935.0,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 203.25,
+                "force": 250.0
+              },
+              "total": 400.13
+            },
+            {
+              "case": "restorability 1.0 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 287.5,
+                "vertical": 3443.69,
+                "share": 143.75,
+                "friction": 344.37,
+                "friction_floor": 14.38,
+                "fixed_candidate": null,
+                "force": 143.75
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 500.0,
+                "vertical": 5300.0,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 235.0,
+                "force": 250.0
+              },
+              "total": 393.75
+            }
+          ]
+        },
+        {
+          "layout": "終点側の桁",
+          "origin": {
+            "braking": 0.0,
+            "starting": 0.0,
+            "braking_adopted": 0.0,
+            "driving_axles": 0.0
+          },
+          "end": {
+            "braking": 425.0,
+            "starting": 425.0,
+            "braking_adopted": 425.0,
+            "driving_axles": 1700.0
+          },
+          "cases": [
+            {
+              "case": "service 1.0 LR",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": null,
+                "applied": 160.0,
+                "vertical": 2180.0,
+                "share": 80.0,
+                "friction": 218.0,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": null,
+                "applied": 500.0,
+                "vertical": 7485.78,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 125.71,
+                "force": 250.0
+              },
+              "total": 330.0
+            },
+            {
+              "case": "safety 1.0 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.1,
+                "brake_factor": 1.0,
+                "applied": 160.0,
+                "vertical": 2445.0,
+                "share": 80.0,
+                "friction": 244.5,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.1,
+                "brake_factor": 1.0,
+                "applied": 925.0,
+                "vertical": 8564.22,
+                "share": 462.5,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 496.79,
+                "force": 496.79
+              },
+              "total": 576.79
+            },
+            {
+              "case": "safety 1.1 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 176.0,
+                "vertical": 2445.0,
+                "share": 88.0,
+                "friction": 244.5,
+                "friction_floor": 8.8,
+                "fixed_candidate": null,
+                "force": 88.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 975.0,
+                "vertical": 8325.2,
+                "share": 487.5,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 558.74,
+                "force": 558.74
+              },
+              "total": 646.74
+            },
+            {
+              "case": "safety 1.0 LR + 1.1 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 160.0,
+                "vertical": 2445.0,
+                "share": 80.0,
+                "friction": 244.5,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 967.5,
+                "vertical": 8325.2,
+                "share": 483.75,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 551.24,
+                "force": 551.24
+              },
+              "total": 631.24
+            },
+            {
+              "case": "restorability 1.0 LR + 1.0 B",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 160.0,
+                "vertical": 2180.0,
+                "share": 80.0,
+                "friction": 218.0,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 925.0,
+                "vertical": 7690.2,
+                "share": 462.5,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 540.49,
+                "force": 540.49
+              },
+              "total": 620.49
+            }
+          ]
+        }
+      ]
+    },
+    "transverse": {
+      "lateral_axle_load": 25.5,
+      "lateral_loading": {
+        "train": "LF",
+        "axle_load": 25.5,
+        "axles": [
+          {
+            "girder": "end",
+            "lever": 14.9
+          },
+          {
+            "girder": "end",
+            "lever": 17.7
+          },
+          {
+            "girder": "end",
+            "lever": 21.7
+          },
+          {
+            "girder": "origin",
+            "lever": 7.6
+          }
+        ],
+        "tails": [],
+        "ra": -1.42,
+        "rb": 26.92,
+        "rc": 57.69,
+        "rd": 18.81,
+        "origin_axles": 1.0,
+        "end_axles": 3.0,
+        "spacings": [
+          7.6,
+          2.8,
+          4.0,
+          2.8,
+          14.9
+        ],
+        "girder_lengths": [
+          8.0,
+          25.0
+        ]
+      },
+      "origin": {
+        "centrifugal_coefficient": 0.0,
+        "rail_height": 2.95,
+        "centrifugal_height": 4.45,
+        "wind_height_with_train": 5.3,
+        "wind_height_without_train": 2.8,
+        "centrifugal_ultimate": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "centrifugal_service": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "centrifugal_fatigue": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "vehicle_lateral": {
+          "force": 26.92,
+          "height": 2.95,
+          "moment": 79.41
+        },
+        "wind_with_train": {
+          "force": 31.8,
+          "height": 3.9,
+          "moment": 124.02
+        },
+        "wind_without_train": {
+          "force": 33.6,
+          "height": 2.65,
+          "moment": 89.04
+        },
+        "seismic_girder": {
+          "force": 2180.0,
+          "height": 2.25,
+          "moment": 4905.0
+        },
+        "seismic_train": {
+          "force": 42.0,
+          "height": 4.45,
+          "moment": 186.9
+        }
+      },
+      "end": {
+        "centrifugal_coefficient": 0.0,
+        "rail_height": 2.95,
+        "centrifugal_height": 4.45,
+        "wind_height_with_train": 6.4,
+        "wind_height_without_train": 3.9,
+        "centrifugal_ultimate": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "centrifugal_service": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "centrifugal_fatigue": {
+          "force": 0.0,
+          "height": 4.45,
+          "moment": 0.0
+        },
+        "vehicle_lateral": {
+          "force": 57.69,
+          "height": 2.95,
+          "moment": 170.19
+        },
+        "wind_with_train": {
+          "force": 120.0,
+          "height": 3.35,
+          "moment": 402.0
+        },
+        "wind_without_train": {
+          "force": 146.25,
+          "height": 2.1,
+          "moment": 307.13
+        },
+        "seismic_girder": {
+          "force": 5300.0,
+          "height": 2.25,
+          "moment": 11925.0
+        },
+        "seismic_train": {
+          "force": 131.25,
+          "height": 4.45,
+          "moment": 584.06
+        }
+      }
+    }
+  }
+}

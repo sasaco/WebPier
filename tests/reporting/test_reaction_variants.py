@@ -91,11 +91,14 @@ def test_p16_uses_the_axle_load_rule_and_ea17_its_own_rule():
     assert current["long.brake.origin.braking"] == "T(制動)=(0.20+0.80/20.000×20.000)×160.00=160.00kN"
     assert current["long.brake.origin.starting"] == "T(始動)=(0.19+0.76/20.000×20.000)×160.00=152.00kN"
     assert current["long.brake.origin.adopted"] == "B=max(160.00,152.00)=160.00kN"
-    assert ea17["long.brake.braking.formula"] == "制動荷重：(0.27+1.00/Lv)・ΣR"
+    # EA-17 (decision 101): 25 % of the train load on the girder, 25 % of its driving axles
+    assert ea17["long.brake.braking.formula"] == "制動荷重：1軌道当り列車荷重の25%とする。"
+    assert ea17["long.brake.starting.formula"] == "始動荷重：1軌道当り列車荷重の特性値をなす動輪軸重の25%とする。"
     result, _ = case("ea17")
-    loading = result.train.loading
-    assert ea17["long.brake.origin.braking"] == (f"T(制動)=(0.27+1.00/16.400)×({text(loading.ra)}+{text(loading.rb)})="
-                                                 f"{text(result.longitudinal.origin.braking)}kN")
+    loading, origin = result.train.loading, result.longitudinal.origin
+    assert ea17["long.brake.origin.braking"] == (f"T(制動)=0.25×({text(loading.ra)}+{text(loading.rb)})="
+                                                 f"{text(origin.braking)}kN")
+    assert ea17["long.brake.origin.starting"] == f"T(始動)=0.25×{text(origin.driving_axles)}={text(origin.starting)}kN"
 
 
 def test_a_curve_prints_the_centrifugal_coefficient_and_a_straight_track_says_why_it_is_zero():
@@ -143,7 +146,7 @@ def test_each_combination_is_named_with_its_printed_factors():
     assert actual["long.case.service_lr08.label"] == "・0.8LR[1.0D1+1.0D2+S2+1.0LR(8kN/m)の組合せ]"
     assert actual["long.case.safety_lr10_b11.label"] == "・1.0LR+1.35B[1.1D1+1.2D2+1.23(L+I)+S10+1.0LR+1.35Bの組合せ]"
     assert actual["long.case.safety_lr10_b10.origin.vertical.symbols"] == "Rm=1.1D1+1.2D2+1.35複線(L+I)+S10"
-    assert "|1.0LR+1.23B|298.40|175.03|473.43|1.1LR+1.23B|" in actual["long.summary.table"]
+    assert "|①1.0LR+1.23B|298.40|175.03|473.43|②1.0LR+1.23B|" in actual["long.summary.table"]
 
 
 def test_a_girder_without_axles_prints_its_reactions_as_values():
@@ -204,3 +207,16 @@ def test_a_long_span_wraps_the_levers_of_its_reaction(tmp_path):
     rc = records("long", result, pier)["train.loading.c"]
     assert rc.startswith("RC=160.00×(") and rc.count("+") > 8
     render_reaction(result, pier, tmp_path / "0600.pdf")  # lays out without overflowing the line
+
+
+def test_the_line_load_behind_e17_and_the_axle_loads_of_a17_are_printed():
+    """decision 101: RC = (q × a × e + P × Σa) / l and RD = q × a + P × n − RC; A-17 by axle load."""
+    tail, a17 = records("ea17_tail"), records("ea17_a17")
+    result, _ = case("ea17_tail")
+    part = result.train.loading.tail(result.train.loading.axles[0].girder.__class__.END)
+    assert tail["train.loading.c"].startswith(f"RC=(50.00×{text(part.length)}×{text(part.lever)}+170.00×(")
+    assert tail["train.loading.d"].startswith(f"RD=50.00×{text(part.length)}+170.00×")
+    assert tail["train.loading.figure"].endswith("|50.00kN/m")
+    assert a17["train.loading.c"] == "RC=(130.00×(1.400)+190.00×(3.300))/3.000=269.67kN"
+    assert a17["train.loading.d"] == "RD=130.00×1+190.00×1−269.67=50.33kN"
+    assert "|130.00|190.00|190.00" in a17["train.loading.figure"]

@@ -7,6 +7,7 @@ import pytest
 from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, example2, pier, q, value
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.reaction.longitudinal import BearingType, LongitudinalCase
+from webpier.calc.reaction.longitudinal import LAYOUT_CASES, BrakeForces
 
 C = LongitudinalCase
 EX = {}
@@ -186,14 +187,20 @@ def test_recovery_brake_coefficient_absent_uses_rho_times_gamma():
 
 
 def test_ea17_braking_by_hand():
-    result = longitudinal(pier(**{"上部構造/列車/車両名": "EA-17"}))
-    # EA-17: braking (0.27 + 1.00/Lv) ΣR, starting (0.25 + 0.95/Lv) ΣR, ΣR = RA + RB of the girder.
-    for girder, total in ((result.origin, D(367.53) + D(272.47)), (result.end, D(294.92) + D(25.08))):
-        brake = q((D("0.27") + D("1.00") / D(20)) * total, 2)
-        start = q((D("0.25") + D("0.95") / D(20)) * total, 2)
+    """decision 101: braking 25 % of the train load RA + RB on the girder, starting 25 % of its driving axles (the
+    170 kN axles of E-17 on the girder, not the line load)."""
+    p = pier(**{"上部構造/列車/車両名": "EA-17", "上部構造/列車/編成数": None})
+    loading = calculate_reaction(p).train.loading
+    result = longitudinal(p)
+    for girder, near, far, axles in ((result.origin, loading.rb, loading.ra, loading.origin_axles),
+                                     (result.end, loading.rc, loading.rd, loading.end_axles)):
+        brake = q(D("0.25") * (D(near.value) + D(far.value)), 2)
+        start = q(D("0.25") * D(170) * D(axles.value), 2)
         assert (value(girder.braking), value(girder.starting), value(girder.braking_adopted)) == (
             brake, start, max(brake, start))
-    assert result.origin.braking.value == 204.8  # 0.32 × 640
+        assert value(girder.driving_axles) == D(170) * D(axles.value)
+    assert result.origin.braking_rule.value == "EA-17の規定"
+    assert longitudinal().origin.driving_axles is None  # P-16 keeps the axle-load formula
 
 
 def test_axle_rule_braking_by_hand():
@@ -226,3 +233,22 @@ def test_a_girder_without_bearings_on_the_pier():
     assert result.end.track_total.value == 0.0
     assert result.end.long_rail.value == 0.0
     assert result.case(C.SERVICE_LR08).end.applied.value == 0.0
+
+
+def test_the_braking_and_the_bearing_forces_of_a_train_on_one_girder():
+    """Decision 102: ② and ③ have the bearing cases with the train or braking; the girder without the train has no
+    braking, and its bearing carries the dead loads only (SERVICE 1.0 LR: D1 + D2 + S2 at the fixed bearing D)."""
+    p = pier()
+    reaction = calculate_reaction(p)
+    lon = reaction.longitudinal
+    origin_only, end_only = lon.one_girder
+    assert [c.case for c in origin_only.cases] == list(LAYOUT_CASES) == [
+        LongitudinalCase.SERVICE_LR10, LongitudinalCase.SAFETY_LR10_B10, LongitudinalCase.SAFETY_LR11_B10,
+        LongitudinalCase.SAFETY_LR10_B11, LongitudinalCase.RESTORABILITY_LR10_B10]
+    assert (origin_only.end.braking_adopted.value, end_only.origin.braking_adopted.value) == (0.0, 0.0)
+    # P-16's braking depends only on the girder length: as ①'s on the loaded girder
+    assert origin_only.origin == BrakeForces(lon.origin.braking, lon.origin.starting, lon.origin.braking_adopted)
+    far = reaction.dead.end.far
+    bearing = origin_only.case(LongitudinalCase.SERVICE_LR10).end
+    assert bearing.bearing is BearingType.FIXED
+    assert value(bearing.vertical) == D(far.d1.value) + D(far.d2.value) + D(far.snow2.value)

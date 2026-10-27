@@ -162,3 +162,14 @@ Source: `.claude/docs/Example橋脚2/09_直角.pdf`, 29 pages, printed 9-1 to 9-
   - everything that adds the impact load: the 9-9 to 9-13 load diagrams I1 to I3, the 9-14 combinations, the
     9-16 onward sectional forces and reactions of the combinations with an impact load.
 - Not affected: the train load (9-5), the horizontal actions, and the seismic stages.
+
+## Classification 3: one loading of each check with the train and one vehicle lateral load (decision 106)
+
+- 9-14 (H16) makes the safety (列車最大・車横最大), damage and stability of both tracks only, and the crack (変動荷重) and
+  short-term support of one track only, with one vehicle lateral load (one track's) in every combination. WebPier makes
+  every check with the train for 複線 and 単線 (Example橋脚4 表4.3.2, R5) and puts the vehicle lateral load of two tracks
+  (twice the one track's, Example橋脚4 III-177) in 複線: 25 combinations, 18 basic cases, 16 Define cases.
+- The tests compare Example2 with the combinations it prints (`tests/calc/transverse_support.py: example2_combinations`,
+  `example2_coefficients`) and the FrameWeb file with Example2's numbering (`tests/frameweb_placing.py:
+  example2_loading`, which also takes Lf1 for Example2's Lf); the acceptances read the same reference file
+  (`tests/acceptance/reactions_by_hand.py: reference_frameweb`).

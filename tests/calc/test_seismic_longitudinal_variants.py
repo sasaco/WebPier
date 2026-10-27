@@ -11,6 +11,8 @@ from webpier.calc.longitudinal import BasicCase, Item
 from webpier.calc.seismic_longitudinal import SeismicCase
 from webpier.core.errors import InputError
 from webpier.inputs import parse_input
+from webpier.calc import vehicles
+from webpier.core.printed import LINE_LOAD
 
 C = SeismicCase
 DIMS = {"B": "下部構造/寸法/側面/", "W": "下部構造/寸法/正面/", "H": "下部構造/寸法/高さ/"}
@@ -51,8 +53,9 @@ def test_girder_and_train_inertia_are_not_multiplied_again():
     assert result.basic(C.TRAIN_INERTIA).points[0].h.value == -128.0
 
 
-def test_earthquake_train_load_zero():
-    result = seismic(pier(**{"上部構造/列車/軸重/地震": 0.0}))
+def test_earthquake_train_load_zero(monkeypatch):
+    monkeypatch.setattr(vehicles, "P16_SEISMIC", LINE_LOAD.exact(0))  # the vehicle's, no input (decision 101)
+    result = seismic(pier())
     assert [row.n.value for row in result.train.rows] == [0.0, 0.0]
     assert points(result.basic(C.TRAIN)) == {1: (0.0, 0.0, 0.0)}
     assert points(result.basic(C.TRAIN_INERTIA)) == {1: (0.0, 0.0, 0.0)}

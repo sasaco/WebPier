@@ -36,9 +36,10 @@ CASES: dict[str, dict[str, Any]] = {
     "pedestal": PEDESTAL,
     # The soil is higher at the end side: the wedge lies at the origin side.
     "mirrored": {**PEDESTAL, "下部構造/土かぶり": {"起点側_df1": 0.6, "終点側_df2": 1.2}},
-    # EA-17 (its own braking rule), a curve, swapped bearing types without the restorability coefficient.
+    # EA-17 (its own train with the line load behind it, and its braking rule, decision 101), a curve, swapped bearing
+    # types without the restorability coefficient.
     "ea17": {
-        "上部構造/列車/車両名": "EA-17", "上部構造/列車/1両の長さ": 16.4,
+        "上部構造/列車/車両名": "EA-17", "上部構造/列車/編成数": None,
         "上部構造/起点側/曲線半径": 600, "上部構造/起点側/列車速度": 130,
         "上部構造/終点側/曲線半径": 400, "上部構造/終点側/列車速度": 100,
         "上部構造/支承データ/起点側": {"支承名": "固定", "摩擦係数_μ": 0.15, "ゴム支承の箇所数": None, "ストッパーの箇所数": None,
@@ -46,6 +47,14 @@ CASES: dict[str, dict[str, Any]] = {
         "上部構造/支承データ/終点側": {"支承名": "可動", "摩擦係数_μ": 0.05, "ゴム支承の箇所数": None, "ストッパーの箇所数": None,
                                "片持ち梁上のゴム支承": None, "片持ち梁上のストッパー": None},
     },
+    # EA-17 on longer girders: the line load behind E-17 reaches the end girder (RC = (q a e + P Σa) / l).
+    "ea17_tail": {"上部構造/列車/車両名": "EA-17", "上部構造/列車/編成数": None,
+                  "上部構造/起点側/桁長": {"L1": 0.5, "スパン長": 20.0, "L2": 0.5},
+                  "上部構造/終点側/桁長": {"L1": 0.5, "スパン長": 15.0, "L2": 0.5}},
+    # EA-17 on 3 m girders: A-17 gives the larger reactions, its axle loads printed by load.
+    "ea17_a17": {"上部構造/列車/車両名": "EA-17", "上部構造/列車/編成数": None,
+                 "上部構造/起点側/桁長": {"L1": 0.3, "スパン長": 3.0, "L2": 0.3},
+                 "上部構造/終点側/桁長": {"L1": 0.3, "スパン長": 3.0, "L2": 0.3}},
     # No beam haunch, no soil cover, a column flush with the footing's end edge (B9 = 0),
     # and no bearing of the end girder on this pier (all ten slots empty).
     "bare": {"下部構造/寸法/高さ/H3": 0.0, "下部構造/土かぶり": {"起点側_df1": 0.0, "終点側_df2": 0.0},

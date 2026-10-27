@@ -27,7 +27,8 @@ from ...inputs import PierInput
 from ...loadmodel import ExtractionGroup  # the 8 extraction groups of 8-11, the contract's (decision 70)
 from .._exact import d, put
 from ..frame import Frame, LineLoad, PointLoad
-from .actions import BasicAction, BasicCase, ImpactTable, Impacts, bearing_point
+from ..reaction.train import Layout
+from .actions import LAYOUT_DEPENDENT, BasicAction, BasicCase, ImpactTable, Impacts, bearing_point
 
 FACTOR = Precision(2, "")  # factors from the load factors ρ (8-10: 1.35, 1.23, 0.75)
 CONSTANT = Precision(1, "")  # fixed factors (8-10: 1.0, 1.1, 1.2)
@@ -91,6 +92,7 @@ class DefineCase:
     number: int
     case: BasicCase
     signs: tuple[int, ...]  # (1,) or both directions (1, −1) for the horizontal cases
+    layout: Layout | None = None  # of a LAYOUT_DEPENDENT case (decision 102)
 
 
 @dataclass(frozen=True)
@@ -107,11 +109,12 @@ class ResolvedAction:
 
 @dataclass(frozen=True)
 class Combination:
-    number: int
+    number: int  # in the order made: a check with the train is made for ①, ② and ③ in turn (decision 102)
     check: Check
     usage: Usage
     coefficients: tuple[Printed | None, ...]  # by basic case, in the order made (decision 69); None prints '－'
     components: tuple[ResolvedAction, ...]  # the cases with a coefficient, in case order
+    layout: Layout | None = None  # 列車の配置 of a check with the train (decision 102)
 
     @property
     def signs(self) -> tuple[int, ...]:
@@ -178,13 +181,17 @@ def combination_factors(pier: PierInput) -> CombinationFactors:
 
 def define_cases(basic_cases: tuple[BasicAction, ...]) -> tuple[DefineCase, ...]:
     """One Define per basic case, with its number; the horizontal ones in both directions."""
-    return tuple(DefineCase(number=basic.number, case=basic.case, signs=(1, -1) if basic.horizontal else (1,))
+    return tuple(DefineCase(number=basic.number, case=basic.case, signs=(1, -1) if basic.horizontal else (1,),
+                            layout=basic.layout)
                  for basic in basic_cases)
 
 
-def extractions() -> tuple[Extraction, ...]:
-    return tuple(Extraction(number=group.value, group=group, combinations=numbers)
-                 for group, numbers in _EXTRACTIONS.items())
+def placed_extractions(combinations: tuple[Combination, ...]) -> tuple[Extraction, ...]:
+    """Each group's combinations: every combination made of its checks, of each 列車の配置 (0610, decision 102) or of
+    複線 and 単線 (0620, decision 106)."""
+    return tuple(Extraction(number=group.value, group=group,
+                            combinations=tuple(c.number for c in combinations if c.check.value in checks))
+                 for group, checks in _EXTRACTIONS.items())
 
 
 def _scaled_point(point: PointLoad, factor: Decimal) -> PointLoad:
@@ -211,21 +218,25 @@ def _resolve(basic: BasicAction, nominal: Printed, usage: Usage, service_impacts
                           reversible=basic.horizontal)
 
 
-def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], impact: Impacts,
+def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], impacts: Mapping[Layout, Impacts],
                          factors: CombinationFactors) -> tuple[Combination, ...]:
     symbols: Mapping[str, Printed] = {
         "1": factors.one, "D1": factors.d1_safety, "D2": factors.d2_safety, "U": factors.ultimate,
         "X": factors.maximum, "S": factors.service, "SI": factors.service_impact}
-    service_impacts = {BasicCase.IMPACT_SINGLE: impact.service_single, BasicCase.IMPACT_DOUBLE: impact.service_double}
-    combinations = []
+    combinations: list[Combination] = []
     for check, row in _TABLE.items():
         usage = Usage.SERVICE if check in _SERVICE_CHECKS else Usage.ULTIMATE
         printed = dict(zip(BasicCase, row.split(), strict=True))  # the cases not made have no column (decision 69)
-        coefficients = tuple(None if printed[basic.case] == "-" else symbols[printed[basic.case]]
-                             for basic in basic_cases)
-        components = tuple(
-            _resolve(basic, nominal, usage, service_impacts, frame, factors)
-            for basic, nominal in zip(basic_cases, coefficients, strict=True) if nominal is not None)
-        combinations.append(Combination(number=check.value, check=check, usage=usage, coefficients=coefficients,
-                                        components=components))
+        placed = any(printed[case] != "-" for case in LAYOUT_DEPENDENT)
+        for layout in (tuple(Layout) if placed else (None,)):
+            impact = impacts[layout or Layout.BOTH]
+            service_impacts = {BasicCase.IMPACT_SINGLE: impact.service_single,
+                               BasicCase.IMPACT_DOUBLE: impact.service_double}
+            coefficients = tuple(None if printed[basic.case] == "-" or basic.layout not in (None, layout)
+                                 else symbols[printed[basic.case]] for basic in basic_cases)
+            components = tuple(
+                _resolve(basic, nominal, usage, service_impacts, frame, factors)
+                for basic, nominal in zip(basic_cases, coefficients, strict=True) if nominal is not None)
+            combinations.append(Combination(number=len(combinations) + 1, check=check, usage=usage,
+                                            coefficients=coefficients, components=components, layout=layout))
     return tuple(combinations)

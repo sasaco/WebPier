@@ -1,0 +1,1818 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_2of3.pdf",
+    "page_mapping": "2of3 の 0 始まりの index k が印刷頁 III-(111+k)",
+    "method": "スキャン画像を目視で転記（pymupdf で 85〜110 dpi の全頁と 220〜250 dpi の切り出し）。WebPier の実装・生成物は見ていない",
+    "units": "kN, kN·m, mm, rad, N/mm2。数値は印字の桁のまま",
+    "design_responses": "杭頭の鉛直力・変位・回転角の一覧は frame_notes.md の表2.5.11〜2.5.14・表4.5.11〜4.5.14（frame_responses.json）。ここでは照査に印字された値だけを持ち、表からの対応は source_inferred に書く"
+  },
+  "longitudinal": {
+    "pages": {
+      "range": {
+        "printed": "III-145〜III-168",
+        "pdf": "2of3",
+        "pdf_index": "34〜57"
+      },
+      "items": [
+        {
+          "section": "3.2.1 設計限界値および照査断面（表3.2.1・表3.2.2・図3.2.1）",
+          "printed": "III-145",
+          "pdf": "2of3",
+          "pdf_index": 34
+        },
+        {
+          "section": "3.2.1 結合部の照査断面（図3.2.2・表3.2.3）",
+          "printed": "III-146",
+          "pdf": "2of3",
+          "pdf_index": 35
+        },
+        {
+          "section": "3.2.2 (1)(a) a) 軸方向力と曲げ（表3.2.4・式）",
+          "printed": "III-147",
+          "pdf": "2of3",
+          "pdf_index": 36
+        },
+        {
+          "section": "同 式の続き",
+          "printed": "III-148",
+          "pdf": "2of3",
+          "pdf_index": 37
+        },
+        {
+          "section": "表3.2.5 鋼管杭の安全性の照査結果",
+          "printed": "III-149",
+          "pdf": "2of3",
+          "pdf_index": 38
+        },
+        {
+          "section": "b) せん断（表3.2.6・表3.2.7）",
+          "printed": "III-150",
+          "pdf": "2of3",
+          "pdf_index": 39
+        },
+        {
+          "section": "c) 軸方向圧縮力・曲げ・せん断（表3.2.8・表3.2.9）",
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        {
+          "section": "(b) 杭とフーチングの結合部 a) 曲げ（表3.2.10・式）",
+          "printed": "III-152",
+          "pdf": "2of3",
+          "pdf_index": 41
+        },
+        {
+          "section": "表3.2.11 杭とフーチングの結合部の安全性の照査結果",
+          "printed": "III-153",
+          "pdf": "2of3",
+          "pdf_index": 42
+        },
+        {
+          "section": "b) 結合部のせん断（省略）",
+          "printed": "III-154",
+          "pdf": "2of3",
+          "pdf_index": 43
+        },
+        {
+          "section": "3.2.3 使用性 (1) 損傷（省略）",
+          "printed": "III-155",
+          "pdf": "2of3",
+          "pdf_index": 44
+        },
+        {
+          "section": "3.3 / 3.3.1 設計限界値（表3.3.1）",
+          "printed": "III-156",
+          "pdf": "2of3",
+          "pdf_index": 45
+        },
+        {
+          "section": "3.3.2 (1)(a) 地盤の破壊（Rk・Wp・pt）",
+          "printed": "III-157",
+          "pdf": "2of3",
+          "pdf_index": 46
+        },
+        {
+          "section": "図3.3.1・Rvd・Rud・地盤の破壊の照査",
+          "printed": "III-158",
+          "pdf": "2of3",
+          "pdf_index": 47
+        },
+        {
+          "section": "(b) 水平安定・(c) 回転安定",
+          "printed": "III-159",
+          "pdf": "2of3",
+          "pdf_index": 48
+        },
+        {
+          "section": "(d) 基礎部材等の破壊（省略）",
+          "printed": "III-160",
+          "pdf": "2of3",
+          "pdf_index": 49
+        },
+        {
+          "section": "3.3.3 (1)(a) a) 長期支持 鉛直（式）",
+          "printed": "III-161",
+          "pdf": "2of3",
+          "pdf_index": 50
+        },
+        {
+          "section": "図3.3.2・長期 Rvd・Rud・照査",
+          "printed": "III-162",
+          "pdf": "2of3",
+          "pdf_index": 51
+        },
+        {
+          "section": "b) 長期 水平方向",
+          "printed": "III-163",
+          "pdf": "2of3",
+          "pdf_index": 52
+        },
+        {
+          "section": "c) 長期 回転方向",
+          "printed": "III-164",
+          "pdf": "2of3",
+          "pdf_index": 53
+        },
+        {
+          "section": "(b) a) 短期支持 鉛直（式）",
+          "printed": "III-165",
+          "pdf": "2of3",
+          "pdf_index": 54
+        },
+        {
+          "section": "図3.3.3・短期 Rvd・Rud・照査",
+          "printed": "III-166",
+          "pdf": "2of3",
+          "pdf_index": 55
+        },
+        {
+          "section": "b) 短期 水平方向・c) 短期 回転方向",
+          "printed": "III-167",
+          "pdf": "2of3",
+          "pdf_index": 56
+        },
+        {
+          "section": "(d) 長期支持性能および短期支持性能以外（省略）",
+          "printed": "III-168",
+          "pdf": "2of3",
+          "pdf_index": 57
+        }
+      ]
+    },
+    "pile_section": {
+      "table": "表3.2.2",
+      "page": {
+        "printed": "III-145",
+        "pdf": "2of3",
+        "pdf_index": 34
+      },
+      "material": "SKK490",
+      "fsyk_N_mm2": 315,
+      "f_syk_compression_N_mm2": 315,
+      "D_mm": 800,
+      "t_mm": 17,
+      "corrosion_mm_note": "※鋼管の腐食代1mm"
+    },
+    "joint_section": {
+      "table": "表3.2.3・図3.2.2",
+      "page": {
+        "printed": "III-146",
+        "pdf": "2of3",
+        "pdf_index": 35
+      },
+      "f_ck_N_mm2": 27.0,
+      "anchor_fsyk_N_mm2": 390,
+      "anchor_label_printed": "fsyk（表の記号。表の結合部の照査結果では fyk）",
+      "Ase_printed": "D38-16本=18240.0 (mm2)",
+      "Ase_mm2": 18240.0,
+      "D_mm": 800,
+      "t_mm": 17,
+      "corrosion_mm_note": "※鋼管の腐食代1mm",
+      "figure_dimensions_mm": {
+        "edge_left": 75,
+        "bar_circle": 650,
+        "edge_right": 75,
+        "D": 800
+      }
+    },
+    "pile_body_formulas": {
+      "Nud": "Nud = A·fsyd/γb",
+      "N_u0d": "N'u0d = A·f'syd/γb",
+      "Mutd": "Mutd = I/yt·fsyd/γb",
+      "Muc0d": "Muc0d = I/yc·f'syd/γb",
+      "Vyd": "Vyd = A·fsvyd/γb",
+      "bending_check": [
+        "γi·(−N'd/Nud + Md/Mutd) ≦ 1.0",
+        "γi·(N'd/N'u0d + Md/Muc0d) ≦ 1.0"
+      ],
+      "shear_check": "γi·Vd/Vyd ≦ 1.0",
+      "combined_check": "(γi/1.1)²·[(N'd/N'u0d + Md/Muc0d)² + (Vd/Vyd)²] ≦ 1.0",
+      "gamma_b": 1.05,
+      "gamma_i": 1.2,
+      "reference": "【杭体設計の手引き 2.2】",
+      "heading_reference": "【杭体設計の手引き 2.2】"
+    },
+    "joint_formulas": {
+      "f_cck": "f'cck = f'cd(2.254√(1+7.94σ'1/f'ck) − 2·σ'1/f'ck − 1.254)【杭体設計の手引き 解2.4-2】",
+      "sigma_1": "σ'1 = 2·t·fsyd/(D−2t)【杭体設計の手引き 解2.4-3】",
+      "eps_cc": "ε'cc = 0.002[1+5(f'cc/f'cd−1)]【杭体設計の手引き 解2.4-5】",
+      "check": "γi·Md/Mud",
+      "note": "Mud の途中の値（f'cd、σ'1、f'cck、ε'cc、中立軸など）は印字されていない"
+    },
+    "bearing": [
+      {
+        "limit_state": "安全性（変位・変形の限界）地盤の破壊（地震時以外）",
+        "page": {
+          "printed": "III-158",
+          "pdf": "2of3",
+          "pdf_index": 47
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "gamma_pile_kN_m3": 16,
+        "Wp_printed": "1/4 × π × 1.00 ^2 × (16.0 − 10) × 26.5 = 125 kN",
+        "Wp_kN": 125,
+        "pt_printed": "1649 / 9972 = 0.165",
+        "pt": 0.165,
+        "Rfk_pull_kN": 8807,
+        "fr_push": 1.02,
+        "fr_pull_pt0": 1.03,
+        "Rvd_printed": "1.02 × ( 1 × 9972 ) = 10172",
+        "Rvd_kN": 10172,
+        "Rud_printed": "1.03 × ( 1 × 8807 ) + 1 × 125 = 9196",
+        "Rud_kN": 9196,
+        "gamma_i": 1.2,
+        "Vd_kN": 4685.5,
+        "ratio_printed": "1.2 × 4685.5 / 10172 = 0.55 < 1.0",
+        "ratio": 0.55,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表2.5.11",
+          "com_case": 4,
+          "pile": "右杭",
+          "status": "inferred",
+          "note": "表の最大値。Case 22 の右杭は 4685.4"
+        },
+        "fr_reference": "【基礎構造物性能照査の手引き 図15-6】",
+        "fr_figure": "図3.3.1"
+      },
+      {
+        "limit_state": "使用性（残留変位の限界）長期支持性能・鉛直方向",
+        "page": {
+          "printed": "III-162",
+          "pdf": "2of3",
+          "pdf_index": 51
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "Wp_kN": 125,
+        "pt": 0.165,
+        "fr_push": 0.647,
+        "fr_pull_pt0": null,
+        "Rvd_printed": "0.647 × ( 1 × 9972 ) = 6452",
+        "Rvd_kN": 6452,
+        "Rud_printed": "1 × 125 = 125",
+        "Rud_kN": 125,
+        "Rud_rule": "設計引抜き抵抗力 Rud は，杭の有効自重 Wp のみを考慮する（式 解15.3.3.2-2: Rud = Wp）",
+        "gamma_i": 1.0,
+        "Vd_kN": 2253.5,
+        "ratio_printed": "1.0 × 2253.5 / 6452 = 0.35 < 1.0",
+        "ratio": 0.35,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表2.5.12",
+          "com_case": 31,
+          "pile": "右杭",
+          "status": "inferred"
+        },
+        "fr_figure": "図3.3.2"
+      },
+      {
+        "limit_state": "使用性（残留変位の限界）短期支持性能・鉛直方向",
+        "page": {
+          "printed": "III-166",
+          "pdf": "2of3",
+          "pdf_index": 55
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "Rfk_pull_kN": 8807,
+        "Wp_kN": 125,
+        "pt": 0.165,
+        "fr_push": 0.833,
+        "fr_pull_pt0": 0.84,
+        "Rvd_printed": "0.833 × ( 1 × 9972 ) = 8307",
+        "Rvd_kN": 8307,
+        "Rud_printed": "0.840 × ( 1 × 8807 ) + 1 × 125 = 7523",
+        "Rud_kN": 7523,
+        "gamma_i": 1.0,
+        "Vd_kN": 3034.4,
+        "ratio_printed": "1.0 × 3034.4 / 8307 = 0.37 < 1.0",
+        "ratio": 0.37,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表2.5.13",
+          "com_case": 35,
+          "pile": "右杭",
+          "status": "inferred"
+        },
+        "fr_figure": "図3.3.3"
+      }
+    ],
+    "displacement": [
+      {
+        "limit_state": "安全性 水平安定",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-159",
+          "pdf": "2of3",
+          "pdf_index": 48
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.012 × ( √6 × 1000 ) = 29.4 mm < 100 mm",
+        "delta_Ld_mm": 29.4,
+        "delta_Ld_cap_mm": 100,
+        "gamma_i": 1.2,
+        "delta_mm": 8.51,
+        "ratio_printed": "1.2 × 8.51 / 29.4 = 0.35 < 1.0",
+        "ratio": 0.35,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表2.5.11",
+          "value_in_table_mm": 8.5056,
+          "com_case": [
+            15,
+            18
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "安全性 回転安定",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-159",
+          "pdf": "2of3",
+          "pdf_index": 48
+        },
+        "theta_Ld_rad": 0.006,
+        "theta_Ld_printed": "0.00600",
+        "gamma_i": 1.2,
+        "theta_rad": 0.00092,
+        "theta_printed": "0.00092",
+        "ratio_printed": "1.2 × 0.00092 / 0.00600 = 0.18 < 1.0",
+        "ratio": 0.18,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表2.5.11",
+          "value_in_table_rad": 0.0009203,
+          "com_case": [
+            7,
+            10
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 長期支持性能 水平方向",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-163",
+          "pdf": "2of3",
+          "pdf_index": 52
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.004 × ( √6 × 1000 ) = 9.8 mm < 40 mm",
+        "delta_Ld_mm": 9.8,
+        "delta_Ld_cap_mm": 40,
+        "gamma_i": 1.0,
+        "delta_mm": 0.17,
+        "ratio_printed": "1.0 × 0.17 / 9.8 = 0.02 < 1.0",
+        "ratio": 0.02,
+        "result": "O.K.",
+        "heading_printed": "② 杭基礎の水平安定の照査",
+        "source_inferred": {
+          "table": "表2.5.12",
+          "value_in_table_mm": 0.1672,
+          "com_case": [
+            31
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 長期支持性能 回転方向",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-164",
+          "pdf": "2of3",
+          "pdf_index": 53
+        },
+        "theta_Ld_rad": 0.002,
+        "theta_Ld_printed": "0.00200",
+        "gamma_i": 1.0,
+        "theta_rad": 4e-05,
+        "theta_printed": "0.00004",
+        "ratio_printed": "1.0 × 0.00004 / 0.00200 = 0.02 < 1.0",
+        "ratio": 0.02,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表2.5.12",
+          "value_in_table_rad": 3.61e-05,
+          "com_case": [
+            31
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 短期支持性能 水平方向",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-167",
+          "pdf": "2of3",
+          "pdf_index": 56
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.004LA = 0.004 × ( √6 × 1000 ) = 9.8 mm < 40 mm",
+        "delta_Ld_mm": 9.8,
+        "delta_Ld_cap_mm": 40,
+        "gamma_i": 1.0,
+        "delta_mm": 2.99,
+        "ratio_printed": "1.0 × 2.99 / 9.8 = 0.30 < 1.0",
+        "ratio": 0.3,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表2.5.13",
+          "value_in_table_mm": 2.9884,
+          "com_case": [
+            33,
+            36
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 短期支持性能 回転方向",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-167",
+          "pdf": "2of3",
+          "pdf_index": 56
+        },
+        "theta_Ld_rad": 0.002,
+        "theta_Ld_printed": "0.00200",
+        "gamma_i": 1.0,
+        "theta_rad": 0.00035,
+        "theta_printed": "0.00035",
+        "ratio_printed": "1.0 × 0.00035 / 0.00200 = 0.18 < 1.0",
+        "ratio": 0.18,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表2.5.13",
+          "value_in_table_rad": 0.0003545,
+          "com_case": [
+            33,
+            36
+          ],
+          "status": "inferred"
+        }
+      }
+    ],
+    "pile_body": [
+      {
+        "table": "表3.2.4 線路方向設計断面力",
+        "page": {
+          "printed": "III-147",
+          "pdf": "2of3",
+          "pdf_index": 36
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 139.1,
+        "N_d_kN": 1572.6,
+        "combination_case": 16,
+        "remark": "Mmax"
+      },
+      {
+        "table": "表3.2.4 線路方向設計断面力",
+        "page": {
+          "printed": "III-147",
+          "pdf": "2of3",
+          "pdf_index": 36
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 75.4,
+        "N_d_kN": 4609.4,
+        "combination_case": 4,
+        "remark": "Nmax"
+      },
+      {
+        "table": "表3.2.5 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-149",
+          "pdf": "2of3",
+          "pdf_index": 38
+        },
+        "kind": "axial_bending",
+        "Case": 2,
+        "Md_kNm": 139.1,
+        "N_d_kN": 1572.6,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "I_m4": 0.00318176,
+        "yt_yc_mm": 399,
+        "fsyk_N_mm2": 315,
+        "f_syk_compression_N_mm2": 315,
+        "fsyd_N_mm2": 300,
+        "f_syd_compression_N_mm2": 300,
+        "Nud_kN": 11917.1,
+        "N_u0d_kN": 11917.1,
+        "Mutd_kNm": 2278.4,
+        "Muc0d_kNm": 2278.4,
+        "ratio_tension_side": null,
+        "ratio_tension_side_printed": "—",
+        "ratio_compression_side": 0.23,
+        "result": "O.K",
+        "remark": "Mmax"
+      },
+      {
+        "table": "表3.2.5 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-149",
+          "pdf": "2of3",
+          "pdf_index": 38
+        },
+        "kind": "axial_bending",
+        "Case": 1,
+        "Md_kNm": 75.4,
+        "N_d_kN": 4609.4,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "I_m4": 0.00318176,
+        "yt_yc_mm": 399,
+        "fsyk_N_mm2": 315,
+        "f_syk_compression_N_mm2": 315,
+        "fsyd_N_mm2": 300,
+        "f_syd_compression_N_mm2": 300,
+        "Nud_kN": 11917.1,
+        "N_u0d_kN": 11917.1,
+        "Mutd_kNm": 2278.4,
+        "Muc0d_kNm": 2278.4,
+        "ratio_tension_side": null,
+        "ratio_tension_side_printed": "—",
+        "ratio_compression_side": 0.5,
+        "result": "O.K",
+        "remark": "Nmax"
+      },
+      {
+        "table": "表3.2.6 線路方向設計断面力",
+        "page": {
+          "printed": "III-150",
+          "pdf": "2of3",
+          "pdf_index": 39
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 97.3,
+        "Vd_kN": 154.3,
+        "N_d_kN": 3784.8,
+        "combination_case": 18,
+        "remark": null
+      },
+      {
+        "table": "表3.2.7 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-150",
+          "pdf": "2of3",
+          "pdf_index": 39
+        },
+        "kind": "shear",
+        "Vd_kN": 154.3,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "fsvyk_N_mm2": 180,
+        "fsvyd_N_mm2": 171,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.03,
+        "result": "O.K",
+        "section_reference_printed": "照査断面は，図 3.2.2 による．"
+      },
+      {
+        "table": "表3.2.8 線路方向設計断面力",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 139.0,
+        "Vd_kN": 31.3,
+        "N_d_kN": 3480.9,
+        "combination_case": 13,
+        "remark": "Mmax"
+      },
+      {
+        "table": "表3.2.8 線路方向設計断面力",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 97.3,
+        "Vd_kN": 154.3,
+        "N_d_kN": 3784.8,
+        "combination_case": 18,
+        "remark": "Vmax"
+      },
+      {
+        "table": "表3.2.8 線路方向設計断面力",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 75.4,
+        "Vd_kN": 133.0,
+        "N_d_kN": 4609.4,
+        "combination_case": 4,
+        "remark": "Nmax"
+      },
+      {
+        "table": "表3.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "combined",
+        "Case": 2,
+        "Md_kNm": 139.0,
+        "N_d_kN": 3480.9,
+        "Vd_kN": 31.3,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.15,
+        "result": "O.K",
+        "remark": "Mmax"
+      },
+      {
+        "table": "表3.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "combined",
+        "Case": 9,
+        "Md_kNm": 97.3,
+        "N_d_kN": 3784.8,
+        "Vd_kN": 154.3,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.16,
+        "result": "O.K",
+        "remark": "Vmax"
+      },
+      {
+        "table": "表3.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-151",
+          "pdf": "2of3",
+          "pdf_index": 40
+        },
+        "kind": "combined",
+        "Case": 1,
+        "Md_kNm": 75.4,
+        "N_d_kN": 4609.4,
+        "Vd_kN": 133.0,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.21,
+        "result": "O.K",
+        "remark": "Nmax"
+      }
+    ],
+    "joint": [
+      {
+        "table": "表3.2.10 線路方向設計断面力",
+        "page": {
+          "printed": "III-152",
+          "pdf": "2of3",
+          "pdf_index": 41
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 284.6,
+        "N_d_kN": 3847.9,
+        "combination_case": 18,
+        "remark": "押込み側"
+      },
+      {
+        "table": "表3.2.10 線路方向設計断面力",
+        "page": {
+          "printed": "III-152",
+          "pdf": "2of3",
+          "pdf_index": 41
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 284.0,
+        "N_d_kN": 1338.1,
+        "combination_case": 15,
+        "remark": "引抜き側"
+      },
+      {
+        "table": "表3.2.11 杭とフーチングの結合部の安全性の照査結果",
+        "page": {
+          "printed": "III-153",
+          "pdf": "2of3",
+          "pdf_index": 42
+        },
+        "kind": "bending",
+        "side": "押込み側",
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "As_mm2": 18240.0,
+        "As_bars_printed": "D38-16本",
+        "das_mm": 75.0,
+        "f_ck_N_mm2": 27.0,
+        "fyk_N_mm2": 390,
+        "fsyk_N_mm2": 315,
+        "gamma_c": 1.3,
+        "gamma_s": 1.05,
+        "gamma_b": 1.3,
+        "gamma_i": 1.2,
+        "Md_kNm": 284.6,
+        "N_d_kN": 3847.9,
+        "Mud_kNm": 2957.2,
+        "ratio": 0.12,
+        "result": "O.K"
+      },
+      {
+        "table": "表3.2.11 杭とフーチングの結合部の安全性の照査結果",
+        "page": {
+          "printed": "III-153",
+          "pdf": "2of3",
+          "pdf_index": 42
+        },
+        "kind": "bending",
+        "side": "引抜き側",
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "As_mm2": 18240.0,
+        "As_bars_printed": "D38-16本",
+        "das_mm": 75.0,
+        "f_ck_N_mm2": 27.0,
+        "fyk_N_mm2": 390,
+        "fsyk_N_mm2": 315,
+        "gamma_c": 1.3,
+        "gamma_s": 1.05,
+        "gamma_b": 1.3,
+        "gamma_i": 1.2,
+        "Md_kNm": 284.0,
+        "N_d_kN": 1338.1,
+        "Mud_kNm": 2449.8,
+        "ratio": 0.14,
+        "result": "O.K"
+      },
+      {
+        "kind": "shear",
+        "page": {
+          "printed": "III-154",
+          "pdf": "2of3",
+          "pdf_index": 43
+        },
+        "omitted": true,
+        "Vyd_kN": null,
+        "ratio": null,
+        "reason_printed": "【杭体設計の手引き】に示される仕様を満足する一般的な設計条件（【基礎標準 解説表15.1.1-1】）の鋼管杭であれば，結合部での純せん断による破壊は生じないと考えられることから，仮想RC部材としてのせん断耐力の照査は行わなくて良い．本設計計算例の鋼管杭は，周面支持の杭基礎となるので，一般的な設計条件を満足しない特殊な設計条件となるが，せん断耐力への影響は少ないことから上記条件と同等と判断し，照査を省略する．"
+      }
+    ],
+    "omitted": [
+      {
+        "check": "結合部のせん断力に対する照査",
+        "page": {
+          "printed": "III-154",
+          "pdf": "2of3",
+          "pdf_index": 43
+        },
+        "reason": "上の joint の shear 行を参照（純せん断の破壊は生じないとみなす）"
+      },
+      {
+        "check": "3.2.3 使用性 (1) 損傷（鋼管杭・結合部）",
+        "page": {
+          "printed": "III-155",
+          "pdf": "2of3",
+          "pdf_index": 44
+        },
+        "reason_printed": "本設計計算例では，記載を省略する．"
+      },
+      {
+        "check": "引抜き側（安全性・長期・短期の鉛直方向）",
+        "page": [
+          {
+            "printed": "III-158",
+            "pdf": "2of3",
+            "pdf_index": 47
+          },
+          {
+            "printed": "III-162",
+            "pdf": "2of3",
+            "pdf_index": 51
+          },
+          {
+            "printed": "III-166",
+            "pdf": "2of3",
+            "pdf_index": 55
+          }
+        ],
+        "reason_printed": "引抜き側においては，引張軸力は発生しないため，照査を省略する．"
+      },
+      {
+        "check": "3.3.2 (1)(d) 基礎部材等の破壊【基礎標準 15.3.2.5】",
+        "page": {
+          "printed": "III-160",
+          "pdf": "2of3",
+          "pdf_index": 49
+        },
+        "reason_printed": "3.2.2 (1) において，基礎部材が破壊の照査を満足することを確認したため，記載を省略する．"
+      },
+      {
+        "check": "3.3.3 (1)(d) 長期支持性能および短期支持性能以外",
+        "page": {
+          "printed": "III-168",
+          "pdf": "2of3",
+          "pdf_index": 57
+        },
+        "reason_printed": "3.3.2 (1) において，基礎部材が破壊の照査を満足することを確認しており，照査を満足することが明らかなため，記載を省略する．"
+      }
+    ]
+  },
+  "transverse": {
+    "pages": {
+      "range": {
+        "printed": "III-240〜III-263",
+        "pdf": "2of3",
+        "pdf_index": "129〜152"
+      },
+      "items": [
+        {
+          "section": "5.2.1 設計限界値および照査断面（表5.2.1・表5.2.2・図5.2.1）",
+          "printed": "III-240",
+          "pdf": "2of3",
+          "pdf_index": 129
+        },
+        {
+          "section": "5.2.1 結合部の照査断面（図5.2.2・表5.2.3）",
+          "printed": "III-241",
+          "pdf": "2of3",
+          "pdf_index": 130
+        },
+        {
+          "section": "5.2.2 (1)(a) a) 軸方向力と曲げ（表5.2.4・式）",
+          "printed": "III-242",
+          "pdf": "2of3",
+          "pdf_index": 131
+        },
+        {
+          "section": "同 式の続き",
+          "printed": "III-243",
+          "pdf": "2of3",
+          "pdf_index": 132
+        },
+        {
+          "section": "表5.2.5 鋼管杭の安全性の照査結果",
+          "printed": "III-244",
+          "pdf": "2of3",
+          "pdf_index": 133
+        },
+        {
+          "section": "b) せん断（表5.2.6・表5.2.7）",
+          "printed": "III-245",
+          "pdf": "2of3",
+          "pdf_index": 134
+        },
+        {
+          "section": "c) 軸方向圧縮力・曲げ・せん断（表5.2.8・表5.2.9）",
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        {
+          "section": "(b) 杭とフーチングの結合部 a) 曲げ（表5.2.10・式）",
+          "printed": "III-247",
+          "pdf": "2of3",
+          "pdf_index": 136
+        },
+        {
+          "section": "表5.2.11 杭とフーチングの結合部の安全性の照査結果",
+          "printed": "III-248",
+          "pdf": "2of3",
+          "pdf_index": 137
+        },
+        {
+          "section": "b) 結合部のせん断（省略）",
+          "printed": "III-249",
+          "pdf": "2of3",
+          "pdf_index": 138
+        },
+        {
+          "section": "5.2.3 使用性 (1) 損傷（省略）",
+          "printed": "III-250",
+          "pdf": "2of3",
+          "pdf_index": 139
+        },
+        {
+          "section": "5.3 / 5.3.1 設計限界値（表5.3.1）",
+          "printed": "III-251",
+          "pdf": "2of3",
+          "pdf_index": 140
+        },
+        {
+          "section": "5.3.2 (1)(a) 地盤の破壊（Rk・Wp・pt）",
+          "printed": "III-252",
+          "pdf": "2of3",
+          "pdf_index": 141
+        },
+        {
+          "section": "図5.3.1・Rvd・Rud・地盤の破壊の照査",
+          "printed": "III-253",
+          "pdf": "2of3",
+          "pdf_index": 142
+        },
+        {
+          "section": "(b) 水平安定・(c) 回転安定",
+          "printed": "III-254",
+          "pdf": "2of3",
+          "pdf_index": 143
+        },
+        {
+          "section": "(d) 基礎部材等の破壊（省略）",
+          "printed": "III-255",
+          "pdf": "2of3",
+          "pdf_index": 144
+        },
+        {
+          "section": "5.3.3 (1)(a) a) 長期支持 鉛直（式）",
+          "printed": "III-256",
+          "pdf": "2of3",
+          "pdf_index": 145
+        },
+        {
+          "section": "図5.3.2・長期 Rvd・Rud・照査",
+          "printed": "III-257",
+          "pdf": "2of3",
+          "pdf_index": 146
+        },
+        {
+          "section": "b) 長期 水平方向",
+          "printed": "III-258",
+          "pdf": "2of3",
+          "pdf_index": 147
+        },
+        {
+          "section": "c) 長期 回転方向",
+          "printed": "III-259",
+          "pdf": "2of3",
+          "pdf_index": 148
+        },
+        {
+          "section": "(b) a) 短期支持 鉛直（式）",
+          "printed": "III-260",
+          "pdf": "2of3",
+          "pdf_index": 149
+        },
+        {
+          "section": "図5.3.3・短期 Rvd・Rud・照査",
+          "printed": "III-261",
+          "pdf": "2of3",
+          "pdf_index": 150
+        },
+        {
+          "section": "b) 短期 水平方向・c) 短期 回転方向",
+          "printed": "III-262",
+          "pdf": "2of3",
+          "pdf_index": 151
+        },
+        {
+          "section": "(d) 長期支持性能および短期支持性能以外（省略）",
+          "printed": "III-263",
+          "pdf": "2of3",
+          "pdf_index": 152
+        }
+      ]
+    },
+    "pile_section": {
+      "table": "表5.2.2",
+      "page": {
+        "printed": "III-240",
+        "pdf": "2of3",
+        "pdf_index": 129
+      },
+      "material": "SKK490",
+      "fsyk_N_mm2": 315,
+      "f_syk_compression_N_mm2": 315,
+      "D_mm": 800,
+      "t_mm": 17,
+      "corrosion_mm_note": "※鋼管の腐食代1mm"
+    },
+    "joint_section": {
+      "table": "表5.2.3・図5.2.2",
+      "page": {
+        "printed": "III-241",
+        "pdf": "2of3",
+        "pdf_index": 130
+      },
+      "f_ck_N_mm2": 27.0,
+      "anchor_fsyk_N_mm2": 390,
+      "anchor_label_printed": "fsyk（表の記号。表の結合部の照査結果では fyk）",
+      "Ase_printed": "D38-16本=18240.0 (mm2)",
+      "Ase_mm2": 18240.0,
+      "D_mm": 800,
+      "t_mm": 17,
+      "corrosion_mm_note": "※鋼管の腐食代1mm",
+      "figure_dimensions_mm": {
+        "edge_left": 75,
+        "bar_circle": 650,
+        "edge_right": 75,
+        "D": 800
+      }
+    },
+    "pile_body_formulas": {
+      "Nud": "Nud = A·fsyd/γb",
+      "N_u0d": "N'u0d = A·f'syd/γb",
+      "Mutd": "Mutd = I/yt·fsyd/γb",
+      "Muc0d": "Muc0d = I/yc·f'syd/γb",
+      "Vyd": "Vyd = A·fsvyd/γb",
+      "bending_check": [
+        "γi·(−N'd/Nud + Md/Mutd) ≦ 1.0",
+        "γi·(N'd/N'u0d + Md/Muc0d) ≦ 1.0"
+      ],
+      "shear_check": "γi·Vd/Vyd ≦ 1.0",
+      "combined_check": "(γi/1.1)²·[(N'd/N'u0d + Md/Muc0d)² + (Vd/Vyd)²] ≦ 1.0",
+      "gamma_b": 1.05,
+      "gamma_i": 1.2,
+      "reference": "【杭体設計の手引き 2.2】",
+      "heading_reference": "【基礎標準 15.3.2.5】【杭体設計の手引き 2.2】"
+    },
+    "joint_formulas": {
+      "f_cck": "f'cck = f'cd(2.254√(1+7.94σ'1/f'ck) − 2·σ'1/f'ck − 1.254)【杭体設計の手引き 解2.4-2】",
+      "sigma_1": "σ'1 = 2·t·fsyd/(D−2t)【杭体設計の手引き 解2.4-3】",
+      "eps_cc": "ε'cc = 0.002[1+5(f'cc/f'cd−1)]【杭体設計の手引き 解2.4-5】",
+      "check": "γi·Md/Mud",
+      "note": "Mud の途中の値（f'cd、σ'1、f'cck、ε'cc、中立軸など）は印字されていない"
+    },
+    "bearing": [
+      {
+        "limit_state": "安全性（変位・変形の限界）地盤の破壊（地震時以外）",
+        "page": {
+          "printed": "III-253",
+          "pdf": "2of3",
+          "pdf_index": 142
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "gamma_pile_kN_m3": 16,
+        "Wp_printed": "1/4 × π × 1.00 ^2 × (16.0 − 10) × 26.5 = 125 kN",
+        "Wp_kN": 125,
+        "pt_printed": "1649 / 9972 = 0.165",
+        "pt": 0.165,
+        "Rfk_pull_kN": 8806,
+        "fr_push": 1.02,
+        "fr_pull_pt0": 1.03,
+        "Rvd_printed": "1.02 × ( 1 × 9971.9 ) = 10171",
+        "Rvd_kN": 10171,
+        "Rud_printed": "1.03 × ( 1 × 8806 ) + 1 × 125 = 9196",
+        "Rud_kN": 9196,
+        "gamma_i": 1.2,
+        "Vd_kN": 4176.0,
+        "ratio_printed": "1.2 × 4176.0 / 10171 = 0.49 < 1.0",
+        "ratio": 0.49,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表4.5.11",
+          "com_case": 1,
+          "pile": "右杭",
+          "status": "inferred",
+          "note": "表の最大値"
+        },
+        "fr_reference": "【基礎標準 解説図15.3.2.2-1】",
+        "fr_figure": "図5.3.1"
+      },
+      {
+        "limit_state": "使用性（残留変位の限界）長期支持性能・鉛直方向",
+        "page": {
+          "printed": "III-257",
+          "pdf": "2of3",
+          "pdf_index": 146
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "Wp_kN": 125,
+        "pt": 0.165,
+        "fr_push": 0.647,
+        "fr_pull_pt0": null,
+        "Rvd_printed": "0.647 × ( 1 × 9972 ) = 6452",
+        "Rvd_kN": 6452,
+        "Rud_printed": "1 × 125 = 125",
+        "Rud_kN": 125,
+        "Rud_rule": "設計引抜き抵抗力 Rud は，杭の有効自重 Wp のみを考慮する（式 解15.3.3.2-2: Rud = Wp）",
+        "gamma_i": 1.0,
+        "Vd_kN": 2219.3,
+        "ratio_printed": "1.0 × 2219.3 / 6452 = 0.34 < 1.0",
+        "ratio": 0.34,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表4.5.12",
+          "com_case": 11,
+          "pile": "中杭",
+          "status": "inferred"
+        },
+        "fr_figure": "図5.3.2"
+      },
+      {
+        "limit_state": "使用性（残留変位の限界）短期支持性能・鉛直方向",
+        "page": {
+          "printed": "III-261",
+          "pdf": "2of3",
+          "pdf_index": 150
+        },
+        "per": "杭1本分",
+        "Rk_kN": 9972,
+        "Rtk_kN": 1649,
+        "Rfk_push_kN": 8323,
+        "Rfk_pull_kN": 8806,
+        "Wp_kN": 125,
+        "pt": 0.165,
+        "fr_push": 0.833,
+        "fr_pull_pt0": 0.84,
+        "Rvd_printed": "0.833 × ( 1 × 9972 ) = 8307",
+        "Rvd_kN": 8307,
+        "Rud_printed": "0.840 × ( 1 × 8806 ) + 1 × 125 = 7522",
+        "Rud_kN": 7522,
+        "gamma_i": 1.0,
+        "Vd_kN": 2685.0,
+        "ratio_printed": "1.0 × 2685.0 / 8307 = 0.32 < 1.0",
+        "ratio": 0.32,
+        "result": "O.K.",
+        "Vud_kN": null,
+        "uplift": "引抜き側においては，引張軸力は発生しないため，照査を省略する．",
+        "Vd_case_printed": null,
+        "Vd_source_inferred": {
+          "table": "表4.5.13",
+          "com_case": 12,
+          "pile": "中杭",
+          "status": "inferred"
+        },
+        "fr_figure": "図5.3.3"
+      }
+    ],
+    "displacement": [
+      {
+        "limit_state": "安全性 水平安定",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-254",
+          "pdf": "2of3",
+          "pdf_index": 143
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.012 × ( √6 × 1000 ) = 29.4 mm < 100 mm",
+        "delta_Ld_mm": 29.4,
+        "delta_Ld_cap_mm": 100,
+        "gamma_i": 1.2,
+        "delta_mm": 3.63,
+        "ratio_printed": "1.2 × 3.63 / 29.4 = 0.15 < 1.0",
+        "ratio": 0.15,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表4.5.11",
+          "value_in_table_mm": 3.6273,
+          "com_case": [
+            5,
+            7
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "安全性 回転安定",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-254",
+          "pdf": "2of3",
+          "pdf_index": 143
+        },
+        "theta_Ld_rad": 0.006,
+        "theta_Ld_printed": "0.00600",
+        "gamma_i": 1.2,
+        "theta_rad": 0.00047,
+        "theta_printed": "0.00047",
+        "ratio_printed": "1.2 × 0.00047 / 0.00600 = 0.09 < 1.0",
+        "ratio": 0.09,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表4.5.11",
+          "value_in_table_rad": 0.0004726,
+          "com_case": [
+            2,
+            4
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 長期支持性能 水平方向",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-258",
+          "pdf": "2of3",
+          "pdf_index": 147
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.004 × ( √6 × 1000 ) = 9.8 mm < 40 mm",
+        "delta_Ld_mm": 9.8,
+        "delta_Ld_cap_mm": 40,
+        "gamma_i": 1.0,
+        "delta_mm": null,
+        "ratio": null,
+        "result": null,
+        "statement_printed": "本設計計算例においては，Hd=0なので，照査を満足することは明らかである．",
+        "source_inferred": {
+          "table": "表4.5.12",
+          "value_in_table_mm": 0.0,
+          "com_case": [
+            11
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 長期支持性能 回転方向",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-259",
+          "pdf": "2of3",
+          "pdf_index": 148
+        },
+        "theta_Ld_rad": null,
+        "theta_Ld_text": "2/1000rad",
+        "gamma_i": 1.0,
+        "theta_rad": null,
+        "ratio": null,
+        "result": null,
+        "statement_printed": "本設計計算例においては，θd=0なので，照査を満足することは明らかである．",
+        "source_inferred": {
+          "table": "表4.5.12",
+          "value_in_table_rad": 0.0,
+          "com_case": [
+            11
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 短期支持性能 水平方向",
+        "kind": "horizontal",
+        "page": {
+          "printed": "III-262",
+          "pdf": "2of3",
+          "pdf_index": 151
+        },
+        "LA_formula": "LA = √N·D",
+        "N_piles": 6,
+        "D_mm": 1000,
+        "D_label": "杭の設計径（ソイルセメント体の公称径）",
+        "delta_Ld_printed": "0.004LA = 0.004 × ( √6 × 1000 ) = 9.8 mm < 40 mm",
+        "delta_Ld_mm": 9.8,
+        "delta_Ld_cap_mm": 40,
+        "gamma_i": 1.0,
+        "delta_mm": 0.74,
+        "ratio_printed": "1.0 × 0.74 / 9.8 = 0.08 < 1.0",
+        "ratio": 0.08,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表4.5.13",
+          "value_in_table_mm": 0.7411,
+          "com_case": [
+            13,
+            15
+          ],
+          "status": "inferred"
+        }
+      },
+      {
+        "limit_state": "使用性 短期支持性能 回転方向",
+        "kind": "rotation",
+        "page": {
+          "printed": "III-262",
+          "pdf": "2of3",
+          "pdf_index": 151
+        },
+        "theta_Ld_rad": 0.002,
+        "theta_Ld_printed": "0.00200",
+        "gamma_i": 1.0,
+        "theta_rad": 0.00017,
+        "theta_printed": "0.00017",
+        "ratio_printed": "1.0 × 0.00017 / 0.00200 = 0.08 < 1.0",
+        "ratio": 0.08,
+        "result": "O.K.",
+        "source_inferred": {
+          "table": "表4.5.13",
+          "value_in_table_rad": 0.000168,
+          "com_case": [
+            13,
+            15
+          ],
+          "status": "inferred"
+        }
+      }
+    ],
+    "pile_body": [
+      {
+        "table": "表5.2.4 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-242",
+          "pdf": "2of3",
+          "pdf_index": 131
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 57.5,
+        "N_d_kN": 2472.5,
+        "combination_case": 2,
+        "remark": "Mmax"
+      },
+      {
+        "table": "表5.2.4 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-242",
+          "pdf": "2of3",
+          "pdf_index": 131
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 34.5,
+        "N_d_kN": 4110.2,
+        "combination_case": 1,
+        "remark": "Nmax"
+      },
+      {
+        "table": "表5.2.5 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-244",
+          "pdf": "2of3",
+          "pdf_index": 133
+        },
+        "kind": "axial_bending",
+        "Case": 2,
+        "Md_kNm": 57.5,
+        "N_d_kN": 2472.5,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "I_m4": 0.00318176,
+        "yt_yc_mm": 399,
+        "fsyk_N_mm2": 315,
+        "f_syk_compression_N_mm2": 315,
+        "fsyd_N_mm2": 300,
+        "f_syd_compression_N_mm2": 300,
+        "Nud_kN": 11917.1,
+        "N_u0d_kN": 11917.1,
+        "Mutd_kNm": 2278.4,
+        "Muc0d_kNm": 2278.4,
+        "ratio_tension_side": null,
+        "ratio_tension_side_printed": "—",
+        "ratio_compression_side": 0.28,
+        "result": "O.K",
+        "remark": "Mmax"
+      },
+      {
+        "table": "表5.2.5 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-244",
+          "pdf": "2of3",
+          "pdf_index": 133
+        },
+        "kind": "axial_bending",
+        "Case": 1,
+        "Md_kNm": 34.5,
+        "N_d_kN": 4110.2,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "I_m4": 0.00318176,
+        "yt_yc_mm": 399,
+        "fsyk_N_mm2": 315,
+        "f_syk_compression_N_mm2": 315,
+        "fsyd_N_mm2": 300,
+        "f_syd_compression_N_mm2": 300,
+        "Nud_kN": 11917.1,
+        "N_u0d_kN": 11917.1,
+        "Mutd_kNm": 2278.4,
+        "Muc0d_kNm": 2278.4,
+        "ratio_tension_side": null,
+        "ratio_tension_side_printed": "—",
+        "ratio_compression_side": 0.43,
+        "result": "O.K",
+        "remark": "Nmax"
+      },
+      {
+        "table": "表5.2.6 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-245",
+          "pdf": "2of3",
+          "pdf_index": 134
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 50.2,
+        "Vd_kN": 13.6,
+        "N_d_kN": 2036.7,
+        "combination_case": 7,
+        "remark": null
+      },
+      {
+        "table": "表5.2.7 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-245",
+          "pdf": "2of3",
+          "pdf_index": 134
+        },
+        "kind": "shear",
+        "Vd_kN": 13.6,
+        "gamma_s": 1.05,
+        "gamma_b": 1.05,
+        "gamma_i": 1.2,
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "A_m2": 0.04171,
+        "fsvyk_N_mm2": 180,
+        "fsvyd_N_mm2": 171,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.0,
+        "result": "O.K",
+        "ratio_printed": "0.00",
+        "section_reference_printed": "照査断面は，図 5.2.1 による．"
+      },
+      {
+        "table": "表5.2.8 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "design_force",
+        "member": "く体下端",
+        "Md_kNm": 57.5,
+        "Vd_kN": 4.6,
+        "N_d_kN": 2472.5,
+        "combination_case": 4,
+        "remark": "Mmax"
+      },
+      {
+        "table": "表5.2.8 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "design_force",
+        "member": "く体下端",
+        "Md_kNm": 36.0,
+        "Vd_kN": 53.8,
+        "N_d_kN": 4077.1,
+        "combination_case": 5,
+        "remark": "Vmax"
+      },
+      {
+        "table": "表5.2.8 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "design_force",
+        "member": "く体下端",
+        "Md_kNm": 34.5,
+        "Vd_kN": 51.4,
+        "N_d_kN": 4110.2,
+        "combination_case": 1,
+        "remark": "Nmax"
+      },
+      {
+        "table": "表5.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "combined",
+        "Case": 4,
+        "Md_kNm": 57.5,
+        "N_d_kN": 2472.5,
+        "Vd_kN": 4.6,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.06,
+        "result": "O.K",
+        "remark": "Mmax"
+      },
+      {
+        "table": "表5.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "combined",
+        "Case": 5,
+        "Md_kNm": 36.0,
+        "N_d_kN": 4077.1,
+        "Vd_kN": 53.8,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.15,
+        "result": "O.K",
+        "remark": "Vmax"
+      },
+      {
+        "table": "表5.2.9 鋼管杭の安全性の照査結果",
+        "page": {
+          "printed": "III-246",
+          "pdf": "2of3",
+          "pdf_index": 135
+        },
+        "kind": "combined",
+        "Case": 1,
+        "Md_kNm": 34.5,
+        "N_d_kN": 4110.2,
+        "Vd_kN": 51.4,
+        "gamma_i": 1.2,
+        "N_u0d_kN": 11917.1,
+        "Muc0d_kNm": 2278.4,
+        "Vyd_kN": 6792.8,
+        "ratio": 0.15,
+        "result": "O.K",
+        "remark": "Nmax"
+      }
+    ],
+    "joint": [
+      {
+        "table": "表5.2.10 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-247",
+          "pdf": "2of3",
+          "pdf_index": 136
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 100.5,
+        "N_d_kN": 4142.2,
+        "combination_case": 5,
+        "remark": "押込み側"
+      },
+      {
+        "table": "表5.2.10 線路直角方向設計断面力",
+        "page": {
+          "printed": "III-247",
+          "pdf": "2of3",
+          "pdf_index": 136
+        },
+        "kind": "design_force",
+        "member": "鋼管杭",
+        "Md_kNm": 99.9,
+        "N_d_kN": 2141.7,
+        "combination_case": 7,
+        "remark": "引抜き側"
+      },
+      {
+        "table": "表5.2.11 杭とフーチングの結合部の安全性の照査結果",
+        "page": {
+          "printed": "III-248",
+          "pdf": "2of3",
+          "pdf_index": 137
+        },
+        "kind": "bending",
+        "side": "押込み側",
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "As_mm2": 18240.0,
+        "As_bars_printed": "D38-16本",
+        "das_mm": 75.0,
+        "f_ck_N_mm2": 27.0,
+        "fyk_N_mm2": 390,
+        "fsyk_N_mm2": 315,
+        "gamma_c": 1.3,
+        "gamma_s": 1.05,
+        "gamma_b": 1.3,
+        "gamma_i": 1.2,
+        "Md_kNm": 100.5,
+        "N_d_kN": 4142.2,
+        "Mud_kNm": 3000.5,
+        "ratio": 0.04,
+        "result": "O.K"
+      },
+      {
+        "table": "表5.2.11 杭とフーチングの結合部の安全性の照査結果",
+        "page": {
+          "printed": "III-248",
+          "pdf": "2of3",
+          "pdf_index": 137
+        },
+        "kind": "bending",
+        "side": "引抜き側",
+        "D_mm": 798,
+        "t_mm": 17,
+        "corrosion_mm": 1,
+        "As_mm2": 18240.0,
+        "As_bars_printed": "D38-16本",
+        "das_mm": 75.0,
+        "f_ck_N_mm2": 27.0,
+        "fyk_N_mm2": 390,
+        "fsyk_N_mm2": 315,
+        "gamma_c": 1.3,
+        "gamma_s": 1.05,
+        "gamma_b": 1.3,
+        "gamma_i": 1.2,
+        "Md_kNm": 99.9,
+        "N_d_kN": 2141.7,
+        "Mud_kNm": 2631.1,
+        "ratio": 0.05,
+        "result": "O.K"
+      },
+      {
+        "kind": "shear",
+        "page": {
+          "printed": "III-249",
+          "pdf": "2of3",
+          "pdf_index": 138
+        },
+        "omitted": true,
+        "Vyd_kN": null,
+        "ratio": null,
+        "reason_printed": "【杭体設計の手引き】に示される仕様を満足する一般的な設計条件（【基礎標準 解説表15.1.1-1】）の鋼管杭であれば，結合部での純せん断による破壊は生じないと考えられることから，仮想RC部材としてのせん断耐力の照査は行わなくて良い．本設計計算例の鋼管杭は，周面支持の杭基礎となるので，一般的な設計条件を満足しない特殊な設計条件となるが，せん断耐力への影響は少ないことから上記条件と同等と判断し，照査を省略する．"
+      }
+    ],
+    "omitted": [
+      {
+        "check": "結合部のせん断力に対する照査",
+        "page": {
+          "printed": "III-249",
+          "pdf": "2of3",
+          "pdf_index": 138
+        },
+        "reason": "上の joint の shear 行を参照（純せん断の破壊は生じないとみなす）"
+      },
+      {
+        "check": "5.2.3 使用性 (1) 損傷（鋼管杭・結合部）",
+        "page": {
+          "printed": "III-250",
+          "pdf": "2of3",
+          "pdf_index": 139
+        },
+        "reason_printed": "鋼管杭部材および杭とフーチングの結合部において，安全性（破壊）の照査を満足していることで，使用性（損傷）の照査を満足することは明らかであるため，本設計計算例では照査を省略する．"
+      },
+      {
+        "check": "引抜き側（安全性・長期・短期の鉛直方向）",
+        "page": [
+          {
+            "printed": "III-253",
+            "pdf": "2of3",
+            "pdf_index": 142
+          },
+          {
+            "printed": "III-257",
+            "pdf": "2of3",
+            "pdf_index": 146
+          },
+          {
+            "printed": "III-261",
+            "pdf": "2of3",
+            "pdf_index": 150
+          }
+        ],
+        "reason_printed": "引抜き側においては，引張軸力は発生しないため，照査を省略する．"
+      },
+      {
+        "check": "5.3.2 (1)(d) 基礎部材等の破壊【基礎標準 15.3.2.5】",
+        "page": {
+          "printed": "III-255",
+          "pdf": "2of3",
+          "pdf_index": 144
+        },
+        "reason_printed": "5.2.2 (1) において，基礎部材が破壊の照査を満足することを確認したため，記載を省略する．"
+      },
+      {
+        "check": "5.3.3 (1)(d) 長期支持性能および短期支持性能以外",
+        "page": {
+          "printed": "III-263",
+          "pdf": "2of3",
+          "pdf_index": 152
+        },
+        "reason_printed": "5.3.2 (1) において，基礎部材が破壊の照査を満足することを確認しており，照査を満足することが明らかなため，記載を省略する．"
+      },
+      {
+        "check": "長期支持性能の水平方向・回転方向",
+        "page": [
+          {
+            "printed": "III-258",
+            "pdf": "2of3",
+            "pdf_index": 147
+          },
+          {
+            "printed": "III-259",
+            "pdf": "2of3",
+            "pdf_index": 148
+          }
+        ],
+        "reason_printed": "本設計計算例においては，Hd=0 / θd=0 なので，照査を満足することは明らかである．"
+      }
+    ]
+  }
+}

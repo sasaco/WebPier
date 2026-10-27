@@ -111,7 +111,7 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
         centres = relation_centres(pdf, 22)
         assert len(centres) >= 20 and all(abs(centre) < .5 for centre in centres)
         assert [error for page in pdf if not inserted(page) for error in outside_body(page)] == []
-        page = next(p for p in pdf if "車横最大" in p.get_text() and "縁応力度" in p.get_text())
+        page = next(p for p in pdf if "車横最大" in p.get_text() and "列車最大" in p.get_text())
         top = next(span for span in found if span.text == "安全性" and span.page == page.number + 1).baseline - 25
         rows = [2, 1, 3, 1] + [1] * len(transverse_chain("curve")[2].define_cases)
         assert band_errors(row_bands(page, column_x(10) + 8, top)[:len(rows) + 1], rows) == []

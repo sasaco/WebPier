@@ -10,7 +10,7 @@ the tables, the document and the validator.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Hashable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 
@@ -26,8 +26,8 @@ class Label:
 
 @dataclass(frozen=True)
 class Profile:
-    loads: Mapping[Enum, Label]  # by basic case
-    auxiliary: Mapping[tuple[Enum, Enum], Label]  # by (basic case, basis) for a factor on another action
+    loads: Mapping[Hashable, Label]  # by basic case (0610: (basic case, 列車の配置), decision 102)
+    auxiliary: Mapping[tuple[Hashable, Enum], Label]  # by (basic case, basis) for a factor on another action
     combinations: Mapping[int, str]  # by combination number
     extractions: Mapping[int, str]  # by extraction number
     springs: Mapping[Enum, int]  # spring term of the stage -> LONG_TERM / SHORT_TERM

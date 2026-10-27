@@ -72,7 +72,8 @@ def test_the_section_forces_are_those_of_the_ends_of_the_base_members(made):
     # the right member (the larger number) has the larger sagging moment: 1000 + 100 × pickup + member
     members = [end["member"] for end in points["face_lower"]["point"]["ends"]]
     assert safety["end"]["member"] == max(members)
-    assert safety["md"] == 1000.0 + 100.0 * safety["pickup"] + max(members)
+    # the 安全性（破壊） times the 応答値係数 γR 1.2 (decision 104)
+    assert safety["md"] == round(1.2 * (1000.0 + 100.0 * safety["pickup"] + max(members)), 1)
     seismic = next(force for force in face if force["case"] == "復旧性（地震時）")
     assert seismic["pickup"] == 2 and seismic["md"] > 2000.0  # 2000 + the element of the NDU
     upper = next(force for force in points["face_upper"]["forces"] if force["case"] == "安全性（破壊）")

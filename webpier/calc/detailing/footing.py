@@ -125,7 +125,7 @@ def _direction(pier: PierInput, direction: str, depth: Printed, aggregate_max: P
                            WIDTH, depth),
         spacings=(_spacing(layers[UPPER], aggregate_max), _spacing(lower, aggregate_max)), shear=shear,
         general=general_spacing(effective, groups[UPPER].diameter, diameter, pitch),
-        ductility=ductility_limit(grade, shear.ratio), capacity=capacity_ratio(shear.ratio, grade, pier.materials.footing),
+        ductility=ductility_limit(grade, shear.ratio, f"{_FOOTING}.materials.transverse"), capacity=capacity_ratio(shear.ratio, grade, pier.materials.footing),
         faces=(faces[0], faces[1]))
 
 

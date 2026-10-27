@@ -47,7 +47,7 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 2. WebPier の生成を本物の runner で通すなら、出力先を scratchpad に向ける（`output/` を書き換えない）：
    `uv run --project "." --locked python -X utf8 -m webpier --input tests/fixtures/inputs/current.json --output-dir <dir>/output --post-dir <dir>/post --overwrite`（入力は `outputs` の `transverse_frame_analysis` と使う項目を選んだ current.json の写し。数秒。結果JSON の `section_check.skipped_sections` に飛ばされた節）。
 3. WebPier の WDJ を本物の PIK で試すときは、`export_bytes(pier, "0620", "frameweb")` を `fempython.analyze_frame` に渡して PIK を得て、`point_index(pik, check.member)` で番号を求めてから `build_wdj` する。
-4. 受入：`uv run --project "." --locked python -X utf8 scripts/accept_capacita_column.py 0611`（照査値を見本と比べる）／`… 0621`（耐力と飛ばされた照査を比べる）。WDJ が変わると `tests/acceptance/test_capacita_acceptance.py` が落ちるので、そのときにやり直す。
+4. 受入：`uv run --project "." --locked python -X utf8 scripts/accept_capacita_column.py 0611`（照査値を見本と比べる）／`… 0621`（Mud を手計算 `tests/acceptance/column_capacity_by_hand.py` と、飛ばされた照査を見本と比べる。Myd は記録だけ。決定103・105）。0611 も Mud は手計算と比べる（決定105）。WDJ が変わると `tests/acceptance/test_capacita_acceptance.py` が落ちるので、そのときにやり直す。
 
 ## 直すとき（WebPier 側）
 
@@ -68,8 +68,8 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 
 - 解説の文は見本 08 と 09 で同じで、違うのは節の番号（9.5〜9.10）だけ。WDJ の `basic`・`safety`・ひび割れの行も 08 と同じ（`column_section_check_09.json` の `same_as_08`）。
 - 直角方向は永久作用が左右対称なので Example2 では WD-1914（使用性の曲げ）・WD-1919（耐久性のせん断）が出る（H16 では WD-1901・1906）。見本 09 に 9.7・9.8 がないのはこのため。`pipeline.capacita.SKIPPED` が節とコードの対応で、コードのある欠けだけを認め、計算書は省略の理由を印刷する（`reporting.stages.column_check.OMITTED`）。
-- **直角方向の配筋**：表の主鉄筋は直角の面の D19×9（芯 102）。線路の D32 の隅の鉄筋は両面から 108 にあるので側方鉄筋の側になり、その芯は 108, 300…4200, 4392（両端だけ 192）。見本どおり `side_cover`・`side_ss` を空欄にし、RcDan が上下の主鉄筋の間に等分（芯 245.2 から 143.2 間隔）、側方の芯かぶりは主鉄筋の芯（102）にする。隅の鉄筋の判定は `calc.column_check.corners`。
-- 安全性（破壊）の曲げは側方鉄筋を数えない。直角方向の耐力は見本と 0.2% 未満の差（Mud 29326.7／29334.2、Myd 48634.5／48663.2）。
+- **直角方向の配筋**（決定103 で見本から変えた）：線路の D32 の隅の鉄筋（両面から 108）は近い面の1段目に入れ、D19 の本数に面積で換算する：D19×9（芯 102）＋D32×2（芯 108）→ D19×14.54、芯 104.3。側方鉄筋は隅を除いた D32 の 300…4200（150 間隔）の 27 本。見本 09_直角/WebDan.wdj は D19×9 と、隅を含む側方鉄筋 29 本を本数だけ（RcDan が等分）。隅の鉄筋の判定は `calc.column_check.corner_bars`、主鉄筋の段と側方鉄筋の形は `column_bars`。Example4 は線路方向 D38 23＋11（34 本を1段目 23 本で分ける）、直角方向 D19×14.96・芯 79.6、側方鉄筋 D38 32 本（250 から 96.8 間隔、内側の段を広げる）。
+- **安全性（破壊）の行（id 5）は `range` 3**（決定105）：側方鉄筋を含む全軸方向鉄筋で曲げ耐力とせん断耐力を求める（R5 の見本 Example橋脚4 が数える。WebDanforJS の既定は 2 で数えない）。決定105 より前は数えなかった：見本の WDJ をいまの Capacita で計算すると耐力は見本と 0.2% 未満の差（Mud 29326.7／29334.2、Myd 48634.5／48663.2）。決定103・105 の WDJ では Mud 59170.6・Myd 49516.9（隅の D32 が主鉄筋に入り、安全性（破壊）が側方鉄筋 D32×27 を数える）。Mud は RC標準の応力ひずみ曲線の手計算 59218.0 と 0.08% 差（側方鉄筋は中立軸の近くにあり、等価応力ブロックでは 0.36% ずれる）。Myd の手計算（放物線＋矩形、引張鉄筋の降伏）は見本の鉄筋でも 3% 合わず、Capacita の降伏の定義は未確認。
 - 見本 09 の照査値（0.338、0.098）は WebPier と比べられない。WebPier の 0620 の風荷重（決定12・35）は見本と違い、柱下端の Md が違う（安全性（破壊）10939.1／見本 8256.6）。N'd は同じ（13264.1、14404.5）なので受入は耐力で比べる。見本自身の WDJ（`shape` を `"1"` にした複製）を今の Capacita で計算すると 0.338・0.098 が再現するので、WebPier の WDJ との違いは断面力だけと確かめられる。
 - 省略の理由の文は解説の後に空き1行を置いて組む（`_blocks` はキーが `.omitted` で終わる単位で区切る）。省略した節の後は Capacita のページを挟まず、次の節の文書が新しいページから始まる。
 

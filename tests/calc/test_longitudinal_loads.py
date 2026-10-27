@@ -9,6 +9,7 @@ from reaction_support import D, pier_ratios, q, value
 from webpier.calc.frame import NodeRole
 from webpier.calc.longitudinal import BasicCase, Item, SpringTerm
 from webpier.calc.reaction.longitudinal import LongitudinalCase
+from webpier.calc.reaction.train import Layout
 
 B = BasicCase
 
@@ -199,8 +200,12 @@ def test_8_8_load_diagrams_horizontal():
 def test_8_9_basic_cases_and_springs():
     printed = {row["no"]: row for row in SECTIONS["basic_cases"]["rows"]}
     result = longitudinal()
-    assert [action.case.value for action in result.basic_cases] == list(range(1, 21))
+    first = [action for action in result.basic_cases if action.layout in (None, Layout.BOTH)]  # Example2: ① only
+    assert [action.case.value for action in first] == list(range(1, 21))
     # 8-9 prints バネ 1 / 2; 1 is the long-term and 2 the short-term spring set of 8-1.
     terms = {1: SpringTerm.LONG, 2: SpringTerm.SHORT}
-    assert [action.spring for action in result.basic_cases] == [terms[printed[n]["spring"]] for n in range(1, 21)]
-    assert [action.horizontal for action in result.basic_cases] == [n >= 13 for n in range(1, 21)]
+    assert [action.spring for action in first] == [terms[printed[n]["spring"]] for n in range(1, 21)]
+    assert [action.horizontal for action in first] == [n >= 13 for n in range(1, 21)]
+    # ② and ③ have the spring and the direction of their case
+    assert all((a.spring, a.horizontal) == (terms[printed[a.case.value]["spring"]], a.case.value >= 13)
+               for a in result.basic_cases)

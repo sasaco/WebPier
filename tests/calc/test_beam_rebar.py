@@ -79,7 +79,7 @@ def test_the_side_bars_lie_on_both_side_faces_from_their_start():
     side = [bar for bar in result.bars if bar.group == SIDE]
     assert xs(side[:2]) == [184.0, 2516.0] and [bar.layer for bar in side[:4]] == [1, 1, 2, 2]
     assert [bar.y.value for bar in side[::2]] == [350.0 + 125 * j for j in range(17)]
-    assert side[-1].y.value == 2350.0 and result.side.count == 17
+    assert side[-1].y.value == 2350.0 and result.side.count.value == 17
 
 
 def test_one_side_bar_needs_no_pitch():

@@ -37,7 +37,7 @@ COORDINATE = Decimal(20000)
 SIZE = (Decimal("0.1"), Decimal(999999))
 LOAD_LIMIT = Decimal(10) ** 10
 MICRO = Decimal("0.01")
-STEEL_GRADES = (295, 345, 390)
+STEEL_GRADES = (295, 345, 390, 490)
 FACTOR_MAX = Decimal("99.99")
 LOAD_KINDS = (0, 1, 4)
 _NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?")
@@ -346,7 +346,7 @@ class _Validator:
         main = f.fields("SectJiku1", Num(min(STEEL_GRADES), max(STEEL_GRADES), integer=True), STEEL_MODULUS, 0, 0,
                         POSITIVE, POSITIVE, 0, 0, 0)
         if main[0] not in STEEL_GRADES or main[4] != main[5]:
-            raise _error("SectJiku1: 主鉄筋の強度は295・345・390、上下面の間隔は同じ値が必要です")
+            raise _error("SectJiku1: 主鉄筋の強度は295・345・390・490、上下面の間隔は同じ値が必要です")
         previous = Decimal(-1)
         for index in range(1, self.nr + 1):
             center, diameter, _ = f.fields(f"SectRein1-{index}", Num(0), POSITIVE, Num(1, integer=True))
@@ -361,7 +361,7 @@ class _Validator:
         hoop = f.fields("SectSher1", Num(min(STEEL_GRADES), max(STEEL_GRADES), integer=True), POSITIVE,
                         Num(1, integer=True), POSITIVE, 0, 0, *(Num(),) * 4)
         if hoop[0] not in STEEL_GRADES or hoop[:4] != hoop[6:]:
-            raise _error("SectSher1: 帯鉄筋とせん断補強鉄筋は同じ1組の値（強度295・345・390）が必要です")
+            raise _error("SectSher1: 帯鉄筋とせん断補強鉄筋は同じ1組の値（強度295・345・390・490）が必要です")
         f.fields("SectSafe1", *SAFETY_BEFORE, FACTOR, FACTOR, SAFETY_GBS, SAFETY_K, FACTOR, SAFETY_GBVO)
 
     def _supports(self) -> None:

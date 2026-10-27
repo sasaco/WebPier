@@ -10,6 +10,7 @@ from webpier.calc.reaction.self_weight import calculate_self_weight
 from webpier.calc.reaction.train import _pier_ratio, calculate_train
 from webpier.core.errors import InputError
 from webpier.core.printed import FORCE
+from webpier.calc.reaction.train import Layout
 
 TABLE = example2("07_7-1_support_reactions_and_service_train")
 FACTORS = example2("07_7-2_load_factors_seismic_train_impact")
@@ -142,7 +143,24 @@ def test_span_just_below_200_m_gives_almost_no_impact():
 
 
 def test_seismic_train_by_hand():
-    result = train(pier(**{"上部構造/列車/軸重/地震": 30.15, "上部構造/起点側/桁長/L1": 0.333}))
-    # 30.15 × (0.333 + 18.850 + 0.575) / 2 = 30.15 × 19.758 / 2 = 297.85185 -> 297.85
+    result = train(pier(**{"上部構造/列車/車両名": "EA-17", "上部構造/列車/編成数": None, "上部構造/起点側/桁長/L1": 0.333}))
+    # EA-17 35 kN/m (decision 101): 35 × (0.333 + 18.850 + 0.575) / 2 = 35 × 19.758 / 2 = 345.765 -> 345.77
     assert result.seismic.origin_length.value == 19.758
-    assert result.seismic.origin.value == 297.85
+    assert (result.seismic.line_load.value, result.seismic.origin.value) == (35.0, 345.77)
+
+
+def test_the_train_on_one_girder_only():
+    """Decision 102: ② puts the train on the origin girder only, ③ on the end girder only, each with the pier impact
+    ratio of its own L = RB + RC and the groups R × ρf."""
+    result = train()
+    origin, end = result.one_girder
+    assert (origin.layout, end.layout) == (Layout.ORIGIN, Layout.END)
+    assert (origin.loading.rc.value, origin.loading.rd.value, origin.loading.end_axles.value) == (0.0, 0.0, 0)
+    assert (end.loading.ra.value, end.loading.rb.value, end.loading.origin_axles.value) == (0.0, 0.0, 0)
+    assert origin.loading.rb.value >= result.loading.rb.value and end.loading.rc.value >= result.loading.rc.value
+    for placed in (origin, end):
+        load = D(placed.loading.rb.value) + D(placed.loading.rc.value)
+        ratio = q(1 - D(2961.88) / (load + D(8380) + D(2961.88)), 3)
+        assert (value(placed.pier_impact.single.train), value(placed.pier_impact.single.ratio)) == (load, ratio)
+        assert value(placed.ultimate.single.b.load) == q(D(placed.loading.rb.value) * D("1.231"), 2)
+    assert result.layout(Layout.BOTH).loading is result.loading and result.layout(Layout.END) is end

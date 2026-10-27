@@ -446,8 +446,8 @@ def test_the_schema_leaves(schema):
     position = properties["上部工反力"]["properties"]["起点側"]["properties"]["B支点"]["items"]["properties"]["支承位置"]
     assert "minimum" not in position and "exclusiveMinimum" not in position
     train = properties["上部構造"]["properties"]["列車"]["properties"]
-    assert train["編成数"] == {"type": "integer", "minimum": 1, "maximum": 200}
-    assert None not in train["車両名"]["enum"] and "1両の長さ" in train
+    assert train["編成数"]["minimum"] == 1 and train["編成数"]["maximum"] == 200  # blank for EA-17 (decision 101)
+    assert None not in train["車両名"]["enum"] and not {"1両の長さ", "軸距", "軸重"} & set(train)
     seismic = properties["耐震設計条件"]["properties"]["地域別"]["enum"]
     assert seismic[-1] is None
     shares = properties["上部工反力"]["properties"]["終点側"]["properties"]["C支点"]["items"]["properties"]["列車分担"]

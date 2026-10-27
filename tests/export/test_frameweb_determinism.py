@@ -9,7 +9,7 @@ from webpier.core.integrity import dump_json, sha256
 from webpier.export.frameweb import build_frameweb, build_frameweb_transverse
 from webpier.export.frameweb.build import frameweb_document
 from webpier.export.frameweb.cases import frameweb_cases
-from webpier.export.frameweb.longitudinal import LONGITUDINAL
+from webpier.export.frameweb.longitudinal import longitudinal_profile
 
 
 @pytest.mark.parametrize("changes", [{}, PEDESTAL, ASYMMETRIC], ids=["current", "pedestal", "asymmetric"])
@@ -35,11 +35,12 @@ def test_key_order_is_by_number():
 
 def test_zero_coefficients_are_left_out():
     # With ρs = 0.004 the serviceability train and impact have the printed factor 0.00: they add nothing, so their columns
-    # are left out (build_frameweb then rejects the empty combination 7, see test_frameweb_cases).
+    # are left out (build_frameweb then rejects the empty combination of check 7, see test_frameweb_cases). Check 5 of ①
+    # is combination 11 and check 7 of ① 15 (decision 102); D1, D2, S2 and 1.0LR of ① (Define 22) remain.
     result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
-    document = frameweb_document(result.frame, frameweb_cases(result, LONGITUDINAL))
-    assert {key for key in document["combine"]["5"] if key.startswith("C")} == {"C1", "C2", "C6", "C14"}
-    assert {key for key in document["combine"]["7"] if key.startswith("C")} == set()
+    document = frameweb_document(result.frame, frameweb_cases(result, longitudinal_profile(result)))
+    assert {key for key in document["combine"]["11"] if key.startswith("C")} == {"C1", "C2", "C6", "C22"}
+    assert {key for key in document["combine"]["15"] if key.startswith("C")} == set()
 
 
 @pytest.mark.parametrize("changes", [{}, T_PEDESTAL, T_ASYMMETRIC, CURVE, WIDTHS | ground(5.2)],

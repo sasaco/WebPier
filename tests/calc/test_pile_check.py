@@ -2,7 +2,8 @@
 
 The frame is Example橋脚4's (two pile rows of three piles along the track). The responses are made up and checked by hand: the
 force of a row's member is over its piles, Vd is the largest compression and Vud the largest tension of the rows, δd and θd the
-extremes of the footing top, and each check is γi times the response over the limit, rounded to two decimals."""
+extremes of the footing top, and each check is γi times the response over the limit, rounded to two decimals. The
+responses of the safety are the frame's times the 応答値係数 γR 1.2 (decision 104)."""
 
 import pytest
 
@@ -39,20 +40,24 @@ def test_the_responses_are_the_largest_per_pile_and_the_checks_are_gamma_times_o
     assert (long_term.delta.value, long_term.delta_combination) == (12.0, 5)  # 0.012 m
     assert (long_term.theta.value, long_term.theta_combination) == (0.0006, 6)
     assert long_term.gamma_i.value == 1.0 and safety.gamma_i.value == 1.2
+    assert (long_term.gamma_r.value, short_term.gamma_r.value, safety.gamma_r.value) == (1.0, 1.0, 1.2)
+    # the safety's responses times γR: 1.2 × 12000 / 3 = 4800, 1.2 × 12 = 14.4 mm, 1.2 × 0.0006 = 0.00072 rad
+    assert (safety.vd.value, safety.delta.value, safety.theta.value) == (4800.0, 14.4, 0.00072)
     assert (long_term.vertical.value.value, long_term.horizontal.value.value, long_term.rotation.value.value) == (0.5, 1.2, 0.3)
     assert not long_term.horizontal.ok and long_term.vertical.ok and long_term.rotation.ok  # 12 / 10 = 1.2
-    assert (safety.vertical.value.value, safety.horizontal.value.value, safety.rotation.value.value) == (0.4, 0.48, 0.12)
+    # 1.2 × 4800 / 12000, 1.2 × 14.4 / 30 = 0.576, 1.2 × 0.00072 / 0.006 = 0.144
+    assert (safety.vertical.value.value, safety.horizontal.value.value, safety.rotation.value.value) == (0.48, 0.58, 0.14)
     assert short_term.requirement is Requirement.SHORT_TERM
     assert found.engineering_status == "not_ok"
 
 
 def test_a_pile_head_in_tension_is_checked_against_the_pull_out_resistance():
     found = basis()
-    changes = {(found.pickups["safety"], found.members[0].member): HeadForce(2700.0, 7, -9000.0, 2)}  # 2700 / 3 piles = 900 kN
+    changes = {(found.pickups["safety"], found.members[0].member): HeadForce(2700.0, 7, -9000.0, 2)}
     done = result(changes, delta=0.001)
     safety = done.columns[2]
-    assert (safety.vud.value, safety.vud_row, safety.vud_combination) == (900.0, 1, 7)
-    assert safety.pull_out.value.value == 0.12 and safety.pull_out.ok  # 1.2 × 900 / 9000
+    assert (safety.vud.value, safety.vud_row, safety.vud_combination) == (1080.0, 1, 7)  # γR 1.2 × 2700 / 3 piles
+    assert safety.pull_out.value.value == 0.14 and safety.pull_out.ok  # 1.2 × 1080 / 9000 = 0.144
     assert done.engineering_status == "ok"
 
 

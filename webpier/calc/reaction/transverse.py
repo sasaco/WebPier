@@ -15,12 +15,12 @@ from ...inputs import PierInput
 from ...inputs.model import Span
 from .._exact import d, put
 from ..moving_load import MovingLoadResult, girder_length, search_reactions
+from ..vehicles import vehicle
 from .dead import SupportLoads
 from .train import TrainResult, TrackTrain
 
 WIND_WITH_TRAIN = PRESSURE.exact(1.5)  # ω1 with the train (07 7-15)
 WIND_WITHOUT_TRAIN = PRESSURE.exact(3.0)  # ω1 without the train (07 7-17)
-LATERAL_RATIO = Decimal("0.2")  # vehicle lateral load LF = 0.2 × P per axle (07 7-14)
 CENTRIFUGAL_DIVISOR = Decimal(127)  # α = V² / (127 R), V in km/h, R in m
 SEISMIC_KH_GIRDER = Decimal("1.00")  # girder inertia (07 7-18 (3))
 SEISMIC_KH_TRAIN = Decimal("0.30")  # seismic train inertia across the track (07 7-18 (4))
@@ -55,8 +55,8 @@ class TransverseSide:
 
 @dataclass(frozen=True)
 class TransverseResult:
-    lateral_axle_load: Printed  # LF = 0.2 × P per axle, without ρf
-    lateral_loading: MovingLoadResult  # one car junction: axles a2, a1, a2 apart; RB+RC maximised
+    lateral_axle_load: Printed  # LF per axle, without ρf
+    lateral_loading: MovingLoadResult  # the vehicle's lateral axles (P-16: one car junction); RB+RC maximised
     origin: TransverseSide  # at B
     end: TransverseSide  # at C
 
@@ -97,14 +97,13 @@ def _side(pier: PierInput, span: Span, loads: SupportLoads, lateral: Printed, se
 
 def calculate_transverse(pier: PierInput, dead_origin: SupportLoads, dead_end: SupportLoads,
                          train: TrainResult) -> TransverseResult:
-    t, spans = pier.train, pier.spans
-    axle = put(FORCE, LATERAL_RATIO * d(t.axle_load))
-    # One car junction: a car of length 2(a1 + a2) gives axles a2, a1, a2 apart (07 7-14 diagram).
-    lateral = search_reactions(spans.origin, spans.end, axle_load=axle, cars=1,
-                               car_length=put(LENGTH, 2 * (d(t.a1) + d(t.a2))), a1=t.a1, a2=t.a2)
+    spans = pier.spans
+    # decision 101: the vehicle's lateral axles (07 7-14; Example橋脚4 図7.1.3)
+    car = vehicle(pier.train)
+    lateral = search_reactions(spans.origin, spans.end, (car.lateral,))
     single = (train.ultimate.single, train.service.single, train.fatigue.single)
     return TransverseResult(
-        lateral_axle_load=axle, lateral_loading=lateral,
+        lateral_axle_load=car.lateral.loads[0], lateral_loading=lateral,
         origin=_side(pier, spans.origin, dead_origin, lateral.rb, train.seismic.origin, single, "b"),
         end=_side(pier, spans.end, dead_end, lateral.rc, train.seismic.end, single, "c"),
     )

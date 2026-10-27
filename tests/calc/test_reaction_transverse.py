@@ -5,6 +5,7 @@ from decimal import Decimal
 import pytest
 
 from reaction_support import D, example2, pier, q, value
+from webpier.calc import vehicles
 from webpier.calc.moving_load import Girder
 from webpier.calc.reaction import calculate_reaction
 from webpier.core.errors import InputError
@@ -108,9 +109,10 @@ def test_lateral_load_is_not_factored_by_rho():
     assert result.lateral_axle_load.value == 32.0
 
 
-def test_a_lateral_load_that_rounds_to_zero_is_an_input_error():
+def test_a_lateral_load_that_rounds_to_zero_is_an_input_error(monkeypatch):
+    monkeypatch.setattr(vehicles, "P16_LATERAL_RATIO", Decimal("0.00001"))  # 160 × 0.00001 → 0.00 kN
     with pytest.raises(InputError, match="最大"):
-        transverse(pier(**{"上部構造/列車/軸重/地震以外": 0.02}))
+        transverse(pier())
 
 
 def test_printed_digits():

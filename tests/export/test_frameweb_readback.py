@@ -75,7 +75,8 @@ def test_the_current_input_has_one_empty_case():
     """current.json: the low-water buoyancy Wp3 (case 5) is zero, so it has no rows and its Define 5 is skipped."""
     counts = expected_counts(build_frameweb(longitudinal()))
     assert (counts["empty_load_cases"], counts["defines_without_loads"]) == (["5"], ["5"])
-    assert (counts["load_cases"], counts["defines"], counts["combines"], counts["pickups"]) == (22, 22, 16, 8)
+    # 38 basic cases (each case of the train for ①, ② and ③, decision 102) and the 6 serviceability impacts
+    assert (counts["load_cases"], counts["defines"], counts["combines"], counts["pickups"]) == (44, 44, 38, 8)
 
 
 def test_counts_that_come_back():

@@ -22,7 +22,6 @@ from .outputs import OUTPUT_KEYS
 # Digits of the input sheet (.claude/docs/Example橋脚/pre/input-*.pdf).
 LENGTH = Precision(3, "m")
 LOAD = Precision(2, "kN")
-LINE_LOAD = Precision(2, "kN/m")
 RATIO = Precision(3, "")
 FRICTION = Precision(2, "")
 UNIT_WEIGHT = Precision(1, "kN/m3")
@@ -181,10 +180,8 @@ def _superstructure() -> dict[str, Field]:
                      for key in ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")}}
     train = "上部構造.列車"
     table |= {
-        f"{train}.車両名": choice(choices.VEHICLES), f"{train}.1両の長さ": number(LENGTH, "positive"),
-        f"{train}.軸距.a1_連結部": number(LENGTH, "positive"), f"{train}.軸距.a2": number(LENGTH),
-        f"{train}.軸重.地震以外": number(LOAD, "positive"), f"{train}.軸重.地震": number(LINE_LOAD),
-        f"{train}.編成数": integer(1, 200),
+        # decision 101: the vehicle's loads are the program's; 編成数 only for a vehicle of repeated cars
+        f"{train}.車両名": choice(choices.VEHICLES), f"{train}.編成数": integer(1, 200, nullable=True),
         **{f"{train}.車両高.{key}": number(LENGTH) for key in ("受風高", "遠心重心高", "地震重心高")},
         # decision 37: load factors must be positive
         **{f"{train}.荷重修正係数.{key}": number(RATIO, "positive") for key in ("使用性", "安全性(破壊)", "安全性(疲労)")},

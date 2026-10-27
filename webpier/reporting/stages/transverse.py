@@ -6,8 +6,8 @@ down and double tracks, the vehicle lateral load, the wind with and without the
 train on the girders and on the pier body above the ground (decision 12), the
 centrifugal load on a curve (decision 33), 9.3 the load diagrams, drawn by
 FEMPython from the FrameWeb file of this generation and put in as its pages
-(decision 44), 9.4 the basic and Define cases, the coefficients of the 16 combinations by Define case and the
-extraction cases. Member and foundation checks (9-16 onward) are not part of
+(decision 44), 9.4 the basic and Define cases, the coefficients of the combinations by Define case (each of the 16
+checks with the train for 複線 and 単線, decision 106) and the extraction cases. Member and foundation checks (9-16 onward) are not part of
 this stage. Horizontal forces print as magnitude and direction, as in 0710.
 """
 
@@ -58,7 +58,7 @@ _BASIC = {
     BasicCase.IMPACT_UP: ("衝撃荷重", "安全性・復旧性　単線　上り", ("I", "1")),
     BasicCase.IMPACT_DOWN: ("衝撃荷重", "安全性・復旧性　単線　下り", ("I", "1")),
     BasicCase.IMPACT_DOUBLE: ("衝撃荷重", "安全性・復旧性　複線", ("I", "2")),
-    BasicCase.LATERAL: ("車両横荷重", "", ("L", "F")),
+    BasicCase.LATERAL: ("車両横荷重", "単線", ("L", "F1")), BasicCase.LATERAL_DOUBLE: ("車両横荷重", "複線", ("L", "F2")),
     BasicCase.WIND_WITH_TRAIN: ("風荷重", "列車荷重がある場合", ("W", "1")),
     BasicCase.WIND_WITHOUT_TRAIN: ("風荷重", "列車荷重がない場合", ("W", "2")),
     BasicCase.CENTRIFUGAL_UP: ("遠心荷重", "単線　上り", ("C", "F1")),
@@ -79,8 +79,9 @@ _CHECKS = {
     Check.STABILITY_LATERAL_MAX: ("安全性", "地盤の安定", "車横最大"),
     Check.STABILITY_WIND_MAX: ("安全性", "地盤の安定", "風最大"),
     Check.STABILITY_SNOW_MAX: ("安全性", "地盤の安定", "雪最大"),
-    Check.SUPPORT_LONG_TERM: ("使用性", "長期", ""), Check.SUPPORT_SHORT_TERM_LOW_WATER: ("使用性", "短期", ""),
-    Check.SUPPORT_SHORT_TERM_HIGH_WATER: ("使用性", "短期", ""),
+    # the water levels of the short term as the remarks of Example橋脚4 表4.3.2 (decision 106: with 複線 and 単線)
+    Check.SUPPORT_LONG_TERM: ("使用性", "長期", ""), Check.SUPPORT_SHORT_TERM_LOW_WATER: ("使用性", "短期", "低水位"),
+    Check.SUPPORT_SHORT_TERM_HIGH_WATER: ("使用性", "短期", "高水位"),
 }
 _WATER = (("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3"))
 
@@ -340,7 +341,11 @@ def _horizontal(m: Manuscript, result: TransverseResult, pier: PierInput) -> Non
     snow = result.snow is not None
     m.heading("lateral.heading", f"{action_item(snow, 7)} 車両横荷重", 2)
     lateral = result.lateral
+    m.heading("lateral.single.heading", "1) 単線載荷の場合", 3)
     _horizontal_lines(m, "lateral", (lateral.origin, lateral.end), lateral.h, lateral.m)
+    m.heading("lateral.double.heading", "2) 複線載荷の場合", 3)
+    m.equation("lateral.double.h", "水平力", "H", terms("2", "×", value(lateral.h)), lateral.double_h)
+    m.equation("lateral.double.m", "モーメント", "M", terms("2", "×", value(lateral.m)), lateral.double_m)
     m.heading("wind.heading", f"{action_item(snow, 8)} 風荷重", 2)
     _wind_ground(m, result, pier)
     _wind(m, "wind.with_train", "1) 列車荷重がある場合", result.wind_with_train)
@@ -360,6 +365,14 @@ def _horizontal(m: Manuscript, result: TransverseResult, pier: PierInput) -> Non
             m.table(f"centrifugal.{track.value}", TableSpec(PRODUCT_COLUMNS, tuple(rows),
                                                             (2,) + (1,) * (len(rows) - 1),
                                                             numeric=frozenset(range(1, 6)), left=BODY_LEFT, open=True))
+
+
+def _check_header(combination: Any) -> tuple[str, str, str]:
+    """The requirement, performance item and remark of a combination; a check with the train adds its loading."""
+    requirement, item, remark = _CHECKS[combination.check]
+    if combination.loading is None:
+        return requirement, item, remark
+    return requirement, item, f"{remark}\n{combination.loading.value}".lstrip("\n")
 
 
 def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> None:
@@ -391,7 +404,7 @@ def _combinations(m: Manuscript, result: TransverseResult, pier: PierInput) -> N
     table_rows = [(str(define.number), labels[index][0], labels[index][1],
                    [combination.coefficients[index] for combination in result.combinations])
                   for index, define in enumerate(result.define_cases)]
-    m.figure("combination", coefficient_table([_CHECKS[c.check] for c in result.combinations],
+    m.figure("combination", coefficient_table([_check_header(c) for c in result.combinations],
                                               [c.number for c in result.combinations], table_rows,
                                               block_id=PREFIX + "combination"))
     services = [str(c.number) for c in result.combinations

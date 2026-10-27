@@ -19,6 +19,7 @@ from ...inputs import PierInput
 from ..moving_load import Girder
 from ..materials import concrete
 from ..reaction import ReactionResult
+from ..vehicles import vehicle
 from .actions import Action, actions
 from .bearings import BearingCase, bearing_cases, label
 from .combinations import (COLUMNS, DEFINITIONS, CaseResult, LimitState, Quantity, Selection, adopt,
@@ -94,7 +95,7 @@ def calculate_cantilever(pier: PierInput, reaction: ReactionResult) -> Cantileve
     loadings = train_loadings(pier, reaction.train, girders)
     moment = beam_cracking_moment(pier)
     return CantileverBasis(girders, sides, loadings, seismic_train(reaction.train, girders),
-                           lateral_torques(loadings, reaction.transverse, girders),
+                           lateral_torques(loadings, reaction.transverse, girders, vehicle(pier.train).lateral_ratio),
                            wind_torques(reaction.transverse, girders),
                            seismic_train_torques(reaction.transverse, girders), moment)
 

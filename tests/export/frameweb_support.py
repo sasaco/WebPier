@@ -15,6 +15,7 @@ from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import calculate_transverse
 from webpier.inputs import parse_input
+from frameweb_placing import example2_loading, first_placing  # noqa: F401 - the FrameWeb tests' import
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = json.loads((FIXTURES / "inputs" / "current.json").read_text(encoding="utf-8"))

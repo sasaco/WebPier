@@ -44,15 +44,15 @@ def test_the_bars_of_the_beam(current):
     _, _, section = current
     expected = SAMPLE["wdj"]["bar"]
     upper, lower = section.upper, section.lower
-    assert (upper.diameter.value, upper.count, upper.per_layer, upper.layers) == (32, 25, 17, 2)
+    assert (upper.diameter.value, upper.count.value, upper.per_layer.value, upper.layers) == (32, 25, 17, 2)
     assert (upper.cover.value, upper.layer_spacing.value) == (108.0, 64.0)  # 172 − 108
     assert upper.spacing.value == 145.8  # (2700 − 2 × 184) / 16 = 145.75 at 1 decimal
     assert value(upper.spacing) == q((D(2700) - 2 * D(184)) / 16, 1)
-    assert (lower.diameter.value, lower.count, lower.per_layer, lower.layers, lower.cover.value) == (
+    assert (lower.diameter.value, lower.count.value, lower.per_layer.value, lower.layers, lower.cover.value) == (
         expected["rebar2"]["rebar_dia"], expected["rebar2"]["rebar_n"], 18, 1, expected["rebar2"]["rebar_cover"])
     assert lower.layer_spacing is None and value(lower.spacing) == q((D(2700) - 2 * D(184)) / 17, 1)
     side = section.side
-    assert (side.diameter.value, side.count, side.first.value, side.spacing.value) == (
+    assert (side.diameter.value, side.count.value, side.first.value, side.spacing.value) == (
         expected["sidebar1"]["side_dia"], expected["sidebar1"]["side_n"], expected["sidebar1"]["side_cover"],
         expected["sidebar1"]["side_ss"])
     assert (section.stirrups.diameter.value, section.stirrups.legs, section.stirrups.pitch.value) == (
@@ -116,7 +116,7 @@ def test_the_side_bars_set_the_edge_of_the_main_bars():
     outside = section_of(**automatic, **{f"{BEAM}/side_bars/stirrup_position": "外側"})  # 70 + 22/2 = 81
     assert value(outside.upper.spacing) == q((D(2700) - 2 * D(81)) / 16, 1)
     one = section_of(**{f"{BEAM}/side_bars/per_face_count": 1})
-    assert one.side.count == 1 and one.side.spacing is None
+    assert one.side.count.value == 1 and one.side.spacing is None
 
 
 def test_the_steels_are_the_members():

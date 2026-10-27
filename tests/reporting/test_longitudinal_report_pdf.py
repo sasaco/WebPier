@@ -79,7 +79,9 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     # Without snow, no snow table (decision 69); with girders on the pedestal, D1 at its top too (decision 81).
     result = chain(case)[2]
     snow = 3 if result.snow is not None else 0
-    assert kinds["total"] == 6 + len(dead_tables(result)) + snow and kinds["horizontal"] == 8
+    # the train and impact tables of ①, ② and ③, and the bearing forces of ① and the five with the train of ② and ③
+    # (decision 102)
+    assert kinds["total"] == 6 * 3 + len(dead_tables(result)) + snow and kinds["horizontal"] == 8 + 2 * 5
     assert kinds["row"] >= 17 + 2 * snow
     assert [check for check in rows if not check.ok] == []
 
@@ -169,10 +171,11 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
         assert len(centres) >= 10 and all(abs(centre) < .5 for centre in centres)
         assert subscript_errors(pdf) == []
         assert [error for page in pdf if not inserted(page) for error in outside_body(page)] == []
-        page = next(p for p in pdf if "縁応力度" in p.get_text())
+        page = next(p for p in pdf if "制動最大" in p.get_text())  # the first part of the table
         top = next(span for span in found if span.text == "安全性" and span.page == page.number + 1).baseline - 25
         rows = [2, 1, 3, 1] + [1] * len(chain("current")[2].basic_cases)
-        assert band_errors(row_bands(page, column_x(10) + 8, top)[:len(rows) + 1], rows) == []
+        # the first combination column: after No, 記号 and 荷重名称 of 1, 5 and 5 columns (decision 102)
+        assert band_errors(row_bands(page, column_x(11) + 8, top)[:len(rows) + 1], rows) == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
 
 

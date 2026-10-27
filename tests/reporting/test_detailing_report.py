@@ -19,6 +19,7 @@ from webpier.calc.detailing import calculate_detailing
 from webpier.inputs import parse_input
 from webpier.reporting.stages.detailing import (FigureSpec, build_detailing, content, grid_documents, records,
                                                 references, render_detailing)
+from example4_support import EXAMPLE4_INPUT
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 
@@ -278,7 +279,7 @@ def steel_document(**steel):
     Dmax 25) on pile.json, with the footing's f'ck 27."""
     fixtures = Path(__file__).parents[1] / "fixtures" / "inputs"
     document = json.loads((fixtures / "pile.json").read_text(encoding="utf-8"))
-    example4 = json.loads((fixtures / "example4.json").read_text(encoding="utf-8"))
+    example4 = json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))
     document["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
     document["杭基礎"]["鋼管ソイルセメント杭"] = example4["杭基礎"]["鋼管ソイルセメント杭"]
     document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0

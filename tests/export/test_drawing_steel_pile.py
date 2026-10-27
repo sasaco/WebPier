@@ -19,10 +19,11 @@ from webpier.calc.detailing.steel_pile import steel_pile_detailing
 from webpier.export.drawing import drawing_dxf, drawing_figures, steel_pile
 from webpier.export.drawing.sheet import Sheet, Vec2
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "inputs"
 PILE = json.loads((FIXTURES / "pile.json").read_text(encoding="utf-8"))
-EXAMPLE4 = json.loads((FIXTURES / "example4.json").read_text(encoding="utf-8"))
+EXAMPLE4 = json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))
 
 
 def pier(**steel):

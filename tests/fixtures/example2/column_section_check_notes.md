@@ -62,6 +62,10 @@ explanation pages and the result pages print.
   γi·Md/Myd = 0.114 < 1.00.
 - These are what a real run on the Example2 input must print; the table layout and the 復旧性のせん断 pages are
   expected to differ from the sample.
+- Decision 105 (owner 2026-10-27) counts the side bars in 安全性（破壊）(WDJ safety row 5 `range` 3, as the R5 sample
+  Example橋脚4 does; the H16 sample does not): the real Capacita gives Mud 39497.2 and γi·Md/Mud = 0.125 (the D19 × 9
+  side bars of each face). Mud is compared with the hand calculation of tests/acceptance/column_capacity_by_hand.py
+  (39541.0, 0.11 %); 8-26 (Myd 38200.7, 0.114) is unchanged and still compared with the sample.
 
 # 09_直角 9.5〜9.9 — transcription notes (0621 柱の断面照査, decision 48)
 
@@ -84,9 +88,11 @@ rows), so they are not transcribed twice (`same_as_08`).
 
 - The point is 7, not 6: WebPier's 0620 wind load on member 3 (decision 12) ends 2.0 m above its J end, so
   FEMPython's PIK has a point at 2.900 m inside member 3, and Capacita numbers the points in PIK order. WebPier finds the point in the PIK (export.capacita.point_index).
-- The corner D32 sit at 108 mm from both faces, inside the D19 at 102 mm, so the side bars of the table are 108,
-  300 … 4200, 4392 (192, then 150, then 192 apart). As in the sample they are written by number only; the owner chose
-  the sample's even spacing over an input error.
+- The corner D32 sit at 108 mm from both faces, inside the D19 at 102 mm. Decision 103 (owner 2026-10-27) puts them
+  in the main bars of the nearer face, counted as D19 by area at the centre weighted by area: (9 × 286.5 + 2 × 794.2)
+  ／286.5 = D19 × 14.54 at (2578.5 × 102 + 1588.4 × 108)／4166.9 = 104.3. The side bars are the D32 between them,
+  300 … 4200: 27 on each face, 150 apart. The sample writes D19 × 9 at 102 and the side bars D32 × 29 by number only
+  (Capacita spaces them evenly between the main bars); the earlier WebPier did the same (owner 2026-10-18).
 - 9.7 and 9.8 are printed. The sample has neither; Capacita (as the sample's WebDan) skips the serviceability check
   (WD-1901: no permanent bending moment, no tension) and the shear durability check (WD-1906: no permanent and
   variable shear force) across the track, because the permanent actions are symmetric. WebPier prints their headings
@@ -105,6 +111,9 @@ rows), so they are not transcribed twice (`same_as_08`).
 - 9-19 安全性（破壊）曲げ: Md 8256.6, N'd 13264.1, Mu 32267.7, γb 1.10, Mud 29334.2, γi 1.20, γi·Md/Mud = 0.338. The
   side bars are not counted (Ase "-"), as in the current Capacita.
 - 9-23 復旧性（地震時以外）曲げ: Md 3955.8, N'd 14404.5, My 48663.2, γb 1.00, Myd 48663.2, γi 1.20, γi·Md/Myd = 0.098.
-- WebPier's 0620 wind differs from the sample's (decisions 12 and 35), so its Md and the ratios differ; N'd is the
-  same, so the capacities are compared. The sample's own WDJ in the current Capacita gives Mud 29326.7 and Myd
-  48634.5 (the same kind of small difference as 08).
+- WebPier's 0620 wind differs from the sample's (decisions 12 and 35), so its Md and the ratios differ. The sample's
+  own WDJ in the current Capacita gives Mud 29326.7 and Myd 48634.5 (the same kind of small difference as 08).
+- Decision 103 puts the corner D32 in the main bars and decision 105 counts the side bars (D32 × 27 on each face) in
+  安全性（破壊）, so WebPier's capacities are not the sample's either: the real Capacita gives Mud 59170.6 and Myd 49516.9
+  (record_0621.json). Mud is compared with the hand calculation of tests/acceptance/column_capacity_by_hand.py (59218.0
+  for the sample's N'd, 0.08 %); Myd is recorded only.

@@ -87,7 +87,8 @@ def test_the_responses_are_those_of_the_stand_in_files(made):
     long_term, short_term, safety = result["columns"]
     assert (long_term["vd"], long_term["vd_row"], long_term["vud"]) == (1900.0, 2, None)  # member 10 (decision 96: the footing base is cut at the column faces), two piles: 3800 / 2
     assert (long_term["delta"], long_term["theta"]) == (14.4, 0.00144)
-    assert (safety["pickup"], safety["vud"], safety["vud_row"]) == (6, 35.0, 2)  # the even pickups have a tension 60 + m: member 10, 70 / 2 piles
+    # the even pickups have a tension 60 + m: member 10, the safety's times γR (decision 104), 1.2 × 70 / 2 piles
+    assert (safety["pickup"], safety["vud"], safety["vud_row"]) == (6, 42.0, 2)
     assert short_term["limits"]["rud"] == 1671.3 and safety["limits"]["delta"] == 33.941
     assert result["engineering_status"] == "not_ok"  # the stand-in's responses exceed the long term limits
 
@@ -153,13 +154,14 @@ def test_the_pile_body_of_a_steel_pipe_pile_is_checked_by_steeldan(steel):
     first = body["rows"][0]["cases"]
     assert [case["case"] for case in first] == [6, 7, 8]  # the largest bending moment, shear force and axial compression
     # row 1 (member 7, three piles): the stand-in's inner point has the moment 207 (largest) or −157 (smallest) kN m, the shear
-    # force 307 or −257, the axial force −1007 … −4070 kN (compression negative); per pile, compression positive
-    assert [(case["md"], case["vd"], case["nd"]) for case in first] == [(69.0, 6.7, 335.7), (16.7, 102.3, 666.7),
-                                                                       (10.0, 13.3, 1356.7)]
+    # force 307 or −257, the axial force −1007 … −4070 kN (compression negative); times the 応答値係数 γR 1.2 (decision 104),
+    # per pile, compression positive: 1.2 × 207 / 3 = 82.8, 1.2 × 307 / 3 = 122.8, 1.2 × 4070 / 3 = 1628.0
+    assert [(case["md"], case["vd"], case["nd"]) for case in first] == [(82.8, 8.0, 402.8), (20.0, 122.8, 800.0),
+                                                                       (12.0, 16.0, 1628.0)]
     assert all(case["distance"] == 3.75 for case in first)
     resistance = body["resistance"]
-    assert first[1]["shear"] == round(1.2 * 102.3 / resistance["shear"], 2)
-    assert first[0]["ratio_compression"] == round(1.2 * (335.7 / resistance["compression"] + 69.0 / resistance["bending_compression"]), 2)
+    assert first[1]["shear"] == round(1.2 * 122.8 / resistance["shear"], 2)
+    assert first[0]["ratio_compression"] == round(1.2 * (402.8 / resistance["compression"] + 82.8 / resistance["bending_compression"]), 2)
     assert body["engine_version"] == "fake-1" and len(body["wsj_sha256"]) == 64
     assert result["engineering_status"] in ("ok", "not_ok")
 
@@ -189,8 +191,8 @@ def test_the_cast_in_place_pile_is_checked_with_the_cases_of_each_pile_row(made)
     first = cast["rows"][0]["cases"]
     assert [case["kind"] for case in first][:3] == ["曲げ最大", "せん断最大", "圧縮最大"]
     # the same forces as the steel pipe pile's body (the same pickup of the same stand-in): row 1, member 7, three piles
-    assert [(case["md"], case["vd"], case["nd"]) for case in first[:3]] == [(69.0, 6.7, 335.7), (16.7, 102.3, 666.7),
-                                                                           (10.0, 13.3, 1356.7)]
+    assert [(case["md"], case["vd"], case["nd"]) for case in first[:3]] == [(82.8, 8.0, 402.8), (20.0, 122.8, 800.0),
+                                                                           (12.0, 16.0, 1628.0)]
     assert all(case["distance"] == 3.75 for case in first[:3])
     assert cast["engine_version"] == "fake-1" and len(cast["wdj_sha256"]) == 64 and cast["skipped"] == []
     assert cast["engineering_status"] == "not_evaluated" and "pages" not in cast  # Capacita returns no judgement (ADR-0008)

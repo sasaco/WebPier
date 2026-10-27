@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-from recorded_input_support import with_blank_joint, with_blank_rebar, without_blank_joint, without_blank_rebar
 from webpier.core.integrity import dump_json, load_json, sha256
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes
@@ -27,15 +26,14 @@ REDO = "受入をやり直してください: uv run --project \".\" --locked py
 def accepted():
     record = json.loads((RECORDS / "record.json").read_text(encoding="utf-8"))
     raw = (ROOT / record["input"]["path"]).read_bytes()
-    # recorded before the joint of the pile (decision 90) and the bars of the cast-in-place pile (decision 91)
-    data = without_blank_rebar(without_blank_joint(load_json(raw)))
+    data = load_json(raw)  # recorded under decision 102, in the form of today
     # Recorded without the 出力項目, which are no condition of the calculation (decision 72, ADR-0011).
     chosen = data.pop("outputs")
     data["鉄筋"]["フーチング"] = record["input"]["footing_bars"]
     rebuilt = dump_json(data)
     assert sha256(rebuilt) == record["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
     assert sha256((RECORDS / record["input"]["file"]).read_bytes()) == record["input"]["sha256"]
-    return record, parse_input(with_blank_rebar(with_blank_joint({**load_json(rebuilt), "outputs": chosen})))
+    return record, parse_input({**data, "outputs": chosen})
 
 
 def test_the_record_is_accepted(accepted):

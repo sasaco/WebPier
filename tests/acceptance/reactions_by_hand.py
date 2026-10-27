@@ -61,10 +61,12 @@ def by_hand(result, number: int, fx: float, support: int) -> ByHand:
 
 
 def reference_frameweb(pier, stage: str) -> bytes:
-    """The FrameWeb file of the 0610 / 0620 frame as before decision 77: the impact with the girder coefficients.
+    """The FrameWeb file of the 0610 / 0620 frame as before decision 77: the impact with the girder coefficients, and
+    for 0610 the train on both girders only (decision 102), for 0620 Example2's one loading of each check with the train
+    and its one vehicle lateral load (decision 106), numbered as Example2.
 
-    Example2 has no impact reduction on the pier body, so its sample values are compared with the real reactions of
-    this file; the file of the current generator is held to ``by_hand`` instead.
+    Example2 has no impact reduction on the pier body, no other 列車の配置 and no other loading, so its sample values are compared with
+    the real reactions of this file; the file of the current generator is held to ``by_hand`` instead.
     """
     from dataclasses import replace
 
@@ -74,6 +76,7 @@ def reference_frameweb(pier, stage: str) -> bytes:
     from webpier.calc.transverse import calculate_transverse
     from webpier.core.integrity import dump_json
     from webpier.export.frameweb import build_frameweb, build_frameweb_transverse
+    from frameweb_placing import example2_loading, first_placing
 
     foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
     train = reaction.train
@@ -82,8 +85,8 @@ def reference_frameweb(pier, stage: str) -> bytes:
               for name in ("ultimate", "service", "fatigue")}
     reference = replace(reaction, train=replace(train, **groups))
     if stage == "0610":
-        return dump_json(build_frameweb(calculate_longitudinal(pier, foundation, reference)))
-    return dump_json(build_frameweb_transverse(calculate_transverse(pier, foundation, reference)))
+        return dump_json(first_placing(build_frameweb(calculate_longitudinal(pier, foundation, reference))))
+    return dump_json(example2_loading(build_frameweb_transverse(calculate_transverse(pier, foundation, reference))))
 
 
 def by_hand_absolute(result, number: int, hd: float, md: float, support: int) -> ByHand:

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "frameweb_headless_read_check",
-  "date": "2026-10-24",
-  "verified_at": "2026-10-24T07:29:27+09:00",
+  "date": "2026-10-27",
+  "verified_at": "2026-10-27T11:25:40+09:00",
   "method": "FrameWebforCS.Headless.exe run --generate-pdf false --generate-pik false で、保存形式から FEMPython の計算要求への変換・全荷重ケースの計算・Define/Combine/Pickup を行い、件数・飛ばした荷重ケース・荷重ケースごとの反力と書いた荷重の釣合い・0610 の組合せ1と計算書の印刷値（決定38）を照合した。",
   "fempython": "FEMPython は FrameWebforCS.Headless が同じプロセス内で使う計算エンジン（engine: fempython）で、FrameWeb の保存形式を直接は読まない。FEMPython 単体での読込み確認はない。",
   "not_an_analysis": "読込みの確認のために計算させたもので、構造解析・部材照査の結果として扱わない。",
@@ -17,16 +17,16 @@
       "clean": true
     }
   },
-  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
+  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
   "runs": [
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "87327584e8319aa545e28f9a1809fa3f9936a317c99100ed0d99c874f46f3c6e"
+        "sha256": "14221041df32c821fb400715be8d17b76345628f611ee0d335b1f3482e100c9f"
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
+      "candidate_sha256": "42b17644a0e35159b6e26154b3a2c60328d215c7b98ad2d7f85200aadc9444a6",
       "envelope": {
         "engine": "fempython",
         "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
@@ -38,8 +38,8 @@
           "calculated": true,
           "nodes": 6,
           "members": 5,
-          "cases": 21,
-          "results": 21,
+          "cases": 43,
+          "results": 43,
           "pickups": 8,
           "skippedLoadCases": 1,
           "pdfSections": []
@@ -58,12 +58,12 @@
         "nodes": 6,
         "generated_nodes": 0,
         "members": 5,
-        "calculated_cases": 21,
+        "calculated_cases": 43,
         "skipped_load_cases": [
           "5"
         ],
-        "defines": 21,
-        "combines": 16,
+        "defines": 43,
+        "combines": 38,
         "pickups": 8
       },
       "equilibrium": [
@@ -153,7 +153,7 @@
         },
         {
           "case": "9",
-          "symbol": "L1",
+          "symbol": "L1-1",
           "applied": [
             0.0,
             567.39
@@ -165,7 +165,31 @@
         },
         {
           "case": "10",
-          "symbol": "L2",
+          "symbol": "L1-2",
+          "applied": [
+            0.0,
+            532.41
+          ],
+          "reactions": [
+            -2.1e-66,
+            -532.41
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "L1-3",
+          "applied": [
+            0.0,
+            416.86
+          ],
+          "reactions": [
+            3.4e-66,
+            -416.86000000000007
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "L2-1",
           "applied": [
             0.0,
             1134.78
@@ -176,8 +200,32 @@
           ]
         },
         {
-          "case": "11",
-          "symbol": "I1",
+          "case": "13",
+          "symbol": "L2-2",
+          "applied": [
+            0.0,
+            1064.82
+          ],
+          "reactions": [
+            -4.1e-66,
+            -1064.82
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "L2-3",
+          "applied": [
+            0.0,
+            833.72
+          ],
+          "reactions": [
+            6.8e-66,
+            -833.7200000000001
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "I1-1",
           "applied": [
             0.0,
             171.05
@@ -188,8 +236,32 @@
           ]
         },
         {
-          "case": "12",
-          "symbol": "I2",
+          "case": "16",
+          "symbol": "I1-2",
+          "applied": [
+            0.0,
+            97.96
+          ],
+          "reactions": [
+            -3.9e-67,
+            -97.95999999999998
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "I1-3",
+          "applied": [
+            0.0,
+            170.08
+          ],
+          "reactions": [
+            1.4e-66,
+            -170.08
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "I2-1",
           "applied": [
             0.0,
             326.85
@@ -200,7 +272,31 @@
           ]
         },
         {
-          "case": "13",
+          "case": "19",
+          "symbol": "I2-2",
+          "applied": [
+            0.0,
+            179.95
+          ],
+          "reactions": [
+            -7.1e-67,
+            -179.95
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "I2-3",
+          "applied": [
+            0.0,
+            328.49
+          ],
+          "reactions": [
+            2.7e-66,
+            -328.49
+          ]
+        },
+        {
+          "case": "21",
           "symbol": "0.8LR",
           "applied": [
             240.0,
@@ -212,8 +308,8 @@
           ]
         },
         {
-          "case": "14",
-          "symbol": "1.0LR",
+          "case": "22",
+          "symbol": "1.0LR-1",
           "applied": [
             300.0,
             0.0
@@ -224,8 +320,32 @@
           ]
         },
         {
-          "case": "15",
-          "symbol": "1.0LR+1.0B",
+          "case": "23",
+          "symbol": "1.0LR-2",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "24",
+          "symbol": "1.0LR-3",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "25",
+          "symbol": "1.0LR+1.0B-1",
           "applied": [
             473.43,
             0.0
@@ -236,8 +356,32 @@
           ]
         },
         {
-          "case": "16",
-          "symbol": "1.1LR+1.0B",
+          "case": "26",
+          "symbol": "1.0LR+1.0B-2",
+          "applied": [
+            398.4,
+            0.0
+          ],
+          "reactions": [
+            -398.4,
+            0.0
+          ]
+        },
+        {
+          "case": "27",
+          "symbol": "1.0LR+1.0B-3",
+          "applied": [
+            359.04,
+            0.0
+          ],
+          "reactions": [
+            -359.04,
+            0.0
+          ]
+        },
+        {
+          "case": "28",
+          "symbol": "1.1LR+1.0B-1",
           "applied": [
             513.89,
             0.0
@@ -248,8 +392,32 @@
           ]
         },
         {
-          "case": "17",
-          "symbol": "1.0LR+1.1B",
+          "case": "29",
+          "symbol": "1.1LR+1.0B-2",
+          "applied": [
+            428.4,
+            0.0
+          ],
+          "reactions": [
+            -428.4,
+            0.0
+          ]
+        },
+        {
+          "case": "30",
+          "symbol": "1.1LR+1.0B-3",
+          "applied": [
+            389.04,
+            0.0
+          ],
+          "reactions": [
+            -389.04,
+            0.0
+          ]
+        },
+        {
+          "case": "31",
+          "symbol": "1.0LR+1.1B-1",
           "applied": [
             495.01,
             0.0
@@ -260,7 +428,31 @@
           ]
         },
         {
-          "case": "18",
+          "case": "32",
+          "symbol": "1.0LR+1.1B-2",
+          "applied": [
+            408.0,
+            0.0
+          ],
+          "reactions": [
+            -408.0,
+            0.0
+          ]
+        },
+        {
+          "case": "33",
+          "symbol": "1.0LR+1.1B-3",
+          "applied": [
+            364.8,
+            0.0
+          ],
+          "reactions": [
+            -364.8,
+            0.0
+          ]
+        },
+        {
+          "case": "34",
           "symbol": "1.0LR",
           "applied": [
             300.0,
@@ -272,8 +464,8 @@
           ]
         },
         {
-          "case": "19",
-          "symbol": "1.0LR+1.0B",
+          "case": "35",
+          "symbol": "1.0LR+1.0B-1",
           "applied": [
             463.71,
             0.0
@@ -284,7 +476,31 @@
           ]
         },
         {
-          "case": "20",
+          "case": "36",
+          "symbol": "1.0LR+1.0B-2",
+          "applied": [
+            398.4,
+            0.0
+          ],
+          "reactions": [
+            -398.4,
+            0.0
+          ]
+        },
+        {
+          "case": "37",
+          "symbol": "1.0LR+1.0B-3",
+          "applied": [
+            348.0,
+            0.0
+          ],
+          "reactions": [
+            -348.0,
+            0.0
+          ]
+        },
+        {
+          "case": "38",
           "symbol": "1.0LR",
           "applied": [
             300.0,
@@ -296,8 +512,8 @@
           ]
         },
         {
-          "case": "21",
-          "symbol": "I1s",
+          "case": "39",
+          "symbol": "I1s-1",
           "applied": [
             0.0,
             128.44
@@ -308,8 +524,32 @@
           ]
         },
         {
-          "case": "22",
-          "symbol": "I2s",
+          "case": "40",
+          "symbol": "I1s-2",
+          "applied": [
+            0.0,
+            73.47
+          ],
+          "reactions": [
+            -2.8999999999999997e-67,
+            -73.47
+          ]
+        },
+        {
+          "case": "41",
+          "symbol": "I1s-3",
+          "applied": [
+            0.0,
+            127.98
+          ],
+          "reactions": [
+            1.04e-66,
+            -127.98
+          ]
+        },
+        {
+          "case": "42",
+          "symbol": "I2s-1",
           "applied": [
             0.0,
             244.98
@@ -317,6 +557,30 @@
           "reactions": [
             1.2e-66,
             -244.98
+          ]
+        },
+        {
+          "case": "43",
+          "symbol": "I2s-2",
+          "applied": [
+            0.0,
+            135.23
+          ],
+          "reactions": [
+            -5.3e-67,
+            -135.23
+          ]
+        },
+        {
+          "case": "44",
+          "symbol": "I2s-3",
+          "applied": [
+            0.0,
+            246.78
+          ],
+          "reactions": [
+            2e-66,
+            -246.78
           ]
         }
       ],
@@ -332,11 +596,11 @@
     {
       "input": {
         "path": "pre/input.json",
-        "sha256": "87327584e8319aa545e28f9a1809fa3f9936a317c99100ed0d99c874f46f3c6e"
+        "sha256": "14221041df32c821fb400715be8d17b76345628f611ee0d335b1f3482e100c9f"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
+      "candidate_sha256": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7",
       "envelope": {
         "engine": "fempython",
         "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
@@ -348,8 +612,8 @@
           "calculated": true,
           "nodes": 7,
           "members": 5,
-          "cases": 19,
-          "results": 19,
+          "cases": 20,
+          "results": 20,
           "pickups": 8,
           "skippedLoadCases": 1,
           "pdfSections": []
@@ -368,12 +632,12 @@
         "nodes": 6,
         "generated_nodes": 1,
         "members": 5,
-        "calculated_cases": 19,
+        "calculated_cases": 20,
         "skipped_load_cases": [
           "5"
         ],
-        "defines": 16,
-        "combines": 16,
+        "defines": 17,
+        "combines": 25,
         "pickups": 8
       },
       "equilibrium": [
@@ -535,7 +799,7 @@
         },
         {
           "case": "15",
-          "symbol": "Lf",
+          "symbol": "Lf1",
           "applied": [
             111.69,
             0.0
@@ -547,6 +811,18 @@
         },
         {
           "case": "16",
+          "symbol": "Lf2",
+          "applied": [
+            223.38,
+            0.0
+          ],
+          "reactions": [
+            -223.3799999998744,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
           "symbol": "W1",
           "applied": [
             328.56,
@@ -558,7 +834,7 @@
           ]
         },
         {
-          "case": "17",
+          "case": "18",
           "symbol": "W2",
           "applied": [
             657.11,
@@ -570,7 +846,7 @@
           ]
         },
         {
-          "case": "18",
+          "case": "19",
           "symbol": "I1s",
           "applied": [
             0.0,
@@ -582,7 +858,7 @@
           ]
         },
         {
-          "case": "19",
+          "case": "20",
           "symbol": "I2s",
           "applied": [
             0.0,
@@ -594,7 +870,7 @@
           ]
         },
         {
-          "case": "20",
+          "case": "21",
           "symbol": "I3s",
           "applied": [
             0.0,
@@ -610,11 +886,11 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "45dc26a69bbf6f0c118fa77224084eebe9c0449dce6215c22f487c2957a7268a"
+        "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
       },
       "stage": "0610",
       "file": "線路方向.json",
-      "candidate_sha256": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
+      "candidate_sha256": "42b17644a0e35159b6e26154b3a2c60328d215c7b98ad2d7f85200aadc9444a6",
       "envelope": {
         "engine": "fempython",
         "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
@@ -626,8 +902,8 @@
           "calculated": true,
           "nodes": 6,
           "members": 5,
-          "cases": 21,
-          "results": 21,
+          "cases": 43,
+          "results": 43,
           "pickups": 8,
           "skippedLoadCases": 1,
           "pdfSections": []
@@ -646,12 +922,12 @@
         "nodes": 6,
         "generated_nodes": 0,
         "members": 5,
-        "calculated_cases": 21,
+        "calculated_cases": 43,
         "skipped_load_cases": [
           "5"
         ],
-        "defines": 21,
-        "combines": 16,
+        "defines": 43,
+        "combines": 38,
         "pickups": 8
       },
       "equilibrium": [
@@ -741,7 +1017,7 @@
         },
         {
           "case": "9",
-          "symbol": "L1",
+          "symbol": "L1-1",
           "applied": [
             0.0,
             567.39
@@ -753,7 +1029,31 @@
         },
         {
           "case": "10",
-          "symbol": "L2",
+          "symbol": "L1-2",
+          "applied": [
+            0.0,
+            532.41
+          ],
+          "reactions": [
+            -2.1e-66,
+            -532.41
+          ]
+        },
+        {
+          "case": "11",
+          "symbol": "L1-3",
+          "applied": [
+            0.0,
+            416.86
+          ],
+          "reactions": [
+            3.4e-66,
+            -416.86000000000007
+          ]
+        },
+        {
+          "case": "12",
+          "symbol": "L2-1",
           "applied": [
             0.0,
             1134.78
@@ -764,8 +1064,32 @@
           ]
         },
         {
-          "case": "11",
-          "symbol": "I1",
+          "case": "13",
+          "symbol": "L2-2",
+          "applied": [
+            0.0,
+            1064.82
+          ],
+          "reactions": [
+            -4.1e-66,
+            -1064.82
+          ]
+        },
+        {
+          "case": "14",
+          "symbol": "L2-3",
+          "applied": [
+            0.0,
+            833.72
+          ],
+          "reactions": [
+            6.8e-66,
+            -833.7200000000001
+          ]
+        },
+        {
+          "case": "15",
+          "symbol": "I1-1",
           "applied": [
             0.0,
             171.05
@@ -776,8 +1100,32 @@
           ]
         },
         {
-          "case": "12",
-          "symbol": "I2",
+          "case": "16",
+          "symbol": "I1-2",
+          "applied": [
+            0.0,
+            97.96
+          ],
+          "reactions": [
+            -3.9e-67,
+            -97.95999999999998
+          ]
+        },
+        {
+          "case": "17",
+          "symbol": "I1-3",
+          "applied": [
+            0.0,
+            170.08
+          ],
+          "reactions": [
+            1.4e-66,
+            -170.08
+          ]
+        },
+        {
+          "case": "18",
+          "symbol": "I2-1",
           "applied": [
             0.0,
             326.85
@@ -788,7 +1136,31 @@
           ]
         },
         {
-          "case": "13",
+          "case": "19",
+          "symbol": "I2-2",
+          "applied": [
+            0.0,
+            179.95
+          ],
+          "reactions": [
+            -7.1e-67,
+            -179.95
+          ]
+        },
+        {
+          "case": "20",
+          "symbol": "I2-3",
+          "applied": [
+            0.0,
+            328.49
+          ],
+          "reactions": [
+            2.7e-66,
+            -328.49
+          ]
+        },
+        {
+          "case": "21",
           "symbol": "0.8LR",
           "applied": [
             240.0,
@@ -800,8 +1172,8 @@
           ]
         },
         {
-          "case": "14",
-          "symbol": "1.0LR",
+          "case": "22",
+          "symbol": "1.0LR-1",
           "applied": [
             300.0,
             0.0
@@ -812,8 +1184,32 @@
           ]
         },
         {
-          "case": "15",
-          "symbol": "1.0LR+1.0B",
+          "case": "23",
+          "symbol": "1.0LR-2",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "24",
+          "symbol": "1.0LR-3",
+          "applied": [
+            300.0,
+            0.0
+          ],
+          "reactions": [
+            -300.0,
+            0.0
+          ]
+        },
+        {
+          "case": "25",
+          "symbol": "1.0LR+1.0B-1",
           "applied": [
             473.43,
             0.0
@@ -824,8 +1220,32 @@
           ]
         },
         {
-          "case": "16",
-          "symbol": "1.1LR+1.0B",
+          "case": "26",
+          "symbol": "1.0LR+1.0B-2",
+          "applied": [
+            398.4,
+            0.0
+          ],
+          "reactions": [
+            -398.4,
+            0.0
+          ]
+        },
+        {
+          "case": "27",
+          "symbol": "1.0LR+1.0B-3",
+          "applied": [
+            359.04,
+            0.0
+          ],
+          "reactions": [
+            -359.04,
+            0.0
+          ]
+        },
+        {
+          "case": "28",
+          "symbol": "1.1LR+1.0B-1",
           "applied": [
             513.89,
             0.0
@@ -836,8 +1256,32 @@
           ]
         },
         {
-          "case": "17",
-          "symbol": "1.0LR+1.1B",
+          "case": "29",
+          "symbol": "1.1LR+1.0B-2",
+          "applied": [
+            428.4,
+            0.0
+          ],
+          "reactions": [
+            -428.4,
+            0.0
+          ]
+        },
+        {
+          "case": "30",
+          "symbol": "1.1LR+1.0B-3",
+          "applied": [
+            389.04,
+            0.0
+          ],
+          "reactions": [
+            -389.04,
+            0.0
+          ]
+        },
+        {
+          "case": "31",
+          "symbol": "1.0LR+1.1B-1",
           "applied": [
             495.01,
             0.0
@@ -848,7 +1292,31 @@
           ]
         },
         {
-          "case": "18",
+          "case": "32",
+          "symbol": "1.0LR+1.1B-2",
+          "applied": [
+            408.0,
+            0.0
+          ],
+          "reactions": [
+            -408.0,
+            0.0
+          ]
+        },
+        {
+          "case": "33",
+          "symbol": "1.0LR+1.1B-3",
+          "applied": [
+            364.8,
+            0.0
+          ],
+          "reactions": [
+            -364.8,
+            0.0
+          ]
+        },
+        {
+          "case": "34",
           "symbol": "1.0LR",
           "applied": [
             300.0,
@@ -860,8 +1328,8 @@
           ]
         },
         {
-          "case": "19",
-          "symbol": "1.0LR+1.0B",
+          "case": "35",
+          "symbol": "1.0LR+1.0B-1",
           "applied": [
             463.71,
             0.0
@@ -872,7 +1340,31 @@
           ]
         },
         {
-          "case": "20",
+          "case": "36",
+          "symbol": "1.0LR+1.0B-2",
+          "applied": [
+            398.4,
+            0.0
+          ],
+          "reactions": [
+            -398.4,
+            0.0
+          ]
+        },
+        {
+          "case": "37",
+          "symbol": "1.0LR+1.0B-3",
+          "applied": [
+            348.0,
+            0.0
+          ],
+          "reactions": [
+            -348.0,
+            0.0
+          ]
+        },
+        {
+          "case": "38",
           "symbol": "1.0LR",
           "applied": [
             300.0,
@@ -884,8 +1376,8 @@
           ]
         },
         {
-          "case": "21",
-          "symbol": "I1s",
+          "case": "39",
+          "symbol": "I1s-1",
           "applied": [
             0.0,
             128.44
@@ -896,8 +1388,32 @@
           ]
         },
         {
-          "case": "22",
-          "symbol": "I2s",
+          "case": "40",
+          "symbol": "I1s-2",
+          "applied": [
+            0.0,
+            73.47
+          ],
+          "reactions": [
+            -2.8999999999999997e-67,
+            -73.47
+          ]
+        },
+        {
+          "case": "41",
+          "symbol": "I1s-3",
+          "applied": [
+            0.0,
+            127.98
+          ],
+          "reactions": [
+            1.04e-66,
+            -127.98
+          ]
+        },
+        {
+          "case": "42",
+          "symbol": "I2s-1",
           "applied": [
             0.0,
             244.98
@@ -905,6 +1421,30 @@
           "reactions": [
             1.2e-66,
             -244.98
+          ]
+        },
+        {
+          "case": "43",
+          "symbol": "I2s-2",
+          "applied": [
+            0.0,
+            135.23
+          ],
+          "reactions": [
+            -5.3e-67,
+            -135.23
+          ]
+        },
+        {
+          "case": "44",
+          "symbol": "I2s-3",
+          "applied": [
+            0.0,
+            246.78
+          ],
+          "reactions": [
+            2e-66,
+            -246.78
           ]
         }
       ],
@@ -920,11 +1460,11 @@
     {
       "input": {
         "path": "tests/fixtures/inputs/current.json",
-        "sha256": "45dc26a69bbf6f0c118fa77224084eebe9c0449dce6215c22f487c2957a7268a"
+        "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
       },
       "stage": "0620",
       "file": "線路直角方向.json",
-      "candidate_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
+      "candidate_sha256": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7",
       "envelope": {
         "engine": "fempython",
         "engineVersion": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e",
@@ -936,8 +1476,8 @@
           "calculated": true,
           "nodes": 7,
           "members": 5,
-          "cases": 19,
-          "results": 19,
+          "cases": 20,
+          "results": 20,
           "pickups": 8,
           "skippedLoadCases": 1,
           "pdfSections": []
@@ -956,12 +1496,12 @@
         "nodes": 6,
         "generated_nodes": 1,
         "members": 5,
-        "calculated_cases": 19,
+        "calculated_cases": 20,
         "skipped_load_cases": [
           "5"
         ],
-        "defines": 16,
-        "combines": 16,
+        "defines": 17,
+        "combines": 25,
         "pickups": 8
       },
       "equilibrium": [
@@ -1123,7 +1663,7 @@
         },
         {
           "case": "15",
-          "symbol": "Lf",
+          "symbol": "Lf1",
           "applied": [
             111.69,
             0.0
@@ -1135,6 +1675,18 @@
         },
         {
           "case": "16",
+          "symbol": "Lf2",
+          "applied": [
+            223.38,
+            0.0
+          ],
+          "reactions": [
+            -223.3799999998744,
+            0.0
+          ]
+        },
+        {
+          "case": "17",
           "symbol": "W1",
           "applied": [
             328.56,
@@ -1146,7 +1698,7 @@
           ]
         },
         {
-          "case": "17",
+          "case": "18",
           "symbol": "W2",
           "applied": [
             657.11,
@@ -1158,7 +1710,7 @@
           ]
         },
         {
-          "case": "18",
+          "case": "19",
           "symbol": "I1s",
           "applied": [
             0.0,
@@ -1170,7 +1722,7 @@
           ]
         },
         {
-          "case": "19",
+          "case": "20",
           "symbol": "I2s",
           "applied": [
             0.0,
@@ -1182,7 +1734,7 @@
           ]
         },
         {
-          "case": "20",
+          "case": "21",
           "symbol": "I3s",
           "applied": [
             0.0,

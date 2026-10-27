@@ -175,8 +175,9 @@ def test_the_table_reader_checks_every_table_cell_with_arithmetic(tmp_path: Path
     shown = sum(row.volume.value != 0 for body in (sw.pedestal, sw.beam, sw.column, sw.footing, sw.overburden)
                 for row in body.rows)
     assert shown == 6
-    impacts = 3 * 4 * 4  # L = R × ρf, I, L = L × n, I for each of the three groups
-    assert table_checks(lines) == 2 * shown + impacts + 10 + 2 * 8
+    impacts = 3 * 4 * 4 * 3  # L = R × ρf, I, L = L × n, I for each of the three groups, for ①, ② and ③
+    # the summary along the track also has the five combinations with the train of ② and ③ (decision 102)
+    assert table_checks(lines) == 2 * shown + impacts + 10 + 2 * 8 + 2 * 5
 
 
 def _wrong(result, field: str):

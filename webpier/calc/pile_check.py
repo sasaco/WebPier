@@ -13,7 +13,8 @@ WebPier does not recalculate them): the design vertical bearing capacity Rvd, th
 the limits of the horizontal displacement δLd and of the rotation θLd, of 長期支持性能, 短期支持性能 and 安定(地震時以外).
 The checks are γi・Vd / Rvd, γi・Vud / Rud (only when a pile head is in tension: the sample omits it otherwise),
 γi・δd / δLd and γi・θd / θLd, each not above 1.0. The 構造物係数 γi is 1.2 for the safety and 1.0 for the long and the
-short term (the sample, III-3.3).
+short term (the sample, III-3.3). The responses of the safety are the frame's times the 応答値係数 γR 1.2, those of the
+long and the short term times 1.0 (decision 104, ``pile_body.GAMMA_R``: the sample's tables 2.5.11〜2.5.13).
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ from ..core.printed import Precision, Printed
 from ..inputs import PierInput
 from ._exact import d, put
 from .foundation_check import FrameResult, LONGITUDINAL, TRANSVERSE, Direction, Requirement
-from .pile_body import PileBodyResult, PileResponseError
+from .pile_body import GAMMA_R, PileBodyResult, PileResponseError
 from .pile_cast import PileCastResult
 from .pile_joint import PileJointResult
 from .frame import NodeRole
@@ -39,10 +40,12 @@ ROTATION = Precision(5, "rad")
 RATIO = Precision(2, "")
 _MILLI = Decimal(1000)
 
-# (the requirement, its name in the .sdr, the extraction group whose pickup gives the responses, 構造物係数 γi)
-REQUIREMENTS = ((Requirement.LONG_TERM, "長期支持性能", ExtractionGroup.SUPPORT_LONG_TERM, Printed(1.0, 1, "")),
-                (Requirement.SHORT_TERM, "短期支持性能", ExtractionGroup.SUPPORT_SHORT_TERM, Printed(1.0, 1, "")),
-                (Requirement.SAFETY, "安定(地震時以外)", ExtractionGroup.STABILITY, Printed(1.2, 1, "")))
+# (the requirement, its name in the .sdr, the extraction group whose pickup gives the responses, 構造物係数 γi,
+# 応答値係数 γR)
+_ONE = Printed(1.0, 1, "")
+REQUIREMENTS = ((Requirement.LONG_TERM, "長期支持性能", ExtractionGroup.SUPPORT_LONG_TERM, _ONE, _ONE),
+                (Requirement.SHORT_TERM, "短期支持性能", ExtractionGroup.SUPPORT_SHORT_TERM, _ONE, _ONE),
+                (Requirement.SAFETY, "安定(地震時以外)", ExtractionGroup.STABILITY, Printed(1.2, 1, ""), GAMMA_R))
 SDR_DIRECTION = {False: "橋軸方向", True: "直角方向"}
 
 
@@ -117,6 +120,7 @@ class Column:
     name: str
     pickup: int
     gamma_i: Printed
+    gamma_r: Printed  # 応答値係数, by which the frame's responses are multiplied
     vd: Printed  # the largest compression at a pile head, per pile, kN
     vd_row: int
     vd_combination: int
@@ -157,7 +161,7 @@ def prepare(pier: PierInput, frame_result: FrameResult, direction: Direction) ->
     numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
     members = tuple(PileMember(nodes.row.number, nodes.member, nodes.row.piles) for nodes in frame.pile_nodes)
     return Basis(members=members, node=frame.node(NodeRole.FOOTING_TOP).number,
-                 pickups={requirement.value: numbers[group] for requirement, _, group, _ in REQUIREMENTS},
+                 pickups={requirement.value: numbers[group] for requirement, _, group, _, _ in REQUIREMENTS},
                  body_pickup=numbers[ExtractionGroup.FAILURE])
 
 
@@ -166,8 +170,8 @@ def _ratio(numerator: Decimal, denominator: Decimal) -> Judged:
     return Judged(value, value.value <= 1.0)
 
 
-def _column(basis: Basis, requirement: Requirement, name: str, gamma_i: Printed, limits: Limits, forces: HeadForces,
-            displacements: Displacements) -> Column:
+def _column(basis: Basis, requirement: Requirement, name: str, gamma_i: Printed, gamma_r: Printed, limits: Limits,
+            forces: HeadForces, displacements: Displacements) -> Column:
     pickup = basis.pickups[requirement.value]
     compression: list[tuple[Printed, int, int]] = []
     tension: list[tuple[Printed, int, int]] = []
@@ -177,20 +181,20 @@ def _column(basis: Basis, requirement: Requirement, name: str, gamma_i: Printed,
         except KeyError as exc:
             raise PileResponseError(f"杭頭の軸力のピックアップ {pickup}（部材 {member.member}）がありません") from exc
         piles = Decimal(member.piles)
-        compression.append((put(FORCE, -d(found.smallest) / piles), member.row, found.smallest_combination))
-        tension.append((put(FORCE, d(found.largest) / piles), member.row, found.largest_combination))
+        compression.append((put(FORCE, -d(gamma_r) * d(found.smallest) / piles), member.row, found.smallest_combination))
+        tension.append((put(FORCE, d(gamma_r) * d(found.largest) / piles), member.row, found.largest_combination))
     vd, vd_row, vd_combination = max(compression, key=lambda item: item[0].value)
     vud, vud_row, vud_combination = max(tension, key=lambda item: item[0].value)
     try:
         horizontal, rotation = displacements[(pickup, "dx")], displacements[(pickup, "rz")]
     except KeyError as exc:
         raise PileResponseError(f"フーチング天端の変位のピックアップ {pickup}（節点 {basis.node}）がありません") from exc
-    delta = put(DISPLACEMENT, d(horizontal.value) * _MILLI)
-    theta = put(ROTATION, d(rotation.value))
+    delta = put(DISPLACEMENT, d(gamma_r) * d(horizontal.value) * _MILLI)
+    theta = put(ROTATION, d(gamma_r) * d(rotation.value))
     gamma = d(gamma_i)
     pulled = vud.value > 0
     return Column(
-        requirement, name, pickup, gamma_i, vd, vd_row, vd_combination, vud if pulled else None,
+        requirement, name, pickup, gamma_i, gamma_r, vd, vd_row, vd_combination, vud if pulled else None,
         vud_row if pulled else None, vud_combination if pulled else None, delta, horizontal.combination, theta,
         rotation.combination, limits, _ratio(gamma * d(vd), d(limits.rvd)),
         _ratio(gamma * d(vud), d(limits.rud)) if pulled else None,
@@ -201,8 +205,8 @@ def check(basis: Basis, limits: Mapping[Requirement, Limits], forces: HeadForces
           displacements: Displacements) -> PileCheckResult:
     """The three columns from the limits, the pile head forces and the footing top's displacements (``PileResponseError`` when a
     pickup is missing)."""
-    columns = tuple(_column(basis, requirement, name, gamma_i, limits[requirement], forces, displacements)
-                    for requirement, name, _, gamma_i in REQUIREMENTS)
+    columns = tuple(_column(basis, requirement, name, gamma_i, gamma_r, limits[requirement], forces, displacements)
+                    for requirement, name, _, gamma_i, gamma_r in REQUIREMENTS)
     ok = all(item.ok for column in columns for item in column.judgements)
     return PileCheckResult(basis, columns, "ok" if ok else "not_ok")
 

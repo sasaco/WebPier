@@ -25,10 +25,11 @@ from webpier.calc.detailing import calculate_detailing
 from webpier.calc.detailing.steel_pile import steel_pile_detailing
 from webpier.core.errors import InputError
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "inputs"
 PILE = json.loads((FIXTURES / "pile.json").read_text(encoding="utf-8"))
-EXAMPLE4 = json.loads((FIXTURES / "example4.json").read_text(encoding="utf-8"))
+EXAMPLE4 = json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))
 
 
 def sample(**steel):
@@ -179,6 +180,7 @@ def test_wide_bars_use_10_phi_as_their_spacing():
     (lambda data: bars(data, 径=None), "結合部.軸方向鉄筋.径: 杭の構造細目に必要です"),
     (lambda data: bars(data, 重心位置=400.0), "結合部.軸方向鉄筋.重心位置: 鋼管外径に対して大きすぎます"),
     (lambda data: joint(data, **{"中詰めコンクリート_f'ck": 26.0}), "f'ck 26 の付着強度がありません（中詰めコンクリート長"),
+    (lambda data: bars(data, 材質="SD490"), "結合部.軸方向鉄筋.材質: SD490 の半円形フックの曲げ内半径"),
 ])
 def test_a_blank_or_impossible_joint_is_an_input_error(change, message):
     with pytest.raises(InputError, match=message.replace("(", r"\(").replace(")", r"\)")):

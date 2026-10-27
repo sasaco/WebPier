@@ -44,8 +44,8 @@ def test_pedestal_row_and_loads_at_the_pedestal_top():
     # The pier wind: the pedestal stub (member 1, decision 35) and the column line (3, 4, 5).
     assert [m.member for m in result.basic(B.WIND_WITH_TRAIN).member_loads] == [1, 3, 4, 5]
     assert [line.members for line in result.basic(B.D1).line_loads] == [(1,), (3, 4, 5)]
-    # 変動作用 (7): the serviceability impact acts at the seat too.
-    impact = result.combinations[6].component(Define.IMPACT_SINGLE).alternatives[0]
+    # 変動作用 単線 (11, decision 106): the serviceability impact acts at the seat too.
+    impact = result.combinations[10].component(Define.IMPACT_SINGLE).alternatives[0]
     assert impact.points[0].node == 1
     table = result.impact.service.table(Track.UP)
     assert value(impact.points[0].m) == q(value(table.m) - value(table.n) * D(-0.5), 2)

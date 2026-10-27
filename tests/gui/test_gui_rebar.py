@@ -102,7 +102,7 @@ def test_edits_redraw_the_layout_and_errors_name_the_path(editor):
 def test_choices_of_the_rebar_cards(editor):
     assert list(cell(editor, *RAIL, "cover_mode").buttons) == ["自動", "指定"]
     assert list(cell(editor, *RAIL, "distribution", "mode").buttons) == ["等分", "中央ピッチ", "両端＋中央ピッチ"]
-    assert list(cell(editor, *COLUMN, "materials", "main").buttons) == ["SD295", "SD345", "SD390"]
+    assert list(cell(editor, *COLUMN, "materials", "main").buttons) == ["SD295", "SD345", "SD390", "SD490"]
 
 
 def test_layers_inside_can_be_added_and_deleted(editor):

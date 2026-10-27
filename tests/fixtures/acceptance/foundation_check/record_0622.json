@@ -2,28 +2,28 @@
   "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0622",
-  "verified_at": "2026-10-24T07:29:07+09:00",
+  "verified_at": "2026-10-27T11:11:50+09:00",
   "method": "WebPier が 0620 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 9-27 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "45dc26a69bbf6f0c118fa77224084eebe9c0449dce6215c22f487c2957a7268a"
+    "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
   },
-  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
+  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
   },
-  "frameweb_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
+  "frameweb_sha256": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7",
   "reaction": {
     "file": "線路直角方向_ピックアップ反力_橋脚く体の衝撃.csv",
-    "sha256": "d2fbd2b1f3f5a03ff4cbb1c5ae1d94807c56153974f227a04a3c3539955eab4a"
+    "sha256": "90984c5bc7f8569584c7321e9f1f3ed65d8e1824fcdee6d5b3101c15559dd0dc"
   },
   "node": 6,
   "hand_tolerance": 0.05,
   "columns": {
     "long_term": {
       "real": {
-        "combination": 14,
+        "combination": 21,
         "vd": 16348.948,
         "fx": 0.0,
         "mz": 0.0
@@ -39,13 +39,13 @@
     },
     "short_term": {
       "real": {
-        "combination": 15,
-        "vd": 18745.768,
+        "combination": 22,
+        "vd": 19429.728,
         "fx": 0.0,
-        "mz": -1482.68
+        "mz": 0.0
       },
       "by_hand": {
-        "vd": 18745.768,
+        "vd": 19429.728,
         "fx": null,
         "mz": null
       },
@@ -55,10 +55,10 @@
     },
     "safety_vertical": {
       "real": {
-        "combination": 10,
+        "combination": 15,
         "vd": 22448.2168,
-        "fx": -465.9387,
-        "mz": -7389.0769
+        "fx": -603.3174,
+        "mz": -9332.9898
       },
       "by_hand": {
         "vd": 22448.23,
@@ -71,7 +71,7 @@
     },
     "safety_moment": {
       "real": {
-        "combination": 12,
+        "combination": 19,
         "vd": 20045.0028,
         "fx": 788.532,
         "mz": 13068.186

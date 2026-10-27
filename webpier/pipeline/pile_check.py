@@ -48,7 +48,7 @@ def limits(found: SdrFile, direction: Direction) -> dict[Requirement, Limits]:
     horizontal = found.table(name, CONDITION, "水平変位の照査")
     rotation = found.table(name, CONDITION, "回転角の照査")
     result = {}
-    for requirement, item, _, _ in REQUIREMENTS:
+    for requirement, item, _, _, _ in REQUIREMENTS:
         indicator = _row(horizontal, item)[2]
         if not isinstance(indicator, str):
             raise SdrError(f"【水平変位の照査】の「{item}」の設計限界値の指標が文字ではありません")

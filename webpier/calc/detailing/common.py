@@ -16,7 +16,7 @@ from fractions import Fraction
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
 from .._exact import d, put
-from ..column_rebar import yield_strength
+from ..column_rebar import bar_area, yield_strength
 
 AREA = Precision(1, "mm2")  # bar areas: 61560.0, 5297.3 (the sample 0400)
 SECTION = Precision(0, "mm2")  # b·h: 6698000
@@ -29,9 +29,6 @@ FRACTION = Precision(5, "")  # pw as a fraction in 9): 0.00655
 RATIO = Precision(3, "")  # 8) 0.029, 9) 0.138
 STRENGTH = Precision(0, "N/mm2")  # fwyd: 390
 
-# JIS G 3112 公称断面積 (mm2) of the deformed bars, as written there.
-_NOMINAL = {6: "31.67", 10: "71.33", 13: "126.7", 16: "198.6", 19: "286.5", 22: "387.1", 25: "506.7", 29: "642.4",
-            32: "794.2", 35: "956.6", 38: "1140", 41: "1340", 51: "2027"}
 # 1) (a): the axial bars at least 0.15 % of the whole section (RC標準第Ⅲ編 2.3.3.1(1); the sample 0400)
 MIN_RATIO = Printed(0.15, 2, "%")
 # 3): the axial bars at most 6 % (RC標準第Ⅲ編 2.3.3.2; the sample 0400)
@@ -44,7 +41,7 @@ COLUMN_CLEAR = (Printed(40, 0, "mm"), Printed(1.5, 1, ""))
 MEMBER_CLEAR = (Printed(20, 0, "mm"), Printed(1.0, 1, ""))
 AGGREGATE_FACTOR = Fraction(4, 3)
 # 8) 帯鉄筋の靭性率における上限値 (RC標準[R5] 第Ⅲ編 5.2.3.3; the sample 0400): 0.021・kwo・pw + 0.013 ≦ 0.04,
-# pw in %, kwo by the grade of the hoops (owner 2026-10-21)
+# pw in %, kwo by the grade of the hoops (owner 2026-10-21); SD490's is not checked in a source (decision 100)
 DUCTILITY_FACTOR = Printed(0.021, 3, "")
 DUCTILITY_CONSTANT = Printed(0.013, 3, "")
 DUCTILITY_LIMIT = Printed(0.04, 3, "")
@@ -169,16 +166,6 @@ class CapacityRatio:
     above: bool  # value > 0.1
 
 
-def bar_area(diameter: Printed, path: str) -> Printed:
-    """The nominal area of a deformed bar D*diameter* (JIS G 3112)."""
-    text = _NOMINAL.get(int(diameter.value))  # a nominal size has no decimals (inputs.fields.DIAMETER)
-    if text is None:
-        sizes = "・".join(f"D{size}" for size in _NOMINAL)
-        raise InputError(f"{path}: D{diameter.value:g} の公称断面積がありません（JIS G 3112 の {sizes}）")
-    value = Decimal(text)
-    return Printed(float(value), max(0, -value.as_tuple().exponent), "mm2")
-
-
 def need(value, path: str):
     if value is None:
         raise InputError(f"{path}: 値が必要です")
@@ -254,8 +241,11 @@ def confinement_spacing(depth: Printed, main: Printed, stirrup: Printed, short_s
                             bound("main_12", main, 12), bound("half_short_side", short_side, Fraction(1, 2))), pitch)
 
 
-def ductility_limit(grade: str, pw: Printed) -> DuctilityLimit:
-    kwo = KWO[grade]
+def ductility_limit(grade: str, pw: Printed, path: str) -> DuctilityLimit:
+    kwo = KWO.get(grade)
+    if kwo is None:
+        raise InputError(f"{path}: {grade} の kwo（帯鉄筋の靭性率の上限、RC標準[R5] 第Ⅲ編 5.2.3.3）が未確認です"
+                         f"（{'・'.join(KWO)} のいずれかを選んでください）")
     value = put(RATIO, d(DUCTILITY_FACTOR) * d(kwo) * d(pw) + d(DUCTILITY_CONSTANT))
     return DuctilityLimit(grade=grade, factor=DUCTILITY_FACTOR, kwo=kwo, pw=pw, constant=DUCTILITY_CONSTANT,
                           value=value, limit=DUCTILITY_LIMIT,

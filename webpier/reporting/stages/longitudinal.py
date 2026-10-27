@@ -20,11 +20,11 @@ from gridlayoutpdf import Document, Row
 
 from ...calc.frame import NodeRole
 from ...calc.longitudinal import (
-    BasicCase, Check, ImpactTable, Item, LongitudinalResult, SpringTerm, TopTable,
+    BasicCase, Check, ImpactTable, Item, Layout, LongitudinalResult, SpringTerm, TopTable,
 )
 from ...calc.longitudinal.combinations import MAXIMUM_TRAIN, SERVICE_IMPACT, Basis
 from ...calc.reaction import ReactionResult
-from ...calc.reaction.longitudinal import LongitudinalCase
+from ...calc.reaction.longitudinal import LAYOUT_CASES, LongitudinalCase
 from ...inputs import PierInput
 from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
@@ -104,17 +104,26 @@ def horizontal_name(reaction: ReactionResult, case: LongitudinalCase) -> tuple[s
     return requirement, rail + (" + " + brake if brake else "")
 
 
-def basic_name(result: LongitudinalResult, reaction: ReactionResult, case: BasicCase) -> tuple[str, str, str, Any]:
-    """(name, requirement, qualifier, symbol) of a basic case (8-9)."""
+# 列車の配置 (decision 102): the subscript's suffix as the sample's L1-1, L1-2, L1-3 (Example橋脚4 表2.3.1)
+PLACINGS = {Layout.BOTH: "1", Layout.ORIGIN: "2", Layout.END: "3"}
+
+
+def basic_name(result: LongitudinalResult, reaction: ReactionResult, case: BasicCase,
+               layout: Layout | None = None) -> tuple[str, str, str, Any]:
+    """(name, requirement, qualifier, symbol) of a basic case (8-9); the symbol of a case of each placing names its
+    *layout*."""
     if case in _BASIC:
         name, qualifier, (base, suffix) = _BASIC[case]
+        suffix += "" if layout is None else f"-{PLACINGS[layout]}"
         return name, "", qualifier, sub(base, suffix)
     row = result.horizontal[case.value - BasicCase.SERVICE_LR08.value]
     requirement, label = horizontal_name(reaction, row.case)
     short = brake_text(reaction, row.case)[0]
     rail = _HORIZONTAL[row.case][1]
     name = "ﾛﾝｸﾞﾚｰﾙ+制動" if short else "ﾛﾝｸﾞﾚｰﾙ縦荷重"
-    symbol = Row(rail.removesuffix("LR"), sub("L", "R"), ("+" + short) if short else "", gap=0)
+    parts = [rail.removesuffix("LR"), sub("L", "R"), *((f"+{short}",) if short else ()),
+             *(() if layout is None else (f"-{PLACINGS[layout]}",))]  # no empty text: it would be a run of no glyph
+    symbol = Row(*parts, gap=0)
     return name, requirement, f"{requirement}　{label}", symbol
 
 
@@ -170,8 +179,8 @@ def top_with_seat(m: Manuscript, key: str, frame: Any, table: TopTable, point: A
 
 
 def _table_with_seat(m: Manuscript, key: str, result: LongitudinalResult, table: TopTable, case: BasicCase | None,
-                     seat_point: Any = None) -> None:
-    point = seat_point or (result.basic(case).points[0] if case is not None else None)
+                     seat_point: Any = None, layout: Layout = Layout.BOTH) -> None:
+    point = seat_point or (result.basic(case, layout).points[0] if case is not None else None)
     if point is None:
         m.table(key, top_table(_top_rows(table), (table.n, table.m)))
     else:
@@ -252,18 +261,30 @@ def _snow_train(m: Manuscript, result: LongitudinalResult, reaction: ReactionRes
             m.heading(f"snow.{key}.heading", label, 3)
             _table_with_seat(m, f"snow.{key}", result, result.snow[index], case)
     m.heading("train.heading", f"{_item(result, 5)} 列車荷重", 2)
-    m.heading("train.single.heading", "1) 単線載荷", 3)
-    _table_with_seat(m, "train.single", result, result.train.single, BasicCase.TRAIN_SINGLE)
-    m.heading("train.double.heading", "2) 複線載荷", 3)
     dead = reaction.dead
-    for side, single, double, girder in (("origin", result.train.single.row(Item.ORIGIN),
-                                          result.train.double.row(Item.ORIGIN), dead.origin),
-                                         ("end", result.train.single.row(Item.END),
-                                          result.train.double.row(Item.END), dead.end)):
-        m.equation(f"train.double.{side}", "載荷線数を乗じる" if side == "origin" else "",
-                   sub("R", "B" if side == "origin" else "C"),
-                   terms(value(single.n), "×", value(girder.track_total)), double.n)
-    _table_with_seat(m, "train.double", result, result.train.double, BasicCase.TRAIN_DOUBLE)
+    for index, (layout, trains) in enumerate(_placings(result)):
+        key = _key("train", layout)
+        m.heading(f"{key}.single.heading", f"{2 * index + 1}) 単線載荷（{layout.value}）", 3)
+        _table_with_seat(m, f"{key}.single", result, trains.single, BasicCase.TRAIN_SINGLE, layout=layout)
+        m.heading(f"{key}.double.heading", f"{2 * index + 2}) 複線載荷（{layout.value}）", 3)
+        for side, single, double, girder in (("origin", trains.single.row(Item.ORIGIN), trains.double.row(Item.ORIGIN),
+                                              dead.origin),
+                                             ("end", trains.single.row(Item.END), trains.double.row(Item.END),
+                                              dead.end)):
+            m.equation(f"{key}.double.{side}", "載荷線数を乗じる" if side == "origin" else "",
+                       sub("R", "B" if side == "origin" else "C"),
+                       terms(value(single.n), "×", value(girder.track_total)), double.n)
+        _table_with_seat(m, f"{key}.double", result, trains.double, BasicCase.TRAIN_DOUBLE, layout=layout)
+
+
+def _placings(result: LongitudinalResult) -> list[tuple[Layout, Any]]:
+    """① and the trains of ② and ③ (decision 102)."""
+    return [(Layout.BOTH, result.train), *((placed.layout, placed.train) for placed in result.one_girder)]
+
+
+def _key(stem: str, layout: Layout) -> str:
+    """①'s keys are the stem's; ② and ③ add the placing."""
+    return stem if layout is Layout.BOTH else f"{stem}.{layout.name.lower()}"
 
 
 def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
@@ -279,59 +300,78 @@ def _impact_table(table: ImpactTable, train_total: Any) -> TableSpec:
 def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult) -> None:
     m.heading("impact.heading", f"{_item(result, 6)} 衝撃荷重", 2)
     m.paragraph("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
-    impact = result.impact
-    for key, label, table, train, case in (
-            ("ultimate_single", "1) 単線載荷（安全性・復旧性）", impact.ultimate_single, result.train.single,
-             BasicCase.IMPACT_SINGLE),
-            ("ultimate_double", "2) 複線載荷（安全性・復旧性）", impact.ultimate_double, result.train.double,
-             BasicCase.IMPACT_DOUBLE),
-            ("service_single", "3) 単線載荷（使用性）", impact.service_single, result.train.single, None),
-            ("service_double", "4) 複線載荷（使用性）", impact.service_double, result.train.double, None)):
-        m.heading(f"impact.{key}.heading", label, 3)
-        m.table(f"impact.{key}", _impact_table(table, train.n))
-        point = result.basic(case).points[0] if case is not None else _service_point(result, key)
-        seat_moment(m, f"impact.{key}.seat", result.frame, table.n, table.m, point)
+    impacts = [(Layout.BOTH, result.impact, result.train),
+               *((placed.layout, placed.impact, placed.train) for placed in result.one_girder)]
+    number = 0
+    for layout, impact, trains in impacts:
+        for key, label, table, train, case in (
+                ("ultimate_single", "単線載荷（安全性・復旧性", impact.ultimate_single, trains.single,
+                 BasicCase.IMPACT_SINGLE),
+                ("ultimate_double", "複線載荷（安全性・復旧性", impact.ultimate_double, trains.double,
+                 BasicCase.IMPACT_DOUBLE),
+                ("service_single", "単線載荷（使用性", impact.service_single, trains.single, None),
+                ("service_double", "複線載荷（使用性", impact.service_double, trains.double, None)):
+            number += 1
+            name = _key(f"impact.{key}", layout)
+            m.heading(f"{name}.heading", f"{number}) {label}，{layout.value}）", 3)
+            m.table(name, _impact_table(table, train.n))
+            point = result.basic(case, layout).points[0] if case is not None else _service_point(result, key, layout)
+            seat_moment(m, f"{name}.seat", result.frame, table.n, table.m, point)
     m.heading("horizontal.heading", f"{_item(result, 7)} 水平荷重", 2)
     m.heading("horizontal.summary.heading", "1) 支承に働く水平荷重のまとめ", 3)
     rows: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")]
-    groups = {"使用性": 2, "安全性": 4, "復旧性": 2}
     names = {"使用性": "使用性", "安全性": "安全性（破壊）", "復旧性": "復旧性"}
+    placed = [(row, None if row.case not in LAYOUT_CASES else Layout.BOTH) for row in result.horizontal]
+    listed = []
+    for row, layout in placed:  # each case with the train for ①, ② and ③ in turn (decision 102)
+        listed.append((row, layout))
+        if layout is not None:
+            listed += [(next(r for r in other.horizontal if r.case is row.case), other.layout)
+                       for other in result.one_girder]
+    groups: dict[str, int] = {}
+    for row, _ in listed:
+        requirement = horizontal_name(reaction, row.case)[0]
+        groups[requirement] = groups.get(requirement, 0) + 1
     previous = ""
-    for row in result.horizontal:
+    for row, layout in listed:
         requirement, label = horizontal_name(reaction, row.case)
         lead: tuple[Any, ...] = ()
         if requirement != previous:
             lead = (Span(names[requirement], rowspan=groups[requirement], vertical=True),)
             previous = requirement
-        rows.append((*lead, Span(label, align="left"),
+        mark = "" if layout is None else f"{_MARKS[layout]} "  # 列車の配置 (decision 102)
+        rows.append((*lead, Span(mark + label, align="left"),
                      *(Span(value(force), align="right") for force in (row.origin, row.end, row.total))))
     # Two grid rows a case, as Example2's taller rows, so that 安全性（破壊） stands written down its four cases.
     m.table("horizontal", TableSpec((2, 12, 4, 4, 4), tuple(rows), (2,) * len(rows)))
 
 
-def _service_point(result: LongitudinalResult, key: str) -> Any:
+def _service_point(result: LongitudinalResult, key: str, layout: Layout) -> Any:
     """The serviceability impact as the serviceability combinations put it on the frame (at the seat)."""
     case = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
     return next(component.source.points[0] for combination in result.combinations
                 for component in combination.components
-                if component.case is case and component.basis is Basis.SERVICE_IMPACT)
+                if component.case is case and component.basis is Basis.SERVICE_IMPACT and combination.layout is layout)
 
 
 def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
     m.heading("combination.heading", "8.4 設計作用の組合せ", 1)
     m.heading("basic.heading", "(1) 基本ケース", 2)
-    rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "バネ")]
+    # 備考: the placing of a case of each 列車の配置, as Example橋脚4 表2.3.1 (decision 102)
+    rows: list[tuple[Any, ...]] = [("No", "荷重名称", "区分", "備考", "バネ")]
     for action in result.basic_cases:
-        name, _, qualifier, _ = basic_name(result, reaction, action.case)
-        rows.append((str(action.number), name, qualifier, "1" if action.spring is SpringTerm.LONG else "2"))
-    m.table("basic", TableSpec((2, 7, 16, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 3})))
+        name, _, qualifier, _ = basic_name(result, reaction, action.case, action.layout)
+        remark = "" if action.layout is None else _SHORT_PLACINGS[action.layout]
+        rows.append((str(action.number), name, qualifier, remark, "1" if action.spring is SpringTerm.LONG else "2"))
+    m.table("basic", TableSpec((2, 6, 14, 3, 2), tuple(rows), (1,) * len(rows), numeric=frozenset({0, 4})))
     m.paragraph("basic.note", spring_note(result.frame))
     m.heading("define.heading", "(2) Defineケース", 2)
     rows = [("No", "C1", "C2", "C3", "記号", "荷重名称", "区分")]
     for define in result.define_cases:
-        name, requirement, qualifier, symbol = basic_name(result, reaction, define.case)
+        name, requirement, qualifier, symbol = basic_name(result, reaction, define.case, define.layout)
         second = str(-define.number) if -1 in define.signs else ""
-        rows.append((str(define.number), str(result.basic(define.case).number), second, "", Span(symbol), name,
+        basic = result.basic(define.case, define.layout or Layout.BOTH)
+        rows.append((str(define.number), str(basic.number), second, "", Span(symbol), name,
                      requirement or qualifier))
     m.table("define", TableSpec((2, 2, 2, 2, 5, 6, 8), tuple(rows), (1,) * len(rows),
                                 numeric=frozenset({0, 1, 2})))
@@ -354,11 +394,24 @@ def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> 
     """Basic cases as rows and the 16 combinations as columns, the coefficients as printed (8-10)."""
     rows = []
     for index, action in enumerate(result.basic_cases):
-        name, _, _, symbol = basic_name(result, reaction, action.case)
+        name, _, _, symbol = basic_name(result, reaction, action.case, action.layout)
         rows.append((str(action.number), symbol, name,
                      [combination.coefficients[index] for combination in result.combinations]))
-    return coefficient_table([_CHECKS[c.check] for c in result.combinations],
-                             [c.number for c in result.combinations], rows, block_id=PREFIX + "combination")
+    return coefficient_table([_check_header(c) for c in result.combinations],
+                             [c.number for c in result.combinations], rows, block_id=PREFIX + "combination",
+                             case_columns=(1, 5, 5))
+
+
+_SHORT_PLACINGS = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}
+_MARKS = {Layout.BOTH: "①", Layout.ORIGIN: "②", Layout.END: "③"}
+
+
+def _check_header(combination: Any) -> tuple[str, str, str]:
+    """The requirement, performance item and remark of a combination; a check with the train adds its placing."""
+    requirement, item, remark = _CHECKS[combination.check]
+    if combination.layout is None:
+        return requirement, item, remark
+    return requirement, item, f"{remark}\n{_SHORT_PLACINGS[combination.layout]}".lstrip("\n")
 
 
 def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:

@@ -12,6 +12,10 @@ rounded afterwards (ADR-0003); WebPier only holds them.
 
 The steel pipe is the 鋼管外径 less the corrosion allowance on both sides (D) and the 鋼管厚 less the corrosion allowance (t) of
 the input, its grade 鋼管材質 gives the characteristic strengths.
+
+The frame of a pile foundation is linear (the ground and the piles stay elastic), so the responses of its 安全性 are
+multiplied by the 応答値係数 γR = 1.2 (decision 104, the sample III-111: 2.5 設計応答値, tables 2.5.2〜2.5.4): ``factored``
+gives the PIK lines times γR, unrounded, and the forces are rounded where they are printed, as the sample's are.
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ from ._exact import d, put
 # pipe (JIS G 3444; 杭体設計の手引き): the example's SKK490 is 315 and 180.
 STEEL_PIPE_STRENGTH = {"SKK400": (235.0, 135.0), "SKK490": (315.0, 180.0)}
 GAMMA_I = Printed(1.2, 1, "")  # 構造物係数, 安全性（破壊）
+GAMMA_R = Printed(1.2, 1, "")  # 応答値係数 of the 安全性 of the linear frame of a pile foundation (decision 104)
 GAMMA_S = Printed(1.05, 2, "")  # 材料係数（鋼材）
 GAMMA_B = Printed(1.05, 2, "")  # 部材係数
 DIAMETER = Precision(1, "mm")
@@ -76,6 +81,15 @@ class PointForces:
     distance: float  # m from the head
     largest: SectionForce
     smallest: SectionForce
+
+
+def factored(lines: Sequence[PointForces], gamma_r: Printed = GAMMA_R) -> tuple[PointForces, ...]:
+    """*lines* with their section forces multiplied by the 応答値係数 *gamma_r* (unrounded)."""
+    def times(force: SectionForce) -> SectionForce:
+        factor = gamma_r.value
+        return SectionForce(force.md * factor, force.vd * factor, force.nd * factor, force.combination)
+    return tuple(PointForces(line.focus, line.point, line.distance, times(line.largest), times(line.smallest))
+                 for line in lines)
 
 
 @dataclass(frozen=True)

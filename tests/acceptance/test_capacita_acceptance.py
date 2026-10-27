@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from column_capacity_by_hand import mud
 from recorded_input_support import input_sha256s
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
 from webpier.calc.foundation import calculate_foundation
@@ -72,18 +73,20 @@ def test_the_report_has_the_sections_asked_for_but_those_capacita_skipped(accept
 
 
 def test_the_values_are_those_of_example2(accepted):
-    """08_線路.pdf 8-15 and 8-26: the check ratios. 09_直角.pdf 9-19 and 9-23: the capacities only (WebPier's 0620 wind
-    differs, decisions 12 and 35; N'd is the same). The capacities differ by less than 0.2 % between the sample's
-    WebDan and Capacita."""
+    """Mud of both agrees within 0.2 % with the hand calculation for the sample's N'd (column_capacity_by_hand: decision
+    105 counts the side bars, the H16 sample does not). 08_線路.pdf 8-26: the check ratio of 使用性（損傷）and Myd within
+    0.2 % (the sample's WebDan and Capacita). 09_直角.pdf: neither (WebPier's 0620 wind differs, decisions 12 and 35, and
+    decision 103 changes the bars)."""
     stage, recorded, _ = accepted
     acceptance, values = sample(stage)["acceptance"], recorded["values"]
     assert (recorded["kind"], recorded["schema_version"], recorded["stage"]) == (
         "capacita_column_check_acceptance", 2, stage)
-    for section, key in (("bending_safety_destruction", "Mud_kNm"), ("bending_restorability", "Myd_kNm")):
-        if stage == "0611":
-            assert values[section]["ratio"] == acceptance[section]["ratio"], section
-        printed, expected = float(values[section]["capacity"]), float(acceptance[section][key])
-        assert abs(printed - expected) / expected < 0.002, section
+    assert abs(float(values["bending_safety_destruction"]["capacity"]) - mud(stage)) / mud(stage) < 0.002
+    if stage == "0611":
+        section = "bending_restorability"
+        assert values[section]["ratio"] == acceptance[section]["ratio"]
+        printed, expected = float(values[section]["capacity"]), float(acceptance[section]["Myd_kNm"])
+        assert abs(printed - expected) / expected < 0.002
 
 
 def test_capacita_checked_the_pik_of_the_current_frameweb_file_too(accepted):

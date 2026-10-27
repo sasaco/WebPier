@@ -19,21 +19,23 @@ def test_0610_has_no_snow_item_and_17_basic_cases():
         "(4) 列車荷重", "(5) 衝撃荷重", "(6) 水平荷重")
     assert "8.2 (5) 3)，4) の値に" in printed["0610/combination.note"]
     basic = printed["0610/basic"]
-    assert "雪荷重" not in basic and basic.endswith("17ﾛﾝｸﾞﾚｰﾙ縦荷重復旧性　1.0LR1")
+    # 35 = 38 less the three snow cases (each case of the train made for ①, ② and ③, decision 102)
+    assert "雪荷重" not in basic and basic.endswith("35ﾛﾝｸﾞﾚｰﾙ縦荷重復旧性　1.0LR1")
     assert "雪荷重" not in printed["0610/define"] and "雪荷重" not in printed["0610/combination"]
 
 
-def test_0620_has_no_snow_item_and_14_basic_cases():
+def test_0620_has_no_snow_item_and_15_basic_cases():
     pier, reaction, result, _ = transverse_chain("no_snow")
     printed = texts(transverse.semantic_records(result, reaction, pier))
     assert not any(key.startswith("0620/snow.") for key in printed)
     assert [printed[f"0620/{key}.heading"] for key in ("train", "impact", "lateral", "wind")] == [
         "(4) 列車荷重", "(5) 衝撃荷重", "(6) 車両横荷重", "(7) 風荷重"]
     basic = printed["0620/basic"]
-    assert "雪荷重" not in basic and basic.endswith("14風荷重列車荷重がない場合2")
-    # Define 6 is the single-track train: basic case 6 (up) or 7 (down); the winds are 13 and 14 in either sign
+    assert "雪荷重" not in basic and basic.endswith("15風荷重列車荷重がない場合2")
+    # Define 6 is the single-track train: basic case 6 (up) or 7 (down); after the vehicle lateral load of one and of
+    # two tracks (12, 13: decision 106) the winds are 14 and 15 in either sign
     define = printed["0620/define"]
-    assert "667L1列車荷重単線" in define and define.endswith("1214-14W2風荷重列車荷重がない場合")
+    assert "667L1列車荷重単線" in define and define.endswith("1315-15W2風荷重列車荷重がない場合")
 
 
 def test_0710_and_0720_have_no_snow_case():

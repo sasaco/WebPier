@@ -18,6 +18,8 @@ from frame_report_cases import CASES, chain, part_weight, text
 from webpier.calc.frame import NodeRole, Region
 from webpier.calc.longitudinal import BasicCase, Item, SpringTerm
 from webpier.core.printed import Printed
+from webpier.calc.reaction.longitudinal import LAYOUT_CASES
+from webpier.calc.reaction.train import Layout
 
 ADDITIONS = {
     "0610/model.nodes": "節点座標（Example橋脚 7-2 の節点座標表）",
@@ -255,59 +257,88 @@ def expected(case: str) -> dict[str, str]:
             add(f"snow.{key}", top(snow.rows, snow.n, snow.m))
             add(f"snow.{key}.seat", seat(frame, snow.n, snow.m, result.basic(case_).points[0]))
     add("train.heading", f"{item(5)}列車荷重")
-    add("train.single.heading", "1)単線載荷")
-    single, double = result.train.single, result.train.double
-    add("train.single", top(single.rows, single.n, single.m))
-    add("train.single.seat", seat(frame, single.n, single.m, result.basic(BasicCase.TRAIN_SINGLE).points[0]))
-    add("train.double.heading", "2)複線載荷")
-    add("train.double.origin", f"載荷線数を乗じるRB={t(single.row(Item.ORIGIN).n)}×{t(reaction.dead.origin.track_total)}="
-                               f"{t(double.row(Item.ORIGIN).n)}kN")
-    add("train.double.end", f"RC={t(single.row(Item.END).n)}×{t(reaction.dead.end.track_total)}={t(double.row(Item.END).n)}kN")
-    add("train.double", top(double.rows, double.n, double.m))
-    add("train.double.seat", seat(frame, double.n, double.m, result.basic(BasicCase.TRAIN_DOUBLE).points[0]))
+    # decision 102: the train of ①, ② and ③ in turn; ①'s keys as before, ② and ③ add the placing
+    placings = [(Layout.BOTH, result.train, result.impact),
+                *((placed.layout, placed.train, placed.impact) for placed in result.one_girder)]
+    for index, (layout, trains, _) in enumerate(placings):
+        key = "train" if layout is Layout.BOTH else f"train.{layout.name.lower()}"
+        single, double = trains.single, trains.double
+        add(f"{key}.single.heading", f"{2 * index + 1})単線載荷（{layout.value}）")
+        add(f"{key}.single", top(single.rows, single.n, single.m))
+        add(f"{key}.single.seat", seat(frame, single.n, single.m,
+                                       result.basic(BasicCase.TRAIN_SINGLE, layout).points[0]))
+        add(f"{key}.double.heading", f"{2 * index + 2})複線載荷（{layout.value}）")
+        add(f"{key}.double.origin", f"載荷線数を乗じるRB={t(single.row(Item.ORIGIN).n)}×"
+                                    f"{t(reaction.dead.origin.track_total)}={t(double.row(Item.ORIGIN).n)}kN")
+        add(f"{key}.double.end", f"RC={t(single.row(Item.END).n)}×{t(reaction.dead.end.track_total)}="
+                                 f"{t(double.row(Item.END).n)}kN")
+        add(f"{key}.double", top(double.rows, double.n, double.m))
+        add(f"{key}.double.seat", seat(frame, double.n, double.m,
+                                       result.basic(BasicCase.TRAIN_DOUBLE, layout).points[0]))
     add("impact.heading", f"{item(6)}衝撃荷重")
     add("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
-    impact = result.impact
-    for key, label, table, train, case_ in (
-            ("ultimate_single", "1)単線載荷（安全性・復旧性）", impact.ultimate_single, single, BasicCase.IMPACT_SINGLE),
-            ("ultimate_double", "2)複線載荷（安全性・復旧性）", impact.ultimate_double, double, BasicCase.IMPACT_DOUBLE),
-            ("service_single", "3)単線載荷（使用性）", impact.service_single, single, None),
-            ("service_double", "4)複線載荷（使用性）", impact.service_double, double, None)):
-        add(f"impact.{key}.heading", label)
-        names = {Item.ORIGIN: "起点側RB", Item.END: "終点側RC"}
-        add(f"impact.{key}", "列車荷重(kN)衝撃係数鉛直力(kN)アーム(m)モーメント(kN・m)"
-            + "".join(names[r.item] + t(r.train) + t(r.coefficient) + t(r.n) + t(r.arm) + t(r.m) for r in table.rows)
-            + f"合計{t(train.n)}{t(table.n)}{t(table.m)}")
-        if case_ is not None:
-            point = result.basic(case_).points[0]
-        else:  # the serviceability impact as the serviceability combinations put it on the frame
-            wanted = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
-            point = next(c.source.points[0] for combo in result.combinations for c in combo.components
-                         if c.case is wanted and c.basis.value == "service_impact")
-        add(f"impact.{key}.seat", seat(frame, table.n, table.m, point))
+    number = 0
+    for layout, trains, impact in placings:
+        for key, label, table, train, case_ in (
+                ("ultimate_single", "単線載荷（安全性・復旧性", impact.ultimate_single, trains.single,
+                 BasicCase.IMPACT_SINGLE),
+                ("ultimate_double", "複線載荷（安全性・復旧性", impact.ultimate_double, trains.double,
+                 BasicCase.IMPACT_DOUBLE),
+                ("service_single", "単線載荷（使用性", impact.service_single, trains.single, None),
+                ("service_double", "複線載荷（使用性", impact.service_double, trains.double, None)):
+            number += 1
+            name = f"impact.{key}" if layout is Layout.BOTH else f"impact.{key}.{layout.name.lower()}"
+            add(f"{name}.heading", f"{number}){label}，{layout.value}）")
+            names = {Item.ORIGIN: "起点側RB", Item.END: "終点側RC"}
+            add(name, "列車荷重(kN)衝撃係数鉛直力(kN)アーム(m)モーメント(kN・m)"
+                + "".join(names[r.item] + t(r.train) + t(r.coefficient) + t(r.n) + t(r.arm) + t(r.m) for r in table.rows)
+                + f"合計{t(train.n)}{t(table.n)}{t(table.m)}")
+            if case_ is not None:
+                point = result.basic(case_, layout).points[0]
+            else:  # the serviceability impact as the serviceability combinations of the placing put it on the frame
+                wanted = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
+                point = next(c.source.points[0] for combo in result.combinations for c in combo.components
+                             if c.case is wanted and c.basis.value == "service_impact" and combo.layout is layout)
+            add(f"{name}.seat", seat(frame, table.n, table.m, point))
     add("horizontal.heading", f"{item(7)}水平荷重")
     add("horizontal.summary.heading", "1)支承に働く水平荷重のまとめ")
     groups = {"使用性": "使用性", "安全性": "安全性（破壊）", "復旧性": "復旧性"}
     rows, previous = "荷　重　種　別起点桁(kN)終点桁(kN)合計(kN)", ""
+    marks = {Layout.BOTH: "①", Layout.ORIGIN: "②", Layout.END: "③"}
     for (name, requirement, full, _, _), row in zip(horizontal_names(result, reaction), result.horizontal):
-        rows += (groups[requirement] if requirement != previous else "") + full + t(row.origin) + t(row.end) + t(row.total)
-        previous = requirement
+        listed = [(row, None)]
+        if row.case in LAYOUT_CASES:  # ①, ② and ③ of a case with the train or braking (decision 102)
+            listed = [(row, Layout.BOTH), *((next(r for r in placed.horizontal if r.case is row.case), placed.layout)
+                                            for placed in result.one_girder)]
+        for shown, layout in listed:
+            rows += ((groups[requirement] if requirement != previous else "") + ("" if layout is None else marks[layout])
+                     + full + t(shown.origin) + t(shown.end) + t(shown.total))
+            previous = requirement
     add("horizontal", rows)
     # Decision 44: the load diagrams are FEMPython's pages after the heading; the section has no text of its own.
     add("diagrams.heading", "8.3荷重図")
     add("combination.heading", "8.4設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
     names = [(n, q) for n, q, _ in BASIC] + [(n, f"{r}　{full}") for n, r, full, _, _ in horizontal_names(result, reaction)]
-    add("basic", "No荷重名称区分バネ" + "".join(
-        f"{a.number}{names[a.case.value - 1][0]}{names[a.case.value - 1][1]}{1 if a.spring is SpringTerm.LONG else 2}"
-        for a in result.basic_cases))
+
+    short = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}  # 備考 (decision 102)
+    add("basic", "No荷重名称区分備考バネ" + "".join(
+        f"{a.number}{''.join(names[a.case.value - 1])}{'' if a.layout is None else short[a.layout]}"
+        f"{1 if a.spring is SpringTerm.LONG else 2}" for a in result.basic_cases))
     add("basic.note", "バネ1は長期，2は短期のフーチング底面のばねを用いる．")
     add("define.heading", "(2)Defineケース")
     symbols = [sym for _, _, sym in BASIC] + [sym for _, _, _, sym, _ in horizontal_names(result, reaction)]
     qualifiers = [q for _, q, _ in BASIC] + [r for _, r, _, _, _ in horizontal_names(result, reaction)]
+    placings = {Layout.BOTH: "1", Layout.ORIGIN: "2", Layout.END: "3"}
+
+    def placed_symbol(case, layout):  # L1-1 of ① (Example橋脚4 表2.3.1), 1.0LR+1.23B-2 of ②
+        symbol = symbols[case.value - 1]
+        return symbol if layout is None else f"{symbol}-{placings[layout]}"
+
     add("define", "NoC1C2C3記号荷重名称区分" + "".join(
-        f"{d.number}{result.basic(d.case).number}{-d.number if -1 in d.signs else ''}{symbols[d.case.value - 1]}"
-        f"{names[d.case.value - 1][0]}{qualifiers[d.case.value - 1]}" for d in result.define_cases))
+        f"{d.number}{result.basic(d.case, d.layout or Layout.BOTH).number}{-d.number if -1 in d.signs else ''}"
+        f"{placed_symbol(d.case, d.layout)}{names[d.case.value - 1][0]}{qualifiers[d.case.value - 1]}"
+        for d in result.define_cases))
     add("define.note", "C2は水平荷重を逆向きにも作用させることを示す．")
     add("factors.heading", "(3)組合せケースと荷重係数")
     f, train = result.factors, pier.train
@@ -315,11 +346,12 @@ def expected(case: str) -> dict[str, str]:
     add("factors.maximum", f"列車最大1.1ρ=1.1×{t(train.factor_ultimate)}={t(f.maximum)}")
     add("factors.service", f"使用性ρ={t(train.factor_service)}≒{t(f.service)}")
     add("factors.service_impact", f"使用性の衝撃0.75ρ=0.75×{t(train.factor_service)}={t(f.service_impact)}")
-    add("combination", combination_text(result, symbols, names))
-    add("combination.note", f"組合せ5，7，15，16の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2{item(6)}3)，4)の値に"
-                            f"ρ={t(f.service)}を乗じる．")
+    add("combination", combination_text(result, placed_symbol, names))
+    services = [str(c.number) for c in result.combinations if any(k.basis.value == "service_impact" for k in c.components)]
+    add("combination.note", f"組合せ{'，'.join(services)}の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2{item(6)}3)，"
+                            f"4)の値にρ={t(f.service)}を乗じる．")
     add("extraction.heading", "(4)抽出ケース")
-    width = max(len(e.combinations) for e in result.extractions)
+    width = min(max(len(e.combinations) for e in result.extractions), 9)  # 9 numbers a line, then the next line
     labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",
               "短期支持性能"]
     add("extraction", "No名称" + "".join(f"C{i}" for i in range(1, width + 1)) + "".join(
@@ -327,14 +359,29 @@ def expected(case: str) -> dict[str, str]:
     return out
 
 
-def combination_text(result, symbols, names) -> str:
-    header = ("No記号荷重名称安全性耐久性・使用性使用性安全性使用性破壊ひび割れ損傷地盤の安定長期短期"
-              "列車最大制動最大ﾛﾝｸﾞ最大雪最大縁応力度永久荷重変動荷重列車最大雪最大列車最大制動最大ﾛﾝｸﾞ最大雪最大"
-              + "".join(str(c.number) for c in result.combinations))
+# The 16 checks of 8-10 as Example2 heads them: requirement, performance item, remark
+CHECK_HEADS = [("安全性", "破壊", "列車最大"), ("安全性", "破壊", "制動最大"), ("安全性", "破壊", "ﾛﾝｸﾞ最大"),
+               ("安全性", "破壊", "雪最大"), ("耐久性・使用性", "ひび割れ", "縁応力度"), ("耐久性・使用性", "ひび割れ", "永久荷重"),
+               ("耐久性・使用性", "ひび割れ", "変動荷重"), ("使用性", "損傷", "列車最大"), ("使用性", "損傷", "雪最大"),
+               ("安全性", "地盤の安定", "列車最大"), ("安全性", "地盤の安定", "制動最大"), ("安全性", "地盤の安定", "ﾛﾝｸﾞ最大"),
+               ("安全性", "地盤の安定", "雪最大"), ("使用性", "長期", ""), ("使用性", "短期", ""), ("使用性", "短期", "")]
+SHORT_PLACINGS = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}
+
+
+def merged(texts) -> str:
+    """A header row: neighbours with the same text share one cell."""
+    return "".join(text for index, text in enumerate(texts) if not index or text != texts[index - 1])
+
+
+def combination_text(result, placed_symbol, names) -> str:
+    heads = [CHECK_HEADS[c.check.value - 1] for c in result.combinations]
+    remarks = [head[2] + ("" if c.layout is None else SHORT_PLACINGS[c.layout]) for head, c in
+               zip(heads, result.combinations)]  # decision 102: a check with the train names its placing
+    header = ("No記号荷重名称" + merged([head[0] for head in heads]) + merged([head[1] for head in heads])
+              + merged(remarks) + "".join(str(c.number) for c in result.combinations))
     body = ""
     for row, action in enumerate(result.basic_cases):  # the coefficients by the cases made (decision 69)
-        index = action.case.value - 1
-        body += f"{action.number}{symbols[index]}{names[index][0]}" + "".join(
+        body += f"{action.number}{placed_symbol(action.case, action.layout)}{names[action.case.value - 1][0]}" + "".join(
             t(c.coefficients[row]) if c.coefficients[row] is not None else "－" for c in result.combinations)
     return header + body
 

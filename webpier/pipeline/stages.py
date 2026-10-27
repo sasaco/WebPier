@@ -89,7 +89,7 @@ from ..calc.generic.cantilever import calculate_generic_cantilever, complete_gen
 from ..calc.generic.frame import calculate_generic_frame
 from ..calc.generic.seismic import calculate_generic_seismic
 from ..calc.longitudinal import calculate_longitudinal
-from ..calc.pile_body import assemble as assemble_pile_body, select as select_pile_forces, steel as pile_steel
+from ..calc.pile_body import assemble as assemble_pile_body, factored, select as select_pile_forces, steel as pile_steel
 from ..calc.pile_cast import REPORT_SECTIONS as PILE_CAST_SECTIONS, assemble as assemble_pile_cast
 from ..calc.pile_cast import pile_factor, section as pile_cast_section, select as select_pile_cast
 from ..calc.pile_check import check as check_pile, prepare as prepare_pile_check, with_body, with_cast, with_joint
@@ -714,7 +714,9 @@ def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: Fou
         found = check_pile(basis, pile_limits(results["0500"].sdr, direction),
                            head_forces(files["pik"], [member.member for member in basis.members]),
                            footing_displacements(files["displacement"], basis.node))
-        lines = member_forces(files["pik"], [member.member for member in basis.members], basis.body_pickup)
+        # the 安全性（破壊）'s section forces times the 応答値係数 γR (decision 104)
+        lines = {member: factored(found_lines) for member, found_lines in
+                 member_forces(files["pik"], [member.member for member in basis.members], basis.body_pickup).items()}
         if pier.substructure.foundation == choices.CAST_IN_PLACE_PILE:
             # the pile body of a cast-in-place pile: WebPier chooses the design forces, Capacita checks the circular section
             # and returns its pages (decision 91)

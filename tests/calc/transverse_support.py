@@ -66,3 +66,44 @@ def points(action):
         assert point.node not in found
         found[point.node] = (point.n.value, point.h.value, point.m.value)
     return found
+
+
+# Example2's 9-14 (H16) makes each check with the train for one loading only and has one vehicle lateral load; WebPier
+# makes both loadings with the vehicle lateral load of two tracks in 複線 (decision 106).
+def _example2_loadings():
+    from webpier.calc.transverse import Check, Loading  # noqa: PLC0415
+
+    double, single = Loading.DOUBLE, Loading.SINGLE
+    return {Check.FAILURE_TRAIN_MAX: double, Check.FAILURE_LATERAL_MAX: double, Check.CRACK_PERMANENT_VARIABLE: double,
+            Check.CRACK_VARIABLE: single, Check.DAMAGE_TRAIN_MAX: double, Check.STABILITY_TRAIN_MAX: double,
+            Check.STABILITY_LATERAL_MAX: double, Check.SUPPORT_SHORT_TERM_LOW_WATER: single,
+            Check.SUPPORT_SHORT_TERM_HIGH_WATER: single}
+
+
+def example2_combinations(result):
+    """The combinations Example2's 9-14 prints, in its order (its Nos 1-16)."""
+    loadings = _example2_loadings()
+    return [c for c in result.combinations if c.loading is None or c.loading is loadings[c.check]]
+
+
+def by_define(result, combination):
+    """{Define: coefficient} of *combination*."""
+    return dict(zip((d.define for d in result.define_cases), combination.coefficients, strict=True))
+
+
+def example2_coefficients(result, combination):
+    """*combination*'s coefficients by Example2's Define cases: the vehicle lateral load of two tracks in the column of
+    Example2's one."""
+    from webpier.calc.transverse import Define  # noqa: PLC0415
+
+    found = by_define(result, combination)
+    if found.get(Define.LATERAL_DOUBLE) is not None:
+        found[Define.LATERAL] = found[Define.LATERAL_DOUBLE]
+    return [coefficient for define, coefficient in found.items() if define is not Define.LATERAL_DOUBLE]
+
+
+def example2_case(case):
+    """Example2's number of a basic case: those after the vehicle lateral load of two tracks are one less."""
+    from webpier.calc.transverse import BasicCase  # noqa: PLC0415
+
+    return case.value - (case.value > BasicCase.LATERAL_DOUBLE.value)

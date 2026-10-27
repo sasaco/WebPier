@@ -16,7 +16,7 @@ from ..foundation import FoundationResult
 from ..pile_frame import PileFoundation
 from ..frame import Direction, Frame, build_frame
 from ..longitudinal.combinations import (
-    Basis, CombinationFactors, Extraction, ExtractionGroup, Usage, combination_factors, extractions,
+    Basis, CombinationFactors, Extraction, ExtractionGroup, Usage, combination_factors, placed_extractions,
 )
 from ..materials import calculate_materials
 from ..reaction import ReactionResult
@@ -25,7 +25,7 @@ from .actions import (
     Item, Lateral, Row, TopTable, Track, TrainRow, Trains, TrainTable, Wind, calculate_actions,
 )
 from .combinations import (
-    WIND_SAFETY, Check, Combination, Component, Define, DefineCase, ResolvedAction, define_cases,
+    WIND_SAFETY, Check, Combination, Component, Define, DefineCase, Loading, ResolvedAction, define_cases,
     resolve_combinations,
 )
 from .wind import MemberLoad, PierWind, WindSegment
@@ -44,11 +44,11 @@ class TransverseResult:
     wind_with_train: Wind  # 9-7
     wind_without_train: Wind  # 9-8
     centrifugal: Centrifugals | None  # on a curve only (decision 33); None on a straight track
-    basic_cases: tuple[BasicAction, ...]  # 9-9 to 9-13: the 17 basic cases (+ 3 centrifugal on a curve, − 3 snow)
-    define_cases: tuple[DefineCase, ...]  # 9-13: the 15 Define cases (+ 2 centrifugal on a curve, − 3 snow)
+    basic_cases: tuple[BasicAction, ...]  # 9-9 to 9-13: the 18 basic cases (+ 3 centrifugal on a curve, − 3 snow)
+    define_cases: tuple[DefineCase, ...]  # 9-13: the 16 Define cases (+ 2 centrifugal on a curve, − 3 snow)
     factors: CombinationFactors
-    combinations: tuple[Combination, ...]  # 9-14, with the resolved actions
-    extractions: tuple[Extraction, ...]  # 9-15 (the same groups as 8-11)
+    combinations: tuple[Combination, ...]  # 9-14 for 複線 and 単線 (decision 106), with the resolved actions
+    extractions: tuple[Extraction, ...]  # 9-15 (the same groups as 8-11, of every combination of their checks)
 
     def basic(self, case: BasicCase) -> BasicAction:
         for action in self.basic_cases:
@@ -63,19 +63,19 @@ def calculate_transverse(pier: PierInput, foundation: FoundationResult | PileFou
     actions = calculate_actions(pier, frame, reaction)
     factors = combination_factors(pier)
     defines = define_cases(actions.basic_cases)
+    combinations = resolve_combinations(frame, actions.basic_cases, defines, actions.impact.service, factors)
     return TransverseResult(
         frame=frame, fixed=actions.fixed, additional=actions.additional, buoyancy=actions.buoyancy,
         snow=actions.snow, train=actions.train, impact=actions.impact, lateral=actions.lateral,
         wind_with_train=actions.wind_with_train, wind_without_train=actions.wind_without_train,
         centrifugal=actions.centrifugal, basic_cases=actions.basic_cases, define_cases=defines, factors=factors,
-        combinations=resolve_combinations(frame, actions.basic_cases, defines, actions.impact.service, factors),
-        extractions=extractions(),
+        combinations=combinations, extractions=placed_extractions(combinations),  # type: ignore[arg-type]
     )
 
 
 __all__ = [
     "AdditionalDead", "BasicAction", "BasicCase", "Basis", "CentrifugalRow", "CentrifugalTable", "Centrifugals", "Check", "Combination", "CombinationFactors", "Component",
-    "Define", "DefineCase", "Extraction", "ExtractionGroup", "FixedDead", "HorizontalRow", "ImpactRow", "ImpactSet",
+    "Define", "DefineCase", "Extraction", "ExtractionGroup", "FixedDead", "HorizontalRow", "ImpactRow", "ImpactSet", "Loading",
     "ImpactTable", "Impacts", "Item", "Lateral", "MemberLoad", "PierWind", "ResolvedAction", "Row", "TopTable",
     "Track", "TrainRow", "TrainTable", "Trains", "TransverseResult", "Usage", "WIND_SAFETY", "Wind", "WindSegment",
     "calculate_transverse",

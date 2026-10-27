@@ -29,7 +29,8 @@ def test_every_number_is_a_printed_value():
     result = calculate_reaction(pier())
     assert isinstance(result, ReactionResult)
     loose = [(path, leaf) for path, leaf in leaves(result)
-             if not isinstance(leaf, (Printed, Enum, Bearing, bool)) and leaf is not None and not path.endswith(".slot")]
+             if not isinstance(leaf, (Printed, Enum, Bearing, bool)) and leaf is not None and not path.endswith(".slot")
+             and not path.endswith("loading.train")]  # the adopted train's name (decision 101)
     assert loose == []
 
 

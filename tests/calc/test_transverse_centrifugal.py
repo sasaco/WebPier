@@ -23,9 +23,9 @@ CASES = {Track.UP: B.CENTRIFUGAL_UP, Track.DOWN: B.CENTRIFUGAL_DOWN, Track.DOUBL
 def test_straight_track_has_no_centrifugal_cases():
     result = transverse()  # Example2: R = 0 on both sides
     assert result.centrifugal is None
-    assert [a.case.value for a in result.basic_cases] == list(range(1, 18))
-    assert [d.number for d in result.define_cases] == list(range(1, 16))
-    assert all(len(c.coefficients) == 15 for c in result.combinations)
+    assert [a.case.value for a in result.basic_cases] == list(range(1, 19))
+    assert [d.number for d in result.define_cases] == list(range(1, 17))
+    assert all(len(c.coefficients) == 16 for c in result.combinations)
 
 
 def hand_side(rows, item, alpha, height):
@@ -63,17 +63,17 @@ def test_origin_curve_values():
     assert [(r.train.value, r.coefficient.value, r.h.value, r.y.value, r.m.value) for r in up.rows] == [
         (272.46, 0.222, 60.49, 5.35, 323.62), (294.92, 0.0, 0.0, 5.35, 0.0)]
     assert (double.rows[0].h.value, double.rows[0].m.value) == (120.98, 647.24)
-    assert [a.case.value for a in result.basic_cases] == list(range(1, 21))
+    assert [a.case.value for a in result.basic_cases] == list(range(1, 22))
 
 
 def test_centrifugal_follows_the_coefficient_and_track_of_the_train():
     result = transverse(pier(**ORIGIN_CURVE))
-    assert [(d.number, d.cases) for d in result.define_cases[15:]] == [
-        (16, (B.CENTRIFUGAL_UP, B.CENTRIFUGAL_DOWN)), (17, (B.CENTRIFUGAL_DOUBLE,))]
-    assert all(d.signs == (1,) for d in result.define_cases[15:])  # toward the outside of the curve only
+    assert [(d.number, d.cases) for d in result.define_cases[16:]] == [
+        (17, (B.CENTRIFUGAL_UP, B.CENTRIFUGAL_DOWN)), (18, (B.CENTRIFUGAL_DOUBLE,))]
+    assert all(d.signs == (1,) for d in result.define_cases[16:])  # toward the outside of the curve only
     for combination in result.combinations:
         c = combination.coefficients
-        assert len(c) == 17 and (c[15], c[16]) == (c[8], c[9])  # the coefficients of L single and L double
+        assert len(c) == 18 and (c[16], c[17]) == (c[8], c[9])  # the coefficients of L single and L double
         defines = {component.define for component in combination.components}
         assert (Define.CENTRIFUGAL_SINGLE in defines) is (Define.TRAIN_SINGLE in defines)
         assert (Define.CENTRIFUGAL_DOUBLE in defines) is (Define.TRAIN_DOUBLE in defines)
@@ -83,11 +83,11 @@ def test_centrifugal_follows_the_coefficient_and_track_of_the_train():
     assert (first.factor.value, first.basis) == (1.35, Basis.BASIC)  # 1.1 ρ, as L double
     assert (value(first.points[0].h), value(first.points[0].m)) == (
         q(D(1.35) * value(result.centrifugal.double.h), 2), q(D(1.35) * value(result.centrifugal.double.m), 2))
-    service = result.combinations[6]  # 変動作用: L single × ρs, centrifugal likewise
+    service = result.combinations[10]  # 変動作用 単線: L single × ρs, centrifugal likewise
     assert [[a.case for a in v] for v in service.variants()] == [
         [B.TRAIN_UP, B.IMPACT_UP, B.CENTRIFUGAL_UP], [B.TRAIN_DOWN, B.IMPACT_DOWN, B.CENTRIFUGAL_DOWN]]
     assert service.component(Define.CENTRIFUGAL_SINGLE).alternatives[0].factor == result.factors.service
-    assert result.combinations[2].coefficients[15:] == (None, None)  # 風最大 has no L
+    assert result.combinations[4].coefficients[16:] == (None, None)  # 風最大 has no L
 
 
 def test_both_curves_add_both_sides():

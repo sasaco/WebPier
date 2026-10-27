@@ -318,7 +318,7 @@ def test_the_joint_of_the_steel_pipe_pile_is_read_and_may_stay_blank():
 
 
 @pytest.mark.parametrize("path, value", [
-    (("軸方向鉄筋", "径"), 0), (("軸方向鉄筋", "本数"), 0), (("軸方向鉄筋", "本数"), 1.5), (("軸方向鉄筋", "材質"), "SD490"),
+    (("軸方向鉄筋", "径"), 0), (("軸方向鉄筋", "本数"), 0), (("軸方向鉄筋", "本数"), 1.5), (("軸方向鉄筋", "材質"), "SD685"),
     (("軸方向鉄筋", "重心位置"), -1.0), (("中詰めコンクリート_f'ck",), 0)])
 def test_a_value_of_the_joint_outside_its_range_is_an_input_error(path, value):
     data = pile_input("鋼管ソイルセメント杭")

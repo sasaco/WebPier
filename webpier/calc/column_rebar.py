@@ -38,6 +38,9 @@ from ..inputs.rebar import LENGTH_MM, ColumnBars, ColumnMainBars
 from ._exact import d, put
 
 YIELD_STRENGTH = Precision(0, "N/mm2")
+# JIS G 3112 公称断面積 (mm2) of the deformed bars, as written there.
+_NOMINAL = {6: "31.67", 10: "71.33", 13: "126.7", 16: "198.6", 19: "286.5", 22: "387.1", 25: "506.7", 29: "642.4",
+            32: "794.2", 35: "956.6", 38: "1140", 41: "1340", 51: "2027"}
 _PATH = "鉄筋.柱"
 LayerKey = tuple[str, int]  # (direction, layer)
 
@@ -90,6 +93,16 @@ class ColumnLayout:
 def yield_strength(grade: str) -> Printed:
     """fyk of a grade of choices.STEEL_GRADES: its number in N/mm2 (JIS G 3112)."""
     return YIELD_STRENGTH(int(grade[2:]))
+
+
+def bar_area(diameter: Printed, path: str) -> Printed:
+    """The nominal area of a deformed bar D*diameter* (JIS G 3112)."""
+    text = _NOMINAL.get(int(diameter.value))  # a nominal size has no decimals (inputs.fields.DIAMETER)
+    if text is None:
+        sizes = "・".join(f"D{size}" for size in _NOMINAL)
+        raise InputError(f"{path}: D{diameter.value:g} の公称断面積がありません（JIS G 3112 の {sizes}）")
+    value = Decimal(text)
+    return Printed(float(value), max(0, -value.as_tuple().exponent), "mm2")
 
 
 def _need(value, path: str):

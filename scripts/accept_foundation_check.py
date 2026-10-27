@@ -30,6 +30,7 @@ import sys
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
+sys.path.insert(0, str(PROJECT / "tests"))
 sys.path.insert(0, str(PROJECT / "tests" / "acceptance"))
 
 from webpier.calc import foundation_check as fc  # noqa: E402

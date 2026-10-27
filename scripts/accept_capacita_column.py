@@ -11,10 +11,12 @@ to Capacita too, which must check the same sections and skip the same ones, and 
 使用性（損傷）の曲げ are compared with Example2 (tests/fixtures/example2/column_section_check.json and
 column_section_check_09.json, ``acceptance``):
 
-- 0611 (08_線路.pdf 8-15, 8-26): the check ratios must be the printed ones;
+- Mud of both: decision 105 counts the side bars in 安全性（破壊）（the H16 sample does not), so Mud must agree within
+  0.2 % with the hand calculation for the sample's N'd (tests/acceptance/column_capacity_by_hand.py);
+- 0611 (08_線路.pdf 8-26): the check ratio and Myd of 使用性（損傷）must be the printed ones;
 - 0621 (09_直角.pdf 9-19, 9-23): WebPier's 0620 wind differs from the sample's (decisions 12, 35), so Md and the
-  ratios differ; N'd is the same, so the capacities Mud and Myd must agree within 0.2 %, and Capacita must skip the
-  checks the sample omits (``skipped_by_capacita``) and no other.
+  ratios differ, and decision 103 puts the corner D32 in the main bars, so Myd differs too and is recorded only;
+  Capacita must skip the checks the sample omits (``skipped_by_capacita``) and no other.
 
 The record goes to tests/fixtures/acceptance/capacita/record.json (0611) or record_0621.json, and tests/acceptance
 checks that it still belongs to the current generator. It records that Capacita checked the WDJ as WebPier writes
@@ -36,6 +38,7 @@ import pymupdf
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
+sys.path.insert(0, str(PROJECT / "tests"))
 sys.path.insert(0, str(PROJECT / "tests" / "acceptance"))
 
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check  # noqa: E402
@@ -49,6 +52,7 @@ from webpier.inputs import parse_input  # noqa: E402
 from webpier.pipeline import capacita, fempython  # noqa: E402
 from webpier.pipeline.generate import export_bytes  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
+from column_capacity_by_hand import mud  # noqa: E402
 from reactions_by_hand import reference_frameweb  # noqa: E402
 
 INPUT = "tests/fixtures/inputs/current.json"
@@ -77,9 +81,11 @@ STAGES = {
         "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した"
         " PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の"
         " 8-15・8-26 と比べた。",
-        ("照査値（γi・Md/Mud＝0.132、γi・Md/Myd＝0.114）は見本と一致する。耐力（Mud・Myd）は見本の WebDan といまの Capacita で"
-         " 0.2% 未満違う（Mud 37426.2／37449.1、Myd 38200.7／38260.8）（見本自身の WDJ と PIK をいまの Capacita で計算しても"
-         "同じ値になる）。",
+        ("使用性（損傷）の照査値（γi・Md/Myd＝0.114）は見本と一致し、Myd は見本の WebDan といまの Capacita で 0.2% 未満違う"
+         "（38200.7／38260.8。見本自身の WDJ と PIK をいまの Capacita で計算しても同じ値になる）。",
+         "安全性（破壊）は決定105 で側方鉄筋 D19×9（片面）を数えるので、Mud と照査値は見本（側方鉄筋を数えない H16。Mud 37449.1、"
+         "0.132）と違う。Mud は見本の N'd 15089.9 での手計算（RC標準の応力ひずみ曲線、側方鉄筋込み）と 0.2% 未満で合う。等価応力ブロックで側方鉄筋を"
+         "数えない同じ手計算は 37490.6（いまの Capacita の数えない値 37426.2 と 0.17%）。",
          "使用性（損傷）のせん断のページが加わる（見本 8.9(2) は省略。決定48）。",
          "断面力一覧のページが加わる（print_section_force_checked。見本 8.5 に相当）。",
          "基準は RC標準 R5（見本は H16。決定73）で、照査値と耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節"
@@ -88,16 +94,20 @@ STAGES = {
     "0621": Stage(
         RECORDS / "record_0621.json", EXAMPLE2 / "column_section_check_09.json", "0620", "線路直角方向", True,
         "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した"
-        " PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2"
-        " 09_直角.pdf の 9-19・9-23 と比べた。",
+        " PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の Mud を"
+        "見本の N'd での手計算（tests/acceptance/column_capacity_by_hand.py）と、省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
         ("照査値は見本と比べない。WebPier の 0620 の風荷重は見本と違う（決定12・35）ので Md が違う（安全性（破壊）の"
-         " Md 10939.1／見本 8256.6）。軸力 N'd は見本と同じなので、耐力（Mud・Myd）を比べる。",
-         "耐力は見本の WebDan といまの Capacita で 0.2% 未満違う（見本自身の WDJ をいまの Capacita で計算すると Mud 29326.7、"
-         "Myd 48634.5）。",
+         " Md 10939.1／見本 8256.6）。",
+         "耐力も見本と比べない。決定103 で線路の隅の D32 を主鉄筋に入れ（D19×14.54、芯 104.3。見本は D19×9 を 102）、"
+         "決定105 で安全性（破壊）に側方鉄筋 D32×27（片面）を数えるので、Mud は見本の 29334.2 よりずっと大きい。Mud は見本の"
+         " N'd 13264.1 での手計算（RC標準の応力ひずみ曲線、図面の位置の D19×9＋D32×2 と側方鉄筋）と 0.2% 未満で合う。等価応力ブロックで側方鉄筋を"
+         "数えない同じ手計算は見本の鉄筋で 29380.7（見本 29334.2、0.16%）。",
+         "Myd は記録だけで比べない（手計算の降伏曲げモーメントは見本の鉄筋でも Capacita と 3% 違い、Capacita の降伏の定義に"
+         "合わせていない）。",
          "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1914）と耐久性のせん断（WD-1919）を飛ばす。見本に 9.7・9.8 が"
          "ないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
          "柱下端の着目点は PIK の 7 番目（柱に風荷重の区間の端の着目点がある）。見本は 6。",
-         "側方鉄筋 D32×29 は見本どおり位置を書かず、Capacita が等分に配置する。",
+         "側方鉄筋は隅の鉄筋を除いた D32 の 27 本を 300 から 150 間隔に書く（見本は D32×29 を位置なしで、Capacita が等分）。",
          "基準は RC標準 R5（見本は H16。決定73）で、耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節"
          "（bending_rebar_amount、行8 に永久作用）のページが加わる。",
          "使用性（損傷）のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。")),
@@ -146,11 +156,15 @@ def main(stage_id: str) -> int:
     pages, values, page_count = _check(wdj, stage, pik, check, capacita_runner)
     sample = load_json(stage.sample.read_bytes())["acceptance"]
     expected = {section: (sample[section]["ratio"], sample[section][key]) for section, (_, _, key) in CHECKS.items()}
-    for section, (ratio, capacity) in expected.items():
-        if not stage.transverse and values[section]["ratio"] != ratio:
+    # decisions 103 and 105: Mud is compared with the hand calculation; Myd with the sample along the track only
+    compared = {"bending_safety_destruction": (None, round(mud(stage_id), 1))}
+    if not stage.transverse:
+        compared["bending_restorability"] = expected["bending_restorability"]
+    for section, (ratio, capacity) in compared.items():
+        if ratio is not None and values[section]["ratio"] != ratio:
             raise AcceptanceError(f"{section}: γi・Md/M = {values[section]['ratio']}（見本は {ratio}）")
         if abs(float(values[section]["capacity"]) - float(capacity)) / float(capacity) >= TOLERANCE:
-            raise AcceptanceError(f"{section}: 耐力 {values[section]['capacity']}（見本は {capacity}）")
+            raise AcceptanceError(f"{section}: 耐力 {values[section]['capacity']}（比べる値は {capacity}）")
     if sorted(pages.skipped) != sorted(sample.get("skipped_by_capacita", [])):
         raise AcceptanceError(f"Capacita が省略した照査 {list(pages.skipped)}（見本は {sample.get('skipped_by_capacita', [])}）")
     current_analysis = fempython.analyze_frame(f"{stage.name}.json", frameweb, fempython_runner)
@@ -185,6 +199,7 @@ def main(stage_id: str) -> int:
                     "pik_sha256": sha256(current_pik), "values": current_values,
                     "skipped": list(current_pages.skipped)},
         "sample": {section: {"ratio": ratio, "capacity": capacity} for section, (ratio, capacity) in expected.items()},
+        "compared": {section: {"ratio": ratio, "capacity": capacity} for section, (ratio, capacity) in compared.items()},
         "expected_differences": list(stage.differences),
     }
     stage.record.parent.mkdir(parents=True, exist_ok=True)

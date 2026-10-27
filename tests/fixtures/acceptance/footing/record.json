@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "kind": "footing_acceptance",
-  "verified_at": "2026-10-24T07:28:55+09:00",
+  "verified_at": "2026-10-27T11:16:43+09:00",
   "method": "current.json に見本の配筋（鉄筋.フーチング）を足した入力で片持ち梁以外の出力項目の生成を本物の4つの runner で一時フォルダーに用意し（公開しない）、0800 の5列（反力の組合せと Vd・Hd・Md（その組合せの荷重の和と比べる、決定77）、Rvd到達ステップ、採った張出しの Md・Vd・La）と 0810・0820 の WDJ を Capacita が照査した耐力を記録し、見本と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
@@ -67,9 +67,9 @@
       }
     },
     "file": "input.json",
-    "sha256": "8464305249f8da2e219fc1c0850588376e04aa5bd463bc11758b295e5b5ffcc6"
+    "sha256": "4ce0dfd0d7b35870595911f828bc62551d8d9c0cc12b1c5e88657b494f60fbc5"
   },
-  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
+  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
   "runners": {
     "fempython": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "jrsnap": "C:\\Users\\sasai\\Documents\\structural-mcp\\JRSNAPHeadless\\bin\\Release\\JRSNAP.Headless.exe",
@@ -78,12 +78,12 @@
   },
   "engines": {
     "frameweb": {
-      "線路方向.json": "421643c3e26397045f83dbf1cc88d628f8d1fca2c671ddea1bf00cef784dcdc1",
-      "線路直角方向.json": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d"
+      "線路方向.json": "42b17644a0e35159b6e26154b3a2c60328d215c7b98ad2d7f85200aadc9444a6",
+      "線路直角方向.json": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7"
     },
     "reaction": {
-      "線路方向_ピックアップ反力.csv": "5d7525d39087bfae310d4f771681e6fd27dcba625668e7523b8e1bf9e6ac8b11",
-      "線路直角方向_ピックアップ反力.csv": "d2fbd2b1f3f5a03ff4cbb1c5ae1d94807c56153974f227a04a3c3539955eab4a"
+      "線路方向_ピックアップ反力.csv": "c2f35ae8ade4885030107a8c45f30b977f22333fc1eb235eaafdc44e9a904bf3",
+      "線路直角方向_ピックアップ反力.csv": "90984c5bc7f8569584c7321e9f1f3ed65d8e1824fcdee6d5b3101c15559dd0dc"
     },
     "ndu": {
       "線路方向.ndu": "1a5df75c560c04dc904360c5248992012e26c6169c969af4db43647a69db852d",
@@ -112,16 +112,16 @@
       "columns": {
         "safety_moment": {
           "ours": {
-            "vd": 22272.81,
-            "hd": 513.89,
-            "md": 5496.81,
+            "vd": 22006.07,
+            "hd": 428.4,
+            "md": 5543.82,
             "chosen": "起点側",
             "design": {
-              "md": 805.57,
-              "vd": 733.16,
-              "la": 1.099
+              "md": 797.44,
+              "vd": 724.94,
+              "la": 1.1
             },
-            "combination": 3
+            "combination": 8
           },
           "sample": {
             "Vd": 21870.77,
@@ -129,19 +129,19 @@
             "Md": 5460.42
           },
           "differences": {
-            "vd": 402.04,
-            "hd": 18.88,
-            "md": 36.39
+            "vd": 135.3,
+            "hd": -66.61,
+            "md": 83.4
           },
           "by_hand": {
-            "vd": 22272.83,
-            "hd": 513.89,
-            "md": 5496.807
+            "vd": 22006.09,
+            "hd": 428.4,
+            "md": 5543.82
           },
           "differences_by_hand": {
             "vd": -0.02,
             "hd": 0.0,
-            "md": 0.003
+            "md": 0.0
           }
         },
         "safety_shear": {
@@ -189,7 +189,7 @@
               "vd": 569.55,
               "la": 1.094
             },
-            "combination": 5
+            "combination": 11
           },
           "sample": {
             "Vd": 19505.93,
@@ -223,7 +223,7 @@
               "vd": 516.16,
               "la": 1.093
             },
-            "combination": 6
+            "combination": 14
           },
           "sample": {
             "Vd": 18049.95,
@@ -273,13 +273,13 @@
         "stage": "0810",
         "wdj": {
           "file": "線路方向フーチング.wdj",
-          "sha256": "b9f61cbc01d2c30999d8b979bf5b43e8eed842048a4625f3e7a252faebaa2e3b"
+          "sha256": "f2ae297dc829817b2abaeada33e274dc822646970b2d8f0b19600a38a9ee55c8"
         },
         "engine_version": "1.0.0",
         "sections": {
           "bending_safety_destruction": {
             "page": 1,
-            "ratio": "0.263",
+            "ratio": "0.261",
             "capacity": "3670.5"
           },
           "bending_restorability_eq": {
@@ -309,7 +309,7 @@
               "vd": 804.4,
               "la": 1.162
             },
-            "combination": 3
+            "combination": 5
           },
           "sample": {
             "Vd": 20045.0,
@@ -333,13 +333,13 @@
         "safety_shear": {
           "ours": {
             "vd": 22448.22,
-            "hd": 465.94,
-            "md": 7389.08,
+            "hd": 603.32,
+            "md": 9332.99,
             "chosen": "起点側",
             "design": {
-              "md": 904.13,
-              "vd": 788.74,
-              "la": 1.146
+              "md": 947.88,
+              "vd": 823.62,
+              "la": 1.151
             },
             "combination": 1
           },
@@ -350,8 +350,8 @@
           },
           "differences": {
             "vd": -136.9,
-            "hd": 271.03,
-            "md": 3937.38
+            "hd": 408.41,
+            "md": 5881.29
           },
           "by_hand": {
             "vd": 22448.23,
@@ -373,7 +373,7 @@
               "vd": 524.76,
               "la": 1.125
             },
-            "combination": 5
+            "combination": 7
           },
           "sample": {
             "Vd": 19505.93,
@@ -405,7 +405,7 @@
               "vd": 475.49,
               "la": 1.125
             },
-            "combination": 6
+            "combination": 9
           },
           "sample": {
             "Vd": 18049.95,
@@ -453,13 +453,13 @@
         "stage": "0820",
         "wdj": {
           "file": "線路直角方向フーチング.wdj",
-          "sha256": "54b8db718f408b218d4130b51b547c5c08f5b52a9ba31f53230740cfa98824dd"
+          "sha256": "c90e7804fe9d675ec78aa2c91cefae578604c824a0129dfa88bf3d0c3de11356"
         },
         "engine_version": "1.0.0",
         "sections": {
           "bending_safety_destruction": {
             "page": 1,
-            "ratio": "0.245",
+            "ratio": "0.248",
             "capacity": "4581.9"
           },
           "bending_restorability_eq": {

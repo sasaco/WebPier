@@ -1,8 +1,9 @@
 """The FrameWeb input of 0620 (transverse, non-seismic): Example2 09 pp.9-1 to 9-15.
 
-The labels are those of the Example2 FrameWeb file (09_直角/frameWebForJS.json). Define 1-15 are those of 9-13:
-Define 9 and 11 take the up or the down track, 13-15 either sign; on a curve the centrifugal load adds basic cases
-18-20 and Define 16-17 (decision 33). The serviceability impact (9-6, ``Basis.SERVICE_IMPACT``) is three more load
+The labels are those of the Example2 FrameWeb file (09_直角/frameWebForJS.json), with the vehicle lateral load of
+one track (Lf1) and of two (Lf2, decision 106). Define 1-16 are those of 9-13: Define 9 and 11 take the up or the down
+track, 13-16 either sign; on a curve the centrifugal load adds basic cases 19-21 and Define 17-18 (decision 33). A
+check with the train is two combinations, 複線 and 単線, whose names end so (decision 106). The serviceability impact (9-6, ``Basis.SERVICE_IMPACT``) is three more load
 cases (up, down, double) with their own Defines. The wind on the pier body is a load on part of each member, as the
 calc gives it (decision 12). Combine names are the 9-14 performance item and remark, Pickup names those of 9-15.
 
@@ -12,10 +13,11 @@ which the calc's variants exclude (``Combination.variants``): its envelope cover
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from ...calc.load_nature import SpringTerm
-from ...calc.transverse import BasicAction, BasicCase, Basis, Component, DefineCase, TransverseResult
+from ...calc.transverse import BasicAction, BasicCase, Basis, Combination, Component, DefineCase, TransverseResult
 from . import cases
 from .build import frameweb_document
 from .longitudinal import LONGITUDINAL
@@ -41,7 +43,8 @@ TRANSVERSE = Profile(
         B.IMPACT_UP: Label("I1", f"衝撃荷重{_S}安全性・復旧性{_S}単線{_S}上り"),
         B.IMPACT_DOWN: Label("I2", f"衝撃荷重{_S}安全性・復旧性{_S}単線{_S}下り"),
         B.IMPACT_DOUBLE: Label("I3", f"衝撃荷重{_S}安全性・復旧性{_S}複線"),
-        B.LATERAL: Label("Lf", "車両横荷重"),
+        B.LATERAL: Label("Lf1", f"車両横荷重{_S}単線"),
+        B.LATERAL_DOUBLE: Label("Lf2", f"車両横荷重{_S}複線"),
         B.WIND_WITH_TRAIN: Label("W1", f"風荷重{_S}列車荷重がある場合"),
         B.WIND_WITHOUT_TRAIN: Label("W2", f"風荷重{_S}列車荷重がない場合"),
         B.CENTRIFUGAL_UP: Label("CF1", f"遠心荷重{_S}単線{_S}上り"),
@@ -53,14 +56,26 @@ TRANSVERSE = Profile(
         (B.IMPACT_DOWN, Basis.SERVICE_IMPACT): Label("I2s", f"衝撃荷重{_S}使用性{_S}単線{_S}下り"),
         (B.IMPACT_DOUBLE, Basis.SERVICE_IMPACT): Label("I3s", f"衝撃荷重{_S}使用性{_S}複線"),
     },
-    combinations=dict(enumerate((
-        "破壊 列車最大", "破壊 車横最大", "破壊 風最大", "破壊 雪最大", "ひび割れ 縁応力度", "ひび割れ 永久荷重",
-        "ひび割れ 変動荷重", "損傷 列車最大", "損傷 雪最大", "地盤の安定 列車最大", "地盤の安定 車横最大",
-        "地盤の安定 風最大", "地盤の安定 雪最大", "長期支持", "短期支持 低水位", "短期支持 高水位"), 1)),
+    combinations={},  # by the result's combinations: transverse_profile
     extractions=LONGITUDINAL.extractions,  # 9-15 prints the groups of 8-11
     springs={SpringTerm.LONG: LONG_TERM, SpringTerm.SHORT: SHORT_TERM},
     basic=Basis.BASIC,
 )
+
+
+_CHECKS = ("破壊 列車最大", "破壊 車横最大", "破壊 風最大", "破壊 雪最大", "ひび割れ 縁応力度", "ひび割れ 永久荷重",
+           "ひび割れ 変動荷重", "損傷 列車最大", "損傷 雪最大", "地盤の安定 列車最大", "地盤の安定 車横最大",
+           "地盤の安定 風最大", "地盤の安定 雪最大", "長期支持", "短期支持 低水位", "短期支持 高水位")
+
+
+def combination_name(combination: Combination) -> str:
+    name = _CHECKS[combination.check.value - 1]
+    return name if combination.loading is None else f"{name} {combination.loading.value}"
+
+
+def transverse_profile(result: TransverseResult):
+    """TRANSVERSE with the names of the result's combinations (each check of the train for 複線 and 単線)."""
+    return replace(TRANSVERSE, combinations={c.number: combination_name(c) for c in result.combinations})
 
 
 def _load(action: BasicAction) -> cases.Load:
@@ -93,6 +108,6 @@ def build_frameweb_transverse(result: TransverseResult) -> dict[str, Any]:
             _term(c.number, k, defines.get(k.define)) for k in c.components)) for c in result.combinations),
         extractions=tuple((e.number, e.combinations) for e in result.extractions),
     )
-    document = frameweb_document(result.frame, cases.assemble(source, TRANSVERSE))
+    document = frameweb_document(result.frame, cases.assemble(source, transverse_profile(result)))
     validate_frameweb(document)
     return document

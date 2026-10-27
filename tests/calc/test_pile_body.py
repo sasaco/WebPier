@@ -2,7 +2,6 @@
 and the result it holds of SteelDan's values (tests of SteelDan's formulas against the example's tables 3.2.5, 3.2.7 and 3.2.9 are Capacita's)."""
 
 from copy import deepcopy
-from pathlib import Path
 
 import pytest
 
@@ -10,12 +9,11 @@ from webpier.calc.pile_body import (Case, PileResponseError, PointForces, Sectio
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
-
-FIXTURES = Path(__file__).parents[1] / "fixtures"
+from example4_support import EXAMPLE4_INPUT
 
 
 def example4(**changes):
-    data = deepcopy(load_json((FIXTURES / "inputs" / "example4.json").read_bytes()))
+    data = deepcopy(load_json(EXAMPLE4_INPUT.read_bytes()))
     for key, value in changes.items():
         data["杭基礎"]["鋼管ソイルセメント杭"][key] = value
     return parse_input(data)

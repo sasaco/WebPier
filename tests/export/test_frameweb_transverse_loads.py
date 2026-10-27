@@ -10,7 +10,7 @@ from dataclasses import replace
 
 import pytest
 
-from frameweb_support import (
+from frameweb_support import (example2_loading, 
     CURVE, EXAMPLE2_09, EXAMPLE2_GROUND, T09, T_ASYMMETRIC, T_PEDESTAL, WIDTHS, ground, mirrored_rows, transverse,
 )
 from webpier.calc.frame import NodeRole
@@ -39,7 +39,8 @@ NATURES = {B.D1: Nature.DEAD, B.D2: Nature.DEAD, B.BUOYANCY_HIGH: Nature.WATER, 
            B.BUOYANCY_LOW: Nature.WATER, B.SNOW2: Nature.SNOW, B.SNOW10: Nature.SNOW, B.SNOW30: Nature.SNOW,
            B.TRAIN_UP: Nature.TRAIN, B.TRAIN_DOWN: Nature.TRAIN, B.TRAIN_DOUBLE: Nature.TRAIN,
            B.IMPACT_UP: Nature.IMPACT, B.IMPACT_DOWN: Nature.IMPACT, B.IMPACT_DOUBLE: Nature.IMPACT,
-           B.LATERAL: Nature.LATERAL, B.WIND_WITH_TRAIN: Nature.WIND, B.WIND_WITHOUT_TRAIN: Nature.WIND,
+           B.LATERAL: Nature.LATERAL, B.LATERAL_DOUBLE: Nature.LATERAL, B.WIND_WITH_TRAIN: Nature.WIND,
+           B.WIND_WITHOUT_TRAIN: Nature.WIND,
            B.CENTRIFUGAL_UP: Nature.CENTRIFUGAL, B.CENTRIFUGAL_DOWN: Nature.CENTRIFUGAL,
            B.CENTRIFUGAL_DOUBLE: Nature.CENTRIFUGAL}
 SPRING_SETS = {SpringTerm.LONG: 1, SpringTerm.SHORT: 2}
@@ -52,7 +53,8 @@ def result():
 
 @pytest.fixture(scope="module")
 def current(result):
-    return build_frameweb_transverse(result)
+    """Example2's numbers and names (decision 106: its one loading of each check with the train, one LF)."""
+    return example2_loading(build_frameweb_transverse(result))
 
 
 def node_rows(case):
@@ -106,7 +108,7 @@ def test_the_wind_on_the_pier_is_that_of_example2_with_its_ground():
     # "1" to "-3" with L2 1.08 in the local y of the members (+x for these members running down). The same load is
     # three rows: members 1 and 2 whole, member 3 (4.900) with the margin 1.080 above node 4. Example2 takes the
     # column width 2.70 for the whole pier; here B1 = B6 = 2.700, so 1.5 × 2.700 = 4.05 and 3.0 × 2.700 = 8.10.
-    document = build_frameweb_transverse(transverse(**EXAMPLE2_GROUND))
+    document = example2_loading(build_frameweb_transverse(transverse(**EXAMPLE2_GROUND)))
     for number in ("16", "17"):
         example, _empty = (EXAMPLE2_09["load"][number]["load_member"] + [None])[:2]
         assert (example["m1"], example["m2"], example["L1"], example["L2"]) == ("1", "-3", "0", 1.08)
@@ -124,7 +126,7 @@ def test_the_wind_stops_at_the_ground(current):
 
 def test_the_haunch_takes_a_trapezoid():
     # Decision 12: beam B1 = 3.200, haunch 3.200 -> 2.900, column B6 = 2.500 (1.5 × each width).
-    document = build_frameweb_transverse(transverse(**WIDTHS))
+    document = example2_loading(build_frameweb_transverse(transverse(**WIDTHS)))
     assert member_rows(document["load"]["16"]) == [("1", "gx", 0, 0, 4.8, 4.8), ("2", "gx", 0, 0, 4.8, 4.35),
                                                    ("3", "gx", 0, 2, 3.75, 3.75)]
 
@@ -133,12 +135,12 @@ def test_the_ground_inside_the_haunch_cuts_the_trapezoid():
     # Ground 7.900, 0.300 above the haunch bottom: loaded 0.400 from its top, the width there 3.029 (calc), so
     # 3.0 × 3.029 = 9.09 at the end of the load and a margin 0.700 − 0.400 = 0.300. The column is not loaded.
     result = transverse(**WIDTHS, **ground(5.2))
-    document = build_frameweb_transverse(result)
+    document = example2_loading(build_frameweb_transverse(result))
     assert member_rows(document["load"]["17"]) == [("1", "gx", 0, 0, 9.6, 9.6), ("2", "gx", 0, 0.3, 9.6, 9.09)]
 
 
 def test_no_pier_wind_with_the_ground_above_the_pier():
-    document = build_frameweb_transverse(transverse(**ground(8.0)))
+    document = example2_loading(build_frameweb_transverse(transverse(**ground(8.0))))
     assert [n for n, case in document["load"].items() if "load_member" in case] == ["1"]
     assert node_rows(document["load"]["16"]) == [("1", 305.88, None, 2124.5)]
 
@@ -149,7 +151,7 @@ def test_pedestal_loads_act_at_the_pedestal_top():
     # B3 = 1.000. Nodes numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, base 2, beam top 3; the footing
     # centroid 7.
     result = transverse(**T_PEDESTAL)
-    document = build_frameweb_transverse(result)
+    document = example2_loading(build_frameweb_transverse(result))
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
     assert node_rows(document["load"]["1"]) == [("3", None, 699.53, None), (seat, None, 7600, 3800),
                                                 ("7", None, 4167.45, None)]
@@ -162,7 +164,7 @@ def test_pedestal_loads_act_at_the_pedestal_top():
 
 def test_the_ground_inside_the_pedestal_loads_its_top():
     # Ground 10.450: the pedestal (10.300 -> 10.600) is loaded from 0.150 above its base to its top.
-    document = build_frameweb_transverse(transverse(**T_PEDESTAL, **ground(7.75)))
+    document = example2_loading(build_frameweb_transverse(transverse(**T_PEDESTAL, **ground(7.75))))
     assert member_rows(document["load"]["16"]) == [("1", "gx", 0.15, 0, 1.5, 1.5)]
 
 
@@ -186,14 +188,15 @@ def expected_rows(action, frame):
                          ids=["current", "pedestal", "haunch_cut", "asymmetric"])
 def test_every_load_is_the_printed_action(changes):
     # Values are copied from the calc result: no rounding, no scaling. After the basic cases come the
-    # serviceability impacts (up, down, double) of combinations 5, 7, 15 and 16.
+    # serviceability impacts (up, down, double) of the serviceability combinations with the train (縁応力度 複線 7,
+    # 短期支持 低水位 単線 23, decision 106).
     result = transverse(**changes)
     document = build_frameweb_transverse(result)
-    service = {c.define: c for c in result.combinations[14].components + result.combinations[4].components}
+    service = {c.define: c for c in result.combinations[22].components + result.combinations[6].components}
     auxiliary = [a.source for define in (Define.IMPACT_SINGLE, Define.IMPACT_DOUBLE)
                  for a in service[define].alternatives]
     actions = [*result.basic_cases, *auxiliary]
-    assert list(document["load"]) == [str(n) for n in range(1, len(actions) + 1)] and len(actions) == 20
+    assert list(document["load"]) == [str(n) for n in range(1, len(actions) + 1)] and len(actions) == 21
     for number, action in enumerate(actions, 1):
         case = document["load"][str(number)]
         expected = [(str(p.node), p.h.value or None, p.n.value or None, p.m.value or None)

@@ -29,9 +29,9 @@ from .._exact import d, put, total
 from ..frame import Frame, LineLoad, NodeRole, PointLoad, column_line_load, pedestal_line_load, point_load
 from ..load_nature import Nature, SpringTerm, spring_term
 from ..reaction import ReactionResult
-from ..reaction.longitudinal import LongitudinalCase
+from ..reaction.longitudinal import LAYOUT_CASES, LongitudinalCase
 from ..reaction.self_weight import Body, SelfWeightResult
-from ..reaction.train import GirderImpact
+from ..reaction.train import GirderImpact, Layout, LayoutTrain
 
 
 class Item(Enum):
@@ -174,6 +174,11 @@ HORIZONTAL_CASES = {
 
 
 SNOW_CASES = (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)
+# The basic cases made for each 列車の配置 (decision 102; Example橋脚4 表2.3.1): the train, its impact and the bearing
+# forces with the train or braking; the others are one case.
+LAYOUT_DEPENDENT = frozenset({BasicCase.TRAIN_SINGLE, BasicCase.TRAIN_DOUBLE, BasicCase.IMPACT_SINGLE,
+                              BasicCase.IMPACT_DOUBLE,
+                              *(basic for basic, case in HORIZONTAL_CASES.items() if case in LAYOUT_CASES)})
 
 _N = Nature
 _RAIL, _RAIL_BRAKING = frozenset({_N.LONG_RAIL}), frozenset({_N.LONG_RAIL, _N.BRAKING})
@@ -200,10 +205,21 @@ class BasicAction:
     spring: SpringTerm
     points: tuple[PointLoad, ...]
     line_loads: tuple[LineLoad, ...]
+    layout: Layout | None = None  # the 列車の配置 of a LAYOUT_DEPENDENT case (decision 102)
 
     @property
     def horizontal(self) -> bool:
         return self.case in HORIZONTAL_CASES
+
+
+@dataclass(frozen=True)
+class LayoutActions:
+    """The train, its impact and the bearing forces with the train or braking of ② or ③ (decision 102)."""
+
+    layout: Layout
+    train: Trains
+    impact: Impacts
+    horizontal: tuple[HorizontalRow, ...]  # LAYOUT_CASES of the layout, in LongitudinalCase order
 
 
 @dataclass(frozen=True)
@@ -212,9 +228,10 @@ class Actions:
     additional: AdditionalDead
     buoyancy: tuple[Row, Row, Row]  # high, normal, low water
     snow: tuple[TopTable, TopTable, TopTable] | None  # 2, 10, 30 year; None without snow (decision 69)
-    train: Trains
+    train: Trains  # ① (both girders)
     impact: Impacts
-    horizontal: tuple[HorizontalRow, ...]  # in LongitudinalCase order = basic cases 13-20 (with snow)
+    horizontal: tuple[HorizontalRow, ...]  # in LongitudinalCase order = basic cases 13-20 (with snow), ①
+    one_girder: tuple[LayoutActions, LayoutActions]  # ② and ③
     basic_cases: tuple[BasicAction, ...]
 
 
@@ -350,44 +367,59 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     app = dead_actions(pier, frame, dead, weights)
     fixed, additional, buoyancy = app.fixed, app.additional, app.buoyancy
     snow = tuple(snow_table(pier, dead, field) for field in ("snow2", "snow10", "snow30")) if dead.snow else None
-    single = _table(_bearings(train.loading.rb, train.loading.rc, arms))
-    double = _table(_bearings(put(FORCE, d(train.loading.rb) * d(dead.origin.track_total)),
-                              put(FORCE, d(train.loading.rc) * d(dead.end.track_total)), arms))
-    ultimate, service = train.ultimate, train.service
-    impact = Impacts(
-        ultimate_single=_impact(single, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=False),
-        ultimate_double=_impact(double, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=True),
-        service_single=_impact(single, service.origin_pier_impact, service.end_pier_impact, double=False),
-        service_double=_impact(double, service.origin_pier_impact, service.end_pier_impact, double=True))
-    bearing_cases = {basic: reaction.longitudinal.case(case) for basic, case in HORIZONTAL_CASES.items()}
-    horizontal = tuple(HorizontalRow(case=c.case, origin=c.origin.force, end=c.end.force, total=c.total)
-                       for c in bearing_cases.values())
 
     def top(n: Printed, m: Printed) -> PointLoad:
         return bearing_point(frame, n, m)
 
-    points: dict[BasicCase, tuple[PointLoad, ...]] = {
-        **app.points,
-        BasicCase.TRAIN_SINGLE: (top(single.n, single.m),),
-        BasicCase.TRAIN_DOUBLE: (top(double.n, double.m),),
-        BasicCase.IMPACT_SINGLE: (top(impact.ultimate_single.n, impact.ultimate_single.m),),
-        BasicCase.IMPACT_DOUBLE: (top(impact.ultimate_double.n, impact.ultimate_double.m),),
-    }
+    def placed(layout: Layout) -> tuple[LayoutActions, dict[BasicCase, tuple[PointLoad, ...]]]:
+        """The tables of one 列車の配置 and the points of its LAYOUT_DEPENDENT cases."""
+        layout_train: LayoutTrain = train.layout(layout)
+        loading = layout_train.loading
+        single = _table(_bearings(loading.rb, loading.rc, arms))
+        double = _table(_bearings(put(FORCE, d(loading.rb) * d(dead.origin.track_total)),
+                                  put(FORCE, d(loading.rc) * d(dead.end.track_total)), arms))
+        ultimate, service = layout_train.ultimate, layout_train.service
+        impact = Impacts(
+            ultimate_single=_impact(single, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=False),
+            ultimate_double=_impact(double, ultimate.origin_pier_impact, ultimate.end_pier_impact, double=True),
+            service_single=_impact(single, service.origin_pier_impact, service.end_pier_impact, double=False),
+            service_double=_impact(double, service.origin_pier_impact, service.end_pier_impact, double=True))
+        forces = reaction.longitudinal if layout is Layout.BOTH else \
+            reaction.longitudinal.one_girder[0 if layout is Layout.ORIGIN else 1]
+        cases = {basic: forces.case(case) for basic, case in HORIZONTAL_CASES.items()
+                 if layout is Layout.BOTH or basic in LAYOUT_DEPENDENT}
+        horizontal = tuple(HorizontalRow(case=c.case, origin=c.origin.force, end=c.end.force, total=c.total)
+                           for c in cases.values())
+        points = {BasicCase.TRAIN_SINGLE: (top(single.n, single.m),),
+                  BasicCase.TRAIN_DOUBLE: (top(double.n, double.m),),
+                  BasicCase.IMPACT_SINGLE: (top(impact.ultimate_single.n, impact.ultimate_single.m),),
+                  BasicCase.IMPACT_DOUBLE: (top(impact.ultimate_double.n, impact.ultimate_double.m),),
+                  **{basic: (bearing_point(frame, FORCE(0), h=c.total),) for basic, c in cases.items()}}
+        return LayoutActions(layout, Trains(single, double), impact, horizontal), points
+
+    both, both_points = placed(Layout.BOTH)
+    origin, origin_points = placed(Layout.ORIGIN)
+    end, end_points = placed(Layout.END)
+    points: dict[BasicCase, tuple[PointLoad, ...]] = {**app.points, **both_points}
     if snow is not None:
         for case, table in zip(SNOW_CASES, snow, strict=True):
             points[case] = (top(table.n, table.m),)
-    for basic, forces in bearing_cases.items():
-        points[basic] = (bearing_point(frame, FORCE(0), h=forces.total),)
-    # Decision 69: without snow the snow cases are not made, and the cases after them move up.
+    layouts = {Layout.BOTH: both_points, Layout.ORIGIN: origin_points, Layout.END: end_points}
+    # Decision 69: without snow the snow cases are not made, and the cases after them move up. Decision 102: a
+    # LAYOUT_DEPENDENT case is made for ①, ② and ③ in turn.
+    made = [(case, layout) for case in BasicCase if case in points
+            for layout in (tuple(Layout) if case in LAYOUT_DEPENDENT else (None,))]
     basic_cases = tuple(
         BasicAction(number=number, case=case, spring=spring_term(NATURES[case]),
-                    points=points[case],
-                    line_loads=app.lines if case is BasicCase.D1 else ())
-        for number, case in enumerate((case for case in BasicCase if case in points), 1))
+                    points=points[case] if layout is None else layouts[layout][case],
+                    line_loads=app.lines if case is BasicCase.D1 else (), layout=layout)
+        for number, (case, layout) in enumerate(made, 1))
     return Actions(fixed=fixed, additional=additional, buoyancy=buoyancy, snow=snow,  # type: ignore[arg-type]
-                   train=Trains(single, double), impact=impact, horizontal=horizontal, basic_cases=basic_cases)
+                   train=both.train, impact=both.impact, horizontal=both.horizontal, one_girder=(origin, end),
+                   basic_cases=basic_cases)
 
 
 __all__ = ["Actions", "AdditionalDead", "BasicAction", "BasicCase", "DeadActions", "FixedDead", "HorizontalRow",
+           "LAYOUT_DEPENDENT", "LayoutActions",
            "ImpactRow", "ImpactTable", "Impacts", "Item", "NATURES", "Row", "SNOW_CASES", "SpringTerm", "TopTable",
            "Trains", "bearing_point", "calculate_actions", "dead_actions", "seat_lever", "seat_points", "snow_table"]

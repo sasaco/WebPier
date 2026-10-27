@@ -19,7 +19,7 @@ if TYPE_CHECKING:  # rebar.py reads the choices, which read this module
 class BrakingRule(Enum):
     """How braking and starting forces are derived for the selected vehicle."""
 
-    EA17 = "EA-17の規定式"
+    EA17 = "EA-17の規定"
     AXLE = "軸重式"
 
 
@@ -73,14 +73,11 @@ class Spans:
 
 @dataclass(frozen=True)
 class Train:
+    """上部構造.列車: the vehicle's loads are the program's (calc.vehicles, decision 101)."""
+
     vehicle: str
     braking_rule: BrakingRule
-    car_length: Printed
-    a1: Printed
-    a2: Printed
-    axle_load: Printed
-    earthquake_load: Printed
-    cars: int
+    cars: int | None  # 編成数 of a vehicle of repeated cars (P-16); blank for EA-17, whose train the standard fixes
     height_wind: Printed
     height_centrifugal: Printed
     height_seismic: Printed

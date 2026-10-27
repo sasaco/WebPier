@@ -206,15 +206,6 @@
     },
     "列車": {
       "車両名": "P-16",
-      "1両の長さ": 20.0,
-      "軸距": {
-        "a1_連結部": 2.8,
-        "a2": 2.2
-      },
-      "軸重": {
-        "地震以外": 160.0,
-        "地震": 32.0
-      },
       "編成数": 10,
       "車両高": {
         "受風高": 3.5,
@@ -294,7 +285,16 @@
       "鋼管外径": null,
       "鋼管厚": null,
       "腐食代": null,
-      "鋼管材質": null
+      "鋼管材質": null,
+      "結合部": {
+        "軸方向鉄筋": {
+          "径": null,
+          "本数": null,
+          "材質": null,
+          "重心位置": null
+        },
+        "中詰めコンクリート_f'ck": null
+      }
     },
     "配置": {
       "形式": null,
@@ -502,6 +502,55 @@
         "diameter_mm": 22,
         "effective_legs": 4,
         "pitch_mm": 125
+      }
+    },
+    "杭": {
+      "materials": {
+        "main": null,
+        "transverse": null
+      },
+      "pure_cover_mm": null,
+      "aggregate_max_mm": null,
+      "main_bars": {
+        "diameter_mm": null,
+        "count": null
+      },
+      "hoops": {
+        "footing": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "zone_2d": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "lower": []
+      },
+      "cutoff": {
+        "main_bars": {
+          "diameter_mm": null,
+          "count": null
+        },
+        "hoops": {
+          "diameter_mm": null,
+          "sets": null,
+          "pitch_mm": null
+        },
+        "cutoff_length_mm": null,
+        "cutoff_anchorage_mm": null,
+        "joint_reduction": null,
+        "margin_mm": null,
+        "no_joint": {
+          "from_head_mm": null,
+          "above_mm": null,
+          "below_mm": null
+        },
+        "margin_ratio": {
+          "moment": null,
+          "shear": null
+        }
       }
     }
   },

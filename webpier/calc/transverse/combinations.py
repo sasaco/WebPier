@@ -8,6 +8,10 @@ train) have both signs. Each combination is resolved into actions per
 alternative: a component is its factor times the printed basic action, every
 N, H, M, q and wind line load rounded once to its digits.
 
+Every combination with the train is made twice (decision 106, Example橋脚4 表4.3.2): for 複線載荷 (the train and
+the impact of both tracks, the vehicle lateral load of two tracks) and then for 単線載荷 (of one track, up or down,
+the vehicle lateral load of one track); the table names the train's Defines by the single track's columns.
+
 A choice of the combination (``Combination.variants``) takes one track for all
 its single-track components, so an up train never goes with a down impact, and
 each reversible horizontal component in either sign independently (decision 35).
@@ -44,8 +48,15 @@ from .wind import MemberLoad
 WIND_SAFETY = CONSTANT.exact(1.2)  # W2 in 風最大 (9-14 combinations 3 and 12)
 
 
+class Loading(Enum):
+    """The trains of a combination with the train (decision 106)."""
+
+    DOUBLE = "複線"
+    SINGLE = "単線"
+
+
 class Define(Enum):
-    """The 15 Define cases of 9-13, by number."""
+    """The 16 Define cases of 9-13 (with the vehicle lateral load of two tracks, decision 106), by number."""
 
     D1 = 1
     D2 = 2
@@ -60,10 +71,11 @@ class Define(Enum):
     IMPACT_SINGLE = 11
     IMPACT_DOUBLE = 12
     LATERAL = 13
-    WIND_WITH_TRAIN = 14
-    WIND_WITHOUT_TRAIN = 15
-    CENTRIFUGAL_SINGLE = 16  # only on a curve (decision 33)
-    CENTRIFUGAL_DOUBLE = 17
+    LATERAL_DOUBLE = 14
+    WIND_WITH_TRAIN = 15
+    WIND_WITHOUT_TRAIN = 16
+    CENTRIFUGAL_SINGLE = 17  # only on a curve (decision 33)
+    CENTRIFUGAL_DOUBLE = 18
 
 
 _DEFINE_CASES = {
@@ -72,17 +84,21 @@ _DEFINE_CASES = {
     Define.IMPACT_SINGLE: (BasicCase.IMPACT_UP, BasicCase.IMPACT_DOWN),
     Define.IMPACT_DOUBLE: (BasicCase.IMPACT_DOUBLE,),
     Define.LATERAL: (BasicCase.LATERAL,),
+    Define.LATERAL_DOUBLE: (BasicCase.LATERAL_DOUBLE,),
     Define.WIND_WITH_TRAIN: (BasicCase.WIND_WITH_TRAIN,),
     Define.WIND_WITHOUT_TRAIN: (BasicCase.WIND_WITHOUT_TRAIN,),
     Define.CENTRIFUGAL_SINGLE: (BasicCase.CENTRIFUGAL_UP, BasicCase.CENTRIFUGAL_DOWN),
     Define.CENTRIFUGAL_DOUBLE: (BasicCase.CENTRIFUGAL_DOUBLE,),
 }
 _CENTRIFUGAL = {Define.CENTRIFUGAL_SINGLE: Define.TRAIN_SINGLE, Define.CENTRIFUGAL_DOUBLE: Define.TRAIN_DOUBLE}
-_REVERSIBLE = frozenset({Define.LATERAL, Define.WIND_WITH_TRAIN, Define.WIND_WITHOUT_TRAIN})
+_REVERSIBLE = frozenset({Define.LATERAL, Define.LATERAL_DOUBLE, Define.WIND_WITH_TRAIN, Define.WIND_WITHOUT_TRAIN})
+# 複線載荷: the train's Defines of the table (the single track's) are those of both tracks (decision 106)
+_DOUBLE = {Define.TRAIN_SINGLE: Define.TRAIN_DOUBLE, Define.IMPACT_SINGLE: Define.IMPACT_DOUBLE,
+           Define.LATERAL: Define.LATERAL_DOUBLE}
 
 
 class Check(Enum):
-    """The 16 combinations of 9-14, in order."""
+    """The 16 checks of 9-14, in order; one with the train is made for 複線 and 単線 (decision 106)."""
 
     FAILURE_TRAIN_MAX = 1
     FAILURE_LATERAL_MAX = 2
@@ -107,7 +123,7 @@ class DefineCase:
     number: int  # 9-13 No: the position among the Define cases made (decision 69)
     define: Define
     cases: tuple[BasicCase, ...]  # alternatives: up and down for Define 9 and 11
-    signs: tuple[int, ...]  # (1,) or both directions (1, −1) for Define 13-15
+    signs: tuple[int, ...]  # (1,) or both directions (1, −1) for Define 13-16
 
 
 @dataclass(frozen=True)
@@ -136,11 +152,12 @@ class Component:
 
 @dataclass(frozen=True)
 class Combination:
-    number: int
+    number: int  # in the order made: a check with the train is made for 複線 and 単線 in turn (decision 106)
     check: Check
     usage: Usage
     coefficients: tuple[Printed | None, ...]  # by Define case, in the order made; None prints '－'
     components: tuple[Component, ...]  # the Define cases with a coefficient, in order
+    loading: Loading | None = None  # of a check with the train (decision 106)
 
     def variants(self) -> tuple[tuple[ResolvedAction, ...], ...]:
         """Every choice of one alternative per component with a single track throughout."""
@@ -155,25 +172,27 @@ class Combination:
         raise KeyError(define)
 
 
-# 9-14 by Define case 1-15: "-" none, "1" 1.0, "D1" 1.1, "D2" 1.2, "W" 1.2 (wind), "U" ρ, "X" 1.1 ρ, "S" ρs,
-# "SI" 0.75 ρs.
+# 9-14 by Define case 1-16: "-" none, "1" 1.0, "D1" 1.1, "D2" 1.2, "W" 1.2 (wind), "U" ρ, "X" 1.1 ρ, "S" ρs,
+# "SI" 0.75 ρs. The train, its impact and the vehicle lateral load are written in the single track's columns (9, 11,
+# 13); 複線載荷 moves them to both tracks' (10, 12, 14: ``_DOUBLE``). Example2's 9-14 had the safety, damage and
+# stability of both tracks only and the crack (変動) and short-term support of one track only.
 _TABLE = {
-    Check.FAILURE_TRAIN_MAX: "D1 D2 - - - - 1 - - X - X U 1 -",
-    Check.FAILURE_LATERAL_MAX: "D1 D2 - - - - 1 - - U - U X 1 -",
-    Check.FAILURE_WIND_MAX: "D1 D2 - - - 1 - - - - - - - - W",
-    Check.FAILURE_SNOW_MAX: "D1 D2 - - - - - 1 - - - - - - -",
-    Check.CRACK_PERMANENT_VARIABLE: "1 1 - - - 1 - - - S - SI - - -",
-    Check.CRACK_PERMANENT: "1 1 - - - 1 - - - - - - - - -",
-    Check.CRACK_VARIABLE: "- - - - - - - - S - SI - - - -",
-    Check.DAMAGE_TRAIN_MAX: "1 1 - - - - 1 - - U - U U 1 -",
-    Check.DAMAGE_SNOW_MAX: "1 1 - - - - - 1 - - - - - 1 -",  # W1 without the train, as printed (notes item 9)
-    Check.STABILITY_TRAIN_MAX: "D1 D2 - - 1 - 1 - - X - X U 1 -",
-    Check.STABILITY_LATERAL_MAX: "D1 D2 - - 1 - 1 - - U - U X 1 -",
-    Check.STABILITY_WIND_MAX: "D1 D2 - - 1 1 - - - - - - - - W",
-    Check.STABILITY_SNOW_MAX: "D1 D2 - - 1 - - 1 - - - - - - -",
-    Check.SUPPORT_LONG_TERM: "1 1 - 1 - 1 - - - - - - - - -",
-    Check.SUPPORT_SHORT_TERM_LOW_WATER: "1 1 - - 1 1 - - S - SI - - - -",
-    Check.SUPPORT_SHORT_TERM_HIGH_WATER: "1 1 1 - - 1 - - S - SI - - - -",
+    Check.FAILURE_TRAIN_MAX: "D1 D2 - - - - 1 - X - X - U - 1 -",
+    Check.FAILURE_LATERAL_MAX: "D1 D2 - - - - 1 - U - U - X - 1 -",
+    Check.FAILURE_WIND_MAX: "D1 D2 - - - 1 - - - - - - - - - W",
+    Check.FAILURE_SNOW_MAX: "D1 D2 - - - - - 1 - - - - - - - -",
+    Check.CRACK_PERMANENT_VARIABLE: "1 1 - - - 1 - - S - SI - - - - -",
+    Check.CRACK_PERMANENT: "1 1 - - - 1 - - - - - - - - - -",
+    Check.CRACK_VARIABLE: "- - - - - - - - S - SI - - - - -",
+    Check.DAMAGE_TRAIN_MAX: "1 1 - - - - 1 - U - U - U - 1 -",
+    Check.DAMAGE_SNOW_MAX: "1 1 - - - - - 1 - - - - - - 1 -",  # W1 without the train, as printed (notes item 9)
+    Check.STABILITY_TRAIN_MAX: "D1 D2 - - 1 - 1 - X - X - U - 1 -",
+    Check.STABILITY_LATERAL_MAX: "D1 D2 - - 1 - 1 - U - U - X - 1 -",
+    Check.STABILITY_WIND_MAX: "D1 D2 - - 1 1 - - - - - - - - - W",
+    Check.STABILITY_SNOW_MAX: "D1 D2 - - 1 - - 1 - - - - - - - -",
+    Check.SUPPORT_LONG_TERM: "1 1 - 1 - 1 - - - - - - - - - -",
+    Check.SUPPORT_SHORT_TERM_LOW_WATER: "1 1 - - 1 1 - - S - SI - - - - -",
+    Check.SUPPORT_SHORT_TERM_HIGH_WATER: "1 1 1 - - 1 - - S - SI - - - - -",
 }
 _SERVICE_CHECKS = frozenset({Check.CRACK_PERMANENT_VARIABLE, Check.CRACK_PERMANENT, Check.CRACK_VARIABLE,
                              Check.SUPPORT_LONG_TERM, Check.SUPPORT_SHORT_TERM_LOW_WATER,
@@ -225,21 +244,27 @@ def resolve_combinations(frame: Frame, basic_cases: tuple[BasicAction, ...], def
         "1": factors.one, "D1": factors.d1_safety, "D2": factors.d2_safety, "W": WIND_SAFETY, "U": factors.ultimate,
         "X": factors.maximum, "S": factors.service, "SI": factors.service_impact}
     made = {basic.case: basic for basic in basic_cases}
-    combinations = []
+    combinations: list[Combination] = []
     for check, row in _TABLE.items():
         usage = Usage.SERVICE if check in _SERVICE_CHECKS else Usage.ULTIMATE
-        printed = dict(zip(Define, row.split(), strict=False))  # Define 1-15; the cases not made have no column (decision 69)
-        printed |= {centrifugal: printed[train] for centrifugal, train in _CENTRIFUGAL.items()}
-        coefficients = tuple(None if printed[d.define] == "-" else symbols[printed[d.define]] for d in defines)
-        components = tuple(
-            Component(define=define.define, nominal=nominal, alternatives=tuple(
-                _resolve(made[case], sign, nominal, usage, service, frame, factors)
-                for case in define.cases for sign in define.signs))
-            for define, nominal in zip(defines, coefficients, strict=True) if nominal is not None)
-        combinations.append(Combination(number=check.value, check=check, usage=usage, coefficients=coefficients,
-                                        components=components))
+        table = dict(zip(Define, row.split(), strict=False))  # Define 1-16; the cases not made have no column (decision 69)
+        with_train = any(table[single] != "-" for single in _DOUBLE)
+        for loading in ((Loading.DOUBLE, Loading.SINGLE) if with_train else (None,)):
+            printed = dict(table)
+            if loading is Loading.DOUBLE:
+                for single, double in _DOUBLE.items():
+                    printed[double], printed[single] = printed[single], "-"
+            printed |= {centrifugal: printed[train] for centrifugal, train in _CENTRIFUGAL.items()}
+            coefficients = tuple(None if printed[d.define] == "-" else symbols[printed[d.define]] for d in defines)
+            components = tuple(
+                Component(define=define.define, nominal=nominal, alternatives=tuple(
+                    _resolve(made[case], sign, nominal, usage, service, frame, factors)
+                    for case in define.cases for sign in define.signs))
+                for define, nominal in zip(defines, coefficients, strict=True) if nominal is not None)
+            combinations.append(Combination(number=len(combinations) + 1, check=check, usage=usage,
+                                            coefficients=coefficients, components=components, loading=loading))
     return tuple(combinations)
 
 
-__all__ = ["Check", "Combination", "Component", "Define", "DefineCase", "ResolvedAction", "WIND_SAFETY",
+__all__ = ["Check", "Combination", "Component", "Define", "DefineCase", "Loading", "ResolvedAction", "WIND_SAFETY",
            "define_cases", "resolve_combinations"]

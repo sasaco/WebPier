@@ -658,7 +658,8 @@ _COMBINATION_COLUMNS = 2
 
 
 def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
-                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]]) -> TableSpec:
+                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]],
+                      case_columns: tuple[int, int, int] = _CASE_COLUMNS) -> TableSpec:
     header: list[list[Any]] = [[Span("No", rowspan=4), Span("記号", rowspan=4), Span("荷重名称", rowspan=4)], [], [], []]
     for level in (0, 1):
         index = 0
@@ -673,7 +674,7 @@ def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence
     header[3] = [str(number) for number in numbers]
     body = [(number, Span(symbol), name, *(value(c) if c is not None else Span("－") for c in coefficients))
             for number, symbol, name, coefficients in rows]
-    widths = (*_CASE_COLUMNS, *(_COMBINATION_COLUMNS,) * len(headers))
+    widths = (*case_columns, *(_COMBINATION_COLUMNS,) * len(headers))
     heights = (2, 1, 3, 1) + (1,) * len(body)
     return TableSpec(widths, (*(tuple(row) for row in header), *body), heights, header_rows=4,
                      numeric=frozenset({0, *range(3, 3 + len(headers))}), left=0)
@@ -681,7 +682,8 @@ def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence
 
 def _coefficient_runs(headers: Sequence[tuple[str, str, str]], capacity: int) -> list[list[int]]:
     """The combinations of each table: at most *capacity*, cut where the requirement changes unless one
-    requirement has more combinations than a table holds."""
+    requirement has more combinations than a table holds; then it is cut into pieces of equal size, so that no piece
+    is too narrow for its requirement's heading (0610 with each 列車の配置, decision 102)."""
     groups, start = [], 0
     for index in range(1, len(headers) + 1):
         if index == len(headers) or headers[index][0] != headers[index - 1][0]:
@@ -689,8 +691,9 @@ def _coefficient_runs(headers: Sequence[tuple[str, str, str]], capacity: int) ->
             start = index
     runs: list[list[int]] = []
     for group in groups:
-        for begin in range(group.start, group.stop, capacity):
-            piece = list(range(begin, min(begin + capacity, group.stop)))
+        size = -(-len(group) // -(-len(group) // capacity))  # ⌈n / ⌈n / capacity⌉⌉
+        for begin in range(group.start, group.stop, size):
+            piece = list(range(begin, min(begin + size, group.stop)))
             if runs and len(runs[-1]) + len(piece) <= capacity:
                 runs[-1] += piece
             else:
@@ -699,18 +702,20 @@ def _coefficient_runs(headers: Sequence[tuple[str, str, str]], capacity: int) ->
 
 
 def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
-                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]], *, block_id: str) -> FigureSpec:
+                      rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]], *, block_id: str,
+                      case_columns: tuple[int, int, int] = _CASE_COLUMNS) -> FigureSpec:
     """Cases as rows, combinations as columns, the coefficients as printed (8-10, 9-14).
 
     *headers* gives each combination its requirement, performance item and remark; neighbours with the
     same text share a header cell. A missing coefficient prints '－'. The table is printed in parts of as many
     combinations as the body holds (``_COMBINATION_COLUMNS`` each); its record is the whole table's text.
+    *case_columns* are the widths of No, 記号 and 荷重名称 (0610's symbols of a 列車の配置 take one more, decision 102).
     """
-    capacity = (BODY_COLUMNS - sum(_CASE_COLUMNS)) // _COMBINATION_COLUMNS
+    capacity = (BODY_COLUMNS - sum(case_columns)) // _COMBINATION_COLUMNS
     specs = tuple(_coefficient_spec([headers[index] for index in run], [numbers[index] for index in run],
-                                    [(*row[:3], [row[3][index] for index in run]) for row in rows])
+                                    [(*row[:3], [row[3][index] for index in run]) for row in rows], case_columns)
                   for run in _coefficient_runs(headers, capacity))
-    return FigureSpec(TableParts(specs, block_id), (plain(_coefficient_spec(headers, numbers, rows)),))
+    return FigureSpec(TableParts(specs, block_id), (plain(_coefficient_spec(headers, numbers, rows, case_columns)),))
 
 
 def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_impact: Any) -> None:
@@ -728,13 +733,20 @@ EXTRACTION_NAMES = ("安全性（破壊）", "永久＋変動", "永久作用", 
                     "長期支持性能", "短期支持性能")
 
 
+_EXTRACTION_COLUMNS = (BODY_COLUMNS - TABLE_LEFT - 2 - 7) // 2  # the combination numbers a line holds (2 columns each)
+
+
 def extraction_table(m: Manuscript, extractions: Sequence[Any]) -> None:
-    width = max(len(extraction.combinations) for extraction in extractions)
+    """No, name and the combination numbers; more than one line holds wrap to the next line (0610 of each 列車の配置,
+    decision 102)."""
+    width = min(max(len(extraction.combinations) for extraction in extractions), _EXTRACTION_COLUMNS)
     rows: list[tuple[Any, ...]] = [("No", "名称", *(f"C{index}" for index in range(1, width + 1)))]
     for extraction in extractions:
         numbers = [str(number) for number in extraction.combinations]
-        rows.append((str(extraction.number), EXTRACTION_NAMES[extraction.group.value - 1], *numbers,
-                     *[""] * (width - len(numbers))))
+        for start in range(0, len(numbers), width):
+            part = numbers[start:start + width]
+            lead = (str(extraction.number), EXTRACTION_NAMES[extraction.group.value - 1]) if not start else ("", "")
+            rows.append((*lead, *part, *[""] * (width - len(part))))
     m.table("extraction", TableSpec((2, 7, *(2,) * width), tuple(rows), (1,) * len(rows),
                                     numeric=frozenset({0, *range(2, 2 + width)})))
 

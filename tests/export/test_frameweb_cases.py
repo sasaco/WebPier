@@ -10,10 +10,17 @@ from decimal import Decimal
 
 import pytest
 
-from frameweb_support import D, EXAMPLE2, L08, PEDESTAL, longitudinal
-from webpier.calc.longitudinal import Basis
+from frameweb_support import D, EXAMPLE2, L08, PEDESTAL, first_placing, longitudinal
+from webpier.calc.longitudinal import Basis, BasicCase, Check, Layout
 from webpier.core.errors import InputError
 from webpier.export.frameweb import build_frameweb
+
+
+def auxiliary_defines(result):
+    """The Define of each serviceability impact load case, after the basic cases: I1s of ①, ②, ③, then I2s."""
+    first = len(result.basic_cases) + 1
+    keys = [(case, layout) for case in (BasicCase.IMPACT_SINGLE, BasicCase.IMPACT_DOUBLE) for layout in Layout]
+    return {key: first + index for index, key in enumerate(keys)}
 
 
 @pytest.fixture(scope="module")
@@ -22,8 +29,14 @@ def result():
 
 
 @pytest.fixture(scope="module")
-def current(result):
+def full(result):
     return build_frameweb(result)
+
+
+@pytest.fixture(scope="module")
+def current(full):
+    """The file of ① only, as Example2's (decision 102)."""
+    return first_placing(full)
 
 
 def test_defines_are_those_of_example2_and_the_serviceability_impacts(current):
@@ -57,12 +70,15 @@ def test_combines_are_those_of_example2_with_the_serviceability_impacts(current)
         assert current["combine"][number]["row"] == int(number)
 
 
-def test_combines_carry_the_printed_factors(current, result):
+def test_combines_carry_the_printed_factors(full, result):
+    define_of = {(d.case, d.layout): d.number for d in result.define_cases}
+    auxiliary = auxiliary_defines(result)
     for combination in result.combinations:
-        row = current["combine"][str(combination.number)]
+        row = full["combine"][str(combination.number)]
         expected = {}
         for component in combination.components:
-            define = component.case.value if component.basis is Basis.BASIC else {11: 21, 12: 22}[component.case.value]
+            key = (component.case, component.source.layout)
+            define = define_of[key] if component.basis is Basis.BASIC else auxiliary[key]
             expected[f"C{define}"] = component.factor.value
         assert coefficients(row) == expected
         assert all(component.factor.digits in (1, 2) for component in combination.components)
@@ -143,7 +159,9 @@ def test_every_combination_and_direction_is_the_resolved_combination(changes):
             for key, amount in resolved.items():
                 assert abs(native.get(key, Decimal(0)) - amount) <= Decimal("0.005") * count[key], (combination, key)
             states += 1
-    assert states == 12 * 2 + 4  # 12 combinations with a horizontal case in both directions, 4 without
+    # 28 combinations with a horizontal case in both directions, 10 without (each check with the train for ①, ② and
+    # ③, decision 102)
+    assert states == 28 * 2 + 10
 
 
 def test_reversal_is_only_for_the_horizontal_cases(current):
@@ -161,8 +179,9 @@ def test_zero_coefficients_are_left_out_and_an_empty_combination_is_an_error():
     # keep their other actions; combination 7 (L1 + I1 only) has nothing, and FrameWeb drops an empty Combine, so
     # Pickup 4 would fail.
     result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
-    assert [c.factor.value for c in result.combinations[6].components] == [0, 0]
-    with pytest.raises(InputError, match="combine.7"):
+    variable = [c for c in result.combinations if c.check is Check.CRACK_VARIABLE]  # ①, ② and ③
+    assert [[k.factor.value for k in c.components] for c in variable] == [[0, 0]] * 3
+    with pytest.raises(InputError, match=f"combine.{variable[0].number}"):
         build_frameweb(result)
 
 

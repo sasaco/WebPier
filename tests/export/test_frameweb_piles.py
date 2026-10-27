@@ -18,13 +18,14 @@ from webpier.core.integrity import dump_json, load_json
 from webpier.export.frameweb import build_frameweb, build_frameweb_transverse, validate_frameweb
 from webpier.export.soiljr import parse_sdc
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
 @pytest.fixture(scope="module")
 def results():
-    pier = parse_input(load_json((FIXTURES / "inputs" / "example4.json").read_bytes()))
+    pier = parse_input(load_json(EXAMPLE4_INPUT.read_bytes()))
     foundation = PileFoundation(calculate_pile_ground(pier),
                                 parse_sdc((FIXTURES / "soiljr" / "pile_steel_grid.sdc").read_bytes()))
     reaction = calculate_reaction(pier)

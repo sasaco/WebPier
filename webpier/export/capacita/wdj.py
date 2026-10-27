@@ -14,9 +14,8 @@ fails the runner and stops the generation. The bar row has no ``position`` (the 
 point's), and the document no ``steel`` rows (an RC WDJ with them is refused).
 
 Only the column bottom is checked (bending about z, shear in y; no torsion). ``shape`` is the number 1 (rectangle;
-RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5, 0621 as 9.5. Side bars
-without positions (calc.column_check.SideBars) are written without ``side_cover`` and ``side_ss``: Capacita spaces
-them evenly between the main bars. The footing WDJ (footing_wdj) shares the basic lists, the safety tables and the
+RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5, 0621 as 9.5. The counts of
+the bars may have decimals (counted by area, calc.column_check.COUNT; decision 103). The footing WDJ (footing_wdj) shares the basic lists, the safety tables and the
 number formatting of this module.
 """
 
@@ -99,9 +98,10 @@ def _basic(check: ColumnCheckResult) -> dict[str, Any]:
 
 
 def _main(bars, title: str) -> dict[str, Any]:
-    return {"title": title, "rebar_dia": _number(bars.diameter), "rebar_n": bars.count,
+    return {"title": title, "rebar_dia": _number(bars.diameter), "rebar_n": _number(bars.count),
             "rebar_cover": _number(bars.cover),
-            "rebar_lines": bars.per_layer if bars.layers > 1 else None, "rebar_space": _number(bars.layer_spacing),
+            "rebar_lines": _number(bars.per_layer) if bars.layers > 1 else None,
+            "rebar_space": _number(bars.layer_spacing),
             "rebar_ss": _number(bars.spacing), "cos": None, "enable": True}
 
 
@@ -111,7 +111,7 @@ def _bar(check: ColumnCheckResult, index: int) -> dict[str, Any]:
         "index": index, "m_no": check.member, "haunch_M": None, "haunch_V": None,
         "rebar1": _main(check.upper, "上側"), "rebar2": _main(check.lower, "下側"),
         "sidebar1": {"side_dia": None if side is None else _number(side.diameter),
-                     "side_n": None if side is None else side.count,
+                     "side_n": None if side is None else _number(side.count),
                      "side_cover": None if side is None else _number(side.first),
                      "side_ss": None if side is None else _number(side.spacing)},
         "sidebar2": {"side_dia": None, "side_n": None, "side_cover": None, "side_ss": None},

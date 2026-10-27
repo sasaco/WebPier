@@ -52,9 +52,9 @@ def test_every_input_page_opens_without_changes(editor):
 def test_values_are_shown_with_their_printed_digits_and_program_units(editor):
     assert cell(editor, *B1).get() == "2.700"
     editor.select("上部構造")
-    sheet = cell(editor, "上部構造", "列車", "1両の長さ").sheet
-    row = cell(editor, "上部構造", "列車", "1両の長さ").row
-    assert sheet.get_cell_data(row, 0) == "1両の長さ" and sheet.get_cell_data(row, 2) == "m"
+    sheet = cell(editor, "上部構造", "列車", "車両高", "受風高").sheet
+    row = cell(editor, "上部構造", "列車", "車両高", "受風高").row
+    assert sheet.get_cell_data(row, 0) == "車両高：受風高" and sheet.get_cell_data(row, 2) == "m"
     assert cell(editor, "上部構造", "列車", "編成数").get() == "10"
     assert cell(editor, "上部構造", "列車", "荷重修正係数", "安全性(破壊)").get() == "1.231"
 
@@ -228,6 +228,7 @@ def test_saving_round_trips_a_valid_schema_2_input(editor):
         type_in(editor, path, text)
     editor.select("上部構造")
     type_in(editor, ("上部構造", "列車", "車両名"), "EA-17")
+    type_in(editor, ("上部構造", "列車", "編成数"), "")  # EA-17's train is the standard's (decision 101)
     type_in(editor, ("上部構造", "支承データ", "起点側", "復旧性制動係数"), "1.25")
     editor.select("地盤データ")
     type_in(editor, ("地盤データ", "層", 1, "N値"), "50.4")
@@ -286,7 +287,7 @@ def test_restructuring_waits_for_refused_text(editor, quiet):
 def test_a_file_of_another_form_shows_its_missing_items_without_adding_them(tk_root, tmp_path, quiet):
     data = json.loads(CURRENT.read_text(encoding="utf-8"))
     del data["下部構造"]["寸法"]["高さ"]
-    data["上部構造"]["列車"]["軸距"] = "2.8"
+    del data["上部構造"]["列車"]["車両高"]
     path = tmp_path / "other.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     editor = gui.InputEditor(tk_root, path)
@@ -294,8 +295,8 @@ def test_a_file_of_another_form_shows_its_missing_items_without_adding_them(tk_r
     assert h1 not in editor.bindings.items
     assert editor.bindings.value(h1) is MISSING
     editor.select("上部構造")
-    a1 = ("上部構造", "列車", "軸距", "a1_連結部")
-    assert a1 not in editor.bindings.items
+    wind = ("上部構造", "列車", "車両高", "受風高")
+    assert wind not in editor.bindings.items
     assert not editor.dirty and editor.save()
     assert json.loads(path.read_text(encoding="utf-8")) == data
 

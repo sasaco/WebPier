@@ -76,7 +76,7 @@ def _bar(check: CantileverSectionResult) -> dict[str, Any]:
         "index": 1, "m_no": MEMBER, "haunch_M": None, "haunch_V": None,
         "rebar1": _main(check.upper, "上側"), "rebar2": _main(check.lower, "下側"),
         "sidebar1": {"side_dia": None if side is None else _number(side.diameter),
-                     "side_n": None if side is None else side.count,
+                     "side_n": None if side is None else _number(side.count),
                      "side_cover": None if side is None else _number(side.first),
                      "side_ss": None if side is None else _number(side.spacing)},
         "sidebar2": {"side_dia": None, "side_n": None, "side_cover": None, "side_ss": None},

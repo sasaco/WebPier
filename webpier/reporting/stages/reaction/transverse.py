@@ -6,9 +6,10 @@ from gridlayoutpdf import Row
 
 from ....calc.reaction import ReactionResult
 from ....calc.reaction.transverse import (
-    CENTRIFUGAL_DIVISOR, HALF, LATERAL_RATIO, SEISMIC_KH_GIRDER, SEISMIC_KH_TRAIN, WIND_WITH_TRAIN,
+    CENTRIFUGAL_DIVISOR, HALF, SEISMIC_KH_GIRDER, SEISMIC_KH_TRAIN, WIND_WITH_TRAIN,
     WIND_WITHOUT_TRAIN, TransverseForce, TransverseSide,
 )
+from ....calc.vehicles import vehicle
 from ....inputs import PierInput
 from ...numbers import decimal_constant, printed
 from .manuscript import (
@@ -67,7 +68,8 @@ def _lateral(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     m.heading("trans.lateral.heading", "(2) 車両横荷重", SUBSECTION)
     m.paragraph("trans.lateral.introduction",
                 "1軌道当り次の集中移動荷重とし、レール高さにおいて軌道に直角かつ水平に作用する。")
-    m.formula("trans.lateral.axle", sub("L", "F"), None, (LATERAL_RATIO, "×", pier.train.axle_load),
+    m.formula("trans.lateral.axle", sub("L", "F"), None,
+              (vehicle(pier.train).lateral_ratio, "×", vehicle(pier.train).lateral_base),
               transverse.lateral_axle_load)
     loading_lines(m, "trans.lateral.loading", transverse.lateral_loading, pier)
     for side, title, _ in SIDES:

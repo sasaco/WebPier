@@ -26,7 +26,8 @@ SENTINEL = 8765.4321
 CONSTANTS = {
     "0", "1", "2", "3", "4", "6", "10", "30", "12", "200", "127", "2000", "8",
     "0.5", "0.75", "1.0", "1.1", "1.2", "1.00", "0.20", "0.30", "0.2", "1.5", "3.0", "10.0",
-    "0.80", "0.19", "0.76", "0.27", "0.25", "0.95",
+    "0.80", "0.19", "0.76", "0.25",
+    "0.15", "170.00",  # EA-17's vehicle lateral load 0.15 × 170 (calc.vehicles, decision 101)
 }
 # Numbers that are names, not values: the 0.8 LR combination.
 NAMES = {"0.8"}
@@ -71,6 +72,19 @@ def omitted(result, path: str) -> bool:
     """A value that is not printed: one of UNPRINTED, a 桁受け of volume 0 (decision 41), a row of table 6.2.1 whose V
     is 0, and the weight of a part that the table prints in one row (its W is the row's)."""
     sw = result.self_weight
+    counts = re.fullmatch(r"(train\.loading|train\.one_girder\.(\d)\.loading|transverse\.lateral_loading)"
+                          r"\.(?:origin|end)_axles", path)
+    if re.fullmatch(r"train\.one_girder\.\d\.(?:ultimate|service|fatigue)\.load_factor", path):
+        return True  # the placing's ρf is ①'s, printed once (decision 102)
+    if path in ("train.one_girder.0.loading.end_axles", "train.one_girder.1.loading.origin_axles"):
+        return True  # the girder without the train of ② or ③: its RA, RD print as values
+    if re.fullmatch(r"(train\.loading|train\.one_girder\.\d\.loading|transverse\.lateral_loading)"
+                    r"\.tail_head", path):
+        return True  # the figure's geometry: its spacings are printed
+    if counts is not None:  # A-17's axles are counted by load (decision 101)
+        loading = (result.train.loading if counts[1] == "train.loading" else result.transverse.lateral_loading
+                   if counts[2] is None else result.train.one_girder[int(counts[2])].loading)
+        return loading.axle_load is None
     if UNPRINTED.fullmatch(path) or sw.pedestal.volume.value == 0 and path.startswith("self_weight.pedestal."):
         return True
     water = WATER_VALUE.fullmatch(path)
@@ -268,8 +282,8 @@ SAMPLE_TEXT = {
     "線路方向の列車荷重慣性力は、車輪とレールとの粘着係数 μ = 0.20 とする。",
     "列車荷重に遠心荷重係数 αc を乗じた値とする。",
     "直線区間のため遠心荷重は考慮しない。",
-    "制動荷重：(0.27 + 1.00/Lv)・ΣR",
-    "始動荷重：(0.25 + 0.95/Lv)・ΣR",
+    "制動荷重：1軌道当り列車荷重の25%とする。",  # Example橋脚4 III-43 (decision 101)
+    "始動荷重：1軌道当り列車荷重の特性値をなす動輪軸重の25%とする。",  # III-44
 }
 # Tables whose header is a sample's: table 6.2.1 is the table 2.1.2 of Example橋脚3 (its γ, decision 79).
 SAMPLE_TABLES = {"0600/weight.parts.table"}

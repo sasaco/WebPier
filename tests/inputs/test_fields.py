@@ -64,7 +64,7 @@ def test_paths_are_written_as_input_errors_name_them():
 
 
 def test_a_field_is_found_by_text_or_keys_and_unknown_paths_are_named():
-    assert field("上部構造.列車.1両の長さ") is field(("上部構造", "列車", "1両の長さ"))
+    assert field("上部構造.列車.車両高.受風高") is field(("上部構造", "列車", "車両高", "受風高"))
     assert field(("上部工反力", "終点側", "C支点", 9, "列車分担", "L1")).precision == fields.RATIO
     with pytest.raises(KeyError, match="入力項目の定義がありません: 上部構造.列車.車両色"):
         field("上部構造.列車.車両色")
@@ -129,7 +129,8 @@ def test_the_sign_rule_of_each_number(path, value):
 
 # Blanks the table allows that the parser still asks for, because of the row they are on.
 CONTEXT_REQUIRED = {"地盤データ.層[0].単位体積重量.湿潤", "地盤データ.層[0].単位体積重量.水中",
-                    "地盤データ.層[1].内部摩擦角_φd", "地盤データ.層[1].変形係数_Ed"}
+                    "地盤データ.層[1].内部摩擦角_φd", "地盤データ.層[1].変形係数_Ed",
+                    "上部構造.列車.編成数"}  # P-16 needs it, EA-17 must leave it blank (decision 101)
 
 
 @pytest.mark.parametrize("path", [path for path, value in scalar_leaves() if value is not None],
@@ -159,10 +160,10 @@ def test_choices_are_the_programs_lists(path):
 
 def test_the_table_drives_the_parser(monkeypatch):
     document = data()
-    document["上部構造"]["列車"]["1両の長さ"] = 20.05
+    document["上部構造"]["列車"]["車両高"]["受風高"] = 3.55
     assert error_of(document) is None
-    monkeypatch.setitem(fields.FIELDS, "上部構造.列車.1両の長さ", fields.number(Precision(1, "m"), "positive"))
-    assert error_of(document) == "上部構造.列車.1両の長さ: 小数1桁までで入力してください（入力: 20.05）"
+    monkeypatch.setitem(fields.FIELDS, "上部構造.列車.車両高.受風高", fields.number(Precision(1, "m")))
+    assert error_of(document) == "上部構造.列車.車両高.受風高: 小数1桁までで入力してください（入力: 3.55）"
 
 
 # Field.read, one kind at a time.

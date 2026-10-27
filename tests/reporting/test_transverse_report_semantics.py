@@ -31,11 +31,12 @@ BASIC = {1: ("固定死荷重", "", "D1"), 2: ("付加死荷重", "", "D2"), 3: 
          8: ("雪荷重", "30年確率", "SS30"), 9: ("列車荷重", "単線　上り", "L1"), 10: ("列車荷重", "単線　下り", "L1"),
          11: ("列車荷重", "複線", "L2"), 12: ("衝撃荷重", "安全性・復旧性　単線　上り", "I1"),
          13: ("衝撃荷重", "安全性・復旧性　単線　下り", "I1"), 14: ("衝撃荷重", "安全性・復旧性　複線", "I2"),
-         15: ("車両横荷重", "", "LF"), 16: ("風荷重", "列車荷重がある場合", "W1"),
-         17: ("風荷重", "列車荷重がない場合", "W2"), 18: ("遠心荷重", "単線　上り", "CF1"),
-         19: ("遠心荷重", "単線　下り", "CF1"), 20: ("遠心荷重", "複線", "CF2")}
-CHECKS = ["列車最大", "車横最大", "風最大", "雪最大", "縁応力度", "永久荷重", "変動荷重", "列車最大", "雪最大", "列車最大",
-          "車横最大", "風最大", "雪最大"]
+         15: ("車両横荷重", "単線", "LF1"), 16: ("車両横荷重", "複線", "LF2"), 17: ("風荷重", "列車荷重がある場合", "W1"),
+         18: ("風荷重", "列車荷重がない場合", "W2"), 19: ("遠心荷重", "単線　上り", "CF1"),
+         20: ("遠心荷重", "単線　下り", "CF1"), 21: ("遠心荷重", "複線", "CF2")}
+# the remark of each of the 16 checks; a check with the train adds its loading (decision 106)
+REMARKS = {1: "列車最大", 2: "車横最大", 3: "風最大", 4: "雪最大", 5: "縁応力度", 6: "永久荷重", 7: "変動荷重", 8: "列車最大",
+           9: "雪最大", 10: "列車最大", 11: "車横最大", 12: "風最大", 13: "雪最大", 14: "", 15: "低水位", 16: "高水位"}
 
 
 def bearing(item, slot) -> str:
@@ -178,9 +179,13 @@ def expected(case: str) -> dict[str, str]:
                 add(key + ".seat", seat(frame, table.n, table.m, point))
     lateral = result.lateral
     add("lateral.heading", f"{item(7)}車両横荷重")
+    add("lateral.single.heading", "1)単線載荷の場合")
     add("lateral.h", f"水平力H={t(lateral.origin.h)}+{t(lateral.end.h)}={t(lateral.h)}kN")
     add("lateral.m", f"モーメントM={t(lateral.origin.h)}×{t(lateral.origin.y)}+{t(lateral.end.h)}×{t(lateral.end.y)}"
                      f"={t(lateral.m)}kN・m")
+    add("lateral.double.heading", "2)複線載荷の場合")  # two tracks (decision 106)
+    add("lateral.double.h", f"水平力H=2×{t(lateral.h)}={t(lateral.double_h)}kN")
+    add("lateral.double.m", f"モーメントM=2×{t(lateral.m)}={t(lateral.double_m)}kN・m")
     add("wind.heading", f"{item(8)}風荷重")
     ground = result.wind_with_train.pier
     add("wind.ground.heading", "・く体の受風範囲（地表面はフーチング天端から起点側・終点側の土かぶりの小さい方だけ上）")
@@ -225,7 +230,7 @@ def expected(case: str) -> dict[str, str]:
     add("basic.note", "バネ1は長期，2は短期のフーチング底面のばねを用いる．")
     add("define.heading", "(2)Defineケース")
     width = max(len(d.cases) * len(d.signs) for d in result.define_cases)
-    qualifiers = {9: "単線", 11: "安全性・復旧性　単線", 16: "単線"}
+    qualifiers = {9: "単線", 11: "安全性・復旧性　単線", 17: "単線"}
     define = "No" + "".join(f"C{i}" for i in range(1, width + 1)) + "記号荷重名称区分"
     for d in result.define_cases:
         name, qualifier, symbol = BASIC[d.cases[0].value]
@@ -239,14 +244,15 @@ def expected(case: str) -> dict[str, str]:
     add("factors.maximum", f"列車最大1.1ρ=1.1×{t(pier.train.factor_ultimate)}={t(f.maximum)}")
     add("factors.service", f"使用性ρ={t(pier.train.factor_service)}≒{t(f.service)}")
     add("factors.service_impact", f"使用性の衝撃0.75ρ=0.75×{t(pier.train.factor_service)}={t(f.service_impact)}")
-    header = ("No記号荷重名称安全性耐久性・使用性使用性安全性使用性破壊ひび割れ損傷地盤の安定長期短期" + "".join(CHECKS)
+    remarks = "".join(REMARKS[c.check.value] + ("" if c.loading is None else c.loading.value) for c in result.combinations)
+    header = ("No記号荷重名称安全性耐久性・使用性使用性安全性使用性破壊ひび割れ損傷地盤の安定長期短期" + remarks
               + "".join(str(c.number) for c in result.combinations))
     body = "".join(f"{d.number}{BASIC[d.cases[0].value][2]}{BASIC[d.cases[0].value][0]}" + "".join(
         t(c.coefficients[i]) if c.coefficients[i] is not None else "－" for c in result.combinations)
         for i, d in enumerate(result.define_cases))
     add("combination", header + body)
     add("combination.note", "列はDefineケースである．単線の列車荷重・衝撃荷重（遠心荷重）は一つの組合せで同じ線とし，"
-                            "車両横荷重・風荷重は正負それぞれを組み合わせる．組合せ5，7，15，16の衝撃荷重には，"
+                            "車両横荷重・風荷重は正負それぞれを組み合わせる．組合せ7，8，10，11，22，23，24，25の衝撃荷重には，"
                             f"使用性の衝撃係数（3/4を含む）による値にρ={t(f.service)}を乗じる．")
     add("extraction.heading", "(4)抽出ケース")
     labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",

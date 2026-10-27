@@ -134,7 +134,7 @@ def _direction(pier: PierInput, layout: ColumnLayout, direction: str, aggregate_
         general=general_spacing(effective, main, hoops.diameter, hoops.pitch),
         confinement=confinement_spacing(effective, main, hoops.diameter, short, hoops.pitch),
         lateral=LateralSpacing(ties, lateral, d(ties.max_spacing) <= d(lateral)),
-        ductility=ductility_limit(hoops.grade, shear.ratio),
+        ductility=ductility_limit(hoops.grade, shear.ratio, "鉄筋.柱.materials.transverse"),
         capacity=capacity_ratio(shear.ratio, hoops.grade, pier.materials.column))
 
 

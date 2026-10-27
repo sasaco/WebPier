@@ -152,7 +152,7 @@ def readout(page: RebarPage, key: tuple[str, int]) -> str:
     if layer > len(centers):
         return NO_VALUE
     count = sum(1 for bar in layout.bars if (bar.group, bar.layer) == key)
-    odd = layer > 1 and (layout.faces[group].per_layer - count) % 2
+    odd = layer > 1 and (int(layout.faces[group].per_layer.value) - count) % 2
     return f"{centers[layer - 1].value:.1f}" + ("（左右対称になりません）" if odd else "")
 
 

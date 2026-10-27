@@ -20,7 +20,7 @@ from ..core.reader import Reader
 from . import choices
 from .fields import BEAM_SURFACES, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
-    Bearing, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
+    Bearing, BrakingRule, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
     Materials, PierInput, PileFoundation, PileJoint, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
     Spans, Substructure, SteelSoilCementPile, Train,
 )
@@ -90,22 +90,22 @@ def _span(root: Reader, side: str, load_model: bool) -> Span:
 
 
 def _train(root: Reader) -> Train:
-    train = root.at("上部構造", "列車").only("車両名", "1両の長さ", "軸距", "軸重", "編成数", "車両高", "荷重修正係数")
+    train = root.at("上部構造", "列車").only("車両名", "編成数", "車両高", "荷重修正係数")
     vehicle = train.at("車両名")
     if not isinstance(vehicle.value, str):
         raise vehicle.error(f"{'・'.join(choices.VEHICLES)}から選んでください（入力: {vehicle.value!r}）")
     name = read(vehicle)
-    spacing = train.at("軸距").only("a1_連結部", "a2")
-    axle = train.at("軸重").only("地震以外", "地震")
+    rule = choices.VEHICLES[name]
     heights = train.at("車両高").only("受風高", "遠心重心高", "地震重心高")
     factors = train.at("荷重修正係数").only("使用性", "安全性(破壊)", "安全性(疲労)")
-    length = read(train.at("1両の長さ"))
-    a1, a2 = read(spacing.at("a1_連結部")), read(spacing.at("a2"))
-    if length.value <= a1.value + 2 * a2.value:
-        raise train.at("1両の長さ").error("a1_連結部+2×a2より大きい値が必要です")
+    # decision 101: the standard fixes EA-17's train; a vehicle of repeated cars needs how many
+    cars = train.at("編成数")
+    if rule is BrakingRule.EA17 and not cars.is_null:
+        raise cars.error(f"{name} の編成は規定で決まるので空欄にしてください（入力: {cars.value!r}）")
+    if rule is not BrakingRule.EA17 and cars.is_null:
+        raise cars.error("値が必要です")
     return Train(
-        vehicle=name, braking_rule=choices.VEHICLES[name], car_length=length, a1=a1, a2=a2,
-        axle_load=read(axle.at("地震以外")), earthquake_load=read(axle.at("地震")), cars=read(train.at("編成数")),
+        vehicle=name, braking_rule=rule, cars=read(cars),
         height_wind=read(heights.at("受風高")), height_centrifugal=read(heights.at("遠心重心高")),
         height_seismic=read(heights.at("地震重心高")),
         factor_service=read(factors.at("使用性")), factor_ultimate=read(factors.at("安全性(破壊)")),

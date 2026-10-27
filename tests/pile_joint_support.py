@@ -1,19 +1,18 @@
 """A joint result of the example (Example橋脚4 表 3.2.10 and 3.2.11) for the tests of the report and the pipeline."""
 
 from copy import deepcopy
-from pathlib import Path
 
 from webpier.calc.pile_body import PointForces, SectionForce, steel
 from webpier.calc.pile_joint import assemble, section, select
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
-FIXTURES = Path(__file__).parent / "fixtures"
 PUSH, PULL = 2957.2, 2449.8  # the example's Mud, kN m (row 2, the push side, and row 1, the pull side)
 
 
 def example4_input():
-    return parse_input(deepcopy(load_json((FIXTURES / "inputs" / "example4.json").read_bytes())))
+    return parse_input(deepcopy(load_json(EXAMPLE4_INPUT.read_bytes())))
 
 
 def head_line(md=284.6, nd=3847.9, combination=18, piles=3):

@@ -7,6 +7,7 @@ analyses, 0710, 0720, 0711, 0721) and 0800, 0810, 0820. The acceptance
 1. generates them with ``python -m webpier`` and the real runners (SOIL-JR and the analyses of JRSNAP, FEMPython, Aggre-SE, Capacita);
 2. reads the section forces again from the files the runners returned, with a reading of its own (the PIK of the frame analysis,
    the pickup of Aggre-SE and the NDU, ``read_pik`` and ``elements_of`` here, not WebPier's), and finds the same numbers in 0800
+   (those of 安全性（破壊） times the 応答値係数 γR 1.2 of the linear frame, decision 104)
    for every point and check;
 3. checks the forces against statics: at the section of a member end, the bending moment at the face less that at the pile is
    the shear force times the length of the member (``M(j) = M(i) − V·L``, wherever the two ends of the case are the same
@@ -57,6 +58,7 @@ PAGES = ("安全性（破壊）曲げモーメントの照査結果", "ディー
          "復旧性（損傷）曲げモーメントの照査結果", "最小鉄筋量の照査結果", "最大鉄筋量の照査結果")
 TOLERANCE = 0.06  # kN, kN m: the files print two decimals, 0800 one
 SEISMIC_PICKUP = 2
+GAMMA_R = 1.2  # 応答値係数 of the 安全性 of the linear frame (decision 104; Example橋脚4 III-111)
 
 
 class AcceptanceError(Exception):
@@ -162,6 +164,9 @@ def check_direction(direction: str, stem: str, post: Path, output: Path, evidenc
                 found, pickup = frame, pickups[force["case"]]
                 ends = {item["side"]: (item["member"], item["point"]) for item in info["ends"]}
             values = expected(found, pickup, ends, lower, deep)
+            if CASES[force["case"]] == "SAFETY":  # the 応答値係数 γR of the linear frame's 安全性 (decision 104)
+                values = tuple(value if value is None or index == 1 else GAMMA_R * value  # 1: the combination
+                               for index, value in enumerate(values))
             checked["reading"] += 1
             worst["reading"] = max(worst["reading"], abs(values[0] - force["md"]))
             if abs(values[0] - force["md"]) > TOLERANCE or values[1] != force["md_combination"]:

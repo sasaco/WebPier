@@ -4,13 +4,13 @@
     "由来": "Example橋脚4（鋼管ソイルセメント杭、R5年）1of3 を画像で読んで作った。pile.json の形に合わせた",
     "見本": ".claude/docs/Example橋脚4/..._R5年_1of3.pdf（印刷頁。I-n は PDF index n+14、III-n は 1of3 で n+146・2of3 で n-111）。2of3 の III-169〜183・III-214 も読んだ",
     "上部工反力": "III-30 表2.1.3（A 1710/470、B 1710/470、C 4250/1050、D 4250/1050）。支承位置は I-3 構造一般図（起点側 ±2.2、終点側 ±1.325・±2.975）。支承ごとの D1・D2 は等分した値（見本にない）。列車分担は線路中心±1.90（III-34）の剛体の配分 0.5+e·y/Σy²（見本にない）。積雪なし（I-12）で雪荷重は空欄",
-    "上部構造": "I-3、III-30、III-35 表2.1.5（衝撃 0.542/0.591）、III-177〜182（h1〜h4、f＝III-34 の偏心 0.70/0.20）、列車速度 I-10。hs は III-27 注記（桁重心をスラブ上面）から 2.25。荷重修正係数の安全性(破壊) 1.10 は III-70（EA-17 の γf）",
+    "上部構造": "I-3、III-30、III-35 表2.1.5（衝撃 0.542/0.591）、III-177〜182（h1〜h4、f＝III-34 の偏心 0.70/0.20）、列車速度 I-10。hs は III-27 注記（桁重心をスラブ上面）から 2.25。荷重修正係数は 1.0（III-70 の 1.10 は列車荷重主体の作用係数そのもの。表の下段が作用係数、制動荷重主体は 1.00。決定106 の際に owner と直した）",
     "下部構造": "I-3、III-28 表2.1.2（く体 2.5×3.5×9.2＝柱7.2＋はり1.5＋ハンチ0.5、はり幅 7.7、フーチング 7.0×8.0×2.2）、土かぶり 0.5・水位 I-14、単位体積重量 III-28",
-    "杭基礎": "I-22 5.3、III-2 図1.2.2・1.2.3（杭長 26.5、Dsc 1.0、Dsp 0.8、有効肉厚17＋腐食代1＝18、2×3 格子 ±2.5・0/±3.0）。杭の単位体積重量は見本になく 24.5 を仮置き（パーサーが必須）",
+    "杭基礎": "I-22 5.3、III-2 図1.2.2・1.2.3（杭長 26.5、Dsc 1.0、Dsp 0.8、有効肉厚17＋腐食代1＝18、2×3 格子 ±2.5・0/±3.0）。杭の単位体積重量は見本になく 24.5 を仮置き（パーサーが必須）。結合部の中詰めの粗骨材の最大寸法 25 は II-22 表1.2.3 の印字（別の頁の「フーチングと同じ（40）」と食い違う）",
     "地盤データ": "I-13〜I-21（表4.3.1・4.3.2・4.3.8）、III-6 表1.4.2。湿潤列は III-6 の値（水位下は飽和重量）。4-3・第5層の φ は見本になし",
-    "鉄筋": "柱のみ I-4・III-139・III-143・III-214（D38 線路23＋内側11、D19 直角7、帯鉄筋D25 は A_w と S_s=250 の逆算）。柱の軸方向鉄筋は SD490 で選択肢になく空欄。梁・フーチングは未転記",
+    "鉄筋": "柱 I-4・III-139・III-143・III-214（D38 線路23＋内側11、D19 直角7、SD490、帯鉄筋D25 は A_w と S_s=250 の逆算）。梁 I-5〜I-8・I-22〜I-23・V-40〜V-57（上面 D32×14 直筋・中心80、下面 D16×10・中心72、側方 D19 14本 125、スターラップ D19 6本 125）。フーチング I-6・I-54・V-105〜V-169（D32@150 上下とも線路方向が外側、中心は指定、スターラップ D25 線路方向300・幅方向450）。見本の中で揺れる値は owner の判断で、フーチングの純かぶり 45（I-54。V-105・V-111 は 40）、スターラップの向き 300／450（V-131 の 120 本に近い）、梁上面の直筋（図 B1、V-46 の標準フックなし）",
     "耐震設計条件": "IV-1（G4地盤）、IV-4（地域別係数 νa=1.00 から A地域と読む）",
-    "仮置き": "上部構造.列車の 1両の長さ・軸距・編成数・遠心重心高・地震重心高は EA-17 で使わない見込み（決定78）だが現行パーサーが必須とするため pile.json の値を置いた"
+    "照査の条件": "柱：水掛かり 常時乾燥（III-120・III-215・I-60）、外観の照査 行う（I-30 表6.2.1、III-135）、ε'csd 300（III-121）、適用基準の機関 JR各社は推定（見本に機関名はない。在来線 I-10 で、使用性（損傷）の γi 1.2（I-34）から JR東日本ではない）、JR-001・JR-004 は適用する（R5 では結果が変わらない）。片持ち梁：水掛かり 乾湿繰返し（I-54 表8.1.3、V-53・V-54。見本は梁全体で1つの区分なので下面・側面は推定）、外観の照査 行わない（V-75 で省略）、等価繰返し回数 k=0.06 は V-74（A 19.51、B 21.57）、k=0.12 は見本になく空欄"
   },
   "上部工反力": {
     "起点側": {
@@ -193,16 +193,7 @@
     },
     "列車": {
       "車両名": "EA-17",
-      "1両の長さ": 20.0,
-      "軸距": {
-        "a1_連結部": 2.8,
-        "a2": 2.2
-      },
-      "軸重": {
-        "地震以外": 170.0,
-        "地震": 35.0
-      },
-      "編成数": 10,
+      "編成数": null,
       "車両高": {
         "受風高": 3.6,
         "遠心重心高": 1.5,
@@ -210,7 +201,7 @@
       },
       "荷重修正係数": {
         "使用性": 1.0,
-        "安全性(破壊)": 1.1,
+        "安全性(破壊)": 1.0,
         "安全性(疲労)": 1.0
       }
     }
@@ -289,7 +280,8 @@
           "材質": "SD390",
           "重心位置": 75.0
         },
-        "中詰めコンクリート_f'ck": 27.0
+        "中詰めコンクリート_f'ck": 27.0,
+        "粗骨材の最大寸法": 25
       }
     },
     "配置": {
@@ -434,7 +426,7 @@
     "version": 3,
     "柱": {
       "materials": {
-        "main": null,
+        "main": "SD490",
         "transverse": "SD390"
       },
       "concrete_strength_mpa": 40,
@@ -506,56 +498,56 @@
       },
       "concrete_strength_mpa": 27,
       "aggregate_max_mm": 40,
-      "pure_cover_mm": null,
+      "pure_cover_mm": 45,
       "faces": {
         "上": {
-          "outer_direction": null,
+          "outer_direction": "線路",
           "線路": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": null,
-            "center_mm": null,
+            "diameter_mm": 32,
+            "pitch_mm": 150,
+            "cover_mode": "指定",
+            "center_mm": 86.0,
             "inner_layers": []
           },
           "直角": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": null,
-            "center_mm": null,
+            "diameter_mm": 32,
+            "pitch_mm": 150,
+            "cover_mode": "指定",
+            "center_mm": 118.0,
             "inner_layers": []
           }
         },
         "下": {
-          "outer_direction": null,
+          "outer_direction": "線路",
           "線路": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": null,
-            "center_mm": null,
+            "diameter_mm": 32,
+            "pitch_mm": 150,
+            "cover_mode": "指定",
+            "center_mm": 125.0,
             "inner_layers": []
           },
           "直角": {
-            "diameter_mm": null,
-            "pitch_mm": null,
-            "cover_mode": null,
-            "center_mm": null,
+            "diameter_mm": 32,
+            "pitch_mm": 150,
+            "cover_mode": "指定",
+            "center_mm": 157.0,
             "inner_layers": []
           }
         }
       },
       "stirrups": {
         "線路": {
-          "diameter_mm": null,
-          "pitch_mm": null,
-          "distribution_mode": null,
-          "width_pitch_mm": null,
+          "diameter_mm": 25,
+          "pitch_mm": 300,
+          "distribution_mode": "間隔",
+          "width_pitch_mm": 450,
           "density_per_m": null
         },
         "直角": {
-          "diameter_mm": null,
-          "pitch_mm": null,
-          "distribution_mode": null,
-          "width_pitch_mm": null,
+          "diameter_mm": 25,
+          "pitch_mm": 300,
+          "distribution_mode": "間隔",
+          "width_pitch_mm": 450,
           "density_per_m": null
         }
       }
@@ -566,38 +558,38 @@
         "transverse": "SD390"
       },
       "concrete_strength_mpa": 40,
-      "aggregate_max_mm": null,
-      "pure_cover_mm": null,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": 45,
       "faces": {
         "上": {
-          "diameter_mm": null,
-          "count": null,
-          "bar_type": null,
-          "cover_mode": null,
-          "center_mm": null,
+          "diameter_mm": 32,
+          "count": 14,
+          "bar_type": "直筋",
+          "cover_mode": "指定",
+          "center_mm": 80.0,
           "inner_layers": []
         },
         "下": {
-          "diameter_mm": null,
-          "count": null,
-          "cover_mode": null,
-          "center_mm": null,
+          "diameter_mm": 16,
+          "count": 10,
+          "cover_mode": "指定",
+          "center_mm": 72.0,
           "inner_layers": []
         }
       },
       "side_bars": {
-        "diameter_mm": null,
-        "per_face_count": null,
-        "start_mm": null,
-        "pitch_mm": null,
-        "stirrup_position": null,
-        "cover_mode": null,
+        "diameter_mm": 19,
+        "per_face_count": 14,
+        "start_mm": 200,
+        "pitch_mm": 125,
+        "stirrup_position": "外側",
+        "cover_mode": "自動",
         "center_mm": null
       },
       "stirrups": {
-        "diameter_mm": null,
-        "effective_legs": null,
-        "pitch_mm": null
+        "diameter_mm": 19,
+        "effective_legs": 6,
+        "pitch_mm": 125
       }
     },
     "杭": {
@@ -655,31 +647,31 @@
     "地盤区分": "G4地盤"
   },
   "柱の断面照査": {
-    "水掛かりの程度": null,
-    "外観の照査": null,
-    "ε'csd": null,
-    "適用基準の機関": null,
-    "JR-001": null,
-    "JR-004": null
+    "水掛かりの程度": "常時乾燥",
+    "外観の照査": "行う",
+    "ε'csd": 300,
+    "適用基準の機関": "JR各社",
+    "JR-001": "適用する",
+    "JR-004": "適用する"
   },
   "片持ち梁の照査": {
     "水掛かりの程度": {
-      "上面": null,
-      "下面": null,
-      "側面": null
+      "上面": "乾湿繰返し",
+      "下面": "乾湿繰返し",
+      "側面": "乾湿繰返し"
     },
-    "外観の照査": null,
+    "外観の照査": "行わない",
     "疲労": {
       "旅客列車本数": 80,
       "貨物列車本数": 75,
       "設計耐用年数": 100,
       "等価繰返し回数": {
         "A列車": {
-          "k=0.06": null,
+          "k=0.06": 19.51,
           "k=0.12": null
         },
         "B列車": {
-          "k=0.06": null,
+          "k=0.06": 21.57,
           "k=0.12": null
         }
       }
@@ -702,13 +694,13 @@
     "target_displacement_m": null
   },
   "outputs": {
-    "detailing": false,
+    "detailing": true,
     "ground_model": true,
     "reactions": true,
-    "longitudinal": false,
-    "longitudinal_frame_analysis": false,
-    "transverse": false,
-    "transverse_frame_analysis": false,
+    "longitudinal": true,
+    "longitudinal_frame_analysis": true,
+    "transverse": true,
+    "transverse_frame_analysis": true,
     "longitudinal_seismic": false,
     "longitudinal_nonlinear_analysis": false,
     "transverse_seismic": false,

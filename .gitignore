@@ -10,6 +10,9 @@ tmp/
 output/
 post/
 /export/
+# Example橋脚4 の生成物は追跡する（決定100）
+!.claude/docs/Example橋脚4/output/
+!.claude/docs/Example橋脚4/post/
 
 # エディタの退避ファイルとカバレッジ
 *.bak

@@ -2,28 +2,28 @@
   "schema_version": 2,
   "kind": "capacita_column_check_acceptance",
   "stage": "0621",
-  "date": "2026-10-24",
-  "verified_at": "2026-10-24T07:23:26+09:00",
-  "method": "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の耐力と省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
+  "date": "2026-10-27",
+  "verified_at": "2026-10-27T11:11:44+09:00",
+  "method": "WebPier が 0621 で書く WDJ と、同じ 0620 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の Mud を見本の N'd での手計算（tests/acceptance/column_capacity_by_hand.py）と、省略した照査を Example2 09_直角.pdf の 9-19・9-23 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "45dc26a69bbf6f0c118fa77224084eebe9c0449dce6215c22f487c2957a7268a"
+    "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
   },
-  "implementation_sha256": "e5c59a01284dabe22cae73a84d510a18c7b8ea31b1a77508a474e68dc44891a2",
+  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",
-    "runner_dll_sha256": "580365d85655710fcbe7858aef6834c7238c54592eaa398d82606470ff19e830"
+    "runner_dll_sha256": "b9896d2fd3fbc339e5c4519abd4bc60dc11fcfab3df310e8ca8fed59d1c6d408"
   },
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
   },
   "point_index": 7,
-  "wdj_given_sha256": "8bd7f20c22422c8d55842cddd30b5f57b425cd5ad141a1fa8d33191f2c5284d7",
+  "wdj_given_sha256": "d2216359c7c2b7c4201f8719a1fe33b1c4a21e275e6ad0681c80740a48d77281",
   "pik_sha256": "17af7fb3371d404dfc4f82cc17f268c3429c1566a6ddaad1367be2b84fdd4ecc",
-  "completed_wdj_sha256": "9d490dfc64d6df63d5dece81a7ec50d4602a9b0aa6f767560123bdb79c1c75dc",
+  "completed_wdj_sha256": "801b9eaa553c251dbabf3d8a558cc824ed660f44f9511ffcdce61a35ca7f3d8b",
   "report": {
     "pages": 13,
     "sections": [
@@ -71,29 +71,29 @@
   "values": {
     "bending_safety_destruction": {
       "page": 3,
-      "ratio": "0.448",
-      "capacity": "29326.7"
+      "ratio": "0.222",
+      "capacity": "59170.6"
     },
     "bending_restorability": {
       "page": 8,
-      "ratio": "0.151",
-      "capacity": "48634.5"
+      "ratio": "0.149",
+      "capacity": "49516.9"
     }
   },
   "current": {
-    "frameweb_sha256": "ec8fcad03313bd2baf6f09f0c0278dae36581317bad14601c3a620cabbeb569d",
+    "frameweb_sha256": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7",
     "reference_frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
-    "pik_sha256": "a42ed5aeb8d04cf42763c631f6378269a843deca65ae2bb14dc417395e16dadb",
+    "pik_sha256": "78c6f6ee7cac207cad82b510e96afb58ce95d1cf86b4c0ecebfbec6d6f1334eb",
     "values": {
       "bending_safety_destruction": {
         "page": 3,
-        "ratio": "0.448",
-        "capacity": "29326.7"
+        "ratio": "0.222",
+        "capacity": "59170.6"
       },
       "bending_restorability": {
         "page": 8,
-        "ratio": "0.152",
-        "capacity": "48445.6"
+        "ratio": "0.202",
+        "capacity": "47968.8"
       }
     },
     "skipped": [
@@ -111,12 +111,19 @@
       "capacity": "48663.2"
     }
   },
+  "compared": {
+    "bending_safety_destruction": {
+      "ratio": null,
+      "capacity": 59218.0
+    }
+  },
   "expected_differences": [
-    "照査値は見本と比べない。WebPier の 0620 の風荷重は見本と違う（決定12・35）ので Md が違う（安全性（破壊）の Md 10939.1／見本 8256.6）。軸力 N'd は見本と同じなので、耐力（Mud・Myd）を比べる。",
-    "耐力は見本の WebDan といまの Capacita で 0.2% 未満違う（見本自身の WDJ をいまの Capacita で計算すると Mud 29326.7、Myd 48634.5）。",
+    "照査値は見本と比べない。WebPier の 0620 の風荷重は見本と違う（決定12・35）ので Md が違う（安全性（破壊）の Md 10939.1／見本 8256.6）。",
+    "耐力も見本と比べない。決定103 で線路の隅の D32 を主鉄筋に入れ（D19×14.54、芯 104.3。見本は D19×9 を 102）、決定105 で安全性（破壊）に側方鉄筋 D32×27（片面）を数えるので、Mud は見本の 29334.2 よりずっと大きい。Mud は見本の N'd 13264.1 での手計算（RC標準の応力ひずみ曲線、図面の位置の D19×9＋D32×2 と側方鉄筋）と 0.2% 未満で合う。等価応力ブロックで側方鉄筋を数えない同じ手計算は見本の鉄筋で 29380.7（見本 29334.2、0.16%）。",
+    "Myd は記録だけで比べない（手計算の降伏曲げモーメントは見本の鉄筋でも Capacita と 3% 違い、Capacita の降伏の定義に合わせていない）。",
     "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1914）と耐久性のせん断（WD-1919）を飛ばす。見本に 9.7・9.8 がないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
     "柱下端の着目点は PIK の 7 番目（柱に風荷重の区間の端の着目点がある）。見本は 6。",
-    "側方鉄筋 D32×29 は見本どおり位置を書かず、Capacita が等分に配置する。",
+    "側方鉄筋は隅の鉄筋を除いた D32 の 27 本を 300 から 150 間隔に書く（見本は D32×29 を位置なしで、Capacita が等分）。",
     "基準は RC標準 R5（見本は H16。決定73）で、耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節（bending_rebar_amount、行8 に永久作用）のページが加わる。",
     "使用性（損傷）のせん断・断面力一覧のページが加わり、表の体裁は Capacita のもの（0611 と同じ）。"
   ]

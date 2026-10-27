@@ -5,8 +5,9 @@ WebPier lays out every page from ``calc.pile_footing``'s result: for the directi
 (the rule, the quantities it takes, and the result with the footing width it is limited to), and 2) the design section
 forces of each point by check (安全性（破壊）, 耐久性の 永久＋変動 and 永久, 復旧性（地震時）): where on the footing they are read
 (the side of the column, the member and its end), the combination, the bending moment (a lower tension positive, an upper
-tension negative) and, at the points of the deep beam shear, the shear force. Every number is a ``Printed`` value
-(ADR-0003); nothing is calculated here. The chapter heading (§12) and 12.1 are not printed, as the direct footing's.
+tension negative) and, at the points of the deep beam shear, the shear force; those of 安全性（破壊） are the frame's times
+the 応答値係数 γR, which the section says (decision 104). Every number is a ``Printed`` value (ADR-0003); nothing is
+calculated here. The chapter heading (§12) and 12.1 are not printed, as the direct footing's.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from typing import Any
 
 from gridlayoutpdf import Document
 
+from ...calc.pile_body import GAMMA_R
 from ...calc.pile_footing import CASES, Case, End, FootingDirection, FootingResult, Force, SectionForces
 from ..document import report
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, value
@@ -81,6 +83,8 @@ def _direction(m: Manuscript, key: str, title: str, direction: FootingDirection)
     m.paragraph(f"{key}.width.title", "1) 有効幅", left=TABLE_LEFT, keep=True)
     m.table(f"{key}.width", _width_table(direction))
     m.paragraph(f"{key}.forces.title", "2) 設計断面力", left=TABLE_LEFT, keep=True)
+    m.paragraph(f"{key}.forces.response", f"安全性（破壊）の設計断面力は，骨組解析の応答値に応答値係数γR（={value(GAMMA_R)}）を"
+                "乗じたものとする．", left=TABLE_LEFT)
     for index, forces in enumerate(direction.points, 1):
         m.table(f"{key}.forces{index}", _forces_table(forces))
 

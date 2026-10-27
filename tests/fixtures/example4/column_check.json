@@ -1,0 +1,1111 @@
+{
+  "source": {
+    "pdf": "鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_2of3.pdf",
+    "folder": ".claude/docs/Example橋脚4",
+    "page_mapping": "2of3 の 0 始まりの index k が印刷頁 III-(111 + k)（III-119 = 8、III-214 = 103）",
+    "sections": "第III編 3.1 く体の照査（線路方向）、5.1 く体の照査（線路直角方向）",
+    "transcription": "スキャン画像（文字層なし）を 110 dpi で読み、表と式は 200〜300 dpi に切り出して目視転記。WebPier の実装・生成物・既存の期待値は参照していない。",
+    "conventions": {
+      "numbers": "印字の値を数値で入れた。印字の末尾の 0（0.00350、1.190 など）は JSON の数値では落ちることがある",
+      "Nd_kN": "N'd（設計軸方向圧縮力）",
+      "ratio": "γi・Md/Mud などの印字値（notes：印字値は小数 2 桁への切り上げに一致）",
+      "result": "OK／Ok は印字のまま",
+      "null": "印字がない値は null。読めなかった数値はない（unreadable の項目なし）"
+    }
+  },
+  "longitudinal": {
+    "pages": "III-119〜III-144（3.1 く体の照査。III-145 から 3.2 杭の照査）",
+    "pdf_index": "2of3 の index 8〜33",
+    "section": {
+      "figure": "図3.1.1 照査断面（III-119）",
+      "location": "く体下端（照査結果の表の照査位置は「く体基部」）",
+      "H_mm": 2500,
+      "Bw_mm": 3500,
+      "d_mm_shear_tables": 2385.3,
+      "d_mm_stress_calc": 2385,
+      "d_stress_calc_printed": "2500 - 114.7 = 2385 mm（III-123）／2500 - 115 = 2385 mm（III-126）",
+      "figure_dims_width_mm": [
+        84,
+        166,
+        "20x150=3000",
+        166,
+        84
+      ],
+      "figure_dims_height_mm": [
+        84,
+        265,
+        "6x300=1800",
+        265,
+        84
+      ],
+      "figure_note": "幅（3500）は 84+166+3000+166+84 = 3500。高さ（2500）は 265 と読めて和が 2498（notes の読みづらかった所 1）"
+    },
+    "bars": {
+      "table": "表3.1.2 線路方向照査断面の鉄筋配置（III-119）",
+      "tension": {
+        "layer1": {
+          "bars": "D38-23本",
+          "area_mm2": 26220.0,
+          "d_printed": "40+25+38/2=84.0",
+          "d_mm": 84.0
+        },
+        "layer2": {
+          "bars": "D38-11本",
+          "area_mm2": 12540.0,
+          "d_printed": "84+2.5×38=179.0",
+          "d_mm": 179.0
+        },
+        "total": {
+          "bars": "D38-34本",
+          "area_mm2": 38760.0,
+          "centroid_mm": 114.7
+        }
+      },
+      "compression": {
+        "layer1": {
+          "bars": "D38-23本",
+          "area_mm2": 26220.0,
+          "d_printed": "40+25+38/2=84.0",
+          "d_mm": 84.0
+        },
+        "layer2": {
+          "bars": "D38-11本",
+          "area_mm2": 12540.0,
+          "d_printed": "84+2.5×38=179.0",
+          "d_mm": 179.0
+        },
+        "total": {
+          "bars": "D38-34本",
+          "area_mm2": 38760.0,
+          "centroid_mm": 114.7
+        }
+      },
+      "side_one_face": {
+        "bars": "D19-7本",
+        "area_mm2": 2005.5
+      },
+      "side_in_result_tables": {
+        "bars": "D19-14本",
+        "area_mm2": 4010.0,
+        "note": "表3.1.10・3.1.12・3.1.14-1・3.1.18・3.1.20-1 の側方鉄筋量 Ase は両面の D19-14本 = 4010.0（表3.1.18 は 4010 と小数なし）"
+      },
+      "shear": {
+        "bars": "D25-5組",
+        "Aw_mm2": 5067.0,
+        "Ss_mm": 250,
+        "theta_deg": 90,
+        "fwyd_N_mm2": 390
+      },
+      "As_prime_total_mm2": 81531.0,
+      "As_prime_note": "σs の式の A's（軸方向鉄筋量）= 81531.0（III-123）"
+    },
+    "materials": {
+      "fck_N_mm2": 40.0,
+      "fsyk_N_mm2": 490,
+      "fwyk_N_mm2": 390,
+      "gamma_c": {
+        "durability_appearance": 1.0,
+        "safety_damage": 1.3
+      },
+      "fcd_N_mm2": {
+        "gamma_c_1.0": 40.0,
+        "gamma_c_1.3": 30.8
+      },
+      "gamma_s": 1.0,
+      "fsyd_N_mm2": 490,
+      "gamma_b": {
+        "bending_safety": 1.1,
+        "bending_damage": 1.0,
+        "shear_Vcd_gamma_bc": 1.3,
+        "shear_Vsd_gamma_bs": 1.1,
+        "shear_Vwcd_gamma_bc": 1.3,
+        "shear_Vdd_gamma_b": 1.2,
+        "durability_shear_Vcd": 1.0
+      },
+      "gamma_i": {
+        "durability": 1.0,
+        "appearance": 1.0,
+        "safety": 1.2,
+        "damage": 1.2
+      },
+      "Es_kN_mm2": 200,
+      "Ec_kN_mm2": 31,
+      "n": 6.45,
+      "water_exposure": "常時乾燥（水掛かりの程度に応じた区分、耐久性）",
+      "environment_appearance": "一般の環境（外観、III-135）",
+      "wlim_mm_appearance": 0.3,
+      "eps_csd": 0.0003,
+      "eps_csd_printed": "300×10^-6（III-121）",
+      "k1": 1.0,
+      "k4": 0.85,
+      "kr": 0.5,
+      "Dmax_mm": null,
+      "Dmax_note": "この章（III-119〜III-144）には印字がない",
+      "alpha_bearing": 1.14,
+      "alpha_bearing_note": "支圧板の部材軸方向長さの影響を考慮する係数（=1.14、III-132）"
+    },
+    "checks": [
+      {
+        "name": "耐久性 鋼材の腐食 曲げひび割れ（3.1.2 (1)(a)）",
+        "page": "III-120〜III-124",
+        "tables": [
+          "表3.1.3",
+          "表3.1.7"
+        ],
+        "design_forces": [
+          {
+            "case": 39,
+            "remark": "永久作用時",
+            "Md_kNm": 3686.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 33,
+            "remark": "縁応力検討時",
+            "Md_kNm": 4320.0,
+            "Nd_kN": 10808.0
+          },
+          {
+            "case": 41,
+            "remark": "変動作用時",
+            "Md_kNm": 634.0,
+            "Nd_kN": 905.6
+          }
+        ],
+        "case": "縁応力は Case 33、鉄筋応力は Case 39",
+        "gamma_i": 1.0,
+        "sigma_b": {
+          "Md_kNm": 4320.0,
+          "I_m4": 4.56,
+          "yL_m": 1.25,
+          "Nd_kN": 10808.0,
+          "A_m2": 8.75,
+          "sigma_b_computed_N_mm2": -0.05,
+          "sigma_b_N_mm2": 0.0,
+          "sigma_bl_N_mm2": 2.5,
+          "sigma_bl_source": "表3.1.4（永久作用＋変動作用、断面高さ 2.0 m 以上、f'ck 40 → 2.5）"
+        },
+        "sigma_s": {
+          "Md_kNm": 3686.0,
+          "Nd_kN": 9902.4,
+          "As_mm2": 38760.0,
+          "As_prime_mm2": 81531.0,
+          "k": 0.217,
+          "j": 0.928,
+          "n": 6.45,
+          "Es_kN_mm2": 200,
+          "Ec_kN_mm2": 31,
+          "pc": 0.00464,
+          "pc_printed": "38760.0/(3500×2385)",
+          "be_mm": 3500,
+          "d_mm": 2385,
+          "sigma_s_computed_N_mm2": -78.5,
+          "sigma_s_N_mm2": 0.0,
+          "sigma_sl1_N_mm2": 140
+        },
+        "wd_mm": null,
+        "wd_note": "σb ≦ σbl かつ σs ≦ σsl1 のため曲げひび割れ幅の照査を省略（表3.1.7 の σse〜wd/wlim の行は「—」）",
+        "result": "OK",
+        "label_notes": "表3.1.7 は 10808.0 の行の記号を N'pd、9902.4 の行を N'd と印字"
+      },
+      {
+        "name": "耐久性 鋼材の腐食 せん断ひび割れ（3.1.2 (1)(b)）",
+        "page": "III-125〜III-127",
+        "tables": [
+          "表3.1.8",
+          "表3.1.10"
+        ],
+        "design_forces": [
+          {
+            "case": 39,
+            "remark": "ひび割れ検討時",
+            "Vd_kN": 350.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 33,
+            "remark": "縁応力検討時",
+            "Vd_kN": 350.0,
+            "Nd_kN": 10808.0
+          },
+          {
+            "case": 41,
+            "remark": "変動作用",
+            "Vd_kN": 0.0,
+            "Nd_kN": 905.6
+          }
+        ],
+        "case": "永久＋変動は Case 33、永久は Case 39",
+        "values": {
+          "N_hd_kN": 10808.0,
+          "V_hd_kN": 350.0,
+          "N_pd_kN": 9902.4,
+          "V_pd_kN": 350.0,
+          "V_rd_kN": 0.0,
+          "fvcd_N_mm2": 0.684,
+          "beta_d": 0.8047,
+          "pc": 0.00464,
+          "beta_p": 0.7743,
+          "M0_kNm": 4503.3,
+          "Mu_kNm": 46426.7,
+          "beta_n": 1.194,
+          "gamma_bc": 1.0,
+          "Vcd_kN": 4248.3,
+          "d_mm": 2385.3,
+          "gamma_c": 1.0,
+          "fcd_N_mm2": 40,
+          "Ase_mm2": 4010.0
+        },
+        "judgement": "Vhd < 0.7Vcd（せん断ひび割れの検討を省略。kr・σwpd・σbpd・σsl2 の行は「—」）",
+        "sigma_sl2_table": "表3.1.9 常時乾燥 140／乾湿繰返し 120／常時湿潤 140",
+        "result": "OK"
+      },
+      {
+        "name": "安全性（破壊） 曲げモーメントおよび軸方向力（3.1.3 (1)(a)）",
+        "page": "III-128〜III-129",
+        "tables": [
+          "表3.1.11",
+          "表3.1.12"
+        ],
+        "case": "7（Mmax）、14（Nmin）",
+        "rows": [
+          {
+            "case": 7,
+            "remark": "Mmax",
+            "Md_kNm": 10694.2,
+            "Nd_kN": 13176.6,
+            "eps_cu": 0.0035,
+            "eps_s": 0.02756,
+            "x_mm": 268.8,
+            "Mu_kNm": 61142.3,
+            "gamma_b": 1.1,
+            "Mud_kNm": 55583.9,
+            "gamma_i": 1.2,
+            "ratio": 0.24,
+            "result": "OK"
+          },
+          {
+            "case": 14,
+            "remark": "Nmin",
+            "Md_kNm": 4681.6,
+            "Nd_kN": 9458.9,
+            "eps_cu": 0.0035,
+            "eps_s": 0.0321,
+            "x_mm": 234.5,
+            "Mu_kNm": 56592.8,
+            "gamma_b": 1.1,
+            "Mud_kNm": 51448.0,
+            "gamma_i": 1.2,
+            "ratio": 0.11,
+            "result": "OK"
+          }
+        ],
+        "section_in_table": {
+          "H_mm": 2500,
+          "Bw_mm": 3500,
+          "Ast_mm2": 38760.0,
+          "dast_mm": 114.7,
+          "Asc_mm2": 38760.0,
+          "dasc_mm": 114.7,
+          "Ase_mm2": 4010.0,
+          "fck_N_mm2": 40,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8,
+          "fsyk_N_mm2": 490,
+          "gamma_s": 1.0,
+          "fsyd_N_mm2": 490
+        }
+      },
+      {
+        "name": "安全性（破壊） せん断力（3.1.3 (1)(b)）",
+        "page": "III-130〜III-134",
+        "tables": [
+          "表3.1.13",
+          "表3.1.14-1",
+          "表3.1.14-2"
+        ],
+        "case": 15,
+        "Vd_kN": 1111.4,
+        "Nd_kN": 10523.9,
+        "Md_kNm": 10279.6,
+        "gamma_i": 1.2,
+        "Vyd_part": {
+          "pw": 0.0058,
+          "fwyd_N_mm2": 390,
+          "pw_fwyd_over_fcd": 0.0733,
+          "Aw_prime_mm2": 5067.0,
+          "fvcd_N_mm2": 0.6269,
+          "beta_d": 0.8047,
+          "pc": 0.00464,
+          "beta_p": 0.7742,
+          "beta_n": 1.19,
+          "M0_kNm": 4384.96,
+          "Mu_kNm": 46198.35,
+          "gamma_bc": 1.3,
+          "Vcd_kN": 2984.7,
+          "z_mm": 2074.0,
+          "gamma_bs": 1.1,
+          "Vsd_kN": 14903.6,
+          "Vyd_kN": 17888.3
+        },
+        "Vwcd_part": {
+          "fwcd_N_mm2": 6.937,
+          "gamma_bc": 1.3,
+          "Vwcd_kN": 44549.1
+        },
+        "Vdd_part": {
+          "a_mm": 9200,
+          "fdd_N_mm2": 1.054,
+          "beta_d": 0.805,
+          "beta_n": 1.19,
+          "beta_w": 1.96,
+          "beta_p": 0.841,
+          "beta_a": 0.315,
+          "alpha": 1.14,
+          "gamma_b": 1.2,
+          "Vdd_kN": 6459.2
+        },
+        "Vud_kN": 17888.3,
+        "Vud_label_printed": "max(Vdd,min(Vyd,Vwcd)) の記号欄は Vyd と印字",
+        "ratio": 0.08,
+        "result": "OK",
+        "section_in_table": {
+          "H_mm": 2500,
+          "Bw_mm": 3500,
+          "d_mm": 2385.3,
+          "Ast_mm2": 38760.0,
+          "dast_mm": 114.7,
+          "Asc_mm2": 38760.0,
+          "dasc_mm": 114.7,
+          "Ase_mm2": 4010.0,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8,
+          "Aw_mm2": 5067.0,
+          "theta_deg": 90,
+          "Ss_mm": 250.0
+        }
+      },
+      {
+        "name": "安全性（疲労破壊）（3.1.3 (2)）",
+        "page": "III-135",
+        "omitted": true,
+        "reason": "橋脚く体は，一般に疲労破壊の照査を省略してよい．"
+      },
+      {
+        "name": "使用性（外観） 曲げひび割れ（3.1.4 (1)(a)）",
+        "page": "III-135〜III-136",
+        "tables": [
+          "表3.1.15",
+          "表3.1.16"
+        ],
+        "design_forces": [
+          {
+            "case": 39,
+            "remark": "永久作用時",
+            "Md_kNm": 3686.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 33,
+            "remark": "縁応力検討時",
+            "Md_kNm": 4320.0,
+            "Nd_kN": 10808.0
+          },
+          {
+            "case": 41,
+            "remark": "変動作用時",
+            "Md_kNm": 634.0,
+            "Nd_kN": 905.6
+          }
+        ],
+        "case": "縁応力は Case 33、鉄筋応力は Case 39",
+        "gamma_i": 1.0,
+        "wlim_mm": 0.3,
+        "environment": "一般の環境",
+        "values": {
+          "M_hd_kNm": 4320.0,
+          "N_hd_kN": 10808.0,
+          "sigma_b_N_mm2": 0.0,
+          "sigma_bl_N_mm2": 2.5,
+          "M_pd_kNm": 3686.0,
+          "N_pd_kN": 9902.4,
+          "n": 6.45,
+          "sigma_s_N_mm2": 0.0,
+          "sigma_sl1_N_mm2": 140,
+          "gamma_c": 1.0,
+          "fcd_N_mm2": 40,
+          "water_exposure": "常時乾燥"
+        },
+        "wd_mm": null,
+        "wd_note": "wd は 3.1.2 と同様に算定（表3.1.16 の wd 行は「—」、wlim の欄は空欄）",
+        "result": "OK"
+      },
+      {
+        "name": "使用性（外観） せん断ひび割れ（3.1.4 (1)(b)）",
+        "page": "III-137",
+        "omitted": true,
+        "reason": "「3.1.2 耐久性に関する検討」におけるせん断ひび割れの検討を満足することにより省略する．"
+      },
+      {
+        "name": "使用性（損傷） 曲げモーメントおよび軸方向力（3.1.4 (2)(a)）",
+        "page": "III-138〜III-139",
+        "tables": [
+          "表3.1.17",
+          "表3.1.18"
+        ],
+        "note": "地震時以外は損傷に関する照査を行い、性能レベル1（各部材とも損傷レベル1）を満足することを照査する（III-138）",
+        "case": "46（Mmax）、47（Nmin）",
+        "rows": [
+          {
+            "case": 46,
+            "remark": "Mmax",
+            "Md_kNm": 10335.3,
+            "Nd_kN": 12695.9,
+            "Vd_kN": 1039.3,
+            "eps_cu": 0.001,
+            "eps_s": 0.00245,
+            "x_mm": 690.8,
+            "My_kNm": 54854.6,
+            "gamma_b": 1.0,
+            "Myd_kNm": 54854.6,
+            "gamma_i": 1.2,
+            "ratio": 0.23,
+            "result": "OK"
+          },
+          {
+            "case": 47,
+            "remark": "Nmin",
+            "Md_kNm": 5276.8,
+            "Nd_kN": 10808.0,
+            "Vd_kN": 454.0,
+            "eps_cu": 0.00096,
+            "eps_s": 0.00245,
+            "x_mm": 670.8,
+            "My_kNm": 53118.7,
+            "gamma_b": 1.0,
+            "Myd_kNm": 53118.7,
+            "gamma_i": 1.2,
+            "ratio": 0.12,
+            "result": "OK"
+          }
+        ],
+        "section_in_table": {
+          "Ast_mm2": 38760,
+          "Asc_mm2": 38760,
+          "Ase_mm2": 4010,
+          "dast_mm": 114.7,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8
+        }
+      },
+      {
+        "name": "使用性（損傷） せん断力（3.1.4 (2)(b)）",
+        "page": "III-140〜III-144",
+        "tables": [
+          "表3.1.19",
+          "表3.1.20-1",
+          "表3.1.20-2"
+        ],
+        "case": 46,
+        "Vd_kN": 1039.3,
+        "Nd_kN": 12695.9,
+        "Md_kNm": 10335.3,
+        "gamma_i": 1.2,
+        "Vyd_part": {
+          "pw": 0.0058,
+          "fwyd_N_mm2": 390,
+          "pw_fwyd_over_fcd": 0.0733,
+          "Aw_prime_mm2": 5067.0,
+          "fvcd_N_mm2": 0.6269,
+          "beta_d": 0.8047,
+          "pc": 0.00464,
+          "beta_p": 0.7742,
+          "beta_n": 1.229,
+          "M0_kNm": 5289.96,
+          "Mu_kNm": 46198.35,
+          "gamma_bc": 1.3,
+          "Vcd_kN": 3082.5,
+          "z_mm": 2074.0,
+          "gamma_bs": 1.1,
+          "Vsd_kN": 14903.6,
+          "Vyd_kN": 17986.1
+        },
+        "Vwcd_part": {
+          "fwcd_N_mm2": 6.937,
+          "gamma_bc": 1.3,
+          "Vwcd_kN": 44549.1
+        },
+        "Vdd_part": {
+          "a_mm": 9200,
+          "fdd_N_mm2": 1.054,
+          "beta_d": 0.805,
+          "beta_n": 1.229,
+          "beta_w": 1.96,
+          "beta_p": 0.841,
+          "beta_a": 0.315,
+          "alpha": 1.14,
+          "gamma_b": 1.2,
+          "Vdd_kN": 6528.7
+        },
+        "Vud_kN": 17986.1,
+        "Vud_label_printed": "記号欄は Vyd と印字",
+        "ratio": 0.07,
+        "result": "OK"
+      },
+      {
+        "name": "最小鉄筋量・最大鉄筋量",
+        "page": null,
+        "omitted": true,
+        "not_printed": true,
+        "reason": "3.1 く体の照査（III-119〜III-144）には印字がない（ほかの章は見ていない）"
+      }
+    ]
+  },
+  "transverse": {
+    "pages": "III-214〜III-239（5.1 く体の照査。III-240 から 5.2 杭の照査）",
+    "pdf_index": "2of3 の index 103〜128",
+    "section": {
+      "figure": "図5.1.1 照査断面（III-214）",
+      "location": "く体下端（照査結果の表の照査位置は「く体基部」）",
+      "H_mm": 3500,
+      "Bw_mm": 2500,
+      "d_mm_shear_tables": 3416.0,
+      "d_mm_stress_calc": 3416,
+      "d_stress_calc_printed": "3500 - 84 = 3416 mm（III-218・III-221）",
+      "figure_dims_width_mm": [
+        84,
+        265,
+        "6x300=1800",
+        265,
+        84
+      ],
+      "figure_dims_height_mm": [
+        84,
+        166,
+        "20x150=3000",
+        166,
+        84
+      ],
+      "figure_note": "高さ（3500）は和が 3500。幅（2500）は 265 と読めて和が 2498（右側は 266 にも見える。notes の読みづらかった所 1）"
+    },
+    "bars": {
+      "table": "表5.1.2 線路直角方向照査断面の鉄筋配置（III-214）",
+      "tension": {
+        "layer1": {
+          "bars": "D38-2本,D19-7本",
+          "area_mm2": 4285.5,
+          "d_printed": "40+25+38/2/2=84.0",
+          "d_mm": 84.0
+        },
+        "total": {
+          "bars": "D38-2本,D19-7本",
+          "area_mm2": 4285.5,
+          "centroid_mm": 84.0
+        }
+      },
+      "compression": {
+        "layer1": {
+          "bars": "D38-2本,D19-7本",
+          "area_mm2": 4285.5,
+          "d_printed": "40+25+38/2/2=84.0",
+          "d_mm": 84.0
+        },
+        "total": {
+          "bars": "D38-2本,D19-7本",
+          "area_mm2": 4285.5,
+          "centroid_mm": 84.0
+        }
+      },
+      "side_one_face": {
+        "bars": "D38-32本",
+        "area_mm2": 36480.0
+      },
+      "side_in_result_tables": {
+        "bars": "D38-32本",
+        "area_mm2": 36480.0,
+        "note": "結果表も「側方鉄筋量（片側）」36480.0（D38-32本）。表5.1.12 では記号が Asc と印字"
+      },
+      "shear": {
+        "bars": "D25-2組",
+        "Aw_mm2": 2026.8,
+        "Ss_mm": 250,
+        "theta_deg": 90,
+        "fwyd_N_mm2": 390
+      },
+      "As_prime_total_mm2": 81531.0,
+      "As_prime_note": "σs の式の A's（軸方向鉄筋量）= 81531.0（III-218）"
+    },
+    "materials": {
+      "fck_N_mm2": 40.0,
+      "fsyk_N_mm2": 490,
+      "fwyk_N_mm2": 390,
+      "gamma_c": {
+        "durability_appearance": 1.0,
+        "safety_damage": 1.3
+      },
+      "fcd_N_mm2": {
+        "gamma_c_1.0": 40.0,
+        "gamma_c_1.3": 30.8
+      },
+      "gamma_s": 1.0,
+      "fsyd_N_mm2": 490,
+      "gamma_b": {
+        "bending_safety": 1.1,
+        "bending_damage": 1.0,
+        "shear_Vcd_gamma_bc": 1.3,
+        "shear_Vsd_gamma_bs": 1.1,
+        "shear_Vwcd_gamma_bc": 1.3,
+        "shear_Vdd_gamma_b": 1.2,
+        "durability_shear_Vcd": 1.0
+      },
+      "gamma_i": {
+        "durability": 1.0,
+        "appearance": 1.0,
+        "safety": 1.2,
+        "damage": 1.2
+      },
+      "Es_kN_mm2": 200,
+      "Ec_kN_mm2": 31.0,
+      "n": 6.45,
+      "water_exposure": "常時乾燥（水掛かりの程度に応じた区分、耐久性、III-215）",
+      "environment_appearance": "一般の環境（外観、III-230）",
+      "wlim_mm_appearance": 0.3,
+      "eps_csd": 0.0003,
+      "eps_csd_printed": "300×10^-6（III-216）",
+      "k1": 1.0,
+      "k4": 0.85,
+      "kr": 0.5,
+      "Dmax_mm": null,
+      "Dmax_note": "この章（III-214〜III-239）には印字がない",
+      "alpha_bearing": 1.14
+    },
+    "checks": [
+      {
+        "name": "耐久性 鋼材の腐食 曲げひび割れ（5.1.2 (1)(a)）",
+        "page": "III-215〜III-219",
+        "tables": [
+          "表5.1.3",
+          "表5.1.7"
+        ],
+        "design_forces": [
+          {
+            "case": 16,
+            "remark": "永久作用時",
+            "Md_kNm": 0.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 13,
+            "remark": "縁応力検討時",
+            "Md_kNm": 2704.7,
+            "Nd_kN": 11325.9
+          },
+          {
+            "case": 19,
+            "remark": "変動作用時",
+            "Md_kNm": 2704.7,
+            "Nd_kN": 1423.5
+          }
+        ],
+        "case": "縁応力は Case 13、鉄筋応力は Case 16",
+        "gamma_i": 1.0,
+        "sigma_b": {
+          "Md_kNm": 2704.7,
+          "I_m4": 8.93,
+          "yL_m": 1.75,
+          "Nd_kN": 11325.9,
+          "A_m2": 8.75,
+          "sigma_b_computed_N_mm2": -0.76,
+          "sigma_b_N_mm2": 0.0,
+          "sigma_bl_N_mm2": 2.5,
+          "sigma_bl_source": "表5.1.4（2.0 m 以上、f'ck 40 → 2.5）"
+        },
+        "sigma_s": {
+          "Md_kNm": 0.0,
+          "Nd_kN": 9902.4,
+          "As_mm2": 4285.5,
+          "As_prime_mm2": 81531.0,
+          "k": 0.077,
+          "j": 0.97,
+          "n": 6.45,
+          "Es_kN_mm2": 200,
+          "Ec_kN_mm2": 31.0,
+          "pc": 0.0005,
+          "pc_printed": "4285.5/(2500×3416)",
+          "be_mm": 2500,
+          "d_mm": 3416,
+          "sigma_s_computed_N_mm2": -121.5,
+          "sigma_s_N_mm2": 0.0,
+          "sigma_sl1_N_mm2": 140
+        },
+        "wd_mm": null,
+        "wd_note": "σb ≦ σbl かつ σs ≦ σsl1 のため曲げひび割れ幅の照査を省略（表5.1.7 の σse〜wd の行は「—」）",
+        "sigma_sl1_table": "表5.1.5 常時乾燥 140／乾湿繰返し 120／常時湿潤 140",
+        "result": "Ok"
+      },
+      {
+        "name": "耐久性 鋼材の腐食 せん断ひび割れ（5.1.2 (1)(b)）",
+        "page": "III-220〜III-222",
+        "tables": [
+          "表5.1.8",
+          "表5.1.10"
+        ],
+        "design_forces": [
+          {
+            "case": 16,
+            "remark": "ひび割れ検討時",
+            "Vd_kN": 0.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 13,
+            "remark": "縁応力検討時",
+            "Vd_kN": 0.0,
+            "Nd_kN": 12695.9
+          },
+          {
+            "case": 18,
+            "remark": "変動作用",
+            "Vd_kN": 0.0,
+            "Nd_kN": 2793.5
+          }
+        ],
+        "case": "永久＋変動は Case 13、永久は Case 16",
+        "values": {
+          "N_hd_kN": 12695.9,
+          "V_hd_kN": 0.0,
+          "N_pd_kN": 9902.4,
+          "V_pd_kN": 0.0,
+          "V_rd_kN": 0.0,
+          "fvcd_N_mm2": 0.684,
+          "beta_d": 0.7356,
+          "pc": 0.0005,
+          "beta_p": 0.3688,
+          "M0_kNm": 7405.9,
+          "Mu_kNm": 61797.7,
+          "beta_n": 1.24,
+          "gamma_bc": 1.0,
+          "Vcd_kN": 1965.0,
+          "d_mm": 3416.0,
+          "gamma_c": 1.0,
+          "fcd_N_mm2": 40,
+          "Ase_mm2": 36480.0
+        },
+        "judgement": "Vhd < 0.7Vcd（せん断ひび割れの検討を省略）",
+        "sigma_sl2_table": "表5.1.9 常時乾燥 140／乾湿繰返し 120／常時湿潤 140",
+        "result": "Ok",
+        "note": "表5.1.8 の Case 13（縁応力検討時）の N'd は 12695.9。曲げの表5.1.3 の Case 13 は 11325.9"
+      },
+      {
+        "name": "安全性（破壊） 曲げモーメントおよび軸方向力（5.1.3 (1)(a)）",
+        "page": "III-223〜III-224",
+        "tables": [
+          "表5.1.11",
+          "表5.1.12"
+        ],
+        "case": "2（Mmax）、10（Nmin）",
+        "design_forces_table_5_1_11": [
+          {
+            "case": 2,
+            "remark": "Mmax",
+            "Md_kNm": 6377.5,
+            "Nd_kN": 12741.1
+          },
+          {
+            "case": 10,
+            "remark": "Nmin",
+            "Md_kNm": 2460.7,
+            "Nd_kN": 8760.1
+          }
+        ],
+        "rows": [
+          {
+            "case": 2,
+            "remark": "Mmax",
+            "Md_kNm": 6364.0,
+            "Nd_kN": 10885.9,
+            "eps_cu": 0.0035,
+            "eps_s": 0.01342,
+            "x_mm": 706.5,
+            "Mu_kNm": 72320.6,
+            "gamma_b": 1.1,
+            "Mud_kNm": 65746.0,
+            "gamma_i": 1.2,
+            "ratio": 0.12,
+            "result": "Ok"
+          },
+          {
+            "case": 10,
+            "remark": "Nmin",
+            "Md_kNm": 2952.9,
+            "Nd_kN": 9196.5,
+            "eps_cu": 0.0035,
+            "eps_s": 0.01398,
+            "x_mm": 683.8,
+            "Mu_kNm": 70471.0,
+            "gamma_b": 1.1,
+            "Mud_kNm": 64064.6,
+            "gamma_i": 1.2,
+            "ratio": 0.06,
+            "result": "Ok"
+          }
+        ],
+        "discrepancy": "照査結果の表5.1.12 の Md・N'd（6364.0／10885.9、2952.9／9196.5）が設計断面力の表5.1.11（6377.5／12741.1、2460.7／8760.1）と違う。どちらも印字のまま",
+        "section_in_table": {
+          "H_mm": 3500,
+          "Bw_mm": 2500,
+          "Ast_mm2": 4285.5,
+          "dast_mm": 84,
+          "Asc_mm2": 4285.5,
+          "dasc_mm": 84,
+          "Ase_mm2": 36480.0,
+          "fck_N_mm2": 40,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8,
+          "fsyk_N_mm2": 490,
+          "gamma_s": 1.0,
+          "fsyd_N_mm2": 490
+        }
+      },
+      {
+        "name": "安全性（破壊） せん断力（5.1.3 (1)(b)）",
+        "page": "III-225〜III-229",
+        "tables": [
+          "表5.1.13",
+          "表5.1.14-1",
+          "表5.1.14-2"
+        ],
+        "case": 5,
+        "Vd_kN": 378.4,
+        "Nd_kN": 14057.0,
+        "Md_kNm": 4386.0,
+        "gamma_i": 1.2,
+        "Vyd_part": {
+          "pw": 0.0032,
+          "fwyd_N_mm2": 390,
+          "pw_fwyd_over_fcd": 0.0411,
+          "Aw_prime_mm2": 2026.8,
+          "fvcd_N_mm2": 0.6269,
+          "beta_d": 0.7356,
+          "pc": 0.0005,
+          "beta_p": 0.3684,
+          "beta_n": 1.274,
+          "M0_kNm": 8199.92,
+          "Mu_kNm": 59747.35,
+          "gamma_bc": 1.3,
+          "Vcd_kN": 1421.8,
+          "z_mm": 2970.0,
+          "gamma_bs": 1.1,
+          "Vsd_kN": 8536.9,
+          "Vyd_kN": 9958.7
+        },
+        "Vwcd_part": {
+          "fwcd_N_mm2": 6.937,
+          "gamma_bc": 1.3,
+          "Vwcd_kN": 45570.8
+        },
+        "Vdd_part": {
+          "a_mm": 11450,
+          "fdd_N_mm2": 1.054,
+          "beta_d": 0.736,
+          "beta_n": 1.274,
+          "beta_w": 1.353,
+          "beta_p": 0.612,
+          "beta_a": 0.409,
+          "alpha": 1.14,
+          "gamma_b": 1.2,
+          "Vdd_kN": 4897.9
+        },
+        "Vud_kN": 9958.7,
+        "Vud_label_printed": "Vud=max(Vdd,min(Vyd,Vwcd)) の記号欄は Vyd と印字",
+        "ratio": 0.05,
+        "result": "OK",
+        "section_in_table": {
+          "H_mm": 3500,
+          "Bw_mm": 2500,
+          "d_mm": 3416.0,
+          "Ast_mm2": 4285.5,
+          "dast_mm": 84.0,
+          "Asc_mm2": 4285.5,
+          "dasc_mm": 84.0,
+          "Ase_mm2": 36480.0,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8,
+          "Aw_mm2": 2026.8,
+          "theta_deg": 90,
+          "Ss_mm": 250.0
+        }
+      },
+      {
+        "name": "安全性（疲労破壊）（5.1.3 (2)）",
+        "page": "III-230",
+        "omitted": true,
+        "reason": "橋脚く体は，一般に疲労破壊の照査を省略してよい．"
+      },
+      {
+        "name": "使用性（外観） 曲げひび割れ（5.1.4 (1)(a)）",
+        "page": "III-230〜III-231",
+        "tables": [
+          "表5.1.15",
+          "表5.1.16"
+        ],
+        "design_forces": [
+          {
+            "case": 16,
+            "remark": "ひび割れ検討時",
+            "Md_kNm": 0.0,
+            "Nd_kN": 9902.4
+          },
+          {
+            "case": 13,
+            "remark": "縁応力検討時",
+            "Md_kNm": 2704.7,
+            "Nd_kN": 11325.9
+          },
+          {
+            "case": 19,
+            "remark": "変動作用",
+            "Md_kNm": 2704.7,
+            "Nd_kN": 1423.5
+          }
+        ],
+        "case": "縁応力は Case 13、鉄筋応力は Case 16",
+        "gamma_i": 1.0,
+        "wlim_mm": 0.3,
+        "environment": "一般の環境",
+        "values": {
+          "M_hd_kNm": 2704.7,
+          "N_hd_kN": 11325.9,
+          "sigma_b_N_mm2": 0.0,
+          "sigma_bl_N_mm2": 2.5,
+          "M_pd_kNm": 0.0,
+          "N_pd_kN": 9902.4,
+          "n": 6.45,
+          "sigma_s_N_mm2": 0.0,
+          "sigma_sl1_N_mm2": 140,
+          "water_exposure": "常時乾燥"
+        },
+        "wd_mm": null,
+        "wd_note": "wd は 5.1.2 と同様に算定（表5.1.16 の wd 行は「—」）",
+        "table_row_shift": "表5.1.16 は f'ck〜fsyd の値が1行ずれて印字（f'ck 36480、γc (D38-32本)、f'cd 40、fsyk 1.3、γs 30.8、fsyd 490）。側方鉄筋量の行が抜けて値だけ残ったとみられる。γc・f'cd を読み取れないので values に入れていない",
+        "result": "Ok"
+      },
+      {
+        "name": "使用性（外観） せん断ひび割れ（5.1.4 (1)(b)）",
+        "page": "III-232",
+        "omitted": true,
+        "reason": "「5.1.2 耐久性に関する検討」におけるせん断ひび割れの検討を満足することにより省略する．"
+      },
+      {
+        "name": "使用性（損傷） 曲げモーメントおよび軸方向力（5.1.4 (2)(a)）",
+        "page": "III-233〜III-234",
+        "tables": [
+          "表5.1.17",
+          "表5.1.18"
+        ],
+        "case": 21,
+        "rows": [
+          {
+            "case": 21,
+            "Md_kNm": 6084.4,
+            "Vd_kN": 277.0,
+            "Nd_kN": 11444.7,
+            "eps_cu": 0.0009,
+            "eps_s": 0.0025,
+            "x_mm": 948.4,
+            "My_kNm": 49018.0,
+            "gamma_b": 1.0,
+            "Myd_kNm": 49018.0,
+            "gamma_i": 1.2,
+            "ratio": 0.15,
+            "result": "Ok"
+          }
+        ],
+        "section_in_table": {
+          "Ast_mm2": 4285.5,
+          "Asc_mm2": 4285.5,
+          "Ase_mm2": 36480.0,
+          "dast_mm": 84,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8
+        }
+      },
+      {
+        "name": "使用性（損傷） せん断力（5.1.4 (2)(b)）",
+        "page": "III-235〜III-239",
+        "tables": [
+          "表5.1.19",
+          "表5.1.20-1",
+          "表5.1.20-2"
+        ],
+        "case": 46,
+        "Vd_kN": 361.5,
+        "Nd_kN": 12914.8,
+        "Md_kNm": 4180.6,
+        "gamma_i": 1.2,
+        "Vyd_part": {
+          "pw": 0.0032,
+          "fwyd_N_mm2": 390,
+          "pw_fwyd_over_fcd": 0.0411,
+          "Aw_prime_mm2": 2026.8,
+          "fvcd_N_mm2": 0.6269,
+          "beta_d": 0.7356,
+          "pc": 0.0005,
+          "beta_p": 0.3684,
+          "beta_n": 1.252,
+          "M0_kNm": 7533.63,
+          "Mu_kNm": 59747.35,
+          "gamma_bc": 1.3,
+          "Vcd_kN": 1397.3,
+          "z_mm": 2970.0,
+          "gamma_bs": 1.1,
+          "Vsd_kN": 8536.9,
+          "Vyd_kN": 9934.2
+        },
+        "Vwcd_part": {
+          "fwcd_N_mm2": 6.937,
+          "gamma_bc": 1.3,
+          "Vwcd_kN": 45570.8
+        },
+        "Vdd_part": {
+          "a_mm": 11450,
+          "fdd_N_mm2": 1.054,
+          "beta_d": 0.736,
+          "beta_n": 1.252,
+          "beta_w": 1.353,
+          "beta_p": 0.612,
+          "beta_a": 0.409,
+          "alpha": 1.14,
+          "gamma_b": 1.2,
+          "Vdd_kN": 4863.3
+        },
+        "Vud_kN": 9934.2,
+        "ratio": 0.05,
+        "result": "OK",
+        "label_notes": "表5.1.19 の表題は「線路方向設計断面力」、表5.1.20-1 の照査方向は「線路方向」、H は 3500.0 と印字（直角方向の章の中）",
+        "section_in_table": {
+          "H_mm": 3500.0,
+          "Bw_mm": 2500,
+          "d_mm": 3416.0,
+          "Ast_mm2": 4285.5,
+          "dast_mm": 84.0,
+          "Asc_mm2": 4285.5,
+          "dasc_mm": 84.0,
+          "Ase_mm2": 36480.0,
+          "gamma_c": 1.3,
+          "fcd_N_mm2": 30.8,
+          "Aw_mm2": 2026.8,
+          "theta_deg": 90,
+          "Ss_mm": 250.0
+        }
+      },
+      {
+        "name": "最小鉄筋量・最大鉄筋量",
+        "page": null,
+        "omitted": true,
+        "not_printed": true,
+        "reason": "5.1 く体の照査（III-214〜III-239）には印字がない（ほかの章は見ていない）"
+      }
+    ]
+  }
+}

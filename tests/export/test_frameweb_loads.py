@@ -7,9 +7,10 @@ that is 0 is saved as null, as FrameWeb does.
 
 import pytest
 
-from frameweb_support import ASYMMETRIC, CENTRED_PEDESTAL, EXAMPLE2, L08, PEDESTAL, longitudinal, mirrored_rows
+from frameweb_support import (ASYMMETRIC, CENTRED_PEDESTAL, EXAMPLE2, L08, PEDESTAL, first_placing, longitudinal,
+                              mirrored_rows)
 from webpier.calc.frame import NodeRole
-from webpier.calc.longitudinal import BasicCase
+from webpier.calc.longitudinal import Basis, BasicCase, Check, Layout
 from webpier.export.frameweb import build_frameweb
 
 # Example2 prints these from unrounded intermediates; we use the printed operands (see tests/calc):
@@ -26,8 +27,14 @@ def result():
 
 
 @pytest.fixture(scope="module")
-def current(result):
+def full(result):
     return build_frameweb(result)
+
+
+@pytest.fixture(scope="module")
+def current(full):
+    """The file of ① only, as Example2's (decision 102)."""
+    return first_placing(full)
 
 
 def node_rows(case):
@@ -98,12 +105,16 @@ def test_serviceability_impacts_are_two_more_load_cases(current, result):
     assert node_rows(current["load"]["21"]) == [("1", None, 128.44, 49.1)]
 
 
-def test_every_load_is_the_printed_action(current, result):
-    # Values are copied from the calc result: no rounding, no scaling.
-    actions = [*result.basic_cases, *(c.source for c in (result.combinations[6].components[1],
-                                                         result.combinations[4].components[4]))]
+def test_every_load_is_the_printed_action(full, result):
+    # Values are copied from the calc result: no rounding, no scaling. After the basic cases, the serviceability
+    # impacts: I1s of ①, ②, ③, then I2s (decision 102).
+    service = {(k.case, c.layout): k.source for c in result.combinations for k in c.components
+               if k.basis is Basis.SERVICE_IMPACT}
+    actions = [*result.basic_cases, *(service[(case, layout)] for case in (BasicCase.IMPACT_SINGLE,
+                                                                         BasicCase.IMPACT_DOUBLE) for layout in Layout)]
+    assert len(full["load"]) == len(actions) == 44
     for number, action in enumerate(actions, 1):
-        case = current["load"][str(number)]
+        case = full["load"][str(number)]
         expected = [(str(p.node), p.h.value or None, p.n.value or None, p.m.value or None)
                     for p in action.points if (p.n.value, p.h.value, p.m.value) != (0, 0, 0)]
         assert node_rows(case) == expected
@@ -114,7 +125,7 @@ def test_pedestal_loads_act_at_the_pedestal_top():
     # centre +0.175 (5740 × (−0.500) + 1860 × 0.500 = −1940.00); the beam at the beam top (node 2).
     # Nodes numbered from the upper left (JRSNAP 2.1.6): pedestal top 1, beam top 2, base 3; the footing centroid 7.
     result = longitudinal(**PEDESTAL)
-    document = build_frameweb(result)
+    document = first_placing(build_frameweb(result))  # Example2's numbers (decision 102)
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
     assert node_rows(document["load"]["1"]) == [("2", None, 699.53, None), (seat, None, 7600, -1940),
                                                 ("7", None, 4167.45, None)]
@@ -123,7 +134,8 @@ def test_pedestal_loads_act_at_the_pedestal_top():
     single = result.impact.service_single
     (row,) = node_rows(document["load"]["21"])
     assert row[:3] == (seat, None, single.n.value)
-    assert row[3] == result.combinations[6].component(BasicCase.IMPACT_SINGLE).source.points[0].m.value
+    variable = next(c for c in result.combinations if c.check is Check.CRACK_VARIABLE and c.layout is Layout.BOTH)
+    assert row[3] == variable.component(BasicCase.IMPACT_SINGLE).source.points[0].m.value
     # The pedestal weight q = 7.000 × 1.000 × 24.5 along it (member 1, decision 81), then the column line; not the arm.
     assert [(r["m1"], r["P1"]) for r in document["load"]["1"]["load_member"]] == [
         ("1", 171.5), ("3", 297.68), ("4", 297.68), ("5", 297.68)]

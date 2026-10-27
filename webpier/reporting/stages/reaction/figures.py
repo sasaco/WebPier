@@ -176,6 +176,7 @@ LOADING_WIDTH, LOADING_HEIGHT = 384.0, 114.0
 LOADING_MARGIN = 24.0  # room for overhang labels beyond the girder ends
 CHAIN, ABOVE, BELOW = 14.0, 11.0, 24.0  # the axle dimension line and its label baselines above and below it
 AXLE_TOP, BEAM = 30.0, 58.0
+TAIL_TOP = 50.0  # the band of the line load following the axles
 SHOE, SHOE_HALF = 6.0, 3.0  # bearing triangle height and half width under the girder
 BEARINGS, GIRDERS = 82.0, 104.0  # dimension lines of L1/span/L2 and of the girder lengths
 JOINT = 1.0  # half the gap drawn between the two girders
@@ -187,9 +188,13 @@ class Loading:
     """The adopted axles on the two girders (geometry) and the printed dimensions of the figure."""
 
     axles: tuple[tuple[Girder, float], ...]  # each axle's girder and lever from its far bearing (A or D)
-    spacings: tuple[Printed, ...]  # between the bearings A, D and the axles
+    spacings: tuple[Printed, ...]  # between the bearings A, D, the axles and the line load's head
     spans: tuple[Span, Span]
     girder_lengths: tuple[Printed, Printed]
+    loads: tuple[Printed, ...] = ()  # each axle's load, labelled only when they differ (A-17, decision 101)
+    tails: tuple[tuple[Girder, float, float], ...] = ()  # the line load: girder, length and centroid's lever
+    tail_load: Printed | None = None
+    tail_head: float | None = None
 
 
 def _segments(spans: tuple[Span, Span]) -> list[Printed]:
@@ -199,9 +204,17 @@ def _segments(spans: tuple[Span, Span]) -> list[Printed]:
 
 def loading_figure(loading: MovingLoadResult, pier: PierInput) -> FigureSpec:
     data = Loading(tuple((axle.girder, axle.lever.value) for axle in loading.axles), loading.spacings,
-                   (pier.spans.origin, pier.spans.end), loading.girder_lengths)
-    labels = (*data.spacings, *_segments(data.spans), *data.girder_lengths)
-    return FigureSpec("loading", tuple(printed(value) for value in labels), data)
+                   (pier.spans.origin, pier.spans.end), loading.girder_lengths,
+                   () if loading.axle_load is not None else tuple(loading.load(axle) for axle in loading.axles),
+                   tuple((part.girder, part.length.value, part.lever.value) for part in loading.tails),
+                   loading.tails[0].load if loading.tails else None,
+                   None if loading.tail_head is None else loading.tail_head.value)
+    labels = [printed(value) for value in (*data.spacings, *_segments(data.spans), *data.girder_lengths, *data.loads)]
+    return FigureSpec("loading", (*labels, *(() if data.tail_load is None else (_tail_label(data.tail_load),))), data)
+
+
+def _tail_label(load: Printed) -> str:
+    return f"{printed(load)} kN/m"
 
 
 @dataclass(frozen=True)
@@ -235,10 +248,23 @@ def _loading(data: Loading, width) -> list:  # noqa: ANN001 - width(text) measur
     items += [_shoe(x(bearing)) for bearing in bearings]
     items += [Arrow(x(axle), AXLE_TOP, x(axle), BEAM, width=OUTLINE, head_length=5, head_width=3.5)
               for axle in axles]
-    # The axle chain: the far bearings and the axles, each label above its line unless it would overlap.
-    marks = sorted({*axles, bearings[0], bearings[3]})
-    items += [Line(x(mark), CHAIN - 4, x(mark), BEAM if mark in (bearings[0], bearings[3]) else AXLE_TOP, THIN)
-              for mark in marks]
+    # A-17's axle loads beside their arrows, neighbours on two lines so that close axles do not overlap
+    items += [Label(x(axle) + 1.5, (AXLE_TOP + BEAM) / 2 + (-5 if index % 2 else 3), printed(load), style=DIMENSION,
+                    align="left")
+              for index, (axle, load) in enumerate(sorted(zip(axles, data.loads), key=lambda item: item[0]))]
+    if data.tail_load is not None:
+        parts = [(bearings[0] + lever if girder is Girder.ORIGIN else bearings[3] - lever, length)
+                 for girder, length, lever in data.tails]
+        items += [Polyline(((x(centre - length / 2), TAIL_TOP), (x(centre + length / 2), TAIL_TOP),
+                            (x(centre + length / 2), BEAM), (x(centre - length / 2), BEAM)), THIN, closed=True)
+                  for centre, length in parts]
+        centre, _ = max(parts, key=lambda part: part[1])
+        items.append(_label(x(centre), TAIL_TOP - 2, _tail_label(data.tail_load)))
+    # The axle chain: the far bearings, the axles and the line load's head, each label above its line unless it
+    # would overlap.
+    marks = sorted({*axles, bearings[0], bearings[3], *(() if data.tail_head is None else (data.tail_head,))})
+    bottoms = {**({} if data.tail_head is None else {data.tail_head: TAIL_TOP}), bearings[0]: BEAM, bearings[3]: BEAM}
+    items += [Line(x(mark), CHAIN - 4, x(mark), bottoms.get(mark, AXLE_TOP), THIN) for mark in marks]
     last = {ABOVE: float("-inf"), BELOW: float("-inf")}
     for (start, stop), value in zip(pairwise(marks), data.spacings, strict=True):
         text, left, right = printed(value), x(start), x(stop)

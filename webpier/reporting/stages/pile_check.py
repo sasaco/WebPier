@@ -9,7 +9,9 @@ column check: ``stages.insertion``); then the checks of the
 foundation's stability against the design limits SOIL-JR returned (the table of limits is its .sdr, as it printed them) and
 the responses of the frame of 0610 / 0620: the pile head force Vd and the pull-out force Vud per pile, the horizontal
 displacement and the rotation of the footing top. The pull-out check is a row of dashes when no pile head is in tension
-(the sample omits it). Every number is a Printed value of the calc result (ADR-0003); nothing is calculated here.
+(the sample omits it). The design responses are the frame's times the 応答値係数 γR (decision 104): the section says so
+first, in the sample's words (III-111, 2.5), and the table of the stability prints γR of each requirement. Every number
+is a Printed value of the calc result (ADR-0003); nothing is calculated here.
 """
 
 from __future__ import annotations
@@ -21,7 +23,7 @@ from typing import Any
 from gridlayoutpdf import Document
 
 from ...calc.foundation_check import Requirement
-from ...calc.pile_body import Case, PileBodyResult, RowBody
+from ...calc.pile_body import GAMMA_R, Case, PileBodyResult, RowBody
 from ...calc.pile_cast import CaseForces, Kind, PileCastResult, RowForces
 from ...calc.pile_check import Column, Judged, PileCheckResult
 from ...calc.pile_joint import PileJointResult, RowJoint, Side
@@ -66,6 +68,7 @@ def _table(result: PileCheckResult) -> TableSpec:
                    ("Vud の No", lambda column: _number(column.vud_combination)),
                    ("δd の No", lambda column: _number(column.delta_combination)),
                    ("θd の No", lambda column: _number(column.theta_combination))]),
+        ("応答値係数", [("γR", lambda column: value(column.gamma_r))]),
         ("設計応答値", [("Vd (kN)", lambda column: value(column.vd)), ("Vud (kN)", lambda column: _text(column.vud)),
                        ("δd (mm)", lambda column: value(column.delta)), ("θd (rad)", lambda column: value(column.theta))]),
         ("基準支持力", [("Rk (kN)", lambda column: value(column.limits.rk)), ("pt", lambda column: value(column.limits.pt)),
@@ -310,6 +313,8 @@ def content(result: PileCheckResult, chapter: Chapter) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(chapter.prefix)
     m.heading("heading", f"{chapter.number}.11 基礎の照査", 1)
+    m.paragraph("response", "作用の組合せで求めた応答値に応答値係数γRを乗じたものを設計応答値とする．地盤および基礎部材等の非線形を"
+                f"無視した線形モデルにより構造解析を実施するので，安全性に関する応答値係数γRは{value(GAMMA_R)}とする．")
     if result.cast is not None:
         _cast(m, result.cast)
     if result.body is not None:

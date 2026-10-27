@@ -9,7 +9,7 @@ member, as FEMPython's PIK and Aggre-SE's pickup give it (nothing is interpolate
   pile head of the chain of members from the face outwards; each side of the column has its own, and a case takes the
   side with the larger demand;
 - the cases of the check are those of the frame analysis (安全性（破壊）, 耐久性の 永久＋変動 and 永久: the PIK of the
-  extraction groups of 0612 / 0622) and, for the 復旧性（地震時）, the pickup of 復旧性L2 of Aggre-SE's check of 0711 / 0721
+  extraction groups of 0612 / 0622; the 安全性（破壊） times the 応答値係数 γR 1.2 of the linear frame, decision 104) and, for the 復旧性（地震時）, the pickup of 復旧性L2 of Aggre-SE's check of 0711 / 0721
   (the largest and the smallest M, S and N of each member end over its Cases);
 - the bending moment of a section is the largest sagging moment (the PIK's M is positive for a lower tension) for the
   lower tension and the largest hogging moment for the upper tension, 0 when the footing has none of that sense; the
@@ -45,7 +45,7 @@ from .footing import Direction as FootingDirectionKind, LONGITUDINAL, TRANSVERSE
 from .footing_rebar import MainBars, Stirrups, main_bars, stirrup_width, stirrups
 from .frame import Frame, NodeRole, Region
 from .longitudinal.combinations import ExtractionGroup
-from .pile_body import PileResponseError, PointForces, SectionForce
+from .pile_body import PileResponseError, PointForces, SectionForce, factored
 from .pile_ground import has_pile
 
 MILLI = Decimal(1000)
@@ -370,8 +370,9 @@ def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequenc
                               found.vd_combination, found.vd_md)
             else:
                 pickup = basis.pickups[case]
-                lines = {member: frame_forces[(pickup, member)] for member in basis.members
-                         if (pickup, member) in frame_forces}
+                lines = {member: (factored(frame_forces[(pickup, member)]) if case is Case.SAFETY
+                                  else frame_forces[(pickup, member)])
+                         for member in basis.members if (pickup, member) in frame_forces}
                 found = _force(case, pickup, point, lines, f"骨組解析のピックアップ {pickup}")
             forces.append(found)
         points.append(SectionForces(point, tuple(forces)))

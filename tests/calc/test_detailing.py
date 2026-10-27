@@ -286,6 +286,21 @@ def test_the_ductility_limit_and_the_capacity_ratio_by_the_steel():
     assert calculate(document).column.directions[0].ductility.kwo == Printed(1.0, 2, "")
 
 
+@pytest.mark.parametrize("member", ["柱", "フーチング"])
+def test_sd490_hoops_stop_at_the_unchecked_kwo(member):
+    """SD490 has no kwo checked in a source (decision 100): the hoops of that grade are an input error."""
+    document = data()
+    document["鉄筋"][member]["materials"]["transverse"] = "SD490"
+    with pytest.raises(InputError, match=f"鉄筋.{member}.materials.transverse: SD490 の kwo"):
+        calculate(document)
+
+
+def test_sd490_main_bars_of_the_column_are_checked():
+    document = data()
+    document["鉄筋"]["柱"]["materials"]["main"] = "SD490"
+    assert calculate(document).column.amount.grade == "SD490"
+
+
 def test_a_footing_layer_inside_and_the_capacity_below_its_limit():
     document = data()
     document["鉄筋"]["フーチング"]["faces"]["下"]["線路"]["inner_layers"] = [{"pitch_mm": 250, "clear_gap_mm": 50}]

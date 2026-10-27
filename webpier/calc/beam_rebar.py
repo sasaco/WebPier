@@ -35,7 +35,7 @@ from ..core.printed import Printed
 from ..inputs import choices
 from ..inputs.rebar import LENGTH_MM, BeamBars
 from ._exact import d, put
-from .column_check import MainBars, SideBars
+from .column_check import COUNT, MainBars, SideBars
 
 _BEAM = "鉄筋.梁"
 SIDE = "側面"  # the group of the side bars
@@ -92,7 +92,7 @@ def _side(beam: BeamBars) -> tuple[SideBars, Printed] | None:
         pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
         inside = _need(side.stirrup_position, f"{path}.stirrup_position") == choices.STIRRUP_POSITIONS[0]
         centre = put(LENGTH_MM, d(pure) + (d(_stirrup(beam)) if inside else 0) + d(diameter) / 2)
-    return SideBars(diameter=diameter, count=count, first=_need(side.start, f"{path}.start_mm"),
+    return SideBars(diameter=diameter, count=COUNT.exact(count), first=_need(side.start, f"{path}.start_mm"),
                     spacing=_need(side.pitch, f"{path}.pitch_mm") if count > 1 else None), centre
 
 
@@ -123,7 +123,8 @@ def _face(beam: BeamBars, face: str, width: Printed, side_center: Printed | None
     spacing = (d(width) - 2 * d(edge)) / (count - 1)
     pitch = d(diameter) + d(gaps.pop()) if gaps else Decimal(0)
     centers = tuple(put(LENGTH_MM, d(cover) + k * pitch) for k in range(len(counts)))
-    main = MainBars(diameter=diameter, per_layer=count, layers=len(counts), count=sum(counts), cover=cover,
+    main = MainBars(diameter=diameter, per_layer=COUNT.exact(count), layers=len(counts),
+                    count=COUNT.exact(sum(counts)), cover=cover,
                     layer_spacing=put(LENGTH_MM, pitch) if len(counts) > 1 else None,
                     spacing=put(LENGTH_MM, spacing))
     return main, centers, tuple(counts), spacing
@@ -162,7 +163,7 @@ def beam_layout(beam: BeamBars, width: Printed, depth: Printed) -> BeamLayout:
     if side is not None:
         bars_of_side, centre = side
         right = put(LENGTH_MM, d(width) - d(centre))
-        for j in range(bars_of_side.count):
+        for j in range(int(bars_of_side.count.value)):
             y = bars_of_side.first if j == 0 else put(LENGTH_MM, d(bars_of_side.first) + j * d(bars_of_side.spacing))
             bars += [BeamBar(centre, y, bars_of_side.diameter, SIDE, j + 1),
                      BeamBar(right, y, bars_of_side.diameter, SIDE, j + 1)]

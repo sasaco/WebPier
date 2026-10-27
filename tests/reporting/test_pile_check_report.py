@@ -68,7 +68,9 @@ def pdf_text(path) -> str:
 def test_the_cast_in_place_pile_body_is_the_first_part_and_the_stability_the_second():
     found = records(cast_result_of(), LONGITUDINAL)
     keys = [record["id"] for record in found]
-    assert keys[:3] == ["0612/heading", "0612/cast.heading", "0612/cast.section.title"]
+    # the design responses are those times γR, as the sample's 2.5 says (decision 104)
+    assert keys[:4] == ["0612/heading", "0612/response", "0612/cast.heading", "0612/cast.section.title"]
+    assert "応答値係数γRは1.2とする" in {record["id"]: record["text"] for record in found}["0612/response"]
     assert keys.index("0612/cast.row2") < keys.index("0612/cast.bending.heading") < keys.index("0612/cast.shear.heading")
     assert keys.index("0612/cast.shear.heading") < keys.index("0612/stability.heading")
     texts = {record["id"]: record["text"] for record in found}

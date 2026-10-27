@@ -41,7 +41,8 @@ LAYER_SURFACE = "表層"
 LAYER_SUPPORT = "支持層"
 
 # 鉄筋 (rebar). The grade name is its characteristic yield strength (JIS G 3112: SD390 → 390 N/mm2).
-STEEL_GRADES = ("SD295", "SD345", "SD390")
+# SD490 has only the constants checked in a source (decision 100): where one is missing the calculation stops.
+STEEL_GRADES = ("SD295", "SD345", "SD390", "SD490")
 REBAR_DIRECTIONS = ("線路", "直角")
 COVER_MODES = ("自動", "指定")
 COVER_AUTOMATIC, COVER_SPECIFIED = COVER_MODES

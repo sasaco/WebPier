@@ -14,7 +14,7 @@ factor γ, printed to 2 decimals (07 7-7: 1.231 × 1.1 = 1.3541 -> 1.35).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from enum import Enum
 
@@ -22,9 +22,10 @@ from ...core.printed import FORCE, Precision, Printed
 from ...inputs import BrakingRule, PierInput
 from ...inputs.model import Span
 from .._exact import d, put, total
-from ..moving_load import girder_length
+from ..moving_load import Girder, MovingLoadResult, girder_length
+from ..vehicles import vehicle
 from .dead import DeadResult, GirderDead, SupportLoads
-from .train import TrainResult
+from .train import Layout, LayoutTrain, TrainResult
 
 FACTOR = Precision(2, "")  # effective combination factor ρf × γ (07 7-7 to 7-11)
 
@@ -35,9 +36,10 @@ BEARING_LINES = Decimal(2)  # n: bearing lines per girder
 FRICTION_SHARE = Decimal("0.5")  # T − ½μ·Rm at the fixed bearing
 SEISMIC_KH = Decimal("1.00")  # girder inertia, Kh = 1.00 (07 7-4 3))
 ADHESION = Decimal("0.20")  # seismic train inertia: wheel-rail adhesion μ = 0.20 (07 7-5 4))
-# Braking and starting (07 7-4 2)): (a + b/Lv·L)·P by axle load, or (a + b/Lv)·ΣR for EA-17.
+# Braking and starting (07 7-4 2)): (a + b/Lv·L)·P by axle load. EA-17 (decision 101, 【橋りょう編 5.4.7】,
+# Example橋脚4 I-41, III-43, III-44): braking 25 % of the train load on the girder, starting 25 % of its driving axles.
 AXLE_BRAKING, AXLE_STARTING = (Decimal("0.20"), Decimal("0.80")), (Decimal("0.19"), Decimal("0.76"))
-EA17_BRAKING, EA17_STARTING = (Decimal("0.27"), Decimal("1.00")), (Decimal("0.25"), Decimal("0.95"))
+EA17_BRAKING = EA17_STARTING = Decimal("0.25")
 
 
 class BearingType(Enum):
@@ -97,6 +99,8 @@ DEFINITIONS = {
     LongitudinalCase.RESTORABILITY_LR10_B10: _Definition(_ONE, False, _ONE, _ONE, _ONE, _ONE, False, Snow.S10, True),
     LongitudinalCase.RESTORABILITY_LR10: _Definition(_ONE, False, None, _ONE, _ONE, None, False, Snow.S30, True),
 }
+# The combinations with the train or braking, made again for ② and ③ (decision 102; Example橋脚4 III-45〜III-57)
+LAYOUT_CASES = tuple(case for case, item in DEFINITIONS.items() if item.live is not None or item.brake is not None)
 
 
 @dataclass(frozen=True)
@@ -113,6 +117,7 @@ class GirderForces:
     braking_adopted: Printed  # B = max(braking, starting)
     seismic_girder: Printed  # T = (D1 + D2 + S2 at both bearings) × Kh
     seismic_train: Printed  # T = (R + R seismic train) × 0.20
+    driving_axles: Printed | None = field(default=None, metadata={"json": "set"})  # EA-17: ΣP of the starting
 
 
 @dataclass(frozen=True)
@@ -154,12 +159,36 @@ class SeismicForces:
 
 
 @dataclass(frozen=True)
+class BrakeForces:
+    """Braking and starting on one girder for a placing on one girder only (decision 102)."""
+
+    braking: Printed
+    starting: Printed
+    braking_adopted: Printed  # B = max(braking, starting)
+    driving_axles: Printed | None = field(default=None, metadata={"json": "set"})  # EA-17: ΣP of the starting
+
+
+@dataclass(frozen=True)
+class LayoutForces:
+    """The bearing forces of ② or ③: the braking of each girder and the combinations with the train or braking."""
+
+    layout: Layout
+    origin: BrakeForces
+    end: BrakeForces
+    cases: tuple[CaseForces, ...]  # LAYOUT_CASES, in LongitudinalCase order
+
+    def case(self, which: LongitudinalCase) -> CaseForces:
+        return next(case for case in self.cases if case.case is which)
+
+
+@dataclass(frozen=True)
 class LongitudinalResult:
     origin: GirderForces
     end: GirderForces
-    cases: tuple[CaseForces, ...]  # the eight non-seismic combinations, in LongitudinalCase order
+    cases: tuple[CaseForces, ...]  # the eight non-seismic combinations of ①, in LongitudinalCase order
     seismic_girder: SeismicForces  # girder inertia (Kh = 1.00)
     seismic_train: SeismicForces  # seismic train inertia
+    one_girder: tuple[LayoutForces, LayoutForces]  # ② and ③ (decision 102)
 
     def case(self, which: LongitudinalCase) -> CaseForces:
         return next(case for case in self.cases if case.case is which)
@@ -190,24 +219,38 @@ def _rail(per_metre: Decimal, length: Printed, tracks: Printed) -> Printed:
     return put(FORCE, min(per_metre * d(length), LONG_RAIL_CAP) * d(tracks))
 
 
-def _girder(pier: PierInput, span: Span, dead: GirderDead, r_far: Printed, r_pier: Printed,
-            eq_reaction: Printed) -> GirderForces:
-    t = pier.train
-    length = girder_length(span)
+def driving_axles(loading: MovingLoadResult, girder: Girder) -> Printed:
+    """ΣP of the axles on the girder: EA-17's axles are the locomotives' driving axles, its line load is not."""
+    return FORCE.total(loading.load(axle) for axle in loading.on(girder))
+
+
+def _brake(pier: PierInput, length: Printed, r_far: Printed, r_pier: Printed, driving: Printed) -> BrakeForces:
+    """One track's braking and starting on a girder (decision 102: also in a double-track combination)."""
+    t = vehicle(pier.train)
     if t.braking_rule is BrakingRule.EA17:
-        reactions = d(r_far) + d(r_pier)
-        braking = put(FORCE, (EA17_BRAKING[0] + EA17_BRAKING[1] / d(t.car_length)) * reactions)
-        starting = put(FORCE, (EA17_STARTING[0] + EA17_STARTING[1] / d(t.car_length)) * reactions)
-    else:
-        braking = put(FORCE, (AXLE_BRAKING[0] + AXLE_BRAKING[1] / d(t.car_length) * d(length)) * d(t.axle_load))
-        starting = put(FORCE, (AXLE_STARTING[0] + AXLE_STARTING[1] / d(t.car_length) * d(length)) * d(t.axle_load))
+        braking = put(FORCE, EA17_BRAKING * (d(r_far) + d(r_pier)))
+        starting = put(FORCE, EA17_STARTING * d(driving))
+        return BrakeForces(braking, starting, _larger(braking, starting), driving)
+    assert t.car_length is not None and t.axle_load is not None
+    if not d(r_far) + d(r_pier):  # a girder without the train of ② or ③ has no train to brake
+        return BrakeForces(FORCE(0), FORCE(0), FORCE(0))
+    braking = put(FORCE, (AXLE_BRAKING[0] + AXLE_BRAKING[1] / d(t.car_length) * d(length)) * d(t.axle_load))
+    starting = put(FORCE, (AXLE_STARTING[0] + AXLE_STARTING[1] / d(t.car_length) * d(length)) * d(t.axle_load))
+    return BrakeForces(braking, starting, _larger(braking, starting))
+
+
+def _girder(pier: PierInput, span: Span, dead: GirderDead, r_far: Printed, r_pier: Printed,
+            eq_reaction: Printed, driving: Printed) -> GirderForces:
+    t = vehicle(pier.train)
+    length = girder_length(span)
+    brake = _brake(pier, length, r_far, r_pier, driving)
     loads = (dead.far.d1, dead.pier.d1, dead.far.d2, dead.pier.d2, dead.far.snow2, dead.pier.snow2)
     return GirderForces(
         length=length, track_total=dead.track_total,
         long_rail=_rail(LONG_RAIL, length, dead.track_total),
         long_rail_service=_rail(LONG_RAIL_SERVICE, length, dead.track_total),
-        braking_rule=t.braking_rule, braking=braking, starting=starting,
-        braking_adopted=_larger(braking, starting),
+        braking_rule=t.braking_rule, braking=brake.braking, starting=brake.starting,
+        driving_axles=brake.driving_axles, braking_adopted=brake.braking_adopted,
         seismic_girder=put(FORCE, total(loads) * SEISMIC_KH),
         seismic_train=put(FORCE, (d(eq_reaction) + d(eq_reaction)) * ADHESION),
     )
@@ -263,20 +306,41 @@ def _seismic(origin: tuple[Span, Printed], end: tuple[Span, Printed]) -> Seismic
 
 def calculate_longitudinal(pier: PierInput, dead: DeadResult, train: TrainResult) -> LongitudinalResult:
     loading, spans = train.loading, pier.spans
-    origin_forces = _girder(pier, spans.origin, dead.origin, loading.ra, loading.rb, train.seismic.origin)
-    end_forces = _girder(pier, spans.end, dead.end, loading.rd, loading.rc, train.seismic.end)
+    origin_forces = _girder(pier, spans.origin, dead.origin, loading.ra, loading.rb, train.seismic.origin,
+                            driving_axles(loading, Girder.ORIGIN))
+    end_forces = _girder(pier, spans.end, dead.end, loading.rd, loading.rc, train.seismic.end,
+                         driving_axles(loading, Girder.END))
     sides = (
         _Side(spans.origin, dead.origin, origin_forces, r_pier=loading.rb, r_far=loading.ra,
               i_ultimate=train.ultimate.origin_impact.double, i_service=train.service.origin_impact.double),
         _Side(spans.end, dead.end, end_forces, r_pier=loading.rc, r_far=loading.rd,
               i_ultimate=train.ultimate.end_impact.double, i_service=train.service.end_impact.double),
     )
-    cases = []
-    for case, definition in DEFINITIONS.items():
-        origin, end = (_bearing(pier, definition, item) for item in sides)
-        cases.append(CaseForces(case, origin, end, put(FORCE, total((origin.force, end.force)))))
     return LongitudinalResult(
-        origin=origin_forces, end=end_forces, cases=tuple(cases),
+        origin=origin_forces, end=end_forces, cases=_cases(pier, sides, tuple(DEFINITIONS)),
         seismic_girder=_seismic((spans.origin, origin_forces.seismic_girder), (spans.end, end_forces.seismic_girder)),
         seismic_train=_seismic((spans.origin, origin_forces.seismic_train), (spans.end, end_forces.seismic_train)),
+        one_girder=(_layout(pier, train.layout(Layout.ORIGIN), sides), _layout(pier, train.layout(Layout.END), sides)),
     )
+
+
+def _cases(pier: PierInput, sides: tuple[_Side, _Side], cases: tuple[LongitudinalCase, ...]) -> tuple[CaseForces, ...]:
+    found = []
+    for case in cases:
+        origin, end = (_bearing(pier, DEFINITIONS[case], item) for item in sides)
+        found.append(CaseForces(case, origin, end, put(FORCE, total((origin.force, end.force)))))
+    return tuple(found)
+
+
+def _layout(pier: PierInput, placed: LayoutTrain, both: tuple[_Side, _Side]) -> LayoutForces:
+    """② or ③: the girders' braking from that loading, and the bearing cases with the train or braking."""
+    loading = placed.loading
+    brakes, sides = [], []
+    reactions = ((loading.ra, loading.rb, Girder.ORIGIN), (loading.rd, loading.rc, Girder.END))
+    for side, (r_far, r_pier, girder) in zip(both, reactions, strict=True):
+        brake = _brake(pier, side.forces.length, r_far, r_pier, driving_axles(loading, girder))
+        brakes.append(brake)
+        forces = replace(side.forces, braking=brake.braking, starting=brake.starting,
+                         braking_adopted=brake.braking_adopted, driving_axles=brake.driving_axles)
+        sides.append(replace(side, forces=forces, r_pier=r_pier, r_far=r_far))
+    return LayoutForces(placed.layout, brakes[0], brakes[1], _cases(pier, (sides[0], sides[1]), LAYOUT_CASES))

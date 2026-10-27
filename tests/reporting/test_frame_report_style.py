@@ -103,15 +103,17 @@ def test_an_open_table_draws_one_rule_above_its_total(tmp_path: Path):
         assert baselines[last_label] < rect.y0 < baselines["合計"]
 
 
-@pytest.mark.parametrize(("stage", "case"), [("0610", "current"), ("0620", "curve"), ("0620", "no_snow")])
-def test_a_coefficient_table_in_parts_holds_every_cell_of_the_whole_table(stage: str, case: str):
+# 0610: 38 combinations (decision 102), the ten of 安全性 halved so that no part is too narrow for its heading; 0620:
+# 25 (decision 106)
+@pytest.mark.parametrize(("stage", "case", "parts"), [("0610", "current", 6), ("0620", "curve", 4), ("0620", "no_snow", 4)])
+def test_a_coefficient_table_in_parts_holds_every_cell_of_the_whole_table(stage: str, case: str, parts: int):
     from webpier.reporting.stages.frame_report import FigureSpec, TableParts, plain
     from webpier.reporting.styles import BODY_COLUMNS
 
     (unit,) = [unit for unit in _units(stage, case) if unit.key.endswith("/combination")]
     assert isinstance(unit.value, FigureSpec) and isinstance(unit.value.block, TableParts)
     specs = unit.value.block.specs
-    assert len(specs) == 2 and all(spec.left + sum(spec.widths) <= BODY_COLUMNS for spec in specs)
+    assert len(specs) == parts and all(spec.left + sum(spec.widths) <= BODY_COLUMNS for spec in specs)
     cases = [row[:3] for row in specs[0].rows[4:]]
     assert all([row[:3] for row in spec.rows[4:]] == cases for spec in specs)  # the cases again in each part
     numbers = [cell for spec in specs for cell in spec.rows[3]]

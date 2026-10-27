@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from gridlayoutpdf import Row
 
 from ....calc.reaction import ReactionResult
@@ -9,8 +11,11 @@ from ....calc.reaction.dead import GirderDead
 from ....calc.reaction.longitudinal import (
     ADHESION, AXLE_BRAKING, AXLE_STARTING, BEARING_LINES, DEFINITIONS, EA17_BRAKING, EA17_STARTING,
     FRICTION_SHARE, LONG_RAIL, LONG_RAIL_CAP, LONG_RAIL_SERVICE, SEISMIC_KH, BearingForce, BearingType,
-    CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing, SeismicForces,
+    LAYOUT_CASES, CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing, SeismicForces,
 )
+from ....calc.moving_load import MovingLoadResult
+from ....calc.reaction.train import Layout, LayoutTrain
+from ....calc.vehicles import vehicle
 from ....core.printed import Printed
 from ....inputs import BrakingRule, PierInput
 from ...numbers import decimal_constant, printed
@@ -19,6 +24,7 @@ from .manuscript import (
     VERTICAL_EQUAL, WIDE_LHS, CellSpec, Manuscript, call, cells, expr, inline, join, ratio, sub, symbols,
 )
 from .tables import header, summary
+from .train import PLACING_TITLES, placed_key
 
 WIDE_NOTE = WIDE_LHS  # labels inside a bearing derivation
 BEARINGS = {BearingType.FIXED: "固定", BearingType.MOVABLE: "可動"}
@@ -89,7 +95,6 @@ def combination(case: CaseForces, pier: PierInput) -> str:
 
 def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
     lon, loading = result.longitudinal, result.train.loading
-    t = pier.train
     m.heading("long.girder.heading", "(1) 桁に働く水平荷重", SUBSECTION)
     m.heading("long.rail.heading", "1) ロングレール縦荷重", ITEM)
     # 07 7-4: (a) 10 kN/m for the necessity check, safety and restorability, (b) 8 kN/m for serviceability.
@@ -109,31 +114,19 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
     m.heading("long.brake.heading", "2) 制動荷重および始動荷重", ITEM)
     rule = lon.origin.braking_rule
     m.paragraph("long.brake.rule", "制動荷重および始動荷重の特性値は下式によって求める。")
-    if rule is BrakingRule.EA17:
-        braking = Row(f"({decimal_constant(EA17_BRAKING[0])} + {decimal_constant(EA17_BRAKING[1])}/Lv)・ΣR")
-        starting = Row(f"({decimal_constant(EA17_STARTING[0])} + {decimal_constant(EA17_STARTING[1])}/Lv)・ΣR")
+    if rule is BrakingRule.EA17:  # Example橋脚4 III-43, III-44
+        m.paragraph("long.brake.braking.formula", "制動荷重：1軌道当り列車荷重の25%とする。", left=INDENTED)
+        m.paragraph("long.brake.starting.formula", "始動荷重：1軌道当り列車荷重の特性値をなす動輪軸重の25%とする。",
+                    left=INDENTED)
     else:
         braking = Row(f"({decimal_constant(AXLE_BRAKING[0])} + {decimal_constant(AXLE_BRAKING[1])}/Lv・L)・P")
         starting = Row(f"({decimal_constant(AXLE_STARTING[0])} + {decimal_constant(AXLE_STARTING[1])}/Lv・L)・P")
-    m.math("long.brake.braking.formula", Row("制動荷重：", braking, gap=0), left=INDENTED)
-    m.math("long.brake.starting.formula", Row("始動荷重：", starting, gap=0), left=INDENTED)
-    reactions = {"origin": (loading.ra, loading.rb), "end": (loading.rd, loading.rc)}
-    for key, name, _, _ in SIDES:
-        forces = getattr(lon, key)
-        m.start(f"long.brake.{key}")
-        m.paragraph(f"long.brake.{key}.label", name, gap=True)
-        for field, (a, b), label in (("braking", EA17_BRAKING if rule is BrakingRule.EA17 else AXLE_BRAKING, "制動"),
-                                     ("starting", EA17_STARTING if rule is BrakingRule.EA17 else AXLE_STARTING,
-                                      "始動")):
-            if rule is BrakingRule.EA17:
-                numeric = ("(", a, "+", b, "/", t.car_length, ")", "×", "(", *join(reactions[key]), ")")
-            else:
-                numeric = ("(", a, "+", b, "/", t.car_length, "×", forces.length, ")", "×", t.axle_load)
-            m.formula(f"long.brake.{key}.{field}", Row("T(", label, ")", gap=0), None, numeric, getattr(forces, field),
-                      medium=True)
-        m.formula(f"long.brake.{key}.adopted", "B", None, (call("max", forces.braking, forces.starting),),
-                  forces.braking_adopted, medium=True)
-        m.end()
+        m.math("long.brake.braking.formula", Row("制動荷重：", braking, gap=0), left=INDENTED)
+        m.math("long.brake.starting.formula", Row("始動荷重：", starting, gap=0), left=INDENTED)
+    _brakes(m, "long.brake", None, loading, {"origin": lon.origin, "end": lon.end}, lon, pier)
+    for placed, train in zip(lon.one_girder, result.train.one_girder, strict=True):  # ② and ③ (decision 102)
+        _brakes(m, placed_key("long.brake", placed.layout), PLACING_TITLES[placed.layout], train.loading,
+                {"origin": placed.origin, "end": placed.end}, lon, pier)
     m.heading("long.seismic.heading", f"3) 地震時慣性力（Kh = {decimal_constant(SEISMIC_KH)}）", ITEM)
     m.equation("long.seismic.symbols", "T", inline(symbols("(", "D1", "+", "D2", "+", "S2", ")", "×", "Kh")),
                checked=False)
@@ -154,18 +147,52 @@ def _girder_forces(m: Manuscript, result: ReactionResult, pier: PierInput) -> No
                   getattr(lon, key).seismic_train)
 
 
+def _brakes(m: Manuscript, stem: str, title: str | None, loading: MovingLoadResult, brakes: dict[str, Any],
+            lon: LongitudinalResult, pier: PierInput) -> None:
+    """Braking and starting of each girder for one 列車の配置 (*title*, None for ①); a girder without the train of ② or
+    ③ prints its zeros (decision 102)."""
+    rule = lon.origin.braking_rule
+    reactions = {"origin": (loading.ra, loading.rb), "end": (loading.rd, loading.rc)}
+    t = vehicle(pier.train)
+    if title is not None:
+        m.paragraph(f"{stem}.placing", title, gap=True)
+    for key, name, _, _ in SIDES:
+        forces = brakes[key]
+        length = getattr(lon, key).length
+        m.start(f"{stem}.{key}")
+        m.paragraph(f"{stem}.{key}.label", name, gap=True)
+        if rule is BrakingRule.EA17:
+            numerics = {"braking": (EA17_BRAKING, "×", "(", *join(reactions[key]), ")"),
+                        "starting": (EA17_STARTING, "×", forces.driving_axles)}
+        elif not reactions[key][0].value and not reactions[key][1].value:
+            numerics = None  # no train on the girder
+        else:
+            numerics = {field: ("(", a, "+", b, "/", t.car_length, "×", length, ")", "×", t.axle_load)
+                        for field, (a, b) in (("braking", AXLE_BRAKING), ("starting", AXLE_STARTING))}
+        for field, label in (("braking", "制動"), ("starting", "始動")):
+            lhs = Row("T(", label, ")", gap=0)
+            if numerics is None:
+                m.value(f"{stem}.{key}.{field}", lhs, getattr(forces, field), medium=True)
+            else:
+                m.formula(f"{stem}.{key}.{field}", lhs, None, numerics[field], getattr(forces, field), medium=True)
+        m.formula(f"{stem}.{key}.adopted", "B", None, (call("max", forces.braking, forces.starting),),
+                  forces.braking_adopted, medium=True)
+        m.end()
+
+
 def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCase, side: str, mark: str,
-             result: ReactionResult, pier: PierInput) -> None:
-    """※ T, the vertical load and the horizontal force candidates bracketed by the rule, ※ ∴ H (07 7-5)."""
+             result: ReactionResult, pier: PierInput, placed: LayoutTrain, braking: Printed) -> None:
+    """※ T, the vertical load and the horizontal force candidates bracketed by the rule, ※ ∴ H (07 7-5), for the
+    loading of *placed* and the girder's B of that placing."""
     definition = DEFINITIONS[case]
     span = getattr(pier.spans, side)
     forces: GirderForces = getattr(result.longitudinal, side)
     girder: GirderDead = getattr(result.dead, side)
-    loading, train = result.train.loading, result.train
+    loading, train = placed.loading, placed
     rail = forces.long_rail_service if definition.service_rail else forces.long_rail
     numeric: list = [definition.lr_factor, "×", rail]
     if force.brake_factor is not None:
-        numeric += ["+", force.brake_factor, "×", forces.braking_adopted]
+        numeric += ["+", force.brake_factor, "×", braking]
     m.formula(key + ".applied", f"※ {mark}", None, numeric, force.applied, left=INDENTED,
               equal=MARK_EQUAL, gap=True)
     movable = force.bearing is BearingType.MOVABLE
@@ -238,18 +265,35 @@ def _cases(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
         for detail, (subtitle, cases) in enumerate(details):
             m.heading(f"long.item.{item}.{detail}.heading", f"({chr(ord('a') + detail)}) {subtitle}", DETAIL)
             for which in cases:
-                case = lon.case(which)
-                name = which.name.lower()
-                for side, _, _, _ in SIDES:
-                    key = f"long.case.{name}.{side}"
-                    m.start(key)  # the combination stays with the first girder
-                    if side == SIDES[0][0]:
-                        m.pair(f"long.case.{name}.label", f"・{label(case, pier)}",
-                               f"[{combination(case, pier)} の組合せ]", PAIR_LEFT, PAIR_SECOND, gap=True)
-                    _bearing(m, key, getattr(case, side), which, side, MARKS[side], result, pier)
-                    m.end()
+                for placed, case, brakes in _placed_cases(result, which):
+                    name = placed_key(which.name.lower(), placed.layout)
+                    placing = "" if placed.layout is Layout.BOTH or which not in LAYOUT_CASES else \
+                        f"（{placed.layout.value}）"
+                    for side, _, _, _ in SIDES:
+                        key = f"long.case.{name}.{side}"
+                        m.start(key)  # the combination stays with the first girder
+                        if side == SIDES[0][0]:
+                            m.pair(f"long.case.{name}.label", f"・{label(case, pier)}{placing}",
+                                   f"[{combination(case, pier)} の組合せ]", PAIR_LEFT, PAIR_SECOND, gap=True)
+                        _bearing(m, key, getattr(case, side), which, side, MARKS[side], result, pier, placed,
+                                 getattr(brakes, side).braking_adopted)
+                        m.end()
     _seismic(m, "seismic_girder", f"{len(GROUPS) + 1}) 地震時慣性力", lon)
     _seismic(m, "seismic_train", f"{len(GROUPS) + 2}) 地震時列車荷重慣性力", lon)
+
+
+MARKS_OF = {Layout.BOTH: "①", Layout.ORIGIN: "②", Layout.END: "③"}
+
+
+def _placed_cases(result: ReactionResult, which: LongitudinalCase) -> list[tuple[LayoutTrain, CaseForces, Any]]:
+    """The combination of ① and, with the train or braking, of ② and ③ (decision 102), each with its loading and its
+    girders' braking."""
+    lon = result.longitudinal
+    found = [(result.train.layout(Layout.BOTH), lon.case(which), lon)]
+    if which in LAYOUT_CASES:
+        found += [(train, placed.case(which), placed)
+                  for placed, train in zip(lon.one_girder, result.train.one_girder, strict=True)]
+    return found
 
 
 def _summary(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
@@ -259,12 +303,14 @@ def _summary(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
              *header(Row("起点桁 ", sub("H", "B"), gap=0), Row("終点桁 ", sub("H", "C"), gap=0), "合計")),)
     body = []
     previous = None
-    groups: list[str] = [CASES[case.case][0] for case in lon.cases] + ["地震時", "地震時"]
-    for index, case in enumerate(lon.cases):
+    listed = [(placed, case) for which in LongitudinalCase for placed, case, _ in _placed_cases(result, which)]
+    groups: list[str] = [CASES[case.case][0] for _, case in listed] + ["地震時", "地震時"]
+    for index, (placed, case) in enumerate(listed):
         group = groups[index]
         span = groups.count(group) if group != previous else 0
         group_cell = [CellSpec(group, rowspan=span, align="center")] if span else []
-        body.append((*group_cell, *cells(label(case, pier), case.origin.force, case.end.force, case.total)))
+        mark = f"{MARKS_OF[placed.layout]} " if case.case in LAYOUT_CASES else ""  # 列車の配置 (decision 102)
+        body.append((*group_cell, *cells(mark + label(case, pier), case.origin.force, case.end.force, case.total)))
         previous = group
     for index, (field, name) in enumerate((("seismic_girder", "1.0 EQ（桁）"), ("seismic_train", "1.0 EQ（列車）"))):
         forces = getattr(lon, field)

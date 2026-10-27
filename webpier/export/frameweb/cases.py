@@ -21,7 +21,7 @@ to 0.005 per action; this is accepted for the external analysis (decision 38).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Hashable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
@@ -36,6 +36,8 @@ class Action(Protocol):
     @property
     def case(self) -> Enum: ...
     @property
+    def layout(self) -> Enum | None: ...
+    @property
     def spring(self) -> Enum: ...
     @property
     def points(self) -> tuple[PointLoad, ...]: ...
@@ -48,6 +50,8 @@ class DefineSource(Protocol):
     def number(self) -> int: ...
     @property
     def case(self) -> Enum: ...
+    @property
+    def layout(self) -> Enum | None: ...
     @property
     def signs(self) -> tuple[int, ...]: ...
 
@@ -107,7 +111,7 @@ class Group:
     """A Define case of the calc: its basic cases as alternatives, each in its signs."""
 
     number: int
-    cases: tuple[Enum, ...]
+    cases: tuple[Hashable, ...]
     signs: tuple[int, ...]
 
 
@@ -131,7 +135,7 @@ class Combination:
 class Source:
     """A calc result read for FrameWeb."""
 
-    basic: tuple[tuple[Enum, Load], ...]  # by basic case, in order
+    basic: tuple[tuple[Hashable, Load], ...]  # by basic case (0610: with its 列車の配置), in order
     groups: tuple[Group, ...]
     combinations: tuple[Combination, ...]
     extractions: tuple[tuple[int, tuple[int, ...]], ...]  # (number, combinations)
@@ -198,8 +202,8 @@ def assemble(source: Source, profile: Profile) -> Cases:
     bases = {basis: order for order, basis in enumerate(type(profile.basic))}
     auxiliary = sorted((key for key in actions if key[1] is not profile.basic), key=lambda k: (k[0], bases[k[1]]))
 
-    def load_case(label_key: Enum | tuple[Enum, Enum], action: Load) -> LoadCase:
-        label = profile.loads[label_key] if isinstance(label_key, Enum) else profile.auxiliary[label_key]
+    def load_case(label_key: Hashable, action: Load) -> LoadCase:
+        label = profile.loads[label_key] if label_key in profile.loads else profile.auxiliary[label_key]
         return LoadCase(symbol=label.symbol, name=label.name, spring=profile.springs[action.spring],
                         points=action.points, line_loads=action.line_loads, member_loads=action.member_loads)
 
@@ -225,13 +229,14 @@ def assemble(source: Source, profile: Profile) -> Cases:
 
 
 def frameweb_cases(result: Result, profile: Profile) -> Cases:
-    """The case tables of a result with one basic case per Define case (0610)."""
-    define_of = {define.case: define.number for define in result.define_cases}
+    """The case tables of a result with one basic case per Define case (0610): a basic case is named by its case and
+    its 列車の配置 (decision 102; None for a case of every placing)."""
+    define_of = {(define.case, define.layout): define.number for define in result.define_cases}
     return assemble(Source(
-        basic=tuple((action.case, load(action)) for action in result.basic_cases),
-        groups=tuple(Group(number=d.number, cases=(d.case,), signs=d.signs) for d in result.define_cases),
+        basic=tuple(((action.case, action.layout), load(action)) for action in result.basic_cases),
+        groups=tuple(Group(number=d.number, cases=((d.case, d.layout),), signs=d.signs) for d in result.define_cases),
         combinations=tuple(Combination(number=c.number, terms=tuple(
-            Term(define=define_of[t.case], basis=t.basis, factor=t.factor, loads=(load(t.source),))
+            Term(define=define_of[(t.case, t.source.layout)], basis=t.basis, factor=t.factor, loads=(load(t.source),))
             for t in c.components)) for c in result.combinations),
         extractions=tuple((e.number, e.combinations) for e in result.extractions),
     ), profile)

@@ -4,7 +4,6 @@ example's table 3.2.10 and 3.2.11; tests of Capacita's own calculation of Mud ar
 
 from copy import deepcopy
 from dataclasses import replace
-from pathlib import Path
 
 import pytest
 
@@ -13,12 +12,11 @@ from webpier.calc.pile_joint import Side, assemble, section, select
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
-
-FIXTURES = Path(__file__).parents[1] / "fixtures"
+from example4_support import EXAMPLE4_INPUT
 
 
 def example4(**changes):
-    data = deepcopy(load_json((FIXTURES / "inputs" / "example4.json").read_bytes()))
+    data = deepcopy(load_json(EXAMPLE4_INPUT.read_bytes()))
     joint = data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]
     for key, value in changes.items():
         if key == "中詰めコンクリート_f'ck":

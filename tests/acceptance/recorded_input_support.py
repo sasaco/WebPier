@@ -12,7 +12,9 @@ was with the bars in the 杭基礎 (one recorded under decision 91), as it was b
 recorded before decision 91), before the joint (one recorded before decision 90) and before the pile foundation (one
 recorded before decision 84), also without ``outputs``; the tests still compare the files the engines are given.
 Every such form is also tried with the blank 杭頭定着長 and its stirrup in ``鉄筋.杭.cutoff`` (an acceptance recorded
-before decision 98, which made the 杭頭定着長 a calculation; they were never entered in a recorded input).
+before decision 98, which made the 杭頭定着長 a calculation; they were never entered in a recorded input), and, for
+P-16, with the car, the axles and the seismic train load after 車両名 (an acceptance recorded before decision 101, which
+made them the program's: the recorded inputs had P-16's own values, so the calculation is the same).
 """
 
 import json
@@ -51,6 +53,29 @@ _ANCHORAGE_KEYS = ("head_anchorage_mm", "anchorage_stirrup")  # in 鉄筋.杭.cu
 def _text(document: dict, data: bytes) -> bytes:
     text = json.dumps(document, indent=2, ensure_ascii=False) + ("\n" if data.endswith(b"\n") else "")
     return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
+
+
+P16_TRAIN = {"1両の長さ": 20.0, "軸距": {"a1_連結部": 2.8, "a2": 2.2}, "軸重": {"地震以外": 160.0, "地震": 32.0}}
+
+
+def _old_train(train: dict) -> dict:
+    old: dict = {}
+    for key, value in train.items():
+        old[key] = value
+        if key == "車両名":
+            old |= json.loads(json.dumps(P16_TRAIN))
+    return old
+
+
+def before_vehicles(data: bytes) -> bytes | None:
+    """The input as it was before decision 101 (P-16's car, axles and seismic train load after 車両名), or None when the
+    vehicle is not P-16 or the input already has them."""
+    document = json.loads(data.decode("utf-8"))
+    train = document.get("上部構造", {}).get("列車") if isinstance(document, dict) else None
+    if not isinstance(train, dict) or train.get("車両名") != "P-16" or "1両の長さ" in train:
+        return None
+    document["上部構造"]["列車"] = _old_train(train)
+    return _text(document, data)
 
 
 def before_anchorage(data: bytes) -> bytes | None:
@@ -151,41 +176,12 @@ def before_piles(data: bytes) -> bytes | None:
     return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
 
 
-def without_blank_rebar(document: dict) -> dict:
-    """The input of today as it was recorded before decision 91: the blank 鉄筋.杭 left out (an entered one stays, and
-    then the bytes differ from the recorded ones)."""
-    if document["鉄筋"].get("杭") != BLANK_PILE_REBAR:
-        return document
-    return {**document, "鉄筋": {name: item for name, item in document["鉄筋"].items() if name != "杭"}}
-
-
 def with_blank_rebar(document: dict) -> dict:
     """An input recorded before decision 91 in the form of today: the blank 鉄筋.杭 added (for a test that parses the
     recorded file)."""
     if "杭" in document["鉄筋"]:
         return document
     return {**document, "鉄筋": {**document["鉄筋"], "杭": json.loads(json.dumps(BLANK_PILE_REBAR))}}
-
-
-def without_blank_joint(document: dict) -> dict:
-    """The input of today as it was recorded before decision 90: the blank 結合部 of 鋼管ソイルセメント杭 left out (an
-    entered one stays, and then the bytes differ from the recorded ones)."""
-    steel = document["杭基礎"]["鋼管ソイルセメント杭"]
-    blank = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}
-    if steel.get("結合部") != blank:
-        return document
-    return {**document, "杭基礎": {**document["杭基礎"], "鋼管ソイルセメント杭": {
-        name: item for name, item in steel.items() if name != "結合部"}}}
-
-
-def with_blank_joint(document: dict) -> dict:
-    """An input recorded before decision 90 in the form of today: the blank 結合部 of 鋼管ソイルセメント杭 added (for a
-    test that parses the recorded file)."""
-    steel = document["杭基礎"]["鋼管ソイルセメント杭"]
-    if "結合部" in steel:
-        return document
-    blank = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}
-    return {**document, "杭基礎": {**document["杭基礎"], "鋼管ソイルセメント杭": {**steel, "結合部": blank}}}
 
 
 def upgrade_to_piles(document: dict) -> dict:
@@ -219,10 +215,14 @@ def _before_outputs(data: bytes) -> set[str]:
 def input_sha256s(data: bytes) -> set[str]:
     """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, as it was with
     the bars of the cast-in-place pile in the 杭基礎, before them, before the joint and before the pile foundation (each
-    with and without the 出力項目), each also as it was before decision 98."""
-    found = _chain(data)
-    if (older := before_anchorage(data)) is not None:
-        found |= _chain(older)
+    with and without the 出力項目), each also as it was before decision 98, and all also as before decision 101."""
+    found: set[str] = set()
+    for form in (data, before_vehicles(data)):
+        if form is None:
+            continue
+        found |= _chain(form)
+        if (older := before_anchorage(form)) is not None:
+            found |= _chain(older)
     return found
 
 

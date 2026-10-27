@@ -81,7 +81,7 @@ def test_every_item_may_stay_blank_while_it_is_entered():
 
 
 @pytest.mark.parametrize("path, value", [
-    (("materials", "main"), "SD490"), (("materials", "transverse"), "SR235"), (("pure_cover_mm",), 0),
+    (("materials", "main"), "SD685"), (("materials", "transverse"), "SR235"), (("pure_cover_mm",), 0),
     (("aggregate_max_mm",), 0), (("main_bars", "diameter_mm"), 0), (("main_bars", "count"), 0),
     (("main_bars", "count"), 1.5), (("hoops", "zone_2d", "diameter_mm"), -16), (("hoops", "zone_2d", "sets"), 0),
     (("hoops", "zone_2d", "pitch_mm"), 0), (("hoops", "footing", "sets"), 1.5), (("hoops", "lower", 0, "length_m"), 0),

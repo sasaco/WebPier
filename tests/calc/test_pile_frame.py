@@ -1,6 +1,6 @@
 """The frame of a pile foundation (decision 88): the piles under the footing, bundled by row, on the springs SOIL-JR returned.
 
-The input is Example橋脚4 (tests/fixtures/inputs/example4.json: a 鋼管ソイルセメント杭, two rows of three piles along the
+The input is Example橋脚4 (.claude/docs/Example橋脚4/pre/input.json: a 鋼管ソイルセメント杭, two rows of three piles along the
 track, three rows of two across it) with the .sdc the real SOIL-JR 5.2 returned for it (tests/fixtures/soiljr/pile_steel_grid.sdc).
 Expected values are those the figures and the tables of the example print (tests/fixtures/example4/frame_springs.json); the
 .sdc of the 場所打ち杭 sample (pile.json) covers the rows that are listed and the springs of the odd and even rows.
@@ -21,13 +21,14 @@ from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.export.soiljr import parse_sdc
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 EXPECTED = json.loads((FIXTURES / "example4" / "frame_springs.json").read_text(encoding="utf-8"))
 
 
 def example4(**changes):
-    return parse_input(load_json((FIXTURES / "inputs" / "example4.json").read_bytes()))
+    return parse_input(load_json(EXAMPLE4_INPUT.read_bytes()))
 
 
 def foundation(pier, name="pile_steel_grid"):
@@ -133,7 +134,7 @@ def test_a_listed_row_has_its_own_springs():
 def test_an_sdc_that_does_not_match_the_input_is_refused(change, message):
     from copy import deepcopy
 
-    data = load_json((FIXTURES / "inputs" / "example4.json").read_bytes())
+    data = load_json(EXAMPLE4_INPUT.read_bytes())
     for path, value in change.items():
         node = data
         *parents, key = path.split("/")

@@ -6,7 +6,9 @@ sample 08_線路/WebDan.wdj and column_section_check_09.json of 09_直角/WebDan
 differences); nothing here is computed by the code under test. The check point is the column bottom found from the
 roles of the frame, the bars come from the 方向別の鉄筋配置表 of the bending direction (線路 for 0611, 直角 for
 0621), the extraction cases from the extraction groups of 0610 / 0620, and the safety factors, fsu, kr and k4 are
-named program constants. A layout the WDJ cannot express is an input error naming its path.
+named program constants. A layout the WDJ cannot express is an input error naming its path. Decision 103 counts the
+corner bars in the main bars by area and spreads uneven side bars: those values are worked out here by hand (0621 of
+Example2 differs from its sample there; Example4's bars are its III-139 and III-214).
 """
 
 import json
@@ -17,8 +19,8 @@ from pathlib import Path
 import pytest
 
 from webpier.calc.column_check import (K4, KR, LONGITUDINAL, SAFETY_FACTORS, TRANSVERSE, calculate_column_check,
-                                       tensile_strength)
-from webpier.calc.column_rebar import column_layout
+                                       column_bars, corner_bars, tensile_strength)
+from webpier.calc.column_rebar import TableRow, column_layout
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
@@ -26,6 +28,7 @@ from webpier.calc.transverse import calculate_transverse
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import parse_input
+from example4_support import EXAMPLE4_INPUT
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 CURRENT = json.loads((FIXTURES / "inputs" / "current.json").read_text(encoding="utf-8"))
@@ -86,7 +89,7 @@ def test_the_section_is_b_across_and_h_in_the_plane_of_bending(example):
 @pytest.mark.parametrize("face,key", [("upper", "rebar1"), ("lower", "rebar2")])
 def test_the_main_bars_of_each_face(example, face, key):
     bars, sample = getattr(example, face), SAMPLE["bar"][key]
-    assert (bars.diameter.value, bars.count, bars.per_layer, bars.layers) == (
+    assert (bars.diameter.value, bars.count.value, bars.per_layer.value, bars.layers) == (
         sample["rebar_dia"], sample["rebar_n"], sample["rebar_n"], 1)
     assert (bars.cover.value, bars.spacing.value, bars.layer_spacing) == (sample["rebar_cover"], sample["rebar_ss"],
                                                                            None)
@@ -94,7 +97,7 @@ def test_the_main_bars_of_each_face(example, face, key):
 
 def test_the_side_bars(example):
     side, sample = example.side, SAMPLE["bar"]["sidebar1"]
-    assert (side.diameter.value, side.count, side.first.value, side.spacing.value) == (
+    assert (side.diameter.value, side.count.value, side.first.value, side.spacing.value) == (
         sample["side_dia"], sample["side_n"], sample["side_cover"], sample["side_ss"])
 
 
@@ -116,7 +119,7 @@ def test_the_steels_and_the_concrete(example):
 
 def test_the_tensile_strength_of_each_grade():
     """JIS G 3112 (the lower limits of the tensile strength), as Capacita's grade presets."""
-    assert [tensile_strength(grade).value for grade in ("SD295", "SD345", "SD390")] == [440, 490, 560]
+    assert [tensile_strength(grade).value for grade in ("SD295", "SD345", "SD390", "SD490")] == [440, 490, 560, 620]
 
 
 def test_the_crack_conditions_and_the_standard(example):
@@ -150,11 +153,13 @@ R5_DEFAULTS = {0: (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, None, 1.0, 1.0, 1),
 
 
 def test_the_safety_factors_are_the_r5_defaults_of_webdanforjs():
+    """But the 安全性（破壊） counts all the axial bars, the side bars too (range 3, decision 105)."""
     assert [factors.id for factors in SAFETY_FACTORS] == list(R5_DEFAULTS)
     for factors in SAFETY_FACTORS:
         values = [None if getattr(factors, key.lower()) is None else getattr(factors, key.lower()).value
                   for key in SAFETY_KEYS]
-        assert (*values, factors.range) == R5_DEFAULTS[factors.id], factors.id
+        expected = R5_DEFAULTS[factors.id]
+        assert (*values, factors.range) == (expected[:-1] + (3,) if factors.id == 5 else expected), factors.id
         assert factors.title
     assert [factors.title for factors in SAFETY_FACTORS if factors.id in (6, 7)] == ["使用性（損傷）", "復旧性（損傷）地震時"]
 
@@ -209,12 +214,22 @@ def two_layers(**second):
 def test_equal_layers_of_main_bars_are_one_face_with_its_layer_spacing():
     result = check(two_layers())
     for bars in (result.upper, result.lower):
-        assert (bars.per_layer, bars.layers, bars.count, bars.cover.value) == (29, 2, 58, 108)
+        assert (bars.per_layer.value, bars.layers, bars.count.value, bars.cover.value) == (29, 2, 58, 108)
         assert bars.layer_spacing == Printed(82, 1, "mm")  # 108 + 16 + 50 + 16 (D32)
 
 
-def test_layers_with_different_bars_are_an_input_error():
-    fails("鉄筋.柱.main_bars", two_layers(per_face_count=27))
+def test_the_last_layer_may_have_fewer_bars():
+    """Capacita splits the total by layer 1's count (decision 103): 29 + 27 is 56 in layers of 29."""
+    bars = check(two_layers(per_face_count=27)).upper
+    assert (bars.per_layer.value, bars.layers, bars.count.value) == (29, 2, 56)
+
+
+def test_layers_capacita_cannot_split_are_an_input_error():
+    """29, 27, 29: fewer in a layer before the last (more than layer 1 in a layer is refused by the input already)."""
+    data = two_layers(per_face_count=27)
+    data["鉄筋"]["柱"]["main_bars"]["線路"]["inner_layers"].append({"per_face_count": 29, "clear_gap_mm": 50})
+    fails("鉄筋.柱.main_bars: 線路の主鉄筋の段の本数は、最後の段のほかは1段目と同じ、最後の段は1段目以下でなければ表せません",
+          data)
 
 
 def test_two_kinds_of_side_bars_are_an_input_error():
@@ -222,7 +237,7 @@ def test_two_kinds_of_side_bars_are_an_input_error():
     # the 直角 bars at x = 102 become D16 in the 直角 table; those at 4398 stay D19
     data["鉄筋"]["柱"]["table_overrides"]["直角"] = [
         {"source_center_mm": 102, "source_diameter_mm": 19, "center_mm": None, "diameter_mm": 16}]
-    fails("鉄筋.柱.main_bars", data)
+    fails("鉄筋.柱.main_bars: 側方鉄筋の径・材質が1種類ではありません（D16 SD390・D19 SD390）", data)
 
 
 def test_without_side_bars():
@@ -255,13 +270,10 @@ def test_a_table_change_is_in_the_checked_section():
         {"source_center_mm": 108, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": 29}]
     result = check(data)
     assert (result.upper.diameter, result.lower.diameter) == (Printed(29, 0, "mm"), Printed(32, 0, "mm"))
-    assert (result.upper.per_layer, result.upper.cover) == (29, Printed(108, 1, "mm"))
+    assert (result.upper.per_layer, result.upper.cover) == (Printed(29, 2, "本"), Printed(108, 1, "mm"))
 
 
 @pytest.mark.parametrize("changes,message", [
-    # side bars at uneven centres (両端＋中央ピッチ: 350, then 300 apart in the middle)
-    ({f"{MAIN}/直角/distribution": {"mode": "両端＋中央ピッチ", "edge_center_mm": 350.0, "pitch_mm": 300.0}},
-     "鉄筋.柱.main_bars: 側方鉄筋の間隔が一定ではないため表せません"),
     # a 直角 row outside the 線路 main bars (等分 from 60 mm, ends included)
     ({f"{MAIN}/直角/distribution": {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None},
       f"{MAIN}/直角/endpoints": "含む"},
@@ -283,10 +295,23 @@ def test_a_column_without_track_main_bars_is_an_input_error():
     fails("鉄筋.柱.main_bars: 線路の主鉄筋が必要です", data)
 
 
-def test_two_layers_of_side_bars_are_an_input_error():
+def test_side_bars_at_uneven_centres_are_spread_from_the_first_to_the_last():
+    """両端＋中央ピッチ: 350, 450 … 2250, 2350 (100, then 300 apart): nine on each face, (2350 − 350)／8 = 250 apart."""
+    data = document(**{f"{MAIN}/直角/distribution": {"mode": "両端＋中央ピッチ", "edge_center_mm": 350.0,
+                                                    "pitch_mm": 300.0}})
+    side = check(data).side
+    assert (side.count, side.first, side.spacing) == (Printed(9, 2, "本"), Printed(350, 1, "mm"),
+                                                      Printed(250, 1, "mm"))
+
+
+def test_two_layers_of_side_bars_are_one_spread_layer():
+    """The 直角 rows of nine at 102 and nine inside them, at the same centres: eighteen on each face, (2350 − 350)／17
+    = 117.6 apart."""
     data = document()
     data["鉄筋"]["柱"]["main_bars"]["直角"]["inner_layers"] = [{"per_face_count": 9, "clear_gap_mm": 40}]
-    fails("鉄筋.柱.main_bars: 側方鉄筋は各芯位置に左右の面で1本ずつだけ表せます", data)
+    side = check(data).side
+    assert (side.count, side.first, side.spacing) == (Printed(18, 2, "本"), Printed(350, 1, "mm"),
+                                                      Printed(117.6, 1, "mm"))
 
 
 def test_layers_at_uneven_spacing_are_an_input_error():
@@ -319,18 +344,20 @@ def test_across_the_track_the_section_is_turned(across):
 
 
 @pytest.mark.parametrize("face,key", [("upper", "rebar1"), ("lower", "rebar2")])
-def test_across_the_track_the_main_bars_are_the_rows_of_the_cross_faces(across, face, key):
+def test_across_the_track_the_main_bars_are_the_cross_rows_with_the_corner_bars(across, face, key):
+    """Decision 103: the D19 × 9 at 102 and the track rows' corner D32 × 2 at 108 as D19 by area,
+    (9 × 286.5 + 2 × 794.2)／286.5 = 14.54, at (2578.5 × 102 + 1588.4 × 108)／4166.9 = 104.3. The sample writes
+    D19 × 9 at 102 and the corner bars with the side bars."""
     bars, sample = getattr(across, face), SAMPLE_09["bar"][key]
-    assert (bars.diameter.value, bars.count, bars.layers) == (sample["rebar_dia"], sample["rebar_n"], 1)
-    assert (bars.cover.value, bars.spacing.value) == (sample["rebar_cover"], sample["rebar_ss"])
+    assert (bars.diameter.value, bars.count, bars.layers) == (sample["rebar_dia"], Printed(14.54, 2, "本"), 1)
+    assert (bars.cover, bars.spacing.value) == (Printed(104.3, 1, "mm"), sample["rebar_ss"])
 
 
-def test_across_the_track_the_side_bars_with_the_corner_bars_are_spaced_by_capacita(across):
-    """The track rows' D32 at 108, 300 … 4200, 4392 (192, 150 … 150, 192 apart): the number only, as the sample (owner,
-    2026-10-18)."""
-    side, sample = across.side, SAMPLE_09["bar"]["sidebar1"]
+def test_across_the_track_the_side_bars_are_those_between_the_corner_bars(across):
+    """The track rows' D32 at 300 … 4200, 150 apart: 27 on each face (the sample: 29 with the corner bars)."""
+    side = across.side
     assert (side.diameter.value, side.count, side.first, side.spacing) == (
-        sample["side_dia"], sample["side_n"], sample["side_cover"], sample["side_ss"])
+        SAMPLE_09["bar"]["sidebar1"]["side_dia"], Printed(27, 2, "本"), Printed(300, 1, "mm"), Printed(150, 1, "mm"))
 
 
 def test_across_the_track_the_hoops_are_the_cross_row(across):
@@ -347,32 +374,65 @@ def test_across_the_track_the_cases_and_conditions_are_those_of_08(across, examp
         assert getattr(across, name) == getattr(example, name), name
 
 
-CORNER = frozenset({(Printed(108, 1, "mm"), Printed(942, 1, "mm"))})
-
-
-@pytest.mark.parametrize("centres,message", [
-    ((108, 300, 450, 600, 750, 942), None),  # the corner bars at the ends, equally spaced between them
-    ((108, 258, 408, 558, 708, 858), None),  # equally spaced: written at their centres (not the corner case)
-    ((108, 300, 450, 650, 800, 942), "隅の鉄筋の間の側方鉄筋の間隔が一定ではない"),  # uneven between the corners
-    ((120, 300, 450, 600, 750, 942), "側方鉄筋の間隔が一定ではない"),  # the first is not a corner bar
-    ((108, 300, 942), "側方鉄筋の間隔が一定ではない"),  # nothing between the corner bars to space
+@pytest.mark.parametrize("rows,expected", [
+    (((100, 2), (250, 2), (400, 2)), (3, 100, 150)),  # one on each face at each centre, equally spaced: as they are
+    (((100, 2), (250, 2), (450, 2)), (3, 100, 175)),  # uneven: spread from the first to the last
+    (((100, 2), (250, 4), (400, 2)), (4, 100, 100)),  # two on each face at 250: four on each face
+    (((100, 2), (200, 3)), (2.5, 100, 50)),  # Capacita's three centres for 2.5 on each face
+    (((100, 1),), (0.5, 100, None)),  # one centre
 ])
-def test_side_bars_are_spaced_by_capacita_only_between_corner_bars(centres, message):
+def test_side_bars_are_half_of_the_bars_on_each_face(rows, expected):
     from webpier.calc.column_check import _side
-    from webpier.calc.column_rebar import TableRow
-    rows = tuple(TableRow(Printed(centre, 1, "mm"), Printed(32, 0, "mm"), 2, "SD390") for centre in centres)
-    if message is not None:
-        with pytest.raises(InputError, match=re.escape(f"鉄筋.柱.main_bars: {message}ため表せません")):
-            _side(rows, "線路", CORNER)
-        return
-    side, _ = _side(rows, "線路", CORNER)
-    corner = centres[1] - centres[0] != centres[2] - centres[1]
-    assert (side.count, side.first, side.spacing) == (
-        (len(centres), None, None) if corner else (len(centres), Printed(108, 1, "mm"), Printed(150, 1, "mm")))
+    table_rows = tuple(TableRow(Printed(centre, 1, "mm"), Printed(32, 0, "mm"), count, "SD390")
+                       for centre, count in rows)
+    side, grade = _side(table_rows, "線路")
+    count, first, spacing = expected
+    assert (side.count, side.first, side.spacing, grade) == (
+        Printed(count, 2, "本"), Printed(first, 1, "mm"), None if spacing is None else Printed(spacing, 1, "mm"),
+        "SD390")
+
+
+def test_side_bars_at_one_centre_cannot_be_spread():
+    from webpier.calc.column_check import _side
+    with pytest.raises(InputError, match=re.escape("鉄筋.柱.main_bars: 線路の側方鉄筋は1つの芯位置にしかなく")):
+        _side((TableRow(Printed(100, 1, "mm"), Printed(32, 0, "mm"), 4, "SD390"),), "線路")
 
 
 def test_the_corner_bars_are_the_end_bars_of_a_row_at_its_own_cover():
-    from webpier.calc.column_check import corners
     layout = column_layout(parse_input(document()))
-    assert corners(layout, "線路") == {(Printed(108, 1, "mm"), Printed(4392, 1, "mm"))}  # D32 at 108 from both faces
-    assert corners(layout, "直角") == frozenset()  # D19 from 350: not at the corners
+    upper, lower = corner_bars(layout, TRANSVERSE)  # the track rows' D32 at 108 from both faces
+    assert sorted((bar.x.value, bar.y.value) for bar in upper) == [(108, 108), (108, 2592)]
+    assert sorted((bar.x.value, bar.y.value) for bar in lower) == [(4392, 108), (4392, 2592)]
+    assert corner_bars(layout, LONGITUDINAL) == ((), ())  # the cross rows' D19 from 350: not at the corners
+
+
+# --- Example4 (decision 103): III-139 along the track, III-214 across it ------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def example4():
+    return column_layout(parse_input(json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))))
+
+
+def test_example4_along_the_track_the_layers_of_23_and_11(example4):
+    """III-139: D38-34本, centroid (23 × 84 + 11 × 179)／34 = 114.7: layers of 23 at 84, then 95 apart."""
+    upper, lower, (side, side_grade), grade = column_bars(example4, LONGITUDINAL)
+    for bars in (upper, lower):
+        assert (bars.diameter.value, bars.count, bars.per_layer, bars.layers) == (38, Printed(34, 2, "本"),
+                                                                                  Printed(23, 2, "本"), 2)
+        assert (bars.cover, bars.layer_spacing) == (Printed(84, 1, "mm"), Printed(95, 1, "mm"))
+    assert (side.diameter.value, side.count, side.first, side.spacing) == (  # III-139: D19-14本 (7 on each face)
+        19, Printed(7, 2, "本"), Printed(350, 1, "mm"), Printed(300, 1, "mm"))
+    assert (grade, side_grade) == ("SD490", "SD490")
+
+
+def test_example4_across_the_track_the_corner_bars_by_area_and_the_side_bars_spread(example4):
+    """III-214: D38-2本 + D19-7本 (4285.5 mm2) as D19 (286.5): 4285.5／286.5 = 14.96, at
+    (2005.5 × 74.5 + 2280 × 84)／4285.5 = 79.6 (the sample: 84.0 for both). 側方鉄筋 D38-32本 on each face: 21 at 250
+    … 3250 and 11 at 1000 … 2500, spread (3250 − 250)／31 = 96.8 apart."""
+    upper, lower, (side, _), _ = column_bars(example4, TRANSVERSE)
+    for bars in (upper, lower):
+        assert (bars.diameter.value, bars.count, bars.layers, bars.cover) == (19, Printed(14.96, 2, "本"), 1,
+                                                                              Printed(79.6, 1, "mm"))
+    assert (side.diameter.value, side.count, side.first, side.spacing) == (
+        38, Printed(32, 2, "本"), Printed(250, 1, "mm"), Printed(96.8, 1, "mm"))

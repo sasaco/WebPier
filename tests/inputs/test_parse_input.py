@@ -137,7 +137,26 @@ def test_vehicle_must_be_one_of_the_program_choices(vehicle):
 def test_ea17_selects_the_ea17_braking_rule():
     document = data()
     document["上部構造"]["列車"]["車両名"] = "EA-17"
-    assert parse_input(document).train.braking_rule is BrakingRule.EA17
+    document["上部構造"]["列車"]["編成数"] = None
+    train = parse_input(document).train
+    assert (train.braking_rule, train.cars) == (BrakingRule.EA17, None)
+
+
+def test_the_cars_are_entered_only_for_a_vehicle_of_repeated_cars():
+    """decision 101: the standard fixes EA-17's train; P-16 is repeated cars and needs how many."""
+    document = data()
+    document["上部構造"]["列車"]["車両名"] = "EA-17"
+    fails(document, "上部構造.列車.編成数: EA-17 の編成は規定で決まるので空欄にしてください（入力: 10）")
+    document = data()
+    document["上部構造"]["列車"]["編成数"] = None
+    fails(document, "上部構造.列車.編成数: 値が必要です")
+
+
+@pytest.mark.parametrize("key", ["1両の長さ", "軸距", "軸重"])
+def test_the_vehicle_definition_is_no_input(key):
+    document = data()
+    document["上部構造"]["列車"][key] = 20.0
+    fails(document, f"上部構造.列車.{key}: 未知の入力項目です")
 
 
 def test_soil_type_choices_follow_the_ground_reaction_equations():
@@ -188,12 +207,6 @@ def test_beam_must_be_wider_than_its_haunch_offsets():
     document["下部構造"]["寸法"]["側面"]["B4"] = 1.5
     document["下部構造"]["寸法"]["側面"]["B5"] = 1.2
     fails(document, "下部構造.寸法.側面.B1: B4+B5より大きい値が必要です")
-
-
-def test_train_length_must_exceed_its_axle_spacing():
-    document = data()
-    document["上部構造"]["列車"]["1両の長さ"] = 7.2
-    fails(document, "上部構造.列車.1両の長さ: a1_連結部+2×a2より大きい値が必要です")
 
 
 def test_exactly_one_supporting_layer_and_the_top_layer_first():

@@ -13,6 +13,8 @@ from webpier.calc.transverse import BasicCase, Item, Track
 from webpier.core.errors import InputError
 from webpier.inputs import parse_input
 from webpier.inputs.fields import SNOW_KEYS
+from webpier.calc import vehicles
+from webpier.core.printed import LINE_LOAD
 
 C = SeismicCase
 WEIGHTS = "下部構造/単位体積重量/"
@@ -58,8 +60,9 @@ def test_a_track_without_load_on_this_pier_still_has_its_case_and_combination():
     assert len(result.combinations) == 8  # both tracks by the four 照査パターン (decision 76)
 
 
-def test_earthquake_train_load_zero():
-    result = seismic(pier(**{"上部構造/列車/軸重/地震": 0.0}))
+def test_earthquake_train_load_zero(monkeypatch):
+    monkeypatch.setattr(vehicles, "P16_SEISMIC", LINE_LOAD.exact(0))  # the vehicle's, no input (decision 101)
+    result = seismic(pier())
     for track in Track.UP, Track.DOWN:
         assert [row.n.value for row in result.train(track).rows] == [0.0] * 6
     assert points(result.basic(C.TRAIN_UP)) == {2: (0.0, 0.0, 0.0)}

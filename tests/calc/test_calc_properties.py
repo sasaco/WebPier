@@ -13,7 +13,7 @@ from hypothesis import given, strategies as st
 from reaction_support import pier
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import BasicCase as LongitudinalCase, calculate_longitudinal
-from webpier.calc.moving_load import Girder, search_reactions
+from webpier.calc.moving_load import AxleTrain, Girder, car_offsets, search_reactions
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import BasicCase as TransverseCase, calculate_transverse
 from webpier.core.printed import Printed
@@ -69,26 +69,38 @@ def bridges(draw):
     a1 = draw(at_digits(3, 1, 4))
     a2 = draw(st.one_of(st.just(0.0), at_digits(3, 1, 3)))
     car = draw(at_digits(3, a1 + 2 * a2 + 1, 26))
-    return spans, a1, a2, car, draw(at_digits(2, 10, 250)), draw(st.integers(min_value=1, max_value=4))
+    tail = draw(st.one_of(st.none(), at_digits(2, 1, 60)))  # a line load behind the axles (E-17, decision 101)
+    return (spans, a1, a2, car, draw(at_digits(2, 10, 250)), draw(st.integers(min_value=1, max_value=4)), tail,
+            draw(at_digits(3, 0, 5)))
 
 
 @given(bridges())
 def test_the_adopted_loading_is_in_equilibrium_on_both_girders(bridge):
-    spans, a1, a2, car, load, cars = bridge
+    spans, a1, a2, car, load, cars, tail, gap = bridge
     base = pier()
     origin, end = (replace(span, **{key: Printed(value, 3, "m") for key, value in sizes.items()})
                    for span, sizes in zip((base.spans.origin, base.spans.end), spans))
-    result = search_reactions(origin, end, axle_load=Printed(load, 2, "kN"), cars=cars,
-                              car_length=Printed(car, 3, "m"), a1=Printed(a1, 3, "m"), a2=Printed(a2, 3, "m"))
+    offsets = car_offsets(cars, Decimal(repr(car)), Decimal(repr(a1)), Decimal(repr(a2)))
+    train = AxleTrain("cars", (Printed(load, 2, "kN"),) * len(offsets), offsets,
+                      None if tail is None else Printed(tail, 2, "kN/m"), Decimal(repr(gap)))
+    result = search_reactions(origin, end, (train,))
     on = {girder: [axle for axle in result.axles if axle.girder is girder] for girder in Girder}
     assert (result.origin_axles.value, result.end_axles.value) == (len(on[Girder.ORIGIN]), len(on[Girder.END]))
-    # RA + RB and RC + RD carry every axle on their girder (vertical equilibrium, printed values).
-    assert D(result.ra) + D(result.rb) == Decimal(repr(load)) * len(on[Girder.ORIGIN])
-    assert D(result.rc) + D(result.rd) == Decimal(repr(load)) * len(on[Girder.END])
-    # RB and RC are the moments about the far bearings over the span, from the printed levers.
+    parts = {girder: result.tail(girder) for girder in Girder}
+    weight = {girder: Decimal(0) if part is None else D(part.load) * D(part.length) for girder, part in parts.items()}
+    moment = {girder: Decimal(0) if part is None else D(part.load) * D(part.length) * D(part.lever)
+              for girder, part in parts.items()}
+    # RA + RB and RC + RD carry every axle and the line load on their girder (vertical equilibrium: RA is the printed
+    # total less the printed RB; exact without a line load, whose q × a has more digits than a force).
+    for far, near, girder in ((result.ra, result.rb, Girder.ORIGIN), (result.rd, result.rc, Girder.END)):
+        total = Decimal(repr(load)) * len(on[girder]) + weight[girder]
+        assert far.value == rounded(total - D(near), 2)
+        if parts[girder] is None:
+            assert D(far) + D(near) == total
+    # RB and RC are the moments about the far bearings over the span, from the printed levers and lengths.
     for girder, reaction, span in ((Girder.ORIGIN, result.rb, origin), (Girder.END, result.rc, end)):
         levers = sum((D(axle.lever) for axle in on[girder]), Decimal(0))
-        assert reaction.value == rounded(Decimal(repr(load)) * levers / D(span.span), 2)
+        assert reaction.value == rounded((Decimal(repr(load)) * levers + moment[girder]) / D(span.span), 2)
     # Every adopted axle stands on its girder: the lever lies between the far overhang and the pier overhang.
     for axle in on[Girder.ORIGIN]:
         assert -D(origin.l1) <= D(axle.lever) <= D(origin.span) + D(origin.l2)

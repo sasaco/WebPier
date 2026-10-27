@@ -4,6 +4,8 @@ train on each bearing, the seismic train and the torques. Expected values are th
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from cantilever_support import KH, SAMPLE, D, pier, q, reaction_of, value
@@ -12,6 +14,7 @@ from webpier.calc.cantilever.geometry import numbered
 from webpier.calc.cantilever.loads import (Loading, Wind, lateral_torques, seismic_girder_torques, seismic_train,
                                            seismic_train_torques, torque, train_loadings, wind_torques)
 from webpier.calc.moving_load import Girder, Objective, search_reactions
+from webpier.calc.vehicles import vehicle
 
 
 @pytest.fixture(scope="module")
@@ -39,11 +42,10 @@ def test_the_three_loadings_maximise_rb_rc_and_their_sum(current):
         if "rc_levers" in values:
             assert [axle.lever.value for axle in result.axles if axle.girder is Girder.END] == values["rc_levers"]
     # the objective is the moving-load search's: RB alone, RC alone, RB + RC (0600)
-    t = pier_input.train
+    trains = vehicle(pier_input.train).trains
     for loading, objective in ((Loading.ORIGIN_MAX, Objective.ORIGIN), (Loading.END_MAX, Objective.END),
                                (Loading.BOTH_MAX, Objective.PIER)):
-        result = search_reactions(pier_input.spans.origin, pier_input.spans.end, axle_load=t.axle_load, cars=t.cars,
-                                  car_length=t.car_length, a1=t.a1, a2=t.a2, objective=objective)
+        result = search_reactions(pier_input.spans.origin, pier_input.spans.end, trains, objective=objective)
         assert result == _loading(basis, loading).result
     assert Objective.PIER.value == "RB+RC" and Objective.ORIGIN.value == "RB" and Objective.END.value == "RC"
 
@@ -209,6 +211,6 @@ def test_the_builders_match_the_basis(current):
     girders = numbered(reaction.dead)
     assert train_loadings(pier_input, reaction.train, girders) == basis.loadings
     assert seismic_train(reaction.train, girders) == basis.seismic_train
-    assert lateral_torques(basis.loadings, reaction.transverse, girders) == basis.lateral
+    assert lateral_torques(basis.loadings, reaction.transverse, girders, Decimal("0.2")) == basis.lateral  # P-16
     assert wind_torques(reaction.transverse, girders) == basis.wind
     assert seismic_train_torques(reaction.transverse, girders) == basis.seismic_train_torque

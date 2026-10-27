@@ -10,13 +10,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import Enum
 
 from ...core.errors import InputError
 from ...core.printed import COEFFICIENT, FORCE, Printed
 from ...inputs import PierInput
 from ...inputs.model import Span
 from .._exact import d, put
-from ..moving_load import MovingLoadResult, girder_length, search_reactions
+from ..moving_load import Girder, MovingLoadResult, girder_length, search_reactions
+from ..vehicles import vehicle
 from .dead import DeadResult, GirderDead
 from .self_weight import SelfWeightResult
 
@@ -95,14 +97,43 @@ class SeismicTrain:
     end: Printed  # RC = RD
 
 
+class Layout(Enum):
+    """列車の配置 (decision 102, CONTEXT.md; Example橋脚4 I-40 表7.1.2): the girders a train is put on."""
+
+    BOTH = "両側の桁"  # ①: RB + RC maximised
+    ORIGIN = "起点側の桁"  # ②: on the origin girder only
+    END = "終点側の桁"  # ③: on the end girder only
+
+
+LOADED = {Layout.BOTH: None, Layout.ORIGIN: Girder.ORIGIN, Layout.END: Girder.END}
+
+
+@dataclass(frozen=True)
+class LayoutTrain:
+    """The train of one placing on one girder only (② or ③), as TrainResult holds ①'s."""
+
+    layout: Layout
+    loading: MovingLoadResult
+    ultimate: GroupTrain
+    service: GroupTrain
+    fatigue: GroupTrain
+    pier_impact: PierImpact
+
+
 @dataclass(frozen=True)
 class TrainResult:
-    loading: MovingLoadResult  # adopted train loading: RA..RD of one track without load factors
+    loading: MovingLoadResult  # adopted train loading of ① (both girders): RA..RD of one track without load factors
     ultimate: GroupTrain  # safety (failure) and restorability
     service: GroupTrain  # serviceability
     fatigue: GroupTrain  # safety (fatigue)
     pier_impact: PierImpact
     seismic: SeismicTrain
+    one_girder: tuple[LayoutTrain, LayoutTrain]  # ② and ③, for the longitudinal checks other than seismic
+
+    def layout(self, layout: Layout) -> LayoutTrain:
+        if layout is Layout.BOTH:
+            return LayoutTrain(Layout.BOTH, self.loading, self.ultimate, self.service, self.fatigue, self.pier_impact)
+        return self.one_girder[0] if layout is Layout.ORIGIN else self.one_girder[1]
 
 
 def _double_impact(span: Span, side: str) -> Printed:
@@ -157,25 +188,27 @@ def _group(factor: Printed, loading: MovingLoadResult, origin: GirderDead, end: 
 
 def calculate_train(pier: PierInput, dead: DeadResult, self_weight: SelfWeightResult) -> TrainResult:
     t, spans = pier.train, pier.spans
-    loading = search_reactions(spans.origin, spans.end, axle_load=t.axle_load, cars=t.cars,
-                               car_length=t.car_length, a1=t.a1, a2=t.a2)
+    train = vehicle(t)
     ultimate = (GirderImpact(spans.origin.impact, _double_impact(spans.origin, "起点側")),
                 GirderImpact(spans.end.impact, _double_impact(spans.end, "終点側")))
     service = tuple(GirderImpact(put(IMPACT, d(impact.single) * SERVICE_RATIO),
                                  put(IMPACT, d(impact.double) * SERVICE_RATIO)) for impact in ultimate)
-    on_pier = _pier_impact(loading, dead.origin, dead.end, self_weight.pier_bottom.weight)
-    groups = {
-        "ultimate": _group(t.factor_ultimate, loading, dead.origin, dead.end, (ultimate[0], ultimate[1]), on_pier),
-        "service": _group(t.factor_service, loading, dead.origin, dead.end, (service[0], service[1]), on_pier),
-        "fatigue": _group(t.factor_fatigue, loading, dead.origin, dead.end, (service[0], service[1]), on_pier),
-    }
+
+    def placed(layout: Layout) -> LayoutTrain:
+        loading = search_reactions(spans.origin, spans.end, train.trains, loaded=LOADED[layout])
+        on_pier = _pier_impact(loading, dead.origin, dead.end, self_weight.pier_bottom.weight)
+        groups = (_group(factor, loading, dead.origin, dead.end, impacts, on_pier)
+                  for factor, impacts in ((t.factor_ultimate, ultimate), (t.factor_service, service),
+                                          (t.factor_fatigue, service)))
+        return LayoutTrain(layout, loading, *groups, on_pier)  # type: ignore[arg-type]
+
+    both = placed(Layout.BOTH)
     lengths = (girder_length(spans.origin), girder_length(spans.end))
     seismic = SeismicTrain(
-        line_load=t.earthquake_load, origin_length=lengths[0], end_length=lengths[1],
-        origin=put(FORCE, d(t.earthquake_load) * d(lengths[0]) * SEISMIC_SHARE),
-        end=put(FORCE, d(t.earthquake_load) * d(lengths[1]) * SEISMIC_SHARE))
+        line_load=train.seismic_load, origin_length=lengths[0], end_length=lengths[1],
+        origin=put(FORCE, d(train.seismic_load) * d(lengths[0]) * SEISMIC_SHARE),
+        end=put(FORCE, d(train.seismic_load) * d(lengths[1]) * SEISMIC_SHARE))
     return TrainResult(
-        loading=loading,
-        ultimate=groups["ultimate"], service=groups["service"], fatigue=groups["fatigue"],
-        pier_impact=on_pier, seismic=seismic,
+        loading=both.loading, ultimate=both.ultimate, service=both.service, fatigue=both.fatigue,
+        pier_impact=both.pier_impact, seismic=seismic, one_girder=(placed(Layout.ORIGIN), placed(Layout.END)),
     )

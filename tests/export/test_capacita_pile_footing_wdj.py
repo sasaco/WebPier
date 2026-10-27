@@ -51,12 +51,14 @@ def test_the_bars_are_the_inputs_per_metre_times_the_width_of_the_member():
 def test_the_forces_are_given_by_capacitas_case_id_with_the_sign_of_the_tension():
     wdj = document()
     force = {row["index"]: row for row in wdj["force"]}
-    # the made-up lines: a sagging moment 1000 + the member at the ends, −50 as the smallest
-    assert force[1]["Md5_Md"] == force[1]["Md0_Md"] == force[1]["Md1_Md"] == force[1]["Md8_Md"] == 1011.0  # the right member's
-    assert force[2]["Md5_Md"] == -50.0 and force[2]["Md7_Md"] == -50.0
+    # the made-up lines: a sagging moment 1000 + the member at the ends, −50 as the smallest; the 安全性（破壊）(5) times
+    # the 応答値係数 γR 1.2 (decision 104), the earthquake (7) not
+    assert force[1]["Md0_Md"] == force[1]["Md1_Md"] == force[1]["Md8_Md"] == 1011.0  # the right member's
+    assert force[1]["Md5_Md"] == 1213.2
+    assert force[2]["Md5_Md"] == -60.0 and force[2]["Md7_Md"] == -50.0
     assert "Vd5_Vd" not in force[1] and "Vd5_Vd" not in force[3]
-    assert force[4]["Vd5_Vd"] == 400.0 and force[4]["Vd5_Md"] == -50.0 and force[4]["Md5_Md"] == -50.0
-    assert set(force[5]) == {"index", "Vd5_Vd", "Vd5_Md", "Vd5_Nd"} and force[5]["Vd5_Vd"] == 400.0
+    assert force[4]["Vd5_Vd"] == 480.0 and force[4]["Vd5_Md"] == -60.0 and force[4]["Md5_Md"] == -60.0
+    assert set(force[5]) == {"index", "Vd5_Vd", "Vd5_Md", "Vd5_Nd"} and force[5]["Vd5_Vd"] == 480.0
 
 
 def test_the_deep_beam_blocks_of_the_shear_rows():

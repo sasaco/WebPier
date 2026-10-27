@@ -20,8 +20,11 @@ impact coefficient (decision 77). The horizontal actions are the 0600
 transverse forces at B and C: vehicle lateral, and wind with and without the
 train together with the wind on the pier body (decision 12, ``wind``).
 
+The vehicle lateral load is one track's (単線, case 15) or both tracks' (複線, case 16: twice the one track's,
+decision 106, Example橋脚4 III-177 "1軌道当り").
+
 On a curve (R ≠ 0 on a side, decision 33) the centrifugal load is a basic case
-per track like the train (cases 18-20; none on a straight track): the train
+per track like the train (cases 19-21; none on a straight track): the train
 load of the track at the side (its 9-5 rows) times the 0600 α, at the 0600
 centrifugal height above the seat. The 0600 centrifugal forces already carry
 ρf, so they are not used here: ρ comes once, from the coefficient of L.
@@ -225,6 +228,8 @@ class Lateral:
     end: HorizontalRow
     h: Printed  # H_B + H_C
     m: Printed  # H_B × y_B + H_C × y_C, the printed one-line expression rounded once
+    double_h: Printed  # 複線載荷: both tracks, 2 × H (decision 106)
+    double_m: Printed  # 2 × M
 
 
 @dataclass(frozen=True)
@@ -239,7 +244,8 @@ class Wind:
 
 
 class BasicCase(Enum):
-    """The 17 basic cases of 9-13, by their number with snow (without snow, 14: decision 69)."""
+    """The 18 basic cases of 9-13 and the vehicle lateral load of two tracks (decision 106), by their number with
+    snow (without snow, 15: decision 69)."""
 
     D1 = 1
     D2 = 2
@@ -255,12 +261,13 @@ class BasicCase(Enum):
     IMPACT_UP = 12
     IMPACT_DOWN = 13
     IMPACT_DOUBLE = 14
-    LATERAL = 15
-    WIND_WITH_TRAIN = 16
-    WIND_WITHOUT_TRAIN = 17
-    CENTRIFUGAL_UP = 18  # only on a curve (decision 33)
-    CENTRIFUGAL_DOWN = 19
-    CENTRIFUGAL_DOUBLE = 20
+    LATERAL = 15  # one track (単線載荷)
+    LATERAL_DOUBLE = 16  # two tracks (複線載荷, decision 106)
+    WIND_WITH_TRAIN = 17
+    WIND_WITHOUT_TRAIN = 18
+    CENTRIFUGAL_UP = 19  # only on a curve (decision 33)
+    CENTRIFUGAL_DOWN = 20
+    CENTRIFUGAL_DOUBLE = 21
 
 
 CENTRIFUGAL_CASES = {BasicCase.CENTRIFUGAL_UP: Track.UP, BasicCase.CENTRIFUGAL_DOWN: Track.DOWN,
@@ -268,7 +275,7 @@ CENTRIFUGAL_CASES = {BasicCase.CENTRIFUGAL_UP: Track.UP, BasicCase.CENTRIFUGAL_D
 TRACKS = {**CENTRIFUGAL_CASES, BasicCase.TRAIN_UP: Track.UP, BasicCase.TRAIN_DOWN: Track.DOWN, BasicCase.TRAIN_DOUBLE: Track.DOUBLE,
           BasicCase.IMPACT_UP: Track.UP, BasicCase.IMPACT_DOWN: Track.DOWN, BasicCase.IMPACT_DOUBLE: Track.DOUBLE}
 IMPACT_CASES = frozenset({BasicCase.IMPACT_UP, BasicCase.IMPACT_DOWN, BasicCase.IMPACT_DOUBLE})
-HORIZONTAL = frozenset({BasicCase.LATERAL, BasicCase.WIND_WITH_TRAIN, BasicCase.WIND_WITHOUT_TRAIN,
+HORIZONTAL = frozenset({BasicCase.LATERAL, BasicCase.LATERAL_DOUBLE, BasicCase.WIND_WITH_TRAIN, BasicCase.WIND_WITHOUT_TRAIN,
                         *CENTRIFUGAL_CASES})
 SNOW_CASES = (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)
 LONG_TERM = frozenset(BasicCase(n) for n in range(1, 9))  # 9-13 バネ 1 (long term); 2 for the train and after
@@ -458,8 +465,10 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     impact = Impacts(ultimate=_impacts(trains, train.ultimate), service=_impacts(trains, train.service))
     origin, end = transverse.origin, transverse.end
     lateral_rows = (_horizontal(Item.ORIGIN, origin.vehicle_lateral), _horizontal(Item.END, end.vehicle_lateral))
-    lateral = Lateral(origin=lateral_rows[0], end=lateral_rows[1], h=put(FORCE, total(r.h for r in lateral_rows)),
-                      m=put(MOMENT, sum((d(r.h) * d(r.y) for r in lateral_rows), Decimal(0))))
+    lateral_h = put(FORCE, total(r.h for r in lateral_rows))
+    lateral_m = put(MOMENT, sum((d(r.h) * d(r.y) for r in lateral_rows), Decimal(0)))
+    lateral = Lateral(origin=lateral_rows[0], end=lateral_rows[1], h=lateral_h, m=lateral_m,
+                      double_h=put(FORCE, 2 * d(lateral_h)), double_m=put(MOMENT, 2 * d(lateral_m)))
 
     def wind(pressure: Printed, field: str) -> Wind:
         rows = (_horizontal(Item.ORIGIN, getattr(origin, field)), _horizontal(Item.END, getattr(end, field)))
@@ -478,6 +487,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
     points: dict[BasicCase, tuple[PointLoad, ...]] = {
         **app.points,
         c.LATERAL: (seat(lateral.h, lateral.m),),
+        c.LATERAL_DOUBLE: (seat(lateral.double_h, lateral.double_m),),
         c.WIND_WITH_TRAIN: (seat(with_train.h, with_train.m),),
         c.WIND_WITHOUT_TRAIN: (seat(without_train.h, without_train.m),),
     }

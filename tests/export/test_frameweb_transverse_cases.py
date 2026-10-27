@@ -1,8 +1,9 @@
 """0620 FrameWeb Define, Combine and Pickup: Example2 09 pp.9-13 to 9-15 and its FrameWeb file.
 
-A Define lists the load cases it may take: Define 9 and 11 take the up or the down track, 13 to 15 either sign
+A Define lists the load cases it may take: Define 9 and 11 take the up or the down track, 13 to 16 either sign
 (−n reverses the case). FrameWeb takes the worse alternative of each Define on its own, then sums the Defines of
-a Combine with their factors.
+a Combine with their factors. Each check with the train is a Combine for 複線 and one for 単線, and 複線 takes the
+vehicle lateral load of two tracks (Define 14, decision 106); ``example2_loading`` gives Example2's numbers.
 """
 
 from dataclasses import replace
@@ -11,13 +12,13 @@ from itertools import product
 
 import pytest
 
-from frameweb_support import CURVE, D, EXAMPLE2_09, T09, T_PEDESTAL, WIDTHS, ground, transverse
+from frameweb_support import example2_loading, CURVE, D, EXAMPLE2_09, T09, T_PEDESTAL, WIDTHS, ground, transverse
 from webpier.calc.transverse import Basis, Define
 from webpier.core.errors import InputError
 from webpier.export.frameweb import build_frameweb_transverse
 
-SERVICE = {Define.IMPACT_SINGLE: 16, Define.IMPACT_DOUBLE: 17}  # the Defines of the serviceability impacts
-SERVICE_ON_A_CURVE = {Define.IMPACT_SINGLE: 18, Define.IMPACT_DOUBLE: 19}
+SERVICE = {Define.IMPACT_SINGLE: 17, Define.IMPACT_DOUBLE: 18}  # the Defines of the serviceability impacts
+SERVICE_ON_A_CURVE = {Define.IMPACT_SINGLE: 19, Define.IMPACT_DOUBLE: 20}
 
 
 @pytest.fixture(scope="module")
@@ -27,7 +28,8 @@ def result():
 
 @pytest.fixture(scope="module")
 def current(result):
-    return build_frameweb_transverse(result)
+    """Example2's numbers and names (decision 106: its one loading of each check with the train, one LF)."""
+    return example2_loading(build_frameweb_transverse(result))
 
 
 def coefficients(row):
@@ -99,31 +101,31 @@ def test_pickups_are_those_of_9_15(current):
 
 
 def test_centrifugal_loads_on_a_curve():
-    # Decision 33: R ≠ 0 adds basic cases 18-20 (up, down, double; H and M at the seat) and Define 16 (up or
-    # down) and 17, with the factor of L in exactly the combinations that hold L. The serviceability impacts
-    # follow as load cases 21-23 and Defines 18-19.
+    # Decision 33: R ≠ 0 adds basic cases 19-21 (up, down, double; H and M at the seat) and Define 17 (up or
+    # down) and 18, with the factor of L in exactly the combinations that hold L. The serviceability impacts
+    # follow as load cases 22-24 and Defines 19-20.
     result = transverse(**CURVE)
     document = build_frameweb_transverse(result)
-    assert list(document["load"]) == [str(n) for n in range(1, 24)]
-    assert [document["load"][n]["symbol"] for n in map(str, range(18, 24))] == [
+    assert list(document["load"]) == [str(n) for n in range(1, 25)]
+    assert [document["load"][n]["symbol"] for n in map(str, range(19, 25))] == [
         "CF1", "CF2", "CF3", "I1s", "I2s", "I3s"]
-    assert [document["load"][n]["name"] for n in ("18", "19", "20")] == [
+    assert [document["load"][n]["name"] for n in ("19", "20", "21")] == [
         "遠心荷重　単線　上り", "遠心荷重　単線　下り", "遠心荷重　複線"]
-    for number in ("18", "19", "20"):
+    for number in ("19", "20", "21"):
         action = result.basic_cases[int(number) - 1]
         (point,) = action.points
         assert document["load"][number]["fix_node"] == 2
         assert [(row["n"], row["tx"], row["ty"], row["rz"]) for row in document["load"][number]["load_node"]] == [
             (str(point.node), point.h.value, None, point.m.value)]
-    assert (document["define"]["16"], document["define"]["17"]) == ({"row": 16, "C1": 18, "C2": 19},
-                                                                     {"row": 17, "C1": 20})
-    assert (document["define"]["18"], document["define"]["19"]) == ({"row": 18, "C1": 21, "C2": 22},
-                                                                     {"row": 19, "C1": 23})
+    assert (document["define"]["17"], document["define"]["18"]) == ({"row": 17, "C1": 19, "C2": 20},
+                                                                     {"row": 18, "C1": 21})
+    assert (document["define"]["19"], document["define"]["20"]) == ({"row": 19, "C1": 22, "C2": 23},
+                                                                     {"row": 20, "C1": 24})
     for row in document["combine"].values():
         c = coefficients(row)
-        assert c.get("C16") == c.get("C9") and c.get("C17") == c.get("C10")
-    assert [n for n, row in document["combine"].items() if "C16" in row or "C17" in row] == [
-        "1", "2", "5", "7", "8", "10", "11", "15", "16"]  # the combinations that hold L
+        assert c.get("C17") == c.get("C9") and c.get("C18") == c.get("C10")
+    assert [n for n, row in document["combine"].items() if "C17" in row or "C18" in row] == [
+        str(n) for n in (1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 15, 16, 17, 18, 22, 23, 24, 25)]  # those that hold L
 
 
 def test_straight_track_has_no_centrifugal_cases(current):
@@ -208,20 +210,21 @@ def test_every_variant_of_the_calc_is_a_choice_of_frameweb(changes, service):
                 assert abs(native.get(key, Decimal(0)) - amount) <= Decimal("0.005") * count[key], (combination, key)
             variants += of_the_calc
             mixed += not of_the_calc
-    # 5 combinations with LF and W1 (4 each), 3 with one wind (2), 3 with a single track (7, 15, 16: up or down)
-    # and 5 with one state: 37.
-    assert variants == sum(len(c.variants()) for c in result.combinations) == 5 * 4 + 3 * 2 + 3 * 2 + 5
-    # FrameWeb takes the worse alternative of each Define on its own, so in 7, 15 and 16 it also tries an up train
-    # with a down impact: 2 × 2 choices for the calc's 2, and 2 × 2 × 2 with the centrifugal load on a curve.
-    assert mixed == 3 * (6 if changes is CURVE else 2)
+    # (decision 106) 5 複線 combinations with LF and W1 (4 each), the same 5 of 単線 (up or down × 4: 8), 3 with one
+    # wind and 損傷 雪最大 with W1 (2), 4 of 単線 without them (8, 11, 23, 25: up or down) and 8 with one state: 82.
+    assert variants == sum(len(c.variants()) for c in result.combinations) == 5 * 4 + 5 * 8 + 4 * 2 + 4 * 2 + 6
+    # FrameWeb takes the worse alternative of each Define on its own, so in a combination of 単線 it also tries an up
+    # train with a down impact: with LF and W1, 2 × 2 × 4 choices for the calc's 8 (and × 2 with the centrifugal load
+    # on a curve), without them 2 × 2 for the calc's 2 (× 2 on a curve).
+    assert mixed == (5 * 24 + 4 * 6 if changes is CURVE else 5 * 8 + 4 * 2)
 
 
 def test_zero_coefficients_are_left_out_and_an_empty_combination_is_an_error():
-    # ρs = 0.004 prints 0.00: the serviceability train and impact add nothing, so combination 7 (L1 + I1 only) is
-    # empty and FrameWeb would drop it, breaking Pickup 4.
+    # ρs = 0.004 prints 0.00: the serviceability train and impact add nothing, so combination 10 (変動 複線: L2 + I2
+    # only) is empty and FrameWeb would drop it, breaking Pickup 4.
     result = transverse(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
-    assert [a.factor.value for c in result.combinations[6].components for a in c.alternatives] == [0, 0, 0, 0]
-    with pytest.raises(InputError, match="combine.7"):
+    assert [a.factor.value for c in result.combinations[9].components for a in c.alternatives] == [0, 0]
+    with pytest.raises(InputError, match="combine.10"):
         build_frameweb_transverse(result)
 
 
@@ -252,9 +255,9 @@ def changed_component(result, number, define, change):
     lambda c: replace(c, alternatives=(c.alternatives[0], replace(c.alternatives[1], basis=Basis.BASIC))),
 ], ids=["order", "missing", "factor", "basis"])
 def test_the_alternatives_of_a_component_are_those_of_its_define(result, change):
-    # Combination 7: I1 in the serviceability basis, up then down, with one factor for both.
-    with pytest.raises(ValueError, match="combination 7"):
-        build_frameweb_transverse(changed_component(result, 7, Define.IMPACT_SINGLE, change))
+    # Combination 11 (変動 単線): I1 in the serviceability basis, up then down, with one factor for both.
+    with pytest.raises(ValueError, match="combination 11"):
+        build_frameweb_transverse(changed_component(result, 11, Define.IMPACT_SINGLE, change))
 
 
 def test_the_signs_of_an_alternative_share_its_action(result):
@@ -262,7 +265,7 @@ def test_the_signs_of_an_alternative_share_its_action(result):
         other = replace(c.alternatives[1], source=replace(c.alternatives[1].source, points=()))
         return replace(c, alternatives=(c.alternatives[0], other))
     with pytest.raises(ValueError, match="combination 1"):
-        build_frameweb_transverse(changed_component(result, 1, Define.LATERAL, change))
+        build_frameweb_transverse(changed_component(result, 1, Define.LATERAL_DOUBLE, change))
 
 
 def test_every_use_of_an_action_must_be_the_same_action(result):
@@ -275,5 +278,5 @@ def test_every_use_of_an_action_must_be_the_same_action(result):
 
     def service(c):
         return replace(c, alternatives=tuple(replace(a, source=replace(a.source, points=())) for a in c.alternatives))
-    with pytest.raises(ValueError, match="combination 15"):
-        build_frameweb_transverse(changed_component(result, 15, Define.IMPACT_SINGLE, service))
+    with pytest.raises(ValueError, match="combination 23"):  # 短期支持 低水位 単線
+        build_frameweb_transverse(changed_component(result, 23, Define.IMPACT_SINGLE, service))

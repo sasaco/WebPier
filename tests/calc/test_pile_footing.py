@@ -115,12 +115,13 @@ def test_a_lower_tension_takes_the_largest_sagging_moment_of_the_side_that_has_i
                            s=((900.0, -50.0, 0.0, 3), (-100.0, 40.0, 0.0, 4))),
         right.member: lines("ITAN", m=((1200.0, 70.0, 0.0, 5), (-300.0, -20.0, 0.0, 6)),
                             s=((1200.0, 70.0, 0.0, 5), (-300.0, -20.0, 0.0, 6)))})
-    safety = forces[0].force(Case.SAFETY)
-    assert (safety.md.value, safety.md_combination, safety.end.side, safety.end.member) == (1200.0, 5, "右", right.member)
+    safety = forces[0].force(Case.SAFETY)  # the 安全性（破壊） times the 応答値係数 γR 1.2 (decision 104): 1.2 × 1200
+    assert (safety.md.value, safety.md_combination, safety.end.side, safety.end.member) == (1440.0, 5, "右", right.member)
     assert safety.vd is None  # no deep beam shear at this point
     upper = forces[1].force(Case.SAFETY)  # the upper tension: the largest hogging moment, the left side's −100 and the right's −300
-    assert (upper.md.value, upper.md_combination, upper.end.side) == (-300.0, 6, "右")
-    # the earthquake reads the same through the elements of the NDU, and reports the frame's member
+    assert (upper.md.value, upper.md_combination, upper.end.side) == (-360.0, 6, "右")
+    # the earthquake reads the same through the elements of the NDU (no γR: Aggre-SE's nonlinear analysis), and reports the
+    # frame's member
     seismic = forces[0].force(Case.SEISMIC)
     assert (seismic.md.value, seismic.end.member, seismic.pickup) == (1200.0, right.member, pf.SEISMIC_PICKUP)
 
@@ -141,9 +142,9 @@ def test_the_shear_is_the_largest_absolute_force_of_the_section_with_the_moment_
                                 s=((-30.0, 800.0, 0.0, 7), (-60.0, -950.0, 0.0, 8))),
         pile_right.member: lines("JTAN", m=((5.0, 1.0, 0.0, 1), (-10.0, -2.0, 0.0, 2)),
                                  s=((20.0, 900.0, 0.0, 9), (-5.0, -100.0, 0.0, 10)))})
-    safety = forces[3].force(Case.SAFETY)  # 杭位置（上側引張）: Vsd
-    assert (safety.vd.value, safety.vd_combination, safety.vd_md.value, safety.vd_end.side) == (950.0, 8, -60.0, "左")
-    assert safety.md.value == -40.0  # the bending moment of the same point is its own extreme
+    safety = forces[3].force(Case.SAFETY)  # 杭位置（上側引張）: Vsd, times γR 1.2
+    assert (safety.vd.value, safety.vd_combination, safety.vd_md.value, safety.vd_end.side) == (1140.0, 8, -72.0, "左")
+    assert safety.md.value == -48.0  # the bending moment of the same point is its own extreme
 
 
 def test_a_missing_line_is_a_response_error(basis):

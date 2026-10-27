@@ -20,6 +20,7 @@ on a bearing is kept as a magnitude; the cantilever takes it downward.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 
 from ...core.printed import FORCE, MOMENT, Printed
@@ -27,7 +28,8 @@ from ...inputs import PierInput
 from .._exact import d, put
 from ..moving_load import Girder, MovingLoadResult, Objective, search_reactions
 from ..reaction.train import GirderImpact, TrainResult
-from ..reaction.transverse import LATERAL_RATIO, TransverseForce, TransverseResult, TransverseSide
+from ..reaction.transverse import TransverseForce, TransverseResult, TransverseSide
+from ..vehicles import vehicle
 from .geometry import GirderBearings, NumberedBearing
 
 
@@ -139,11 +141,10 @@ def _girder(girder: Girder, reaction: Printed, train: TrainResult, bearings: Gir
 def train_loadings(pier: PierInput, train: TrainResult, girders: dict[Girder, GirderBearings]
                    ) -> tuple[LoadingResult, ...]:
     """The three loadings and the train on every bearing for each (13-1 to 13-8)."""
-    t, spans = pier.train, pier.spans
+    spans, trains = pier.spans, vehicle(pier.train).trains
     found = []
     for loading in Loading:
-        result = search_reactions(spans.origin, spans.end, axle_load=t.axle_load, cars=t.cars,
-                                  car_length=t.car_length, a1=t.a1, a2=t.a2, objective=OBJECTIVES[loading])
+        result = search_reactions(spans.origin, spans.end, trains, objective=OBJECTIVES[loading])
         found.append(LoadingResult(loading, result, {
             Girder.ORIGIN: _girder(Girder.ORIGIN, result.rb, train, girders[Girder.ORIGIN]),
             Girder.END: _girder(Girder.END, result.rc, train, girders[Girder.END])}))
@@ -180,9 +181,9 @@ def _sides(transverse: TransverseResult) -> tuple[tuple[Girder, TransverseSide],
 
 
 def lateral_torques(loadings: tuple[LoadingResult, ...], transverse: TransverseResult,
-                    girders: dict[Girder, GirderBearings]) -> dict[Loading, dict[Girder, Torque]]:
-    """The vehicle lateral load of each loading (13-9 to 13-11): 0.2 × the maximised girder's reaction at the
-    rail height, or 0600's junction loading for B+C支点最大."""
+                    girders: dict[Girder, GirderBearings], ratio: Decimal) -> dict[Loading, dict[Girder, Torque]]:
+    """The vehicle lateral load of each loading (13-9 to 13-11): the vehicle's ratio (0.2 for P-16) × the maximised
+    girder's reaction at the rail height, or 0600's lateral loading for B+C支点最大."""
     found: dict[Loading, dict[Girder, Torque]] = {}
     for item in loadings:
         found[item.loading] = {}
@@ -190,7 +191,7 @@ def lateral_torques(loadings: tuple[LoadingResult, ...], transverse: TransverseR
             if item.loading is Loading.BOTH_MAX:
                 force = transverse.lateral_loading.rb if girder is Girder.ORIGIN else transverse.lateral_loading.rc
             elif (item.loading is Loading.ORIGIN_MAX) == (girder is Girder.ORIGIN):
-                force = put(FORCE, LATERAL_RATIO * d(item.girders[girder].reaction))
+                force = put(FORCE, ratio * d(item.girders[girder].reaction))
             else:
                 force = FORCE(0)
             found[item.loading][girder] = torque(girders[girder], force, side.rail_height)

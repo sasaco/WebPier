@@ -109,8 +109,11 @@ def test_across_the_track_the_turned_section_its_bars_and_the_point_of_the_pik()
         point["index"], point["member"], point["p_id"], point["position_m"])
     assert (bar["index"], crack["index"], bar["b"], bar["h"]) == (point["index"], point["index"], sample["B"],
                                                                   sample["H"])
+    # decision 103: the corner D32 are in the main bars as D19 by area, the side bars are those between them
+    differences = {"rebar1": {"rebar_n": 14.54, "rebar_cover": 104.3}, "rebar2": {"rebar_n": 14.54, "rebar_cover": 104.3},
+                   "sidebar1": {"side_n": 27, "side_cover": 300, "side_ss": 150}}
     for key, expected in SAMPLE_09["bar"].items():
-        assert {name: bar[key][name] for name in expected} == expected, key
+        assert {name: bar[key][name] for name in expected} == expected | differences.get(key, {}), key
     assert {key: document[key] for key in ("basic", "safety", "calc")} == {key: wdj()[key] for key in
                                                                             ("basic", "safety", "calc")}
 
@@ -151,8 +154,8 @@ def test_the_body_selects_the_r5_base_of_its_standard(body, selected):
 def test_the_safety_tables(document):
     safety = document["safety"]
     # the sample's H16 rows with the R5 defaults of WebDanforJS (decision 73): γb of torsion 1.3 (none for fatigue),
-    # γb of Vsd 1.1 of the row 7, and the R5 name of the row 6
-    r5 = {2: {"T_rbt": None}, 5: {"T_rbt": 1.3}, 6: {"T_rbt": 1.3, "title": "使用性（損傷）"},
+    # γb of Vsd 1.1 of the row 7, and the R5 name of the row 6; the 安全性（破壊） counts the side bars (decision 105)
+    r5 = {2: {"T_rbt": None}, 5: {"T_rbt": 1.3, "range": 3}, 6: {"T_rbt": 1.3, "title": "使用性（損傷）"},
           7: {"T_rbt": 1.3, "V_rbs": 1.1}}
     assert [{key: row[key] for key in SAFETY_KEYS} for row in safety["safety_factor"]["1"]] == [
         {key: row[key] for key in SAFETY_KEYS} | {key: value for key, value in r5.get(row["id"], {}).items()

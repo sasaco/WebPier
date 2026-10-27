@@ -78,6 +78,7 @@ FILL_FACTOR = Printed(1.5, 1, "")
 FILL_INEFFECTIVE = Printed(100, 0, "mm")  # l''
 FILL_ALPHA = Printed(0.6, 1, "")
 FILL_BOTTOM = Printed(100, 0, "mm")  # アンカー鉄筋と中詰め下端の間
+# SD490's is not checked in a source (decision 100)
 HOOK_RADIUS = {"SD295": Decimal("2.5"), "SD345": Decimal("2.5"), "SD390": Decimal("3.0")}
 ROUND_FILL = Decimal(50)
 EMBEDMENT = Printed(50, 0, "mm")  # the pipe into the footing (手引き 1.10(2) "50mm 程度")
@@ -394,7 +395,10 @@ def _filling(fck_input: Printed, phi: Printed, grade: str, fsyd: Printed, diamet
     fbod = put(STRESS, d(fbok_printed) / d(GAMMA_C))
     anchorage = put(WHOLE, d(FILL_ALPHA) * d(fsyd) / (4 * d(fbod)) * d(phi))
     required = put(WHOLE, d(FILL_INEFFECTIVE) + d(anchorage))
-    factor = HOOK_RADIUS[grade]
+    factor = HOOK_RADIUS.get(grade)
+    if factor is None:
+        raise InputError(f"{_JOINT}.軸方向鉄筋.材質: {grade} の半円形フックの曲げ内半径（中詰めコンクリート長の算定）"
+                         f"が未確認です（{'・'.join(HOOK_RADIUS)} のいずれかを選んでください）")
     hook = put(WHOLE, (factor + 1) * d(phi))
     least = put(WHOLE, d(FILL_FACTOR) * d(diameter))
     total = put(WHOLE, d(required) + d(hook) + d(FILL_BOTTOM))

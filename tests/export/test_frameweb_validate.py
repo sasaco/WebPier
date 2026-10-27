@@ -111,7 +111,7 @@ INVALID = {
     "node_rows_empty": (("load", "2", "load_node"), []),
     "node_row_ref": (("load", "2", "load_node", 0, "n"), "99"),
     "node_row_zero": (("load", "2", "load_node", 0, "ty"), 0),
-    "node_row_all_null": (("load", "13", "load_node", 0, "tx"), None),
+    "node_row_all_null": (("load", "21", "load_node", 0, "tx"), None),  # 0.8LR: H only
     "node_row_3d": (("load", "2", "load_node", 0, "rx"), 1.0),
     "node_row_index": (("load", "2", "load_node", 1, "row"), 1),
     "node_row_fields": (("load", "2", "load_node", 0, "extra"), 1),
@@ -148,7 +148,7 @@ INVALID = {
     "combine_name": (("combine", "1", "name"), None),
     "combine_row": (("combine", "1", "row"), "1"),
     "combine_empty": (("combine", "6"), {"row": 6, "name": "", "C5": 1}),
-    "pickup_reference": (("pickup", "1", "C1"), 17),
+    "pickup_reference": (("pickup", "1", "C1"), 39),
     "pickup_duplicate": (("pickup", "1", "C2"), 1),
     "pickup_empty": (("pickup", "2", "C1"), DELETE),
     "pickup_name": (("pickup", "1", "name"), 3),

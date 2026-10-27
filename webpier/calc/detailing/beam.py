@@ -137,7 +137,7 @@ def beam_detailing(pier: PierInput) -> BeamDetailing:
     width, depth = beam_section(s.b[1], s.h[2], s.h[3])
     layout = beam_layout(beam, width, depth)
     aggregate_max = need(beam.aggregate_max, f"{_BEAM}.aggregate_max_mm")
-    upper, lower = (BarGroup.of(layout.faces[face].diameter, count(layout.faces[face].count),
+    upper, lower = (BarGroup.of(layout.faces[face].diameter, count(int(layout.faces[face].count.value)),
                                 f"{_BEAM}.faces.{face}.diameter_mm") for face in (UPPER, LOWER))
     tops = [bar.y for bar in layout.bars if bar.group == UPPER]
     effective = put(LENGTH, d(depth) - sum((d(y) for y in tops), Decimal(0)) / len(tops))
@@ -147,7 +147,7 @@ def beam_detailing(pier: PierInput) -> BeamDetailing:
     pitch = need(stirrups.pitch, f"{_BEAM}.stirrups.pitch_mm")
     side = layout.side
     side_diameter = None if side is None else side.diameter
-    side_count = count(0 if side is None else side.count)
+    side_count = count(0 if side is None else int(side.count.value))
     side_pitch = None if side is None else (side.spacing or None)
     path = f"{_BEAM}.side_bars.diameter_mm"
     horizontal = _skin(side_diameter, side_count, width, depth, side_pitch, path)

@@ -5,7 +5,7 @@ from decimal import Decimal
 import pytest
 
 from reaction_support import D, pier_ratios, q, value
-from transverse_support import (
+from transverse_support import (example2_case, 
     SECTIONS, chain, diagram, items, key, product, points, table, transverse,
 )
 from webpier.calc.frame import Direction, NodeRole, Region
@@ -227,17 +227,20 @@ def test_9_9_to_9_11_load_diagrams_vertical():
     for action in result.basic_cases:
         if action.case is not B.D1:
             assert action.line_loads == ()
-        if action.case.value < 16:
+        if action.case.value < B.WIND_WITH_TRAIN.value:
             assert action.member_loads == ()
 
 
 def test_9_13_basic_cases_and_springs():
     printed = {row["no"]: row for row in SECTIONS["basic_cases"]["rows"]}
     result = transverse()
-    assert [action.case.value for action in result.basic_cases] == list(range(1, 18))
+    # Example2's 17 and the vehicle lateral load of two tracks (16) after the one track's (decision 106)
+    assert [action.case.value for action in result.basic_cases] == list(range(1, 19))
     terms = {1: SpringTerm.LONG, 2: SpringTerm.SHORT}  # バネ 1 / 2 = long / short term (decision 28)
-    assert [action.spring for action in result.basic_cases] == [terms[printed[n]["spring"]] for n in range(1, 18)]
-    assert [action.horizontal for action in result.basic_cases] == [n >= 15 for n in range(1, 18)]
+    assert [action.spring for action in result.basic_cases] == [
+        SpringTerm.SHORT if action.case is B.LATERAL_DOUBLE else terms[printed[example2_case(action.case)]["spring"]]
+        for action in result.basic_cases]
+    assert [action.horizontal for action in result.basic_cases] == [n >= 15 for n in range(1, 19)]
     assert [action.track for action in result.basic_cases][8:14] == [Track.UP, Track.DOWN, Track.DOUBLE] * 2
     assert {action.track for action in result.basic_cases[:8] + result.basic_cases[14:]} == {None}
 

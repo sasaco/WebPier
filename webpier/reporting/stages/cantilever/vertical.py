@@ -8,7 +8,8 @@ from ....calc.cantilever.geometry import GIRDER_SIDES
 from ....calc.cantilever.loads import Loading, LoadingResult, Torque
 from ....calc.moving_load import Girder
 from ....calc.reaction import ReactionResult
-from ....calc.reaction.transverse import LATERAL_RATIO, SEISMIC_KH_TRAIN
+from ....calc.reaction.transverse import SEISMIC_KH_TRAIN
+from ....calc.vehicles import vehicle
 from ....core.printed import Printed
 from ....inputs import PierInput
 from ...numbers import printed
@@ -96,7 +97,7 @@ def _abs(value: Printed) -> Printed:
     return Printed(abs(value.value), value.digits, value.unit)
 
 
-def _lateral(m: Manuscript, key: str, result: CantileverResult, loading: LoadingResult, reaction: ReactionResult) -> None:
+def _lateral(m: Manuscript, key: str, result: CantileverResult, loading: LoadingResult, pier: PierInput) -> None:
     torques = result.basis.lateral[loading.loading]
     for girder in (Girder.ORIGIN, Girder.END):
         torque = torques[girder]
@@ -109,7 +110,7 @@ def _lateral(m: Manuscript, key: str, result: CantileverResult, loading: Loading
             _torque_lines(m, side_key, torque, SUPPORTS[girder])
         else:
             _torque_lines(m, side_key, torque, SUPPORTS[girder],
-                          force=(LATERAL_RATIO, "×", loading.girders[girder].reaction))
+                          force=(vehicle(pier.train).lateral_ratio, "×", loading.girders[girder].reaction))
 
 
 def _wind(m: Manuscript, key: str, result: CantileverResult) -> None:
@@ -181,7 +182,7 @@ def section(m: Manuscript, result: CantileverResult, reaction: ReactionResult, p
     for letter, loading in zip(LETTERS, basis.loadings):
         key = f"lateral.{loading.loading.name.lower()}"
         m.heading(f"{key}.heading", f"({letter[0]}) {loading.loading.value}の場合", DETAIL)
-        _lateral(m, key, result, loading, reaction)
+        _lateral(m, key, result, loading, pier)
     m.heading("wind.heading", "5) 風荷重のトルクによる鉛直反力", ITEM)
     _wind(m, "wind", result)
     m.heading("seismic.heading", "6) 地震時上部工慣性力のトルクによる鉛直反力", ITEM)
