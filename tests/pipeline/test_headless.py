@@ -376,8 +376,11 @@ def test_the_contract_is_the_registry(capsys):
     # Decision 78: 0710 draws no 0610 load diagram, so FEMPython is not needed.
     assert (outputs["longitudinal_seismic"]["requires"], outputs["longitudinal_seismic"]["runners"]) == (
         ["ground_model", "reactions"], ["jrsnap"])
-    assert outputs["footing"]["requires"] == ["longitudinal_frame_analysis", "transverse_frame_analysis",
-                                              "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"]
+    # decision 110: the footing uses either group of analyses, and calls the runners of both when both are chosen
+    assert (outputs["footing"]["requires"], outputs["footing"]["either"]) == ([], [
+        ["longitudinal_frame_analysis", "transverse_frame_analysis"],
+        ["longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"]])
+    assert outputs["cantilever"]["either"] == []
     assert outputs["footing"]["stages"] == ["0800", "0810", "0820"]
     assert outputs["footing"]["runners"] == ["fempython", "jrsnap", "webdan2", "aggrese"]
     assert outputs["cantilever"]["runners"] == ["jrsnap", "webdan2", "aggrese"]  # no frame analysis (decision 78)

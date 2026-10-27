@@ -14,6 +14,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from ...inputs import PierInput, choices
+from ...inputs.outputs import FootingParts, footing_parts
 from .beam import BeamDetailing, beam_detailing
 from .column import ColumnDetailing, column_detailing
 from ..pile_springs import GroundSprings
@@ -32,6 +33,8 @@ class DetailingResult:
     # 片持ち梁の照査.外観の照査: whether 0910 has 13.6 使用性, which moves the section 4.3 refers to (13.8 or 13.9)
     cantilever_appearance: bool
     engineering_status: str  # "ok" or "not_ok"
+    # the parts of the footing the outputs choose (decision 110), which the sections 4.4 refers to are numbered by
+    footing_parts: FootingParts = FootingParts(frames=True, seismic=True)
     # a 鋼管ソイルセメント杭's (decision 99); None for any other 基礎形式, and then not in the result JSON
     steel_pile: SteelPileDetailing | None = field(default=None, metadata={"json": "set"})
 
@@ -50,7 +53,7 @@ def calculate_detailing(pier: PierInput, springs: GroundSprings | None = None) -
     appearance = need(pier.cantilever_check.appearance, "片持ち梁の照査.外観の照査")
     return DetailingResult(column=column, beam=beam, footing=footing, pile=pile, steel_pile=steel_pile,
                            cantilever_appearance=appearance == choices.APPEARANCE_CHECKED,
-                           engineering_status="ok" if ok else "not_ok")
+                           engineering_status="ok" if ok else "not_ok", footing_parts=footing_parts(pier.outputs))
 
 
 def _inverse_betas(springs: GroundSprings | None) -> Sequence[tuple[str, float]]:

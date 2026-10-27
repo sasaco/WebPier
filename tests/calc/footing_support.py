@@ -81,6 +81,11 @@ def reactions(direction: str, basis: footing.FootingBasis) -> fc.Reactions:
     return found
 
 
-def completed(direction: str, **changes) -> footing.FootingDirection:
+def completed(direction: str, frames: bool = True, seismic: bool = True, **changes) -> footing.FootingDirection:
+    """*direction* of the parts made (decision 110): without *frames* prepared without its frame."""
     basis, _ = prepared(direction, **changes)
-    return footing.complete(basis, reactions(direction, basis), STEPS, ALPHA_F)
+    if not frames:
+        p = footing_pier(**changes)
+        basis = footing.prepare(p, calculate_foundation(p), None, DIRECTIONS[direction])
+    return footing.complete(basis, reactions(direction, basis) if frames else None,
+                            STEPS if seismic else None, ALPHA_F if seismic else None)

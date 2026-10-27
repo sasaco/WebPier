@@ -26,7 +26,8 @@ from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, value
 PREFIX = "0800/"
 TABLE_LEFT = 1
 WIDTH_COLUMNS = (10, 9, 6, 4)  # the point, the rule, the quantities, be
-FORCE_COLUMNS = (5, 4, 5, 5, 5, 5)  # the label, the symbol and the four checks
+FORCE_COLUMNS = (5, 4)  # the label and the symbol, then CASE_WIDTH for each check of the parts made (decision 110)
+CASE_WIDTH = 5
 DASH = "－"
 DIRECTIONS = (("longitudinal", "(1) 線路方向の計算"), ("transverse", "(2) 線路直角方向の計算"))
 CASE_TITLES = {Case.SAFETY: "安全性\n（破壊）", Case.SHORT_TERM: "耐久性\n永久＋変動", Case.LONG_TERM: "耐久性\n永久",
@@ -55,7 +56,7 @@ def _width_table(direction: FootingDirection) -> TableSpec:
 def _forces_table(forces: SectionForces) -> TableSpec:
     point = forces.point
     found = {force.case: force for force in forces.forces}
-    cases = [case for case, _ in CASES]
+    cases = [case for case, _ in CASES if case in found]  # those of the parts made (decision 110)
     lines: list[tuple[str, str, Callable[[Force], str]]] = [
         ("着目端", "", lambda force: _where(force.end)),
         ("組合せ", "No", lambda force: str(force.md_combination)),
@@ -75,7 +76,8 @@ def _forces_table(forces: SectionForces) -> TableSpec:
                        for case in cases)))
         rows.append((Span("着目端", align="left"), Span("", align="left"),
                      *(Span(_where(safety.vd_end) if case is Case.SAFETY else DASH, align="right") for case in cases)))
-    return TableSpec(FORCE_COLUMNS, tuple(rows), (2,) + (1,) * (len(rows) - 1), header_rows=1, left=TABLE_LEFT)
+    return TableSpec((*FORCE_COLUMNS, *(CASE_WIDTH,) * len(cases)), tuple(rows), (2,) + (1,) * (len(rows) - 1),
+                     header_rows=1, left=TABLE_LEFT)
 
 
 def _direction(m: Manuscript, key: str, title: str, direction: FootingDirection) -> None:
@@ -83,8 +85,9 @@ def _direction(m: Manuscript, key: str, title: str, direction: FootingDirection)
     m.paragraph(f"{key}.width.title", "1) 有効幅", left=TABLE_LEFT, keep=True)
     m.table(f"{key}.width", _width_table(direction))
     m.paragraph(f"{key}.forces.title", "2) 設計断面力", left=TABLE_LEFT, keep=True)
-    m.paragraph(f"{key}.forces.response", f"安全性（破壊）の設計断面力は，骨組解析の応答値に応答値係数γR（={value(GAMMA_R)}）を"
-                "乗じたものとする．", left=TABLE_LEFT)
+    if any(force.case is Case.SAFETY for item in direction.points for force in item.forces):
+        m.paragraph(f"{key}.forces.response", f"安全性（破壊）の設計断面力は，骨組解析の応答値に応答値係数γR（={value(GAMMA_R)}）を"
+                    "乗じたものとする．", left=TABLE_LEFT)
     for index, forces in enumerate(direction.points, 1):
         m.table(f"{key}.forces{index}", _forces_table(forces))
 

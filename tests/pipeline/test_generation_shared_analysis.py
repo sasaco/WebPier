@@ -121,7 +121,7 @@ def test_the_registry_checks_the_shared_analysis_and_the_finishing_step():
     with pytest.raises(ValueError, match="FはBの骨組解析を共有するので、同じ出力が必要です"):
         Registry((*base, _stage("D"), replace(_stage("F"), frame_analysis=FrameAnalysis("B", "frameweb", other))),
                  outputs=items("D", "F"))
-    with pytest.raises(ValueError, match="Fの結果を仕上げるには、骨組解析か、耐震性能照査または仕上げる結果を持つ依存段階が必要です"):
+    with pytest.raises(ValueError, match="Fの結果を仕上げるには、骨組解析か、骨組解析・耐震性能照査または仕上げる結果を持つ依存段階が必要です"):
         Registry((*base, replace(_stage("F"), frame_analysis=None, complete=_complete)), outputs=items("F"))
     with pytest.raises(ValueError, match="Fの結果を仕上げるには計算書が必要です"):
         Registry((*base, replace(_stage("F"), render=None, complete=_complete)), outputs=items("F"))

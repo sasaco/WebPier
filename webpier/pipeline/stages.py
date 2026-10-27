@@ -120,7 +120,7 @@ from ..export.capacita.pile_wdj import build_pile_wdj, write_pile_wdj
 from ..export.soiljr.sdc_seismic import parse_seismic
 from ..export.steeldan import write_wsj
 from ..inputs import PierInput, choices
-from ..inputs.outputs import OUTPUT_KEYS, uses
+from ..inputs.outputs import OUTPUT_KEYS, FootingParts, footing_parts, uses
 from ..reporting.stages import cantilever as cantilever_report
 from ..reporting.stages import cantilever_check as cantilever_check_report
 from ..reporting.stages import column_check as column_check_report
@@ -142,9 +142,8 @@ from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERS
 from ..reporting.stages.column_check import Chapter, render_column_check
 from ..reporting.stages.detailing import render_detailing
 from ..reporting.stages.footing import render_footing
-from ..reporting.stages.footing_check import LONGITUDINAL as FOOTING_CHAPTER_LONGITUDINAL
-from ..reporting.stages.footing_check import TRANSVERSE as FOOTING_CHAPTER_TRANSVERSE
 from ..reporting.stages.footing_check import Chapter as FootingChapter, render_footing_check
+from ..reporting.stages.footing_check import chapters as footing_chapters
 from ..reporting.stages.foundation import render_foundation
 from ..reporting.stages.foundation_check import LONGITUDINAL as FOUNDATION_CHAPTER_8
 from ..reporting.stages.foundation_check import TRANSVERSE as FOUNDATION_CHAPTER_9
@@ -385,11 +384,24 @@ class StageSpec:
     precheck: Callable[[PierInput], None] | None = None
     # SoilStructure calculates the 地盤変位 of the stage's piles, for an input that considers it (decision 97)
     ground_displacement: GroundDisplacementRun | None = None
+    # the stage of a footing of one part in place of this one, which makes both (decision 110): FRAMES_PART with the frame
+    # analyses alone, SEISMIC_PART with the nonlinear analyses alone; the same id and stem
+    parts: Mapping[str, StageSpec] = field(default_factory=dict)
 
     @property
     def has_report(self) -> bool:
         """A report (PDF) with its result JSON; a stage without one publishes only its files under post/."""
         return self.render is not None
+
+
+FRAMES_PART, SEISMIC_PART = "frames", "seismic"
+
+
+def _part(parts: FootingParts) -> str | None:
+    """The key of ``StageSpec.parts`` for the footing *parts*; None when both (or neither) are made."""
+    if parts.frames == parts.seismic:
+        return None
+    return FRAMES_PART if parts.frames else SEISMIC_PART
 
 
 class LoadModelSource(Protocol):
@@ -460,10 +472,13 @@ class Registry:
                     raise ValueError(f"{stage.id}が待つ{name}は、依存段階の SOIL-JR で計算する段階である必要があります")
                 if stage.complete is not None or stage.frame_analysis is not None or stage.nonlinear_analysis is not None:
                     raise ValueError(f"{stage.id}は待つ段階があるので、仕上げと解析は持てません")
+            # the files a completion reads: its own analysis, or those of a dependency (the footing of the frame
+            # analyses alone reads their files, decision 110)
             if stage.complete is not None and analysis is None and stage.soil_jr is None and not any(
                     self.get(name).seismic_check is not None or self.get(name).complete is not None
-                    for name in self.closure(stage.depends_on)):
-                raise ValueError(f"{stage.id}の結果を仕上げるには、骨組解析か、耐震性能照査または仕上げる結果を持つ依存段階が必要です")
+                    or self.get(name).frame_analysis is not None for name in self.closure(stage.depends_on)):
+                raise ValueError(f"{stage.id}の結果を仕上げるには、骨組解析か、骨組解析・耐震性能照査または仕上げる結果を持つ依存段階が"
+                                 "必要です")
             check = stage.section_check
             if check is not None:
                 if not stage.has_report:
@@ -529,8 +544,14 @@ class Registry:
             for foundation, variant in stage.foundations.items():
                 if foundation not in choices.PILE_FOUNDATIONS or variant.id != stage.id or variant.foundations:
                     raise ValueError(f"{stage.id}の{foundation}の段階が不正です")
+            for part, variant in stage.parts.items():
+                if (part not in (FRAMES_PART, SEISMIC_PART) or variant.id != stage.id or variant.stem != stage.stem
+                        or variant.parts or variant.foundations):
+                    raise ValueError(f"{stage.id}の{part}の段階が不正です")
         for foundation in sorted({name for stage in self.stages for name in stage.foundations}):
             self.for_foundation(foundation)  # the registry of each 基礎形式 is checked as a registry is
+        for part in sorted({name for stage in self.stages for name in stage.parts}):
+            self._for_part(part)  # and so is the registry of each part of the footing
 
     def for_foundation(self, foundation: str | None) -> Registry:
         """The registry of the 基礎形式 *foundation*: each stage that has a stage for it is replaced by that; the registry
@@ -539,6 +560,20 @@ class Registry:
             return self
         return replace(self, stages=tuple(stage.foundations.get(foundation, stage) for stage in self.stages),
                        foundation=foundation)
+
+    def _for_part(self, part: str | None) -> Registry:
+        if part is None or not any(part in stage.parts for stage in self.stages):
+            return self
+        return replace(self, stages=tuple(stage.parts.get(part, stage) for stage in self.stages))
+
+    def for_footing(self, parts: FootingParts) -> Registry:
+        """The registry of the footing *parts* (decision 110): each stage that has a stage for the one part made is
+        replaced by that; the registry itself when both are made."""
+        return self._for_part(_part(parts))
+
+    def for_input(self, pier: PierInput) -> Registry:
+        """The registry of the input: its 基礎形式 (decision 85), then the parts of the footing it chooses (decision 110)."""
+        return self.for_foundation(pier.substructure.foundation).for_footing(footing_parts(pier.outputs))
 
     def _check_source(self, stage: StageSpec, source: str, export: str, what: str) -> None:
         if source not in stage.depends_on:
@@ -761,29 +796,51 @@ def _with_pile_check(stage: StageSpec, source: str, name: str, direction: Founda
                                        for foundation in choices.PILE_FOUNDATIONS})
 
 
-def _footing(stem: str) -> StageSpec:
+_FOOTING_FRAMES = ("0610", "0612", "0620", "0622")
+_FOOTING_SEISMIC = ("0710", "0711", "0720", "0721")
+
+
+def _footing(stem: str, frames: bool = True, seismic: bool = True) -> StageSpec:
     """0800: the footing response values of both directions (decision 60), prepared from 0500 and the frames of
     0610 and 0620 before any runner, finished with the support reactions of the frame analyses of 0612 and 0622
     (the same analyses as 0611 and 0621) and the step tables of the seismic checks of 0711 and 0721, whose Cases are
-    the combinations of 0710 and 0720 (decision 76)."""
+    the combinations of 0710 and 0720 (decision 76). A stage of one part (decision 110) reads only its analyses; with
+    both, it has the stage of each part alone."""
     def complete(bases: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        def analyses(reactions_of: str, steps_of: str, seismic: str, basis: Any):
-            return (support_reactions(files[seismic_file(reactions_of, "reaction")], basis.node),
-                    foundation_steps(files[seismic_file(steps_of, "steps")]),
-                    tuple(combination.alpha_f for combination in results[seismic].combinations))
+        def analyses(reactions_of: str, steps_of: str, nonlinear: str, basis: Any):
+            return (support_reactions(files[seismic_file(reactions_of, "reaction")], basis.node) if frames else None,
+                    foundation_steps(files[seismic_file(steps_of, "steps")]) if seismic else None,
+                    tuple(combination.alpha_f for combination in results[nonlinear].combinations) if seismic else None)
         return complete_footing(bases, analyses("0612", "0711", "0710", bases.longitudinal),
                                 analyses("0622", "0721", "0720", bases.transverse))
 
-    return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
-                     lambda pier, results: calculate_footing(pier, results["0500"], results["0610"], results["0620"]),
-                     lambda results, pier, path, pages: render_footing(results["0800"], path),
-                     complete=complete,
-                     grid_documents=lambda results, pier, pages: footing_report.grid_documents(results["0800"]))
+    depends = ("0500", *(_FOOTING_FRAMES if frames else ()), *(_FOOTING_SEISMIC if seismic else ()))
+    stage = StageSpec("0800", stem, depends,
+                      lambda pier, results: calculate_footing(pier, results["0500"], results.get("0610"),
+                                                              results.get("0620")),
+                      lambda results, pier, path, pages: render_footing(results["0800"], path),
+                      complete=complete,
+                      grid_documents=lambda results, pier, pages: footing_report.grid_documents(results["0800"]))
+    if frames and seismic:
+        stage = replace(stage, parts={FRAMES_PART: _footing(stem, seismic=False),
+                                      SEISMIC_PART: _footing(stem, frames=False)})
+    return stage
 
 
-def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter: FootingChapter) -> StageSpec:
+def _footing_check(stage_id: str, stem: str, name: str, direction: str,
+                   parts: FootingParts = FootingParts(frames=True, seismic=True)) -> StageSpec:
     """0810 / 0820: Capacita checks the overhang of *direction* ("longitudinal" / "transverse") with the response
-    values of 0800 written in the WDJ, as sections *chapter* of the report (decision 60, ADR-0008)."""
+    values of 0800 written in the WDJ, as the sections of the footing *parts* (decision 110; with both, the stage has
+    the stage of each part alone), numbered by their chapter (decision 60, ADR-0008)."""
+    chapter = footing_chapters(parts.frames, parts.seismic)[0 if direction == "longitudinal" else 1]
+    stage = _footing_check_stage(stage_id, stem, name, direction, chapter)
+    if parts.frames and parts.seismic:
+        stage = replace(stage, parts={part: _footing_check(stage_id, stem, name, direction, FootingParts(
+            frames=part == FRAMES_PART, seismic=part == SEISMIC_PART)) for part in (FRAMES_PART, SEISMIC_PART)})
+    return stage
+
+
+def _footing_check_stage(stage_id: str, stem: str, name: str, direction: str, chapter: FootingChapter) -> StageSpec:
     return StageSpec(stage_id, stem, ("0800",), None,
                      lambda results, pier, path, pages: render_footing_check(results[stage_id], path, pages, chapter),
                      section_check=SectionCheck("wdj", f"{name}フーチング.wdj",
@@ -796,15 +853,22 @@ def _footing_check(stage_id: str, stem: str, name: str, direction: str, chapter:
                          results[stage_id], chapter))
 
 
-def pile_footing_forces(basis: Any, frame_pik: bytes, seismic_pik: bytes, seismic_frame: Any
-                        ) -> tuple[dict[tuple[int, int], Any], Any, dict[int, int]]:
-    """What ``calc.pile_footing.complete`` reads for one direction: the PIK lines of the frame analysis by (pickup, member), the
-    pickup lines of Aggre-SE by its member, and the element of the NDU of each base member of the frame (found by where the member
-    is in *seismic_frame*, the frame of 0710 / 0720, whose NDU the pickup is of; decision 96)."""
+def member_frame_forces(basis: Any, frame_pik: bytes) -> dict[tuple[int, int], Any]:
+    """The PIK lines of the frame analysis by (pickup, member) of the base members of *basis* (decision 96)."""
     frame_forces: dict[tuple[int, int], Any] = {}
     for pickup in sorted(set(basis.pickups.values())):
         for member, lines in member_forces(frame_pik, list(basis.members), pickup).items():
             frame_forces[(pickup, member)] = lines
+    return frame_forces
+
+
+def pile_footing_forces(basis: Any, frame_pik: bytes | None, seismic_pik: bytes, seismic_frame: Any
+                        ) -> tuple[dict[tuple[int, int], Any] | None, Any, dict[int, int]]:
+    """What ``calc.pile_footing.complete`` reads for one direction: the PIK lines of the frame analysis by (pickup, member)
+    (None without it, decision 110), the pickup lines of Aggre-SE by its member, and the element of the NDU of each base
+    member of the frame (found by where the member is in *seismic_frame*, the frame of 0710 / 0720, whose NDU the pickup is
+    of; decision 96)."""
+    frame_forces = None if frame_pik is None else member_frame_forces(basis, frame_pik)
     numbers = element_numbers(seismic_frame)
     by_ends = {(seismic_frame.nodes[member.start - 1].x, seismic_frame.nodes[member.end - 1].x): member.number
                for member in seismic_frame.members if member.region is Region.FOOTING_BASE}
@@ -812,28 +876,51 @@ def pile_footing_forces(basis: Any, frame_pik: bytes, seismic_pik: bytes, seismi
     return frame_forces, member_forces(seismic_pik, sorted(set(elements.values())), SEISMIC_PICKUP), elements
 
 
-def _pile_footing(stem: str) -> StageSpec:
+def _pile_footing(stem: str, frames: bool = True, seismic: bool = True) -> StageSpec:
     """0800 of a pile foundation (decision 96): the section forces of the footing of both directions, prepared from the
     pile frames of 0610 and 0620 before any runner, finished with the PIK of the frame analyses of 0612 and 0622 and the
-    pickup of 復旧性L2 of the seismic checks of 0711 and 0721."""
+    pickup of 復旧性L2 of the seismic checks of 0711 and 0721. A stage of one part (decision 110) reads only its analyses
+    (the seismic part alone takes the sections from the frames of 0710 and 0720); with both, it has the stage of each
+    part alone."""
     def complete(bases: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        def analyses(reactions_of: str, seismic_check: str, seismic: str, basis: Any) -> tuple[Any, Any, Any]:
-            return pile_footing_forces(basis, files[seismic_file(reactions_of, "pik")],
-                                       files[seismic_file(seismic_check, "pik")], results[seismic].frame)
+        def analyses(reactions_of: str, seismic_check: str, nonlinear: str, basis: Any) -> tuple[Any, Any, Any]:
+            if not seismic:
+                return member_frame_forces(basis, files[seismic_file(reactions_of, "pik")]), None, None
+            frame_pik = files[seismic_file(reactions_of, "pik")] if frames else None
+            return pile_footing_forces(basis, frame_pik, files[seismic_file(seismic_check, "pik")],
+                                       results[nonlinear].frame)
         return complete_pile_footing(bases, analyses("0612", "0711", "0710", bases.longitudinal),
                                      analyses("0622", "0721", "0720", bases.transverse))
 
-    return StageSpec("0800", stem, ("0500", "0610", "0612", "0620", "0622", "0710", "0711", "0720", "0721"),
-                     lambda pier, results: calculate_pile_footing(pier, results["0610"], results["0620"]),
-                     lambda results, pier, path, pages: pile_footing_report.render_pile_footing(results["0800"], path),
-                     complete=complete,
-                     grid_documents=lambda results, pier, pages: pile_footing_report.grid_documents(results["0800"]))
+    frame_of = ("0610", "0620") if frames else ("0710", "0720")
+    depends = ("0500", *(_FOOTING_FRAMES if frames else ()), *(_FOOTING_SEISMIC if seismic else ()))
+    stage = StageSpec("0800", stem, depends,
+                      lambda pier, results: calculate_pile_footing(pier, results[frame_of[0]], results[frame_of[1]],
+                                                                   frames),
+                      lambda results, pier, path, pages: pile_footing_report.render_pile_footing(results["0800"], path),
+                      complete=complete,
+                      grid_documents=lambda results, pier, pages: pile_footing_report.grid_documents(results["0800"]))
+    if frames and seismic:
+        stage = replace(stage, parts={FRAMES_PART: _pile_footing(stem, seismic=False),
+                                      SEISMIC_PART: _pile_footing(stem, frames=False)})
+    return stage
 
 
-def _pile_footing_check(stage: StageSpec, direction: str) -> StageSpec:
-    """0810 / 0820 of a pile foundation (decision 96): the WDJ of the five points of the footing."""
+def _pile_footing_check(stage: StageSpec, direction: str,
+                        parts: FootingParts = FootingParts(frames=True, seismic=True)) -> StageSpec:
+    """0810 / 0820 of a pile foundation (decision 96): the WDJ of the five points of the footing, the sections of the
+    footing *parts* (decision 110; with both, the stage has the stage of each part alone)."""
     stage_id = stage.id
-    chapter = FOOTING_CHAPTER_LONGITUDINAL if direction == "longitudinal" else FOOTING_CHAPTER_TRANSVERSE
+    chapter = footing_chapters(parts.frames, parts.seismic)[0 if direction == "longitudinal" else 1]
+    found = _pile_footing_check_stage(stage, direction, chapter)
+    if parts.frames and parts.seismic:
+        found = replace(found, parts={part: _pile_footing_check(stage, direction, FootingParts(
+            frames=part == FRAMES_PART, seismic=part == SEISMIC_PART)) for part in (FRAMES_PART, SEISMIC_PART)})
+    return found
+
+
+def _pile_footing_check_stage(stage: StageSpec, direction: str, chapter: FootingChapter) -> StageSpec:
+    stage_id = stage.id
     return StageSpec(stage_id, stage.stem, ("0800",), None,
                      lambda results, pier, path, pages: render_footing_check(results[stage_id], path, pages, chapter),
                      section_check=SectionCheck(
@@ -847,7 +934,8 @@ def _pile_footing_check(stage: StageSpec, direction: str) -> StageSpec:
 
 
 def _with_pile_footing(stage: StageSpec, direction: str | None = None) -> StageSpec:
-    """The direct footing's *stage* with its stage for a 場所打ち杭 (decision 96)."""
+    """The direct footing's *stage* with its stage for a 場所打ち杭 (decision 96); each part of the footing has its own
+    (decision 110)."""
     piled = _pile_footing(stage.stem) if direction is None else _pile_footing_check(stage, direction)
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
 
@@ -1142,8 +1230,8 @@ STAGES = Registry((
         seismic_check=_aggrese_files("線路直角方向")),
         "0720", NDU_TRANSVERSE, ("線路直角方向.ndu", "線路直角方向_逆向.ndu"), TRANSVERSE),
     _with_pile_footing(_footing("0800_フーチング")),
-    _with_pile_footing(_footing_check("0810", "0810_線路方向フーチング照査", "線路方向", "longitudinal", FOOTING_CHAPTER_LONGITUDINAL), "longitudinal"),
-    _with_pile_footing(_footing_check("0820", "0820_直角方向フーチング照査", "線路直角方向", "transverse", FOOTING_CHAPTER_TRANSVERSE), "transverse"),
+    _with_pile_footing(_footing_check("0810", "0810_線路方向フーチング照査", "線路方向", "longitudinal"), "longitudinal"),
+    _with_pile_footing(_footing_check("0820", "0820_直角方向フーチング照査", "線路直角方向", "transverse"), "transverse"),
     _cantilever("0900_片持ち梁", "0711", "0721"),
     _cantilever_check("0910_片持ち梁照査", "片持ち梁"),
 ))

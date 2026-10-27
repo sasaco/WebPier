@@ -56,10 +56,16 @@ def test_the_cover_must_be_level():
         embedment(**{"下部構造/土かぶり/終点側_df2": 1.9})
 
 
-@pytest.mark.parametrize("hw2", [0.0, 4.7, 5.0, -0.1])
+@pytest.mark.parametrize("hw2", [4.7, 5.0, -0.1])
 def test_the_normal_water_level_must_lie_inside_the_cover(hw2):
-    with pytest.raises(InputError, match=re.escape("下部構造.水位.平水位_hw2: 0 < hw2 < Df（4.7 m）")):
+    with pytest.raises(InputError, match=re.escape("下部構造.水位.平水位_hw2: 0 ≦ hw2 < Df（4.7 m）")):
         embedment(**{WATER: hw2})
+
+
+def test_the_normal_water_at_the_base_leaves_the_cover_all_wet():
+    """Decision 109 (P7橋脚): hw2 = 0 is the water at the footing base, γ2 the wet weight of the cover."""
+    result = embedment(**{WATER: 0.0})
+    assert result.normal.wet_segment.value == 4.7 and result.unit_weight.value == 18.0
 
 
 LOAM = {"層番": "ローム", "層厚": 1.0, "土質区分": "粘性土", "N値": 4, "単位体積重量": {"湿潤": 17.0, "水中": 7.0},

@@ -1,12 +1,15 @@
 """The 出力項目 of the input (CONTEXT.md, decision 72, ADR-0011): which reports a generation makes.
 
 Each item is true or false (``outputs.<key>``); an item may be true only when every item it uses is true, so the
-chosen items are closed under use. Which stages an item makes is the registry's (pipeline.stages.OUTPUT_STAGES), which
+chosen items are closed under use. The footing uses either group of analyses or both (decision 110): the frame
+analyses of both directions for its checks other than the seismic ones, the nonlinear analyses of both directions for
+the seismic ones (``footing_parts``). Which stages an item makes is the registry's (pipeline.stages.OUTPUT_STAGES), which
 checks that a stage reads only the stages of its own item and of the items it uses. Captions live in the editor.
 """
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
 from .choices import CAST_IN_PLACE_PILE, PILE_FOUNDATIONS, STEEL_SOIL_CEMENT_PILE
@@ -16,6 +19,16 @@ from .choices import CAST_IN_PLACE_PILE, PILE_FOUNDATIONS, STEEL_SOIL_CEMENT_PIL
 class OutputItem:
     key: str
     requires: tuple[str, ...]  # the items whose results it uses; each must be chosen with it
+    either: tuple[tuple[str, ...], ...] = ()  # groups of items it uses: at least one group must be chosen whole
+
+
+@dataclass(frozen=True)
+class FootingParts:
+    """The parts of the footing (0800, 0810, 0820) a choice of items makes (decision 110): the checks other than the
+    seismic ones with the frame analyses of both directions, the seismic ones with their nonlinear analyses."""
+
+    frames: bool
+    seismic: bool
 
 
 _FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
@@ -33,7 +46,7 @@ OUTPUT_ITEMS = (
     OutputItem("longitudinal_nonlinear_analysis", ("longitudinal_seismic",)),  # 0711
     OutputItem("transverse_seismic", ("ground_model", "reactions")),  # 0720 (decision 78: without 0620)
     OutputItem("transverse_nonlinear_analysis", ("transverse_seismic",)),  # 0721
-    OutputItem("footing", (*_FRAMES, *_NONLINEAR)),  # 0800, 0810, 0820
+    OutputItem("footing", (), (_FRAMES, _NONLINEAR)),  # 0800, 0810, 0820 (decision 110)
     OutputItem("cantilever", _NONLINEAR),  # 0900, 0910
 )
 OUTPUT_KEYS = tuple(item.key for item in OUTPUT_ITEMS)
@@ -64,19 +77,40 @@ def foundation_makes(foundation: str | None, key: str) -> bool:
 
 
 def requires(key: str, foundation: str | None = None) -> tuple[str, ...]:
-    """The items *key* uses directly, for the 基礎形式 *foundation* (None: as the table has them)."""
+    """The items *key* uses directly, each of which must be chosen with it, for the 基礎形式 *foundation* (None: as the
+    table has them)."""
     return _BY_KEY[key].requires + FOUNDATION_REQUIRES.get(foundation, {}).get(key, ())
 
 
+def either(key: str) -> tuple[tuple[str, ...], ...]:
+    """The groups of items *key* uses of which at least one must be chosen whole (none: no such rule)."""
+    return _BY_KEY[key].either
+
+
+def available(key: str, chosen: Collection[str], foundation: str | None = None) -> bool:
+    """Whether *key* may be chosen with the items *chosen*: every item it requires, and a whole group of ``either``."""
+    groups = either(key)
+    return (all(item in chosen for item in requires(key, foundation))
+            and (not groups or any(all(item in chosen for item in group) for group in groups)))
+
+
+def footing_parts(chosen: Collection[str]) -> FootingParts:
+    """The parts of the footing the items *chosen* make (decision 110); neither when the footing is not chosen."""
+    def whole(group: tuple[str, ...]) -> bool:
+        return "footing" in chosen and all(item in chosen for item in group)
+    return FootingParts(frames=whole(_FRAMES), seismic=whole(_NONLINEAR))
+
+
 def uses(key: str, foundation: str | None = None) -> frozenset[str]:
-    """Every item *key* uses, directly or through another item, for the 基礎形式 *foundation*."""
+    """Every item *key* uses or may use (each item of its ``either`` groups), directly or through another item, for
+    the 基礎形式 *foundation*."""
     found: set[str] = set()
-    pending = list(requires(key, foundation))
+    pending = [*requires(key, foundation), *(item for group in either(key) for item in group)]
     while pending:
         item = pending.pop()
         if item not in found:
             found.add(item)
-            pending.extend(requires(item, foundation))
+            pending.extend((*requires(item, foundation), *(other for group in either(item) for other in group)))
     return frozenset(found)
 
 

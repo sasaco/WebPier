@@ -47,7 +47,7 @@ from ..core.integrity import sha256
 from ..inputs.fields import FIELDS, Field
 from ..inputs.choices import CAST_IN_PLACE_PILE, PILE_FOUNDATIONS
 from ..inputs.outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, uses
-from ..inputs.outputs import requires as item_requires
+from ..inputs.outputs import either as item_either, requires as item_requires
 from ..inputs.parse import BEARING_SLOTS, SCHEMA_VERSION as INPUT_SCHEMA_VERSION, TOP_KEYS, load_model_item
 from ..inputs.rebar import REBAR_VERSION
 from .cli import EXIT_ERROR, EXIT_RECOVERY, PROJECT_DIR
@@ -333,7 +333,8 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
         needed = [stage_id for item in (*uses(key), key) for stage_id in registry.outputs.get(item, ())]
         pile_needed = [stage_id for item in (*uses(key, CAST_IN_PLACE_PILE), key)
                        for stage_id in registry.outputs.get(item, ())]
-        return {"key": key, "requires": list(requires), "stages": list(stages),
+        return {"key": key, "requires": list(requires), "either": [list(group) for group in item_either(key)],
+                "stages": list(stages),
                 "runners": [module.ENGINE for module in required_runners(needed, registry=registry)],
                 "files": files(planned(options, stages, registry=registry)),
                 "pileFoundation": {

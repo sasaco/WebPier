@@ -24,7 +24,7 @@ from .model import (
     Materials, PierInput, PileFoundation, PileJoint, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
     Spans, Substructure, SteelSoilCementPile, Train,
 )
-from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, requires
+from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, available, foundation_makes, requires
 from .rebar import parse_rebar
 
 SCHEMA_VERSION = 2
@@ -402,11 +402,14 @@ def _outputs(root: Reader, foundation: str) -> tuple[str, ...]:
     chosen = tuple(key for key in OUTPUT_KEYS if read(node.at(key)))
     for key in chosen:
         if not foundation_makes(foundation, key):
-            available = "・".join(PILE_OUTPUT_KEYS) or "なし"
-            raise node.at(key).error(f"{foundation}は未対応です（{foundation}で選べる出力項目: {available}）")
+            makes = "・".join(PILE_OUTPUT_KEYS) or "なし"
+            raise node.at(key).error(f"{foundation}は未対応です（{foundation}で選べる出力項目: {makes}）")
     for item in OUTPUT_ITEMS:
         if item.key in chosen and (missing := [key for key in requires(item.key, foundation) if key not in chosen]):
             raise node.at(item.key).error(f"{'・'.join(f'outputs.{key}' for key in missing)} も true が必要です")
+        if item.key in chosen and not available(item.key, chosen, foundation):  # decision 110: a whole group of either
+            groups = " か、".join("・".join(f"outputs.{key}" for key in group) for group in item.either)
+            raise node.at(item.key).error(f"{groups} のどちらかの組がすべて true である必要があります")
     if not chosen:
         raise node.error("出力項目が選ばれていません（どれかを true にしてください）")
     return chosen

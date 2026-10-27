@@ -135,8 +135,8 @@ def _outside(pier: PierInput, foundation: FoundationResult) -> str | None:
         return (f"下部構造.土かぶり: 起点側_df1（{sub.df1.value} m）と終点側_df2（{sub.df2.value} m）が異なり、"
                 "Df・γ2 の対象（左右同じ平坦な土被り）ではありません")
     depth, water = foundation.surface_thickness, sub.hw2
-    if not 0 < water.value < depth.value:
-        return f"下部構造.水位.平水位_hw2: 0 < hw2 < Df（{depth.value} m）が必要です（入力 {water.value} m）"
+    if not 0 <= water.value < depth.value:  # 0: the water at the base, the cover all wet (decision 109)
+        return f"下部構造.水位.平水位_hw2: 0 ≦ hw2 < Df（{depth.value} m）が必要です（入力 {water.value} m）"
     return None
 
 

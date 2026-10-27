@@ -23,8 +23,8 @@ HAND = json.loads((Path(__file__).parents[1] / "fixtures" / "example2" / "footin
     encoding="utf-8"))
 
 
-def checked(direction="0800_longitudinal", **changes):
-    return calculate_footing_check(footing_pier(**changes), completed(direction, **changes))
+def checked(direction="0800_longitudinal", frames=True, seismic=True, **changes):
+    return calculate_footing_check(footing_pier(**changes), completed(direction, frames, seismic, **changes))
 
 
 def test_the_point_is_the_overhang_section_of_one_metre_by_h6():
@@ -103,3 +103,16 @@ def test_the_report_sections_are_the_five_of_the_sample_and_the_rebar_amount():
 def test_a_blank_condition_is_an_input_error(path, message):
     with pytest.raises(InputError, match=re.escape(message)):
         checked(**{path: None})
+
+
+def test_a_footing_of_one_part_checks_that_part_alone():
+    """Decision 110: the frame analyses alone check 安全性, 耐久性 and the rebar amount with the same forces as both; the
+    nonlinear analyses alone 復旧性（地震時） with the same 地震時 forces."""
+    both, frames, seismic = checked(), checked(seismic=False), checked(frames=False)
+    assert frames.sections == ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
+                               "bending_rebar_amount")
+    assert (frames.safety, frames.durability_short, frames.durability_long, frames.seismic) == (
+        both.safety, both.durability_short, both.durability_long, None)
+    assert seismic.sections == ("bending_restorability_eq", "shear_restorability_eq")
+    assert (seismic.safety, seismic.durability_short, seismic.durability_long, seismic.seismic) == (
+        None, None, None, both.seismic)

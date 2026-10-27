@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from footing_support import completed
 from reaction_support import pier
 from webpier.calc import foundation_check as fc
 from webpier.calc import footing
@@ -368,3 +369,16 @@ def test_a_design_shear_force_that_is_not_positive_is_an_input_error():
     water = footing.buoyancy(LENGTH(3.78), LENGTH(2.15))
     with pytest.raises(InputError, match="設計せん断力 Vd が 0 以下"):
         footing.section_forces(footing.MOMENT_PER_M(10.0), LINE_LOAD(10.0), LENGTH(9.0), LENGTH(9.0), weight, water)
+
+
+def test_a_footing_of_one_part_has_its_columns_alone():
+    """Decision 110: the four columns of the frame analyses, or the 地震時 alone prepared without the frame (no support
+    node, no pickup); each column is the one of both parts."""
+    both = completed("0800_longitudinal")
+    frames = completed("0800_longitudinal", seismic=False)
+    seismic = completed("0800_longitudinal", frames=False)
+    assert tuple(column.key for column in frames.columns) == COLUMNS[:4] and frames.columns == both.columns[:4]
+    assert tuple(column.key for column in seismic.columns) == ("seismic",) and seismic.columns == both.columns[4:]
+    assert (seismic.basis.node, seismic.basis.pickups, seismic.basis.check.node, seismic.basis.check.pickups) == (
+        None, {}, None, {})
+    assert seismic.column("safety_moment") is None and frames.column("seismic") is None

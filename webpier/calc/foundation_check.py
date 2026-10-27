@@ -169,8 +169,8 @@ class Basis:
     soil_type: str
     ground: GroundKind
     long_term_limit: Printed  # the upper limit of qd for 長期
-    node: int  # the support node of the frame
-    pickups: Mapping[str, int]  # the pickup (extraction) number of each column, by its key
+    node: int | None  # the support node of the frame; None without one (the seismic footing alone, decision 110)
+    pickups: Mapping[str, int]  # the pickup (extraction) number of each column, by its key; none without a frame
 
 
 @dataclass(frozen=True)
@@ -250,9 +250,10 @@ class FoundationCheckResult:
     engineering_status: str  # "ok" when every check of every column is satisfied, else "not_ok" (decision 54)
 
 
-def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameResult,
+def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameResult | None,
             direction: Direction) -> Basis:
-    """Everything of the check but the reactions; an input outside it is an input error, before any analysis."""
+    """Everything of the check but the reactions; an input outside it is an input error, before any analysis. Without
+    *frame_result* (the seismic footing alone, decision 110) there is no support node and no pickup."""
     support = pier.soil.support
     ground = GROUND_OF_SOIL.get(support.soil_type)
     if ground is None:
@@ -264,12 +265,14 @@ def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameRe
     normal, high = (cover_weight(embedment, water) for water in (pier.substructure.hw2, pier.substructure.hw1))
     limit = (put(PRESSURE, d(ground.base) + d(normal.unit_weight) * d(embedment.depth)) if ground.with_cover
              else PRESSURE(ground.base.value))
-    numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
+    numbers = {} if frame_result is None else {extraction.group: extraction.number
+                                               for extraction in frame_result.extractions}
     return Basis(b=b, l=l, depth=embedment.depth, friction_angle=foundation.friction_angle,
                  gamma_e1=support.unit_weight_submerged, embedment=embedment, normal=normal, high=high,
                  n_gamma=foundation.n_gamma, n_q=foundation.n_q, soil_type=support.soil_type, ground=ground,
-                 long_term_limit=limit, node=frame_result.frame.node(NodeRole.FOOTING_BOTTOM).number,
-                 pickups={spec.key: numbers[spec.group] for spec in COLUMNS})
+                 long_term_limit=limit,
+                 node=None if frame_result is None else frame_result.frame.node(NodeRole.FOOTING_BOTTOM).number,
+                 pickups={} if frame_result is None else {spec.key: numbers[spec.group] for spec in COLUMNS})
 
 
 def pick(reactions: Reactions, pickup: int, focus: Focus) -> SupportReaction:

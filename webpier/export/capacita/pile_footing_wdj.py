@@ -70,15 +70,17 @@ def _moment(id_: int, md) -> dict[str, Any]:
 
 
 def _force(item: CheckPoint) -> dict[str, Any]:
+    """The forces of the point, of the cases made (decision 110)."""
     row: dict[str, Any] = {"index": item.index}
     forces = item.forces
     if item.point.bending:
-        row.update({**_moment(SHORT_TERM, forces.force(Case.SHORT_TERM).md),
-                    **_moment(LONG_TERM, forces.force(Case.LONG_TERM).md),
-                    **_moment(SAFETY, forces.force(Case.SAFETY).md), **_moment(SEISMIC, forces.force(Case.SEISMIC).md),
-                    **_moment(MINIMUM_REBAR, forces.force(Case.LONG_TERM).md)})
+        for id_, case in ((SHORT_TERM, Case.SHORT_TERM), (LONG_TERM, Case.LONG_TERM), (SAFETY, Case.SAFETY),
+                          (SEISMIC, Case.SEISMIC), (MINIMUM_REBAR, Case.LONG_TERM)):
+            if (force := forces.force(case)) is not None:
+                row.update(_moment(id_, force.md))
     if item.point.deep_beam is not None:
         safety = forces.force(Case.SAFETY)
+        assert safety is not None  # a point keeps its shear only with the frame analysis (calc.pile_footing.complete)
         row.update({f"Vd{SAFETY}_Vd": _number(safety.vd), f"Vd{SAFETY}_Md": _number(safety.vd_md), f"Vd{SAFETY}_Nd": 0})
     return row
 

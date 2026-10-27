@@ -22,7 +22,7 @@ from ..core.errors import InputError
 from ..core.integrity import file_sha256
 from ..inputs import parse_input
 from ..inputs.choices import PILE_FOUNDATIONS
-from ..inputs.outputs import OUTPUT_KEYS, PILE_OUTPUT_KEYS, foundation_makes, requires, users
+from ..inputs.outputs import OUTPUT_KEYS, PILE_OUTPUT_KEYS, available, foundation_makes
 from . import pdf_catalog
 from .calculation import CalculationController, CalculationResult
 from .pdf_dialog import PdfPreviewDialog
@@ -146,7 +146,7 @@ class CalculationPage:
         for key, variable in self.outputs.items():
             variable.set(chosen[key])
             # an item the 基礎形式 cannot make yet stays enabled while it is checked, so that it can be unchecked
-            enabled = (not self.busy and all(chosen[item] for item in requires(key, foundation))
+            enabled = (not self.busy and available(key, {item for item in OUTPUT_KEYS if chosen[item]}, foundation)
                        and (foundation_makes(foundation, key) or chosen[key]))
             self.output_boxes[key].state(["!disabled"] if enabled else ["disabled"])
         self.foundation_note.set("" if all(foundation_makes(foundation, key) for key in OUTPUT_KEYS) else
@@ -154,12 +154,15 @@ class CalculationPage:
                                  f"{'・'.join(PILE_OUTPUT_KEYS) or 'なし'}）。")
 
     def _output_changed(self, key: str) -> None:
-        """Write the item into the document (decision 72); unchecking it unchecks every item that uses it."""
+        """Write the item into the document (decision 72); unchecking it unchecks every item that can no longer be
+        chosen (the footing stays with either group of its analyses, decision 110)."""
         chosen = self._chosen()
         chosen[key] = self.outputs[key].get()
         if not chosen[key]:
             foundation = self.editor.document.data.get("下部構造", {}).get("基礎形式")
-            chosen.update((item, False) for item in users(key, foundation))
+            while unavailable := [item for item in OUTPUT_KEYS if chosen[item]
+                                  and not available(item, {other for other in OUTPUT_KEYS if chosen[other]}, foundation)]:
+                chosen.update((item, False) for item in unavailable)
         self.editor.document.data["outputs"] = {item: chosen[item] for item in OUTPUT_KEYS}
         self._show_outputs()
         self.editor.changed()

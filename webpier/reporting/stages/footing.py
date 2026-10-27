@@ -12,7 +12,9 @@ here.
 Written differently from the sample (decision 60; as 0612, decision 54): the rows of the second axis (ey, L′) and of
 the cohesive soils (c, Nc, frc and their term) are not printed (the sandy equation applies, in the plane of the
 frame), Be has a row, q2 of a uniform block is blank, the seismic buoyancy is the normal water in 6) and 7) alike,
-and La is printed to 3 decimals. "せん断力ト" of the sample is corrected.
+and La is printed to 3 decimals. "せん断力ト" of the sample is corrected. The tables of a part the input does not choose
+are not printed (decision 110): without the frame analyses only the 地震時 tables, without the nonlinear analyses only
+the others.
 """
 
 from __future__ import annotations
@@ -253,8 +255,9 @@ def _direction(m: Manuscript, key: str, title: str, found: FootingDirection) -> 
 
     m.heading(f"{key}.heading", title, 2)
     m.heading(f"{key}.pressure.heading", "1) 設計鉛直地盤反力度の算定", 3)
-    _pressure(m, f"{key}.pressure.table", others, basis.check)
-    _pressure(m, f"{key}.pressure.seismic.table", seismic, basis.check)
+    for part, columns in (("", others), (".seismic", seismic)):
+        if columns:
+            _pressure(m, f"{key}.pressure{part}.table", columns, basis.check)
     m.figure(f"{key}.pressure.cases.figure", cases_figure(m.prefix + f"{key}.pressure.cases.figure"))
     m.heading(f"{key}.width.heading", "2) 有効幅", 3, tag="【ＲＣ標準 13.6.3】")
     m.paragraph(f"{key}.width.side", "下　側", keep=True)
@@ -278,12 +281,14 @@ def _direction(m: Manuscript, key: str, title: str, found: FootingDirection) -> 
         lead("buoyancy", side)
         m.table(f"{key}.buoyancy.{side.name}.table", _buoyancy_table(side))
     m.heading(f"{key}.moment.heading", "6) 設計曲げモーメント", 3)
-    m.table(f"{key}.moment.table", _force_table(others, _moment_rows(width)))
-    m.table(f"{key}.moment.seismic.table", _force_table(seismic, _moment_rows(width)))
+    for part, columns in (("", others), (".seismic", seismic)):
+        if columns:
+            m.table(f"{key}.moment{part}.table", _force_table(columns, _moment_rows(width)))
     m.paragraph(f"{key}.moment.tension", "よって、下側引張となる。")
     m.heading(f"{key}.shear.heading", "7) 発生せん断力", 3)
-    m.table(f"{key}.shear.table", _force_table(others, _shear_rows(width)))
-    m.table(f"{key}.shear.seismic.table", _force_table(seismic, _shear_rows(width)))
+    for part, columns in (("", others), (".seismic", seismic)):
+        if columns:
+            m.table(f"{key}.shear{part}.table", _force_table(columns, _shear_rows(width)))
 
 
 def content(result: FootingResult) -> tuple[Unit, ...]:

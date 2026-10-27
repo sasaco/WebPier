@@ -245,8 +245,8 @@ def test_zero_loads_have_no_rows_but_an_empty_case_keeps_one():
     built = model("longitudinal")
     assert all(load.h.value or load.n.value or load.m.value for case in built.cases for load in case.joint_loads)
     # Decision 62: a case without load keeps one zero row where it acts, so JRSNAP's 荷重図 draws (and titles) every
-    # case. No input makes one now (no snow makes no snow case, decision 69; JRSNAP needs 0 < hw2): the buoyancy
-    # is zeroed by hand.
+    # case. No input makes one now (no snow makes no snow case, decision 69); hw2 = 0 has no
+    # buoyancy at the normal water (decision 109), and here the buoyancy is zeroed by hand.
     p, foundation, embedment, layout, seismic = results("longitudinal")
     buoyancy = seismic.basic_cases[2]
     empty = replace(buoyancy, points=tuple(replace(point, n=Printed(0.0, 2, "kN"), m=Printed(0.0, 2, "kN m"))

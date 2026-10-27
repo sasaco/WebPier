@@ -28,7 +28,7 @@
    Kh from its summary workbook, has JRSNAP analyze the NDU of each Case of the 応答変位法 into the same folder (the NDUs are
    published in it) and Aggre-SE check again with the project of every Case, whose files are the ones staged. The runners
    are looked up before anything is calculated, and a missing or failing runner stops the generation. The stages are
-   those of the input's 基礎形式 (``Registry.for_foundation``).
+   those of the input's 基礎形式 and the parts of its footing (``Registry.for_input``, decisions 85 and 110).
 4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
    sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
    written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
@@ -213,7 +213,7 @@ def resolve_input(options: GenerationOptions, registry: Registry = STAGES
     input is read and parsed strictly, so an invalid one is an input error."""
     registry = with_addin(options, registry)
     pier = _read(options, registry)[1]
-    registry = registry.for_foundation(pier.substructure.foundation)
+    registry = registry.for_input(pier)
     return registry, registry.selected(pier.outputs), pier
 
 
@@ -242,7 +242,7 @@ def planned(options: GenerationOptions, selected: Sequence[str], *, registry: Re
     the direct foundation, and of a pile foundation only the files it always has.
     """
     if pier is not None:
-        registry = registry.for_foundation(pier.substructure.foundation)
+        registry = registry.for_input(pier)
     return tuple(_plan(options, registry, tuple(selected), pier)[0])
 
 
@@ -289,7 +289,7 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
 
     The real-app acceptance rebuilds its candidate files with this.
     """
-    registry = registry.for_foundation(pier.substructure.foundation)
+    registry = registry.for_input(pier)
     selected = registry.stage(stage_id).id
     item = next((item for item in registry.get(selected).exports if item.kind == kind), None)
     if item is None:
@@ -860,7 +860,7 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
     is checked only by a generation. Returns the selected stages."""
     registry = with_addin(options, registry)
     data, pier = _read(options, registry)
-    registry = registry.for_foundation(pier.substructure.foundation)
+    registry = registry.for_input(pier)
     selected = registry.selected(pier.outputs)
     _inputs(data, pier, registry, selected, _plan(options, registry, selected, pier)[1])
     return selected
@@ -871,7 +871,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     """Calculate and stage one generation; the caller decides whether to ``publish`` it."""
     registry = with_addin(options, registry)
     data, pier = _read(options, registry)
-    registry = registry.for_foundation(pier.substructure.foundation)
+    registry = registry.for_input(pier)
     selected = registry.selected(pier.outputs)
     artifacts, posts = _plan(options, registry, selected, pier)
     destinations = [artifact.path for artifact in artifacts]

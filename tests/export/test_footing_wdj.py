@@ -9,6 +9,7 @@ calculation footing_hand.json through calc.footing_check; nothing of the WDJ is 
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -135,3 +136,18 @@ def test_the_bytes_are_the_json_webpier_writes():
     assert json.loads(data.decode("utf-8")) == wdj
     assert not data.startswith(b"\xef\xbb\xbf")
     assert write_footing_wdj(wdj) == data
+
+
+def test_a_check_of_one_part_has_the_point_of_that_part_alone():
+    """Decision 110: the point and forces of the part made, as index 1; the forces as in the WDJ of both parts."""
+    both = footing_check()
+    whole = build_footing_wdj(both)
+    frames = build_footing_wdj(replace(both, seismic=None))
+    seismic = build_footing_wdj(replace(both, safety=None, durability_short=None, durability_long=None))
+    assert [point["p_name"] for point in frames["points"]] == ["線路方向"]
+    assert frames["force"] == [whole["force"][0]] and frames["shear"] == [whole["shear"][0]]
+    assert [point["p_name"] for point in seismic["points"]] == ["線路方向（地震時）"]
+    assert [point["index"] for point in seismic["points"]] == [1]
+    assert seismic["force"] == [{**whole["force"][1], "index": 1}]
+    assert seismic["shear"] == [{**whole["shear"][1], "index": 1}]
+    assert [row["index"] for row in seismic["bar"]] == [1] and [row["index"] for row in seismic["crack"]] == [1]

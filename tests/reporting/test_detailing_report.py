@@ -17,6 +17,7 @@ from gridlayoutpdf import Figure, Line
 
 from webpier.calc.detailing import calculate_detailing
 from webpier.inputs import parse_input
+from webpier.inputs.outputs import FootingParts
 from webpier.reporting.stages.detailing import (FigureSpec, build_detailing, content, grid_documents, records,
                                                 references, render_detailing)
 from example4_support import EXAMPLE4_INPUT
@@ -42,6 +43,11 @@ def test_the_sections_referred_to():
     assert refs.beam == ("13.8", "13.5")
     assert dict(refs.footing) == {"線路": ("12.5", "12.3"), "直角": ("12.9", "12.7")}
     assert references(True).beam == ("13.9", "13.5")
+    # decision 110: numbered by the parts of the footing the outputs choose; none without its frame part
+    assert dict(references(False, FootingParts(frames=True, seismic=False)).footing) == {
+        "線路": ("12.4", "12.3"), "直角": ("12.7", "12.6")}
+    assert dict(references(False, FootingParts(frames=False, seismic=True)).footing) == {
+        "線路": (None, None), "直角": (None, None)}
 
 
 def test_the_report_prints_the_chapter_and_the_references():
@@ -57,9 +63,17 @@ def test_the_report_prints_the_chapter_and_the_references():
     assert found["column.直角.stress.reference"] == "照査は「9.7 耐久性の照査」に示す。"
     assert found["beam.minimum.axial.reference"] == "照査は「13.8 最小鉄筋量及び最大鉄筋量」に示す。"
     assert found["beam.stress.reference"] == "照査は「13.5 耐久性の照査」に示す。"
-    assert found["footing.直角.maximum.reference"] == "照査は「12.9 最小鉄筋量及び最大鉄筋量」に示す。"
-    assert found["footing.直角.stress.reference"] == "照査は「12.7 耐久性の照査」に示す。"
-    assert found["footing.線路.stress.reference"] == "照査は「12.3 耐久性の照査」に示す。"
+    # current.json chooses no footing (decision 110): the footing references have no section
+    assert found["footing.直角.maximum.reference"] == ("照査は、フーチングの断面照査で地震時以外の照査を行うときに"
+                                                       "「最小鉄筋量及び最大鉄筋量」で確かめる。")
+    assert found["footing.線路.stress.reference"] == ("照査は、フーチングの断面照査で地震時以外の照査を行うときに"
+                                                     "「耐久性の照査」で確かめる。")
+    document = data()
+    document["outputs"] = dict.fromkeys(document["outputs"], True)
+    every = texts(document)
+    assert every["footing.直角.maximum.reference"] == "照査は「12.9 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert every["footing.直角.stress.reference"] == "照査は「12.7 耐久性の照査」に示す。"
+    assert every["footing.線路.stress.reference"] == "照査は「12.3 耐久性の照査」に示す。"
     document = data()
     document["片持ち梁の照査"]["外観の照査"] = "行う"
     assert texts(document)["beam.maximum.reference"] == "照査は「13.9 最小鉄筋量及び最大鉄筋量」に示す。"

@@ -13,6 +13,9 @@ each a member of its own because the effective width, the section's width, diffe
   own with the shear check alone. No shear of 耐久性 and 復旧性（地震時）is asked: 耐久性 is omitted as in the direct footing
   (面部材), the shear of 復旧性 is not checked in the sample.
 
+Only the sections of the parts 0800 made are asked for (decision 110): 復旧性（地震時） with the nonlinear analyses, the
+others with the frame analysis.
+
 The materials, the conditions of 柱の断面照査 and the safety factors are those of the direct footing (``calc.footing_check``,
 ``calc.column_check``).
 """
@@ -28,10 +31,11 @@ from ._exact import d, put
 from .column_check import K4, KR, SAFETY_FACTORS_OF_BODY, SafetyFactors, Steel
 from .footing_check import MEMBER, NAMES, _need, _steel
 from .footing_rebar import COUNT, MainBars, Stirrups
-from .pile_footing import FootingDirection, Point, SectionForces
+from .pile_footing import Case, FootingDirection, Point, SectionForces
 
 REPORT_SECTIONS = ("bending_safety_destruction", "shear_deep_beam_safety_destruction", "bending_durability",
                    "bending_restorability_eq", "bending_rebar_amount")
+SEISMIC_SECTIONS = frozenset(("bending_restorability_eq",))  # the section of the nonlinear analyses (decision 110)
 
 
 @dataclass(frozen=True)
@@ -69,8 +73,10 @@ class PileFootingCheckResult:
 
     @property
     def sections(self) -> tuple[str, ...]:
-        """The sections of Capacita's report this check asks for, in report order."""
-        return REPORT_SECTIONS
+        """The sections of Capacita's report this check asks for, in report order: those of the parts it has."""
+        cases = {force.case for item in self.points for force in item.forces.forces}
+        return tuple(section for section in REPORT_SECTIONS
+                     if (Case.SEISMIC if section in SEISMIC_SECTIONS else Case.SAFETY) in cases)
 
 
 def scaled(bars: MainBars, width: Printed) -> MainBars:

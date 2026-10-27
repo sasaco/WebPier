@@ -11,6 +11,7 @@ the real report is. The expected texts follow 12_フーチング.pdf 254〜266 a
 from __future__ import annotations
 
 import io
+from dataclasses import replace
 from pathlib import Path
 
 import pymupdf
@@ -19,7 +20,7 @@ from reportlab.pdfgen import canvas
 
 from footing_report_cases import footing_check
 from webpier.reporting.assembly import document_bytes, page_range
-from webpier.reporting.stages.footing_check import (LONGITUDINAL, TRANSVERSE, build_footing_check, parts,
+from webpier.reporting.stages.footing_check import (LONGITUDINAL, TRANSVERSE, build_footing_check, chapters, parts,
                                                     render_footing_check)
 
 MARK = "FAKE CAPACITA"
@@ -161,3 +162,51 @@ def test_every_section_must_have_its_pages(tmp_path, section):
     with pytest.raises(ValueError, match=f"差し込むページ {section} がありません"):
         render_footing_check(check, tmp_path / "report.pdf", given, LONGITUDINAL)
     assert not (tmp_path / "report.pdf").exists()
+
+
+def render_part(tmp_path: Path, frames: bool, transverse=False) -> list[str]:
+    """The report of one part of the footing (decision 110): the check without the other part's forces."""
+    _, check = footing_check("0800_transverse" if transverse else "0800_longitudinal")
+    if frames:
+        check = replace(check, seismic=None)
+    else:
+        check = replace(check, safety=None, durability_short=None, durability_long=None)
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    path = render_footing_check(check, tmp_path / "report.pdf", capacita(check.sections),
+                                chapters(frames, not frames)[1 if transverse else 0])
+    with pymupdf.open(path) as document:
+        return [page.get_text() for page in document]
+
+
+def test_the_chapters_number_the_sections_of_the_parts_made_in_turn():
+    """Decision 110: 0820 follows 0810's sections."""
+    assert (LONGITUDINAL, TRANSVERSE) == chapters(True, True)
+    assert [chapter.section("durability") for chapter in chapters(True, True)] == ["12.3", "12.7"]
+    frames = chapters(True, False)
+    assert [[chapter.section(group) for group in chapter.groups] for chapter in frames] == [
+        ["12.2", "12.3", "12.4"], ["12.5", "12.6", "12.7"]]
+    assert [[chapter.section(group) for group in chapter.groups] for chapter in chapters(False, True)] == [
+        ["12.2"], ["12.3"]]
+
+
+def test_the_frame_analyses_alone_print_safety_durability_and_the_rebar_amount(tmp_path):
+    pages = render_part(tmp_path, frames=True)
+    order = order_of(pages)
+    assert [section for section in order if section] == [
+        "bending_safety_destruction", "shear_safety_destruction", "bending_durability", "bending_rebar_amount"]
+    text = webpier_pages(pages)
+    for heading in ("12.2 安全性の照査", "12.3 耐久性の照査", "12.4 最小鉄筋量及び最大鉄筋量"):
+        assert heading in text, heading
+    assert "復旧性" not in text
+    # the omission of the shear crack check still follows the durability pages, before the rebar amount
+    following = pages[order.index("bending_durability") + 1].replace("\n", "")
+    assert following.startswith("2) せん断ひび割れの検討") and following.index("検討を省略する．") < following.index("12.4")
+
+
+def test_the_nonlinear_analyses_alone_print_the_seismic_restorability(tmp_path):
+    along, across = render_part(tmp_path / "along", frames=False), render_part(tmp_path / "across", False, True)
+    assert [section for section in order_of(along) if section] == ["bending_restorability_eq", "shear_restorability_eq"]
+    text = webpier_pages(along)
+    assert text.strip().startswith("12.2 復旧性（地震時）の照査") and "せん断ひび割れの検討" not in text
+    assert "安全性の照査" not in text and "耐久性" not in text and "最小鉄筋量" not in text
+    assert webpier_pages(across).strip().startswith("12.3 復旧性（地震時）の照査")

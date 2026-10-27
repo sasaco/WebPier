@@ -18,7 +18,9 @@ response values of 0800 (calc.footing). The two directions differ only by the Fo
 
 The sections asked of Capacita's report are the five of the sample (12.2〜12.4) and the minimum and maximum
 reinforcement of the long-term Md (the row 8, decision 73): 耐久性 shear is not asked for (面部材のため省略, the report
-prints the sample's sentence), 使用性（外観） and 使用性（損傷） are not given forces.
+prints the sample's sentence), 使用性（外観） and 使用性（損傷） are not given forces. Only the sections of the parts 0800
+made are asked for (decision 110): 安全性, 耐久性 and the rebar amount with the frame analyses, 復旧性（地震時） with the
+nonlinear ones.
 """
 
 from __future__ import annotations
@@ -41,6 +43,8 @@ LENGTH_MM = Precision(0, "mm")
 WIDTH = LENGTH_MM(1000)  # the overhang per metre of width
 REPORT_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
                    "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
+# the sections of the seismic part (decision 110); the others are those of the frame analyses
+SEISMIC_SECTIONS = frozenset(("bending_restorability_eq", "shear_restorability_eq"))
 
 
 @dataclass(frozen=True)
@@ -72,18 +76,19 @@ class FootingCheckResult:
     body: str
     jr001: bool
     jr004: bool
-    safety: Forces
-    durability_short: Forces
-    durability_long: Forces
-    seismic: Forces
+    safety: Forces | None  # these three None without the frame analyses (decision 110)
+    durability_short: Forces | None
+    durability_long: Forces | None
+    seismic: Forces | None  # None without the nonlinear analyses
     safety_factors: tuple[SafetyFactors, ...]
     kr: Printed
     k4: Printed
 
     @property
     def sections(self) -> tuple[str, ...]:
-        """The sections of Capacita's report this check asks for, in report order."""
-        return REPORT_SECTIONS
+        """The sections of Capacita's report this check asks for, in report order: those of the parts it has."""
+        return tuple(section for section in REPORT_SECTIONS
+                     if (self.seismic if section in SEISMIC_SECTIONS else self.safety) is not None)
 
 
 def _need(value, path: str):
@@ -96,7 +101,9 @@ def _steel(grade: str) -> Steel:
     return Steel(grade, yield_strength(grade), tensile_strength(grade))
 
 
-def _forces(column: FootingColumn, with_shear: bool) -> Forces:
+def _forces(column: FootingColumn | None, with_shear: bool) -> Forces | None:
+    if column is None:
+        return None
     forces = column.forces
     if not with_shear:
         return Forces(column.key, forces.md, None, None)
@@ -104,10 +111,10 @@ def _forces(column: FootingColumn, with_shear: bool) -> Forces:
 
 
 def calculate_footing_check(pier: PierInput, footing: FootingDirection) -> FootingCheckResult:
-    """The check of the overhang of the direction of *footing* (0800's result of that direction)."""
+    """The check of the overhang of the direction of *footing* (0800's result of that direction), of the parts it has."""
     rebar = footing.basis.rebar
-    safety = max((footing.column("safety_moment"), footing.column("safety_shear")),
-                 key=lambda column: column.forces.md.value)
+    candidates = [column for column in (footing.column("safety_moment"), footing.column("safety_shear")) if column]
+    safety = max(candidates, key=lambda column: column.forces.md.value) if candidates else None
     conditions = pier.column_check
     environment = _need(conditions.environment, f"{_CHECK}.水掛かりの程度")
     ecsd = _need(conditions.ecsd, f"{_CHECK}.ε'csd")

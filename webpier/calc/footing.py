@@ -16,6 +16,9 @@ W = (q1 + q2)/2 ℓ, x the centroid from the column face, M = W x), the footing'
 La = Md/Vd). The effective width (``effective_width``) is the column width plus the overhangs across, each not more
 than d = H6 − the centre of the lower bars (RC標準 13.6.3).
 
+The columns are those of the parts the input chooses (decision 110, inputs.outputs.footing_parts): the four of the
+frame analyses, the 地震時 of the nonlinear analyses, or all five.
+
 Not reproduced from the sample (ADR-0001, ADR-0003; tests/fixtures/example2/footing_notes.md): q2 of a sloping
 segment is the pressure at the end of the segment on the q1 side, q1 − (q1 − q2)ℓ/X (the workbook takes it from the
 other edge); the seismic buoyancy of 7) is the normal water as in 6); La is printed to 3 decimals. The check itself
@@ -383,15 +386,16 @@ class FootingBasis:
 
     direction: str  # 線路 / 直角
     check: CheckBasis
-    node: int  # the support node of the frame
-    pickups: Mapping[str, int]  # the extraction number of each non-seismic column, by its key
+    node: int | None  # the support node of the frame; None without the frame analyses (decision 110)
+    pickups: Mapping[str, int]  # the extraction number of each non-seismic column, by its key; none without them
     rebar: FootingReinforcement
     width: EffectiveWidth
     sides: tuple[OverhangSide, OverhangSide]
 
 
-def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameResult,
+def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameResult | None,
             direction: Direction) -> FootingBasis:
+    """The basis of *direction*; without *frame_result* (the seismic part alone, decision 110) no pickup."""
     check = prepare_check(pier, foundation, frame_result, direction.check)
     rebar = footing_reinforcement(pier, direction.name)
     sub = pier.substructure
@@ -403,8 +407,9 @@ def prepare(pier: PierInput, foundation: FoundationResult, frame_result: FrameRe
                      self_weight(cover_depth, sub.h[6], length, sub.unit_weight_overburden, sub.unit_weight_footing),
                      Buoyancy(*(buoyancy(water, length) for water in (sub.hw1, sub.hw2, sub.hw3))))
         for name, length, cover_depth in direction.along(sub))
-    numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
-    pickups = {spec.key: numbers[spec.group] for spec in COLUMNS if spec.group is not None}
+    numbers = {} if frame_result is None else {extraction.group: extraction.number
+                                               for extraction in frame_result.extractions}
+    pickups = {spec.key: numbers[spec.group] for spec in COLUMNS if spec.group is not None and numbers}
     return FootingBasis(direction.name, check, check.node, pickups, rebar, width, sides)
 
 
@@ -457,23 +462,29 @@ class FootingColumn:
 @dataclass(frozen=True)
 class FootingDirection:
     basis: FootingBasis
-    columns: tuple[FootingColumn, ...]  # in the order of COLUMNS
+    columns: tuple[FootingColumn, ...]  # in the order of COLUMNS, those of the parts made (decision 110)
 
-    def column(self, key: str) -> FootingColumn:
-        return next(column for column in self.columns if column.key == key)
+    def column(self, key: str) -> FootingColumn | None:
+        """The column *key*, or None when its part is not made."""
+        return next((column for column in self.columns if column.key == key), None)
 
 
-def complete(basis: FootingBasis, reactions: Reactions, steps: Sequence[FoundationStep],
-             alpha_f: Sequence[Printed]) -> FootingDirection:
-    """The five columns from the support reactions (``ReactionError`` when a pickup is missing) and the step table
-    of the Cases whose αf is *alpha_f* by index (``StepsError`` when no Case of αf = 1.0 reaches Rvd)."""
-    seismic = seismic_action(steps, alpha_f)
+def complete(basis: FootingBasis, reactions: Reactions | None, steps: Sequence[FoundationStep] | None,
+             alpha_f: Sequence[Printed] | None) -> FootingDirection:
+    """The columns from the support reactions (``ReactionError`` when a pickup is missing) and the step table of the
+    Cases whose αf is *alpha_f* by index (``StepsError`` when no Case of αf = 1.0 reaches Rvd): the four of the frame
+    analyses without *reactions* None, the 地震時 without *steps* None (decision 110)."""
+    seismic = None if steps is None or alpha_f is None else seismic_action(steps, alpha_f)
     columns = []
     for spec in COLUMNS:
+        if (reactions if spec.group is not None else seismic) is None:
+            continue
         if spec.group is None:
+            assert seismic is not None  # the 地震時 column is made with its step table
             source = ColumnSource(None, None, seismic.case_index, seismic.case_name, seismic.step, seismic.rvd)
             vd, hd, md = seismic.vd, seismic.hd, seismic.md
         else:
+            assert reactions is not None  # the columns of the frame analyses are made with their reactions
             reaction = pick(reactions, basis.pickups[spec.key], spec.focus)
             source = ColumnSource(basis.pickups[spec.key], reaction.combination, None, None, None, None)
             vd, hd, md = FORCE(-reaction.fy), FORCE(abs(reaction.fx)), MOMENT(abs(reaction.mz))
@@ -512,13 +523,14 @@ class FootingBases:
     transverse: FootingBasis
 
 
-# (the support reactions, the step table, the αf of each Case) of one direction
-Analyses = tuple[Reactions, Sequence[FoundationStep], Sequence[Printed]]
+# (the support reactions, the step table, the αf of each Case) of one direction; None for a part not made
+Analyses = tuple[Reactions | None, Sequence[FoundationStep] | None, Sequence[Printed] | None]
 
 
-def calculate_footing(pier: PierInput, foundation: FoundationResult, longitudinal_frame: FrameResult,
-                      transverse_frame: FrameResult) -> FootingBases:
-    """Both directions from the input, 0500 and the frames of 0610 and 0620, before any runner."""
+def calculate_footing(pier: PierInput, foundation: FoundationResult, longitudinal_frame: FrameResult | None,
+                      transverse_frame: FrameResult | None) -> FootingBases:
+    """Both directions from the input, 0500 and the frames of 0610 and 0620 (None without the frame analyses,
+    decision 110), before any runner."""
     return FootingBases(prepare(pier, foundation, longitudinal_frame, LONGITUDINAL),
                         prepare(pier, foundation, transverse_frame, TRANSVERSE))
 

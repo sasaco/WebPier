@@ -7,8 +7,10 @@ cut from Capacita's report by the page ranges it returns: n.a 安全性の照査
 1) the flexural crack check, 2) the shear crack check, which is not asked of Capacita (面部材のため省略: the
 sample's sentence, 12_フーチング.pdf 262, printed after the durability pages); n.c 復旧性（地震時）の照査 1) bending,
 2) shear; n.d 最小鉄筋量及び最大鉄筋量 (the row 8 of the long-term Md, decision 73; the heading only), with a, b, c, d
-the four section numbers of the ``Chapter`` (12.2〜12.5 for 0810, 12.6〜12.9 for 0820). The chapter heading (§12) and
-12.1 are 0800's and not printed here.
+the four section numbers of the ``Chapter`` (12.2〜12.5 for 0810, 12.6〜12.9 for 0820). A footing of one part
+(decision 110) has only that part's sections, numbered in turn (``chapters``): with the frame analyses alone 安全性,
+耐久性 and the rebar amount (12.2〜12.4, 12.5〜12.7), with the nonlinear ones alone 復旧性（地震時） (12.2, 12.3). The
+chapter heading (§12) and 12.1 are 0800's and not printed here.
 
 The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as 0611 writes them
 (decision 48), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5
@@ -43,23 +45,34 @@ OMISSION = ("本構造物のフーチングは，ディープビーム的な耐�
             "少ないと考え，検討を省略する．")
 
 
+# The groups of sections of a footing check, in report order; each has one section number.
+SAFETY_GROUP, DURABILITY_GROUP, RESTORABILITY_GROUP, REBAR_AMOUNT_GROUP = "safety", "durability", "restorability", "rebar_amount"
+GROUPS = (SAFETY_GROUP, DURABILITY_GROUP, RESTORABILITY_GROUP, REBAR_AMOUNT_GROUP)
+# The groups of the part of the nonlinear analyses (decision 110); the others are those of the frame analyses.
+SEISMIC_GROUPS = (RESTORABILITY_GROUP,)
+
+
 @dataclass(frozen=True)
 class Chapter:
-    """Where a stage's footing check stands: the chapter, the section number of 安全性の照査 (耐久性 and 復旧性 follow),
-    and the prefix of its block ids."""
+    """Where a stage's footing check stands: the chapter, the section number of its first group, the prefix of its
+    block ids and the groups it has (decision 110: those of the parts the input chooses), numbered in turn."""
 
     number: int
     first: int
     prefix: str
+    groups: tuple[str, ...] = GROUPS
 
-    def section(self, offset: int) -> str:
-        return f"{self.number}.{self.first + offset}"
+    def section(self, group: str) -> str:
+        return f"{self.number}.{self.first + self.groups.index(group)}"
 
 
-LONGITUDINAL = Chapter(12, 2, "0810/")
-TRANSVERSE = Chapter(12, 6, "0820/")
-# The offsets (``Chapter.section``) of the parts 0400 refers to (reporting.stages.detailing, decision 73).
-DURABILITY_SECTION, REBAR_AMOUNT_SECTION = 1, 3
+def chapters(frames: bool, seismic: bool) -> tuple[Chapter, Chapter]:
+    """The chapters of 0810 and 0820 for the parts made (decision 110): 0820 follows 0810's sections."""
+    groups = tuple(group for group in GROUPS if (seismic if group in SEISMIC_GROUPS else frames))
+    return Chapter(12, 2, "0810/", groups), Chapter(12, 2 + len(groups), "0820/", groups)
+
+
+LONGITUDINAL, TRANSVERSE = chapters(True, True)
 
 
 def _definitions(m: Manuscript, key: str, *items: Definition) -> None:
@@ -75,7 +88,7 @@ def _factors(check: FootingCheckResult, limit_state: int) -> SafetyFactors:
 
 def _safety_moment(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     factors = _factors(check, SAFETY)
-    m.heading("safety.heading", f"{chapter.section(0)} 安全性の照査", 1)
+    m.heading("safety.heading", f"{chapter.section(SAFETY_GROUP)} 安全性の照査", 1)
     m.heading("safety.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.paragraph("safety.moment.lead", "(a) 部材の照査", keep=True)
     m.paragraph("safety.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
@@ -135,7 +148,7 @@ def _safety_deep_beam(m: Manuscript, check: FootingCheckResult, chapter: Chapter
 
 def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
     key = "durability.flexure"
-    m.heading("durability.heading", f"{chapter.section(DURABILITY_SECTION)} 耐久性の照査", 1)
+    m.heading("durability.heading", f"{chapter.section(DURABILITY_GROUP)} 耐久性の照査", 1)
     m.paragraph("durability.environment", f"水掛かりの程度は「{check.environment}」とする．")
     m.heading(f"{key}.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.heading(f"{key}.method.heading", "(a) 曲げひび割れに対する部材の検討方法", 3)
@@ -162,11 +175,15 @@ def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> N
                  Definition("Es", "鋼材のヤング係数"), Definition("Wlim", "ひび割れ幅の制限値"))
 
 
-def _restorability_moment(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
-    factors = _factors(check, SEISMIC_RESTORABILITY)
+def _durability_shear(m: Manuscript) -> None:
+    """2) of 耐久性, after its pages: at the head of the part that follows them."""
     m.heading("durability.shear.heading", "2) せん断ひび割れの検討", 2)
     m.paragraph("durability.shear.omitted", OMISSION)
-    m.heading("restorability.heading", f"{chapter.section(2)} 復旧性（地震時）の照査", 1)
+
+
+def _restorability_moment(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
+    factors = _factors(check, SEISMIC_RESTORABILITY)
+    m.heading("restorability.heading", f"{chapter.section(RESTORABILITY_GROUP)} 復旧性（地震時）の照査", 1)
     m.heading("restorability.moment.heading", "1) 曲げモーメントと軸方向力に対する照査", 2)
     m.paragraph("restorability.moment.lead", "(a) 部材の照査", keep=True)
     m.paragraph("restorability.moment.text", "曲げモーメントと軸方向力を受ける部材の照査は，設計曲げモーメントMdを設計応答値，"
@@ -187,7 +204,7 @@ def _restorability_shear(m: Manuscript, check: FootingCheckResult, chapter: Chap
 
 
 def _rebar_amount(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
-    m.heading("rebar_amount.heading", f"{chapter.section(REBAR_AMOUNT_SECTION)} 最小鉄筋量及び最大鉄筋量", 1)
+    m.heading("rebar_amount.heading", f"{chapter.section(REBAR_AMOUNT_GROUP)} 最小鉄筋量及び最大鉄筋量", 1)
 
 
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
@@ -199,9 +216,13 @@ _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destructio
 def parts(check: FootingCheckResult, chapter: Chapter) -> tuple[tuple[tuple[Unit, ...], str], ...]:
     """WebPier's manuscript before each of Capacita's sections, with that section's id, in report order."""
     found = []
+    previous = None
     for section in check.sections:
         m = Manuscript(chapter.prefix)
+        if previous == "bending_durability":
+            _durability_shear(m)
         _PARTS[section](m, check, chapter)
+        previous = section
         found.append((tuple(m.units), section))
     return tuple(found)
 

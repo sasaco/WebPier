@@ -8,7 +8,7 @@ import pytest
 
 from webpier.core.errors import InputError
 from webpier.inputs import choices
-from webpier.inputs.outputs import OUTPUT_KEYS, uses
+from webpier.inputs.outputs import OUTPUT_KEYS, FootingParts, uses
 from webpier.pipeline.aggrese import AXIAL, TRANSVERSE
 from webpier.pipeline.stages import (OUTPUT_STAGES, STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project,
                                      Registry, SeismicCheck, SoilJrCalculation, StageSpec)
@@ -384,6 +384,33 @@ def test_the_registry_of_a_foundation_is_checked_as_a_registry_is():
     broken = StageSpec("A", "名前の違い", (), lambda pier, results: None, lambda results, pier, path, pages: path)
     with pytest.raises(ValueError, match="Aのファイル名前の違いの名前は「A_」で始まる必要があります"):
         Registry((replace(spec("A"), foundations={"場所打ち杭": broken}),), outputs={"ground_model": ("A",)})
+
+
+@pytest.mark.parametrize("parts,message", [
+    ({"both": spec("A")}, "Aのbothの段階が不正です"),
+    ({"frames": spec("B")}, "Aのframesの段階が不正です"),
+    ({"seismic": replace(spec("A"), stem="A_別")}, "Aのseismicの段階が不正です"),
+    ({"frames": replace(spec("A"), parts={"seismic": spec("A")})}, "Aのframesの段階が不正です"),
+    ({"frames": replace(spec("A"), foundations={"場所打ち杭": spec("A")})}, "Aのframesの段階が不正です"),
+])
+def test_the_stage_of_a_part_of_the_footing_has_the_same_id_and_stem_and_no_variants(parts, message):
+    """Decision 110: StageSpec.parts holds the stage of the frame analyses alone or of the nonlinear ones alone."""
+    with pytest.raises(ValueError, match=message):
+        Registry((replace(spec("A"), parts=parts),), outputs={"ground_model": ("A",)})
+
+
+def test_the_registry_of_the_input_takes_the_footing_of_the_parts_it_chooses():
+    """Decision 110: the 基礎形式 first (decision 85), then the part; both parts are the registry's own stages."""
+    both, neither = FootingParts(frames=True, seismic=True), FootingParts(frames=False, seismic=False)
+    assert STAGES.for_footing(both) is STAGES and STAGES.for_footing(neither) is STAGES
+    for frames, wanted in ((True, ("0500", "0610", "0612", "0620", "0622")),
+                           (False, ("0500", "0710", "0711", "0720", "0721"))):
+        parts = FootingParts(frames=frames, seismic=not frames)
+        for registry in (STAGES.for_footing(parts), STAGES.for_foundation("場所打ち杭").for_footing(parts)):
+            assert registry.get("0800").depends_on == wanted and registry.get("0810").depends_on == ("0800",)
+            assert registry.get("0800").stem == STAGES.get("0800").stem
+    piles = STAGES.for_foundation("場所打ち杭").for_footing(FootingParts(frames=False, seismic=True)).get("0800")
+    assert piles.render is not STAGES.for_footing(FootingParts(frames=False, seismic=True)).get("0800").render
 
 
 def test_a_stage_that_soil_jr_calculates_has_its_export_a_report_and_a_completion():

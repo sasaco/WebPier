@@ -200,7 +200,8 @@ def test_a_direct_foundation_has_every_item_selectable_and_no_note(calculation):
     page, disabled = states(calculation)
     assert page.foundation_note.get() == ""
     chosen = calculation.document.data["outputs"]  # current.json chooses 0500, 0610 and 0710
-    assert all(disabled[key] == (not all(chosen[item] for item in outputs.requires(key))) for key in OUTPUT_KEYS)
+    picked = {key for key, value in chosen.items() if value}
+    assert all(disabled[key] == (not outputs.available(key, picked)) for key in OUTPUT_KEYS)
     assert not disabled["longitudinal_frame_analysis"] and disabled["footing"]
 
 
@@ -210,8 +211,8 @@ def test_a_pile_foundation_cannot_choose_an_item_it_cannot_make_yet(calculation)
     page, disabled = states(calculation)
     chosen = calculation.document.data["outputs"]
     for key in OUTPUT_KEYS:
-        if key in outputs.PILE_OUTPUT_KEYS:  # selectable once the items it uses are chosen (the footing uses four)
-            assert disabled[key] == (not all(chosen[item] for item in outputs.requires(key)))
+        if key in outputs.PILE_OUTPUT_KEYS:  # selectable once the items it uses are chosen (the footing a group, decision 110)
+            assert disabled[key] == (not outputs.available(key, {item for item, value in chosen.items() if value}))
         else:  # an item cannot be added, but one already chosen can be taken out
             assert disabled[key] == (not chosen[key])
     assert "場所打ち杭で選べる項目は、対応した段階から広がります" in page.foundation_note.get()

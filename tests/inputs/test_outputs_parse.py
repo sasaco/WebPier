@@ -14,7 +14,7 @@ import pytest
 from webpier.core.errors import InputError
 from webpier.inputs import parse_input
 from webpier.inputs.fields import field
-from webpier.inputs.outputs import OUTPUT_KEYS, requires, users, uses
+from webpier.inputs.outputs import OUTPUT_KEYS, FootingParts, available, either, footing_parts, requires, users, uses
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 CURRENT_ITEMS = ("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic", "transverse_seismic")
@@ -43,9 +43,11 @@ def test_the_items_and_what_each_uses():
         "transverse_frame_analysis": ("transverse",), "longitudinal_seismic": ("ground_model", "reactions"),
         "longitudinal_nonlinear_analysis": ("longitudinal_seismic",), "transverse_seismic": ("ground_model", "reactions"),
         "transverse_nonlinear_analysis": ("transverse_seismic",),
-        "footing": ("longitudinal_frame_analysis", "transverse_frame_analysis", "longitudinal_nonlinear_analysis",
-                    "transverse_nonlinear_analysis"),
-        "cantilever": ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")}
+        "footing": (), "cantilever": ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")}
+    # decision 110: the footing uses either group of analyses, or both
+    assert {key: either(key) for key in OUTPUT_KEYS if either(key)} == {
+        "footing": (("longitudinal_frame_analysis", "transverse_frame_analysis"),
+                    ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"))}
 
 
 def test_uses_and_users_follow_the_table_through_other_items():
@@ -97,8 +99,9 @@ def test_the_items_are_required_and_nothing_else_is_allowed():
     (("longitudinal",), "outputs.longitudinal: outputs.ground_model・outputs.reactions も true が必要です"),
     (("ground_model", "reactions", "longitudinal_frame_analysis"),
      "outputs.longitudinal_frame_analysis: outputs.longitudinal も true が必要です"),
-    ((*CURRENT_ITEMS, "longitudinal_frame_analysis", "transverse_frame_analysis", "longitudinal_nonlinear_analysis",
-      "footing"), "outputs.footing: outputs.transverse_nonlinear_analysis も true が必要です"),
+    ((*CURRENT_ITEMS, "longitudinal_frame_analysis", "longitudinal_nonlinear_analysis", "footing"),
+     "outputs.footing: outputs.longitudinal_frame_analysis・outputs.transverse_frame_analysis か、"
+     "outputs.longitudinal_nonlinear_analysis・outputs.transverse_nonlinear_analysis のどちらかの組がすべて true である"),
     ((*CURRENT_ITEMS, "cantilever"),
      "outputs.cantilever: outputs.longitudinal_nonlinear_analysis・outputs.transverse_nonlinear_analysis も true が必要です"),
 ])
@@ -109,3 +112,29 @@ def test_an_item_is_chosen_only_with_every_item_it_uses(items, message):
 def test_an_input_choosing_nothing_is_an_error():
     """Decision 72: a generation that makes nothing is not a success."""
     fails(choosing(), "outputs: 出力項目が選ばれていません（どれかを true にしてください）")
+
+
+FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
+NONLINEAR = ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
+
+
+@pytest.mark.parametrize("analyses,parts", [
+    (FRAMES, FootingParts(frames=True, seismic=False)),
+    (NONLINEAR, FootingParts(frames=False, seismic=True)),
+    (FRAMES + NONLINEAR, FootingParts(frames=True, seismic=True)),
+    # a group of one direction is not used: the other group makes its part alone
+    (FRAMES[:1] + NONLINEAR, FootingParts(frames=False, seismic=True)),
+])
+def test_the_footing_makes_the_part_of_each_whole_group_of_analyses(analyses, parts):
+    """Decision 110 (P7橋脚): the footing with the frame analyses of both directions, their nonlinear analyses, or both."""
+    chosen = parse_input(choosing(*CURRENT_ITEMS, *analyses, "footing")).outputs
+    assert available("footing", chosen) and footing_parts(chosen) == parts
+
+
+def test_the_footing_needs_a_whole_group_of_analyses():
+    fails(choosing(*CURRENT_ITEMS, FRAMES[0], NONLINEAR[1], "footing"),
+          "outputs.footing: outputs.longitudinal_frame_analysis・outputs.transverse_frame_analysis か、"
+          "outputs.longitudinal_nonlinear_analysis・outputs.transverse_nonlinear_analysis のどちらかの組がすべて true である"
+          "必要があります")
+    assert footing_parts(FRAMES + NONLINEAR) == FootingParts(frames=False, seismic=False)  # no footing chosen
+    assert not available("footing", CURRENT_ITEMS) and available("ground_model", ())

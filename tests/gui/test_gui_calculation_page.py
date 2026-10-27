@@ -160,7 +160,8 @@ def test_the_page_lists_the_output_items_with_their_stages(editor):
 
 def test_the_checkboxes_show_the_input_and_an_item_waits_for_the_items_it_uses(editor):
     """Decision 72: current.json chooses the six items without analyses; an analysis may be checked once its item is,
-    the footing only with both directions' analyses, the cantilever with both nonlinear analyses."""
+    the footing with both directions' frame analyses or both nonlinear analyses (decision 110), the cantilever with both
+    nonlinear analyses."""
     view = page(editor)
     assert {key for key, variable in view.outputs.items() if variable.get()} == {
         key for key, value in chosen(editor).items() if value}
@@ -168,12 +169,15 @@ def test_the_checkboxes_show_the_input_and_an_item_waits_for_the_items_it_uses(e
     assert enabled == {"detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
                        "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
                        "transverse_seismic", "transverse_nonlinear_analysis"}
-    for key in ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"):
+    box(editor, "longitudinal_nonlinear_analysis").invoke()
+    assert box(editor, "footing").instate(["disabled"])
+    box(editor, "transverse_nonlinear_analysis").invoke()
+    assert box(editor, "cantilever").instate(["!disabled"]) and box(editor, "footing").instate(["!disabled"])
+    for key in ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis", "longitudinal_frame_analysis"):
         box(editor, key).invoke()
-    assert box(editor, "cantilever").instate(["!disabled"]) and box(editor, "footing").instate(["disabled"])
-    for key in ("longitudinal_frame_analysis", "transverse_frame_analysis"):
-        box(editor, key).invoke()
-    assert box(editor, "footing").instate(["!disabled"])
+    assert box(editor, "footing").instate(["disabled"])
+    box(editor, "transverse_frame_analysis").invoke()
+    assert box(editor, "footing").instate(["!disabled"]) and box(editor, "cantilever").instate(["disabled"])
 
 
 def test_a_checkbox_writes_its_item_into_the_input(editor, runner, tmp_path):
@@ -191,19 +195,21 @@ def test_a_checkbox_writes_its_item_into_the_input(editor, runner, tmp_path):
     assert page(editor).status.get() == "計算・PDF出力が完了しました（3帳票）。"
 
 
-def test_unchecking_an_item_unchecks_every_item_that_uses_it(editor):
+def test_unchecking_an_item_unchecks_every_item_that_can_no_longer_be_chosen(editor):
+    """The footing stays while either group of its analyses is chosen whole (decision 110)."""
     for key in ("detailing", "longitudinal_frame_analysis", "longitudinal_nonlinear_analysis",
                 "transverse_frame_analysis", "transverse_nonlinear_analysis", "footing", "cantilever"):
         box(editor, key).invoke()
     assert all(chosen(editor).values())
     box(editor, "longitudinal").invoke()
     assert {key for key, value in chosen(editor).items() if not value} == {
-        "longitudinal", "longitudinal_frame_analysis", "footing"}  # the seismic items use no 0610 (decision 78)
-    assert box(editor, "longitudinal_frame_analysis").instate(["disabled"]) and box(editor, "footing").instate(["disabled"])
+        "longitudinal", "longitudinal_frame_analysis"}  # the seismic items use no 0610 (decision 78)
+    assert box(editor, "longitudinal_frame_analysis").instate(["disabled"]) and box(editor, "footing").instate(["!disabled"])
     assert not box(editor, "longitudinal_seismic").instate(["disabled"]) and page(editor).outputs["cantilever"].get()
-    assert not page(editor).outputs["footing"].get()
+    assert page(editor).outputs["footing"].get()
     box(editor, "reactions").invoke()
     assert box(editor, "longitudinal_seismic").instate(["disabled"]) and not page(editor).outputs["cantilever"].get()
+    assert not page(editor).outputs["footing"].get() and box(editor, "footing").instate(["disabled"])
 
 
 def test_an_input_without_the_items_gets_all_of_them_on_the_first_click(tk_root, input_path, quiet, runner, tmp_path):

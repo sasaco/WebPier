@@ -18,6 +18,7 @@ from webpier.calc.pile_footing import Case, FootingBasis
 from webpier.calc.pile_frame import PileFoundation
 from webpier.calc.pile_ground import calculate_pile_ground
 from webpier.calc.reaction import calculate_reaction
+from webpier.calc.seismic_longitudinal import calculate_seismic_longitudinal
 from webpier.calc.transverse import calculate_transverse
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
@@ -228,3 +229,38 @@ def test_a_face_of_the_column_at_a_pile_row_is_that_nodes_too():
     assert NodeRole.COLUMN_FACE in shared.roles
     basis = pf.prepare(found, frames_of(found), LONGITUDINAL)
     assert {(end.side, end.point, end.x.value) for end in basis.points[0].ends} == {("左", "JTAN", -1.35), ("右", "ITAN", 1.35)}
+
+
+def test_the_seismic_part_alone_takes_the_sections_from_the_frame_of_0710(pier, basis):
+    """Decision 110: without the frame analyses the sections come from the frame of 0710 (the same frame, cut at the faces
+    of the column), with no pickup."""
+    found = PileFoundation(calculate_pile_ground(pier), parse_sdc((FIXTURES / "soiljr" / "pile_cast.sdc").read_bytes()))
+    seismic = calculate_seismic_longitudinal(pier, found, calculate_reaction(pier))
+    alone = pf.prepare(pier, seismic, LONGITUDINAL, frames=False)
+    assert alone.pickups == {}
+    assert [(point.key, point.width, point.depth) for point in alone.points] == [
+        (point.key, point.width, point.depth) for point in basis.points]
+    assert [[(end.side, end.point, end.x) for end in point.ends] for point in alone.points] == [
+        [(end.side, end.point, end.x) for end in point.ends] for point in basis.points]
+
+
+def test_a_footing_of_one_part_has_the_cases_of_that_part_alone(basis):
+    """Decision 110: the frame analysis alone has its three cases at every point; the earthquake alone its case at the
+    bending points, without the shear (of 安全性（破壊） alone): the point of the shear at the face is not made."""
+    forces = {member: lines("JTAN", m=((900.0, -50.0, 0.0, 3), (-100.0, 40.0, 0.0, 4)),
+                            s=((900.0, -50.0, 0.0, 3), (-100.0, 40.0, 0.0, 4))) for member in basis.members}
+    shared = {(pickup, member): found for pickup in basis.pickups.values() for member, found in forces.items()}
+    elements = {member: member + 100 for member in basis.members}
+    seismic = {elements[member]: found for member, found in forces.items()}
+    both = pf.complete(basis, shared, seismic, elements).points
+    frames = pf.complete(basis, shared, None, None).points
+    alone = pf.complete(basis, None, seismic, elements).points
+    assert [item.point for item in frames] == [item.point for item in both]
+    assert all([force.case for force in item.forces] == [Case.SAFETY, Case.SHORT_TERM, Case.LONG_TERM] for item in frames)
+    assert [item.forces for item in frames] == [item.forces[:3] for item in both]
+    assert [item.point.key for item in alone] == ["face_lower", "face_upper", "pile_lower", "pile_upper"]
+    assert all(item.point.deep_beam is None for item in alone) and all(item.force(Case.SAFETY) is None for item in alone)
+    # the bending of the earthquake as with both (with both, the point of the pile position also reads a shear of the
+    # earthquake, which nothing uses: the deep beam checks are of 安全性（破壊）)
+    assert [[(force.case, force.md, force.end) for force in item.forces] for item in alone] == [
+        [(force.case, force.md, force.end) for force in item.forces[3:]] for item in both if item.point.bending]

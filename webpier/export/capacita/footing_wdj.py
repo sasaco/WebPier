@@ -7,7 +7,8 @@ Md8 最小鉄筋量 the long-term Md as Md1, decision 73; Vd5, Vd7 with their Md
 One member フーチング (1 m of width by H6, shape 1) and two points per direction, because Capacita keeps one La per
 point: index 1, the direction's name, carries the 安全性 and 耐久性 forces with the safety La; index 2, the name with
 （地震時）, the 復旧性（地震時） forces with the seismic La. Each section of the report then prints the point that has
-its forces (tried on the real runner, 2026-10-19). The bar rows have the lower bars as the tensile side (rebar2)
+its forces (tried on the real runner, 2026-10-19). A check of one part (decision 110) has the point of that part
+alone, as index 1. The bar rows have the lower bars as the tensile side (rebar2)
 (per 1 m of width, the count fractional when the pitch does not divide 1 m; with several layers the first layer's
 count and the layer spacing, as Capacita splits them, decision 68) and no upper or side bars, the crack rows no
 appearance check (vis false), and the calculation switches print the checks only (the section force list belongs to
@@ -97,11 +98,19 @@ def _shear_force(id_: int, forces: Forces) -> dict[str, Any]:
     return {f"Vd{id_}_Vd": _number(forces.vd), f"Vd{id_}_Md": _number(forces.md), f"Vd{id_}_Nd": 0}
 
 
-def _force(check: FootingCheckResult) -> list[dict[str, Any]]:
-    return [{"index": 1, **_moment(SHORT_TERM, check.durability_short), **_moment(LONG_TERM, check.durability_long),
-             **_moment(SAFETY, check.safety), **_shear_force(SAFETY, check.safety),
-             **_moment(MINIMUM_REBAR, check.durability_long)},
-            {"index": 2, **_moment(SEISMIC, check.seismic), **_shear_force(SEISMIC, check.seismic)}]
+def _points(check: FootingCheckResult) -> list[tuple[int, str, Forces, dict[str, Any]]]:
+    """(index, name, the forces of its shear span, its forces) of each point, of the parts the check has."""
+    found: list[tuple[str, Forces, dict[str, Any]]] = []
+    if check.safety is not None:
+        assert check.durability_short is not None and check.durability_long is not None  # the same part
+        found.append((check.name, check.safety, {
+            **_moment(SHORT_TERM, check.durability_short), **_moment(LONG_TERM, check.durability_long),
+            **_moment(SAFETY, check.safety), **_shear_force(SAFETY, check.safety),
+            **_moment(MINIMUM_REBAR, check.durability_long)}))
+    if check.seismic is not None:
+        found.append((check.name + SEISMIC_SUFFIX, check.seismic,
+                      {**_moment(SEISMIC, check.seismic), **_shear_force(SEISMIC, check.seismic)}))
+    return [(index, name, span, forces) for index, (name, span, forces) in enumerate(found, 1)]
 
 
 def _safety(check: FootingCheckResult) -> dict[str, Any]:
@@ -118,7 +127,8 @@ def _safety(check: FootingCheckResult) -> dict[str, Any]:
 
 def build_footing_wdj(check: FootingCheckResult) -> dict[str, Any]:
     """The WDJ of the footing check of one direction, as a JSON document."""
-    names = ((1, check.name), (2, check.name + SEISMIC_SUFFIX))
+    points = _points(check)
+    names = [(index, name) for index, name, _, _ in points]
     return {
         "$schema": SCHEMA, "format": "wdj", "schema_version": VERSION, "ver": VERSION, "lang": "ja",
         "pickup_filename": "", "pickup_data": None,
@@ -129,11 +139,10 @@ def build_footing_wdj(check: FootingCheckResult) -> dict[str, Any]:
         "crack": [_crack(check, index, name) for index, name in names],
         "points": [_point(index, name) for index, name in names],
         "bar": [_bar(check, index, name) for index, name in names],
-        "shear": [_shear(check, 1, check.name, check.safety),
-                  _shear(check, 2, check.name + SEISMIC_SUFFIX, check.seismic)],
+        "shear": [_shear(check, index, name, span) for index, name, span, _ in points],
         "fatigues": {"fatigue_list": [], "train_A_count": None, "train_B_count": None, "service_life": None},
         "safety": _safety(check),
-        "force": _force(check),
+        "force": [{"index": index, **forces} for index, _, _, forces in points],
         "calc": {"print_calculate_checked": True, "print_section_force_checked": False,
                  "print_safety_ratio_checked": False, "print_summary_table_checked": False,
                  "calculate_moment_checked": True, "calculate_shear_force": True,

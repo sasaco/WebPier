@@ -111,3 +111,23 @@ def test_a_steel_pile_foundation_is_refused_for_the_footing(tmp_path):
     with pytest.raises(InputError, match="footing"):
         from webpier.inputs import parse_input
         parse_input(data)
+
+
+@pytest.mark.parametrize("analyses,cases,points", [
+    (("longitudinal_frame_analysis", "transverse_frame_analysis"), ["安全性（破壊）", "耐久性 永久＋変動", "耐久性 永久"],
+     ["く体前面（下側引張）", "く体前面（上側引張）", "杭位置（下側引張）", "杭位置（上側引張）", "く体前面（下側引張）"]),
+    (("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"), ["復旧性（地震時）"],
+     ["く体前面（下側引張）", "く体前面（上側引張）", "杭位置（下側引張）", "杭位置（上側引張）"]),
+])
+def test_a_pile_footing_of_one_part_is_made_without_the_other_analyses(tmp_path, analyses, cases, points):
+    """Decision 110: the cases of the part made; the earthquake alone takes the sections from the frame of 0710 / 0720 and has
+    no shear point."""
+    items = ("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic", "transverse_seismic",
+             *analyses, "footing")
+    generation = generate.generate(GenerationOptions(write(tmp_path / "pre", items), tmp_path / "output", tmp_path / "post"))
+    other = "0611" if "nonlinear" in analyses[0] else "0711"
+    assert {"0800", "0810", "0820"} <= set(generation.stages) and other not in generation.stages
+    result = load_json((tmp_path / "output" / "0800_フーチング.json").read_bytes())["result"]["longitudinal"]
+    assert all([force["case"] for force in point["forces"]] == cases for point in result["points"])
+    wdj = json.loads((tmp_path / "post" / "線路方向フーチング.wdj").read_bytes().decode("utf-8"))
+    assert [point["p_name"] for point in wdj["points"]] == points

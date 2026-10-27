@@ -48,6 +48,7 @@ from ...calc.detailing.steel_pile import RIB_SPACINGS as STEEL_RIB_SPACINGS
 from ...calc.detailing.steel_pile import TIP_RIBS as STEEL_TIP_RIBS
 from ...calc.detailing.steel_pile import SteelPileDetailing, SteelPipe
 from ...core.printed import Printed
+from ...inputs.outputs import FootingParts
 from ..document import blank, heading, indent_to, is_blank, math_line, paragraph, report, spacer
 from ..equations import Definition, definitions, equation_group, terms
 from ..styles import columns_pt, rows_for
@@ -89,22 +90,24 @@ class References:
 
     column: Mapping[str, tuple[str, str]]  # direction → (最小鉄筋量及び最大鉄筋量, 耐久性の照査)
     beam: tuple[str, str]
-    footing: Mapping[str, tuple[str, str]]
+    # None: the footing check has neither section (decision 110: no footing, or its seismic part alone)
+    footing: Mapping[str, tuple[str, str] | tuple[None, None]]
 
 
-def references(appearance: bool) -> References:
+def references(appearance: bool, footing: FootingParts = FootingParts(frames=True, seismic=True)) -> References:
     """The sections 0400 refers to, as (最小鉄筋量及び最大鉄筋量, 耐久性の照査), numbered by the reports that print them
-    (decision 73): 0611 / 0621 n.10 and n.7 (column_check), 0810 / 0820 the fourth and the second of their sections
-    (footing_check), 0910's following the appearance check of the input (cantilever_check.Numbering)."""
+    (decision 73): 0611 / 0621 n.10 and n.7 (column_check), 0810 / 0820 by the parts of the footing the outputs choose
+    (footing_check.chapters, decision 110; none without its frame part), 0910's following the appearance check of the
+    input (cantilever_check.Numbering)."""
     columns = {"線路": column_check.LONGITUDINAL, "直角": column_check.TRANSVERSE}
-    footings = {"線路": footing_check.LONGITUDINAL, "直角": footing_check.TRANSVERSE}
+    footings = dict(zip(("線路", "直角"), footing_check.chapters(footing.frames, footing.seismic)))
     beam = cantilever_check.Numbering.with_appearance(appearance)
     return References(
         column={direction: (f"{chapter.number}.{column_check.REBAR_AMOUNT_SECTION}",
                             f"{chapter.number}.{column_check.DURABILITY_SECTION}") for direction, chapter in columns.items()},
         beam=(f"{cantilever_check.CHAPTER}.{beam.rebar_amount}", f"{cantilever_check.CHAPTER}.{beam.durability}"),
-        footing={direction: (chapter.section(footing_check.REBAR_AMOUNT_SECTION),
-                             chapter.section(footing_check.DURABILITY_SECTION))
+        footing={direction: (chapter.section(footing_check.REBAR_AMOUNT_GROUP),
+                             chapter.section(footing_check.DURABILITY_GROUP)) if footing.frames else (None, None)
                  for direction, chapter in footings.items()})
 
 
@@ -188,7 +191,10 @@ def _group(group: BarGroup) -> str:
     return f"{_bar(group.diameter)} − {value(group.count)} 本"
 
 
-def _reference(m: _Manuscript, key: str, section: str, title: str) -> None:
+def _reference(m: _Manuscript, key: str, section: str | None, title: str) -> None:
+    if section is None:  # the footing check without its frame part (decision 110)
+        m.paragraph(key, f"照査は、フーチングの断面照査で地震時以外の照査を行うときに「{title}」で確かめる。")
+        return
     m.paragraph(key, f"照査は「{section} {title}」に示す。")
 
 
@@ -234,7 +240,7 @@ def _maximum_ratio(m: _Manuscript, key: str, n: _Numbers, amount: SteelRatio) ->
                 else "以上の結果より、Pc≧6%となり満足しない。")
 
 
-def _minimum(m: _Manuscript, key: str, n: _Numbers, section: str, ratio: Callable[[], None] | None) -> None:
+def _minimum(m: _Manuscript, key: str, n: _Numbers, section: str | None, ratio: Callable[[], None] | None) -> None:
     """1) with (a) when given, then (b) Mcrd and (c) 0.008Ac referred to *section*."""
     letters = iter("abc")
     m.heading(f"{key}.heading", n("主鉄筋の最小鉄筋量の検討"), 3, "【RC標準第Ⅲ編2.3.3.1】")
@@ -252,13 +258,13 @@ def _minimum(m: _Manuscript, key: str, n: _Numbers, section: str, ratio: Callabl
     _reference(m, f"{key}.axial.reference", section, "最小鉄筋量及び最大鉄筋量")
 
 
-def _maximum(m: _Manuscript, key: str, n: _Numbers, section: str) -> None:
+def _maximum(m: _Manuscript, key: str, n: _Numbers, section: str | None) -> None:
     m.heading(f"{key}.heading", n("主鉄筋の最大鉄筋量の検討"), 3, "【RC標準第Ⅲ編2.3.3.2】")
     m.paragraph(f"{key}.text", "断面破壊に対する引張鉄筋比Ptは、釣合鉄筋比Pbの75%以下としなければならない。")
     _reference(m, f"{key}.reference", section, "最小鉄筋量及び最大鉄筋量")
 
 
-def _stress(m: _Manuscript, key: str, n: _Numbers, section: str) -> None:
+def _stress(m: _Manuscript, key: str, n: _Numbers, section: str | None) -> None:
     m.heading(f"{key}.heading", n("応力度の制限値"), 3, "【RC標準第Ⅲ編6.1 7.3】")
     m.paragraph(f"{key}.text", "コンクリートの圧縮応力度は、過度なクリープひずみや大きな圧縮応力による軸方向ひび割れ等を"
                                "生じないように制限することとする。一般には、永久作用によるコンクリートの曲げ圧縮応力度"
@@ -1196,7 +1202,7 @@ def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = 
     if unknown := set(figures) - set(FIGURES):
         raise ValueError(f"配筋図の名前が不正です: {'・'.join(sorted(unknown))}")
     m = _Manuscript()
-    refs = references(result.cantilever_appearance)
+    refs = references(result.cantilever_appearance, result.footing_parts)
     m.heading("heading", "§4. 照査の前提", 0)
     m.heading("layout.heading", "4.1 配筋要領", 1)
     for index, (name, title) in enumerate(zip(FIGURES, ("梁", "柱", "フーチング", "杭"))):

@@ -26,6 +26,11 @@ the column face to the centre of the nearest pile row beyond it, B the width of 
 - the deep beam shear at the face (lower tension): the piles across, centre to centre, plus D, not more than B; at the
   pile position (upper tension) the width of the pile position.
 
+The cases are those of the parts the input chooses (decision 110, inputs.outputs.footing_parts): those of the frame analysis,
+the 復旧性（地震時）, or all four. Without the frame analyses the sections come from the frame of 0710 / 0720 (the same frame,
+cut at the faces of the column too) and there is no shear: the deep beam checks are of 安全性（破壊） alone, so the point of the
+shear at the face is not made and the pile position checks its bending only.
+
 Only a 場所打ち杭 is made (0711 and 0721 are). Everything here is calculated from the printed values of the input and of the
 files, and every number is a ``Printed`` (ADR-0003).
 """
@@ -145,10 +150,11 @@ class Force:
 @dataclass(frozen=True)
 class SectionForces:
     point: Point
-    forces: tuple[Force, ...]  # in the order of CASES
+    forces: tuple[Force, ...]  # in the order of CASES, those of the parts made (decision 110)
 
-    def force(self, case: Case) -> Force:
-        return next(force for force in self.forces if force.case is case)
+    def force(self, case: Case) -> Force | None:
+        """The forces of *case*, or None when its part is not made."""
+        return next((force for force in self.forces if force.case is case), None)
 
 
 @dataclass(frozen=True)
@@ -225,9 +231,10 @@ def _width(rule: str, be: Decimal, full: Decimal, *terms: tuple[str, Decimal]) -
     return Width(rule, _printed(min(be, full)), _printed(full), tuple((name, put(LENGTH_MM, item)) for name, item in terms))
 
 
-def prepare(pier: PierInput, frame_result, direction: FootingDirectionKind) -> FootingBasis:
+def prepare(pier: PierInput, frame_result, direction: FootingDirectionKind, frames: bool = True) -> FootingBasis:
     """The sections of the footing in *direction* from the frame of 0610 / 0620 and the input (before any runner); an input
-    that cannot be checked is an input error naming it."""
+    that cannot be checked is an input error naming it. Without the frame analyses (*frames* false, decision 110)
+    *frame_result* is the result of 0710 / 0720, whose frame has the same sections, and there is no pickup."""
     frame = frame_result.frame
     if frame.piles is None:
         raise InputError("杭基礎のフーチングには杭の骨組が必要です（基礎形式が杭基礎ではありません）")
@@ -295,8 +302,8 @@ def prepare(pier: PierInput, frame_result, direction: FootingDirectionKind) -> F
               point("pile_lower", PILE, LOWER, True, None, "pile_lower"),
               point("pile_upper", PILE, UPPER, True, "upper_tension", "pile_upper"),
               point("face_shear", FACE, LOWER, False, "lower_tension", "face_shear"))
-    numbers = {extraction.group: extraction.number for extraction in frame_result.extractions}
-    pickups = {case: numbers[group] for case, group in CASES if group is not None}
+    numbers = {extraction.group: extraction.number for extraction in frame_result.extractions} if frames else {}
+    pickups = {case: numbers[group] for case, group in CASES if group is not None and frames}
     chain = {member.number: (frame.nodes[member.start - 1].x, frame.nodes[member.end - 1].x)
              for member in frame.members if member.region is Region.FOOTING_BASE}
     members = tuple(sorted({end.member for end in (*face_ends, *pile_ends)}))
@@ -348,18 +355,27 @@ def _force(case: Case, pickup: int, point: Point, forces: Mapping[int, Sequence[
     return Force(case, pickup, end, MOMENT(md), moment.combination, vd, vd_end, vd_combination, vd_md)
 
 
-def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequence[PointForces]],
-             seismic_forces: Mapping[int, Sequence[PointForces]], seismic_elements: Mapping[int, int]) -> FootingDirection:
+def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequence[PointForces]] | None,
+             seismic_forces: Mapping[int, Sequence[PointForces]] | None,
+             seismic_elements: Mapping[int, int] | None) -> FootingDirection:
     """The forces of every point and case.
 
     *frame_forces* are the PIK lines by (pickup, member) of the frame analysis; *seismic_forces* the pickup lines of
     Aggre-SE by its member number and *seismic_elements* the number of its element of each base member of the frame
-    (``PileResponseError`` when a line is missing)."""
+    (``PileResponseError`` when a line is missing). None for a part not made (decision 110): without the frame analysis
+    no point has a shear and the point of the shear alone is not made."""
     points = []
     for point in basis.points:
+        if frame_forces is None:
+            if not point.bending:
+                continue
+            point = replace(point, deep_beam=None)
         forces = []
         for case, _ in CASES:
+            if (seismic_forces if case is Case.SEISMIC else frame_forces) is None:
+                continue
             if case is Case.SEISMIC:
+                assert seismic_forces is not None and seismic_elements is not None  # the same part
                 ends = tuple(End(end.side, seismic_elements[end.member], end.point, end.x) for end in point.ends)
                 mapped = replace(point, ends=ends)
                 found = _force(case, SEISMIC_PICKUP, mapped, seismic_forces, "地震時のピックアップ")
@@ -369,6 +385,7 @@ def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequenc
                               found.vd, None if found.vd_end is None else back[found.vd_end.member],
                               found.vd_combination, found.vd_md)
             else:
+                assert frame_forces is not None  # the cases of the frame analysis are made with its forces
                 pickup = basis.pickups[case]
                 lines = {member: (factored(frame_forces[(pickup, member)]) if case is Case.SAFETY
                                   else frame_forces[(pickup, member)])
@@ -379,11 +396,13 @@ def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequenc
     return FootingDirection(basis, tuple(points))
 
 
-def calculate_footing(pier: PierInput, longitudinal_frame, transverse_frame) -> FootingBases:
-    """Both directions from the input and the frames of 0610 and 0620, before any runner."""
-    return FootingBases(prepare(pier, longitudinal_frame, LONGITUDINAL), prepare(pier, transverse_frame, TRANSVERSE))
+def calculate_footing(pier: PierInput, longitudinal_frame, transverse_frame, frames: bool = True) -> FootingBases:
+    """Both directions from the input and the frames of 0610 and 0620 (of 0710 and 0720 without the frame analyses,
+    *frames* false, decision 110), before any runner."""
+    return FootingBases(prepare(pier, longitudinal_frame, LONGITUDINAL, frames),
+                        prepare(pier, transverse_frame, TRANSVERSE, frames))
 
 
 def complete_footing(bases: FootingBases, longitudinal: tuple, transverse: tuple) -> FootingResult:
-    """Both directions finished with (frame_forces, seismic_forces, seismic_elements) of each."""
+    """Both directions finished with (frame_forces, seismic_forces, seismic_elements) of each (None for a part not made)."""
     return FootingResult(complete(bases.longitudinal, *longitudinal), complete(bases.transverse, *transverse))

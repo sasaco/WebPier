@@ -1,13 +1,14 @@
 """The generation mechanics of decision 60: a stage that reads both analyses finishes its result with the files of the
 frame analyses and of the seismic checks of its dependencies (``seismic_file``: "<stage>/<kind>"), after every runner
-ran and before any report; its 出力項目 is chosen only with the items of both analyses (decision 72).
+ran and before any report; its 出力項目 is chosen with the items of both directions of either analysis, and a stage of
+one part reads that part's analyses alone (decisions 72 and 110).
 
 The analyses and checks are the stand-ins' (tests/fixtures/fempython, jrsnap, aggrese)."""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -114,15 +115,34 @@ def test_the_stage_is_made_only_when_the_input_chooses_its_item(env, analyses, e
     assert generate.generate(options, registry=registry(recorder)).stages == expected
 
 
-def test_the_footing_is_chosen_only_with_both_analyses_of_both_directions(env):
-    """Decision 72: footing uses the frame analyses and the static nonlinear analyses of both directions."""
+def test_the_footing_is_chosen_only_with_a_whole_group_of_analyses(env):
+    """Decision 110: footing uses the frame analyses of both directions or their static nonlinear analyses."""
     options, recorder = env
     choose(Path(options.input_path), *SEISMIC, "longitudinal_frame_analysis", "longitudinal_nonlinear_analysis",
            "footing")
-    with pytest.raises(InputError, match="outputs.footing: outputs.transverse_frame_analysis・"
-                                         "outputs.transverse_nonlinear_analysis も true が必要です"):
+    with pytest.raises(InputError, match="outputs.footing: outputs.longitudinal_frame_analysis・"
+                                         "outputs.transverse_frame_analysis か、"):
         generate.generate(options, registry=registry(recorder))
     assert recorder.log == [] and not Path(options.output_dir).exists()
+
+
+@pytest.mark.parametrize("analyses,stages,read", [
+    (("transverse", "longitudinal_frame_analysis", "transverse_frame_analysis"), ("A", "B", "D", "C", "F"),
+     ("D/displacement", "D/pik", "D/reaction")),
+    (("transverse_seismic", "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"), ("A", "B", "C", "E", "F"),
+     ("E/pik", "E/steps", "E/xlsx")),
+])
+def test_a_footing_of_one_part_reads_that_part_alone(env, analyses, stages, read):
+    """Decision 110: the stage of the part made replaces F (Registry.for_input) and reads only its analysis."""
+    options, recorder = env
+    full = registry(recorder, lambda result, files, pier, results: Finished(tuple(sorted(files)), ""))
+    f = full.get("F")
+    parts = {"frames": replace(f, depends_on=("A", "B", "D")), "seismic": replace(f, depends_on=("A", "C", "E"))}
+    stages_with_parts = replace(full, stages=tuple(replace(stage, parts=parts) if stage.id == "F" else stage
+                                                   for stage in full.stages))
+    choose(Path(options.input_path), *SEISMIC, *analyses, "footing")
+    generation = generate.generate(options, registry=stages_with_parts)
+    assert generation.stages == stages and generation.results["F"].read == read
 
 
 @pytest.mark.parametrize("error,message", [
@@ -197,3 +217,31 @@ def test_the_footing_without_the_cantilever_makes_every_other_stage(tmp_path):
         assert name in post, name
     assert "片持ち梁.wdj" not in post
     assert planned(options, generation.stages) == generation.artifacts
+
+
+SEISMIC_FOOTING = ("ground_model", "reactions", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
+                   "transverse_seismic", "transverse_nonlinear_analysis", "footing")
+FRAMES_FOOTING = ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
+                  "transverse_frame_analysis", "footing")
+
+
+@pytest.mark.parametrize("items,stages,columns,frames", [
+    (SEISMIC_FOOTING, ("0500", "0600", "0710", "0711", "0720", "0721", "0800", "0810", "0820"), ["seismic"], False),
+    (FRAMES_FOOTING, ("0500", "0600", "0610", "0611", "0612", "0620", "0621", "0622", "0800", "0810", "0820"),
+     ["safety_moment", "safety_shear", "short_term", "long_term"], True),
+])
+def test_a_footing_of_one_part_is_made_without_the_other_analyses(tmp_path, items, stages, columns, frames):
+    """Decision 110 with the real registry: the footing of the analyses chosen, the other analyses not calculated; the
+    files are those planned."""
+    source = choose(footing_input(tmp_path / "pre"), *items)
+    options = GenerationOptions(source, tmp_path / "output", tmp_path / "post")
+    generation = generate.generate(options)
+    assert generation.stages == stages and planned(options, generation.stages) == generation.artifacts
+    output = tree(tmp_path / "output")
+    result = load_json(output["0800_フーチング.json"])["result"]
+    for direction in ("longitudinal", "transverse"):
+        assert [column["key"] for column in result[direction]["columns"]] == columns
+    for stage in ("0810", "0820"):
+        check = load_json(output[f"{STAGES.get(stage).stem}.json"])
+        assert check["section_check"]["skipped_sections"] == []
+        assert (check["result"]["safety"] is not None, check["result"]["seismic"] is not None) == (frames, not frames)
