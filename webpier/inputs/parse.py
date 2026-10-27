@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.printed import Printed
-from ..core.reader import Reader
+from ..core.reader import AbsentAsBlank, Reader
 from . import choices
 from .fields import BEAM_SURFACES, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES, SNOW_KEYS, read
 from .model import (
@@ -303,7 +303,10 @@ def _pile_layout_rules(node: Reader, layout: PileLayout) -> None:
 
 
 def _piles(root: Reader, foundation: str) -> PileFoundation:
-    """杭基礎 (decision 80): form and digits whatever the 基礎形式; a pile foundation also needs the values of its type."""
+    """杭基礎 (decision 80): form and digits whatever the 基礎形式; a pile foundation also needs the values of its type.
+    Another 基礎形式 does not use it, so an absent item is blank (decision 107)."""
+    if foundation not in choices.PILE_FOUNDATIONS:
+        root = AbsentAsBlank(root.value, root.path)
     node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
     cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
     steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部")

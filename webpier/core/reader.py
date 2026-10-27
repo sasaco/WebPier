@@ -127,3 +127,25 @@ class Reader:
         if not isinstance(self.value, dict):
             raise self.error("オブジェクトが必要です")
         return self.value
+
+
+class AbsentAsBlank(Reader):
+    """A part of the input that the input does not use (decision 107: 杭基礎 and 鉄筋.杭 of a 直接基礎): an absent item
+    reads as blank, a blank object as one with no items and a blank list as empty; what is written is read as strictly
+    as by ``Reader``."""
+
+    def _child(self, key: Key) -> Reader:
+        if Reader._has(self, key):
+            child = Reader._child(self, key)
+            return AbsentAsBlank(child.value, child.path)
+        return AbsentAsBlank(None, f"{self.path}[{key}]" if isinstance(key, int) else (
+            f"{self.path}.{key}" if self.path else key))
+
+    def _has(self, key: Key) -> bool:
+        return True
+
+    def items(self, *, minimum: int = 0, maximum: int | None = None) -> list[Reader]:
+        return [] if self.value is None else super().items(minimum=minimum, maximum=maximum)
+
+    def mapping(self) -> dict[str, Any]:
+        return {} if self.value is None else super().mapping()

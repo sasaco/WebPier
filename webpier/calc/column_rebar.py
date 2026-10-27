@@ -309,3 +309,41 @@ def table(bars: Iterable[Bar], direction: str) -> tuple[TableRow, ...]:
         counts[key] = counts.get(key, 0) + 1
     return tuple(TableRow(center, diameter, count, material) for (center, diameter, material), count in
                  sorted(counts.items(), key=lambda item: (item[0][0].value, item[0][1].value, item[0][2])))
+
+
+@dataclass(frozen=True)
+class MainRows:
+    """The main bars of a face direction in its table (方向別の鉄筋配置表): the rows of its layers, outermost of the
+    upper face first and outermost of the lower face last, their spacing along the face, and where they are in the
+    table. Other bars may be between the layers (decision 108: the side bars of the other direction)."""
+
+    rows: tuple[TableRow, ...]
+    layers: int  # of each face
+    pitch: Printed
+    upper_through: int  # the rows of the table from the upper face through its innermost layer
+    lower_through: int  # the same from the lower face
+
+
+def main_rows(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str) -> MainRows:
+    """The main bars of *face* in *rows* (its table): each layer a row of its own, with no bar outside the outermost
+    layers (input errors otherwise)."""
+    path = "鉄筋.柱.main_bars"
+    face_rows = [row for row in layout.rows if row.direction == face]
+    if not face_rows:
+        raise InputError(f"{path}: {face}の主鉄筋が必要です")
+    keys = {row.key for row in face_rows}
+    main = table((bar for bar in layout.bars if keys.intersection(bar.rows)), face)
+    layers = len(face_rows)
+    centres = [row.center for row in rows]
+    if (len(main) != 2 * layers or any(row not in rows or centres.count(row.center) != 1 for row in main)
+            or rows[0] != main[0] or rows[-1] != main[-1]):
+        raise InputError(f"{path}: {face}方向の表で、{face}の主鉄筋の段が1段ずつの行になっていません"
+                         "（主鉄筋より外側にある鉄筋、同じ段への混在は表せません）")
+    pitches = {row.pitch for row in face_rows}
+    if None in pitches or len(pitches) != 1:
+        raise InputError(f"{path}: {face}の主鉄筋の間隔が一つに定まりません"
+                         "（1本や両端2本だけの行、行ごとに異なる間隔は表せません）")
+    (pitch,) = pitches
+    assert pitch is not None
+    return MainRows(rows=main, layers=layers, pitch=pitch, upper_through=rows.index(main[layers - 1]) + 1,
+                    lower_through=len(rows) - rows.index(main[-layers]))

@@ -9,7 +9,9 @@ import pytest
 
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
+from webpier.core.reader import Reader
 from webpier.inputs import parse_input
+from webpier.inputs.rebar import parse_rebar
 
 CURRENT = load_json((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_bytes())
 HOOP = {"diameter_mm": 16, "sets": 1, "pitch_mm": 200.0}
@@ -119,7 +121,21 @@ def test_an_unknown_item_is_an_input_error(path):
     parse_input(pile_rebar())
 
 
-def test_the_pile_is_required_in_the_rebar_like_the_other_members():
+def test_a_pile_foundation_requires_the_pile_in_the_rebar_like_the_other_members():
     data = deepcopy(CURRENT)
+    data["下部構造"]["基礎形式"] = "場所打ち杭"
     del data["鉄筋"]["杭"]
-    fails(data, "鉄筋.杭")
+    with pytest.raises(InputError, match=re.escape("入力項目がありません: 鉄筋.杭")):
+        parse_rebar(Reader(data))  # the 杭基礎 of CURRENT is blank, which parse_input refuses first
+
+
+def test_a_direct_foundation_may_lack_the_pile_or_its_items():
+    """Decision 107: a 直接基礎 does not use 鉄筋.杭, so an absent item is blank; what is written is still checked."""
+    data = deepcopy(CURRENT)
+    del data["鉄筋"]["杭"]["cutoff"]
+    assert parse_input(data).rebar.pile.cutoff.main_diameter is None
+    del data["鉄筋"]["杭"]
+    bars = parse_input(data).rebar.pile
+    assert bars.main_count is None and bars.hoops.lower == () and bars.materials.main is None
+    data = pile_rebar(pure_cover_mm=-1.0)
+    fails(data, "鉄筋.杭.pure_cover_mm")

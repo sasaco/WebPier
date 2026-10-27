@@ -40,8 +40,8 @@ from ..core.errors import InputError
 from ..core.printed import Precision, Printed
 from ..inputs import PierInput, choices
 from ._exact import d, put
-from .column_rebar import (YIELD_STRENGTH, Bar, ColumnLayout, TableRow, bar_area, column_layout, table,
-                           yield_strength)
+from .column_rebar import (YIELD_STRENGTH, Bar, ColumnLayout, MainRows, TableRow, bar_area, column_layout, main_rows,
+                           table, yield_strength)
 from .frame import Frame, Member, NodeRole, Region
 from .longitudinal.combinations import Extraction, ExtractionGroup
 
@@ -311,27 +311,13 @@ def _face(layers: list[TableRow], corner: tuple[TableRow, ...], depth: Printed |
                     layer_spacing=_spacing(centres, path, f"{face}の主鉄筋の段"), spacing=pitch)
 
 
-def _main(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str, depth: Printed,
+def _main(main: MainRows, face: str, depth: Printed,
           corners: tuple[tuple[TableRow, ...], tuple[TableRow, ...]]) -> tuple[MainBars, MainBars, str]:
-    path = f"{_COLUMN}.main_bars"
-    face_rows = [row for row in layout.rows if row.direction == face]
-    if not face_rows:
-        raise InputError(f"{path}: {face}の主鉄筋が必要です")
-    keys = {row.key for row in face_rows}
-    main = table((bar for bar in layout.bars if keys.intersection(bar.rows)), face)
-    layers = len(face_rows)
-    if len(main) != 2 * layers or rows[:layers] != main[:layers] or rows[-layers:] != main[-layers:]:
-        raise InputError(f"{path}: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
-                         "（主鉄筋より外側や段の間にある鉄筋、同じ段への混在は表せません）")
-    pitches = {row.pitch for row in face_rows}
-    if None in pitches or len(pitches) != 1:
-        raise InputError(f"{path}: {face}の主鉄筋の間隔が一つに定まりません"
-                         "（1本や両端2本だけの行、行ごとに異なる間隔は表せません）")
-    (pitch,) = pitches
     upper, lower = corners
-    grade = _one({row.material for row in (*main, *upper, *lower)}, path, "主鉄筋の材質")
-    return (_face(list(main[:layers]), upper, None, pitch, face),
-            _face(list(reversed(main[-layers:])), lower, depth, pitch, face), grade)
+    layers = main.layers
+    grade = _one({row.material for row in (*main.rows, *upper, *lower)}, f"{_COLUMN}.main_bars", "主鉄筋の材質")
+    return (_face(list(main.rows[:layers]), upper, None, main.pitch, face),
+            _face(list(reversed(main.rows[-layers:])), lower, depth, main.pitch, face), grade)
 
 
 def corner_bars(layout: ColumnLayout, direction: Direction) -> tuple[tuple[Bar, ...], tuple[Bar, ...]]:
@@ -399,9 +385,11 @@ def column_bars(layout: ColumnLayout,
     corners = corner_bars(layout, direction)
     corner = {*corners[0], *corners[1]}
     rows = table((bar for bar in layout.bars if bar not in corner), direction.face)
-    upper, lower, grade = _main(layout, rows, direction.face, direction.section(layout)[1],
+    main = main_rows(layout, rows, direction.face)
+    upper, lower, grade = _main(main, direction.face, direction.section(layout)[1],
                                 (table(corners[0], direction.face), table(corners[1], direction.face)))
-    return upper, lower, _side(rows[upper.layers:len(rows) - lower.layers], direction.side), grade
+    # the side bars: the rest of the table, between the layers too (decision 108)
+    return upper, lower, _side(tuple(row for row in rows if row not in main.rows), direction.side), grade
 
 
 def calculate_column_check(pier: PierInput, frame_result: FrameResult, direction: Direction) -> ColumnCheckResult:

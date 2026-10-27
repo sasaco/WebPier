@@ -7,7 +7,7 @@ import pytest
 
 from webpier.core.errors import InputError
 from webpier.core.printed import LENGTH, Printed
-from webpier.core.reader import Reader
+from webpier.core.reader import AbsentAsBlank, Reader
 
 DATA = {
     "下部構造": {"寸法": {"B1": 2.7, "B2": 0, "B9": None, "負": -1.5, "真": True, "文字": "2"},
@@ -146,3 +146,24 @@ def test_only_rejects_unknown_keys_by_full_path():
 def test_only_requires_an_object():
     with pytest.raises(InputError, match="オブジェクトが必要です"):
         Reader({"a": 1}).at("a").only("x")
+
+
+def test_absent_as_blank_reads_an_absent_item_as_blank():
+    """Decision 107: a part the input does not use (杭基礎 of a 直接基礎) may lack items."""
+    reader = AbsentAsBlank(DATA)
+    assert reader.at("杭基礎", "杭長").is_null and reader.at("杭基礎", "杭長").path == "杭基礎.杭長"
+    assert reader.at("無い").path == "無い" and reader.at("下部構造", "層", 5).path == "下部構造.層[5]"
+    assert reader.at("杭基礎").mapping() == {} and reader.at("杭基礎", "配置").items() == []
+    assert reader.at("杭基礎").only("杭長") is not None and reader.at("下部構造").optional("無い") is None
+
+
+def test_absent_as_blank_reads_what_is_written_as_strictly_as_reader():
+    reader = AbsentAsBlank(DATA)
+    assert reader.at("下部構造", "寸法", "B1").number() == 2.7
+    assert [item.value for item in reader.at("下部構造", "層").items()][1] is None
+    with pytest.raises(InputError, match=re.escape("下部構造.寸法.文字: 有限の数値が必要です")):
+        reader.at("下部構造", "寸法", "文字").number()
+    with pytest.raises(InputError, match=re.escape("下部構造.寸法.未知: 未知の入力項目です")):
+        AbsentAsBlank({"下部構造": {"寸法": {"未知": 1}}}).at("下部構造", "寸法").only("B1")
+    with pytest.raises(InputError, match=re.escape("編成数: オブジェクトが必要です")):
+        reader.at("編成数").mapping()

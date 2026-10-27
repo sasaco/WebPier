@@ -277,7 +277,7 @@ def test_a_table_change_is_in_the_checked_section():
     # a 直角 row outside the 線路 main bars (等分 from 60 mm, ends included)
     ({f"{MAIN}/直角/distribution": {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None},
       f"{MAIN}/直角/endpoints": "含む"},
-     "鉄筋.柱.main_bars: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
+     "鉄筋.柱.main_bars: 線路方向の表で、線路の主鉄筋の段が1段ずつの行になっていません"),
     # two edge bars only (両端＋中央ピッチ): no spacing along the face
     ({f"{MAIN}/線路/per_face_count": 2},
      "鉄筋.柱.main_bars: 線路の主鉄筋の間隔が一つに定まりません"),
@@ -312,6 +312,19 @@ def test_two_layers_of_side_bars_are_one_spread_layer():
     side = check(data).side
     assert (side.count, side.first, side.spacing) == (Printed(18, 2, "本"), Printed(350, 1, "mm"),
                                                       Printed(117.6, 1, "mm"))
+
+
+def test_side_bars_between_the_layers_of_main_bars():
+    """Decision 108 (P7): the inner layer at 108 + 32 + 250 = 390, inside the 直角 bars at 350; the side bars are the
+    rows between the layers too, nine on each face from 350, 250 apart."""
+    data = two_layers(per_face_count=27, clear_gap_mm=250)
+    result = check(data)
+    upper, side = result.upper, result.side
+    assert (upper.layers, upper.per_layer, upper.count, upper.cover, upper.layer_spacing) == (
+        2, Printed(29, 2, "本"), Printed(56, 2, "本"), Printed(108, 1, "mm"), Printed(282, 1, "mm"))
+    assert result.lower == upper
+    assert (side.count, side.first, side.spacing) == (Printed(9, 2, "本"), Printed(350, 1, "mm"),
+                                                      Printed(250, 1, "mm"))
 
 
 def test_layers_at_uneven_spacing_are_an_input_error():

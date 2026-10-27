@@ -366,9 +366,28 @@ def test_two_layers_of_main_bars():
     assert [(r.center.value, r.count) for r in section.rows[-2:]] == [(2520, 27), (2592, 29)]
 
 
+def test_a_side_bar_between_the_layers_is_one_of_the_tension_rows():
+    """Decision 108 (P7): JRSNAP takes the first and the last rows of the table, so with the inner layer at 390 inside
+    the 直角 D19 at 350 the tension rows are three: 108, 350 and 390 (and 2310, 2350, 2592)."""
+    layer = [{"per_face_count": 27, "clear_gap_mm": 250}]
+    section = model("longitudinal", **{f"{RAIL}/inner_layers": layer}).section
+    assert section.main_layers == 3 and section.main_pitch.value == 150
+    assert [(r.center.value, r.count) for r in section.rows[:3]] == [(108, 29), (350, 2), (390, 27)]
+    assert [(r.center.value, r.count) for r in section.rows[-3:]] == [(2310, 27), (2350, 2), (2592, 29)]
+
+
+def test_tension_rows_that_differ_between_the_faces_are_rejected():
+    # the upper 直角 bars at 350 moved to 400, inside the inner layer at 390: two rows above, three below
+    moved = [{"source_center_mm": 350, "source_diameter_mm": 19, "center_mm": 400, "diameter_mm": None}]
+    with pytest.raises(InputError, match=re.escape(
+            "鉄筋.柱.main_bars: 線路方向の表で、主鉄筋の段までの行数が上下で違います（2行と3行。")):
+        model("longitudinal", **{f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 250}],
+                                 "鉄筋/柱/table_overrides/線路": moved})
+
+
 @pytest.mark.parametrize("changes,message", [
     ({f"{CROSS}/distribution/pitch_mm": 330},  # the 直角 D19 bars start at 30, outside the 線路 main bars at 108
-     "鉄筋.柱.main_bars: 線路方向の表の先頭・末尾1行が線路の主鉄筋と一致しません"),
+     "鉄筋.柱.main_bars: 線路方向の表で、線路の主鉄筋の段が1段ずつの行になっていません"),
     ({f"{RAIL}/per_face_count": 2}, "鉄筋.柱.main_bars: 線路の主鉄筋の間隔が一つに定まりません"),
     ({f"{RAIL}/per_face_count": 0}, "鉄筋.柱.main_bars: 線路の主鉄筋が必要です"),
 ])

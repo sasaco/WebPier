@@ -72,7 +72,7 @@ uv run --project "." --locked python "./run_design.py" --overwrite  # python -m 
 | `footing` | フーチングの計算 | 0800・0810・0820 | 両方向の `*_frame_analysis` と `*_nonlinear_analysis` |
 | `cantilever` | 片持ち梁の計算 | 0900・0910 | 両方向の `*_nonlinear_analysis` |
 
-杭基礎（`下部構造.基礎形式` が場所打ち杭・鋼管ソイルセメント杭）では、選べる項目を段ごとに広げます。いま選べるのは `detailing`・`ground_model`・`reactions`・`longitudinal`・`longitudinal_frame_analysis`・`transverse`・`transverse_frame_analysis` と、場所打ち杭だけ `longitudinal_seismic`・`transverse_seismic`（0710・0720、決定93）・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis`（0711・0721、決定94）・`footing`（0800・0810・0820、決定96）です（ほかは `outputs.<項目>` の入力エラー）。`ground_model` は 0500 の杭基礎用（下の「杭基礎の 0500」）で、SOIL-JR を動かす JRSNAP の runner が要ります。`longitudinal`・`transverse` は杭を入れた骨組（下の「杭基礎の 0610・0620」）で、SOIL-JR の runner と FEMPython の runner が要ります。
+杭基礎（`下部構造.基礎形式` が場所打ち杭・鋼管ソイルセメント杭）では、選べる項目を段ごとに広げます。いま選べるのは `detailing`・`ground_model`・`reactions`・`longitudinal`・`longitudinal_frame_analysis`・`transverse`・`transverse_frame_analysis` と、場所打ち杭だけ `longitudinal_seismic`・`transverse_seismic`（0710・0720、決定93）・`longitudinal_nonlinear_analysis`・`transverse_nonlinear_analysis`（0711・0721、決定94）・`footing`（0800・0810・0820、決定96）です（ほかは `outputs.<項目>` の入力エラー）。`ground_model` は 0500 の杭基礎用（下の「杭基礎の 0500」）で、SOIL-JR を動かす JRSNAP の runner が要ります。`longitudinal`・`transverse` は杭を入れた骨組（下の「杭基礎の 0610・0620」）で、SOIL-JR の runner と FEMPython の runner が要ります。直接基礎の入力は `杭基礎` と `鉄筋.杭` を使わないので、その項目（どちらも丸ごとでも）はなくてかまいません。書いてある値は形と桁を確かめます（決定107）。
 
 項目と段階の対応は `webpier/inputs/outputs.py`（項目と使う項目）と `webpier/pipeline/stages.py` の `OUTPUT_STAGES` が持ちます。地震時の項目は地震時以外の項目を使いません（決定78）。0710・0720 は、使う固定死荷重・付加死荷重・浮力（平水位）・雪荷重（2年確率）を 0610・0620 と同じ計算で自分の骨組に求めるので、0610・0620 を選ばずに作れ、FEMPython の runner も要りません。
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ...calc._exact import d, put
-from ...calc.column_rebar import ColumnLayout, table, yield_strength
+from ...calc.column_rebar import ColumnLayout, main_rows, table, yield_strength
 from ...calc.frame import Frame, Node, NodeRole
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
@@ -49,22 +49,14 @@ def _mm(length: Printed) -> Printed:
 
 
 def _main(profile: Profile, layout: ColumnLayout, rows: tuple) -> tuple[int, Printed]:
-    face = profile.face
-    face_rows = [row for row in layout.rows if row.direction == face]
-    if not face_rows:
-        raise InputError(f"{_COLUMN}.main_bars: {face}の主鉄筋が必要です")
-    keys = {row.key for row in face_rows}
-    main = table((bar for bar in layout.bars if keys.intersection(bar.rows)), face)
-    layers = len(face_rows)
-    if len(main) != 2 * layers or rows[:layers] != main[:layers] or rows[-layers:] != main[-layers:]:
-        raise InputError(f"{_COLUMN}.main_bars: {face}方向の表の先頭・末尾{layers}行が{face}の主鉄筋と一致しません"
-                         "（主鉄筋より外側や段の間にある鉄筋、同じ段への混在は未対応です）")
-    pitches = {row.pitch for row in face_rows}
-    if None in pitches or len(pitches) != 1:
-        raise InputError(f"{_COLUMN}.main_bars: {face}の主鉄筋の間隔が一つに定まりません"
-                         "（1本や両端2本だけの行、行ごとに異なる間隔は未対応です）")
-    (pitch,) = pitches
-    return layers, pitch
+    """(the tension layers of each face, the spacing of the main bars along the face). JRSNAP takes the first and
+    the last rows of the whole table as the tension bars (DRTU, DRTL), so a bar between the main layers counts as one
+    of them (decision 108)."""
+    main = main_rows(layout, rows, profile.face)
+    if main.upper_through != main.lower_through:
+        raise InputError(f"{_COLUMN}.main_bars: {profile.face}方向の表で、主鉄筋の段までの行数が上下で違います"
+                         f"（{main.upper_through}行と{main.lower_through}行。JRSNAP は上下同じ段数で書きます）")
+    return main.upper_through, main.pitch
 
 
 def _shear(profile: Profile, pier: PierInput) -> Shear:

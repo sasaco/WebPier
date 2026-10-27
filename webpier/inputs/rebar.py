@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..core.printed import Printed
-from ..core.reader import Reader
+from ..core.reader import AbsentAsBlank, Reader
 from . import choices
 from .fields import LENGTH_MM, PILE_HOOP_ZONES, PILE_MEMBER, read
 
@@ -455,8 +455,17 @@ def _pile(node: Reader) -> PileBars:
         cutoff=_pile_cutoff(node.at("cutoff")))
 
 
+def _uses_piles(root: Reader) -> bool:
+    """Whether the 基礎形式 of the input is a pile foundation (its value is checked by parse_input)."""
+    sub = root.optional("下部構造")
+    foundation = None if sub is None else sub.optional("基礎形式")
+    return foundation is not None and foundation.value in choices.PILE_FOUNDATIONS
+
+
 def parse_rebar(root: Reader) -> RebarInput:
     rebar = root.at("鉄筋").only("version", "梁", "柱", "フーチング", PILE_MEMBER)
     rebar.at("version").integer(REBAR_VERSION, REBAR_VERSION)
+    # 鉄筋.杭 is not used by another 基礎形式, so an absent item is blank (decision 107)
+    pile = rebar if _uses_piles(root) else AbsentAsBlank(rebar.value, rebar.path)
     return RebarInput(beam=_beam(rebar.at("梁")), column=_column(rebar.at("柱")),
-                      footing=_footing(rebar.at("フーチング")), pile=_pile(rebar.at(PILE_MEMBER)))
+                      footing=_footing(rebar.at("フーチング")), pile=_pile(pile.at(PILE_MEMBER)))

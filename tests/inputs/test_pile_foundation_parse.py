@@ -333,3 +333,29 @@ def test_the_bars_of_the_cast_in_place_pile_are_no_item_of_the_pile_foundation_b
     data = pile_input()
     data["杭基礎"]["場所打ち杭"]["軸方向鉄筋"] = {"径": None, "本数": None, "材質": None, "純かぶり": None}
     fails(data, "杭基礎.場所打ち杭.軸方向鉄筋: 未知の入力項目です")
+
+
+def test_a_direct_foundation_may_lack_the_pile_items():
+    """Decision 107: an input made before an item was added (P7: no 鋼管材質 or 結合部) or with no 杭基礎 at all."""
+    data = deepcopy(CURRENT)
+    steel = data["杭基礎"]["鋼管ソイルセメント杭"]
+    del steel["鋼管材質"], steel["結合部"]
+    assert parse_input(data).piles.steel_soil_cement.joint.bar_diameter is None
+    del data["杭基礎"]
+    pier = parse_input(data)
+    assert pier.piles.length is None and pier.piles.layout.along == () and pier.piles.steel_soil_cement.grade is None
+
+
+def test_a_direct_foundation_still_checks_the_pile_items_it_has():
+    data = deepcopy(CURRENT)
+    data["杭基礎"]["杭長"] = -1.0
+    fails(data, "杭基礎.杭長: 正の数値が必要です")
+    data = deepcopy(CURRENT)
+    data["杭基礎"]["本数"] = 9
+    fails(data, "杭基礎.本数: 未知の入力項目です")
+
+
+def test_a_pile_foundation_needs_every_pile_item():
+    data = pile_input("鋼管ソイルセメント杭")
+    del data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]
+    fails(data, "入力項目がありません: 杭基礎.鋼管ソイルセメント杭.結合部")
