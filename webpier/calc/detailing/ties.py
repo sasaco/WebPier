@@ -14,7 +14,10 @@ origin at the upper-left corner).
 - Sets (組): n／2 in all, the outer hoop 1, the intermediate ties (n − 2)／2 (a set is two legs).
 - The lateral spacing of the 48φ check is the largest gap between neighbouring legs, the outer legs included.
 
-Each leg stands at the centre of the bar it holds, as the bars are in use (with the changes of the 方向別の鉄筋配置表).
+Each leg stands at the centre of the bar it holds. A direction whose 方向別の鉄筋配置表 is hand-made (decision 111) has no
+bars with a place: its legs stand at the centres of the other direction's table, the outer hoop's at the outermost of
+them, and an intermediate tie hooks the one nearest its point among the rows between that table's 引張鉄筋 rows (those
+are on the other faces; the rest are the bars along its faces).
 The hoops are the row of the direction that contains the column base (start blank or 0), as the column check
 (calc.column_check) reads them. A layout that cannot hold the ties is an input error naming its path: fewer than two
 legs, no layer-1 bars for an intermediate tie, or two legs on one bar.
@@ -30,7 +33,7 @@ from ...core.printed import Precision, Printed
 from ...inputs import PierInput, choices
 from ...inputs.rebar import LENGTH_MM
 from .._exact import d, put
-from ..column_rebar import ColumnLayout, column_layout
+from ..column_rebar import ColumnLayout, column_layout, direction_table
 
 SETS = Precision(1, "組")  # 1.0 組, 4.0 組 (the sample 0400 6))
 _COLUMN = "鉄筋.柱"
@@ -100,11 +103,17 @@ def tie_layout(layout: ColumnLayout, direction: str, legs: int, path: str) -> Ti
     if legs < 2:
         raise InputError(f"{path}.effective_legs: 外巻き帯鉄筋の2本を含めて2本以上が必要です（{legs}本）")
     along = _along(direction)
-    span = layout.width if direction == choices.REBAR_DIRECTIONS[0] else layout.height
-    positions = sorted({along(bar).value: along(bar) for bar in layout.bars}.items())
+    first_direction, second_direction = choices.REBAR_DIRECTIONS
+    span = layout.width if direction == first_direction else layout.height
+    if layout.custom.get(direction) is not None:
+        other = direction_table(layout, second_direction if direction == first_direction else first_direction)
+        positions = sorted({row.center.value: row.center for row in other.rows}.items())
+        first = sorted({row.center.value: row.center for row in other.others}.items())
+    else:
+        positions = sorted({along(bar).value: along(bar) for bar in layout.bars}.items())
+        first = sorted({along(bar).value: along(bar) for bar in layout.bars
+                        if (direction, 1) in bar.rows}.items())
     outer = (positions[0][1], positions[-1][1])
-    first = sorted({along(bar).value: along(bar) for bar in layout.bars
-                    if (direction, 1) in bar.rows}.items())
     if legs > 2 and not first:
         raise InputError(f"{path}.effective_legs: 中間帯鉄筋を掛ける{direction}の1段目の主鉄筋がありません")
     targets = tuple(put(LENGTH_MM, d(span) * k / (legs - 1)) for k in range(1, legs - 1))

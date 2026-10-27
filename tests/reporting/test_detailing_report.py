@@ -195,6 +195,23 @@ def test_an_equal_ratio_is_satisfied():
     assert texts(document)["footing.線路.shear.check"] == "=0.150 %≧0.15 %・・・・・・OK"
 
 
+def test_a_hand_made_table_is_printed_in_place_of_the_column_figure():
+    """Decision 111: (2) 柱 prints the two tables in use, the 引張鉄筋 rows named."""
+    document = data()
+    document["鉄筋"]["柱"]["custom_tables"]["線路"] = {"tension_rows": 1, "rows": [
+        {"center_mm": 108, "diameter_mm": 32, "count": 29}, {"center_mm": 350, "diameter_mm": 19, "count": 2},
+        {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
+    keys = [unit.key for unit in content(result(document))]
+    heading = keys.index("0400/layout.column.heading")
+    assert keys[heading + 1:heading + 7] == [
+        "0400/layout.column.tables.text", "0400/layout.column.tables.線路.title", "0400/layout.column.tables.線路",
+        "0400/layout.column.tables.直角.title", "0400/layout.column.tables.直角", "0400/layout.footing.heading"]
+    found = texts(document)
+    assert found["layout.column.tables.線路.title"] == "表．鉄筋配置表（線路方向、引張鉄筋の段数 1）"
+    assert "引張鉄筋（上側）" in found["layout.column.tables.線路"] and "引張鉄筋（右側）" in found["layout.column.tables.直角"]
+    assert "0400/layout.column.tables.text" not in [unit.key for unit in content(result())]
+
+
 def test_the_figures_of_4_1_stand_under_their_headings():
     units = content(result(), {"column": FigureSpec(Figure(4, 2, block_id="0400/test.figure"), ("柱の配筋図",))})
     keys = [unit.key for unit in units]

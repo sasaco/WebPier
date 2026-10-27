@@ -23,7 +23,7 @@ def data():
 
 @pytest.mark.parametrize("path", [
     ("鉄筋", "柱", "main_bars", "線路", "inner_layers"), ("鉄筋", "柱", "main_bars", "直角", "inner_layers"),
-    ("鉄筋", "柱", "column_hoops", "direction_rows"), ("鉄筋", "柱", "table_overrides", "線路"),
+    ("鉄筋", "柱", "column_hoops", "direction_rows"),
     ("鉄筋", "梁", "faces", "上", "inner_layers"), ("鉄筋", "梁", "faces", "下", "inner_layers"),
     ("鉄筋", "フーチング", "faces", "下", "直角", "inner_layers")])
 def test_a_new_row_is_blank_and_reads_as_not_entered(path):
@@ -31,8 +31,7 @@ def test_a_new_row_is_blank_and_reads_as_not_entered(path):
     index = rebar_edit.add_row(document, path)
     row = rebar_edit.items(document, path)[index]
     assert row and all(value is None for value in row.values())
-    if path[2] != "table_overrides":  # a change of nothing is an input error (rebar._overrides)
-        parse_rebar(Reader(document))
+    parse_rebar(Reader(document))
     assert rebar_edit.delete_row(document, path, index)
     assert not rebar_edit.delete_row(document, path, index + 5)
 
@@ -57,7 +56,7 @@ def test_side_bars_are_added_blank_or_removed():
 
 def test_the_preview_is_the_calculated_layout():
     layout = rebar_edit.column_preview(data())
-    assert len(layout.bars) == 76 and layout.unmatched == ()
+    assert len(layout.bars) == 76 and not layout.customized
     assert len(table(layout.bars, "線路")) == 11 and len(table(layout.bars, "直角")) == 31
 
 
@@ -72,45 +71,68 @@ def test_a_blank_the_layout_needs_is_reported_with_its_path():
         rebar_edit.column_preview(document)
 
 
-def test_the_table_lines_group_the_generated_rows():
-    layout = rebar_edit.column_preview(data())
-    rail = rebar_edit.table_lines(layout, "線路")
-    assert len(rail) == 11 and rail[0].source == (108.0, 32.0) and rail[0].count == 29
-    assert rail[0].layers == (("線路", 1),) and not rail[0].changed
-    cross = rebar_edit.table_lines(layout, "直角")
-    assert cross[0].source == (102.0, 19.0) and cross[0].count == 9 and len(cross) == 31
+TABLES = ("鉄筋", "柱", "custom_tables")
 
 
-def test_a_table_change_is_written_undone_and_removed():
+def test_a_hand_made_table_starts_from_the_table_in_use():
     document = data()
-    source = (102.0, 19.0)  # the 直角 D19 bars at 102 from the left face
-    rebar_edit.change_table(document, "直角", source, "center_mm", 110.0)
-    rows = document["鉄筋"]["柱"]["table_overrides"]["直角"]
-    assert rows == [{"source_center_mm": 102.0, "source_diameter_mm": 19.0, "center_mm": 110.0, "diameter_mm": None}]
-    line = rebar_edit.table_lines(rebar_edit.column_preview(document), "直角")[1]
-    assert (line.source, line.center, line.count, line.changed) == (source, 110.0, 9, True)
-    rebar_edit.change_table(document, "直角", source, "diameter_mm", 22.0)
-    assert rows[0]["diameter_mm"] == 22.0 and len(rows) == 1
-    rebar_edit.change_table(document, "直角", source, "center_mm", 102.0)  # back to the generated centre
-    assert rows[0]["center_mm"] is None
-    rebar_edit.change_table(document, "直角", source, "diameter_mm", None)  # blank: nothing changed any more
-    assert rows == []
-    rebar_edit.change_table(document, "直角", source, "center_mm", 110.0)
-    other = (350.0, 32.0)
-    rebar_edit.change_table(document, "直角", other, "diameter_mm", 29.0)  # another row, before the undone one
-    rows.insert(0, rows.pop())
-    assert rebar_edit.undo_change(document, "直角", source) and rows == [
-        {"source_center_mm": 350.0, "source_diameter_mm": 32.0, "center_mm": None, "diameter_mm": 29.0}]
-    assert not rebar_edit.undo_change(document, "直角", source)
+    layout = rebar_edit.column_preview(document)
+    made = rebar_edit.customize(document, layout, "線路")
+    assert made is rebar_edit.items(document, TABLES)["線路"] and rebar_edit.items(document, TABLES)["直角"] is None
+    assert made["tension_rows"] == 1 and len(made["rows"]) == 11
+    assert made["rows"][0] == {"center_mm": 108.0, "diameter_mm": 32.0, "count": 29}
+    assert rebar_edit.customize(document, layout, "線路") is made  # once made, kept
+    table = rebar_edit.direction_view(rebar_edit.column_preview(document), "線路")
+    assert table.custom and table.rows == rebar_edit.direction_view(layout, "線路").rows
 
 
-def test_changes_without_their_bars_are_removed():
+def test_the_cells_rows_and_tension_of_a_hand_made_table():
     document = data()
-    changes = document["鉄筋"]["柱"]["table_overrides"]
-    changes["線路"] = [{"source_center_mm": 999.0, "source_diameter_mm": 32.0, "center_mm": 110.0, "diameter_mm": None}]
-    changes["直角"] = [{"source_center_mm": 102.0, "source_diameter_mm": 19.0, "center_mm": 110.0, "diameter_mm": None}]
-    assert rebar_edit.remove_unmatched(document, rebar_edit.column_preview(document)) == 1
-    assert changes["線路"] == [] and len(changes["直角"]) == 1
+    layout = rebar_edit.column_preview(document)
+    rebar_edit.set_cell(document, layout, "直角", 0, "center_mm", 110.0)  # starts the table
+    rows = rebar_edit.items(document, TABLES)["直角"]["rows"]
+    assert rows[0] == {"center_mm": 110.0, "diameter_mm": 19.0, "count": 9}
+    assert rebar_edit.insert_row(document, layout, "直角", 0) == 1 and rows[1] == rows[0] and rows[1] is not rows[0]
+    rows[1]["center_mm"] = 200.0
+    assert rebar_edit.move_row(document, layout, "直角", 1, -1) == 0 and rows[0]["center_mm"] == 200.0
+    assert rebar_edit.move_row(document, layout, "直角", 0, -1) is None
+    assert rebar_edit.move_row(document, layout, "直角", len(rows) - 1, 1) is None
+    assert rebar_edit.delete_table_row(document, layout, "直角", 0) and rows[0]["center_mm"] == 110.0
+    assert not rebar_edit.delete_table_row(document, layout, "直角", len(rows))
+    rebar_edit.set_tension(document, layout, "直角", 2)
+    assert rebar_edit.direction_view(rebar_edit.column_preview(document), "直角").tension == 2
+    assert rebar_edit.reset_table(document, "直角") and not rebar_edit.reset_table(document, "直角")
+    assert rebar_edit.items(document, TABLES)["直角"] is None
+
+
+def test_the_last_row_of_a_hand_made_table_stays():
+    document = data()
+    layout = rebar_edit.column_preview(document)
+    rebar_edit.customize(document, layout, "線路")["rows"][1:] = []
+    assert not rebar_edit.delete_table_row(document, layout, "線路", 0)
+
+
+def test_a_table_that_cannot_be_made_is_an_editor_error():
+    document = data()
+    document["鉄筋"]["柱"]["main_bars"]["線路"]["per_face_count"] = 2  # 両端＋中央ピッチ with its two edge bars
+    document["鉄筋"]["柱"]["main_bars"]["直角"]["distribution"] = {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None}
+    document["鉄筋"]["柱"]["main_bars"]["直角"]["endpoints"] = "含む"
+    with pytest.raises(EditorError, match="線路方向の表で、線路の主鉄筋の段が1段ずつの行になっていません"):
+        rebar_edit.direction_view(rebar_edit.column_preview(document), "線路")
+
+
+def test_editing_the_main_bars_of_a_direction_makes_its_table_again():
+    document = data()
+    before = rebar_edit.main_bars(document)
+    layout = rebar_edit.column_preview(document)
+    for direction in ("線路", "直角"):
+        rebar_edit.customize(document, layout, direction)
+    assert rebar_edit.reset_changed(document, before) == []
+    document["鉄筋"]["柱"]["main_bars"]["線路"]["distribution"]["pitch_mm"] = 140.0
+    assert rebar_edit.reset_changed(document, before) == ["線路"]
+    tables = rebar_edit.items(document, TABLES)
+    assert tables["線路"] is None and tables["直角"] is not None
+    assert before["線路"]["distribution"]["pitch_mm"] == 150.0  # a copy, not the document
 
 
 def test_the_beam_preview_is_the_calculated_layout():
@@ -129,27 +151,32 @@ def test_a_blank_the_beam_preview_needs_is_reported_with_its_path(path, message)
         rebar_edit.beam_preview(document)
 
 
-LOST = {"source_center_mm": 999.0, "source_diameter_mm": 32.0, "center_mm": 110.0, "diameter_mm": None}
-COLUMN_WARNING = "柱：配置表の変更のうち 1 件は、元の芯位置・径の鉄筋がないため使われていません（計算でも使いません）。"
+COLUMN_WARNING = ("柱：線路方向と直角方向の配置表で鉄筋の本数が違います（線路 D19 18本 D32 56本・直角 D19 18本 D32 58本）。"
+                  "05 鉄筋の柱の配置表を確かめてください（計算は止めません）。")
+
+
+def fewer(document):
+    """The 線路 table by hand, with 27 bars in its first row instead of 29: 2 bars fewer than the 直角 table's."""
+    rebar_edit.set_cell(document, rebar_edit.column_preview(document), "線路", 0, "count", 27)
 BEAM_WARNING = "梁：鉄筋が 2 か所で重なっています。05 鉄筋の梁の配筋略図で赤い鉄筋を確かめてください（計算は止めません）。"
 
 
 def test_the_warnings_of_the_input_check():
     document = data()
     assert rebar_edit.warnings(document) == []
-    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    fewer(document)
     assert rebar_edit.warnings(document) == [COLUMN_WARNING]
     document = data()
     document["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108  # the top side bars on the upper face's outermost bars
     assert rebar_edit.warnings(document) == [BEAM_WARNING]
-    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    fewer(document)
     assert rebar_edit.warnings(document) == [COLUMN_WARNING, BEAM_WARNING]
 
 
 @pytest.mark.parametrize("group,key,left", [("側面", "B1", [COLUMN_WARNING]), ("正面", "W6", [BEAM_WARNING])])
 def test_a_member_without_its_layout_has_no_warning(group, key, left):
     document = data()
-    document["鉄筋"]["柱"]["table_overrides"]["線路"] = [dict(LOST)]
+    fewer(document)
     document["鉄筋"]["梁"]["side_bars"]["start_mm"] = 108
     document["下部構造"]["寸法"][group][key] = None  # an input error of the calculation, not a warning
     assert rebar_edit.warnings(document) == left

@@ -20,7 +20,7 @@ import pytest
 
 from webpier.calc.column_check import (K4, KR, LONGITUDINAL, SAFETY_FACTORS, TRANSVERSE, calculate_column_check,
                                        column_bars, corner_bars, tensile_strength)
-from webpier.calc.column_rebar import TableRow, column_layout
+from webpier.calc.column_rebar import TableRow, column_layout, direction_table
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
@@ -232,11 +232,21 @@ def test_layers_capacita_cannot_split_are_an_input_error():
           data)
 
 
+def hand_made(data, direction, change):
+    """*data* with the 方向別の鉄筋配置表 of *direction* hand-made (decision 111): the one the main bars make, each row
+    passed through *change* (index, [centre, size, count]) -> [centre, size, count]."""
+    layout = column_layout(parse_input(data))
+    found = direction_table(layout, direction)
+    rows = [change(index, [row.center.value, row.diameter.value, row.count]) for index, row in enumerate(found.rows)]
+    data["鉄筋"]["柱"]["custom_tables"][direction] = {
+        "tension_rows": found.tension,
+        "rows": [{"center_mm": center, "diameter_mm": size, "count": count} for center, size, count in rows]}
+    return data
+
+
 def test_two_kinds_of_side_bars_are_an_input_error():
-    data = document()
-    # the 直角 bars at x = 102 become D16 in the 直角 table; those at 4398 stay D19
-    data["鉄筋"]["柱"]["table_overrides"]["直角"] = [
-        {"source_center_mm": 102, "source_diameter_mm": 19, "center_mm": None, "diameter_mm": 16}]
+    # the 線路 table by hand: its first side row (the 直角 D19 at 350) becomes D16
+    data = hand_made(document(), "線路", lambda index, row: [row[0], 16, row[2]] if index == 1 else row)
     fails("鉄筋.柱.main_bars: 側方鉄筋の径・材質が1種類ではありません（D16 SD390・D19 SD390）", data)
 
 
@@ -263,11 +273,9 @@ def test_the_hoop_row_from_the_base_is_used_when_the_column_has_sections():
     assert (hoops.legs, hoops.pitch.value) == (10, 150)
 
 
-def test_a_table_change_is_in_the_checked_section():
-    data = document()
-    # the 線路 bars at 108 from the upper face become D29: the upper face only
-    data["鉄筋"]["柱"]["table_overrides"]["線路"] = [
-        {"source_center_mm": 108, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": 29}]
+def test_a_hand_made_table_is_the_checked_section():
+    # decision 111: the 線路 bars at 108 from the upper face become D29 in the 線路 table: the upper face only
+    data = hand_made(document(), "線路", lambda index, row: [row[0], 29, row[2]] if index == 0 else row)
     result = check(data)
     assert (result.upper.diameter, result.lower.diameter) == (Printed(29, 0, "mm"), Printed(32, 0, "mm"))
     assert (result.upper.per_layer, result.upper.cover) == (Printed(29, 2, "本"), Printed(108, 1, "mm"))

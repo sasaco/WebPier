@@ -1,11 +1,13 @@
-"""The modeless window of the column's section and its 方向別の鉄筋配置表 (decision 68).
+"""The modeless window of the column's section and its 方向別の鉄筋配置表 (decisions 68, 111).
 
-It stays open beside the 鉄筋 page and is redrawn after every edit. The section shows the bars in use coloured by
-their direction (a corner bar shared by both dark), with a ring on the bars changed in a table and on the picked bar.
-A table lists the rows of one direction by their generated centre and size (rebar_edit.table_lines); the centre and
-size cells are edited like a sheet (Return moves down). An edit is a change of that row (rebar_edit.change_table),
-entered through the field table and refused when the layout would not hold with it, so a change never leaves the
-section unplaceable. The changes whose generated bars are gone are named, with a button to remove them.
+It stays open beside the 鉄筋 page and is redrawn after every edit. The section shows the bars the main bars make,
+coloured by their direction (a corner bar shared by both dark), with a ring on the picked bar. A table view shows the
+方向別の鉄筋配置表 of one direction in use (rebar_edit.direction_view) and, above it, its rows drawn across the section
+with their counts, the 引張鉄筋 rows in the colour of the direction. Editing the table is the 配置表の手直し
+(rebar_edit.customize): a centre, size or count typed into a cell (Return moves down), a row added (a copy of the
+selected one), deleted, or moved up or down (the order decides the 引張鉄筋), and the 引張鉄筋の段数. Each is entered
+through the field table and refused when the table would not hold with it, so an edit never leaves the column
+unplaceable. 入力から作り直す makes the table from the main bars again.
 """
 
 from __future__ import annotations
@@ -14,28 +16,53 @@ import copy
 import tkinter as tk
 from collections.abc import Callable
 from tkinter import ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from ..calc.column_rebar import layer_name
+from ..calc.column_rebar import ColumnLayout, DirectionTable, count_mismatch, layer_name
 from ..inputs.fields import field
 from . import rebar_edit
 from .document import EditorError
 from .entry import EntryError, enter
 from .grid import EDITABLE, READONLY, make_sheet
-from .rebar_canvas import Circle, SectionView, inset, outline
+from .rebar_canvas import Band, Circle, SectionView, inset, outline
 
 if TYPE_CHECKING:
     from .app import InputEditor
 
 VIEWS = (("section", "断面図"), ("線路", "配置表：線路方向"), ("直角", "配置表：直角方向"))
 COLORS = {"線路": "#1d5fa7", "直角": "#d27a22"}
-SHARED, CHANGED, PICKED, CHANGED_ROW = "#1f2937", "#7c3aed", "#f2b705", "#f1e9ff"
+SHARED, PICKED, TENSION_ROW, OTHER = "#1f2937", "#f2b705", "#e6effa", "#94a3b8"
 HEADS = {"線路": "上面からの芯位置 mm", "直角": "左面からの芯位置 mm"}
-KEYS = ("center_mm", "diameter_mm")  # the editable columns 0 and 1
+SIDES = {"線路": ("引張（上）", "引張（下）"), "直角": ("引張（左）", "引張（右）")}
+KEYS = ("center_mm", "diameter_mm", "count")  # the editable columns 0, 1 and 2
+TABLE = ("鉄筋", "柱", "custom_tables", "線路")
 
 
 def _field(key: str):
-    return field(("鉄筋", "柱", "table_overrides", "線路", 0, key))
+    return field((*TABLE, "rows", 0, key))
+
+
+TENSION = field((*TABLE, "tension_rows"))
+
+
+def shown(row, column: int) -> str:
+    """A cell of a table row as the window shows it."""
+    return (f"{row.center.value:g}", f"D{row.diameter.value:g}", str(row.count))[column]
+
+
+def bands(table: DirectionTable, width: float, height: float) -> list[Band]:
+    """The rows of *table* across the section, labelled with their count (the 引張鉄筋 with their size too); a row of
+    the same count as the one before it is not labelled again, so the labels of a long run do not cover each other."""
+    found, previous = [], None
+    for index, row in enumerate(table.rows):
+        tension = index < table.tension or index >= len(table.rows) - table.tension
+        centre = row.center.value
+        start, end = ((0.0, centre), (width, centre)) if table.direction == "線路" else ((centre, 0.0), (centre, height))
+        label = (f"D{row.diameter.value:g}×{row.count}" if tension else
+                 "" if row.count == previous else str(row.count))
+        found.append(Band(start, end, label, COLORS[table.direction] if tension else OTHER))
+        previous = None if tension else row.count
+    return found
 
 
 class ColumnWindow:
@@ -45,12 +72,14 @@ class ColumnWindow:
         self.editor, self.on_close = editor, on_close
         self.view: str = editor.rebar_state.get("window_view", "section")
         self.picked: int | None = None
-        self.lines: list[rebar_edit.TableLine] = []
+        self.layout: ColumnLayout | None = None
+        self.shown: DirectionTable | None = None
+        self.selected: int | None = None  # the table row to select again after a redraw
         root = editor.root
         window = self.window = tk.Toplevel(root)
         window.title("断面図・配置表 — 柱")
         window.transient(root)
-        window.geometry(f"640x620+{root.winfo_rootx() + max(0, root.winfo_width() - 660)}+{root.winfo_rooty() + 120}")
+        window.geometry(f"660x760+{root.winfo_rootx() + max(0, root.winfo_width() - 680)}+{root.winfo_rooty() + 80}")
         window.protocol("WM_DELETE_WINDOW", self.close)
         bar = ttk.Frame(window, padding=(10, 8, 10, 0))
         bar.pack(fill="x")
@@ -62,20 +91,32 @@ class ColumnWindow:
         body.pack(fill="both", expand=True)
         self.section = SectionView(body, on_bar=self.pick)
         self.table = ttk.Frame(body)
-        self.sheet = make_sheet(self.table, ["芯位置 mm", "径", "本数", "段", "変更"], [], [160, 60, 50, 160, 130],
-                                max_height=420)
+        self.strip = SectionView(self.table)
+        self.strip.canvas.configure(height=180)
+        self.strip.pack(fill="x")
+        line = ttk.Frame(self.table)
+        line.pack(fill="x", pady=(4, 4))
+        self.state = tk.StringVar(master=window)
+        ttk.Label(line, textvariable=self.state, style="Muted.TLabel").pack(side="left")
+        self.tension = tk.StringVar(master=window)
+        self.tension_entry = ttk.Entry(line, textvariable=self.tension, width=5)
+        self.tension_entry.pack(side="right")
+        self.tension_entry.bind("<Return>", lambda event: self.set_tension())
+        self.tension_entry.bind("<FocusOut>", lambda event: self.set_tension())
+        ttk.Label(line, text="引張鉄筋の段数 N（上から・下から）").pack(side="right", padx=(0, 4))
+        buttons = ttk.Frame(self.table)
+        buttons.pack(fill="x", pady=(0, 4))
+        for text, command in (("行を追加（選んだ行の下）", self.add), ("行を削除", self.delete), ("↑", lambda: self.move(-1)),
+                              ("↓", lambda: self.move(1))):
+            ttk.Button(buttons, text=text, command=command).pack(side="left", padx=(0, 4))
+        ttk.Button(buttons, text="入力から作り直す", command=self.reset).pack(side="right")
+        self.sheet = make_sheet(self.table, ["芯位置 mm", "径", "本数", "区分"], [], [170, 70, 60, 110], max_height=330)
         self.sheet.pack(fill="both", expand=True)
         self.sheet.bind("<<SheetModified>>", lambda event: self.edited(), add="+")
-        ttk.Button(self.table, text="選んだ行を元に戻す", command=self.undo).pack(anchor="w", pady=(6, 0))
         self.message = tk.StringVar(master=window)
-        ttk.Label(body, textvariable=self.message, style="Muted.TLabel", wraplength=600).pack(side="bottom", anchor="w")
-        self.unmatched = ttk.Frame(body)
-        self.unmatched_text = tk.StringVar(master=window)
-        ttk.Label(self.unmatched, textvariable=self.unmatched_text, foreground="#b45309", wraplength=440).pack(
-            side="left")
-        ttk.Button(self.unmatched, text="見つからない変更を消す", command=self.remove_unmatched).pack(side="left", padx=6)
+        ttk.Label(body, textvariable=self.message, style="Muted.TLabel", wraplength=620).pack(side="bottom", anchor="w")
         self.footer = tk.StringVar(master=window)
-        ttk.Label(body, textvariable=self.footer).pack(side="bottom", anchor="w", pady=(6, 0))
+        ttk.Label(body, textvariable=self.footer, wraplength=620).pack(side="bottom", anchor="w", pady=(6, 0))
         self.refresh()
 
     # views ----------------------------------------------------------------------------------------------------
@@ -83,6 +124,7 @@ class ColumnWindow:
     def select(self, view: str) -> None:
         self.view = self.editor.rebar_state["window_view"] = view
         self.choice.set(view)
+        self.selected = None
         self.refresh()
 
     def pick(self, index: int) -> None:
@@ -95,44 +137,92 @@ class ColumnWindow:
 
     # edits ----------------------------------------------------------------------------------------------------
 
-    def _shown(self, line: rebar_edit.TableLine, column: int) -> str:
-        return f"{line.center:.1f}" if column == 0 else f"D{line.diameter:g}"
+    def _apply(self, change: Callable[[Any, ColumnLayout], Any]) -> Any:
+        """*change* of the document (data, layout): tried on a copy first and refused, with the reason, when the column
+        cannot be laid out with it."""
+        if self.layout is None or self.view == "section":
+            return None
+        try:
+            trial = copy.deepcopy(self.editor.document.data)
+            change(trial, self.layout)
+            rebar_edit.direction_view(rebar_edit.column_preview(trial), self.view)
+        except (EntryError, EditorError) as exc:
+            self.message.set(f"変更できません：{exc}")
+            self.refresh()
+            return None
+        result = change(self.editor.document.data, self.layout)
+        self.message.set("")
+        self.editor.changed()
+        self.refresh()  # also when the 鉄筋 page does not hold this window
+        return result
+
+    def _row(self) -> int | None:
+        selected = self.sheet.get_currently_selected()
+        if not selected or self.shown is None or selected.row >= len(self.shown.rows):
+            return None
+        return selected.row
 
     def edited(self) -> None:
-        """A centre or size typed into the table: the change of its row, if the layout holds with it."""
-        for row, line in enumerate(self.lines):
+        """A centre, size or count typed into the table."""
+        if self.shown is None:
+            return
+        for row, line in enumerate(self.shown.rows):
             for column, key in enumerate(KEYS):
                 text = str(self.sheet.get_cell_data(row, column))
-                if text == self._shown(line, column):
+                if text == shown(line, column):
                     continue
                 try:
                     value = enter(_field(key), text.strip().removeprefix("D").removeprefix("d"))
-                    trial = copy.deepcopy(self.editor.document.data)
-                    rebar_edit.change_table(trial, self.view, line.source, key, value)
-                    rebar_edit.column_preview(trial)
-                except (EntryError, EditorError) as exc:
+                except EntryError as exc:
                     self.message.set(f"変更できません：{exc}")
                     self.refresh()
                     return
-                rebar_edit.change_table(self.editor.document.data, self.view, line.source, key, value)
-                self.message.set("")
-                self.editor.changed()
+                self.selected = row
+                self._apply(lambda data, layout: rebar_edit.set_cell(data, layout, self.view, row, key, value))
                 return
 
-    def undo(self) -> bool:
-        selected = self.sheet.get_currently_selected()
-        if (not selected or self.view == "section" or selected.row >= len(self.lines)
-                or not self.lines[selected.row].changed):
-            return False
-        rebar_edit.undo_change(self.editor.document.data, self.view, self.lines[selected.row].source)
-        self.editor.changed()
-        return True
+    def set_tension(self) -> None:
+        if self.shown is None or self.tension.get().strip() == str(self.shown.tension):
+            return
+        try:
+            value = enter(TENSION, self.tension.get())
+        except EntryError as exc:
+            self.message.set(f"変更できません：{exc}")
+            self.refresh()
+            return
+        self._apply(lambda data, layout: rebar_edit.set_tension(data, layout, self.view, value))
 
-    def remove_unmatched(self) -> int:
-        layout = rebar_edit.column_preview(self.editor.document.data)
-        removed = rebar_edit.remove_unmatched(self.editor.document.data, layout)
+    def add(self) -> int | None:
+        index = self._row()
+        if index is None:
+            self.message.set("行を選んでから追加してください（選んだ行の写しが下に入ります）。")
+            return None
+        self.selected = index + 1
+        return self._apply(lambda data, layout: rebar_edit.insert_row(data, layout, self.view, index))
+
+    def delete(self) -> bool:
+        index = self._row()
+        if index is None:
+            return False
+        self.selected = max(0, index - 1)
+        return bool(self._apply(lambda data, layout: rebar_edit.delete_table_row(data, layout, self.view, index)))
+
+    def move(self, step: int) -> int | None:
+        index = self._row()
+        if index is None or not 0 <= index + step < len(self.shown.rows if self.shown else ()):
+            return None
+        self.selected = index + step
+        return self._apply(lambda data, layout: rebar_edit.move_row(data, layout, self.view, index, step))
+
+    def reset(self) -> bool:
+        """入力から作り直す: the table of the view is the one the main bars make again."""
+        if self.view == "section" or not rebar_edit.reset_table(self.editor.document.data, self.view):
+            return False
+        self.selected = None
+        self.message.set("")
         self.editor.changed()
-        return removed
+        self.refresh()
+        return True
 
     # drawing --------------------------------------------------------------------------------------------------
 
@@ -154,58 +244,78 @@ class ColumnWindow:
         else:
             self.section.pack_forget()
             self.table.pack(fill="both", expand=True)
-        self.unmatched.pack_forget()
-        self.lines = []
+        self.layout, self.shown = None, None
         try:
             polygon = outline("柱", data)
         except EditorError as exc:
             self.section.show([], notice=str(exc))
+            self.strip.show([], notice=str(exc))
             self._table()
             self.footer.set("")
             return
         hoop = self._hoop(polygon)
         try:
-            layout = rebar_edit.column_preview(data)
+            layout = self.layout = rebar_edit.column_preview(data)
         except EditorError as exc:
             self.section.show(polygon, hoop=hoop, notice=str(exc))
+            self.strip.show(polygon, notice=str(exc))
             self._table()
             self.footer.set("")
             return
         circles = []
         for index, bar in enumerate(layout.bars):
             directions = {direction for direction, _ in bar.rows}
-            ring = PICKED if index == self.picked else CHANGED if (bar.x, bar.y, bar.diameter) != bar.origin else None
             circles.append(Circle(bar.x.value, bar.y.value, bar.diameter.value,
-                                  fill=SHARED if len(directions) > 1 else COLORS[bar.rows[0][0]], ring=ring))
-        self.section.show(polygon, circles, hoop, caption="X：直角 ／ Y：線路（上面から）",
-                          notice="青：線路方向の段　橙：直角方向の段　黒：角（共有）　紫の輪：配置表で変更")
-        if not on_section:
-            self.lines = rebar_edit.table_lines(layout, self.view)
-            self.sheet.headers([HEADS[self.view], "径", "本数", "段", "変更"])
-        self._table()
-        if layout.unmatched:
-            self.unmatched_text.set(f"警告：元の芯位置・径の鉄筋が見つからない配置表の変更が {len(layout.unmatched)} 件"
-                                    "あります（計算では使いません）。")
-            self.unmatched.pack(side="bottom", fill="x", pady=(6, 0))
+                                  fill=SHARED if len(directions) > 1 else COLORS[bar.rows[0][0]],
+                                  ring=PICKED if index == self.picked else None))
+        notice = "青：線路方向の段　橙：直角方向の段　黒：角（共有）"
+        if layout.customized:
+            notice += "\n手直しした配置表があります。計算はその表を使います（この断面図は主鉄筋の入力の並びです）。"
+        self.section.show(polygon, circles, hoop, caption="X：直角 ／ Y：線路（上面から）", notice=notice)
         footer = f"物理本数 {len(layout.bars)} 本"
         if self.picked is not None and self.picked < len(layout.bars):
             bar = layout.bars[self.picked]
             shared = "で共有" if len(bar.rows) > 1 else ""
             footer += (f"　X {bar.x.value:.1f}・Y {bar.y.value:.1f}・D{bar.diameter.value:g}・"
                        f"{'と'.join(layer_name(key) for key in bar.rows)}{shared}")
+        if (mismatch := count_mismatch(layout)) is not None:
+            footer += f"\n警告：2つの配置表で鉄筋の本数が違います（{mismatch}）。計算は止めません。"
+        if not on_section:
+            try:
+                self.shown = rebar_edit.direction_view(layout, self.view)
+            except EditorError as exc:
+                self.strip.show(polygon, notice=str(exc))
+            else:
+                width, height = polygon[2]
+                self.strip.show(polygon, bands=bands(self.shown, width, height),
+                                caption=f"{self.view}方向の配置表（色：引張鉄筋）")
+            self.sheet.headers([HEADS[self.view], "径", "本数", "区分"])
+        self._table()
         self.footer.set(footer)
 
     def _table(self) -> None:
-        rows = [[self._shown(line, 0), self._shown(line, 1), str(line.count),
-                 "・".join(layer_name(key) for key in line.layers),
-                 f"元：{line.source[0]:.1f}・D{line.source[1]:g}" if line.changed else ""] for line in self.lines]
-        sheet = self.sheet
+        table, sheet = self.shown, self.sheet
+        if table is None:
+            self.state.set("")
+            self.tension.set("")
+            sheet.set_sheet_data([], reset_col_positions=False, redraw=True)
+            return
+        self.state.set("手直しした表（計算はこの表を使います）" if table.custom else "主鉄筋の入力から作った表")
+        self.tension.set(str(table.tension))
+        upper, lower = SIDES[table.direction]
+        count = len(table.rows)
+        kinds = [upper if index < table.tension else lower if index >= count - table.tension else ""
+                 for index in range(count)]
+        rows = [[shown(row, 0), shown(row, 1), shown(row, 2), kind] for row, kind in zip(table.rows, kinds)]
         sheet.set_sheet_data(rows, reset_col_positions=False, redraw=False)
         sheet.dehighlight_all()
         sheet.highlight_cells(row="all", column="all", bg=READONLY)
-        sheet.readonly_cells(cells=[(r, c) for r in range(len(rows)) for c in range(5)])
-        for r, line in enumerate(self.lines):
-            for c in (0, 1):
+        sheet.readonly_cells(cells=[(r, c) for r in range(count) for c in range(4)])
+        for r, kind in enumerate(kinds):
+            for c in range(3):
                 sheet.readonly_cells(r, c, readonly=False)
-                sheet.highlight_cells(r, c, bg=CHANGED_ROW if line.changed else EDITABLE)
+                sheet.highlight_cells(r, c, bg=TENSION_ROW if kind else EDITABLE)
+        if self.selected is not None and self.selected < count:
+            sheet.select_row(self.selected, redraw=False)
+            sheet.see(self.selected, 0)
         sheet.redraw()

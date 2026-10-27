@@ -68,9 +68,9 @@ def bars(editor):
 def test_the_column_is_drawn_from_the_calculated_layout(editor):
     assert len(bars(editor)) == 76
     window(editor).select("線路")
-    assert len(window(editor).lines) == 11
+    assert len(window(editor).shown.rows) == 11
     window(editor).select("直角")
-    assert len(window(editor).lines) == 31
+    assert len(window(editor).shown.rows) == 31
     assert window(editor).section.canvas.find_withtag("hoop")
 
 
@@ -162,12 +162,25 @@ def test_the_beam_side_bars_are_removed_and_added(editor):
     assert cell(editor, "鉄筋", "梁", "side_bars", "diameter_mm").get() == ""
 
 
-def test_a_table_change_without_its_bars_is_a_warning(editor):
-    editor.document.data["鉄筋"]["柱"]["table_overrides"]["線路"] = [
-        {"source_center_mm": 999, "source_diameter_mm": 32, "center_mm": 110, "diameter_mm": None}]
+def test_two_tables_with_other_bars_are_a_warning(editor):
+    """Decision 111: the 線路 table by hand with 2 bars fewer; the calculation goes on."""
+    tables = editor.document.data["鉄筋"]["柱"]["custom_tables"]
+    tables["線路"] = {"tension_rows": 1, "rows": [{"center_mm": 108, "diameter_mm": 32, "count": 27},
+                                                 {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
     page(editor).refresh()
     assert len(bars(editor)) == 76
-    assert "警告：配置表の変更のうち 1 件は" in page(editor).status.get()
+    assert "警告：線路方向と直角方向の配置表で鉄筋の本数が違います" in page(editor).status.get()
+
+
+def test_editing_the_main_bars_of_a_direction_makes_its_table_again(editor):
+    tables = editor.document.data["鉄筋"]["柱"]["custom_tables"]
+    tables["直角"] = {"tension_rows": 1, "rows": [{"center_mm": 102, "diameter_mm": 19, "count": 9},
+                                                 {"center_mm": 4398, "diameter_mm": 19, "count": 9}]}
+    enter(editor, (*COLUMN, "main_bars", "線路", "distribution", "pitch_mm"), "140")
+    assert tables["直角"] is not None  # the other direction's main bars: its table stays
+    enter(editor, (*COLUMN, "main_bars", "直角", "distribution", "pitch_mm"), "300")
+    assert tables["直角"] is None
+    assert "直角方向の主鉄筋を変えたので、手直しした配置表を主鉄筋の入力から作り直しました。" in page(editor).status.get()
 
 
 def test_the_column_concrete_has_its_aggregate_size(editor):

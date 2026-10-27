@@ -421,6 +421,8 @@ def input_schema(*, load_model: bool = False) -> dict[str, Any]:
     rebar = root["properties"]["鉄筋"]["properties"]
     rebar["version"] = {"const": REBAR_VERSION}
     rebar["梁"]["properties"]["side_bars"]["type"] = ["object", "null"]  # null: no side bars (rebar._beam_side)
+    for table in rebar["柱"]["properties"]["custom_tables"]["properties"].values():
+        table["type"] = ["object", "null"]  # null: the table the main bars make (rebar._custom_table, decision 111)
     reactions = root["properties"]["上部工反力"]["properties"]
     for side, slots in (("起点側", "B支点"), ("終点側", "C支点")):  # an empty bearing slot is null (parse._bearing)
         array = reactions[side]["properties"][slots]

@@ -4,7 +4,8 @@ WebPier lays out every page, after the sample 0400 (.claude/docs/Example橋脚/o
 its formulas and its tables) and, for what the sample has not, Example2 06_照査の前提 6.3〜6.8:
 
 - 4.1 配筋要領: (1) 梁, (2) 柱, (3) フーチング, each with its figure when one is given (``figures``: the 配筋図 is drawn
-  elsewhere and put here as it is).
+  elsewhere and put here as it is). A column whose 方向別の鉄筋配置表 is hand-made has no figure: (2) prints its two
+  tables, with the 引張鉄筋 rows named (decision 111).
 - 4.2 躯体の構造細目: (1) 線路方向, (2) 線路直角方向. The items of the whole section (1) (a) and 3) are printed in (1)
   only; the items are numbered in order in each direction.
 - 4.3 梁の構造細目 and 4.4 フーチングの構造細目 ((1) 線路方向, (2) 線路直角方向).
@@ -32,6 +33,7 @@ from pypdf import PdfReader
 
 from ...calc.detailing import DetailingResult
 from ...calc.detailing.beam import BeamDetailing, SkinBars
+from ...calc.column_rebar import DirectionTable
 from ...calc.detailing.column import ColumnDetailing, ColumnDirection
 from ...calc.detailing.common import (BarGroup, Bound, CapacityRatio, ClearSpacing, DuctilityLimit, ShearRatio,
                                       SteelRatio, StirrupSpacing)
@@ -72,6 +74,8 @@ COLON = 9  # "ここに、" lists
 ITEM_COLON = 17  # the lines of 5) (軸方向鉄筋ピッチ : 150.0 mm)
 TAG_COLUMNS = {".shear.heading": 14}  # a heading whose tag does not fit from column 18
 CLEAR_WIDTHS = (7, 8, 10)  # 部材 | あき(mm) | 備考
+TABLE_WIDTHS = (7, 4, 4, 8)  # the column's 方向別の鉄筋配置表 (decision 111): 芯位置 | 径 | 本数 | 区分
+TABLE_FACES = {"線路": ("線路方向", "上面", "上側", "下側"), "直角": ("線路直角方向", "左面", "左側", "右側")}
 FACE_WIDTHS = (3, 6, 4, 4, 6, 6)  # 10) 面 | 径−本数 | As | As/6 | 配力鉄筋 | 圧縮鉄筋
 OK, NG = "OK", "NG"
 DOTS = "・・・・・・"
@@ -444,6 +448,24 @@ def _capacity(m: _Manuscript, key: str, n: _Numbers, capacity: CapacityRatio, pw
     relation = "＞" if capacity.above else "≦"
     m.line(f"{key}.value", f"{value(capacity.pw)} × {value(capacity.fwyd)} / ({value(capacity.fck)} / "
                            f"{value(capacity.gamma_c)}) = {value(capacity.value)} {relation} {value(capacity.limit)}")
+
+
+# --- 4.1 (2) the column's tables in place of its 配筋図 (decision 111) ------------------------------------------------
+
+
+def _column_tables(m: _Manuscript, tables: Sequence[DirectionTable]) -> None:
+    m.paragraph("layout.column.tables.text", "柱は方向別の鉄筋配置表を手直ししているため、配筋図に代えて、計算に用いる"
+                                             "鉄筋配置表を示す。引張鉄筋は、表の上から・下から引張鉄筋の段数の行とする。")
+    for table in tables:
+        name, face, upper, lower = TABLE_FACES[table.direction]
+        rows: list[tuple[Any, ...]] = [(f"{face}からの芯位置(mm)", "径", "本数", "区分")]
+        for index, row in enumerate(table.rows):
+            kind = (f"引張鉄筋（{upper}）" if index < table.tension else
+                    f"引張鉄筋（{lower}）" if index >= len(table.rows) - table.tension else "")
+            rows.append((value(row.center), _bar(row.diameter), str(row.count), kind))
+        m.table(f"layout.column.tables.{table.direction}", TableSpec(TABLE_WIDTHS, tuple(rows), (1,) * len(rows),
+                                                                     numeric=frozenset({0, 2}), left=BODY),
+                f"表．鉄筋配置表（{name}、引張鉄筋の段数 {table.tension}）")
 
 
 # --- 4.2 the column -------------------------------------------------------------------------------------------------
@@ -1211,6 +1233,8 @@ def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = 
         m.heading(f"layout.{name}.heading", f"({index + 1}) {title}", 2)
         if name in figures:
             m.figure(f"layout.{name}", figures[name])
+        elif name == "column" and result.column.tables is not None:
+            _column_tables(m, result.column.tables)
     _column(m, result.column, refs)
     _beam(m, result.beam, refs)
     _footing(m, result.footing, refs)

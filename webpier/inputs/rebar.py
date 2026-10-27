@@ -7,8 +7,9 @@ error naming its path. The concrete strengths of this section are read into ``Ma
 
 Column coordinates: origin at the upper-left corner, X across the track (W6), Y along it (B6). A 線路 row
 lies on the two faces normal to Y, a 直角 row on the two faces normal to X (CONTEXT.md 柱の軸方向鉄筋).
-A direction's layers inside layer 1 take only their 片面本数 and clear gap; changes made in the 方向別の鉄筋配置表
-are kept per table, keyed by the generated centre and size (decision 68). A beam face likewise has one size,
+A direction's layers inside layer 1 take only their 片面本数 and clear gap; a direction whose 方向別の鉄筋配置表 is
+hand-made (配置表の手直し, decision 111) keeps all its rows in order and its 引張鉄筋の段数, or null when the table is
+the one the main bars make. A beam face likewise has one size,
 layer 1 and the layers inside it; the side bars are null when there are none. A footing face holds both
 directions, each with layer 1 and the layers inside it, and names the direction outside.
 """
@@ -23,7 +24,7 @@ from . import choices
 from .fields import LENGTH_MM, PILE_HOOP_ZONES, PILE_MEMBER, read
 
 __all__ = ["LENGTH_MM", "PILE_LOWER_HOOPS", "RebarInput", "parse_rebar"]  # the digits come from the field table
-REBAR_VERSION = 3
+REBAR_VERSION = 4
 PILE_LOWER_HOOPS = 3  # the zones of hoops below the 2D zone of a cast-in-place pile (decision 87)
 
 
@@ -67,14 +68,21 @@ class ColumnMainBars:
 
 
 @dataclass(frozen=True)
-class TableOverride:
-    """A change made in the 方向別の鉄筋配置表: the bars generated at source_center (from the reference face of the
-    direction) with source_diameter take center and/or diameter instead."""
+class TableRowInput:
+    """A row of a hand-made 方向別の鉄筋配置表: the bars at one centre from the reference face of the direction."""
 
-    source_center: Printed
-    source_diameter: Printed
     center: Printed | None
     diameter: Printed | None
+    count: int | None
+
+
+@dataclass(frozen=True)
+class CustomTable:
+    """配置表の手直し (decision 111): the rows of the table in their order, and the 引張鉄筋の段数 N (the first and the
+    last N rows)."""
+
+    tension_rows: int | None
+    rows: tuple[TableRowInput, ...]
 
 
 @dataclass(frozen=True)
@@ -100,7 +108,7 @@ class ColumnBars:
     materials: SteelMaterials
     pure_cover: Printed | None  # 純かぶり
     main_bars: dict[str, ColumnMainBars]  # by direction, choices.REBAR_DIRECTIONS
-    overrides: dict[str, tuple[TableOverride, ...]]  # by the direction of the table
+    tables: dict[str, CustomTable | None]  # by the direction of the table; None: the table the main bars make
     hoops: ColumnHoops
     aggregate_max: Printed | None  # 粗骨材最大寸法 Dmax, mm (decision 48)
 
@@ -296,22 +304,17 @@ def _column_bars(node: Reader) -> ColumnMainBars:
     return bars
 
 
-def _overrides(node: Reader) -> tuple[TableOverride, ...]:
-    """The changes of one table. A change whose generated bars no longer exist is the layout's to report (a warning in
-    the editor); a change of nothing, or two changes of one generated row, cannot be applied."""
-    found: list[TableOverride] = []
-    for row in node.items():
-        row.only("source_center_mm", "source_diameter_mm", "center_mm", "diameter_mm")
-        override = TableOverride(source_center=_value(row, "source_center_mm"),
-                                 source_diameter=_value(row, "source_diameter_mm"),
-                                 center=_value(row, "center_mm"), diameter=_value(row, "diameter_mm"))
-        if override.center is None and override.diameter is None:
-            raise row.error("芯位置か径の変更が必要です")
-        if any((other.source_center, other.source_diameter) == (override.source_center, override.source_diameter)
-               for other in found):
-            raise row.error("同じ元の芯位置・径の変更がほかの行にあります")
-        found.append(override)
-    return tuple(found)
+def _custom_table(node: Reader) -> CustomTable | None:
+    """The hand-made table of one direction, or None (null): the one the main bars make."""
+    if node.is_null:
+        return None
+    node.only("tension_rows", "rows")
+    rows = []
+    for row in node.at("rows").items():
+        row.only("center_mm", "diameter_mm", "count")
+        rows.append(TableRowInput(center=_value(row, "center_mm"), diameter=_value(row, "diameter_mm"),
+                                  count=_value(row, "count")))
+    return CustomTable(tension_rows=_value(node, "tension_rows"), rows=tuple(rows))
 
 
 def _hoops(node: Reader) -> ColumnHoops:
@@ -328,14 +331,14 @@ def _hoops(node: Reader) -> ColumnHoops:
 
 
 def _column(node: Reader) -> ColumnBars:
-    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "main_bars", "table_overrides",
+    node.only("materials", "concrete_strength_mpa", "aggregate_max_mm", "pure_cover_mm", "main_bars", "custom_tables",
               "column_hoops")
     bars = node.at("main_bars").only(*choices.REBAR_DIRECTIONS)
-    overrides = node.at("table_overrides").only(*choices.REBAR_DIRECTIONS)
+    tables = node.at("custom_tables").only(*choices.REBAR_DIRECTIONS)
     return ColumnBars(
         materials=_materials(node.at("materials")), pure_cover=_value(node, "pure_cover_mm"),
         main_bars={direction: _column_bars(bars.at(direction)) for direction in choices.REBAR_DIRECTIONS},
-        overrides={direction: _overrides(overrides.at(direction)) for direction in choices.REBAR_DIRECTIONS},
+        tables={direction: _custom_table(tables.at(direction)) for direction in choices.REBAR_DIRECTIONS},
         hoops=_hoops(node.at("column_hoops")), aggregate_max=_value(node, "aggregate_max_mm"))
 
 

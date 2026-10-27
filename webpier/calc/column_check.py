@@ -40,8 +40,8 @@ from ..core.errors import InputError
 from ..core.printed import Precision, Printed
 from ..inputs import PierInput, choices
 from ._exact import d, put
-from .column_rebar import (YIELD_STRENGTH, Bar, ColumnLayout, MainRows, TableRow, bar_area, column_layout, main_rows,
-                           table, yield_strength)
+from .column_rebar import (YIELD_STRENGTH, Bar, ColumnLayout, MainRows, TableRow, bar_area, column_layout, main_pitch,
+                           main_rows, table, yield_strength)
 from .frame import Frame, Member, NodeRole, Region
 from .longitudinal.combinations import Extraction, ExtractionGroup
 
@@ -381,7 +381,17 @@ def _cases(cases, numbers: Mapping[ExtractionGroup, int]) -> tuple[tuple[int, in
 
 def column_bars(layout: ColumnLayout,
                 direction: Direction) -> tuple[MainBars, MainBars, tuple[SideBars, str] | None, str]:
-    """(upper, lower, (side bars, their steel) or None, the steel of the main bars) of *direction*."""
+    """(upper, lower, (side bars, their steel) or None, the steel of the main bars) of *direction*. A hand-made table
+    (decision 111) gives them as written: its first and last N rows the layers of the two faces, the rest the side bars;
+    its rows are all the bars, so no corner bar is added."""
+    custom = layout.custom.get(direction.face)
+    if custom is not None:
+        depth = direction.section(layout)[1]
+        grade = _one({row.material for row in custom.rows}, f"{_COLUMN}.main_bars", "主鉄筋の材質")
+        pitch = main_pitch(layout, direction.face)
+        return (_face(list(custom.upper), (), None, pitch, direction.face),
+                _face(list(reversed(custom.lower)), (), depth, pitch, direction.face),
+                _side(custom.others, direction.side), grade)
     corners = corner_bars(layout, direction)
     corner = {*corners[0], *corners[1]}
     rows = table((bar for bar in layout.bars if bar not in corner), direction.face)

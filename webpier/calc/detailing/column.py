@@ -13,13 +13,21 @@ check (calc.column_check: 線路 b = W6, h = B6; 直角 b = B6, h = W6).
   rows (as generated, one side), φ of the main bars the smallest of them, the short side min(W6, B6); ③ the largest
   gap of the legs (calc.detailing.ties) against 48φ of the hoops.
 
+A direction whose 方向別の鉄筋配置表 is hand-made (配置表の手直し, decision 111) has no bars with a place: its checks take
+the tables. 5) the least gap of the centres of the other direction's table between its 引張鉄筋 rows (those are on
+the other faces; the rest are the bars along this face) and of neighbouring 引張鉄筋 rows of its own on one side,
+the largest of those rows; 7) d from the upper 引張鉄筋 rows (their
+centroid by area), φ the smallest of them; the ties as calc.detailing.ties. 1) (a) and 3) take the 線路 table when it
+is hand-made: its first and last N rows the 引張・圧縮鉄筋, the others the 側方鉄筋. The tables are kept in the result
+for 4.1, which prints them in place of the column's 配筋図.
+
 The checks that use section forces (Mcrd, 0.008Ac, the maximum reinforcement, σc) are Capacita's (ADR-0012) and have
 no value here.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 
 from ...core.errors import InputError
@@ -27,7 +35,7 @@ from ...core.printed import Printed
 from ...inputs import PierInput, choices
 from .._exact import d, put
 from ..column_check import LONGITUDINAL, TRANSVERSE
-from ..column_rebar import ColumnLayout, column_layout
+from ..column_rebar import ColumnLayout, DirectionTable, bar_area, column_layout, direction_table
 from .common import (LENGTH, BarGroup, CapacityRatio, ClearSpacing, DuctilityLimit, ShearRatio, SteelRatio,
                      StirrupSpacing, bound, capacity_ratio, clear_spacing, confinement_spacing, count,
                      ductility_limit, general_spacing, least_gap, need, shear_ratio, steel_ratio)
@@ -75,6 +83,8 @@ class ColumnDetailing:
     fck: Printed  # N/mm2
     aggregate_max: Printed  # Dmax, mm
     directions: tuple[ColumnDirection, ...]  # 線路, 直角
+    # the 方向別の鉄筋配置表 of 線路 and 直角 when one is hand-made (decision 111): 4.1 prints them in place of the 配筋図
+    tables: tuple[DirectionTable, ...] | None = field(default=None, metadata={"json": "set"})
 
     @property
     def ok(self) -> bool:
@@ -89,8 +99,41 @@ def _groups(bars) -> list[BarGroup]:
     return [BarGroup.of(diameter, count(number), _MAIN) for _, (diameter, number) in sorted(sizes.items())]
 
 
+def _rows(rows) -> list[BarGroup]:
+    sizes: dict[float, tuple[Printed, int]] = {}
+    for row in rows:
+        diameter, number = sizes.get(row.diameter.value, (row.diameter, 0))
+        sizes[row.diameter.value] = (diameter, number + row.count)
+    return [BarGroup.of(diameter, count(number), _MAIN) for _, (diameter, number) in sorted(sizes.items())]
+
+
 def _of(direction: str, bar) -> bool:
     return any(key[0] == direction for key in bar.rows)
+
+
+def _other(direction: str) -> str:
+    first, second = choices.REBAR_DIRECTIONS
+    return second if direction == first else first
+
+
+def _table_spacing(layout: ColumnLayout, table: DirectionTable, aggregate_max: Printed) -> tuple[ClearSpacing, Printed]:
+    """5) and the smallest 引張鉄筋 of a hand-made table: along the face the centres of the other direction's table between
+    its 引張鉄筋 rows, across it the neighbouring 引張鉄筋 rows of one side."""
+    along = {row.center.value: row.center for row in direction_table(layout, _other(table.direction)).others}
+    tension = (*table.upper, *table.lower)
+    largest = max((row.diameter for row in tension), key=d)
+    smallest = min((row.diameter for row in tension), key=d)
+    sides = ([row.center for row in table.upper], [row.center for row in table.lower])
+    return clear_spacing(least_gap([list(along.values())]), least_gap(sides), largest, aggregate_max,
+                         column=True), smallest
+
+
+def _table_depth(table: DirectionTable, depth: Printed) -> Printed:
+    """d of a hand-made table: h − the centroid of its upper 引張鉄筋 rows by area."""
+    path = f"鉄筋.柱.custom_tables.{table.direction}"
+    areas = [row.count * d(bar_area(row.diameter, path)) for row in table.upper]
+    centroid = sum((area * d(row.center) for area, row in zip(areas, table.upper)), Decimal(0)) / sum(areas)
+    return put(LENGTH, d(depth) - centroid)
 
 
 def _spacing(layout: ColumnLayout, direction: str, aggregate_max: Printed) -> tuple[ClearSpacing, Printed]:
@@ -121,8 +164,13 @@ def _direction(pier: PierInput, layout: ColumnLayout, direction: str, aggregate_
     width, depth = bending.section(layout)
     if not any(row.direction == direction for row in layout.rows):
         raise InputError(f"{_MAIN}.{direction}: {direction}の主鉄筋が必要です")
-    spacing, main = _spacing(layout, direction, aggregate_max)
-    effective = _effective_depth(layout, direction, depth)
+    custom = layout.custom.get(direction)
+    if custom is None:
+        spacing, main = _spacing(layout, direction, aggregate_max)
+        effective = _effective_depth(layout, direction, depth)
+    else:
+        spacing, main = _table_spacing(layout, custom, aggregate_max)
+        effective = _table_depth(custom, depth)
     hoops = base_hoops(pier, direction)
     shear = shear_ratio(hoops.diameter, count(hoops.legs), width, hoops.pitch, f"{hoops.path}.diameter_mm")
     ties = tie_layout(layout, direction, hoops.legs, hoops.path)
@@ -142,11 +190,16 @@ def column_detailing(pier: PierInput) -> ColumnDetailing:
     layout = column_layout(pier)
     aggregate_max = need(pier.rebar.column.aggregate_max, "鉄筋.柱.aggregate_max_mm")
     rail = choices.REBAR_DIRECTIONS[0]
-    main = _groups(bar for bar in layout.bars if _of(rail, bar))
-    side = _groups(bar for bar in layout.bars if not _of(rail, bar))
+    if (custom := layout.custom.get(rail)) is not None:
+        main, side = _rows((*custom.upper, *custom.lower)), _rows(custom.others)
+    else:
+        main = _groups(bar for bar in layout.bars if _of(rail, bar))
+        side = _groups(bar for bar in layout.bars if not _of(rail, bar))
     grade = need(pier.rebar.column.materials.main, "鉄筋.柱.materials.main")
     return ColumnDetailing(amount=steel_ratio((*main, *side), grade, layout.width, layout.height),
                            main_count=len(main),
                            fck=pier.materials.column, aggregate_max=aggregate_max,
                            directions=tuple(_direction(pier, layout, direction, aggregate_max)
-                                            for direction in choices.REBAR_DIRECTIONS))
+                                            for direction in choices.REBAR_DIRECTIONS),
+                           tables=tuple(direction_table(layout, direction) for direction in choices.REBAR_DIRECTIONS)
+                           if layout.customized else None)

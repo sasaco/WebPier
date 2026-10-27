@@ -1,5 +1,5 @@
-"""Column main bar layout (CONTEXT.md 柱の配筋): positions from the main bars and the layers inside them, the
-direction tables and their changes (decision 68).
+"""Column main bar layout (CONTEXT.md 柱の配筋): positions from the main bars and the layers inside them, and the
+direction tables in use, made from them or by hand (decisions 68, 111).
 
 Expected values: tests/fixtures/column_rebar_example2.json (independent transcription of Example2 10-6 / 11-6,
 both tables and the 76 physical bars) and hand calculations in Decimal. Nothing missing is filled in (decision 5).
@@ -12,13 +12,13 @@ from decimal import Decimal
 import pytest
 
 from reaction_support import FIXTURES, document, q
-from webpier.calc.column_rebar import column_layout, table, yield_strength
+from webpier.calc.column_rebar import column_layout, count_mismatch, direction_table, table, yield_strength
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import parse_input
 
 EXAMPLE = json.loads((FIXTURES / "column_rebar_example2.json").read_text(encoding="utf-8"))
-RAIL, CROSS, CHANGES = "鉄筋/柱/main_bars/線路", "鉄筋/柱/main_bars/直角", "鉄筋/柱/table_overrides"
+RAIL, CROSS, TABLES = "鉄筋/柱/main_bars/線路", "鉄筋/柱/main_bars/直角", "鉄筋/柱/custom_tables"
 
 
 def layout(**changes):
@@ -51,7 +51,7 @@ def test_current_input_reproduces_both_example2_tables():
                                            for b in EXAMPLE["physical_bars"])
     for direction in ("線路", "直角"):
         assert rows_of(table(result.bars, direction)) == EXAMPLE["directional_rows"][direction]
-    assert result.bars == result.generated and result.unmatched == ()
+    assert result.custom == {"線路": None, "直角": None} and not result.customized
 
 
 def test_face_rows_by_hand():
@@ -205,41 +205,60 @@ def test_centre_pitch_may_reach_the_bar_radius():
     assert layout(**{f"{CROSS}/distribution/pitch_mm": 335}).rows[1].positions[0] == mm(10)
 
 
-def change(direction, source, diameter, center=None, size=None):
-    return {f"{CHANGES}/{direction}": [{"source_center_mm": source, "source_diameter_mm": diameter,
-                                        "center_mm": center, "diameter_mm": size}]}
+def custom(direction, tension, *rows):
+    return {f"{TABLES}/{direction}": {"tension_rows": tension, "rows": [
+        {"center_mm": center, "diameter_mm": diameter, "count": count} for center, diameter, count in rows]}}
 
 
-def test_a_table_change_resizes_the_bars_of_a_row():
-    result = layout(**{f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 40}]},
-                    **change("線路", 180, 32, size=29))
-    rail = rows_of(table(result.bars, "線路"))
-    assert {"center_mm": 180, "diameter_mm": 29, "count": 27, "material": "SD390"} in rail
-    assert {"center_mm": 2520, "diameter_mm": 32, "count": 27, "material": "SD390"} in rail  # the other face: 2520
-    moved = [bar for bar in result.bars if bar.diameter.value == 29]
-    assert len(moved) == 27 and {bar.origin[2].value for bar in moved} == {32}
-    assert result.unmatched == ()
+def test_the_table_the_main_bars_make_has_their_layers_first_and_last():
+    # decision 111: an inner layer at 108 + 32 + 300 = 440, beyond the first 直角 side bar (350): the side bars follow
+    # the main layers, and N is the number of the layers, not the rows down to the innermost one (decision 108's)
+    result = layout(**{f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 300}]})
+    rail = direction_table(result, "線路")
+    centres = [row.center.value for row in rail.rows]
+    assert not rail.custom and rail.tension == 2
+    assert centres[:3] == [108, 440, 350] and centres[-2:] == [2700 - 440, 2700 - 108]
+    assert [row.count for row in (*rail.upper, *rail.lower)] == [29, 27, 27, 29]
+    assert sorted(rail.rows, key=lambda row: row.center.value) == list(table(result.bars, "線路"))
+    assert [row.center.value for row in rail.others] == sorted(centres[2:-2])
 
 
-def test_a_table_change_moves_the_bars_of_a_row():
-    result = layout(**change("直角", 102, 19, center=110))
-    cross = rows_of(table(result.bars, "直角"))
-    assert {"center_mm": 110, "diameter_mm": 19, "count": 9, "material": "SD390"} in cross
-    assert all(row["center_mm"] != 102 for row in cross)
-
-
-def test_a_change_without_its_generated_bars_is_returned_not_applied():
-    result = layout(**change("線路", 999, 32, center=110))
-    assert result.unmatched == (("線路", 0),) and result.bars == result.generated
+def test_a_hand_made_table_is_its_rows_as_written():
+    rows = ((100, 32, 29), (345, 32, 7), (167, 32, 2), (2355, 32, 7), (2600, 32, 29))
+    result = layout(**custom("線路", 2, *rows))
+    rail = direction_table(result, "線路")
+    assert rail.custom and rail.tension == 2 and result.customized
+    assert [(row.center.value, row.diameter.value, row.count, row.material) for row in rail.rows] == [
+        (*row, "SD390") for row in rows]
+    assert [row.center.value for row in rail.upper] == [100, 345]  # as written, not by centre (167 is not one)
+    assert [row.center.value for row in rail.lower] == [2355, 2600]
+    assert [row.center.value for row in rail.others] == [167]
+    assert result.bars == layout().bars  # the bars the main bars make do not change
+    assert not direction_table(result, "直角").custom
 
 
 @pytest.mark.parametrize("changes,message", [
-    ({f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 40}], **change("線路", 180, 32, center=108)},
-     "鉄筋.柱.table_overrides: X 300・Y 108 の鉄筋が配置表の変更でほかの鉄筋と同じ位置になります"),
-    (change("直角", 102, 19, center=5), "鉄筋.柱.table_overrides: X 5・Y 350 の鉄筋が断面の外に出ます"),
+    (custom("線路", None, (100, 32, 29), (2600, 32, 29)), "鉄筋.柱.custom_tables.線路.tension_rows: 値が必要です"),
+    (custom("線路", 2, (100, 32, 29), (2600, 32, 29)),
+     "鉄筋.柱.custom_tables.線路.tension_rows: 引張鉄筋の段数 2 の上下 4 行が表の2行より多くなります"),
+    (custom("線路", 1, (100, None, 29), (2600, 32, 29)), "鉄筋.柱.custom_tables.線路.rows[0].diameter_mm: 値が必要です"),
+    (custom("線路", 1, (100, 32, 29), (2600, 32, None)), "鉄筋.柱.custom_tables.線路.rows[1].count: 値が必要です"),
+    (custom("線路", 1, (15, 32, 29), (2600, 32, 29)),  # the radius 16
+     "鉄筋.柱.custom_tables.線路.rows[0].center_mm: 芯位置 15 mm の鉄筋が断面の外に出ます"),
+    (custom("直角", 1, (102, 19, 9), (4491, 19, 9)),  # W6 4500 − 9 < 9.5
+     "鉄筋.柱.custom_tables.直角.rows[1].center_mm: 芯位置 4491 mm の鉄筋が断面の外に出ます"),
+    (custom("線路", 1, (100, 30, 29), (2600, 32, 29)), "鉄筋.柱.custom_tables.線路.rows[0].diameter_mm: D30 の公称断面積"),
 ])
-def test_changed_bars_must_stay_apart_and_inside(changes, message):
+def test_a_hand_made_table_needs_its_values_inside_the_section(changes, message):
     fails(message, **changes)
+
+
+def test_the_bars_of_the_two_tables_are_compared_by_size():
+    assert count_mismatch(layout()) is None
+    rows = [(row.center.value, row.diameter.value, row.count) for row in direction_table(layout(), "線路").rows]
+    assert count_mismatch(layout(**custom("線路", 1, *rows))) is None  # the same rows by hand
+    rows[0] = (rows[0][0], 29, rows[0][2])
+    assert count_mismatch(layout(**custom("線路", 1, *rows))) == "線路 D19 18本 D29 29本 D32 29本・直角 D19 18本 D32 58本"
 
 
 def test_direction_tables_group_by_centre_diameter_and_material():
@@ -252,3 +271,12 @@ def test_direction_tables_group_by_centre_diameter_and_material():
 def test_yield_strength_is_the_grade_number():
     assert yield_strength("SD390") == Printed(390, 0, "N/mm2")
     assert yield_strength("SD295").value == 295
+
+
+def test_tables_that_cannot_be_made_have_no_count_warning():
+    # two edge bars of 線路 only and 直角 from 60: the 線路 table the main bars make has a bar outside its layers
+    result = layout(**{f"{RAIL}/per_face_count": 2, f"{CROSS}/endpoints": "含む",
+                       f"{CROSS}/distribution": {"mode": "等分", "edge_center_mm": 60.0, "pitch_mm": None}})
+    with pytest.raises(InputError):
+        direction_table(result, "線路")
+    assert count_mismatch(result) is None

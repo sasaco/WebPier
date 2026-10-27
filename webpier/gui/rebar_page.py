@@ -3,9 +3,10 @@ column's section and 方向別の鉄筋配置表 in a modeless window (column_wi
 in others (beam_window, footing_window), the 柱の断面照査 conditions (decision 48) and the 片持ち梁の照査 conditions
 (decision 59).
 
-The layouts, every layout error and the warnings (the column's table changes whose generated bars are gone, the beam's
-overlapping bars, the footing's crossing layers: the calculation goes on) come from calc.column_rebar,
-calc.beam_rebar and calc.footing_rebar via rebar_edit; nothing here checks the reinforcement itself.
+The layouts, every layout error and the warnings (the column's two tables with other bars, the beam's overlapping
+bars, the footing's crossing layers: the calculation goes on) come from calc.column_rebar, calc.beam_rebar and
+calc.footing_rebar via rebar_edit; nothing here checks the reinforcement itself. Editing a direction of the column's
+main bars makes its hand-made 方向別の鉄筋配置表 from them again (decision 111, rebar_edit.reset_changed).
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from tksheet import Sheet
 
 from ..calc.beam_rebar import BeamLayout
-from ..calc.column_rebar import ColumnLayout
+from ..calc.column_rebar import ColumnLayout, count_mismatch
 from . import beam_cards, column_cards, footing_cards, pile_cards, rebar_edit
 from .beam_window import BeamWindow
 from .column_window import ColumnWindow
@@ -102,6 +103,8 @@ class RebarPage:
             self.fix_corner = ttk.Button(line, command=self.match_corner_sizes)  # packed when the sizes differ
         self.form = Form(editor, self.inputs)
         self.readouts: dict[tuple, tk.StringVar] = {}
+        self.main_bars = rebar_edit.main_bars(editor.document.data)  # the column's, to reset its hand-made tables
+        self.reset_note = ""
         self._build_inputs()
         self.refresh()
 
@@ -254,10 +257,10 @@ class RebarPage:
                 problem = ""
             except EditorError as exc:
                 problem = str(exc)
-            if self.layout is not None and self.layout.unmatched:
-                problem = (f"警告：配置表の変更のうち {len(self.layout.unmatched)} 件は、元の芯位置・径の鉄筋がないため"
-                           "使われていません（計算でも使いません）。")
-            self.status.set(problem)
+            if self.layout is not None and (mismatch := count_mismatch(self.layout)) is not None:
+                problem = (f"警告：線路方向と直角方向の配置表で鉄筋の本数が違います（{mismatch}）。断面図・配置表で"
+                           "確かめてください（計算は止めません）。")
+            self.status.set("\n".join(text for text in (self.reset_note, problem) if text))
             for key, variable in self.readouts.items():
                 variable.set(column_cards.readout(self, key))
             bars = data["鉄筋"]["柱"]["main_bars"]
@@ -323,6 +326,11 @@ class RebarPage:
         return True
 
     def input_changed(self) -> None:
+        reset = rebar_edit.reset_changed(self.editor.document.data, self.main_bars)
+        self.main_bars = rebar_edit.main_bars(self.editor.document.data)
+        if reset:
+            self.reset_note = (f"{'・'.join(reset)}方向の主鉄筋を変えたので、手直しした配置表を主鉄筋の入力から作り直し"
+                               "ました。")
         self.refresh()
 
     def input_moved(self) -> None:

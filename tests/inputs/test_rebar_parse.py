@@ -44,7 +44,7 @@ def test_the_column_of_the_current_input():
     assert rail.inner_layers == ()
     assert (cross.cover_mode, cross.center) == ("指定", mm(102))
     assert cross.distribution.mode == "中央ピッチ" and cross.distribution.edge_center is None
-    assert column.overrides == {"線路": (), "直角": ()}
+    assert column.tables == {"線路": None, "直角": None}
     assert column.hoops.enclosing_diameter == mm(22, 0)
     hoop_rail, hoop_cross = column.hoops.rows
     assert (hoop_rail.direction, hoop_rail.diameter, hoop_rail.effective_legs, hoop_rail.pitch) == (
@@ -152,7 +152,7 @@ def test_jrsnap_conditions_reject_unknown_keys():
 
 @pytest.mark.parametrize("path", [
     ("鉄筋",), ("鉄筋", "柱"), ("鉄筋", "柱", "materials"), ("鉄筋", "柱", "main_bars"), ("鉄筋", "柱", "main_bars", "線路"),
-    ("鉄筋", "柱", "main_bars", "線路", "distribution"), ("鉄筋", "柱", "table_overrides"), ("鉄筋", "柱", "column_hoops"),
+    ("鉄筋", "柱", "main_bars", "線路", "distribution"), ("鉄筋", "柱", "custom_tables"), ("鉄筋", "柱", "column_hoops"),
     ("鉄筋", "柱", "column_hoops", "direction_rows", 1), ("鉄筋", "梁", "faces", "上"),
     ("鉄筋", "梁", "faces", "上", "inner_layers", 0), ("鉄筋", "梁", "side_bars"), ("鉄筋", "梁", "stirrups"),
     ("鉄筋", "フーチング"),
@@ -174,7 +174,7 @@ def test_unknown_rebar_keys_are_rejected(path):
     (("鉄筋", "柱", "main_bars", "直角"), "distribution"),
     (("鉄筋", "柱", "main_bars", "線路"), "inner_layers"),
     (("鉄筋", "柱", "main_bars"), "直角"),
-    (("鉄筋", "柱", "table_overrides"), "線路"),
+    (("鉄筋", "柱", "custom_tables"), "線路"),
     (("鉄筋", "柱"), "column_hoops"),
     (("鉄筋", "梁", "faces", "上"), "bar_type"),
     (("鉄筋", "梁"), "side_bars"),
@@ -192,10 +192,11 @@ def test_every_rebar_key_is_required(path, key):
     fails(document, f"入力項目がありません: {prefix}.{key}")
 
 
-def test_rebar_format_version_must_be_3():
+def test_rebar_format_version_must_be_4():
+    # 4: table_overrides became custom_tables (decision 111); no reading of the old form
     document = data()
-    document["鉄筋"]["version"] = 2
-    fails(document, "鉄筋.version: 3～3の整数が必要です")
+    document["鉄筋"]["version"] = 3
+    fails(document, "鉄筋.version: 4～4の整数が必要です")
 
 
 @pytest.mark.parametrize("key,value,message", [
@@ -237,19 +238,32 @@ def test_layers_inside_take_only_their_count_and_gap():
     fails(document, "鉄筋.柱.main_bars.線路.inner_layers[0].diameter_mm: 未知の入力項目です")
 
 
-def test_table_overrides():
+def test_custom_tables():
+    """配置表の手直し (decision 111): null, or the rows in order and the 引張鉄筋の段数; blanks stay blanks."""
     document = data()
-    changes = document["鉄筋"]["柱"]["table_overrides"]["線路"]
-    changes.append({"source_center_mm": 180, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": 29})
-    (change,) = parse_input(document).rebar.column.overrides["線路"]
-    assert (change.source_center, change.source_diameter, change.center, change.diameter) == (
-        mm(180), mm(32, 0), None, mm(29, 0))
-    changes.append({"source_center_mm": 180, "source_diameter_mm": 32, "center_mm": 190, "diameter_mm": None})
-    fails(document, "鉄筋.柱.table_overrides.線路[1]: 同じ元の芯位置・径の変更がほかの行にあります")
-    changes[1] = {"source_center_mm": 300, "source_diameter_mm": 32, "center_mm": None, "diameter_mm": None}
-    fails(document, "鉄筋.柱.table_overrides.線路[1]: 芯位置か径の変更が必要です")
-    changes[1] = {"source_center_mm": None, "source_diameter_mm": 32, "center_mm": 310, "diameter_mm": None}
-    fails(document, "鉄筋.柱.table_overrides.線路[1].source_center_mm: 値が必要です")
+    tables = document["鉄筋"]["柱"]["custom_tables"]
+    tables["線路"] = {"tension_rows": 2, "rows": [{"center_mm": 100, "diameter_mm": 19, "count": 44},
+                                                 {"center_mm": 345, "diameter_mm": 19, "count": None}]}
+    parsed = parse_input(document).rebar.column.tables
+    assert parsed["直角"] is None
+    table = parsed["線路"]
+    assert table.tension_rows == 2
+    assert [(row.center, row.diameter, row.count) for row in table.rows] == [(mm(100), mm(19, 0), 44),
+                                                                            (mm(345), mm(19, 0), None)]
+    rows = tables["線路"]["rows"]
+    rows[1]["count"] = 2.5
+    fails(document, "鉄筋.柱.custom_tables.線路.rows[1].count: 1～10000の整数が必要です")
+    rows[1]["count"] = 7
+    rows[1]["center_mm"] = 345.25
+    fails(document, "鉄筋.柱.custom_tables.線路.rows[1].center_mm: 小数")
+    rows[1]["center_mm"] = 345
+    rows[1]["source_center_mm"] = 364
+    fails(document, "鉄筋.柱.custom_tables.線路.rows[1].source_center_mm: 未知の入力項目です")
+    del rows[1]["source_center_mm"]
+    tables["線路"]["tension_rows"] = 0
+    fails(document, "鉄筋.柱.custom_tables.線路.tension_rows: 1～10000の整数が必要です")
+    del tables["線路"]["tension_rows"]
+    fails(document, "入力項目がありません: 鉄筋.柱.custom_tables.線路.tension_rows")
 
 
 def test_column_hoop_rows():

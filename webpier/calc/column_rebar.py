@@ -16,25 +16,28 @@ its spacing is layer 1's pitch when it takes them all, else the one gap of its p
 
 Positions are printed in mm to 0.1 (a person reads 108, 1533.3 in the table). A bar where a bar of the other
 direction already is, with the same size, is one corner bar shared by both; anything else at one place is an input
-error. The changes made in the 方向別の鉄筋配置表 then give the bars generated at a centre with a size another centre
-or size; a change that no generated bar has is not applied but returned, for the editor to warn about (decision 68).
-Bars outside the section or closer than their radii are an input error. Nothing missing is filled in (decision 5): a
-blank the layout needs is an input error naming its path.
+error. Bars outside the section or closer than their radii are an input error. Nothing missing is filled in
+(decision 5): a blank the layout needs is an input error naming its path.
 
-The 方向別の鉄筋配置表 groups the bars by their centre from the reference face (y for 線路, x for 直角), size and steel.
+The 方向別の鉄筋配置表 of a direction (decision 111) is the section of the calculation in that direction: its rows in
+order, the first and the last N of them the 引張鉄筋. The one the main bars make groups the bars by their centre from
+the reference face (y for 線路, x for 直角), size and steel, and puts the main layers of the upper face first (outermost
+first), the other rows by their centre, then the main layers of the lower face (outermost last); N is the number of the
+main layers. A hand-made one (配置表の手直し) is the rows of the input as they are, and no bar of it has a place in the
+section (X・Y): the stages that use the bars themselves (the 配筋図, the ties) take the tables instead.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 
 from ..core.errors import InputError
 from ..core.printed import Precision, Printed
 from ..inputs import PierInput
 from ..inputs import choices
-from ..inputs.rebar import LENGTH_MM, ColumnBars, ColumnMainBars
+from ..inputs.rebar import LENGTH_MM, ColumnBars, ColumnMainBars, CustomTable
 from ._exact import d, put
 
 YIELD_STRENGTH = Precision(0, "N/mm2")
@@ -69,7 +72,6 @@ class Bar:
     diameter: Printed
     material: str
     rows: tuple[LayerKey, ...]  # the layers of the bar (two for a shared corner)
-    origin: tuple[Printed, Printed, Printed]  # x, y and size as generated, before the changes of the tables
 
 
 @dataclass(frozen=True)
@@ -81,13 +83,44 @@ class TableRow:
 
 
 @dataclass(frozen=True)
+class DirectionTable:
+    """The 方向別の鉄筋配置表 of a direction in use (decision 111): its rows in order, the first and the last *tension*
+    of them the 引張鉄筋 (引張鉄筋の段数)."""
+
+    direction: str
+    rows: tuple[TableRow, ...]
+    tension: int
+    custom: bool  # 配置表の手直し: the rows of the input
+
+    @property
+    def upper(self) -> tuple[TableRow, ...]:
+        """The 引張鉄筋 of the upper (left) face, as written (outermost first)."""
+        return self.rows[:self.tension]
+
+    @property
+    def lower(self) -> tuple[TableRow, ...]:
+        """The 引張鉄筋 of the lower (right) face, as written (outermost last)."""
+        return self.rows[-self.tension:]
+
+    @property
+    def others(self) -> tuple[TableRow, ...]:
+        """The rows between them."""
+        return self.rows[self.tension:-self.tension]
+
+
+@dataclass(frozen=True)
 class ColumnLayout:
     width: Printed  # X = W6, mm
     height: Printed  # Y = B6, mm
     rows: tuple[FaceRow, ...]  # the layers with bars: 線路 then 直角, outermost first
-    generated: tuple[Bar, ...]  # from the main bars
-    bars: tuple[Bar, ...]  # in use: the generated bars with the changes of the 方向別の鉄筋配置表
-    unmatched: tuple[tuple[str, int], ...]  # (direction, index in table_overrides) of the changes no generated bar has
+    bars: tuple[Bar, ...]  # from the main bars
+    # the hand-made tables by direction (decision 111); None: the table the main bars make (direction_table)
+    custom: dict[str, DirectionTable | None] = field(default_factory=dict)
+
+    @property
+    def customized(self) -> bool:
+        """Whether a table is hand-made: then no bar has a place both tables agree on."""
+        return any(table is not None for table in self.custom.values())
 
 
 def yield_strength(grade: str) -> Printed:
@@ -221,7 +254,7 @@ class _Placer:
                     key = (x.value, y.value)
                     bar = found.get(key)
                     if bar is None:
-                        found[key] = Bar(x, y, row.diameter, row.material, (row.key,), (x, y, row.diameter))
+                        found[key] = Bar(x, y, row.diameter, row.material, (row.key,))
                     elif bar.diameter != row.diameter:
                         raise InputError(f"{_PATH}.main_bars.{row.direction}: {layer_name(row.key)}の鉄筋と同じ位置に"
                                          f"{layer_name(bar.rows[0])}の径の異なる鉄筋があります")
@@ -242,32 +275,25 @@ def _spacing(first: FaceRow, taken: tuple[Printed, ...]) -> Printed | None:
     return put(LENGTH_MM, gaps.pop()) if len(gaps) == 1 else None
 
 
-def _changed(column: ColumnBars, generated: list[Bar], width: Printed, height: Printed
-             ) -> tuple[list[Bar], list[tuple[str, int]]]:
-    """The generated bars with the changes of the two 方向別の鉄筋配置表, each matched on the generated centre from the
-    reference face and size; the changes no generated bar has are returned, not applied."""
-    bars, unmatched = list(generated), []
-    for direction in choices.REBAR_DIRECTIONS:
-        axis = "y" if direction == "線路" else "x"
-        for index, change in enumerate(column.overrides[direction]):
-            source = (change.source_center.value, change.source_diameter.value)
-            hits = [i for i, bar in enumerate(generated) if (getattr(bar, axis).value, bar.diameter.value) == source]
-            if not hits:
-                unmatched.append((direction, index))
-            for i in hits:
-                if change.center is not None:
-                    bars[i] = replace(bars[i], **{axis: change.center})
-                if change.diameter is not None:
-                    bars[i] = replace(bars[i], diameter=change.diameter)
-    seen: set[tuple[float, float]] = set()
-    for bar in bars:
-        where = f"{_PATH}.table_overrides: X {bar.x.value:g}・Y {bar.y.value:g} の鉄筋"
-        if (bar.x.value, bar.y.value) in seen:
-            raise InputError(f"{where}が配置表の変更でほかの鉄筋と同じ位置になります")
-        seen.add((bar.x.value, bar.y.value))
-        if min(d(bar.x), d(bar.y), d(width) - d(bar.x), d(height) - d(bar.y)) < d(bar.diameter) / 2:
-            raise InputError(f"{where}が断面の外に出ます")
-    return bars, unmatched
+def _custom(column: ColumnBars, direction: str, table: CustomTable, depth: Printed) -> DirectionTable:
+    """The hand-made table of *direction* (decision 111): every value given, 2N rows at least, each centre inside the
+    section by the bar's radius."""
+    path = f"{_PATH}.custom_tables.{direction}"
+    tension = _need(table.tension_rows, f"{path}.tension_rows")
+    if 2 * tension > len(table.rows):
+        raise InputError(f"{path}.tension_rows: 引張鉄筋の段数 {tension} の上下 {2 * tension} 行が表の"
+                         f"{len(table.rows)}行より多くなります")
+    material = _need(column.materials.main, f"{_PATH}.materials.main")
+    rows = []
+    for index, row in enumerate(table.rows):
+        here = f"{path}.rows[{index}]"
+        center = _need(row.center, f"{here}.center_mm")
+        diameter = _need(row.diameter, f"{here}.diameter_mm")
+        bar_area(diameter, f"{here}.diameter_mm")
+        if min(d(center), d(depth) - d(center)) < d(diameter) / 2:
+            raise InputError(f"{here}.center_mm: 芯位置 {center.value:g} mm の鉄筋が断面の外に出ます")
+        rows.append(TableRow(center, diameter, _need(row.count, f"{here}.count"), material))
+    return DirectionTable(direction, tuple(rows), tension, custom=True)
 
 
 def _overlap(bars: list[Bar]) -> None:
@@ -294,11 +320,12 @@ def section_layout(column: ColumnBars, w6: Printed, b6: Printed) -> ColumnLayout
     width, height = _mm(w6), _mm(b6)
     placer = _Placer(column, width, height)
     rows = [row for direction in choices.REBAR_DIRECTIONS for row in placer.layers(direction)]
-    generated = placer.bars(rows)
-    bars, unmatched = _changed(column, generated, width, height)
+    bars = placer.bars(rows)
     _overlap(bars)
-    return ColumnLayout(width=width, height=height, rows=tuple(rows), generated=tuple(generated),
-                        bars=tuple(_sorted(bars)), unmatched=tuple(unmatched))
+    custom = {direction: None if table is None else _custom(column, direction, table,
+                                                            height if direction == "線路" else width)
+              for direction, table in column.tables.items()}
+    return ColumnLayout(width=width, height=height, rows=tuple(rows), bars=tuple(bars), custom=custom)
 
 
 def table(bars: Iterable[Bar], direction: str) -> tuple[TableRow, ...]:
@@ -313,9 +340,9 @@ def table(bars: Iterable[Bar], direction: str) -> tuple[TableRow, ...]:
 
 @dataclass(frozen=True)
 class MainRows:
-    """The main bars of a face direction in its table (方向別の鉄筋配置表): the rows of its layers, outermost of the
-    upper face first and outermost of the lower face last, their spacing along the face, and where they are in the
-    table. Other bars may be between the layers (decision 108: the side bars of the other direction)."""
+    """The main bars of a face direction in its table by centre: the rows of its layers, outermost of the upper face
+    first and outermost of the lower face last, their spacing along the face, and where they are in that table. Other
+    bars may be between the layers (decision 108: the side bars of the other direction)."""
 
     rows: tuple[TableRow, ...]
     layers: int  # of each face
@@ -324,9 +351,9 @@ class MainRows:
     lower_through: int  # the same from the lower face
 
 
-def main_rows(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str) -> MainRows:
-    """The main bars of *face* in *rows* (its table): each layer a row of its own, with no bar outside the outermost
-    layers (input errors otherwise)."""
+def _main_layers(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str) -> tuple[tuple[TableRow, ...], int]:
+    """The rows of the main layers of *face* in *rows* (its table by centre) and their number on each face: each layer
+    a row of its own, with no bar outside the outermost layers (input errors otherwise)."""
     path = "鉄筋.柱.main_bars"
     face_rows = [row for row in layout.rows if row.direction == face]
     if not face_rows:
@@ -339,11 +366,58 @@ def main_rows(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str) -> Ma
             or rows[0] != main[0] or rows[-1] != main[-1]):
         raise InputError(f"{path}: {face}方向の表で、{face}の主鉄筋の段が1段ずつの行になっていません"
                          "（主鉄筋より外側にある鉄筋、同じ段への混在は表せません）")
-    pitches = {row.pitch for row in face_rows}
+    return main, layers
+
+
+def main_pitch(layout: ColumnLayout, face: str) -> Printed:
+    """The spacing of the main bars of *face* along the face, from its main bars (a hand-made table keeps it, decision
+    111): one for all its layers."""
+    path = "鉄筋.柱.main_bars"
+    pitches = {row.pitch for row in layout.rows if row.direction == face}
+    if not pitches:
+        raise InputError(f"{path}: {face}の主鉄筋が必要です")
     if None in pitches or len(pitches) != 1:
         raise InputError(f"{path}: {face}の主鉄筋の間隔が一つに定まりません"
                          "（1本や両端2本だけの行、行ごとに異なる間隔は表せません）")
     (pitch,) = pitches
     assert pitch is not None
-    return MainRows(rows=main, layers=layers, pitch=pitch, upper_through=rows.index(main[layers - 1]) + 1,
-                    lower_through=len(rows) - rows.index(main[-layers]))
+    return pitch
+
+
+def main_rows(layout: ColumnLayout, rows: tuple[TableRow, ...], face: str) -> MainRows:
+    """The main bars of *face* in *rows* (its table by centre) and their spacing (input errors as _main_layers and
+    main_pitch)."""
+    main, layers = _main_layers(layout, rows, face)
+    return MainRows(rows=main, layers=layers, pitch=main_pitch(layout, face),
+                    upper_through=rows.index(main[layers - 1]) + 1, lower_through=len(rows) - rows.index(main[-layers]))
+
+
+def direction_table(layout: ColumnLayout, face: str) -> DirectionTable:
+    """The 方向別の鉄筋配置表 of *face* in use (decision 111): the hand-made one, else the one the main bars make, the main
+    layers of the upper face first and of the lower face last, N their number."""
+    custom = layout.custom.get(face)
+    if custom is not None:
+        return custom
+    rows = table(layout.bars, face)
+    main, layers = _main_layers(layout, rows, face)
+    upper, lower = main[:layers], main[-layers:]
+    return DirectionTable(face, (*upper, *(row for row in rows if row not in main), *lower), layers, custom=False)
+
+
+def count_mismatch(layout: ColumnLayout) -> str | None:
+    """The bars of the two tables by size when they differ ('線路 D19 160本・直角 D19 158本', a warning of decision
+    111), else None. Tables that cannot be made have no warning here: their stages report them."""
+    counts = {}
+    for direction in choices.REBAR_DIRECTIONS:
+        try:
+            rows = direction_table(layout, direction).rows
+        except InputError:
+            return None
+        sizes: dict[float, int] = {}
+        for row in rows:
+            sizes[row.diameter.value] = sizes.get(row.diameter.value, 0) + row.count
+        counts[direction] = sizes
+    if counts["線路"] == counts["直角"]:
+        return None
+    return "・".join(f"{direction} " + " ".join(f"D{size:g} {number}本" for size, number in sorted(sizes.items()))
+                    for direction, sizes in counts.items())

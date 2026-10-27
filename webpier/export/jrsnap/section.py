@@ -7,13 +7,15 @@ SectJiku / SectRein / SectSher / SectSafe). WebPier gives it:
   the 破壊形態 of the M-θ: 曲げ for La/d ≧ 2, せん断 for 1.25 ≦ La/d < 2 (decision 66);
 - f'ck and Ec of the column concrete (calc.materials), Dmax of the column concrete (鉄筋.柱.aggregate_max_mm)
   and the three γb of the input conditions;
-- the 方向別の鉄筋配置表 of the bending direction (calc.column_rebar), centres from the upper face;
-- DRTU = DRTL: the number of main-bar layers of that direction, and DELU = DELL their spacing along the face;
+- the 方向別の鉄筋配置表 of the bending direction in use (calc.column_rebar.direction_table), its rows in their order,
+  centres from the upper face;
+- DRTU = DRTL: the table's 引張鉄筋の段数, and DELU = DELL the spacing of the direction's main bars along the face
+  (from its main bars, also for a hand-made table: decision 111);
 - the one hoop row of that direction: 帯鉄筋の方向別有効本数, size, pitch, steel.
 
-JRSNAP takes the first and last DRTU rows of the table as the tension bars and has no face identity, so the
-main bars of the direction must be exactly those rows (a side bar outside them, or between two layers, is not
-representable). The bars are those in use, with the changes made in the 方向別の鉄筋配置表 (decision 68).
+JRSNAP takes the first and the last DRTU rows as written as the tension bars, without ordering them by their centre
+(decision 111, seen in JRSNAP 5.2-L03's echo of the M-θ calculation), so the table is written in its own order: the
+table the main bars make has their layers first and last, a side bar between two layers after them.
 Anything else is an input error: nothing is guessed.
 """
 
@@ -22,7 +24,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ...calc._exact import d, put
-from ...calc.column_rebar import ColumnLayout, main_rows, table, yield_strength
+from ...calc.column_rebar import ColumnLayout, direction_table, main_pitch, yield_strength
 from ...calc.frame import Frame, Node, NodeRole
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
@@ -48,17 +50,6 @@ def _mm(length: Printed) -> Printed:
     return put(LENGTH_MM, d(length) * 1000)
 
 
-def _main(profile: Profile, layout: ColumnLayout, rows: tuple) -> tuple[int, Printed]:
-    """(the tension layers of each face, the spacing of the main bars along the face). JRSNAP takes the first and
-    the last rows of the whole table as the tension bars (DRTU, DRTL), so a bar between the main layers counts as one
-    of them (decision 108)."""
-    main = main_rows(layout, rows, profile.face)
-    if main.upper_through != main.lower_through:
-        raise InputError(f"{_COLUMN}.main_bars: {profile.face}方向の表で、主鉄筋の段までの行数が上下で違います"
-                         f"（{main.upper_through}行と{main.lower_through}行。JRSNAP は上下同じ段数で書きます）")
-    return main.upper_through, main.pitch
-
-
 def _shear(profile: Profile, pier: PierInput) -> Shear:
     column = pier.rebar.column
     path = f"{_COLUMN}.column_hoops.direction_rows"
@@ -81,14 +72,15 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     assert section is not None and concrete is not None  # an elastic member has both
     width, height = _mm(section.width), _mm(section.depth)
     span = put(LENGTH_MM, (d(control.y) - d(frame.node(NodeRole.FOOTING_TOP).y)) * 1000)
-    rows = table(layout.bars, profile.face)
+    found = direction_table(layout, profile.face)
+    rows = found.rows
     if len(rows) > MAX_ROWS:
         raise InputError(f"{_COLUMN}: {profile.face}方向の表が{len(rows)}行です（JRSNAP は{MAX_ROWS}行まで）")
     depth = d(height) - d(rows[0].center)
     if d(span) < MIN_SHEAR_SPAN_RATIO * depth:
         raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が1.25未満で、"
                          "M-θ 自動算定（低せん断スパン部材は 1.25≦La/d＜2）の対象外です")
-    layers, pitch = _main(profile, layout, rows)
+    layers, pitch = found.tension, main_pitch(layout, profile.face)
     # one steel for the member (decision 68)
     grade = need(pier.rebar.column.materials.main, f"{_COLUMN}.materials.main")
     conditions = getattr(pier.jrsnap, profile.jrsnap)

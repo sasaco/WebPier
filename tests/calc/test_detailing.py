@@ -379,3 +379,39 @@ def test_a_blank_the_checks_need_is_an_input_error(path, value, message):
 
 def test_the_appearance_check_of_the_cantilever_is_read():
     assert calculate(edited("片持ち梁の照査/外観の照査", "行う")).cantilever_appearance is True
+
+
+# --- 配置表の手直し (decision 111) -------------------------------------------------------------------------------------
+
+
+HAND_MADE = [(108, 32, 29), (180, 32, 27), (350, 19, 2), (2350, 19, 2), (2520, 32, 27), (2592, 32, 29)]
+
+
+def hand_made_document():
+    """current.json (Example2) with its 線路 table by hand: two layers of D32 on each face (29 and 27) and one D19 row
+    each beside them; the 直角 table is the one the main bars make."""
+    document = data()
+    document["鉄筋"]["柱"]["custom_tables"]["線路"] = {
+        "tension_rows": 2, "rows": [{"center_mm": c, "diameter_mm": s, "count": n} for c, s, n in HAND_MADE]}
+    return document
+
+
+def test_a_hand_made_table_is_the_section_of_the_detailing():
+    result = calculate(hand_made_document()).column
+    # 1) (a), 3): the first and last two rows are the 引張・圧縮鉄筋 (D32 29 + 27 + 27 + 29), the rest the 側方鉄筋
+    assert [(group.diameter.value, group.count.value) for group in result.amount.groups] == [(32, 112), (19, 4)]
+    assert result.main_count == 1
+    rail, cross = result.directions
+    # 5): along the face the 直角 table between its 引張鉄筋 (102, 4398): 108, 300, 450 … 4200, 4392 → 150;
+    # across it 180 − 108 = 72 on each side
+    assert (rail.spacing.pitch.value, rail.spacing.layer.value, rail.spacing.diameter.value) == (150, 72, 32)
+    # 7): d = 2700 − (29 × 108 + 27 × 180) / 56 (one size: the centroid by count is the one by area)
+    depth = Decimal(2700) - Decimal(29 * 108 + 27 * 180) / 56
+    assert rail.effective_depth.value == rounded(depth, rail.effective_depth.digits) and rail.main_diameter.value == 32
+    along = {108, *range(300, 4201, 150), 4392}
+    assert {leg.value for leg in rail.lateral.ties.intermediate} <= along
+    assert (rail.lateral.ties.outer[0].value, rail.lateral.ties.outer[1].value) == (102, 4398)
+    assert cross == calculate().column.directions[1]  # the 直角 table is the main bars' own
+    assert [table.custom for table in result.tables] == [True, False]
+    assert [(row.center.value, row.diameter.value, row.count) for row in result.tables[0].rows] == HAND_MADE
+    assert calculate().column.tables is None

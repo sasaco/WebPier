@@ -2,16 +2,19 @@
 
 Validation is not done here: the section is read by inputs/rebar.py (through the field table) and the column bars
 are placed by calc/column_rebar.py, the same code the stages use. This module only builds JSON: a new list item or
-object has every field of the field table under it blank (null), and its lists empty; nothing is filled in.
+object has every field of the field table under it blank (null), and its lists empty; nothing is filled in. A
+hand-made 方向別の鉄筋配置表 (配置表の手直し, decision 111) starts as a copy of the table in use, a new row as a copy of
+the row above it, and editing a direction's main bars makes its table from them again (reset_changed).
 """
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Any
 
 from ..calc.beam_rebar import BeamLayout, beam_layout, beam_section
-from ..calc.column_rebar import ColumnLayout, LayerKey, section_layout
+from ..calc.column_rebar import ColumnLayout, DirectionTable, count_mismatch, direction_table, section_layout
 from ..calc.footing_rebar import FaceLayout, face_layout, stirrup_width
 from ..core.errors import InputError
 from ..core.printed import Printed
@@ -28,7 +31,8 @@ W6 = ("下部構造", "寸法", "正面", "W6")
 B6 = ("下部構造", "寸法", "側面", "B6")
 BEAM_SECTION = (("下部構造", "寸法", "側面", "B1"), ("下部構造", "寸法", "高さ", "H2"), ("下部構造", "寸法", "高さ", "H3"))
 SIDE_BARS = ("鉄筋", "梁", "side_bars")
-OVERRIDES = ("鉄筋", "柱", "table_overrides")
+TABLES = ("鉄筋", "柱", "custom_tables")
+MAIN_BARS = ("鉄筋", "柱", "main_bars")
 JsonPath = tuple[str | int, ...]
 
 
@@ -85,70 +89,88 @@ def set_side_bars(data: Any, present: bool) -> None:
     items(data, SIDE_BARS[:-1])[SIDE_BARS[-1]] = blank(SIDE_BARS) if present else None
 
 
-@dataclass(frozen=True)
-class TableLine:
-    """A row of the 方向別の鉄筋配置表 as the editor shows it: the bars generated at one centre with one size."""
-
-    source: tuple[float, float]  # the generated centre from the reference face and size, mm: the key of a change
-    center: float  # in use
-    diameter: float  # in use
-    count: int
-    layers: tuple[LayerKey, ...]
-    changed: bool
+def _table_json(table: DirectionTable) -> dict[str, Any]:
+    return {"tension_rows": table.tension,
+            "rows": [{"center_mm": row.center.value, "diameter_mm": row.diameter.value, "count": row.count}
+                     for row in table.rows]}
 
 
-def table_lines(layout: ColumnLayout, direction: str) -> list[TableLine]:
-    """The rows of the 方向別の鉄筋配置表 of *direction* (centres from the upper face for 線路, the left face for 直角),
-    by the generated centre and size; a changed row shows the values in use."""
-    axis = 1 if direction == "線路" else 0  # the coordinate of the bar's origin and of the bar
-    groups: dict[tuple[float, float], list] = {}
-    for generated, bar in zip(layout.generated, _in_generated_order(layout)):
-        key = (generated.origin[axis].value, generated.diameter.value)
-        groups.setdefault(key, []).append(bar)
-    lines = []
-    for source, bars in groups.items():
-        center = (bars[0].y if axis else bars[0].x).value
-        diameter = bars[0].diameter.value
-        layers = tuple(sorted({key for bar in bars for key in bar.rows}))
-        lines.append(TableLine(source, center, diameter, len(bars), layers, (center, diameter) != source))
-    return sorted(lines, key=lambda line: (line.center, line.diameter))
+def direction_view(layout: ColumnLayout, direction: str) -> DirectionTable:
+    """The 方向別の鉄筋配置表 of *direction* in use (calc.column_rebar.direction_table): the hand-made one, else the one
+    the main bars make; an EditorError when it cannot be made."""
+    try:
+        return direction_table(layout, direction)
+    except InputError as exc:
+        raise _editor_error(exc) from None
 
 
-def _in_generated_order(layout: ColumnLayout) -> list:
-    """The bars in use, in the order of the generated bars they come from (by origin)."""
-    by_origin = {bar.origin: bar for bar in layout.bars}
-    return [by_origin[bar.origin] for bar in layout.generated]
+def customize(data: Any, layout: ColumnLayout, direction: str) -> dict[str, Any]:
+    """The hand-made table of *direction* (配置表の手直し, decision 111), started from the table in use when there is
+    none: its JSON."""
+    tables = items(data, TABLES)
+    if tables[direction] is None:
+        tables[direction] = _table_json(direction_view(layout, direction))
+    return tables[direction]
 
 
-def change_table(data: Any, direction: str, source: tuple[float, float], key: str, value: float | None) -> None:
-    """Change the row of the 方向別の鉄筋配置表 generated at *source* (centre, size): its *key* (center_mm or
-    diameter_mm) becomes *value*. The generated value or a blank undoes that part; a change of nothing is removed."""
-    rows = items(data, (*OVERRIDES, direction))
-    row = next((row for row in rows if (row["source_center_mm"], row["source_diameter_mm"]) == source), None)
-    if row is None:
-        row = blank((*OVERRIDES, direction, len(rows))) | {"source_center_mm": source[0],
-                                                           "source_diameter_mm": source[1]}
-        rows.append(row)
-    row[key] = None if value == (source[0] if key == "center_mm" else source[1]) else value
-    if row["center_mm"] is None and row["diameter_mm"] is None:
-        rows.remove(row)
+def reset_table(data: Any, direction: str) -> bool:
+    """入力から作り直す: the table of *direction* is the one the main bars make again; whether it was hand-made."""
+    tables = items(data, TABLES)
+    custom = tables[direction] is not None
+    tables[direction] = None
+    return custom
 
 
-def undo_change(data: Any, direction: str, source: tuple[float, float]) -> bool:
-    """戻す: remove the change of the row generated at *source*."""
-    rows = items(data, (*OVERRIDES, direction))
-    for row in rows:
-        if (row["source_center_mm"], row["source_diameter_mm"]) == source:
-            rows.remove(row)
-            return True
-    return False
+def set_cell(data: Any, layout: ColumnLayout, direction: str, index: int, key: str, value: Any) -> None:
+    """The *key* (center_mm, diameter_mm or count) of the row *index* of the table of *direction* becomes *value*."""
+    customize(data, layout, direction)["rows"][index][key] = value
 
 
-def remove_unmatched(data: Any, layout: ColumnLayout) -> int:
-    """Remove the changes whose generated bars are gone (ColumnLayout.unmatched); their number."""
-    for direction, index in sorted(layout.unmatched, reverse=True):
-        del items(data, (*OVERRIDES, direction))[index]
-    return len(layout.unmatched)
+def set_tension(data: Any, layout: ColumnLayout, direction: str, value: int | None) -> None:
+    """引張鉄筋の段数 of the table of *direction*."""
+    customize(data, layout, direction)["tension_rows"] = value
+
+
+def insert_row(data: Any, layout: ColumnLayout, direction: str, index: int) -> int:
+    """A copy of the row *index* below it (a row with every value, for the person to change); its index."""
+    rows = customize(data, layout, direction)["rows"]
+    rows.insert(index + 1, dict(rows[index]))
+    return index + 1
+
+
+def delete_table_row(data: Any, layout: ColumnLayout, direction: str, index: int) -> bool:
+    rows = customize(data, layout, direction)["rows"]
+    if not 0 <= index < len(rows) or len(rows) == 1:
+        return False
+    del rows[index]
+    return True
+
+
+def move_row(data: Any, layout: ColumnLayout, direction: str, index: int, step: int) -> int | None:
+    """Move the row *index* up (−1) or down (+1): the order decides the 引張鉄筋. Its new index, or None at an end."""
+    rows = customize(data, layout, direction)["rows"]
+    target = index + step
+    if not (0 <= index < len(rows) and 0 <= target < len(rows)):
+        return None
+    rows[index], rows[target] = rows[target], rows[index]
+    return target
+
+
+def main_bars(data: Any) -> dict[str, Any]:
+    """The main bars of each direction as JSON (a copy): the input the tables are made from."""
+    return copy.deepcopy(items(data, MAIN_BARS))
+
+
+def reset_changed(data: Any, before: dict[str, Any]) -> list[str]:
+    """After an edit: the hand-made tables of the directions whose main bars differ from *before* are made from the
+    main bars again (decision 111); those directions."""
+    now = items(data, MAIN_BARS)
+    tables = items(data, TABLES)
+    reset = [direction for direction in choices.REBAR_DIRECTIONS
+             if now[direction] != before.get(direction) and tables[direction] is not None]
+    for direction in reset:
+        tables[direction] = None
+    return reset
 
 
 def _editor_error(exc: InputError) -> EditorError:
@@ -217,19 +239,19 @@ def footing_preview(data: Any) -> FootingPreview:
 
 
 def warnings(data: Any) -> list[str]:
-    """What the input check names besides the input errors: the column's table changes whose generated bars are gone,
-    the beam's overlapping bars and the footing's crossing layers on each face, in that order. None stops the
+    """What the input check names besides the input errors: the column's two tables with other bars (decision 111), the
+    beam's overlapping bars and the footing's crossing layers on each face, in that order. None stops the
     calculation. A member whose layout cannot be made
     has no warning here: the calculation reports it as an input error and the 鉄筋 page shows it (the input check parses
     the form only)."""
     found = []
     try:
-        unmatched = column_preview(data).unmatched
+        mismatch = count_mismatch(column_preview(data))
     except EditorError:
-        unmatched = ()
-    if unmatched:
-        found.append(f"柱：配置表の変更のうち {len(unmatched)} 件は、元の芯位置・径の鉄筋がないため使われていません"
-                     "（計算でも使いません）。")
+        mismatch = None
+    if mismatch is not None:
+        found.append(f"柱：線路方向と直角方向の配置表で鉄筋の本数が違います（{mismatch}）。05 鉄筋の柱の配置表を確かめて"
+                     "ください（計算は止めません）。")
     try:
         overlaps = beam_preview(data).overlaps
     except EditorError:

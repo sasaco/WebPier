@@ -214,6 +214,15 @@ def test_the_stirrups_of_the_beam_are_needed():
         drawing_figures(pier(**{"鉄筋/梁/stirrups/pitch_mm": None}))
 
 
+def test_a_column_with_a_hand_made_table_has_no_figure():
+    """Decision 111: no bar of a hand-made table has a place; the report prints the tables instead."""
+    table = {"tension_rows": 1, "rows": [{"center_mm": 102, "diameter_mm": 19, "count": 9},
+                                        {"center_mm": 4398, "diameter_mm": 19, "count": 9}]}
+    changed = pier(**{"鉄筋/柱/custom_tables/直角": table})
+    assert list(drawing_figures(changed)) == ["梁", "フーチング"]
+    assert "柱（水平断面）" not in texts(ezdxf.read(io.StringIO(drawing_dxf(changed).decode("utf-8"))).modelspace())
+
+
 # --- the footing: (B7 + B8 + B9) 7000 × H6 2700, cut along the track ---
 
 def test_the_footing_bars_are_the_layers_of_both_faces(sample):

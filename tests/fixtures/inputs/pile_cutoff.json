@@ -391,7 +391,7 @@
     ]
   },
   "鉄筋": {
-    "version": 3,
+    "version": 4,
     "柱": {
       "materials": {
         "main": "SD390",
@@ -428,9 +428,9 @@
           "inner_layers": []
         }
       },
-      "table_overrides": {
-        "線路": [],
-        "直角": []
+      "custom_tables": {
+        "線路": null,
+        "直角": null
       },
       "column_hoops": {
         "enclosing_diameter_mm": 22,

@@ -326,8 +326,7 @@ def _optional_choice(options: Iterable[str]) -> Field:
 HOOP_ROW = {"direction": _optional_choice(choices.REBAR_DIRECTIONS), "diameter_mm": _DIAMETER,
             "effective_legs": integer(1, MAX_COUNT, nullable=True), "pitch_mm": _PITCH_MM, "start_mm": _LENGTH_MM,
             "end_mm": _LENGTH_MM}
-OVERRIDE_ROW = {"source_center_mm": number(LENGTH_MM), "source_diameter_mm": number(DIAMETER, "positive"),
-                "center_mm": _LENGTH_MM, "diameter_mm": _DIAMETER}
+TABLE_ROW = {"center_mm": _LENGTH_MM, "diameter_mm": _DIAMETER, "count": integer(1, MAX_COUNT, nullable=True)}
 MEMBERS = ("梁", "柱", "フーチング")
 PILE_HOOP_ZONES = ("footing", "zone_2d")  # the hoops of the part inside the footing and of the 2D zone
 PILE_MEMBER = "杭"  # 鉄筋.杭, the reinforcement of a cast-in-place pile (decisions 87 and 92): no f'ck of its own (杭基礎's)
@@ -341,7 +340,8 @@ def _prefixed(prefix: str, rows: dict[str, Field]) -> dict[str, Field]:
 def _column(prefix: str) -> dict[str, Field]:
     """The column (decision 68): one steel and cover for the member; each direction's main bars, layer 1 in full and the
     layers inside it only their 片面本数 and the clear gap to the layer outside (the size and distribution are layer
-    1's); the changes made in the 方向別の鉄筋配置表, keyed by the generated centre and size; the hoops."""
+    1's); the 配置表の手直し of each direction (decision 111): null, or the rows of its 方向別の鉄筋配置表 in order and
+    its 引張鉄筋の段数; the hoops."""
     table = {f"{prefix}.materials.main": _STEEL, f"{prefix}.materials.transverse": _STEEL,
              f"{prefix}.pure_cover_mm": _LENGTH_MM, f"{prefix}.column_hoops.enclosing_diameter_mm": _DIAMETER,
              **_prefixed(f"{prefix}.column_hoops.direction_rows[*]", HOOP_ROW)}
@@ -353,7 +353,8 @@ def _column(prefix: str) -> dict[str, Field]:
             "distribution.edge_center_mm": _LENGTH_MM, "distribution.pitch_mm": _PITCH_MM,
             "inner_layers[*].per_face_count": integer(1, MAX_COUNT, nullable=True),
             "inner_layers[*].clear_gap_mm": _LENGTH_MM})
-        table |= _prefixed(f"{prefix}.table_overrides.{direction}[*]", OVERRIDE_ROW)
+        table |= {f"{prefix}.custom_tables.{direction}.tension_rows": integer(1, MAX_COUNT, nullable=True),
+                  **_prefixed(f"{prefix}.custom_tables.{direction}.rows[*]", TABLE_ROW)}
     return table
 
 

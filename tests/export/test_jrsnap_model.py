@@ -366,23 +366,15 @@ def test_two_layers_of_main_bars():
     assert [(r.center.value, r.count) for r in section.rows[-2:]] == [(2520, 27), (2592, 29)]
 
 
-def test_a_side_bar_between_the_layers_is_one_of_the_tension_rows():
-    """Decision 108 (P7): JRSNAP takes the first and the last rows of the table, so with the inner layer at 390 inside
-    the 直角 D19 at 350 the tension rows are three: 108, 350 and 390 (and 2310, 2350, 2592)."""
+def test_a_side_bar_between_the_layers_follows_the_main_layers():
+    """Decision 111 (decision 108 changed): JRSNAP takes the first and the last rows as written, so with the inner
+    layer at 390 inside the 直角 D19 at 350 the table puts the two layers of each face first and last, the 350 after
+    them, and the tension rows are two: 108 and 390 (and 2310, 2592)."""
     layer = [{"per_face_count": 27, "clear_gap_mm": 250}]
     section = model("longitudinal", **{f"{RAIL}/inner_layers": layer}).section
-    assert section.main_layers == 3 and section.main_pitch.value == 150
-    assert [(r.center.value, r.count) for r in section.rows[:3]] == [(108, 29), (350, 2), (390, 27)]
-    assert [(r.center.value, r.count) for r in section.rows[-3:]] == [(2310, 27), (2350, 2), (2592, 29)]
-
-
-def test_tension_rows_that_differ_between_the_faces_are_rejected():
-    # the upper 直角 bars at 350 moved to 400, inside the inner layer at 390: two rows above, three below
-    moved = [{"source_center_mm": 350, "source_diameter_mm": 19, "center_mm": 400, "diameter_mm": None}]
-    with pytest.raises(InputError, match=re.escape(
-            "鉄筋.柱.main_bars: 線路方向の表で、主鉄筋の段までの行数が上下で違います（2行と3行。")):
-        model("longitudinal", **{f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 250}],
-                                 "鉄筋/柱/table_overrides/線路": moved})
+    assert section.main_layers == 2 and section.main_pitch.value == 150
+    assert [(r.center.value, r.count) for r in section.rows[:3]] == [(108, 29), (390, 27), (350, 2)]
+    assert [(r.center.value, r.count) for r in section.rows[-3:]] == [(2350, 2), (2310, 27), (2592, 29)]
 
 
 @pytest.mark.parametrize("changes,message", [
@@ -421,17 +413,26 @@ def test_the_hoop_steel_is_the_members():
     assert built.section.shear.yield_strength.value == 345
 
 
-CHANGES = "鉄筋/柱/table_overrides/線路"
+TABLE = "鉄筋/柱/custom_tables/線路"
 
 
-def test_a_table_change_is_written_to_the_section():
-    # the 直角 D19 bars 350 from the upper face move to 360 in the 線路 table
-    change = [{"source_center_mm": 350, "source_diameter_mm": 19, "center_mm": 360, "diameter_mm": None}]
-    section = model("longitudinal", **{CHANGES: change}).section
-    assert [(r.center.value, r.count) for r in section.rows[:3]] == [(108, 29), (360, 2), (600, 2)]
+def test_a_hand_made_table_is_written_as_it_is():
+    """配置表の手直し (decision 111): the rows in their order and DRTU = DRTL = its 引張鉄筋の段数; the spacing along the
+    face stays the main bars' (150)."""
+    rows = [(100, 32, 29), (345, 32, 7), (167, 32, 2), (350, 19, 2), (2350, 19, 2), (2533, 32, 2), (2355, 32, 7),
+            (2600, 32, 29)]
+    table = {"tension_rows": 2, "rows": [{"center_mm": c, "diameter_mm": s, "count": n} for c, s, n in rows]}
+    built = model("longitudinal", **{TABLE: table})
+    section = built.section
+    assert section.main_layers == 2 and section.main_pitch.value == 150
+    assert [(r.center.value, r.diameter.value, r.count) for r in section.rows] == rows
+    validate_ndu(write_ndu(built), LONGITUDINAL)  # the centres need not increase
+    assert model("transverse", **{TABLE: table}).section == model("transverse").section  # the other table is its own
 
 
-def test_a_change_without_its_generated_bars_is_ignored():
-    # the editor warns of it; the generation leaves it out (owner, decision 68)
-    change = [{"source_center_mm": 999, "source_diameter_mm": 32, "center_mm": 360, "diameter_mm": None}]
-    assert model("longitudinal", **{CHANGES: change}) == model("longitudinal")
+def test_a_hand_made_table_still_needs_the_main_bars_of_its_direction():
+    # the spacing along the face is the main bars' (decision 111): a table by hand without them has none
+    table = {"tension_rows": 1, "rows": [{"center_mm": 108, "diameter_mm": 32, "count": 29},
+                                        {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
+    with pytest.raises(InputError, match=re.escape("鉄筋.柱.main_bars: 線路の主鉄筋が必要です")):
+        model("longitudinal", **{TABLE: table, f"{RAIL}/per_face_count": 0})

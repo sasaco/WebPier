@@ -347,14 +347,14 @@ class _Validator:
                         POSITIVE, POSITIVE, 0, 0, 0)
         if main[0] not in STEEL_GRADES or main[4] != main[5]:
             raise _error("SectJiku1: 主鉄筋の強度は295・345・390・490、上下面の間隔は同じ値が必要です")
-        previous = Decimal(-1)
+        # the rows as written: JRSNAP takes the first and the last N of them as the tension bars, not by their centre
+        # (decision 111), so the centres need not increase
         for index in range(1, self.nr + 1):
             center, diameter, _ = f.fields(f"SectRein1-{index}", Num(0), POSITIVE, Num(1, integer=True))
-            if center <= previous or not diameter / 2 <= center <= height - diameter / 2:
-                raise _error(f"SectRein1-{index}: 芯位置は上面から増加し、鉄筋が断面内にあることが必要です")
+            if not diameter / 2 <= center <= height - diameter / 2:
+                raise _error(f"SectRein1-{index}: 鉄筋が断面内にあることが必要です")
             if index == 1:
                 depth = height - center
-            previous = center
         span = info[9]
         if span < MIN_SHEAR_SPAN_RATIO * depth or self.failure != (2 if span < SHEAR_SPAN_RATIO_BENDING * depth else 1):
             raise _error("NonLinInfo1・SectInfo1: 破壊形態は La/d ≧ 2 で曲げ（1）、1.25 ≦ La/d < 2 でせん断（2）が必要です")

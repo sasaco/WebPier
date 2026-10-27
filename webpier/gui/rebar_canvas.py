@@ -22,6 +22,16 @@ Point = tuple[float, float]
 
 
 @dataclass(frozen=True)
+class Band:
+    """A row of a 方向別の鉄筋配置表 across the section (decision 111): a line from *start* to *end* (mm), labelled."""
+
+    start: tuple[float, float]
+    end: tuple[float, float]
+    label: str
+    color: str
+
+
+@dataclass(frozen=True)
 class Circle:
     x: float  # mm from the left face
     y: float  # mm from the top face
@@ -69,18 +79,20 @@ class SectionView(ttk.Frame):
         self.notice = ttk.Label(self, text="", style="Muted.TLabel", wraplength=300, justify="left")
         self.notice.pack(fill="x")
         self._on_bar = on_bar
-        self._shown: tuple = ([], [], [], [], "", "")
+        self._shown: tuple = ([], [], [], [], [], "", "")
         self.canvas.bind("<Configure>", lambda event: self._draw())
         self.canvas.tag_bind("rebar", "<Button-1>", self._clicked)
 
     def show(self, polygon: Sequence[Point], circles: Sequence[Circle] = (), hoop: Sequence[Point] = (), *,
-             lines: Sequence[tuple[Point, Point]] = (), caption: str = "", notice: str = "") -> None:
-        """*lines*: dashed lines inside the hoop (the beam's effective legs of the stirrup)."""
-        self._shown = (list(polygon), list(circles), list(hoop), list(lines), caption, notice)
+             lines: Sequence[tuple[Point, Point]] = (), bands: Sequence[Band] = (), caption: str = "",
+             notice: str = "") -> None:
+        """*lines*: dashed lines inside the hoop (the beam's effective legs of the stirrup); *bands*: the rows of a
+        方向別の鉄筋配置表 across the section, each labelled at its end."""
+        self._shown = (list(polygon), list(circles), list(hoop), list(lines), list(bands), caption, notice)
         self._draw()
 
     def _draw(self) -> None:
-        polygon, circles, hoop, lines, caption, notice = self._shown
+        polygon, circles, hoop, lines, bands, caption, notice = self._shown
         canvas = self.canvas
         canvas.delete("all")
         width, height = canvas.winfo_width(), canvas.winfo_height()
@@ -104,6 +116,11 @@ class SectionView(ttk.Frame):
                                   tags=("hoop",))
         for start, end in lines:
             canvas.create_line(*point(*start), *point(*end), fill="#8a99a8", dash=(4, 3), width=1.5, tags=("leg",))
+        for band in bands:
+            start, end = point(*band.start), point(*band.end)
+            canvas.create_line(*start, *end, fill=band.color, width=2, tags=("band",))
+            canvas.create_text(end[0] + 3, end[1] - 1, text=band.label, anchor="sw", fill=band.color,
+                               font=("Yu Gothic UI", 7), tags=("band-label",))
         for index, circle in enumerate(circles):
             x, y = point(circle.x, circle.y)
             radius = max(2.5, circle.diameter * scale / 2)

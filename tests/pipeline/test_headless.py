@@ -467,7 +467,7 @@ def test_the_schema_leaves(schema):
     assert angle["type"] == ["number", "null"] and angle["x-webpier-limit"] == "90度未満が必要です"
     repetitions = properties["片持ち梁の照査"]["properties"]["疲労"]["properties"]["等価繰返し回数"]["properties"]
     assert list(repetitions["A列車"]["properties"]) == ["k=0.06", "k=0.12"]
-    assert properties["鉄筋"]["properties"]["version"] == {"const": 3}
+    assert properties["鉄筋"]["properties"]["version"] == {"const": 4}
     assert properties["schema_version"] == {"const": 2}
     assert properties["outputs"]["properties"] == {key: {"type": "boolean"} for key in OUTPUT_KEYS}  # decision 72
     for side, slots in (("起点側", "B支点"), ("終点側", "C支点")):  # an empty bearing slot is null
@@ -478,8 +478,9 @@ def test_the_schema_leaves(schema):
     rail = column["main_bars"]["properties"]["線路"]["properties"]
     assert rail["inner_layers"]["type"] == "array"
     assert set(rail["inner_layers"]["items"]["properties"]) == {"per_face_count", "clear_gap_mm"}
-    changes = column["table_overrides"]["properties"]["直角"]
-    assert set(changes["items"]["properties"]) == {"source_center_mm", "source_diameter_mm", "center_mm", "diameter_mm"}
+    custom = column["custom_tables"]["properties"]["直角"]  # null, or the hand-made table (decision 111)
+    assert custom["type"] == ["object", "null"] and set(custom["properties"]) == {"tension_rows", "rows"}
+    assert set(custom["properties"]["rows"]["items"]["properties"]) == {"center_mm", "diameter_mm", "count"}
     assert "side_rows" not in column and "manual_basis" not in column
     assert column["column_hoops"]["type"] == "object"
 
