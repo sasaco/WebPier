@@ -227,19 +227,20 @@ def hand_made():
     return pier(**{"鉄筋/柱/custom_tables/線路": HAND_MADE})
 
 
-def test_a_column_with_a_hand_made_table_draws_the_rows_of_the_tables(hand_made):
-    """Decision 113: no bar of a hand-made table has a place; each row is a line across the section, between the
-    outermost rows of the other table: 線路 rows along X from 102 to 4398, 直角 rows along Y from 108 to 2592."""
+def test_a_column_with_a_hand_made_table_draws_the_bars_at_the_crossings_of_the_rows(hand_made):
+    """Decision 116: the bars at the crossings of the rows of the two tables, of one size. The 線路 引張鉄筋 first: Y
+    108 and 2592 take the 29 D32 直角 rows (108, 300 … 4200, 4392); then 直角 X 102 and 4398 (D19, 9) only cross the
+    D19 row Y 350, one bar each, and the other 16 are not drawn (the tables do not agree: 線路 60, 直角 76 bars). No
+    row is a line."""
     msp = drawn(column.draw_column, column.column_figure(hand_made), 40).msp
-    assert not circles(msp)
-    rows = {(102.0, 2700.0 - y, 4398.0, 2700.0 - y) for y in (108, 350, 2592)}
-    rows |= {(float(x), 2592.0, float(x), 108.0) for x in CROSS_ROWS}
+    bars = {(float(x), 2700.0 - y, 16.0) for x in CROSS_ROWS if x not in (102, 4398) for y in (108, 2592)}
+    assert circles(msp) == bars | {(102.0, 2350.0, 9.5), (4398.0, 2350.0, 9.5)}
     # the ties as calc.detailing.ties puts them: 線路 (hand-made) on the 直角 rows nearest 4500·k/9 (450, 1050, 1500,
     # 1950, 2550, 3000, 3450, 4050: D32, 16 + 11 towards the middle), 直角 on its main bars (Y 600, 1100, 1600, 2100:
     # D19, 9.5 + 11); between the outer hoop's legs round the outermost rows, 108 − 16 − 11 = 81 from each face
     ties = {(float(x), 2619.0, float(x), 81.0) for x in (477, 1077, 1527, 1977, 2523, 2973, 3423, 4023)}
     ties |= {(81.0, 2700 - y, 4419.0, 2700 - y) for y in (620.5, 1120.5, 1579.5, 2079.5)}
-    assert lines(msp) == rows | ties
+    assert lines(msp) == ties
     (hoop,) = msp.query('LWPOLYLINE[layer=="鉄筋"]')
     xs, ys = [point[0] for point in hoop.get_points()], [point[1] for point in hoop.get_points()]
     assert (min(xs), max(xs), min(ys), max(ys)) == (81, 4419, 81, 2619)
@@ -255,6 +256,20 @@ def test_a_column_with_a_hand_made_table_is_labelled_as_the_beam(hand_made):
     assert sorted(dimensions(msp)) == sorted(["102", "6", "192", "26×150=3900", "192", "6", "102", "4500",
                                               "108", "242", "2242", "108", "2700"])
     assert len(msp.query('LINE[layer=="引出線"]')) >= 2 + 2 + 3 + 3  # the hoops' leaders and two fans of three
+
+
+def test_the_fans_of_a_hand_made_table_point_at_bars(hand_made):
+    """Each fan stops on the circle of a bar: of the 線路 rows by size, the bar nearest the left face (Y 350: X 102);
+    of the 直角 rows, the bar nearest the top (Y 108) of the three rows nearest 0.85 × 4500 = 3825 (3750, 3900,
+    3600)."""
+    msp = drawn(column.draw_column, column.column_figure(hand_made), 40).msp
+    pointed = set()
+    for leader in msp.query('LINE[layer=="引出線"]'):
+        end = leader.dxf.end
+        for x, y, radius in circles(msp):
+            if abs(((end.x - x) ** 2 + (end.y - y) ** 2) ** 0.5 - radius) < 0.01:
+                pointed.add((x, y))
+    assert pointed == {(102.0, 2350.0), (3600.0, 2592.0), (3750.0, 2592.0), (3900.0, 2592.0)}
 
 
 def test_a_hand_made_table_with_two_layers_names_them():

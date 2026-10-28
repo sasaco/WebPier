@@ -1,18 +1,21 @@
 """Column main bar layout (CONTEXT.md 柱の配筋): positions from the main bars and the layers inside them, and the
-direction tables in use, made from them or by hand (decisions 68, 111).
+direction tables in use, made from them or by hand (decisions 68, 111), and the bars the 配筋図 draws from the tables
+(decision 116).
 
 Expected values: tests/fixtures/column_rebar_example2.json (independent transcription of Example2 10-6 / 11-6,
 both tables and the 76 physical bars) and hand calculations in Decimal. Nothing missing is filled in (decision 5).
 """
 
 import json
+from copy import deepcopy
 import re
 from decimal import Decimal
 
 import pytest
 
 from reaction_support import FIXTURES, document, q
-from webpier.calc.column_rebar import column_layout, count_mismatch, direction_table, table, yield_strength
+from webpier.calc.column_rebar import (column_layout, count_mismatch, direction_table, table, table_bars,
+                                      yield_strength)
 from webpier.core.errors import InputError
 from webpier.core.printed import Printed
 from webpier.inputs import parse_input
@@ -259,6 +262,54 @@ def test_the_bars_of_the_two_tables_are_compared_by_size():
     assert count_mismatch(layout(**custom("線路", 1, *rows))) is None  # the same rows by hand
     rows[0] = (rows[0][0], 29, rows[0][2])
     assert count_mismatch(layout(**custom("線路", 1, *rows))) == "線路 D19 18本 D29 29本 D32 29本・直角 D19 18本 D32 58本"
+
+
+def placed(result):
+    return {(bar.x.value, bar.y.value, bar.diameter.value)
+            for bar in table_bars(direction_table(result, "線路"), direction_table(result, "直角"))}
+
+
+@pytest.mark.parametrize("changes", [{}, {f"{RAIL}/inner_layers": [{"per_face_count": 27, "clear_gap_mm": 300}]},
+                                     {f"{CROSS}/inner_layers": [{"per_face_count": 3, "clear_gap_mm": 100}]}])
+def test_the_tables_the_main_bars_make_put_their_bars_back(changes):
+    """Decision 116: the tables made from the main bars (a layer inside of 線路 or of 直角) give the bars they were
+    made from, the corners shared."""
+    result = layout(**changes)
+    assert placed(result) == {(bar.x.value, bar.y.value, bar.diameter.value) for bar in result.bars}
+
+
+# hand-made, both directions (W6 4500 × B6 2700, D32): a 2段目 of one bar at Y 400 and 2300, a corner bar at X 291 /
+# 4209 and Y 167 / 2533 (the rows of 2 of both tables), the side bars of 線路 on the faces X 150 and 4350
+CORNERS = {**custom("線路", 2, (100, 32, 3), (400, 32, 1), (167, 32, 2), (600, 32, 2), (1350, 32, 2), (2100, 32, 2),
+                    (2533, 32, 2), (2300, 32, 1), (2600, 32, 3)),
+           **custom("直角", 1, (150, 32, 3), (291, 32, 2), (1000, 32, 2), (2250, 32, 4), (3500, 32, 2), (4209, 32, 2),
+                    (4350, 32, 3))}
+
+
+def test_the_bars_of_hand_made_tables_by_hand():
+    """2段目 first: Y 400 takes the middle one of the seven 直角 rows (2250), Y 2300 too. Layer 1: Y 100 the middle 3
+    of the seven (1000, 2250, 3500), Y 2600 too (2250 is then full); X 150 the middle 3 of the five 線路 rows left
+    (167, 600, 1350, 2100, 2533: 600, 1350, 2100), X 4350 too. The rest: Y 167 the two ends of the rows left (291,
+    4209), Y 2533 too. 18 bars, as both tables."""
+    expected = {(x, y) for y in (100, 2600) for x in (1000, 2250, 3500)} | {(2250, 400), (2250, 2300)}
+    expected |= {(x, y) for x in (150, 4350) for y in (600, 1350, 2100)}
+    expected |= {(x, y) for x in (291, 4209) for y in (167, 2533)}
+    assert placed(layout(**CORNERS)) == {(x, y, 32) for x, y in expected}
+
+
+def test_a_row_takes_crossings_of_its_size_and_draws_what_it_can():
+    """A crossing holds a bar of one size: the D19 rows of 線路 only cross the D19 rows of 直角. A row with more bars
+    than crossings left takes them all (decision 116, the tables do not agree): 直角 X 291 has 4 bars for the two of
+    Y 167 and 2533."""
+    changes = deepcopy(CORNERS)
+    rail = changes[f"{TABLES}/線路"]["rows"]
+    rail[2]["diameter_mm"] = rail[6]["diameter_mm"] = 19  # Y 167 and 2533
+    cross = changes[f"{TABLES}/直角"]["rows"]
+    cross[1].update(diameter_mm=19, count=4)  # X 291
+    cross[5]["diameter_mm"] = 22  # X 4209: no D22 row of 線路
+    bars = placed(layout(**changes))
+    assert {(x, y, size) for x, y, size in bars if size != 32} == {(291, 167, 19), (291, 2533, 19)}
+    assert len(bars) == 16
 
 
 def test_direction_tables_group_by_centre_diameter_and_material():

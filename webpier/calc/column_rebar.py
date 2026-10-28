@@ -45,6 +45,7 @@ YIELD_STRENGTH = Precision(0, "N/mm2")
 _NOMINAL = {6: "31.67", 10: "71.33", 13: "126.7", 16: "198.6", 19: "286.5", 22: "387.1", 25: "506.7", 29: "642.4",
             32: "794.2", 35: "956.6", 38: "1140", 41: "1340", 51: "2027"}
 _PATH = "鉄筋.柱"
+RAIL, CROSS = choices.REBAR_DIRECTIONS
 LayerKey = tuple[str, int]  # (direction, layer)
 
 
@@ -71,7 +72,7 @@ class Bar:
     y: Printed
     diameter: Printed
     material: str
-    rows: tuple[LayerKey, ...]  # the layers of the bar (two for a shared corner)
+    rows: tuple[LayerKey, ...]  # the layers of the bar (two for a shared corner; none from the tables, table_bars)
 
 
 @dataclass(frozen=True)
@@ -402,6 +403,53 @@ def direction_table(layout: ColumnLayout, face: str) -> DirectionTable:
     main, layers = _main_layers(layout, rows, face)
     upper, lower = main[:layers], main[-layers:]
     return DirectionTable(face, (*upper, *(row for row in rows if row not in main), *lower), layers, custom=False)
+
+
+def table_bars(rail: DirectionTable, cross: DirectionTable) -> tuple[Bar, ...]:
+    """The bars the 配筋図 draws for the two tables in use (decision 116): each at the crossing of a 線路 row (its Y)
+    and a 直角 row (its X) of the same size, as many on each row as its count.
+
+    The 引張鉄筋 rows come first, the layers inside before layer 1 (線路 before 直角 in a layer, the upper face before
+    the lower): each takes the middle *count* of the crossings with the rows of the other table that have bars left
+    (as a layer inside takes the middle of layer 1; an odd rest leaves the far end out). Then the other rows (線路
+    first, in the order of the table) take theirs from the outermost crossings, the two ends in turn. A row with more
+    bars than crossings left takes them all, and the rest is not drawn (the tables of a column that do not agree)."""
+    tables = {RAIL: rail, CROSS: cross}
+    left = {(direction, index): row.count for direction, table in tables.items()
+            for index, row in enumerate(table.rows)}
+    taken: dict[tuple[float, float], Bar] = {}
+
+    def place(direction: str, index: int, middle: bool) -> None:
+        row = tables[direction].rows[index]
+        other = CROSS if direction == RAIL else RAIL
+
+        def point(along: Printed) -> tuple[Printed, Printed]:  # (x, y) of the crossing
+            return (along, row.center) if direction == RAIL else (row.center, along)
+
+        crossings = sorted(((there.center.value, number), there) for number, there in enumerate(tables[other].rows)
+                           if left[(other, number)] > 0 and there.diameter == row.diameter
+                           and tuple(p.value for p in point(there.center)) not in taken)
+        count = min(left[(direction, index)], len(crossings))
+        if middle:
+            start = (len(crossings) - count) // 2
+            chosen = crossings[start:start + count]
+        else:
+            chosen = [crossings[i // 2] if i % 2 == 0 else crossings[-1 - i // 2] for i in range(count)]
+        for (_, number), there in chosen:
+            x, y = point(there.center)
+            taken[(x.value, y.value)] = Bar(x, y, row.diameter, row.material, ())
+            left[(other, number)] -= 1
+        left[(direction, index)] -= count
+
+    for layer in reversed(range(max(rail.tension, cross.tension))):
+        for direction, table in tables.items():
+            if layer < table.tension:
+                place(direction, layer, middle=True)
+                place(direction, len(table.rows) - 1 - layer, middle=True)
+    for direction, table in tables.items():
+        for index in range(table.tension, len(table.rows) - table.tension):
+            place(direction, index, middle=False)
+    return tuple(_sorted(taken.values()))
 
 
 def count_mismatch(layout: ColumnLayout) -> str | None:

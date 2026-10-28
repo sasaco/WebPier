@@ -12,14 +12,13 @@ reference face (Y = 0) at the top, as the sample Example橋脚2 06_照査の前�
   it and the 芯かぶり of the other direction's layer 1 when it lies outside them ('108 | 192 | 26×150=3900 | ...'),
   else that 芯かぶり on its own; and the totals W6 and B6.
 
-A column whose 方向別の鉄筋配置表 is hand-made (decision 111) has no bars with a place: its figure draws the rows of
-the two tables in use (calc.column_rebar.direction_table) across the section instead (decision 113), as the beam's
-figure its bars: the 線路 rows as lines along X at their Y, the 直角 rows along Y at their X, each between the
-outermost rows of the other table;
+A column whose 方向別の鉄筋配置表 is hand-made (decision 111) has no bars with a place of the main bars: its figure
+draws the bars the two tables in use (calc.column_rebar.direction_table) put at the crossings of their rows instead
+(calc.column_rebar.table_bars, decisions 113 and 116), labelled as the beam's figure its bars:
 
 - the 引張鉄筋 rows labelled as the beam's faces, by layer when there are more than one ('1段目D19-44本', layer 1 the
   first row of the table above / left of the section, the last row below / right), the other rows of each table as
-  the beam's side bars, one leader to three of them for each size labelled with their count ('D19-56本');
+  the beam's side bars, one leader to a bar of three of them for each size labelled with their count ('D19-56本');
 - the outer hoop round the outermost rows, and the 中間帯鉄筋 beside the rows calc.detailing.ties hooks them to with
   their leaders, as above;
 - the chains of the rows' centres along each axis with the faces, and the totals W6 and B6.
@@ -33,7 +32,8 @@ from decimal import Decimal
 
 from .sheet import GAP, STACK, TEXT, Sheet, TextEntityAlignment, Vec2, fan, mm, number  # isort: skip
 
-from ...calc.column_rebar import ColumnLayout, DirectionTable, FaceRow, TableRow, column_layout, direction_table
+from ...calc.column_rebar import (Bar, ColumnLayout, DirectionTable, FaceRow, TableRow, column_layout, direction_table,
+                                  table_bars)
 from ...calc.detailing.ties import BaseHoops, TieLayout, base_hoops, tie_layout
 from ...core.errors import InputError
 from ...core.printed import Printed
@@ -232,9 +232,21 @@ def _nearest(rows: Sequence[TableRow], target: float) -> list[TableRow]:
     return sorted(rows, key=lambda row: (abs(row.center.value - target), row.center.value))[:3]
 
 
+def _first_bars(bars: Sequence[Bar], rows: Sequence[TableRow], direction: str) -> dict[float, Bar]:
+    """The bar of each of *rows* (by centre) nearest the left face (線路) or the top (直角); a row with none placed has
+    none."""
+    rail = direction == RAIL
+    found: dict[float, Bar] = {}
+    for bar in sorted(bars, key=lambda bar: (bar.x if rail else bar.y).value):
+        center = bar.y if rail else bar.x
+        if center.value not in found and any(row.center == center and row.diameter == bar.diameter for row in rows):
+            found[center.value] = bar
+    return found
+
+
 def _draw_tables(sheet: Sheet, figure: ColumnFigure, rail: DirectionTable, cross: DirectionTable,
                  origin: Vec2) -> None:
-    """The rows of the tables across the section (decision 113): the 線路 rows at their Y, the 直角 rows at their X."""
+    """The bars of the tables at the crossings of their rows (decisions 113 and 116)."""
     layout = figure.layout
     p = sheet.p
     width, height = float(layout.width.value), float(layout.height.value)
@@ -246,10 +258,9 @@ def _draw_tables(sheet: Sheet, figure: ColumnFigure, rail: DirectionTable, cross
     sheet.rectangle(*at(0, height), *at(width, 0))
     ys = [row.center.value for row in rail.rows]
     xs = [row.center.value for row in cross.rows]
-    for y in ys:
-        sheet.line(at(min(xs), y), at(max(xs), y))
-    for x in xs:
-        sheet.line(at(x, min(ys)), at(x, max(ys)))
+    bars = table_bars(rail, cross)
+    for bar in bars:
+        sheet.circle(at(bar.x.value, bar.y.value), bar.diameter.value / 2)
 
     # the outer hoop round the outermost rows, and the ties beside the rows they hook
     half = figure.enclosing.value / 2
@@ -317,18 +328,22 @@ def _draw_tables(sheet: Sheet, figure: ColumnFigure, rail: DirectionTable, cross
     sheet.line(elbow, at(vertical[-1], y_leader), "引出線")
     for x in vertical:
         sheet.arrow(at(x, y_leader), 0.0)
-    reach = _gap_near(xs, min(xs), max(xs), min(xs))  # between the first two 直角 rows
-    for index, (size, rows) in enumerate(other_groups(rail)):
+    for index, (size, rows) in enumerate(other_groups(rail)):  # to the bars nearest the left face
         y = 0.85 * height + index * 2 * line
         elbow = at(outside - 3 * p, y)
-        fan(sheet, elbow, (at(reach, row.center.value) for row in _nearest(rows, y)), 0.0)
+        first = _first_bars(bars, rows, RAIL)
+        fan(sheet, elbow, (at(first[row.center.value].x.value, row.center.value)
+                           for row in _nearest([row for row in rows if row.center.value in first], y)),
+            float(size) / 2)
         sheet.label(elbow, -1, f"D{mm(size)}-{sum(row.count for row in rows)}本")
-    # above on the right: the other 直角 rows by size
-    reach = _gap_near(ys, min(ys), max(ys), min(ys))  # between the first two 線路 rows
+    # above on the right: the other 直角 rows by size, to the bars nearest the top
     for index, (size, rows) in enumerate(other_groups(cross)):
         x = 0.85 * width
         elbow = at(x, -3 * p - index * 2 * line)
-        fan(sheet, elbow, (at(row.center.value, reach) for row in _nearest(rows, x)), 0.0)
+        first = _first_bars(bars, rows, CROSS)
+        fan(sheet, elbow, (at(row.center.value, first[row.center.value].y.value)
+                           for row in _nearest([row for row in rows if row.center.value in first], x)),
+            float(size) / 2)
         sheet.label(elbow, 1, f"D{mm(size)}-{sum(row.count for row in rows)}本")
 
     # the chains: the 直角 rows along X under the section, the 線路 rows along Y beside it (model y = B6 − Y)
