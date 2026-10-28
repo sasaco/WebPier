@@ -11,7 +11,7 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 
 ## WebPier の書出しを直すとき
 
-- 入力は `耐震設計条件`（地域別・地盤区分）だけ。ほかの条件は見本 `P1_線路.xml` の通りの WebPier の定め（`webpier/export/aggrese/writer.py` の定数、決定49）。利用者に聞かずに入力を増やさない。
+- 入力は `耐震設計条件`（地域別・地盤区分）だけ。ほかの条件は見本 `P1_線路.xml` の通りの WebPier の定め（`webpier/export/aggrese/writer.py` の定数、決定49）。ただし損傷レベルの制限値の柱の復旧性は、見本の 2 でなく 3（決定115、`DAMAGE_RECOVERY`）。利用者に聞かずに入力を増やさない。
 - 照査項目 ①〜⑨（`dgCaseList_1`〜`9`）は Case ごとに、その組合せの照査パターン（ρm, αf）から `project.CHECKS` で引く（決定76。載荷の向きによらない）：①②全部、③ (1.0, 2.0) 以外、④ ρm 1.2、⑤なし、⑥ (1.0, 1.0)、⑦⑧⑨ αf 1.0。Case は 0711 が4つ、0721 が8つ（Case5〜8 は逆向）。owner が手で直して Aggre-SE で保存した `post/線路直角方向.xml`（2026-10-22）が見本。
 - WebPier の書出しは、Aggre-SE 自身に保存し直させても**バイト列が変わらない**ことを受入にしている。保存し直しは `scripts/aggrese_project_roundtrip.cs`（WebPier の repo のもの。受入の `scripts/accept_aggrese_project.py` の `HELPER` が使い、`tests/fixtures/acceptance/aggrese/record.json` が SHA を記録しているので動かさない。同じ道具の複製が `structural-aggrese` の `scripts/` にあり、違いは1行目のコメントの決定番号だけ）。コンパイルと実行の手順は `structural-aggrese`。
 - テストの期待値（`tests/fixtures/example2/aggrese/`）は、見本を手で直して（配列50件、DB1 のパス）これで保存し直したもの。手順は同じフォルダーの `notes.md`。

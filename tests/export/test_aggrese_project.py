@@ -2,7 +2,8 @@
 
 The expected files (tests/fixtures/example2/aggrese, notes.md there) are the Example2 projects P1_線路.xml and
 P1_直角.xml, with the Case arrays cut to 50 and the DB1 paths of WebPier's JRSNAP folders, with the check items of each
-Case and the DB1 names copied from the owner's project (decision 76), saved again by Aggre-SE itself: the conditions are Example2's and the format is that of the Aggre-SE the writer follows. Other values are
+Case and the DB1 names copied from the owner's project (decision 76), the 損傷レベルの制限値 of the column's
+復旧性 3 (decision 115), saved again by Aggre-SE itself: the conditions are Example2's and the format is that of the Aggre-SE the writer follows. Other values are
 read back from the XML with ElementTree, independent of the writer.
 """
 
