@@ -100,6 +100,16 @@ def test_the_direction_of_the_target_displacement_is_shown_not_entered(editor):
     assert factor.get() == "1.23" and editor.document.data["jrsnap_longitudinal"]["shear_factor_vcd"] == 1.23
 
 
+def test_the_maximum_seismic_coefficient_may_stay_blank_and_is_entered_at_two_digits(editor):
+    """Decision 112: an input without the 最大震度 shows it blank (1.00); 2 is entered as 2.00."""
+    seismic = jrsnap_cell(editor, "jrsnap_longitudinal", "max_seismic_coefficient")
+    assert seismic.sheet.get_cell_data(seismic.row, 0) == "最大震度" and seismic.get() == ""
+    assert "max_seismic_coefficient" not in editor.document.data["jrsnap_longitudinal"]
+    seismic.type("2")
+    assert seismic.get() == "2.00" and editor.document.data["jrsnap_longitudinal"]["max_seismic_coefficient"] == 2.0
+    assert ("jrsnap_longitudinal", "max_seismic_coefficient") not in editor.bindings.refused
+
+
 def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner, tmp_path):
     jrsnap_cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.1")
     assert editor.select(gui.CALCULATION)
@@ -137,7 +147,7 @@ def test_there_is_no_jrsnap_checkbox_and_the_settings_are_needed_by_the_seismic_
     shown = list(texts(editor.form))
     assert not any("両方向のJRSNAP入力ファイルも出力" in text for text in shown)
     assert ("線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと線路直角方向の全項目が必要です。"
-            "空欄は補いません。") in shown
+            "空欄は補いません（最大震度だけは空欄なら 1.00）。") in shown
 
 
 def test_the_page_lists_the_output_items_with_their_stages(editor):

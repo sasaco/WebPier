@@ -167,6 +167,20 @@ def test_the_analysis_settings_are_the_input(direction, steps, limited, target):
     assert (changed.steps, changed.limited_final_step, changed.target.value) == (500, 120, target * 2)
 
 
+@pytest.mark.parametrize("direction", ["longitudinal", "transverse"])
+def test_the_maximum_seismic_coefficient_is_the_load_factor_in_steps_of_a_thousandth(direction):
+    """Decision 112: 2.00 writes ExOptLoad 2 = 2 and DataInfo 5 = 2000; absent is 1 and 1000 (the Example2 NDU)."""
+    analysis = model(direction).analysis
+    assert (analysis.max_seismic, analysis.load_divisions) == (Printed(1.0, 2, ""), 1000)
+    built = model(direction, **{f"jrsnap_{direction}/max_seismic_coefficient": 2.0})
+    assert (built.analysis.max_seismic, built.analysis.load_divisions) == (Printed(2.0, 2, ""), 2000)
+    written = dict(line.split("=", 1) for line in write_ndu(built).decode("cp932").split("\r\n") if "=" in line)
+    assert written["DataInfo"].split(",")[4] == "2000" and written["ExOptLoad"] == "1,2,1"
+    odd = model(direction, **{f"jrsnap_{direction}/max_seismic_coefficient": 1.25})
+    assert odd.analysis.load_divisions == 1250
+    assert b"\r\nExOptLoad=1,1.25,1\r\n" in write_ndu(odd)
+
+
 @pytest.mark.parametrize("direction,signed", [("longitudinal", -0.3), ("transverse", 0.3)])
 def test_the_target_displacement_takes_the_sign_of_the_earthquake(direction, signed):
     """Decision 43: the input is a magnitude; 0710 shakes toward −x, 0720 toward +x, and DataInfo 19 follows."""
@@ -328,18 +342,18 @@ def test_girders_at_different_heights_put_the_control_node_at_the_girder_with_th
     assert model("transverse").control == 1  # the same heights: the common girder level (Example2 node 1)
 
 
-def test_a_short_shear_span_is_a_shear_type_member():
-    # decision 66: La = 2.000 + 0.700 + 1.000 = 3.700 m, d = 2700 − 108 = 2592: La/d = 1.43 → 破壊形態 せん断
+def test_a_shear_span_below_two_depths_is_still_a_bending_member():
+    # decision 114: La = 2.000 + 0.700 + 1.000 = 3.700 m, d = 2700 − 108 = 2592: La/d = 1.43 is not a low-shear-span
+    # member (La/d < 1.25), so 破壊形態 曲げ
     short = model("longitudinal", **{"下部構造/寸法/高さ/H4": 1.0})
-    assert short.section.shear_span == Printed(3700, 1, "mm") and short.section.shear_failure
-    assert not model("longitudinal").section.shear_failure  # Example2: 7600 / 2592 = 2.93
+    assert short.section.shear_span == Printed(3700, 1, "mm")
     data = write_ndu(short)
-    assert "NonLinInfo1=1,1,1,2,1,1,1,1,0,柱下端Mθ" in data.decode("cp932")
+    assert "NonLinInfo1=1,1,1,1,1,1,1,1,0,柱下端Mθ" in data.decode("cp932")
     validate_ndu(data, LONGITUDINAL)
 
 
 def test_a_shear_span_below_one_and_a_quarter_depth_is_outside_the_m_theta():
-    # H4 = 0.500: La = 3200 < 1.25 × 2592 = 3240
+    # H4 = 0.500: La = 3200 < 1.25 × 2592 = 3240, a low-shear-span member (decision 114)
     with pytest.raises(InputError, match=re.escape("La/d = 3200/2592 が1.25未満")):
         model("longitudinal", **{"下部構造/寸法/高さ/H4": 0.5})
 

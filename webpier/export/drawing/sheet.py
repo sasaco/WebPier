@@ -58,9 +58,10 @@ PREVIEW_DPI = 200  # the PNG of a figure
 LAYERS = {"躯体": 7, "鉄筋": 1, "寸法": 3, "引出線": 3, "文字": 7}
 SCALES = (20, 25, 30, 40, 50, 60, 80, 100, 150, 200, 250, 300, 400, 500)
 PAPER = 120.0  # the paper mm the larger side of a member fits in, at its scale
+STACK = 3  # the lines the texts of narrow gaps in a row step out over (Sheet.chain)
 
-__all__ = ["ARROW", "Drawing", "GAP", "Sheet", "TEXT", "TextEntityAlignment", "Vec2", "bbox", "dxf_bytes", "fan", "mm",
-           "figure_bytes", "number", "scale_for"]
+__all__ = ["ARROW", "Drawing", "GAP", "STACK", "Sheet", "TEXT", "TextEntityAlignment", "Vec2", "bbox", "dxf_bytes",
+           "fan", "mm", "figure_bytes", "number", "scale_for"]
 
 
 def scale_for(*lengths: Decimal | float) -> int:
@@ -166,17 +167,24 @@ class Sheet:
     def chain(self, points: Sequence[Decimal], edge: float, at: float, vertical: bool, origin: Vec2) -> None:
         """Chained dimensions through *points* (mm along the axis from *origin*, ascending) on the line *at* across
         it, their extension lines from *edge*; a run of equal gaps is one dimension 'n×s=total'. A gap too narrow for
-        its text has the text moved beside it, outwards (before the first gap, after the others)."""
+        its text has the text moved beside it, outwards (before the first gap, after the others); of narrow gaps in a
+        row between others, each one line further out than the one before, from one to three lines (STACK)."""
         runs = _runs(points)
+        stacked = 0  # narrow gaps between others just before this one
         for index, (start, end, text) in enumerate(runs):
             p1, p2 = (Vec2(edge, float(start)), Vec2(edge, float(end))) if vertical else (Vec2(float(start), edge),
                                                                                            Vec2(float(end), edge))
             base = Vec2(at, float(start)) if vertical else Vec2(float(start), at)
             location = None
-            if self.width(text) + GAP * self.p > float(end - start):
+            narrow = self.width(text) + GAP * self.p > float(end - start)
+            if not (narrow and 0 < index < len(runs) - 1):
+                stacked = 0
+            if narrow:
                 lift = (TEXT / 2 + GAP) * self.p
-                if 0 < index < len(runs) - 1:  # between two others: over its gap, one line further out
-                    along, lift = (float(start) + float(end)) / 2, lift + (TEXT + 2 * GAP) * self.p
+                if 0 < index < len(runs) - 1:  # between two others: over its gap, one to STACK lines further out
+                    level = 1 + stacked % STACK
+                    along, lift = (float(start) + float(end)) / 2, lift + level * (TEXT + 2 * GAP) * self.p
+                    stacked += 1
                 else:  # the first before its start, the last after its end
                     reach = self.width(text) / 2 + (GAP + ARROW) * self.p
                     along = float(start) - reach if index == 0 and len(runs) > 1 else float(end) + reach

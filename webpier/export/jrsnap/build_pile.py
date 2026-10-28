@@ -174,8 +174,7 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
                for e in elements.elements]
     control = of_frame[build._control(frame, profile).number]
     column = column_section(profile, pier, layout, frame, build._control(frame, profile))
-    nonlinear = [NonLinear(section=1, model=M_THETA, failure=2 if column.shear_failure else 1, ends=(1, 1),
-                           depth_piles=1, title=NONLINEAR_TITLE)]
+    nonlinear = [NonLinear(section=1, model=M_THETA, failure=1, ends=(1, 1), depth_piles=1, title=NONLINEAR_TITLE)]
     diameter = group.section.diameter
     pile_sections_, boundaries = pile_sections(pier, profile, diameter)
     ends = [LENGTH(float(end)) for end in boundaries]

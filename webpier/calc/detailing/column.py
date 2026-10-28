@@ -18,8 +18,7 @@ the tables. 5) the least gap of the centres of the other direction's table betwe
 the other faces; the rest are the bars along this face) and of neighbouring 引張鉄筋 rows of its own on one side,
 the largest of those rows; 7) d from the upper 引張鉄筋 rows (their
 centroid by area), φ the smallest of them; the ties as calc.detailing.ties. 1) (a) and 3) take the 線路 table when it
-is hand-made: its first and last N rows the 引張・圧縮鉄筋, the others the 側方鉄筋. The tables are kept in the result
-for 4.1, which prints them in place of the column's 配筋図.
+is hand-made: its first and last N rows the 引張・圧縮鉄筋, the others the 側方鉄筋.
 
 The checks that use section forces (Mcrd, 0.008Ac, the maximum reinforcement, σc) are Capacita's (ADR-0012) and have
 no value here.
@@ -27,7 +26,7 @@ no value here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 
 from ...core.errors import InputError
@@ -83,8 +82,6 @@ class ColumnDetailing:
     fck: Printed  # N/mm2
     aggregate_max: Printed  # Dmax, mm
     directions: tuple[ColumnDirection, ...]  # 線路, 直角
-    # the 方向別の鉄筋配置表 of 線路 and 直角 when one is hand-made (decision 111): 4.1 prints them in place of the 配筋図
-    tables: tuple[DirectionTable, ...] | None = field(default=None, metadata={"json": "set"})
 
     @property
     def ok(self) -> bool:
@@ -200,6 +197,4 @@ def column_detailing(pier: PierInput) -> ColumnDetailing:
                            main_count=len(main),
                            fck=pier.materials.column, aggregate_max=aggregate_max,
                            directions=tuple(_direction(pier, layout, direction, aggregate_max)
-                                            for direction in choices.REBAR_DIRECTIONS),
-                           tables=tuple(direction_table(layout, direction) for direction in choices.REBAR_DIRECTIONS)
-                           if layout.customized else None)
+                                            for direction in choices.REBAR_DIRECTIONS))

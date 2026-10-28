@@ -37,7 +37,7 @@ from ...inputs import PierInput
 from .model import (
     AXIAL, LOCAL_Y, Analysis, Combination, Element, Footing, Joint, JointLoad, LoadCase, MemberLoad, NduModel, Spring,
 )
-from .profile import REGION_TITLES, SANDY_SOILS, Profile
+from .profile import LOAD_DIVISIONS, REGION_TITLES, SANDY_SOILS, Profile
 from .section import column_section, need
 
 INCREMENTS = {Increment.FIXED: 0, Increment.INCREMENTAL: 1, Increment.LIMITED: 4}
@@ -92,7 +92,8 @@ def _analysis(pier: PierInput, profile: Profile) -> Analysis:
     # The input is a magnitude; the displacement is toward the earthquake of the calculation (decision 43).
     target = put(LENGTH, d(magnitude) * profile.earthquake)
     return Analysis(steps=need(conditions.steps, f"{key}.analysis_steps"),
-                    limited_final_step=need(conditions.limited_final_step, f"{key}.limited_final_step"), target=target)
+                    limited_final_step=need(conditions.limited_final_step, f"{key}.limited_final_step"), target=target,
+                    max_seismic=conditions.max_seismic, load_divisions=int(d(conditions.max_seismic) * LOAD_DIVISIONS))
 
 
 def _control(frame: Frame, profile: Profile) -> Node:

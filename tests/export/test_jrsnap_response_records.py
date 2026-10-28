@@ -39,6 +39,15 @@ def test_the_analysis_is_the_load_increment_up_to_the_step_of_the_maximum_respon
     assert written(sample_model())["DataInfo"].split(",")[:3] == ["1", "1", "200"]  # the inertia one is unchanged
 
 
+def test_the_maximum_seismic_coefficient_is_not_used_by_the_ground_displacement():
+    """Decision 112: the 最大震度 sets the inertia NDU's load factor; the 応答変位法's steps count thousandths (decision 97)."""
+    model = sample_model()
+    model = replace(model, analysis=replace(model.analysis, max_seismic=printed(2, 2), load_divisions=2000))
+    inertia, ground = written(model), written(with_ground(model))
+    assert (inertia["DataInfo"].split(",")[4], inertia["ExOptLoad"]) == ("2000", "1,2,1")
+    assert (ground["DataInfo"].split(",")[4], ground["ExOptLoad"]) == ("1000", "1,1,1")
+
+
 def test_the_ground_displacement_is_one_row_a_node_with_the_alf_of_one():
     ours = written(with_ground())
     assert (ours["ELoadNum"], ours["ELoadRow"]) == ("2", "2")

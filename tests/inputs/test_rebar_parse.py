@@ -106,6 +106,9 @@ def test_the_analysis_settings_of_each_direction(key, steps, limited, target):
     ("target_displacement_m", 0, "正の数値が必要です"),  # a magnitude (decision 43)
     ("target_displacement_m", -0.3, "正の数値が必要です"),
     ("target_displacement_m", 0.3005, "小数3桁までで入力してください"),
+    ("max_seismic_coefficient", 0, "正の数値が必要です"),  # decision 112
+    ("max_seismic_coefficient", 100, "99.99以下が必要です"),
+    ("max_seismic_coefficient", 1.005, "小数2桁までで入力してください"),
 ])
 def test_analysis_setting_values(key, value, message):
     document = data()
@@ -118,6 +121,17 @@ def test_analysis_settings_are_required_keys(key):
     document = data()
     del document["jrsnap_transverse"][key]
     fails(document, f"入力項目がありません: jrsnap_transverse.{key}")
+
+
+def test_the_maximum_seismic_coefficient_is_one_when_absent_or_blank():
+    """Decision 112: the 最大震度 may be absent (current.json has none) or blank, which is 1.00."""
+    document = data()
+    assert "max_seismic_coefficient" not in document["jrsnap_longitudinal"]
+    assert parse_input(document).jrsnap.longitudinal.max_seismic == Printed(1.0, 2, "")
+    document["jrsnap_longitudinal"]["max_seismic_coefficient"] = None
+    document["jrsnap_transverse"]["max_seismic_coefficient"] = 2.0
+    jrsnap = parse_input(document).jrsnap
+    assert (jrsnap.longitudinal.max_seismic, jrsnap.transverse.max_seismic) == (Printed(1.0, 2, ""), Printed(2.0, 2, ""))
 
 
 def test_a_blank_step_count_skips_the_limited_step_check():

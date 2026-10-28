@@ -43,9 +43,8 @@ SANDY_SOILS = ("砂質土", "砂礫")
 ROTATION_KR2, ROTATION_KR3 = 2, 20  # FootInfo: KR2 and the reciprocal of the final slope ratio
 SECTION_TITLE = "柱"
 NONLINEAR_TITLE = "柱下端Mθ"  # at most 20 bytes (manual p.143)
-# Decision 66: La/d below 2 is a low-shear-span member, given to JRSNAP with the 破壊形態 せん断 (manual table 2-67,
-# note ⑧ p.143, AP card S); its M-θ with the shear deformation applies from 1.25 (manual 付録4).
-SHEAR_SPAN_RATIO_BENDING = Decimal(2)
+# Decision 114: the column's M-θ is always of the 破壊形態 曲げ (no S on the AP card); La/d below 1.25 is a
+# low-shear-span member, refused.
 MIN_SHEAR_SPAN_RATIO = Decimal("1.25")
 
 REGION_TITLES = {

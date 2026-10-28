@@ -7,8 +7,8 @@ of 0400 (calc.detailing.steel_pile, decision 99) when the caller gives its 杭�
 titled with it; ``drawing_figures`` gives each figure on a page of its own at that scale as a PDF (the vector figure
 of the report's 4.1, GridLayoutPdf's PdfFigure) with the same page as a PNG (its ``preview`` in the grid Excel). All
 are the same bytes for the same input. A blank the figures need is an input error naming its path, raised before
-anything is drawn. A column whose 方向別の鉄筋配置表 is hand-made (decision 111) has no bars with a place, so it has no
-figure: the report prints its tables in place of it.
+anything is drawn. A column whose 方向別の鉄筋配置表 is hand-made (decision 111) has no bars with a place: its figure
+draws the rows of its tables (decision 113).
 """
 
 from __future__ import annotations
@@ -51,8 +51,7 @@ def _figures(pier: PierInput, pile: Pile | None) -> list[_Figure]:
     beam, column, footing = beam_figure(pier), column_figure(pier), footing_figure(pier)
     figures = [
         _Figure("梁", beam, draw_beam, scale_for(beam.layout.width.value, beam.layout.depth.value)),
-        *(() if column.layout.customized else
-          (_Figure("柱", column, draw_column, scale_for(column.layout.width.value, column.layout.height.value)),)),
+        _Figure("柱", column, draw_column, scale_for(column.layout.width.value, column.layout.height.value)),
         _Figure("フーチング", footing, draw_footing, scale_for(footing.length.value, footing.height.value)),
     ]
     if isinstance(pile, PileDetailing):

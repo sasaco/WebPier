@@ -412,6 +412,3 @@ def test_a_hand_made_table_is_the_section_of_the_detailing():
     assert {leg.value for leg in rail.lateral.ties.intermediate} <= along
     assert (rail.lateral.ties.outer[0].value, rail.lateral.ties.outer[1].value) == (102, 4398)
     assert cross == calculate().column.directions[1]  # the 直角 table is the main bars' own
-    assert [table.custom for table in result.tables] == [True, False]
-    assert [(row.center.value, row.diameter.value, row.count) for row in result.tables[0].rows] == HAND_MADE
-    assert calculate().column.tables is None

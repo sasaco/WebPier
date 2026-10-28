@@ -95,7 +95,8 @@ def sample_model(axial: Decimal | None = Decimal(210)) -> PileNduModel:
     case = LoadCase(1, "固定死荷重", 0, (), (load,))
     combination = Combination(rho_m=printed(1, 1), alpha_f=printed(1, 1), coefficients=(1,))
     return PileNduModel(
-        profile=LONGITUDINAL, analysis=Analysis(steps=200, limited_final_step=200, target=LENGTH(0.6)), control=1, origin=5,
+        profile=LONGITUDINAL, analysis=Analysis(steps=200, limited_final_step=200, target=LENGTH(0.6),
+                                                max_seismic=printed(1, 2), load_divisions=1000), control=1, origin=5,
         joints=tuple(joints), members=tuple(members), elements=tuple(elements), nonlinear=tuple(nonlinear),
         sections=(column_section(), *sections), piles=tuple(piles), supports=tuple(supports), cases=(case,),
         combinations=(combination,), shear_span=printed(8000, 0, "mm"))

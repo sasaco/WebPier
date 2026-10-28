@@ -24,6 +24,8 @@ class Analysis:
     steps: int  # divisions of the target displacement
     limited_final_step: int  # last step of the limited incremental load (EQL)
     target: Printed  # target horizontal displacement of the control node, signed as the earthquake
+    max_seismic: Printed  # 最大震度: the load factor of the incremental load (ExOptLoad 2, decision 112)
+    load_divisions: int  # divisions of the incremental load, 最大震度 × 1000: a step stays 1/1000 (DataInfo 5)
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,6 @@ class SectionData:
     width: Printed  # b, normal to the plane, mm
     height: Printed  # h, in the plane, mm
     shear_span: Printed  # La, control node to the footing top, mm
-    shear_failure: bool  # 破壊形態 せん断: a low-shear-span member, La/d < 2 (decision 66)
     fck: Printed
     ec: Printed  # kN/mm2
     aggregate_max: Printed

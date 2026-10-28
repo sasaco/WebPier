@@ -23,7 +23,7 @@ from decimal import Decimal
 from ...core.errors import InputError
 from .profile import (
     CONVERGENCE, LOAD_DIVISIONS, MIN_SHEAR_SPAN_RATIO, NATIVE_VERSION, RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS,
-    ROTATION_KR2, ROTATION_KR3, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, SHEAR_SPAN_RATIO_BENDING, SOIL_TYPE,
+    ROTATION_KR2, ROTATION_KR3, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, SOIL_TYPE,
     STEEL_MODULUS, TRIALS, Profile,
 )
 from .records import COMBINATION_SLOTS, CONSTANT_RECORDS, RESISTANCE, TITLES
@@ -263,13 +263,17 @@ class _Validator:
         steps = Num(1, MAX_STEPS, integer=True)
         # The target displacement is not 0 and has the sign of the earthquake of the profile.
         target = Num(0, open_low=True) if self.profile.earthquake > 0 else Num(high=0, open_high=True)
-        info = f.fields("DataInfo", 1, 1, steps, self.node, LOAD_DIVISIONS, steps, " ", " ", " ", TRIALS, TRIALS,
+        divisions = Num(1, FACTOR_MAX * LOAD_DIVISIONS, integer=True)
+        info = f.fields("DataInfo", 1, 1, steps, self.node, divisions, steps, " ", " ", " ", TRIALS, TRIALS,
                         1, 1, 1, 1, 1, POSITIVE, POSITIVE, target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
         if info[5] > info[2]:
             raise _error("DataInfo: 限定増分の最終ステップは分割数以下が必要です")
         self.rho_alpha = info[16:18]
-        for key in ("ExOptLoad", "ExOptDisp"):
-            self._constant(key, CONSTANT_RECORDS[key])
+        # The 最大震度 is reached in 最大震度 × 1000 steps (decision 112).
+        (_, factor, _) = f.fields("ExOptLoad", 1, FACTOR, 1)
+        if info[4] != factor * LOAD_DIVISIONS:
+            raise _error("DataInfo 第5欄: 増分荷重の分割数は最大震度（ExOptLoad 第2欄）×1000 が必要です")
+        self._constant("ExOptDisp", CONSTANT_RECORDS["ExOptDisp"])
         (self.origin,) = _ints(f.fields("JointOrg", self.node))
 
     def _frame(self) -> None:
@@ -327,9 +331,8 @@ class _Validator:
         for index in range(1, self.nn + 1):
             f.fields(f"SHABUZAI_JointXY{index}", 0, 0, "False")
         f.fields("NonLinNum", 1, 1, 0)
-        # the 破壊形態: 1 曲げ or 2 せん断, checked against La/d with the section (decision 66)
-        self.failure = int(f.fields("NonLinInfo1", 1, 1, 1, Num(1, 2, integer=True), 1, 1, 1, 1, 0,
-                                    Text(NONLINEAR_TITLE_BYTES))[3])
+        # the 破壊形態: always 1 曲げ (decision 114)
+        f.fields("NonLinInfo1", 1, 1, 1, 1, 1, 1, 1, 1, 0, Text(NONLINEAR_TITLE_BYTES))
 
     def _section(self) -> None:
         f = self.file
@@ -356,8 +359,8 @@ class _Validator:
             if index == 1:
                 depth = height - center
         span = info[9]
-        if span < MIN_SHEAR_SPAN_RATIO * depth or self.failure != (2 if span < SHEAR_SPAN_RATIO_BENDING * depth else 1):
-            raise _error("NonLinInfo1・SectInfo1: 破壊形態は La/d ≧ 2 で曲げ（1）、1.25 ≦ La/d < 2 でせん断（2）が必要です")
+        if span < MIN_SHEAR_SPAN_RATIO * depth:
+            raise _error("SectInfo1: La/d ≧ 1.25 が必要です（1.25 未満は低せん断スパン部材）")
         hoop = f.fields("SectSher1", Num(min(STEEL_GRADES), max(STEEL_GRADES), integer=True), POSITIVE,
                         Num(1, integer=True), POSITIVE, 0, 0, *(Num(),) * 4)
         if hoop[0] not in STEEL_GRADES or hoop[:4] != hoop[6:]:

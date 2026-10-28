@@ -214,13 +214,64 @@ def test_the_stirrups_of_the_beam_are_needed():
         drawing_figures(pier(**{"鉄筋/梁/stirrups/pitch_mm": None}))
 
 
-def test_a_column_with_a_hand_made_table_has_no_figure():
-    """Decision 111: no bar of a hand-made table has a place; the report prints the tables instead."""
-    table = {"tension_rows": 1, "rows": [{"center_mm": 102, "diameter_mm": 19, "count": 9},
-                                        {"center_mm": 4398, "diameter_mm": 19, "count": 9}]}
-    changed = pier(**{"鉄筋/柱/custom_tables/直角": table})
-    assert list(drawing_figures(changed)) == ["梁", "フーチング"]
-    assert "柱（水平断面）" not in texts(ezdxf.read(io.StringIO(drawing_dxf(changed).decode("utf-8"))).modelspace())
+# a hand-made 線路 table (decision 111): D32 29 at Y 108 and 2592, D19 2 at 350 between them; the 直角 table is the
+# main bars' own: D19 9 at X 102 and 4398, between them the 線路 bars by X, D32 2 at 108, 300 … 4200 (at 150), 4392
+HAND_MADE = {"tension_rows": 1, "rows": [{"center_mm": 108, "diameter_mm": 32, "count": 29},
+                                         {"center_mm": 350, "diameter_mm": 19, "count": 2},
+                                         {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
+CROSS_ROWS = [102, 108, *range(300, 4201, 150), 4392, 4398]
+
+
+@pytest.fixture(scope="module")
+def hand_made():
+    return pier(**{"鉄筋/柱/custom_tables/線路": HAND_MADE})
+
+
+def test_a_column_with_a_hand_made_table_draws_the_rows_of_the_tables(hand_made):
+    """Decision 113: no bar of a hand-made table has a place; each row is a line across the section, between the
+    outermost rows of the other table: 線路 rows along X from 102 to 4398, 直角 rows along Y from 108 to 2592."""
+    msp = drawn(column.draw_column, column.column_figure(hand_made), 40).msp
+    assert not circles(msp)
+    rows = {(102.0, 2700.0 - y, 4398.0, 2700.0 - y) for y in (108, 350, 2592)}
+    rows |= {(float(x), 2592.0, float(x), 108.0) for x in CROSS_ROWS}
+    # the ties as calc.detailing.ties puts them: 線路 (hand-made) on the 直角 rows nearest 4500·k/9 (450, 1050, 1500,
+    # 1950, 2550, 3000, 3450, 4050: D32, 16 + 11 towards the middle), 直角 on its main bars (Y 600, 1100, 1600, 2100:
+    # D19, 9.5 + 11); between the outer hoop's legs round the outermost rows, 108 − 16 − 11 = 81 from each face
+    ties = {(float(x), 2619.0, float(x), 81.0) for x in (477, 1077, 1527, 1977, 2523, 2973, 3423, 4023)}
+    ties |= {(81.0, 2700 - y, 4419.0, 2700 - y) for y in (620.5, 1120.5, 1579.5, 2079.5)}
+    assert lines(msp) == rows | ties
+    (hoop,) = msp.query('LWPOLYLINE[layer=="鉄筋"]')
+    xs, ys = [point[0] for point in hoop.get_points()], [point[1] for point in hoop.get_points()]
+    assert (min(xs), max(xs), min(ys), max(ys)) == (81, 4419, 81, 2619)
+
+
+def test_a_column_with_a_hand_made_table_is_labelled_as_the_beam(hand_made):
+    """The 引張鉄筋 rows by face (one layer: without it), the other rows of each table by size with their count, the
+    hoops; the chains of the rows' centres: along X 0, 102, 108, 300 … 4200, 4392, 4398, 4500, along Y 0, 108, 350,
+    2592, 2700."""
+    msp = drawn(column.draw_column, column.column_figure(hand_made), 40).msp
+    assert sorted(texts(msp)) == sorted(["D32-29本", "D32-29本", "D19-9本", "D19-9本", "D19-2本", "D32-58本",
+                                         "D22-5組@150", "D22-3組@150", "直角方向", "線路方向"])
+    assert sorted(dimensions(msp)) == sorted(["102", "6", "192", "26×150=3900", "192", "6", "102", "4500",
+                                              "108", "242", "2242", "108", "2700"])
+    assert len(msp.query('LINE[layer=="引出線"]')) >= 2 + 2 + 3 + 3  # the hoops' leaders and two fans of three
+
+
+def test_a_hand_made_table_with_two_layers_names_them():
+    """Layer 1 of the upper face is the first row of the table, of the lower face the last."""
+    table = {"tension_rows": 2, "rows": [{"center_mm": 108, "diameter_mm": 32, "count": 29},
+                                        {"center_mm": 172, "diameter_mm": 32, "count": 15},
+                                        {"center_mm": 2528, "diameter_mm": 29, "count": 15},
+                                        {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
+    figure = column.column_figure(pier(**{"鉄筋/柱/custom_tables/線路": table}))
+    assert column.table_texts(figure.tables[0]) == (["1段目D32-29本", "2段目D32-15本"],
+                                                     ["1段目D32-29本", "2段目D29-15本"])
+    assert {"1段目D32-29本", "2段目D32-15本", "2段目D29-15本"} <= set(texts(drawn(column.draw_column, figure, 40).msp))
+
+
+def test_the_files_have_the_column_with_a_hand_made_table(hand_made):
+    assert list(drawing_figures(hand_made)) == ["梁", "柱", "フーチング"]
+    assert "柱（水平断面）　1:40" in texts(read(drawing_dxf(hand_made)).modelspace())
 
 
 # --- the footing: (B7 + B8 + B9) 7000 × H6 2700, cut along the track ---
@@ -346,6 +397,21 @@ def test_a_narrow_gap_moves_its_text_outwards():
                                   for insert in (mtext.dxf.insert,)), key=lambda insert: insert.x)
     assert first.x < 0 and last.x > 2010
     assert 1000 < middle.x < 1010 and middle.y > first.y
+
+
+def test_the_texts_of_narrow_gaps_in_a_row_step_out():
+    """Of narrow gaps between others in a row, each text is one line further out than the one before, over three
+    lines, then from the first line again; a gap that fits starts again."""
+    sheet = Sheet(50)
+    # gaps 1000 | 10 20 30 40 | 900 | 10 | 990: at 1/50 a text of two digits does not fit 40 mm
+    sheet.chain([Decimal(value) for value in (0, 1000, 1010, 1030, 1060, 1100, 2000, 2010, 3000)], 0.0, -500.0,
+                vertical=False, origin=Vec2(0, 0))
+    found = sorted((mtext.dxf.insert.x, mtext.plain_text(), mtext.dxf.insert.y) for dim in sheet.msp.query("DIMENSION")
+                   for mtext in dim.get_geometry_block().query("MTEXT") if len(mtext.plain_text()) == 2)
+    line = (sheet_module.TEXT + 2 * sheet_module.GAP) * 50
+    first = found[0][2]
+    assert [(text, round((y - first) / line, 6)) for _, text, y in found] == [
+        ("10", 0), ("20", 1), ("30", 2), ("40", 0), ("10", 0)]
 
 
 def test_a_process_without_a_home_gets_one_under_the_temporary_folder(monkeypatch, tmp_path):

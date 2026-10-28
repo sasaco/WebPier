@@ -113,6 +113,10 @@ CASES = {
     "target": (field("DataInfo", 19, "0.3"), "DataInfo 第19欄: 範囲外です"),
     "zero target": (field("DataInfo", 19, "0"), "DataInfo 第19欄: 範囲外です"),
     "control node": (field("DataInfo", 4, "8"), "DataInfo 第4欄: 範囲外です"),
+    "load divisions": (field("DataInfo", 5, "2000"), "DataInfo 第5欄: 増分荷重の分割数は最大震度（ExOptLoad 第2欄）×1000"),
+    "load factor": (field("ExOptLoad", 2, "2"), "DataInfo 第5欄: 増分荷重の分割数は最大震度（ExOptLoad 第2欄）×1000"),
+    "zero load factor": (field("ExOptLoad", 2, "0"), "ExOptLoad 第2欄: 範囲外です"),
+    "load option": (field("ExOptLoad", 3, "0"), "ExOptLoad 第3欄: 1 が必要です"),
     "load count": (setting("LoadNum", "9"), "線路方向の基本ケースは8件（雪荷重がなければ7件）が必要です（9件）"),
     "case title": (setting("LoadTitle4", "浮力"), "LoadTitle4: 線路方向の基本ケース4は「雪荷重」が必要です（浮力）"),
     "members and elements": (setting("MemberNum", "5"), "MemberNum と ElementNum は同じ数"),
@@ -138,10 +142,9 @@ CASES = {
     "M-θ title": (field("NonLinInfo1", 10, "柱下端の非線形部材Mθ"), "20バイト以内"),
     # 操作説明書 2.1.6: the joints from the upper left (swapping the y of two joints breaks the order)
     "joint order": (both(field("JointXY1", 2, "-7.6"), field("JointXY2", 2, "-7.9")), "節点番号は上から"),
-    # decision 66: Example2 La/d = 7600/2592 ≧ 2 needs 曲げ (1); a shorter La a せん断 (2), never below 1.25
-    "failure mode": (field("NonLinInfo1", 4, "2"), "破壊形態は La/d ≧ 2 で曲げ（1）"),
-    "failure mode code": (field("NonLinInfo1", 4, "3"), "NonLinInfo1 第4欄: 範囲外です"),
-    "short shear span": (both(field("SectInfo1", 10, "3000"), field("NonLinInfo1", 4, "2")), "1.25 ≦ La/d < 2 でせん断（2）"),
+    # decision 114: always 曲げ (1), and La/d never below 1.25 (3000/2592 = 1.16)
+    "failure mode": (field("NonLinInfo1", 4, "2"), "NonLinInfo1 第4欄: 1 が必要です"),
+    "short shear span": (field("SectInfo1", 10, "3000"), "SectInfo1: La/d ≧ 1.25 が必要です"),
     "unequal layers": (field("SectJikuNum1", 3, "2"), "SectJikuNum1: 上下面の主鉄筋の段数は同じ"),
     "too many layers": (setting("SectJikuNum1", "11,6,6,6,6,0"), "全行数の半分以下"),
     "rebar rows": (setting("SectJikuNum1", "12,1,1,1,1,0"), "レコードの順序・件数が不正です"),

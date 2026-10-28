@@ -268,13 +268,14 @@ def pile_change(form: Form, key: str, action: str) -> bool:
 
 JRSNAP_ROWS = (("shear_factor_vcd", "部材係数 γb（Vcd）"), ("shear_factor_vsd", "部材係数 γb（Vsd）"),
                ("shear_factor_vdd", "部材係数 γb（Vdd）"), ("analysis_steps", "解析のステップ数"),
-               ("limited_final_step", "限定増分の最終ステップ"), ("target_displacement_m", "目標変位（大きさ）"))
+               ("limited_final_step", "限定増分の最終ステップ"), ("target_displacement_m", "目標変位（大きさ）"),
+               ("max_seismic_coefficient", "最大震度"))
 
 
 def jrsnap(form: Form) -> None:
     """The JRSNAP conditions of each direction, written into its NDU by 0710 / 0720 (decision 72 moved them here)."""
     body = form.section("JRSNAP 5.2-L03", note="線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと"
-                        "線路直角方向の全項目が必要です。空欄は補いません。")
+                        "線路直角方向の全項目が必要です。空欄は補いません（最大震度だけは空欄なら 1.00）。")
     for profile, direction in ((LONGITUDINAL, "線路方向（0710）"), (TRANSVERSE, "線路直角方向（0720）")):
         box = ttk.LabelFrame(body, text=direction, padding=8)
         box.pack(side="left", anchor="n", padx=(0, 8))

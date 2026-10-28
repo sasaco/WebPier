@@ -244,6 +244,7 @@ class JrsnapConditions:
     steps: int | None  # displacement increments to the target (DataInfo 3)
     limited_final_step: int | None  # last step of the limited incremental load (DataInfo 6)
     target_displacement: Printed | None  # magnitude (> 0) at the control node, m; the export signs it (DataInfo 19)
+    max_seismic: Printed  # 最大震度 of the incremental load, 1.00 when blank (decision 112; ExOptLoad 2, DataInfo 5)
 
 
 @dataclass(frozen=True)

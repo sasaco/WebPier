@@ -36,6 +36,7 @@ THICKNESS_MM = Precision(1, "mm")  # 鋼管厚・腐食代 of the 鋼管ソイ�
 REDUCTION = Precision(3, "")  # De, the reduction coefficient of a layer in liquefaction (SOIL-JR's 0.000)
 SHEAR_WAVE = Precision(0, "m/s")  # Vs of a layer: its 地盤変位 (decision 97; Example橋脚4 IV-4 170, 120 …)
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
+SEISMIC_COEFFICIENT = Precision(2, "")  # 最大震度 of the incremental load (decision 112; JRSNAP ExOptLoad 2)
 AGGREGATE = Precision(1, "mm")  # Dmax, 0.1..999999 mm (JRSNAP SectConc)
 SHRINKAGE = Precision(0, "×10⁻⁶")  # ε'csd of the flexural crack width (decision 48; Example2 300)
 REPETITIONS = Precision(2, "")  # 1編成当りの等価繰返し回数 of the fatigue check (decision 59; Example2 13-46 10.39)
@@ -45,6 +46,7 @@ DIAMETER = Precision(0, "mm")  # nominal bar size (D32 → 32), as Example2 10-6
 DENSITY = Precision(1, "本/m")
 
 SHEAR_FACTOR_MAX = 99.99
+SEISMIC_COEFFICIENT_MAX = 99.99  # × 1000 divisions fits DataInfo 5 (MDV, 5 columns of the DA card)
 AGGREGATE_RANGE = (0.1, 999_999)
 MAX_STEPS = 100_000
 MAX_COUNT = 10_000
@@ -306,6 +308,9 @@ def _jrsnap() -> dict[str, Field]:
         table[f"{direction}.limited_final_step"] = integer(1, MAX_STEPS, nullable=True)
         # A magnitude: the export gives it the sign of the earthquake (decision 43).
         table[f"{direction}.target_displacement_m"] = number(LENGTH, "positive", nullable=True)
+        # May be absent or blank: 1.00 (decision 112).
+        table[f"{direction}.max_seismic_coefficient"] = number(SEISMIC_COEFFICIENT, "positive", nullable=True,
+                                                               limit=at_most(SEISMIC_COEFFICIENT_MAX))
     return table
 
 

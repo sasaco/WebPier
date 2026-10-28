@@ -1,0 +1,1009 @@
+{
+  "schema_version": 2,
+  "出典": {
+    "柱の配筋": "NJC→ささこう/261014_設計条件/宇都宮LRT_P4～P9配筋案_261013.pdf 13頁（3-11 1.6.2 (1) 基部主鉄筋：背面・前面 かぶり150 D19 縁端150 100+52@125+100 縁端150、右側・左側 かぶり150 D19 縁端150 100+28@125+100 縁端150。四隅は両方向で共有）・14頁（3-12 (2) 帯鉄筋 D16 橋軸方向6本/段 直角方向3本/段 150）。方向別の鉄筋配置表（custom_tables、WebPier 決定111）は P7橋脚/pre/LRT_P7配筋図案_261026NJ共有.pdf の「計算上断面」（7000×3900、主鉄筋 D19：線路 100 mm に 44 本（中央の切欠きで 3100〜3900 があく）・切欠きの内側の 345 mm に 7 本・隅の 167 mm に 2 本（X 291）、直角 150 mm に 27 本（325〜3575 を 26@125））を利用者が post/線路方向.ndu・post/線路直角方向.ndu の SectRein と SectJikuNum（引張鉄筋の段数 線路 2・直角 1）に入力したものを、行の順のまま写した（2026-10-27）。主鉄筋（main_bars）は手直しの出発点で、計算には使わない",
+    "表層の層厚": "2.4 m・2.1 m は利用者の指示（2026-10-23、入力エディタで入力。前は 1.4 m・1.0 m、2026-10-20 の指示）。支持層（砂礫）の Df 内の厚さは Df 5.480 − 2.400 − 2.100 = 0.980 m（WebPier 決定64）",
+    "由来": "pre/input.json（schema 1）を決定5・6・16〜19に従って変換",
+    "元の出典": {
+      "ブック": ".claude/docs/Example橋脚/pre/input.xls",
+      "PDF": {
+        "上部工反力": ".claude/docs/Example橋脚/pre/input-上部工反力.pdf",
+        "上部構造": ".claude/docs/Example橋脚/pre/input-上部構造.pdf",
+        "下部構造": ".claude/docs/Example橋脚/pre/input-下部構造.pdf",
+        "地盤データ": ".claude/docs/Example橋脚/pre/input-地盤データ.pdf"
+      },
+      "ページ": "各PDFの1ページ目",
+      "転記方針": [
+        "指定された4枚のPDFに印刷された値を転記し、元ブックのセル値と照合した。非表示の追加入力行は対象外。",
+        "PDFから転記した数値は、入力の印字桁に丸めて保存する（等価重心高hsも同じ）。空欄はnullとし、数値の0とは区別する。",
+        "単位と選択肢はプログラムが持ち、入力には保存しない。",
+        "上部工反力は支承ごとに入力し、B・C支点の合計は計算で求める。A・D支点は合計を入力する。",
+        "計算で求める値（表層の層厚、排除した土の単位体積重量）は入力に含めない。側面B9と両側の支承位置fは明示入力とし、他の値から補わない。",
+        "初期データは.claude/docs/Example橋脚の入力サンプルから転記した。現在は.claude/docs/Example橋脚2を比較資料として既存入力を調整し、WebPierの計算条件を設定している。",
+        "雪荷重2年・10年・30年確率は既存の支承明細・合計欄へ.claude/docs/Example橋脚2の値を設定し、確率ごとに独立して集計する。対応する荷重組合せとS2を含む地震時慣性力に使用する。",
+        "終点側の復旧性制動係数は.claude/docs/Example橋脚2/07_荷重計算.pdf 7-11頁の展開式に従い1.0を指定する。起点側は未指定とし、安全性荷重修正係数の小数第2位丸め値を採用する。",
+        "シェルター機能は追加せず、既存の死荷重・雪荷重を集約し、等価重心高hs=M/Hで通常入力に換算する。.claude/docs/Example橋脚2/07_荷重計算.pdf 18頁の本体M=15180/4730kN・mと、05_上部工反力およびシェルター荷重.pdf 3・4頁の丸め後反力によるM=2×(530×3.8+210×1.5)=4658 / 2×430×2.95=2537kN・mを合算し、BのM=19838、CのM=7267kN・mとする。既存モデルHはB=5740+520+460=6720、C=1860+260+250=2370kN、hsはそれぞれ19838/6720、7267/2370mを入力の印字桁に丸めた2.952m・3.066m。CのHは07原本2360kNに対し+10kNの未許容残差があるが、線路方向の一致を保つためS2=250kNを維持する。風荷重Mだけがユーザーの許容対象。"
+      ]
+    },
+    "梁の側面鉄筋": "NJC→ささこう/261014_設計条件/宇都宮LRT_P4～P9配筋案_261013.pdf 11頁（3-7 1.5.2 (1) 側面：かぶり150 D32 上側縁端275 21@125 下側縁端250）。鉄筋.version 3 へ移すとき（2026-10-22）、版2の側面鉄筋（D22×17本、見本 Example橋脚2 と同じ値）と、面のない行（D32×22本、計算に使われていなかった）をこれに置き換えた",
+    "鉄筋の版3への移し替え": "2026-10-22、鉄筋.version 2 → 3（WebPier 決定68）。値は版2のまま（梁の側面鉄筋を除く）。フーチングの外側の方向は版2の stack_order 1 の方向",
+    "重心高_hs": "桁の高さ h1 + h2 とする（利用者 2026-10-23。起点側 0.55 + 1.80 = 2.35、終点側 0.62 + 0.55 = 1.17 m）。前の 2.952・3.066 m は見本 Example橋脚2 の値（元の出典.転記方針）だった",
+    "水掛かりの程度": "H16 の環境条件からの読み替え（2026-10-22）：一般の環境→常時乾燥、腐食性環境→乾湿繰返し（structural-railway-design の判断の例、2026-10-21 に利用者が確認したもの）"
+  },
+  "上部工反力": {
+    "起点側": {
+      "A支点": {
+        "固定死荷重_D1": 6200.0,
+        "付加死荷重_D2": 0.0,
+        "雪荷重_2年確率": null,
+        "雪荷重_10年確率": null,
+        "雪荷重_30年確率": null
+      },
+      "B支点": [
+        {
+          "支承位置": -1.945,
+          "固定死荷重_D1": 717.0,
+          "付加死荷重_D2": 33.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.5,
+            "L2": 0.5,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": 1.945,
+          "固定死荷重_D1": 430.0,
+          "付加死荷重_D2": 20.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.5,
+            "L2": 0.5,
+            "L3": null,
+            "L4": null
+          }
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "終点側": {
+      "D支点": {
+        "固定死荷重_D1": 5800.0,
+        "付加死荷重_D2": 0.0,
+        "雪荷重_2年確率": null,
+        "雪荷重_10年確率": null,
+        "雪荷重_30年確率": null
+      },
+      "C支点": [
+        {
+          "支承位置": -4.94,
+          "固定死荷重_D1": 2950.0,
+          "付加死荷重_D2": 0.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.5,
+            "L2": 0.5,
+            "L3": null,
+            "L4": null
+          }
+        },
+        {
+          "支承位置": 4.94,
+          "固定死荷重_D1": 2950.0,
+          "付加死荷重_D2": 0.0,
+          "雪荷重_2年確率": null,
+          "雪荷重_10年確率": null,
+          "雪荷重_30年確率": null,
+          "列車分担": {
+            "L1": 0.5,
+            "L2": 0.5,
+            "L3": null,
+            "L4": null
+          }
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "上部構造": {
+    "起点側": {
+      "桁長": {
+        "L1": 0.95,
+        "スパン長": 16.18,
+        "L2": 0.95
+      },
+      "衝撃係数_単線終局": 0.0,
+      "曲線半径": 0,
+      "列車速度": 100,
+      "遠心作用方向": "→",
+      "高さ": {
+        "h1": 0.55,
+        "h2": 1.8,
+        "h3": 0.37,
+        "h4": 1.0
+      },
+      "重心高_hs": 2.35,
+      "支承位置_f": 1.29
+    },
+    "終点側": {
+      "桁長": {
+        "L1": 1.15,
+        "スパン長": 61.39,
+        "L2": 1.15
+      },
+      "衝撃係数_単線終局": 0.0,
+      "曲線半径": 0,
+      "列車速度": 100,
+      "遠心作用方向": "→",
+      "高さ": {
+        "h1": 0.62,
+        "h2": 0.55,
+        "h3": 0.15,
+        "h4": 1.0
+      },
+      "重心高_hs": 1.17,
+      "支承位置_f": 0.81
+    },
+    "支承データ": {
+      "起点側": {
+        "支承名": "可動",
+        "摩擦係数_μ": 0.1,
+        "ゴム支承の箇所数": 2,
+        "ストッパーの箇所数": 2,
+        "片持ち梁上のゴム支承": 0,
+        "片持ち梁上のストッパー": 0,
+        "復旧性制動係数": 1.0
+      },
+      "終点側": {
+        "支承名": "可動",
+        "摩擦係数_μ": 0.1,
+        "復旧性制動係数": 1.0,
+        "ゴム支承の箇所数": 2,
+        "ストッパーの箇所数": 2,
+        "片持ち梁上のゴム支承": 1,
+        "片持ち梁上のストッパー": 1
+      }
+    },
+    "列車": {
+      "車両名": "P-16",
+      "1両の長さ": 20.0,
+      "軸距": {
+        "a1_連結部": 2.8,
+        "a2": 2.2
+      },
+      "軸重": {
+        "地震以外": 160.0,
+        "地震": 32.0
+      },
+      "編成数": 10,
+      "車両高": {
+        "受風高": 3.5,
+        "遠心重心高": 1.5,
+        "地震重心高": 1.5
+      },
+      "荷重修正係数": {
+        "使用性": 1.0,
+        "安全性(破壊)": 1.231,
+        "安全性(疲労)": 1.0
+      }
+    }
+  },
+  "下部構造": {
+    "寸法": {
+      "側面": {
+        "B1": 3.9,
+        "B2": 1.61,
+        "B3": 2.29,
+        "B4": 0.0,
+        "B5": 0.0,
+        "B6": 3.9,
+        "B7": 1.05,
+        "B8": 3.9,
+        "B9": 1.05
+      },
+      "正面": {
+        "W1": 12.3,
+        "W2": 0.0,
+        "W3": 12.3,
+        "W4": 2.65,
+        "W5": 2.65,
+        "W6": 7.0,
+        "W7": 1.5,
+        "W8": 7.0,
+        "W9": 1.5
+      },
+      "高さ": {
+        "H1": 1.4,
+        "H2": 0.5,
+        "H3": 2.65,
+        "H4": 5.95,
+        "H5": 0.0,
+        "H6": 2.0
+      }
+    },
+    "土かぶり": {
+      "起点側_df1": 3.48,
+      "終点側_df2": 3.48
+    },
+    "水位": {
+      "高水位_hw1": 5.48,
+      "平水位_hw2": 0.0,
+      "低水位_hw3": 0.0
+    },
+    "斜角": {
+      "θ": 90,
+      "タイプ": 1
+    },
+    "単位体積重量": {
+      "梁・躯体": 24.5,
+      "フーチング": 24.5,
+      "上載土": 19.0
+    },
+    "基礎形式": "直接基礎"
+  },
+  "杭基礎": {
+    "杭長": null,
+    "杭の単位体積重量": null,
+    "場所打ち杭": {
+      "杭径": null,
+      "f'ck": null,
+      "施工条件": null
+    },
+    "鋼管ソイルセメント杭": {
+      "ソイルセメント径": null,
+      "鋼管外径": null,
+      "鋼管厚": null,
+      "腐食代": null
+    },
+    "配置": {
+      "形式": null,
+      "線路方向の列の位置": [],
+      "線路直角方向の列の位置": [],
+      "抜く杭": []
+    }
+  },
+  "地盤データ": {
+    "層": [
+      {
+        "層番": "表層",
+        "層厚": 2.4,
+        "土質区分": "砂質土",
+        "N値": 3,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": null,
+        "粘着力_c": null,
+        "変形係数_Ed": null,
+        "De": null
+      },
+      {
+        "層番": "表層",
+        "層厚": 2.1,
+        "土質区分": "粘性土",
+        "N値": 4,
+        "単位体積重量": {
+          "湿潤": 19.0,
+          "水中": 9.0
+        },
+        "内部摩擦角_φd": null,
+        "粘着力_c": null,
+        "変形係数_Ed": null,
+        "De": null
+      },
+      {
+        "層番": "支持層",
+        "層厚": 0.98,
+        "土質区分": "砂礫",
+        "N値": 38,
+        "単位体積重量": {
+          "湿潤": 19.5,
+          "水中": 9.5
+        },
+        "内部摩擦角_φd": 40.8,
+        "粘着力_c": null,
+        "変形係数_Ed": 58923,
+        "De": null
+      }
+    ]
+  },
+  "鉄筋": {
+    "version": 4,
+    "梁": {
+      "materials": {
+        "main": "SD345",
+        "transverse": "SD345"
+      },
+      "concrete_strength_mpa": 24.0,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": null,
+      "faces": {
+        "上": {
+          "diameter_mm": 32,
+          "count": 31,
+          "bar_type": "ループ筋",
+          "cover_mode": "指定",
+          "center_mm": 150.0,
+          "inner_layers": []
+        },
+        "下": {
+          "diameter_mm": 32,
+          "count": 31,
+          "cover_mode": "指定",
+          "center_mm": 250.0,
+          "inner_layers": []
+        }
+      },
+      "side_bars": {
+        "diameter_mm": 32,
+        "per_face_count": 22,
+        "start_mm": 275,
+        "pitch_mm": 125,
+        "stirrup_position": "内側",
+        "cover_mode": "指定",
+        "center_mm": 150
+      },
+      "stirrups": {
+        "diameter_mm": 25,
+        "effective_legs": 2,
+        "pitch_mm": 150.0
+      }
+    },
+    "柱": {
+      "materials": {
+        "main": "SD345",
+        "transverse": "SD345"
+      },
+      "concrete_strength_mpa": 24.0,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": 124.5,
+      "main_bars": {
+        "線路": {
+          "diameter_mm": 19,
+          "per_face_count": 44,
+          "cover_mode": "指定",
+          "center_mm": 100.0,
+          "endpoints": "含む",
+          "distribution": {
+            "mode": "両端＋中央ピッチ",
+            "edge_center_mm": 475.0,
+            "pitch_mm": 125.0
+          },
+          "inner_layers": [
+            {
+              "per_face_count": 7,
+              "clear_gap_mm": 245.0
+            }
+          ]
+        },
+        "直角": {
+          "diameter_mm": 19,
+          "per_face_count": 27,
+          "cover_mode": "指定",
+          "center_mm": 150.0,
+          "endpoints": "含む",
+          "distribution": {
+            "mode": "両端＋中央ピッチ",
+            "edge_center_mm": 325.0,
+            "pitch_mm": 125.0
+          },
+          "inner_layers": []
+        }
+      },
+      "custom_tables": {
+        "線路": {
+          "tension_rows": 2,
+          "rows": [
+            {
+              "center_mm": 100.0,
+              "diameter_mm": 19,
+              "count": 44
+            },
+            {
+              "center_mm": 345.0,
+              "diameter_mm": 19,
+              "count": 7
+            },
+            {
+              "center_mm": 167.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 325.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 450.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 575.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 700.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 825.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 950.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1075.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1200.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1325.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1450.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1575.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1700.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1825.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1950.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2075.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2200.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2325.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2450.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2575.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2700.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2825.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2950.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3075.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3200.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3325.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3450.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3575.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3733.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3555.0,
+              "diameter_mm": 19,
+              "count": 7
+            },
+            {
+              "center_mm": 3800.0,
+              "diameter_mm": 19,
+              "count": 44
+            }
+          ]
+        },
+        "直角": {
+          "tension_rows": 1,
+          "rows": [
+            {
+              "center_mm": 150.0,
+              "diameter_mm": 19,
+              "count": 27
+            },
+            {
+              "center_mm": 291.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 475.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 600.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 725.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 850.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 975.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1100.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1225.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1350.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1475.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1600.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1725.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1850.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 1975.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2100.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2225.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2350.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2475.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2600.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2725.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2850.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 2975.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3100.0,
+              "diameter_mm": 19,
+              "count": 4
+            },
+            {
+              "center_mm": 3250.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3375.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3500.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3625.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3750.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 3900.0,
+              "diameter_mm": 19,
+              "count": 4
+            },
+            {
+              "center_mm": 4025.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4150.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4275.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4400.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4525.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4650.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4775.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 4900.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5025.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5150.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5275.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5400.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5525.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5650.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5775.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 5900.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6025.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6150.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6275.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6400.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6525.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6709.0,
+              "diameter_mm": 19,
+              "count": 2
+            },
+            {
+              "center_mm": 6850.0,
+              "diameter_mm": 19,
+              "count": 27
+            }
+          ]
+        }
+      },
+      "column_hoops": {
+        "enclosing_diameter_mm": 16,
+        "direction_rows": [
+          {
+            "direction": "線路",
+            "diameter_mm": 16,
+            "effective_legs": 6,
+            "pitch_mm": 150,
+            "start_mm": null,
+            "end_mm": null
+          },
+          {
+            "direction": "直角",
+            "diameter_mm": 16,
+            "effective_legs": 3,
+            "pitch_mm": 150,
+            "start_mm": null,
+            "end_mm": null
+          }
+        ]
+      }
+    },
+    "フーチング": {
+      "materials": {
+        "main": "SD345",
+        "transverse": "SD345"
+      },
+      "concrete_strength_mpa": 24.0,
+      "aggregate_max_mm": 25,
+      "pure_cover_mm": null,
+      "faces": {
+        "上": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": 25,
+            "pitch_mm": 250.0,
+            "cover_mode": "指定",
+            "center_mm": 150.0,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": 25,
+            "pitch_mm": 250.0,
+            "cover_mode": "指定",
+            "center_mm": 150.0,
+            "inner_layers": []
+          }
+        },
+        "下": {
+          "outer_direction": "線路",
+          "線路": {
+            "diameter_mm": 25,
+            "pitch_mm": 250.0,
+            "cover_mode": "指定",
+            "center_mm": 150.0,
+            "inner_layers": []
+          },
+          "直角": {
+            "diameter_mm": 25,
+            "pitch_mm": 250.0,
+            "cover_mode": "指定",
+            "center_mm": 150.0,
+            "inner_layers": []
+          }
+        }
+      },
+      "stirrups": {
+        "線路": {
+          "diameter_mm": 16,
+          "pitch_mm": 150.0,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        },
+        "直角": {
+          "diameter_mm": 16,
+          "pitch_mm": 150.0,
+          "distribution_mode": "密度",
+          "width_pitch_mm": null,
+          "density_per_m": 2
+        }
+      }
+    }
+  },
+  "耐震設計条件": {
+    "地域別": "A地域",
+    "地盤区分": "G2地盤"
+  },
+  "柱の断面照査": {
+    "水掛かりの程度": "常時乾燥",
+    "外観の照査": "行う",
+    "ε'csd": 300,
+    "適用基準の機関": "JR各社",
+    "JR-001": "適用する",
+    "JR-004": "適用しない"
+  },
+  "片持ち梁の照査": {
+    "水掛かりの程度": {
+      "上面": "乾湿繰返し",
+      "下面": "常時乾燥",
+      "側面": "乾湿繰返し"
+    },
+    "外観の照査": "行わない",
+    "疲労": {
+      "旅客列車本数": 60,
+      "貨物列車本数": 0,
+      "設計耐用年数": 100,
+      "等価繰返し回数": {
+        "A列車": {
+          "k=0.06": 10.39,
+          "k=0.12": 10.39
+        },
+        "B列車": {
+          "k=0.06": 10.39,
+          "k=0.12": 10.39
+        }
+      }
+    }
+  },
+  "jrsnap_longitudinal": {
+    "shear_factor_vcd": 1.3,
+    "shear_factor_vsd": 1.1,
+    "shear_factor_vdd": 1.2,
+    "analysis_steps": 300,
+    "limited_final_step": 100,
+    "target_displacement_m": 0.3,
+    "max_seismic_coefficient": 2.0
+  },
+  "jrsnap_transverse": {
+    "shear_factor_vcd": 1.3,
+    "shear_factor_vsd": 1.1,
+    "shear_factor_vdd": 1.2,
+    "analysis_steps": 350,
+    "limited_final_step": 100,
+    "target_displacement_m": 0.35,
+    "max_seismic_coefficient": 2.0
+  },
+  "outputs": {
+    "detailing": true,
+    "ground_model": false,
+    "reactions": false,
+    "longitudinal": false,
+    "longitudinal_frame_analysis": false,
+    "transverse": false,
+    "transverse_frame_analysis": false,
+    "longitudinal_seismic": false,
+    "longitudinal_nonlinear_analysis": false,
+    "transverse_seismic": false,
+    "transverse_nonlinear_analysis": false,
+    "footing": false,
+    "cantilever": false
+  }
+}

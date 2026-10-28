@@ -61,8 +61,15 @@ def _data_info(model: Any) -> tuple[Field, ...]:
         # no control joint (JRSNAP keeps none in the DB1 of a load increment), so Aggre-SE's project names it (export.aggrese)
         return (1, 2, BLANK, BLANK, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, ground.steps, ground.steps,
                 TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, BLANK, CONVERGENCE, 0, 1, 0, 0, 0, 0)
-    return (1, 1, analysis.steps, model.control, LOAD_DIVISIONS, analysis.limited_final_step, BLANK, BLANK, BLANK,
-            TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, analysis.target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
+    return (1, 1, analysis.steps, model.control, analysis.load_divisions, analysis.limited_final_step, BLANK, BLANK,
+            BLANK, TRIALS, TRIALS, 1, 1, 1, 1, 1, first.rho_m, first.alpha_f, analysis.target, CONVERGENCE, 0, 1, 0, 0, 0, 0)
+
+
+def _load_factor(model: Any) -> tuple[Field, ...]:
+    """ExOptLoad: its second field is the 最大震度 (decision 112); the 応答変位法 keeps 1 (decision 97)."""
+    if getattr(model, "ground", None) is not None:
+        return CONSTANT_RECORDS["ExOptLoad"]
+    return (1, model.analysis.max_seismic, 1)
 
 
 def _frame(model: NduModel) -> Iterator[Record]:
@@ -99,8 +106,8 @@ def _frame(model: NduModel) -> Iterator[Record]:
     for e in model.elements:
         yield f"ShabuzaiMeInfo{e.number}", (*(0,) * 9, False, False)
     yield "NonLinNum", (1, 1, 0)  # one automatic M-θ definition, for the one nonlinear element
-    # The 4th field is the 破壊形態: 1 曲げ, 2 せん断 (the AP card's S; decision 66)
-    yield "NonLinInfo1", (1, 1, 1, 2 if model.section.shear_failure else 1, 1, 1, 1, 1, 0, NONLINEAR_TITLE)
+    # The 4th field is the 破壊形態: 1 曲げ, never 2 せん断 (the AP card's S; decision 114)
+    yield "NonLinInfo1", (1, 1, 1, 1, 1, 1, 1, 1, 0, NONLINEAR_TITLE)
 
 
 def column_section_records(number: int, s: SectionData) -> Iterator[Record]:
@@ -210,7 +217,7 @@ def head_records(model: Any) -> list[Record]:
     """Virsion … ExOptDisp: the header, the titles (empty) and the analysis settings of any NDU model of WebPier."""
     head: list[Record] = [("Virsion", (Token(NATIVE_VERSION),)), ("DataName", (model.profile.data_name,))]
     head += [(f"DataTitle{index}", (EMPTY,)) for index in range(1, TITLES + 1)]
-    head += [("DataInfo", _data_info(model)), ("ExOptLoad", CONSTANT_RECORDS["ExOptLoad"]),
+    head += [("DataInfo", _data_info(model)), ("ExOptLoad", _load_factor(model)),
              ("ExOptDisp", CONSTANT_RECORDS["ExOptDisp"])]
     return head
 

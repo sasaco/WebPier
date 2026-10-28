@@ -4,7 +4,7 @@ JRSNAP derives the M-θ curve of the micro member from a rectangular RC section 
 SectJiku / SectRein / SectSher / SectSafe). WebPier gives it:
 
 - b × h of the micro member (normal to / in the plane), La from the control node down to the footing top, and
-  the 破壊形態 of the M-θ: 曲げ for La/d ≧ 2, せん断 for 1.25 ≦ La/d < 2 (decision 66);
+  the M-θ always of the 破壊形態 曲げ, a column below La/d 1.25 (a low-shear-span member) refused (decision 114);
 - f'ck and Ec of the column concrete (calc.materials), Dmax of the column concrete (鉄筋.柱.aggregate_max_mm)
   and the three γb of the input conditions;
 - the 方向別の鉄筋配置表 of the bending direction in use (calc.column_rebar.direction_table), its rows in their order,
@@ -32,7 +32,7 @@ from ...inputs import PierInput
 from ...inputs.rebar import LENGTH_MM
 from .model import RebarRow, SectionData, Shear
 from .profile import (
-    MIN_SHEAR_SPAN_RATIO, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, SHEAR_SPAN_RATIO_BENDING, Profile,
+    MIN_SHEAR_SPAN_RATIO, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile,
 )
 
 EC_KN_MM2 = Precision(1, "kN/mm2")
@@ -78,8 +78,8 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
         raise InputError(f"{_COLUMN}: {profile.face}方向の表が{len(rows)}行です（JRSNAP は{MAX_ROWS}行まで）")
     depth = d(height) - d(rows[0].center)
     if d(span) < MIN_SHEAR_SPAN_RATIO * depth:
-        raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が1.25未満で、"
-                         "M-θ 自動算定（低せん断スパン部材は 1.25≦La/d＜2）の対象外です")
+        raise InputError(f"{_COLUMN}: La/d = {span.value:g}/{float(depth):g} が1.25未満の低せん断スパン部材で、"
+                         "M-θ 自動算定の対象外です")
     layers, pitch = found.tension, main_pitch(layout, profile.face)
     # one steel for the member (decision 68)
     grade = need(pier.rebar.column.materials.main, f"{_COLUMN}.materials.main")
@@ -88,8 +88,7 @@ def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, fram
     factors = [need(getattr(conditions, name), f"{key}.{name}")
                for name in ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd")]
     return SectionData(
-        width=width, height=height, shear_span=span, shear_failure=d(span) < SHEAR_SPAN_RATIO_BENDING * depth,
-        fck=concrete.strength,
+        width=width, height=height, shear_span=span, fck=concrete.strength,
         ec=put(EC_KN_MM2, d(concrete.modulus) * Decimal(10)),  # mantissa × 10^7 kN/m2 = × 10 kN/mm2
         aggregate_max=need(pier.rebar.column.aggregate_max, f"{_COLUMN}.aggregate_max_mm"),  # the column concrete's
         yield_strength=yield_strength(grade), main_layers=layers, main_pitch=pitch,
