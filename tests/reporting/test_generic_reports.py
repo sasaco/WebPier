@@ -111,6 +111,8 @@ def test_0710_and_0720_print_the_seismic_cases(tmp_path, direction):
 def test_0900_prints_the_combinations_and_the_zero_row(tmp_path):
     pier, result = cantilever()
     printed = texts(cantilever_report.semantic_records(result, pier))
+    assert list(printed.items())[:2] == [("0900/title", "§13. 片持ち梁の照査"),
+                                         ("0900/section.heading", "13.1 応答値の算定")]  # decision 117
     assert "Khmax = 0.552" in printed["0900/response.transverse"]
     assert printed["0900/adopted.table"].count("|－|－|0.00|0.00|0.00") == 3  # 復旧性（損傷）地震時以外: Md, Vd, Mt
     assert NO_COMBINATION in printed["0900/adopted.zero"]

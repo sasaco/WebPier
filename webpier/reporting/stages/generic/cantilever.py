@@ -1,6 +1,6 @@
 """0900 with a load model (decision 70): the report of a GenericCantileverResult.
 
-13.1 応答値の算定: the load model's sections, the 最大応答震度 of 0711 and 0721, and for each cantilever its self weight
+§13. 片持ち梁の照査 (decision 117, as the train path's), then 13.1 応答値の算定: the load model's sections, the 最大応答震度 of 0711 and 0721, and for each cantilever its self weight
 and the table of each action (the train path's tables, reporting.stages.cantilever.summary); 13.2 設計作用の組合せ:
 for each cantilever the factored actions of each combination of the load model and their sums, then the governing
 case of either side for each row of Capacita's force table and each check, a row without a combination printed
@@ -18,11 +18,11 @@ from ....calc.generic.cantilever import NO_COMBINATION, GenericCantileverResult,
 from ....inputs import PierInput
 from ....loadmodel import D1, D2, Paragraph, Section
 from ...numbers import printed
-from ..cantilever import SIDES
+from ..cantilever import CHAPTER_TITLE, SIDES
 from ..cantilever.summary import _action_table, _self_weight_table
 from ..reaction.layout import document
 from ..reaction.manuscript import (
-    ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, Unit, cells, plain,
+    CHAPTER, ITEM, SECTION, SUBSECTION, CellSpec, Manuscript, TableSpec, Unit, cells, plain,
 )
 from ..reaction.tables import header
 
@@ -105,7 +105,8 @@ def _adopted(m: Manuscript, result: GenericCantileverResult) -> None:
 def content(result: GenericCantileverResult, pier: PierInput) -> tuple[Unit, ...]:
     """One ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(prefix=PREFIX)
-    m.heading("title", "13.1 応答値の算定", SECTION)
+    m.heading("title", CHAPTER_TITLE, CHAPTER)
+    m.heading("section.heading", "13.1 応答値の算定", SECTION)
     sections = result.basis.sections
     _sections(m, sections)
     number = 2 if sections else 1

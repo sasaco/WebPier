@@ -1,12 +1,13 @@
-"""0800 フーチングの応答値: 12.1 応答値の算定 (decision 60), (1) 線路方向 and (2) 線路直角方向.
+"""0800 フーチングの応答値: §12. フーチングの照査, 12.1 応答値の算定 (decision 60), (1) 線路方向 and (2) 線路直角方向.
 
 WebPier lays out every page from calc.footing's result, as 12_フーチング.pdf 244〜253: 1) the table of the five design
 columns (the actions at the footing base, 0612's bearing capacity, the shape of the base pressure Case 1〜4 with the
 figure of the four shapes), 2) the effective width of the lower side with its figure, 3) the base reaction on the
 chosen overhang (one row per segment of the pressure profile), 4) the self weight and overburden and 5) the buoyancy
 of that overhang (every overhang the columns chose, each named when there are two), 6) the design moment and 7) the
-design shear per metre with the shear span. The chapter heading (§12) and 12.1 are not printed (decision 60): the
-first heading is (1) 線路方向の計算. Every number is a Printed value of the result (ADR-0003); nothing is calculated
+design shear per metre with the shear span. The report begins with the chapter heading §12 (worded フーチングの照査,
+not the sample's フーチングの安全性の照査: the chapter also holds the durability and the restorability) and 12.1
+(decision 117). Every number is a Printed value of the result (ADR-0003); nothing is calculated
 here.
 
 Written differently from the sample (decision 60; as 0612, decision 54): the rows of the second axis (ey, L′) and of
@@ -53,6 +54,8 @@ LEADING = 1
 HEADER = 2  # a two-line header row
 BLANK = ""
 SEISMIC = "地震時"
+CHAPTER_TITLE = "§12. フーチングの照査"  # decision 117; 0810 and 0820 continue the chapter from 12.2
+SECTION_TITLE = "12.1 応答値の算定"
 DIRECTIONS = (("longitudinal", "(1) 線路方向の計算"), ("transverse", "(2) 線路直角方向の計算"))
 
 Row = tuple[Any, ...]
@@ -294,6 +297,8 @@ def _direction(m: Manuscript, key: str, title: str, found: FootingDirection) -> 
 def content(result: FootingResult) -> tuple[Unit, ...]:
     """The ordered manuscript of both directions, used by both the layout and the semantic tests."""
     m = Manuscript(PREFIX)
+    m.heading("title", CHAPTER_TITLE, 0)
+    m.heading("section.heading", SECTION_TITLE, 1)
     for key, title in DIRECTIONS:
         _direction(m, key, title, getattr(result, key))
     return tuple(m.units)

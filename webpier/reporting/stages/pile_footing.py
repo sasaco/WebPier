@@ -7,7 +7,7 @@ forces of each point by check (安全性（破壊）, 耐久性の 永久＋変�
 (the side of the column, the member and its end), the combination, the bending moment (a lower tension positive, an upper
 tension negative) and, at the points of the deep beam shear, the shear force; those of 安全性（破壊） are the frame's times
 the 応答値係数 γR, which the section says (decision 104). Every number is a ``Printed`` value (ADR-0003); nothing is
-calculated here. The chapter heading (§12) and 12.1 are not printed, as the direct footing's.
+calculated here. The report begins with the chapter heading §12 and 12.1, as the direct footing's (decision 117).
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from gridlayoutpdf import Document
 from ...calc.pile_body import GAMMA_R
 from ...calc.pile_footing import CASES, Case, End, FootingDirection, FootingResult, Force, SectionForces
 from ..document import report
+from .footing import CHAPTER_TITLE, SECTION_TITLE
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, value
 
 PREFIX = "0800/"
@@ -81,10 +82,10 @@ def _forces_table(forces: SectionForces) -> TableSpec:
 
 
 def _direction(m: Manuscript, key: str, title: str, direction: FootingDirection) -> None:
-    m.heading(f"{key}.heading", title, 1)
-    m.paragraph(f"{key}.width.title", "1) 有効幅", left=TABLE_LEFT, keep=True)
+    m.heading(f"{key}.heading", title, 2)
+    m.heading(f"{key}.width.title", "1) 有効幅", 3)
     m.table(f"{key}.width", _width_table(direction))
-    m.paragraph(f"{key}.forces.title", "2) 設計断面力", left=TABLE_LEFT, keep=True)
+    m.heading(f"{key}.forces.title", "2) 設計断面力", 3)
     if any(force.case is Case.SAFETY for item in direction.points for force in item.forces):
         m.paragraph(f"{key}.forces.response", f"安全性（破壊）の設計断面力は，骨組解析の応答値に応答値係数γR（={value(GAMMA_R)}）を"
                     "乗じたものとする．", left=TABLE_LEFT)
@@ -95,6 +96,8 @@ def _direction(m: Manuscript, key: str, title: str, direction: FootingDirection)
 def content(result: FootingResult) -> tuple[Unit, ...]:
     """The ordered manuscript."""
     m = Manuscript(PREFIX)
+    m.heading("title", CHAPTER_TITLE, 0)
+    m.heading("section.heading", SECTION_TITLE, 1)
     for attribute, title in DIRECTIONS:
         _direction(m, attribute, title, getattr(result, attribute))
     return tuple(m.units)

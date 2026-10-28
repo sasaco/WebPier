@@ -34,10 +34,12 @@ def printed(result: FootingResult) -> str:
     return "".join(record["text"] for record in records(result))
 
 
-def test_the_report_begins_with_the_longitudinal_direction_without_the_chapter_heading(result):
+def test_the_report_begins_with_the_chapter_heading_and_12_1(result):
     found = records(result)
-    assert (found[0]["id"], found[0]["text"]) == ("0800/longitudinal.heading", "(1) 線路方向の計算")
-    assert not any(record["text"].startswith(("§", "12.")) or "応答値の算定" in record["text"] for record in found)
+    assert [(record["id"], record["text"]) for record in found[:3]] == [
+        ("0800/title", "§12. フーチングの照査"), ("0800/section.heading", "12.1 応答値の算定"),
+        ("0800/longitudinal.heading", "(1) 線路方向の計算")]  # decision 117
+    assert sum(record["text"].startswith(("§", "12.")) for record in found) == 2
     assert len({record["id"] for record in found}) == len(found)
 
 

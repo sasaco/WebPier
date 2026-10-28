@@ -44,10 +44,11 @@ def rendered(tmp_path_factory: pytest.TempPathFactory, current) -> Path:
 # --- the manuscript -------------------------------------------------------------------------------------------------
 
 
-def test_the_manuscript_starts_at_13_1_without_the_chapter_heading(manuscript):
-    assert manuscript[0].kind == "heading" and manuscript[0].value == "13.1 応答値の算定"
+def test_the_manuscript_starts_with_the_chapter_heading_and_13_1(manuscript):
+    assert [(unit.kind, unit.value) for unit in manuscript[:2]] == [
+        ("heading", "§13. 片持ち梁の照査"), ("heading", "13.1 応答値の算定")]  # decision 117
     headings = [unit.value for unit in manuscript if unit.kind == "heading"]
-    assert not any(value.startswith("13. ") or value.startswith("§13") for value in headings)
+    assert sum(value.startswith("§") for value in headings) == 1
     assert "(1) 鉛直荷重" in headings and "(2) 水平荷重" in headings
     assert "4) 車両横荷重のトルクによる鉛直荷重" in headings and "7) 地震時列車荷重慣性力のトルクによる鉛直反力" in headings
 
@@ -275,11 +276,11 @@ def test_every_printed_formula_reproduces_its_result(rendered: Path, manuscript)
     assert [check for check in checks if not check.ok] == []
 
 
-def test_the_pdf_has_the_pages_of_the_sample_chapter_and_starts_at_13_1(rendered: Path):
+def test_the_pdf_has_the_pages_of_the_sample_chapter_and_starts_with_the_chapter_heading(rendered: Path):
     with pymupdf.open(rendered) as pdf:
         assert len(pdf) >= 40
         first = pdf[0].get_text().strip().split("\n")
-        assert first[0] == "13.1 応答値の算定"
+        assert first[:2] == ["§13. 片持ち梁の照査", "13.1 応答値の算定"]
         texts = [page.get_text() for page in pdf]
     assert any("13.2 設計作用の組合せ（左側）" in text for text in texts)
     assert any("13.2 設計作用の組合せ（右側）" in text for text in texts)

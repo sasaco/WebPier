@@ -16,6 +16,7 @@ def test_the_report_has_the_widths_and_the_forces_of_both_directions(tmp_path):
     path = pile_footing.render_pile_footing(found, tmp_path / "0800.pdf")
     with pymupdf.open(path) as document:
         text = "".join(page.get_text() for page in document)
+    assert text.startswith("§12. フーチングの照査\n12.1 応答値の算定\n(1) 線路方向の計算")  # decision 117
     for expected in ("(1) 線路方向の計算", "(2) 線路直角方向の計算", "1) 有効幅", "2) 設計断面力", "b + 2d ≦ B", "D + 2(d/2 + a) ≦ B", "Σ(D + d) ≦ B",
                      "Lp + D ≦ B", "く体前面（せん断）", "復旧性", "設計せん断力"):
         assert expected in text
