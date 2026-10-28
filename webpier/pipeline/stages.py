@@ -123,7 +123,6 @@ from ..inputs import PierInput, choices
 from ..inputs.outputs import OUTPUT_KEYS, FootingParts, footing_parts, uses
 from ..reporting.stages import cantilever as cantilever_report
 from ..reporting.stages import cantilever_check as cantilever_check_report
-from ..reporting.stages import column_check as column_check_report
 from ..reporting.stages import detailing as detailing_report
 from ..reporting.stages import footing as footing_report
 from ..reporting.stages import footing_check as footing_check_report
@@ -139,7 +138,7 @@ from ..reporting.stages import transverse as transverse_report
 from ..reporting.stages.cantilever import render_cantilever
 from ..reporting.stages.cantilever_check import render_cantilever_check
 from ..reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
-from ..reporting.stages.column_check import Chapter, render_column_check
+from ..reporting.stages.column_check import Chapter, following_section, render_column_check
 from ..reporting.stages.detailing import render_detailing
 from ..reporting.stages.footing import render_footing
 from ..reporting.stages.footing_check import Chapter as FootingChapter, render_footing_check
@@ -228,13 +227,18 @@ class SectionCheck:
     no PIK and writes the section forces into the WDJ, which the runner calculates as given and which is published as
     written. ``sections`` names the sections of Capacita's report the stage asks for (Capacita's ids, in order). The
     stage's ``render`` receives the pages of each section and the sections Capacita skipped for zero forces. The WDJ
-    goes under post/ as ``kind`` with a provenance sidecar.
+    goes under post/ as ``kind`` with a provenance sidecar. With ``commentary`` (chapter, first section) Capacita
+    numbers the commentary of a WDJ that asks for it from "chapter.first", and ``finish`` gives the stage's result the
+    number each returned section carries (0611, 0621: decision 121).
     """
 
     kind: str  # "wdj"
     file_name: str  # e.g. "線路方向.wdj"
     build: Callable[[Results, PierInput, bytes | None], bytes]  # (results, pier, PIK or None)
     sections: Callable[[Results], Sequence[str]]
+    commentary: tuple[int, int] | None = None  # run-rc --commentary-chapter, --commentary-first-section
+    # (the stage's result, the heading number of each returned section by its id) → the stage's result
+    finish: Callable[[Any, Mapping[str, str | None]], Any] | None = None
 
 
 def seismic_file(stage_id: str, kind: str) -> str:
@@ -387,6 +391,10 @@ class StageSpec:
     # the stage of a footing of one part in place of this one, which makes both (decision 110): FRAMES_PART with the frame
     # analyses alone, SEISMIC_PART with the nonlinear analyses alone; the same id and stem
     parts: Mapping[str, StageSpec] = field(default_factory=dict)
+    # the stages whose results the report reads when the same generation makes them, finished by their Capacita check:
+    # the numbers of the sections it refers to or follows (0400 and 0612 / 0622 the column checks, decision 121). Not
+    # dependencies: without them the report has no number to take (0400 stays the input alone, ADR-0012)
+    reads: tuple[str, ...] = ()
 
     @property
     def has_report(self) -> bool:
@@ -443,6 +451,8 @@ class Registry:
             for dependency in stage.depends_on:
                 if dependency not in seen:
                     raise ValueError(f"{stage.id}の依存段階{dependency}が先に登録されていません")
+            if unread := [name for name in stage.reads if name == stage.id or name not in item_of]:
+                raise ValueError(f"{stage.id}が読む段階がありません: {'・'.join(unread)}")
             if not stage.stem.startswith(stage.id + "_") or not _plain_name(stage.stem):
                 raise ValueError(f"{stage.id}のファイル{stage.stem}の名前は「{stage.id}_」で始まる必要があります")
             if (stage.render is not None and stage.calculate is None and stage.seismic_check is None
@@ -718,14 +728,30 @@ def _column_check(stage_id: str, stem: str, source: str, name: str, direction: D
         check = results[stage_id]
         return write_wdj(build_wdj(check, point_index(pik, check.member)))
 
+    # The report is Capacita's pages with its commentary, numbered from n.5 (decision 121): no grid Excel workbook.
     return StageSpec(stage_id, stem, (source,),
                      lambda pier, results: calculate_column_check(pier, results[source], direction),
-                     lambda results, pier, path, pages: render_column_check(results[stage_id], pier, path, pages,
-                                                                            chapter),
+                     lambda results, pier, path, pages: render_column_check(results[stage_id], path, pages),
                      frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
-                     section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections),
-                     grid_documents=lambda results, pier, pages: column_check_report.grid_documents(
-                         results[stage_id], pier, pages, chapter))
+                     section_check=SectionCheck("wdj", f"{name}.wdj", wdj, lambda results: results[stage_id].sections,
+                                                commentary=chapter.commentary,
+                                                finish=lambda result, headings: replace(
+                                                    result, headings=MappingProxyType(dict(headings)))))
+
+
+# The column check each foundation check follows (decision 121), and each direction's for 0400's references.
+_COLUMN_OF = {"0612": "0611", "0622": "0621"}
+_COLUMNS = {"線路": "0611", "直角": "0621"}
+
+
+def _after_column(chapter: FoundationChapter, stage_id: str, results: Results) -> FoundationChapter:
+    """*chapter* numbered after the column check of the same direction (column_check.following_section)."""
+    return replace(chapter, section=following_section(results.get(_COLUMN_OF[stage_id])))
+
+
+def _columns(results: Results) -> dict[str, Any]:
+    """The column checks of the same generation by direction, which 0400 refers to (decision 121)."""
+    return {direction: results[stage_id] for direction, stage_id in _COLUMNS.items() if stage_id in results}
 
 
 def _foundation_check(stage_id: str, stem: str, source: str, name: str, direction: FoundationDirection,
@@ -734,12 +760,14 @@ def _foundation_check(stage_id: str, stem: str, source: str, name: str, directio
     shared with the column check of the same file (decision 54)."""
     return StageSpec(stage_id, stem, ("0500", source),
                      lambda pier, results: prepare_foundation_check(pier, results["0500"], results[source], direction),
-                     lambda results, pier, path, pages: render_foundation_check(results[stage_id], path, chapter),
+                     lambda results, pier, path, pages: render_foundation_check(
+                         results[stage_id], path, _after_column(chapter, stage_id, results)),
                      frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)),
                      complete=lambda basis, files, pier, results: check_foundation(
                          basis, support_reactions(files["reaction"], basis.node)),
                      grid_documents=lambda results, pier, pages: foundation_check_report.grid_documents(
-                         results[stage_id], chapter))
+                         results[stage_id], _after_column(chapter, stage_id, results)),
+                     reads=(_COLUMN_OF[stage_id],))
 
 
 def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: FoundationDirection,
@@ -785,10 +813,12 @@ def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: Fou
         return prepare_pile_check(pier, results[source], direction)
 
     return StageSpec(stage_id, stem, ("0500", source), prepare,
-                     lambda results, pier, path, pages: render_pile_check(results[stage_id], path, chapter),
+                     lambda results, pier, path, pages: render_pile_check(
+                         results[stage_id], path, _after_column(chapter, stage_id, results)),
                      frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)), complete=complete,
                      grid_documents=lambda results, pier, pages: pile_check_report.grid_documents(
-                         results[stage_id], chapter))
+                         results[stage_id], _after_column(chapter, stage_id, results)),
+                     reads=(_COLUMN_OF[stage_id],))
 
 
 def _with_pile_check(stage: StageSpec, source: str, name: str, direction: FoundationDirection,
@@ -1154,10 +1184,12 @@ _PROJECT = {"target": "Aggre-SE", "target_version": BATCH_VERSION}
 _DETAILING = StageSpec(
     "0400", "0400_照査の前提", (),
     lambda pier, results: calculate_detailing(pier),
-    lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier, results["0400"])),
+    lambda results, pier, path, pages: render_detailing(results["0400"], path, _drawings(pier, results["0400"]),
+                                                        _columns(results)),
     (Export("dxf", "配筋図.dxf", lambda results, pier: drawing_dxf(pier, _pile_detailing(results["0400"]))),),
     grid_documents=lambda results, pier, pages: detailing_report.grid_documents(
-        results["0400"], _drawings(pier, results["0400"])))
+        results["0400"], _drawings(pier, results["0400"]), _columns(results)),
+    reads=tuple(_COLUMNS.values()))
 
 STAGES = Registry((
     StageSpec("0500", "0500_直接基礎", (),

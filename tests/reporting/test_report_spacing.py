@@ -33,11 +33,8 @@ from frame_report_cases import chain, transverse_chain
 from reaction_report_cases import case as reaction_case
 from webpier.reporting.document import paragraph, report
 from webpier.reporting.fonts import load_fonts
-from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
 from webpier.calc.detailing import calculate_detailing
 from webpier.inputs import parse_input
-from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
-from webpier.reporting.stages.column_check import build_column_check
 from webpier.reporting.stages.detailing import build_detailing
 from webpier.reporting.stages.foundation import build_foundation
 from webpier.reporting.stages.foundation_check import build_foundation_check
@@ -70,13 +67,7 @@ BUILDERS: dict[str, Callable[[str], Any]] = {
                                           transverse_chain(name)[0]),
     "0710": lambda name: build_seismic_longitudinal(chain(name)[3], chain(name)[1], chain(name)[0]),
     "0720": lambda name: build_seismic_transverse(transverse_chain(name)[3], transverse_chain(name)[1], transverse_chain(name)[0]),
-    # one Document before each of Capacita's sections (decision 48); across the track with the two checks Capacita
-    # skips for Example2, each ending with the reason
-    "0611": lambda name: build_column_check(calculate_column_check(chain(name)[0], chain(name)[2], LONGITUDINAL),
-                                            CHAPTER_8),
-    "0621": lambda name: build_column_check(
-        calculate_column_check(transverse_chain(name)[0], transverse_chain(name)[2], TRANSVERSE), CHAPTER_9,
-        ("shear_durability", "bending_serviceability")),
+    # 0611 / 0621 are Capacita's pages with its commentary: WebPier lays out none of them (decision 121)
     # decision 54: with the reactions of the hand calculation (the input is current.json made sandy)
     "0612": lambda name: build_foundation_check(foundation_result("0612"), foundation_chapter("0612")),
     "0622": lambda name: build_foundation_check(foundation_result("0622"), foundation_chapter("0622")),

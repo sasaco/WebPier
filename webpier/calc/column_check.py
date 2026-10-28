@@ -24,15 +24,15 @@ it), not by branches:
 - the extraction case of each check from the extraction groups of 0610 / 0620 (decision 48): Capacita's rows by id;
 - the safety factors of each limit state, fsu of each grade, kr and k4: named program constants with their sources.
 
-The result is what the report prints of the conditions and what the WDJ is written from (export.capacita); the
-checks themselves, their values and their judgement are Capacita's (ADR-0008).
+The result is what the WDJ is written from (export.capacita); the checks themselves, their values, their judgement
+and the report with its commentary are Capacita's (ADR-0008, decision 121).
 """
 
 from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Protocol
 
@@ -241,6 +241,10 @@ class ColumnCheckResult:
     safety: tuple[SafetyFactors, ...]
     kr: Printed
     k4: Printed
+    # The number of the commentary group heading of each section of Capacita's report by its id ("8.7", or None), once
+    # Capacita has checked the column in the same generation (pipeline.stages, decision 121): Capacita's, not the
+    # calculation's; the sections 0400 refers to and 0612 / 0622 follow. None before that, and then not in the JSON.
+    headings: Mapping[str, str | None] | None = field(default=None, compare=False, metadata={"json": "set"})
 
     @property
     def sections(self) -> tuple[str, ...]:

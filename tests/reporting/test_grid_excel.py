@@ -99,4 +99,6 @@ def test_excel_prints_the_published_workbook_where_the_pdf_does(generations, mod
 
 
 def test_a_report_of_another_program_has_no_workbook():
-    assert [stage.id for stage in STAGES.stages if stage.has_report and stage.grid_documents is None] == ["0711", "0721"]
+    # 0611 / 0621: Capacita's report with its commentary (decision 121); 0711 / 0721: Aggre-SE's (decision 56)
+    assert [stage.id for stage in STAGES.stages if stage.has_report and stage.grid_documents is None] == [
+        "0611", "0621", "0711", "0721"]

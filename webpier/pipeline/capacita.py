@@ -9,7 +9,11 @@ given and returns the result and the report only, and ``ColumnCheckPages.wdj`` i
 sections and their page ranges (``summary.reportSections``, Capacita's contract) must be the sections asked for, in
 order, and cover the PDF; the report inserts each range after its heading. A section asked for may be missing only
 when Capacita skipped that check for zero section forces (RC標準's omission rules, RcDan CheckValidation) and says so
-with the info code of ``SKIPPED`` (decision 48, owner 2026-10-18): the report then prints why instead of the pages.
+with the info code of ``SKIPPED`` (decision 48, owner 2026-10-18): the report has nothing of it (decision 121).
+The WDJ of 0611 and 0621 asks Capacita for its commentary (``calc.print_commentary_checked``), numbered from the
+section ``commentary`` gives (``--commentary-chapter`` and ``--commentary-first-section``): each section then has the
+number of the group heading it carries, or none (``heading``), and the numbers are those of the printed groups, from
+the first section without a gap (decision 121).
 Their content and bytes are Capacita's, so they are neither checked further nor bound to the implementation identity;
 the result JSON and the sidecar record the runner's ``engineVersion``. Capacita returns no check values or judgement
 (``engineeringStatus`` not_evaluated): the judgement is read on the inserted pages (ADR-0008).
@@ -68,6 +72,7 @@ class ReportSection:
     id: str  # Capacita's section id, e.g. bending_safety_destruction
     first: int  # first page, 1-based
     last: int  # last page, inclusive
+    heading: str | None = None  # the number of the commentary group heading it carries ("8.7"), or none (decision 121)
 
 
 @dataclass(frozen=True)
@@ -86,6 +91,11 @@ class ColumnCheckPages:
                 raise KeyError(section_id)
             return None
         return found.first, found.last
+
+    @property
+    def headings(self) -> dict[str, str | None]:
+        """The number of the commentary group heading of each returned section by its id, or None (decision 121)."""
+        return {section.id: section.heading for section in self.sections}
 
     @property
     def pages(self) -> dict[str, bytes]:
@@ -137,12 +147,13 @@ def _skipped(messages: Any) -> set[str]:
     return {section for section, code in SKIPPED.items() if code in codes}
 
 
-def _sections(summary: Any, messages: Any, expected: Sequence[str],
-              pages: int) -> tuple[tuple[ReportSection, ...], tuple[str, ...]]:
+def _sections(summary: Any, messages: Any, expected: Sequence[str], pages: int,
+              commentary: tuple[int, int] | None) -> tuple[tuple[ReportSection, ...], tuple[str, ...]]:
     listed = summary.get("reportSections") if isinstance(summary, dict) else None
     if not isinstance(listed, list) or not all(isinstance(item, dict) for item in listed):
         raise _Failure("計算書の節（reportSections）がありません")
-    sections = tuple(ReportSection(item.get("id"), item.get("firstPage"), item.get("lastPage")) for item in listed)
+    sections = tuple(ReportSection(item.get("id"), item.get("firstPage"), item.get("lastPage"), item.get("heading"))
+                     for item in listed)
     returned = [section.id for section in sections]
     skipped = tuple(section for section in expected if section not in returned)
     if returned != [section for section in expected if section in returned] or not set(skipped) <= _skipped(messages):
@@ -156,11 +167,25 @@ def _sections(summary: Any, messages: Any, expected: Sequence[str],
         following = section.last + 1
     if following - 1 != pages:
         raise _Failure(f"計算書の節のページが PDF の {pages} ページを順に分けていません（{listed!r}）")
+    _headings(sections, commentary)
     return sections, skipped
 
 
+def _headings(sections: Sequence[ReportSection], commentary: tuple[int, int] | None) -> None:
+    """The headings must be those asked for: with *commentary* (chapter, first section) "chapter.first" and those
+    following it without a gap, in report order (Capacita numbers the printed groups, decision 121), at least the
+    first (a report without them has not printed the commentary asked for); without it, none."""
+    given = [section.heading for section in sections if section.heading is not None]
+    expected = [] if commentary is None else [f"{commentary[0]}.{commentary[1] + index}"
+                                              for index in range(max(len(given), 1))]
+    if given != expected:
+        asked = "なし" if commentary is None else f"{commentary[0]}.{commentary[1]} から"
+        raise _Failure(f"計算書の解説の見出し番号が違います（{[section.heading for section in sections]!r}、"
+                       f"求めたのは{asked}）")
+
+
 def _run(wdj: bytes, pickup: tuple[str, bytes] | None, runner: Path, expected: Sequence[str],
-         timeout: float) -> ColumnCheckPages:
+         timeout: float, commentary: tuple[int, int] | None = None) -> ColumnCheckPages:
     files_expected = _WITH_WDJ if pickup is not None else _WITHOUT_WDJ
     with tempfile.TemporaryDirectory(prefix="webpier-capacita-") as work:
         source, output = Path(work) / "model.wdj", Path(work) / "output"
@@ -170,6 +195,8 @@ def _run(wdj: bytes, pickup: tuple[str, bytes] | None, runner: Path, expected: S
         if pickup is not None:
             (Path(work) / pickup[0]).write_bytes(pickup[1])
             arguments += ["--pickup", str(Path(work) / pickup[0])]
+        if commentary is not None:
+            arguments += ["--commentary-chapter", str(commentary[0]), "--commentary-first-section", str(commentary[1])]
         try:
             done = subprocess.run(arguments, capture_output=True, timeout=timeout, check=False)
         except subprocess.TimeoutExpired as exc:
@@ -206,16 +233,17 @@ def _run(wdj: bytes, pickup: tuple[str, bytes] | None, runner: Path, expected: S
         pages = len(PdfReader(BytesIO(pdf), strict=True).pages)
     except (PyPdfError, ValueError, OSError) as exc:
         raise _Failure(f"計算書の PDF を読めません（{exc}）") from exc
-    sections, skipped = _sections(envelope.get("summary"), envelope.get("messages"), expected, pages)
+    sections, skipped = _sections(envelope.get("summary"), envelope.get("messages"), expected, pages, commentary)
     return ColumnCheckPages(pdf, sections, files["model.wdj"] if pickup is not None else wdj, version, skipped)
 
 
 def check_column(wdj: bytes, pik_name: str, pik: bytes, runner: Path, sections: Sequence[str], *,
-                 timeout: float = TIMEOUT) -> ColumnCheckPages:
+                 commentary: tuple[int, int] | None = None, timeout: float = TIMEOUT) -> ColumnCheckPages:
     """Capacita's report and completed WDJ for the WDJ *wdj* and the PIK *pik* (given to it as *pik_name*), whose
-    report must have *sections*, but for those it skipped for zero section forces (decision 48)."""
+    report must have *sections*, but for those it skipped for zero section forces (decision 48). With *commentary*
+    (chapter, first section) the commentary of a WDJ that asks for it is numbered from "chapter.first" (decision 121)."""
     try:
-        return _run(wdj, (pik_name, pik), runner, sections, timeout)
+        return _run(wdj, (pik_name, pik), runner, sections, timeout, commentary)
     except _Failure as exc:
         raise RunnerError(f"{pik_name} {_CHECK_COLUMN}: {exc}") from exc
 

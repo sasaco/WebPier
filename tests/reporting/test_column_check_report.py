@@ -1,10 +1,13 @@
-"""The 0611 / 0621 report (decision 48, ADR-0008): WebPier's headings and explanations, each followed by Capacita's
-pages of its section, in the order n.5 → n.9 (8 along the track, 9 across it); the values written to the WDJ printed
-from the same result; no n.8 without the appearance check; a check Capacita skipped for zero forces keeps its heading
-and explanation, with the reason it is omitted and no pages.
+"""The 0611 / 0621 report (decisions 48, 121; ADR-0008): Capacita's pages of each section, joined in report order.
 
-Capacita's pages are stand-ins here (one page per section, each saying which section it is), cut by their ranges as
-the real report is. The expected texts follow Example2 08 pp.8-14 .. 8-25, 09 pp.9-16 .. 9-23 and decision 48.
+Capacita prints its commentary (the group headings numbered from n.5, the check formulas, the symbols, the flowchart)
+within each section's pages (WDJ calc.print_commentary_checked; run-rc --commentary-chapter n
+--commentary-first-section 5): WebPier lays out nothing of the report. A check Capacita skipped for zero forces has
+no pages and nothing in the report. 0400 refers to the numbers Capacita gave the sections, and the foundation check
+follows the last of them.
+
+Capacita's pages are stand-ins here (one page per section, two for the section force list, each saying which section
+it is), cut by their ranges as the real report is.
 """
 
 from __future__ import annotations
@@ -12,6 +15,7 @@ from __future__ import annotations
 import io
 import json
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 
 import pymupdf
@@ -24,17 +28,13 @@ from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import calculate_transverse
 from webpier.inputs import parse_input
-from webpier.reporting.assembly import document_bytes, page_range
-from webpier.reporting.stages.column_check import LONGITUDINAL as CHAPTER_8, TRANSVERSE as CHAPTER_9
-from webpier.reporting.stages.column_check import OMITTED, build_column_check, parts, render_column_check
+from webpier.reporting.assembly import page_range
+from webpier.reporting.stages.column_check import (DURABILITY, FOLLOWING_ALL, LONGITUDINAL as CHAPTER_8, REBAR_AMOUNT,
+                                                   TRANSVERSE as CHAPTER_9, following_section, reference,
+                                                   render_column_check)
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 MARK = "FAKE CAPACITA"
-HEADINGS = {"section_forces": "8.5 断面力の総括", "bending_safety_destruction": "8.6 安全性（破壊）の照査",
-            "shear_safety_destruction": "(2) せん断に対する照査", "bending_durability": "8.7 耐久性の照査",
-            "shear_durability": "(2) せん断ひび割れの検討", "bending_serviceability": "8.8 使用性の照査",
-            "bending_restorability": "8.9 使用性（損傷）の照査", "shear_restorability": "(2) せん断に対する照査",
-            "bending_rebar_amount": "8.10 最小鉄筋量及び最大鉄筋量"}
 # Capacita skips these across the track for Example2 (column_section_check_09.json, skipped_by_capacita)
 SKIPPED = ("shear_durability", "bending_serviceability")
 
@@ -74,135 +74,58 @@ def capacita(sections, skipped=()) -> dict[str, bytes]:
 
 
 def render(tmp_path: Path, *, transverse=False, skipped=(), **conditions) -> list[str]:
-    pier, result = check(transverse=transverse, **conditions)
+    _, result = check(transverse=transverse, **conditions)
     tmp_path.mkdir(parents=True, exist_ok=True)
-    path = render_column_check(result, pier, tmp_path / "report.pdf", capacita(result.sections, skipped),
-                               CHAPTER_9 if transverse else CHAPTER_8)
+    path = render_column_check(result, tmp_path / "report.pdf", capacita(result.sections, skipped))
     with pymupdf.open(path) as document:
-        return [page.get_text() for page in document]
+        return [page.get_text().strip() for page in document]
 
 
-@pytest.fixture(scope="module")
-def pages(tmp_path_factory) -> list[str]:
-    return render(tmp_path_factory.mktemp("column-check"))
+def test_the_report_is_capacitas_pages_in_report_order(tmp_path):
+    assert render(tmp_path) == [f"{MARK} {section} {index}" for section, index in (
+        ("section_forces", 1), ("section_forces", 2), ("bending_safety_destruction", 1),
+        ("shear_safety_destruction", 1), ("bending_durability", 1), ("shear_durability", 1),
+        ("bending_serviceability", 1), ("bending_restorability", 1), ("shear_restorability", 1),
+        ("bending_rebar_amount", 1))]
 
 
-@pytest.fixture(scope="module")
-def across(tmp_path_factory) -> list[str]:
-    return render(tmp_path_factory.mktemp("column-check-across"), transverse=True, skipped=SKIPPED)
-
-
-def webpier_pages(pages: list[str]) -> str:
-    return "\n".join(text for text in pages if MARK not in text)
-
-
-def test_each_section_follows_its_heading_in_report_order(pages):
-    order = [text.split()[2] if MARK in text else None for text in pages]
-    sections = [section for section in order if section]
-    assert sections == ["section_forces", "section_forces", "bending_safety_destruction", "shear_safety_destruction",
-                        "bending_durability", "shear_durability", "bending_serviceability", "bending_restorability",
-                        "shear_restorability", "bending_rebar_amount"]
-    for section, heading in HEADINGS.items():
-        first = order.index(section)
-        before = pages[first - 1]
-        assert MARK not in before, section
-        assert heading in "\n".join(pages[:first]).rsplit(MARK, 1)[-1], section
-    assert pages[0].strip().startswith("8.5 断面力の総括") and MARK in pages[1]
-    text = webpier_pages(pages).replace("\n", "")
-    assert not any(reason in text for reason in OMITTED.values())  # nothing skipped along the track
-
-
-def test_across_the_track_the_sections_are_numbered_9(across):
-    text = webpier_pages(across)
-    for heading in HEADINGS.values():
-        assert heading.replace("8.", "9.", 1) in text, heading
-    assert across[0].strip().startswith("9.5 断面力の総括") and "8." not in text.replace("0.85", "").replace("9.10", "")
-
-
-def test_a_skipped_check_keeps_its_explanation_and_says_why_it_is_omitted(across):
-    """Example2 across the track (09 notes): no Capacita pages for 9.7 (2) and 9.8; the reasons follow their
-    explanations, and the next part starts after them."""
-    order = [text.split()[2] if MARK in text else None for text in across]
-    assert [section for section in order if section] == [
+def test_a_check_capacita_skipped_has_nothing_in_the_report(tmp_path):
+    """Example2 across the track: no pages, and no reason printed in their place (decision 121 amends decision 48)."""
+    pages = render(tmp_path, transverse=True, skipped=SKIPPED)
+    assert [text.split()[2] for text in pages] == [
         "section_forces", "section_forces", "bending_safety_destruction", "shear_safety_destruction",
         "bending_durability", "bending_restorability", "shear_restorability", "bending_rebar_amount"]
-    text = webpier_pages(across)
-    shear = text.split("(2) せん断ひび割れの検討")[1].split("9.8 使用性の照査")[0]
-    # the symbol, its "：" and its text stand in grid columns of their own (each its own text line of the PDF)
-    assert "σsl2：永久作用による鉄筋応力度の制限値" in shear.replace(" ", "").replace("\n", "")
-    assert shear.rstrip().endswith("永久作用と変動作用によるせん断力が生じないため，せん断ひび割れの検討を省略する．")
-    serviceability = text.split("9.8 使用性の照査")[1].split("9.9 使用性（損傷）の照査")[0].replace("\n", "")
-    assert "外観に対するひび割れ幅の制限値" in serviceability
-    assert serviceability.rstrip().endswith(
-        "永久作用による曲げモーメントおよび引張の軸方向力が生じないため，外観に対する曲げひび割れの検討を省略する．")
+    assert all(text.startswith(MARK) for text in pages)
 
 
-def test_the_values_written_to_the_wdj_are_printed(pages):
-    text = webpier_pages(pages).replace(" ", "")
-    for printed in ("構造物係数(=1.2)", "部材係数(=1.1)", "(=0.85)", "(=0.5)", "(=300×10⁻⁶)",
-                    "部材係数(=1.0)", "「常時乾燥」"):
-        assert printed in text, printed
-    # the crack width is checked as Capacita checks it, without γi (owner 2026-10-21)
-    assert "γi・Wd" not in text and "構造物係数(=1.0)" not in text
-
-
-def test_the_flowchart_writes_the_decision_correctly(pages):
-    text = webpier_pages(pages)
-    for printed in ("START", "σb ≦ σbl", "Yes", "No", "Wd / Wlim ≦ 1.0"):
-        assert printed in text, printed
-    assert "γi・Wd" not in text and "σs ≦ σsl1" in text  # R5 as Capacita checks it (decision 73, owner 2026-10-21)
-
-
-def test_the_values_only_capacita_holds_are_not_printed(pages):
-    """RC標準's tables (σsl1 140/120/100, σsl2, Wlim 0.005c...), σbl, k2's coefficients, z = d/1.15, γb of Vcd."""
-    text = webpier_pages(pages)
-    for absent in ("乾湿繰返し", "0.005c", "140", "1.15", "15/(f'cd+20)", "0.30", "γbは1.3"):
-        assert absent not in text, absent
-
-
-def test_restorability_prints_the_structure_factor_of_the_body(tmp_path):
-    def restorability(text, number="8"):
-        return text.split(f"{number}.9 使用性（損傷）の照査")[1].replace(" ", "")
-
-    assert "構造物係数(=1.2)" in restorability(webpier_pages(render(tmp_path)))
-    assert "構造物係数(=1.0)" in restorability(webpier_pages(render(tmp_path / "jr", 適用基準の機関="JR東日本")))
-    assert "構造物係数(=1.2)" in restorability(webpier_pages(render(tmp_path / "across", transverse=True)), "9")
-
-
-def test_without_the_appearance_check_there_is_no_8_8(tmp_path):
+def test_without_the_appearance_check_there_are_no_pages_of_it(tmp_path):
     pages = render(tmp_path, 外観の照査="行わない")
-    text = "\n".join(pages)
-    assert "8.8" not in webpier_pages(pages) and "8.9 使用性（損傷）の照査" in text
-    assert "bending_serviceability" not in text
-
-
-def test_webpier_pages_are_the_same_bytes_for_the_same_input():
-    _, result = check()
-    first = [document_bytes(document) for document in build_column_check(result, CHAPTER_8)]
-    assert len(first) == len(parts(result, CHAPTER_8)) == 9
-    assert [document_bytes(document) for document in build_column_check(check()[1], CHAPTER_8)] == first
-    _, across = check(transverse=True)
-    assert [document_bytes(document) for document in build_column_check(across, CHAPTER_9, SKIPPED)] == [
-        document_bytes(document) for document in build_column_check(check(transverse=True)[1], CHAPTER_9, SKIPPED)]
+    assert len(pages) == 9 and not any("bending_serviceability" in text for text in pages)
 
 
 def test_the_report_is_the_same_bytes_for_the_same_pages(tmp_path):
-    pier, result = check()
+    _, result = check()
     given = capacita(result.sections)
-    one = render_column_check(result, pier, tmp_path / "one.pdf", given, CHAPTER_8).read_bytes()
-    two = render_column_check(result, pier, tmp_path / "two.pdf", given, CHAPTER_8).read_bytes()
+    one = render_column_check(result, tmp_path / "one.pdf", given).read_bytes()
+    two = render_column_check(result, tmp_path / "two.pdf", given).read_bytes()
     assert one == two
 
 
-def test_a_section_capacita_cannot_skip_must_have_its_pages(tmp_path):
-    """Only a check in OMITTED may come without pages; the section force list (the first section) may not."""
-    pier, result = check()
+def test_the_section_force_list_must_have_its_pages(tmp_path):
+    """Capacita never skips the section force list (the first section)."""
+    _, result = check()
     first = result.sections[0]
-    assert first not in OMITTED
     given = {section: found for section, found in capacita(result.sections).items() if section != first}
     with pytest.raises(ValueError, match=f"差し込むページ {first} がありません"):
-        render_column_check(result, pier, tmp_path / "report.pdf", given, CHAPTER_8)
+        render_column_check(result, tmp_path / "report.pdf", given)
     assert not (tmp_path / "report.pdf").exists()
+
+
+def test_pages_of_a_section_not_asked_for_are_an_error(tmp_path):
+    _, result = check(外観の照査="行わない")
+    given = capacita((*result.sections, "bending_serviceability"))
+    with pytest.raises(ValueError, match="柱の断面照査にない節のページです: bending_serviceability"):
+        render_column_check(result, tmp_path / "report.pdf", given)
 
 
 def test_a_page_range_is_cut_as_it_is():
@@ -215,11 +138,33 @@ def test_a_page_range_is_cut_as_it_is():
             page_range(given, first, last)
 
 
-def test_the_flowchart_stands_on_the_grid_within_the_body():
-    """GridLayoutPdf's common grid: the flowchart's frame is whole grid columns and rows from the body column and
-    ends by the body's right edge (column 30)."""
+def test_capacita_numbers_the_commentary_from_n_5():
+    """run-rc --commentary-chapter 8|9 --commentary-first-section 5: after the load chapter's n.1〜n.4."""
+    assert (CHAPTER_8.commentary, CHAPTER_9.commentary) == ((8, 5), (9, 5))
+
+
+ALL = {"section_forces": "8.5", "bending_safety_destruction": "8.6", "shear_safety_destruction": None,
+       "bending_durability": "8.7", "shear_durability": None, "bending_serviceability": "8.8",
+       "bending_restorability": "8.9", "shear_restorability": None, "bending_rebar_amount": "8.10"}
+ACROSS = {"section_forces": "9.5", "bending_safety_destruction": "9.6", "shear_safety_destruction": None,
+          "bending_durability": "9.7", "bending_restorability": "9.8", "shear_restorability": None,
+          "bending_rebar_amount": "9.9"}
+
+
+def test_the_sections_referred_to_have_the_numbers_capacita_gave_them():
     _, result = check()
-    figures = [unit.value for part, _ in parts(result, CHAPTER_8) for unit in part if unit.kind == "figure"]
-    assert len(figures) == 2  # 8.7 (1) and 8.8 (1)
-    for spec in figures:
-        assert spec.left == 4 and spec.left + spec.block.col_span <= 30 and isinstance(spec.block.rows, int)
+    assert (reference(replace(result, headings=ALL), REBAR_AMOUNT), reference(replace(result, headings=ALL), DURABILITY)) \
+        == ("8.10", "8.7")
+    assert reference(replace(result, headings=ACROSS), REBAR_AMOUNT) == "9.9"  # 使用性 not printed: one up
+    # not numbered: no check in the same generation, not checked yet, a section not printed or without its own heading
+    assert reference(None, REBAR_AMOUNT) is None and reference(result, REBAR_AMOUNT) is None
+    assert reference(replace(result, headings={**ALL, REBAR_AMOUNT: None}), REBAR_AMOUNT) is None
+    assert reference(replace(result, headings={"section_forces": "8.5"}), DURABILITY) is None
+
+
+def test_the_foundation_check_follows_the_last_numbered_group():
+    _, result = check()
+    assert following_section(replace(result, headings=ALL)) == 11
+    assert following_section(replace(result, headings=ACROSS)) == 10
+    assert following_section(None) == following_section(result) == FOLLOWING_ALL == 11
+    assert following_section(replace(result, headings=dict.fromkeys(ALL))) == FOLLOWING_ALL

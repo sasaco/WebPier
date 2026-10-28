@@ -2,89 +2,89 @@
   "schema_version": 2,
   "kind": "capacita_column_check_acceptance",
   "stage": "0611",
-  "date": "2026-10-28",
-  "verified_at": "2026-10-28T21:37:58+09:00",
+  "date": "2026-10-29",
+  "verified_at": "2026-10-29T07:15:58+09:00",
   "method": "WebPier が 0611 で書く WDJ と、同じ 0610 の FrameWeb 入力を本物の FEMPython（FrameWebforCS.Headless）で骨組解析した PIK（と、橋脚く体の衝撃の低減のない参照の FrameWeb 入力の PIK、決定77）を、本物の WebDanforCS.Headless の run-rc --pickup に渡し、返った計算書の照査値を Example2 08_線路.pdf の 8-15・8-26 と比べた。",
   "not_a_judgement": "照査値と判定は Capacita のもの。WebPier は照査を実行したことだけを記録する（ADR-0008）。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
     "sha256": "0aa1c4fbb38cab24c8d81bd98dc885be1b7d15d4b39c1d05fc3001bcc61a310f"
   },
-  "implementation_sha256": "b52f390edf9f30bbba8cf97e85d492f532a0bd3a5fbd0c38ac14b54e902a156c",
+  "implementation_sha256": "8c03dba25f35236b7024d6618bffb2713da65e2177ab9329bbc61b544d8de795",
   "capacita": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
     "engine_version": "1.0.0",
-    "runner_dll_sha256": "258b96bea427f8d8bedaf99f4a4fd98d71849f752b16d423afd338b10491022d"
+    "runner_dll_sha256": "389f729daa904d1b7b2e35febf325bd87e1cadfe9ba888434d877a0bbf8fd17a"
   },
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
     "engine_version": "1.0.0+564399b379b78c78226b476facdf1ce089d873f3"
   },
   "point_index": 6,
-  "wdj_given_sha256": "344e2f1571db1fbdd5bb55ad95ad87c723be6d524fa0398fdebb52151cbe20a9",
+  "wdj_given_sha256": "7e9891f6f79c192b71c13d12f22d24a84d5a12a3503f7f30d053ef4f725c6b3f",
   "pik_sha256": "1f13fbeb74dd06e5f7887f10de916f89595f92f51842123901746aebb6adf6c3",
-  "completed_wdj_sha256": "ebdd23912abea34580237d53ed1cf608ce06e7fb3c2a00ee7bba64a8a5399d3d",
+  "completed_wdj_sha256": "e5056de8b944215215266e876f481e8ddbd2717fe19d44c5610067ead43319fb",
   "report": {
-    "pages": 16,
+    "pages": 27,
     "sections": [
       {
         "id": "section_forces",
         "first": 1,
-        "last": 2
-      },
-      {
-        "id": "bending_safety_destruction",
-        "first": 3,
         "last": 3
       },
       {
-        "id": "shear_safety_destruction",
+        "id": "bending_safety_destruction",
         "first": 4,
         "last": 5
       },
       {
-        "id": "bending_durability",
+        "id": "shear_safety_destruction",
         "first": 6,
-        "last": 7
+        "last": 8
+      },
+      {
+        "id": "bending_durability",
+        "first": 9,
+        "last": 12
       },
       {
         "id": "shear_durability",
-        "first": 8,
-        "last": 9
+        "first": 13,
+        "last": 15
       },
       {
         "id": "bending_serviceability",
-        "first": 10,
-        "last": 10
+        "first": 16,
+        "last": 18
       },
       {
         "id": "bending_restorability",
-        "first": 11,
-        "last": 11
+        "first": 19,
+        "last": 20
       },
       {
         "id": "shear_restorability",
-        "first": 12,
-        "last": 13
+        "first": 21,
+        "last": 23
       },
       {
         "id": "bending_rebar_amount",
-        "first": 14,
-        "last": 16
+        "first": 24,
+        "last": 27
       }
     ],
     "skipped": []
   },
   "values": {
     "bending_safety_destruction": {
-      "page": 3,
+      "page": 4,
       "ratio": "0.136",
       "capacity": "36977.7",
       "md": "-4197.6",
       "n_d": "12665.5"
     },
     "bending_restorability": {
-      "page": 11,
+      "page": 19,
       "ratio": "0.114",
       "capacity": "38200.7",
       "md": "-3619.6",
@@ -109,14 +109,14 @@
     "pik_sha256": "e241eef44bd87788800f8091586fa63394c593a34de559a16716a4a62337bcd0",
     "values": {
       "bending_safety_destruction": {
-        "page": 3,
+        "page": 4,
         "ratio": "0.133",
         "capacity": "39635.0",
         "md": "-4387.1",
         "n_d": "15225.1"
       },
       "bending_restorability": {
-        "page": 11,
+        "page": 19,
         "ratio": "0.130",
         "capacity": "37816.8",
         "md": "-4099.4",

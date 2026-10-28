@@ -1,13 +1,13 @@
 ---
 name: webpier-capacita
-description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照査の実装と決定を扱う。0611・0621 の柱の断面照査（決定48、ADR-0008、webpier/calc/column_check.py・export/capacita/wdj.py・pipeline/capacita.py・reporting/stages/column_check.py、point_index、計算書 8.5〜8.10・9.5〜9.10 への差し込み、省略の理由の印刷 OMITTED）、RC標準 R5 への切替（決定73：基準の id、安全係数、水掛かりの程度、使用性（損傷）、行8 と最小鉄筋量及び最大鉄筋量 bending_rebar_amount、省略コード WD-1914〜1926）、0910 の片持ち梁（決定59、cantilever.py）と 0810・0820 のフーチング（決定60、footing_wdj.py）の断面力入力モードの WDJ、代役の runner（tests/fixtures/capacita/fake_runner.py）、受入 accept_capacita_column.py、見本 Example橋脚2 の WebDan.wdj・08_線路.pdf・09_直角.pdf との対応に使う。Capacita そのもの（WDJ の落とし穴、run-rc --pickup、reportSections、WD-19xx の省略）はスキル structural-capacita を使う。
+description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照査の実装と決定を扱う。0611・0621 の柱の断面照査（決定48、ADR-0008、webpier/calc/column_check.py・export/capacita/wdj.py・pipeline/capacita.py・reporting/stages/column_check.py、point_index、計算書は Capacita の解説付きの計算書そのもの（決定121：print_commentary_checked、--commentary-chapter、reportSections.heading、0400 の参照番号と 0612・0622 の節番号））、RC標準 R5 への切替（決定73：基準の id、安全係数、水掛かりの程度、使用性（損傷）、行8 と最小鉄筋量及び最大鉄筋量 bending_rebar_amount、省略コード WD-1914〜1926）、0910 の片持ち梁（決定59、cantilever.py）と 0810・0820 のフーチング（決定60、footing_wdj.py）の断面力入力モードの WDJ、代役の runner（tests/fixtures/capacita/fake_runner.py）、受入 accept_capacita_column.py、見本 Example橋脚2 の WebDan.wdj・08_線路.pdf・09_直角.pdf との対応に使う。Capacita そのもの（WDJ の落とし穴、run-rc --pickup、reportSections、WD-19xx の省略）はスキル structural-capacita を使う。
 ---
 
 # WebPier の Capacita の使い方（0611・0621・0810・0820・0910）
 
 **Capacita 自体（WDJ の項目と落とし穴、`run-rc --pickup`、`reportSections`、断面力0で飛ばされる照査 WD-1901〜1913（H16）・WD-1914〜1926（R5）、R5 の最小鉄筋量・最大鉄筋量の表、断面力入力モード、側方鉄筋の既定、Capacita を直すときのビルドとテスト）はスキル `structural-capacita` を参照**。ここには WebPier の実装・決定・受入・見本との対応だけを書く。照査の式・表・印字桁は Capacita の責務なので、足りなければ Capacita 側を直す。
 
-0611（線路方向）・0621（直角方向）は骨組解析（FEMPython）の `.pik` を設計応答値として、柱下端の1断面を Capacita で照査し、その `report.pdf` のページを計算書（8.5〜8.10・9.5〜9.10）に差し込む（決定48、ADR-0008、CONTEXT.md「柱の断面照査」）。2方向の違いは `calc.column_check.Direction`（LONGITUDINAL・TRANSVERSE）と `reporting.stages.column_check.Chapter`（8・9）だけ。WebPier は WDJ を書いて runner を呼ぶだけで、`.pik` の断面力は読まない（着目点の番号だけ並びから求める）。骨組解析は同じ FrameWeb 入力の基礎の照査（0612・0622）と共有し、1回の生成で1回だけ行う（決定54。スキル webpier-foundation）。0612 だけを選んだ生成でも `.pik` は書き換わるが、0611 の `.wdj` は残る。
+0611（線路方向）・0621（直角方向）は骨組解析（FEMPython）の `.pik` を設計応答値として、柱下端の1断面を Capacita で照査し、その `report.pdf`（解説付き。8.5・9.5 から番号）の節のページ範囲を順につないで計算書にする（決定48・121、ADR-0008、CONTEXT.md「柱の断面照査」）。2方向の違いは `calc.column_check.Direction`（LONGITUDINAL・TRANSVERSE）と `reporting.stages.column_check.Chapter`（8・9）だけ。WebPier は WDJ を書いて runner を呼ぶだけで、`.pik` の断面力は読まない（着目点の番号だけ並びから求める）。骨組解析は同じ FrameWeb 入力の基礎の照査（0612・0622）と共有し、1回の生成で1回だけ行う（決定54。スキル webpier-foundation）。0612 だけを選んだ生成でも `.pik` は書き換わるが、0611 の `.wdj` は残る。
 
 ## 置き場所
 
@@ -24,6 +24,8 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 - 見本の `WebDan.wdj` は旧 WebDan の形式（`shape: "矩形"`、`steel` キーあり、`bar[].position: "6.250"`）。WebPier は `shape` を番号で、整数の項目を JSON の整数で書き（`wdj.py` の `_number`）、`steel` と `bar[].position` は書かない（理由は `structural-capacita` の「WDJ の落とし穴」）。
 - **着目点の番号**：`export.capacita.point_index(pik, member)` で PIK から求める。0610 は途中点がないので柱下端は 6 だが、0620 は柱（部材3）に風荷重の区間の端（I端から 2.900m）があるので 7（見本 09 の PIK は 6）。代役の FEMPython も FrameWeb の部材荷重から同じ途中点を書く。
 - `calc.print_section_force_checked: true` で断面力一覧表が先頭に付き、8.5 になる。
+- **解説（決定121）**：`calc.print_commentary_checked: true` で Capacita が各節の照査結果の前に群の見出しと解説を印字し、`run-rc --commentary-chapter 8|9 --commentary-first-section 5`（`reporting.stages.column_check.Chapter.commentary` → `SectionCheck.commentary` → `pipeline.capacita.check_column(commentary=)`）で群の見出しに番号を振る。番号は印字した群に欠番なく振られ、`reportSections[].heading`（群の最初の節だけ、ほかは null）で返る。WebPier は `_headings` で「n.5 から欠番なく」を確かめ、`SectionCheck.finish` で `ColumnCheckResult.headings`（結果JSONの `result.headings`）に入れる。0400 は `StageSpec.reads` で 0611・0621 を読み、`bending_rebar_amount`・`bending_durability` の番号を参照の文に書く（同じ生成にないときは番号なしの文）。0612・0622 は `column_check.following_section`（最後の番号の次。番号がなければ n.11）。
+- 本物の runner の Example2（2026-10-29）：0611 は 8.5〜8.10（全群）。0621 は WD-1914（使用性）・WD-1919（耐久性のせん断）で使用性の群がなく、9.8 使用性（損傷）・9.9 最小鉄筋量及び最大鉄筋量、0622 は 9.10。
 - `result.json` に照査値も OK/NG もないので、WebPier も「照査を実行した」ことだけを記録する。
 - 安全係数表の γi（行6 使用性（損傷）。H16 の復旧性（損傷）地震時以外）は運輸機構・JR各社 1.2。見本の解説 8-25 の「γi＝1.0」は運輸機構では誤り。
 - 見本の耐力は今の Capacita と少し違う（Mud 37449.1 → 37426.2、Myd 38260.8 → 38200.7）。見本自身の WDJ を今の Capacita で計算しても同じ差が出るので、見本を作った WebDan との違い。照査値（0.132、0.114）は一致する。
@@ -36,9 +38,9 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 - 安全係数：`calc/column_check.SAFETY_FACTORS`（WebDanforJS の `default_safety_factor`。H16 と R5 で同じ値で、違いは行6 の名前だけ）。見本の WDJ の値からは T_rbt 行5〜7 1.0→1.3、行2 1.0→空欄、行7 の V_rbs 1.0→1.1。JR東日本は行6 の γi 1.0（`JR_EAST_SAFETY_FACTORS`）。0810・0820・0910 も同じ表。
 - 水掛かりの程度：`crack[].con_*` に 1 常時乾燥・2 乾湿繰返し・3 常時湿潤（`choices.WATER_EXPOSURES.index + 1`）。
 - 行6 は「使用性（損傷）」（`_MOMENT_TITLES` などの題、抽出ケース・組合せの名前も）。節 ID は `bending_restorability`・`shear_restorability` のまま（本物の runner で確認）なので `REPORT_SECTIONS` は変えていない。行7 は `*_restorability_eq`。
-- 行8（最小鉄筋量）：0611・0621 は `MOMENT_CASES` の (8, PERMANENT)、0810・0820 は 0800 の「長期」（`Md8_Md`、Nd＝0、点1）、0910 は永久作用のケース 28。Capacita は `bending_rebar_amount` を最後の節で 3 頁（最小鉄筋量の照査結果 2 頁、最大鉄筋量の照査結果 1 頁）返す。WebPier は見出しだけを置く（0611/0621 は n.10、0810 は 12.5、0820 は 12.9、0910 は 13.8（外観の照査ありは 13.9））。0612・0622 の基礎の照査は n.11 に繰り下がった。R5 に最小鉄筋量の断面力0の省略コードはないので `OMITTED` に入れない。
+- 行8（最小鉄筋量）：0611・0621 は `MOMENT_CASES` の (8, PERMANENT)、0810・0820 は 0800 の「長期」（`Md8_Md`、Nd＝0、点1）、0910 は永久作用のケース 28。Capacita は `bending_rebar_amount` を最後の節で 3 頁（最小鉄筋量の照査結果 2 頁、最大鉄筋量の照査結果 1 頁）返す。WebPier は見出しだけを置く（0810 は 12.5、0820 は 12.9、0910 は 13.8（外観の照査ありは 13.9）。0611/0621 は決定121 から Capacita の解説の見出しで、全群を印字すれば n.10）。0612・0622 の基礎の照査は n.11 に繰り下がった（決定121 から柱の断面照査の最後の番号の次）。R5 に最小鉄筋量の断面力0の省略コードはないので `OMITTED` に入れない。
 - 省略のコード：`pipeline.capacita.SKIPPED` は R5 の WD-1914〜1926。H16 の WD-1901〜1913 のままだと 0621 が「計算書の節が違います」で止まる（本物の runner で確認）。
-- 解説の頁：見出しの条文番号は外した（0800 の【ＲＣ標準 13.6.3】は残す）。曲げひび割れの流れ図と方法の文は R5（σb≦σbl かつ σs≦σsl1 で省略、それ以外は Wd を照査）で、`column_check.CRACK_METHOD` を 0611/0621・0810/0820・0910 で共有。Vyd＝Vcd＋Vsd。
+- 解説の頁：見出しの条文番号は外した（0800 の【ＲＣ標準 13.6.3】は残す）。曲げひび割れの流れ図と方法の文は R5（σb≦σbl かつ σs≦σsl1 で省略、それ以外は Wd を照査）で、`check_text.CRACK_METHOD` を 0810/0820・0910 で共有（0611/0621 は決定121 から Capacita の解説。WebPier の文は Capacita の Rail_R5 の解説の元になった）。Vyd＝Vcd＋Vsd。
 - 値：0611 の照査値と耐力、0621 の耐力、0810 の Mud 3670.5 は H16 のときと同じ（受入を取り直した）。
 
 ## 手で試す（WebPier）
@@ -66,12 +68,12 @@ description: WebPier が Capacita（RcDan、旧名 WebDan）で行う断面照�
 
 ## 直角方向（0621）と照査の省略
 
-- 解説の文は見本 08 と 09 で同じで、違うのは節の番号（9.5〜9.10）だけ。WDJ の `basic`・`safety`・ひび割れの行も 08 と同じ（`column_section_check_09.json` の `same_as_08`）。
-- 直角方向は永久作用が左右対称なので Example2 では WD-1914（使用性の曲げ）・WD-1919（耐久性のせん断）が出る（H16 では WD-1901・1906）。見本 09 に 9.7・9.8 がないのはこのため。`pipeline.capacita.SKIPPED` が節とコードの対応で、コードのある欠けだけを認め、計算書は省略の理由を印刷する（`reporting.stages.column_check.OMITTED`）。
+- 解説の文は見本 08 と 09 で同じで、違うのは節の番号だけ（決定121 から解説は Capacita が印字する）。WDJ の `basic`・`safety`・ひび割れの行も 08 と同じ（`column_section_check_09.json` の `same_as_08`）。
+- 直角方向は永久作用が左右対称なので Example2 では WD-1914（使用性の曲げ）・WD-1919（耐久性のせん断）が出る（H16 では WD-1901・1906）。見本 09 に 9.7・9.8 がないのはこのため。`pipeline.capacita.SKIPPED` が節とコードの対応で、コードのある欠けだけを認める。計算書には何も印字されず、群ごと欠ければ番号が詰まる（決定121。それまでは省略の理由を印刷していた。0810・0820・0910・杭体は今も `check_text.OMITTED` で理由を印刷する）。
 - **直角方向の配筋**（決定103 で見本から変えた）：線路の D32 の隅の鉄筋（両面から 108）は近い面の1段目に入れ、D19 の本数に面積で換算する：D19×9（芯 102）＋D32×2（芯 108）→ D19×14.54、芯 104.3。側方鉄筋は隅を除いた D32 の 300…4200（150 間隔）の 27 本。見本 09_直角/WebDan.wdj は D19×9 と、隅を含む側方鉄筋 29 本を本数だけ（RcDan が等分）。隅の鉄筋の判定は `calc.column_check.corner_bars`、主鉄筋の段と側方鉄筋の形は `column_bars`。Example4 は線路方向 D38 23＋11（34 本を1段目 23 本で分ける）、直角方向 D19×14.96・芯 79.6、側方鉄筋 D38 32 本（250 から 96.8 間隔、内側の段を広げる）。
 - **安全性（破壊）の行（id 5）は `range` 3**（決定105）：側方鉄筋を含む全軸方向鉄筋で曲げ耐力とせん断耐力を求める（R5 の見本 Example橋脚4 が数える。WebDanforJS の既定は 2 で数えない）。決定105 より前は数えなかった：見本の WDJ をいまの Capacita で計算すると耐力は見本と 0.2% 未満の差（Mud 29326.7／29334.2、Myd 48634.5／48663.2）。決定103・105 の WDJ では Mud 59170.6・Myd 49516.9（隅の D32 が主鉄筋に入り、安全性（破壊）が側方鉄筋 D32×27 を数える）。Mud は RC標準の応力ひずみ曲線の手計算 59218.0 と 0.08% 差（側方鉄筋は中立軸の近くにあり、等価応力ブロックでは 0.36% ずれる）。Myd の手計算（放物線＋矩形、引張鉄筋の降伏）は見本の鉄筋でも 3% 合わず、Capacita の降伏の定義は未確認。
 - 見本 09 の照査値（0.338、0.098）は WebPier と比べられない。WebPier の 0620 の風荷重（決定12・35）は見本と違い、柱下端の Md が違う（安全性（破壊）10939.1／見本 8256.6）。N'd は同じ（13264.1、14404.5）なので受入は耐力で比べる。見本自身の WDJ（`shape` を `"1"` にした複製）を今の Capacita で計算すると 0.338・0.098 が再現するので、WebPier の WDJ との違いは断面力だけと確かめられる。
-- 省略の理由の文は解説の後に空き1行を置いて組む（`_blocks` はキーが `.omitted` で終わる単位で区切る）。省略した節の後は Capacita のページを挟まず、次の節の文書が新しいページから始まる。
+- 省略の理由の文（0810・0820・0910・杭体）は解説の後に空き1行を置いて組む（`check_text._blocks` はキーが `.omitted` で終わる単位で区切る）。省略した節の後は Capacita のページを挟まず、次の節の文書が新しいページから始まる。
 
 ## フーチングの断面照査（0810・0820、決定60）：断面力入力モードの WDJ
 

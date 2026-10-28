@@ -185,6 +185,8 @@ def test_the_appearance_and_the_environment_are_the_input():
 def test_the_calculation_and_print_switches(document):
     assert {key: document["calc"][key] for key in SAMPLE["calc"]} == SAMPLE["calc"]
     assert document["calc"]["print_safety_ratio_checked"] is False
+    # Capacita prints its commentary before each section's result (decision 121; not in the sample's WDJ)
+    assert document["calc"]["print_commentary_checked"] is True
 
 
 def test_the_bytes_are_utf8_json_written_once(document):

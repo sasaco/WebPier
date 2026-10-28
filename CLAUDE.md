@@ -18,8 +18,8 @@ uv run --project "." --locked python -m webpier --overwrite
 # ground_model=0500、reactions=0600、longitudinal=0610、transverse=0620：0610/0620 は FrameWeb入力も常に post/ に出力する
 # longitudinal_seismic=0710、transverse_seismic=0720：JRSNAP入力（NDU）も常に post/ に出力する
 # longitudinal_frame_analysis=0611・0612、transverse_frame_analysis=0621・0622（骨組解析。決定46・54。同じ FrameWeb 入力の解析は1回）：FEMPython のピックアップ（*.pik・*_ピックアップ変位量.csv・*_ピックアップ反力.csv）を post/ に出力
-# 0611・0621 はそのピックアップで柱の断面照査も Capacita で行い、計算書（8.5〜8.10・9.5〜9.10）と post/線路方向.wdj・post/線路直角方向.wdj を出力する（決定48・73）
-# 0612・0622 は同じ解析の支点反力で基礎の照査を WebPier で行い、計算書（8.11・9.11）を出力する（決定54・73）
+# 0611・0621 はそのピックアップで柱の断面照査も Capacita で行い、計算書（Capacita の計算書そのもの。解説付きで 8.5・9.5 から番号を振らせる）と post/線路方向.wdj・post/線路直角方向.wdj を出力する（決定48・73・121）
+# 0612・0622 は同じ解析の支点反力で基礎の照査を WebPier で行い、計算書（8.11・9.11。柱の断面照査の最後の番号の次。決定121）を出力する（決定54・73）
 # longitudinal_nonlinear_analysis=0711、transverse_nonlinear_analysis=0721（静的非線形解析。決定47）：JRSNAP の .NDT と解析結果をフォルダー post/線路方向_JRSNAP/・post/線路直角方向_JRSNAP/ に丸ごと置き換えて出力し、その横に Aggre-SE のプロジェクト post/線路方向.xml・post/線路直角方向.xml を書く（決定49。入力の 耐震設計条件 が必須）。その XML で Aggre-SE の runner が照査した report.pdf をバイト列のまま 0711・0721 の計算書にし（決定56、ADR-0009。見出しや節の番号は足さない）、同じ呼び出しのピックアップ・総括表・直接基礎のステップ表を post/線路方向_Aggre-SE.pik・.xlsx・_直接基礎.csv（線路直角方向も同じ）に出力する（決定57・58・60）
 # cantilever=0900・0910（両方向の静的非線形解析が要る。決定59）：0900 は 0600 の結果と 0711・0721 の Aggre-SE の総括表（最大応答震度）から片持ち梁の応答値と 31 ケースの組合せを求め、0910 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（13.3〜13.8、外観の照査ありは 13.9 まで）と post/片持ち梁.wdj を出力する
 # footing=0800・0810・0820（両方向の骨組解析と静的非線形解析が要る。決定60）：0800 は 0612・0622 の反力 CSV と 0711・0721 の直接基礎のステップ表からフーチングの応答値（12.1、両方向）を求め、0810・0820 はその断面力を書いた WDJ を Capacita の run-rc（--pickup なし）で照査して計算書（12.2〜12.5／12.6〜12.9）と post/線路方向フーチング.wdj・post/線路直角方向フーチング.wdj を出力する

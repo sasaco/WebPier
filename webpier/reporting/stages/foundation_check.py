@@ -1,8 +1,10 @@
-"""0612 線路方向の基礎の照査 (8.11) and 0622 直角方向の基礎の照査 (9.11) (decisions 54, 73).
+"""0612 線路方向の基礎の照査 (8.11) and 0622 直角方向の基礎の照査 (9.11) (decisions 54, 73, 121).
 
 WebPier lays out every page: the check formulas and their symbols, then the table of each check, as Example2 08
 pp.8-27 to 8-32 (09 pp.9-24 to 9-29 are the same pages). The section continues the column check of the same direction
-(n.5 to n.10, decisions 48 and 73) as n.11, n = 8 for 0612 and 9 for 0622; the chapter heading is not printed, and the
+(n.5 to n.10, decisions 48 and 73) as n.11, n = 8 for 0612 and 9 for 0622: the section after the last group Capacita
+numbered in the column check (``Chapter.section``, decision 121; n.10 when Capacita prints every group, fewer when a
+group has nothing printed); the chapter heading is not printed, and the
 sample's duplicated "8.7" (and 09's copy of it) is not reproduced. Every number is a Printed value of the calc result
 (ADR-0003); nothing is calculated here.
 
@@ -27,6 +29,7 @@ from ...calc.foundation_check import (FACTORS, GROUND_KINDS, ROTATION_DIVISOR, B
 from ...calc.embedment import CoverWeight
 from ...core.printed import Printed
 from ..equations import Definition, terms
+from .column_check import FOLLOWING_ALL
 from ..document import blank, report
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, operand, semantic_records, value
 
@@ -47,6 +50,12 @@ class Chapter:
 
     number: int  # n of n.11, continuing the column check of the same direction
     prefix: str
+    # the section after the column check of the same direction: column_check.following_section (decision 121)
+    section: int = FOLLOWING_ALL
+
+    @property
+    def heading(self) -> str:
+        return f"{self.number}.{self.section} 基礎の照査"
 
 
 LONGITUDINAL = Chapter(8, "0612/")
@@ -61,8 +70,8 @@ def _factor(requirement: Requirement, name: str) -> str:
     return value(getattr(FACTORS[requirement], name))
 
 
-def _requirements(m: Manuscript, n: int) -> None:
-    m.heading("heading", f"{n}.11 基礎の照査", 1)
+def _requirements(m: Manuscript, chapter: Chapter) -> None:
+    m.heading("heading", chapter.heading, 1)
     m.heading("vertical.heading", "(1) 鉛直支持に対する検討", 2)
     m.paragraph("vertical.text", "鉛直支持に対する検討においては，次式を満足することを確かめる．")
     for requirement, lead, check, items in (
@@ -294,7 +303,7 @@ def _horizontal(m: Manuscript, result: FoundationCheckResult) -> None:
 def content(result: FoundationCheckResult, chapter: Chapter) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(chapter.prefix)
-    _requirements(m, chapter.number)
+    _requirements(m, chapter)
     _pressure(m, result.basis)
     _capacity(m, result.basis)
     _resistance(m)

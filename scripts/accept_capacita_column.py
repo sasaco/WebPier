@@ -70,10 +70,11 @@ INPUT = "tests/fixtures/inputs/current.json"
 EXAMPLE2 = PROJECT / "tests" / "fixtures" / "example2"
 RECORDS = PROJECT / "tests" / "fixtures" / "acceptance" / "capacita"
 # (section, label of the ratio, label of the capacity, key of the capacity in the sample, Capacita's row id in WDJ
-# basic.pickup_moment) on the first result page
+# basic.pickup_moment), read in the section's pages (Capacita's commentary, then the result; decision 121): the labels
+# are the result table's, not in the commentary
 CHECKS = {"bending_safety_destruction": ("γi･Md/Mud", "Mud (kN･m)", "Mud_kNm", 5),
           "bending_restorability": ("γi･Md/Myd", "Myd (kN･m)", "Myd_kNm", 6)}
-FORCES = {"md": "Md (kN･m)", "n_d": "Nd (kN)"}  # the section forces of the check, printed on the same page
+FORCES = {"md": "Md (kN･m)", "n_d": "Nd (kN)"}  # the section forces of the check, printed in the same result
 TOLERANCE = 0.002  # the sample's WebDan and the current Capacita (the sample's own WDJ shows the same difference)
 
 
@@ -123,7 +124,7 @@ STAGES = {
          "Myd は記録だけで比べない（手計算の降伏曲げモーメントは見本の鉄筋でも Capacita と 3% 違い、Capacita の降伏の定義に"
          "合わせていない）。",
          "Capacita は直角方向の永久作用が左右対称なので使用性（WD-1914）と耐久性のせん断（WD-1919）を飛ばす。見本に 9.7・9.8 が"
-         "ないのはこのため。WebPier は見出しと解説に省略の理由を付けて印刷する（決定48）。",
+         "ないのはこのため。計算書にはその節も群の見出し番号もない（決定121。9.8 が使用性（損傷）、9.9 が最小鉄筋量及び最大鉄筋量）。",
          "柱下端の着目点は PIK の 7 番目（柱に風荷重の区間の端の着目点がある）。見本は 6。",
          "側方鉄筋は隅の鉄筋を除いた D32 の 27 本を 300 から 150 間隔に書く（見本は D32×29 を位置なしで、Capacita が等分）。",
          "基準は RC標準 R5（見本は H16。決定73）で、耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節"
@@ -146,13 +147,17 @@ def _after(lines: list[str], label: str) -> str:
 
 def _check(wdj: bytes, stage: Stage, pik: bytes, check, runner):
     """Capacita's report for *pik*: (the pages, {section: page, ratio, capacity}, the page count)."""
-    pages = capacita.check_column(wdj, f"{stage.name}.pik", pik, runner, check.sections)
+    # numbered as the generation numbers it (decision 121)
+    pages = capacita.check_column(wdj, f"{stage.name}.pik", pik, runner, check.sections,
+                                  commentary=(9 if stage.transverse else 8, 5))
     values = {}
     with pymupdf.open(stream=pages.pdf, filetype="pdf") as document:
         page_count = len(document)
         for section, (ratio, capacity, _, _) in CHECKS.items():
-            first, _ = pages.section(section)
-            lines = [line.strip() for line in document[first - 1].get_text().splitlines() if line.strip()]
+            # the section's pages: Capacita's commentary, then its result (decision 121)
+            first, last = pages.section(section)
+            lines = [line.strip() for page in document.pages(first - 1, last) for line in page.get_text().splitlines()
+                     if line.strip()]
             values[section] = {"page": first, "ratio": _after(lines, ratio), "capacity": _after(lines, capacity),
                                **{key: _after(lines, label) for key, label in FORCES.items()}}
     return pages, values, page_count

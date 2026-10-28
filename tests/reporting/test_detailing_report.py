@@ -1,8 +1,9 @@
 """0400 照査の前提 (decision 73, ADR-0012): what the report prints, from the calc result as printed.
 
 The sections the checks with section forces refer to are those of 0611 / 0621, 0810 / 0820 and 0910 after the switch
-to R5 (orchestrator 2026-10-21, sasa/0400-r5 eca5fcd): 8.10・8.7 and 9.10・9.7; 12.5・12.3 and 12.9・12.7; 13.8 or, with
-0910's appearance check, 13.9, and 13.5. The judgements follow the result; the PDF is the same bytes for the same
+to R5 (orchestrator 2026-10-21, sasa/0400-r5 eca5fcd): the numbers Capacita gave 0611 / 0621's sections in the same
+generation (8.10・8.7 and 9.10・9.7 when every group is printed), none without them (decision 121); 12.5・12.3 and
+12.9・12.7; 13.8 or, with 0910's appearance check, 13.9, and 13.5. The judgements follow the result; the PDF is the same bytes for the same
 result.
 """
 
@@ -15,11 +16,19 @@ import pymupdf
 import pytest
 from gridlayoutpdf import Figure, Line
 
+from dataclasses import replace
+
+from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
 from webpier.calc.detailing import calculate_detailing
+from webpier.calc.foundation import calculate_foundation
+from webpier.calc.longitudinal import calculate_longitudinal
+from webpier.calc.reaction import calculate_reaction
+from webpier.calc.transverse import calculate_transverse
 from webpier.inputs import parse_input
 from webpier.inputs.outputs import FootingParts
 from webpier.reporting.stages.detailing import (FigureSpec, build_detailing, content, grid_documents, records,
                                                 references, render_detailing)
+from webpier.reporting.stages.frame_report import plain
 from example4_support import EXAMPLE4_INPUT
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
@@ -37,9 +46,37 @@ def texts(document=None) -> dict[str, str]:
     return {record["id"].removeprefix("0400/"): record["text"] for record in records(result(document))}
 
 
+# The numbers Capacita gives the commentary headings of 0611 (every group printed) and of 0621 for Example2 (使用性
+# skipped for zero forces: 使用性（損傷） 9.8, 最小鉄筋量及び最大鉄筋量 9.9), as pipeline.capacita returns them.
+ALONG = {"section_forces": "8.5", "bending_safety_destruction": "8.6", "shear_safety_destruction": None,
+         "bending_durability": "8.7", "shear_durability": None, "bending_serviceability": "8.8",
+         "bending_restorability": "8.9", "shear_restorability": None, "bending_rebar_amount": "8.10"}
+ACROSS = {"section_forces": "9.5", "bending_safety_destruction": "9.6", "shear_safety_destruction": None,
+          "bending_durability": "9.7", "bending_restorability": "9.8", "shear_restorability": None,
+          "bending_rebar_amount": "9.9"}
+
+
+def columns(document=None, along=ALONG, across=ACROSS):
+    """The column checks of the same generation, by direction, with the numbers Capacita gave their sections."""
+    pier = parse_input(document if document is not None else data())
+    reaction, foundation = calculate_reaction(pier), calculate_foundation(pier)
+    return {"線路": replace(calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL),
+                          headings=along),
+            "直角": replace(calculate_column_check(pier, calculate_transverse(pier, foundation, reaction), TRANSVERSE),
+                          headings=across)}
+
+
 def test_the_sections_referred_to():
     refs = references(False)
-    assert dict(refs.column) == {"線路": ("8.10", "8.7"), "直角": ("9.10", "9.7")}
+    # decision 121: without the column checks of the same generation the column's sections have no number
+    assert dict(refs.column) == {"線路": (None, None), "直角": (None, None)}
+    assert dict(references(False, columns=columns()).column) == {"線路": ("8.10", "8.7"), "直角": ("9.9", "9.7")}
+    # one direction checked, the other not; a column check not yet checked by Capacita (no headings)
+    only = columns()
+    assert dict(references(False, columns={"線路": only["線路"]}).column) == {"線路": ("8.10", "8.7"),
+                                                                          "直角": (None, None)}
+    assert dict(references(False, columns={"直角": replace(only["直角"], headings=None)}).column)["直角"] == (None,
+                                                                                                         None)
     assert refs.beam == ("13.8", "13.5")
     assert dict(refs.footing) == {"線路": ("12.5", "12.3"), "直角": ("12.9", "12.7")}
     assert references(True).beam == ("13.9", "13.5")
@@ -50,6 +87,19 @@ def test_the_sections_referred_to():
         "線路": (None, None), "直角": (None, None)}
 
 
+def test_the_column_references_take_capacitas_numbers():
+    """Decision 121: the numbers Capacita gave the sections of the same generation; without them the check is named
+    without a number."""
+    found = {unit.key.removeprefix("0400/"): plain(unit.value) for unit in content(result(), columns=columns())}
+    assert found["column.線路.minimum.crack.reference"] == "照査は「8.10 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert found["column.直角.maximum.reference"] == "照査は「9.9 最小鉄筋量及び最大鉄筋量」に示す。"
+    assert found["column.直角.stress.reference"] == "照査は「9.7 耐久性の照査」に示す。"
+    alone = texts()
+    assert alone["column.線路.minimum.crack.reference"] == ("照査は、柱の断面照査を行うときに"
+                                                           "「最小鉄筋量及び最大鉄筋量」で確かめる。")
+    assert alone["column.直角.stress.reference"] == "照査は、柱の断面照査を行うときに「耐久性の照査」で確かめる。"
+
+
 def test_the_report_prints_the_chapter_and_the_references():
     found = texts()
     assert found["heading"] == "§4. 照査の前提"
@@ -58,9 +108,6 @@ def test_the_report_prints_the_chapter_and_the_references():
     assert found["column.heading"] == "4.2 躯体の構造細目" and found["beam.heading"] == "4.3 梁の構造細目"
     assert found["footing.heading"] == "4.4 フーチングの構造細目"
     assert found["column.線路.heading"] == "(1) 線路方向" and found["column.直角.heading"] == "(2) 線路直角方向"
-    assert found["column.線路.minimum.crack.reference"] == "照査は「8.10 最小鉄筋量及び最大鉄筋量」に示す。"
-    assert found["column.直角.maximum.reference"] == "照査は「9.10 最小鉄筋量及び最大鉄筋量」に示す。"
-    assert found["column.直角.stress.reference"] == "照査は「9.7 耐久性の照査」に示す。"
     assert found["beam.minimum.axial.reference"] == "照査は「13.8 最小鉄筋量及び最大鉄筋量」に示す。"
     assert found["beam.stress.reference"] == "照査は「13.5 耐久性の照査」に示す。"
     # current.json chooses no footing (decision 110): the footing references have no section
@@ -183,7 +230,7 @@ def test_the_keys_of_the_units_are_unique(monkeypatch):
     from webpier.reporting.stages import detailing
 
     units = content(result())
-    monkeypatch.setattr(detailing, "content", lambda result, figures=None: (*units, units[0]))
+    monkeypatch.setattr(detailing, "content", lambda result, figures=None, columns=None: (*units, units[0]))
     with pytest.raises(ValueError, match="帳票の単位に重複したキーがあります"):
         build_detailing(result())
 
