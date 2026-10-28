@@ -53,6 +53,21 @@ def longitudinal(**changes):
     return calculate_longitudinal(p, calculate_foundation(p), calculate_reaction(p))
 
 
+# Decision 120 (g): the single-track train and impact (Example2 cases 9 and 11) are no longer made, and the cases with
+# the reduced dead loads (名前 "死荷重低減あり") follow their twins; Example2 has neither change.
+EXAMPLE2_DROPPED = ("9", "11")
+REDUCED = "死荷重低減あり"
+
+
+def example2_cases(placed):
+    """The basic load cases of ``first_placing``'s file by Example2's number, as {Example2 number: number in the file}:
+    every basic case but the reduced ones, in order, against Example2's 1-20 without 9 and 11 (decision 120)."""
+    basic = [number for number, case in placed["load"].items()
+             if not case["symbol"].startswith("I2s") and REDUCED not in case["name"]]
+    numbers = [str(n) for n in range(1, 21) if str(n) not in EXAMPLE2_DROPPED]
+    return dict(zip(numbers, basic, strict=True))
+
+
 def D(value):
     """The decimal a person reads from a printed or written number."""
     return Decimal(repr(float(value)))

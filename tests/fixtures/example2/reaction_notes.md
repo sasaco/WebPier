@@ -48,9 +48,11 @@ Transcribed by hand from page images (130 dpi) and checked against PyMuPDF text 
   - A checker must use unrounded RB/RD to reproduce the printed values.
 - 7-7, 7-8 and 7-11 use the safety double-track iF (0.222 / 0.521).
 - 7-9 1.0LR + 1.35B: the label says "1.23L" / "1.23複線L" (no I), but the formula still contains (1 + 0.222) and (1 + 0.521), and Rm equals 7-8's.
+  - Decision 119: WebPier follows the label and leaves the impact out of this Rm (1.1D1 + 1.2D2 + 1.0 × ρ × L + S10), as in 0610's braking-maximum combination and Example橋脚4 III-45 to III-57. The values that depend on it (Rm, μRm, T − ½μRm, H at the fixed bearing, the 7-13 total) are tested by independent hand calculation, not against this page.
 - 7-10 / 7-12 1.0LR: Rm uses S30, with 1.1/1.2 load factors in 7-10 and 1.0/1.0 in 7-12.
 - 7-11 restorability: T1 = 1.0 × 400 + 1.23 × 160, but T2 = 1.0 × 200 + **1.0** × 96.00 = 296.00. That is inconsistent with the "1.23B" combination label; it would be 318.08 with 1.23. The 7-13 summary carries 165.31, which is derived from T2 = 296.00.
 - 7-13 seismic: the movable bearing takes T1/n = 13580/2 = 6790 and the fixed bearing takes the full T2 = 4740. Train: 128/2 = 64 (movable) and the full 64 (fixed). Summary 合計 = 起点桁 + 終点桁 for every row (all check). Its "使用性 1.0 LR (2)" row = 7-6, "安全性 1.0 LR" = 7-10, "復旧性 1.0 LR" = 7-12.
+- Decision 120: WebPier adds the reduced-dead-load cases (0.9D1 + 0.8D2) 1.1LR+1.23B and 1.0LR+1.35B (Example橋脚4 III-45〜57 ③⑤), which Example2 07 does not have; they are tested by independent hand calculation (classification 3, a different standard edition).
 - 7-14 vehicle lateral: LF = 0.2 × 160.0 = 32.00 per axle.
   - HB = LF × (14.425 + 16.625)/18.85. Only 2 axles are used here, unlike the 4-axle RB in 7-1; the diagram differs.
   - HC = LF × (7.425 + 9.625)/9.25.

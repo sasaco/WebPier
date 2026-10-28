@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "kind": "pile_liquefaction_acceptance",
-  "date": "2026-10-25T22:15:00+09:00",
+  "date": "2026-10-28T22:12:56+09:00",
   "method": "液状化する地層（De 0.5）と液状化指数 20<PL の杭基礎の 0711・0721 を本物の JRSNAP・Aggre-SE で生成し、全 Case の集計と解析の完了、液状化の Case の扱い、液状化時用の .sdr の制限値の取り込み（液状化の Case だけを杭基礎の照査にして、安定レベル2の Rvd が .sdr の表の値と同じこと）、見本 後処理C1.xml の液状化の Case との比較（⑧を除いて同じ）を確かめた。判定は扱わない。",
   "seismic_check_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/pile_seismic.json",
-    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715",
+    "sha256": "e1a15edfb54f82dd1b49e1601a5c324d3580b766bbe1ae81439e2f4d21888ffa",
     "kept": "input.json",
-    "kept_sha256": "23352901032875188cbc9f5efaaf7cb182c13aacf1bf2177b1c2712f53edbef7"
+    "kept_sha256": "47f3fd647af250009038d090b265664222d898d407828259a07c16fee5d22983"
   },
   "runner": {
     "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
-    "sha256": "3c87241c103567a260b6f2bea7d92fb6b6f5d33ce032558a1af593542aa40fd8"
+    "sha256": "6f217154fef98dbcef75e97a546e979b787aaa870615dcc775fea78a06172ba0"
   },
   "helpers": {
     "scripts/accept_pile_liquefaction.py": "3ef3ab4efeed42ab5ec746b4428745675ac5a5217bff1a31285e0152c8db5319"
@@ -21,7 +21,7 @@
     "0711": {
       "project": {
         "file": "線路方向.xml",
-        "sha256": "e7e667d644a25fc723d5e4d10cbdc511328b20e6e1a4f74737b602b448e48247",
+        "sha256": "b9e51ab94f9681331bd95a85ee956facff01c5a5f508cc5040bfa6ec7f28c775",
         "databases": [
           "線路方向(Case1_ρm10_αf1_正向).DB1",
           "線路方向(Case2_ρm12_αf1_正向).DB1",
@@ -32,11 +32,11 @@
       },
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "ea52477f0d2965ad49ed4efc059d7c5e25434a642ddff88f5339b82df39083eb"
+        "sha256": "00f8178766450145ed8d860bb818b638e9c84a5f4f8ea8aa33eaed2fadd18017"
       },
       "report": {
         "file": "0711_線路方向非線形解析.pdf",
-        "pages": 44
+        "pages": 45
       },
       "cases": [
         "線路方向(Case1_ρm10_αf1_正向)",
@@ -59,7 +59,7 @@
     "0721": {
       "project": {
         "file": "線路直角方向.xml",
-        "sha256": "3213ecf5a284eff5f8838f0fb4eaaed6fc6718b0ba737a1d327168d0464d5170",
+        "sha256": "dbf46071b3797c41277beb89c059ad35dcdb97a88a2d20c92df73fbc1ecc264b",
         "databases": [
           "線路直角方向(Case1_ρm10_αf1_正向).DB1",
           "線路直角方向(Case2_ρm12_αf1_正向).DB1",
@@ -75,11 +75,11 @@
       },
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "0310a51538e3254154b982e8ff1fbf22006428b8dafd4ef02f92af26c692adc0"
+        "sha256": "45e7beb67227724880bbac1cbfd2855f4d39ae18e3410453ec57f2863ce18b78"
       },
       "report": {
         "file": "0721_線路直角方向非線形解析.pdf",
-        "pages": 85
+        "pages": 86
       },
       "cases": [
         "線路直角方向(Case1_ρm10_αf1_正向)",

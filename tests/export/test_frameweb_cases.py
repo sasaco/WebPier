@@ -1,4 +1,4 @@
-"""FrameWeb Define, Combine and Pickup: Example2 08 pp.8-9 to 8-11 and its FrameWeb file.
+"""FrameWeb Define, Combine and Pickup: Example2 08 pp.8-9 to 8-11 and its FrameWeb file, Example橋脚4 表2.3.2.
 
 FrameWeb analyses each load case once per spring set and combines the responses linearly: a Define row lists
 the load cases it may take (a negative number is the same case reversed, FrameWeb takes the worse), a Combine
@@ -10,17 +10,22 @@ from decimal import Decimal
 
 import pytest
 
-from frameweb_support import D, EXAMPLE2, L08, PEDESTAL, first_placing, longitudinal
+from frameweb_support import D, EXAMPLE2, PEDESTAL, example2_cases, first_placing, longitudinal
 from webpier.calc.longitudinal import Basis, BasicCase, Check, Layout
+from webpier.calc.longitudinal.combinations import EXTRACTION_NAMES
 from webpier.core.errors import InputError
 from webpier.export.frameweb import build_frameweb
 
 
+# Decision 120 (Example橋脚4 表2.3.2): 48 combinations — each check made at low and high water and for the 列車の配置
+# ①②③ where it applies — and 8 pickups of those; Example2 8-10/8-11 have 16 combinations (classification 3), so the
+# Combine and Pickup tables are checked against the calc result, not against Example2.
+
+
 def auxiliary_defines(result):
-    """The Define of each serviceability impact load case, after the basic cases: I1s of ①, ②, ③, then I2s."""
+    """The Define of each serviceability impact load case, after the basic cases: I2s of ①, ② and ③ (decision 120)."""
     first = len(result.basic_cases) + 1
-    keys = [(case, layout) for case in (BasicCase.IMPACT_SINGLE, BasicCase.IMPACT_DOUBLE) for layout in Layout]
-    return {key: first + index for index, key in enumerate(keys)}
+    return {(BasicCase.IMPACT_DOUBLE, layout): first + index for index, layout in enumerate(Layout)}
 
 
 @pytest.fixture(scope="module")
@@ -39,35 +44,31 @@ def current(full):
     return first_placing(full)
 
 
-def test_defines_are_those_of_example2_and_the_serviceability_impacts(current):
-    # 8-9: Define 1-20 take basic case n; 13-20 also −n (the horizontal cases in both directions).
-    assert {n: current["define"][n] for n in map(str, range(1, 21))} == EXAMPLE2["define"]
-    printed = L08["define_cases"]["rows"]
-    assert [[current["define"][str(row["no"])][f"C{i}"] for i in range(1, len(row["C"]) + 1)] for row in printed] == [
-        row["C"] for row in printed]
-    assert current["define"]["21"] == {"row": 21, "C1": 21}
-    assert current["define"]["22"] == {"row": 22, "C1": 22}
-    assert list(current["define"]) == [str(n) for n in range(1, 23)]
-
-
 def coefficients(row):
     return {key: value for key, value in row.items() if key.startswith("C")}
 
 
-def test_combines_are_those_of_example2_with_the_serviceability_impacts(current):
-    # 8-10 prints 0.75 on I1 / I2 in combinations 5, 7, 15, 16: 0.75 ρs × the basic I. The calc takes the
-    # serviceability impact (0.75 i in the girder coefficient) times ρs = 1.00, so these combinations reference
-    # Define 21 / 22 with ρs instead. Every other coefficient is the printed one.
-    replaced = {"5": ("C12", "C22"), "7": ("C11", "C21"), "15": ("C11", "C21"), "16": ("C11", "C21")}
-    assert list(current["combine"]) == [str(n) for n in range(1, 17)]
-    for number, example in EXAMPLE2["combine"].items():
-        expected = coefficients(example)
-        if number in replaced:
-            basic, auxiliary = replaced[number]
-            assert expected.pop(basic) == 0.75
-            expected[auxiliary] = 1
-        assert coefficients(current["combine"][number]) == dict(sorted(expected.items(), key=lambda i: int(i[0][1:])))
-        assert current["combine"][number]["row"] == int(number)
+def test_defines_take_each_basic_case_and_the_serviceability_impacts(full, result):
+    # One Define per basic case, the horizontal ones also reversed (−n); after them one per I2s of ①, ② and ③.
+    assert len(result.basic_cases) == 38 and len(full["define"]) == 41
+    for basic in result.basic_cases:
+        n = basic.number
+        assert full["define"][str(n)] == ({"row": n, "C1": n, "C2": -n} if basic.horizontal else {"row": n, "C1": n})
+    assert [full["define"][str(n)] for n in (39, 40, 41)] == [{"row": n, "C1": n} for n in (39, 40, 41)]
+
+
+def test_the_defines_of_the_example2_cases_are_those_of_example2(current):
+    # The cases Example2 still has (decision 120 (g): not 9 and 11) keep its Define: n, and −n for 13-20.
+    number_of = example2_cases(current)
+    for example, ours in number_of.items():
+        expected = {key: value // abs(value) * int(number_of[str(abs(value))]) for key, value in
+                    coefficients(EXAMPLE2["define"][example]).items()}
+        assert coefficients(current["define"][ours]) == expected, example
+
+
+def test_the_combine_and_pickup_counts(full):
+    assert list(full["combine"]) == [str(n) for n in range(1, 49)]
+    assert list(full["pickup"]) == [str(n) for n in range(1, 9)]
 
 
 def test_combines_carry_the_printed_factors(full, result):
@@ -81,26 +82,52 @@ def test_combines_carry_the_printed_factors(full, result):
             define = define_of[key] if component.basis is Basis.BASIC else auxiliary[key]
             expected[f"C{define}"] = component.factor.value
         assert coefficients(row) == expected
+        assert row["row"] == combination.number
         assert all(component.factor.digits in (1, 2) for component in combination.components)
 
 
-def test_combine_names(current):
-    rows = {row["no"]: row for row in L08["combinations"]["combination_table"]["rows"]}
-    assert [current["combine"][str(n)]["name"] for n in range(1, 17)] == [
-        "破壊 列車最大", "破壊 制動最大", "破壊 ﾛﾝｸﾞ最大", "破壊 雪最大", "ひび割れ 縁応力度", "ひび割れ 永久荷重",
-        "ひび割れ 変動荷重", "損傷 列車最大", "損傷 雪最大", "地盤の安定 列車最大", "地盤の安定 制動最大",
-        "地盤の安定 ﾛﾝｸﾞ最大", "地盤の安定 雪最大", "長期支持", "短期支持 低水位", "短期支持 高水位"]
-    for n in range(1, 14):  # 8-10 performance item and remark
-        assert current["combine"][str(n)]["name"] == f"{rows[n]['performance_item']} {rows[n]['remark']}"
+@pytest.mark.parametrize("number", [1, 16, 35])
+def test_combine_coefficients_are_those_of_the_table(full, result, number):
+    # Each load case's factor is the calc coefficient of its basic case (表2.3.2): 1 is 破壊 列車最大 低水位 ①, 16 破壊
+    # 制動最大 死荷重低減 高水位 ①, 35 縁応力度 低水位 ②. The serviceability I (printed 0.75 ρs on the basic I2-2,
+    # Define 13) is analysed as I2s of ② (Define 40) with ρs = 1.0 (8-5: 0.75 i in the girder coefficient).
+    combination = result.combinations[number - 1]
+    expected = {f"C{basic.number}": coefficient.value
+                for basic, coefficient in zip(result.basic_cases, combination.coefficients, strict=True)
+                if coefficient is not None}
+    if number == 35:
+        assert expected.pop("C13") == 0.75
+        expected["C40"] = 1
+    assert coefficients(full["combine"][str(number)]) == expected
+    assert {1: {"C1": 1.1, "C2": 1.2, "C5": 1, "C7": 1, "C9": 1.35, "C12": 1.35, "C19": 1},
+            16: {"C1": 0.9, "C2": 0.8, "C3": 1, "C7": 1, "C9": 1.23, "C31": 1},
+            35: {"C1": 1, "C2": 1, "C5": 1, "C6": 1, "C10": 1, "C17": 1, "C40": 1}}[number] == expected
 
 
-def test_pickups_are_those_of_8_11(current):
-    printed = L08["extraction_cases"]["rows"]
-    assert {n: coefficients(row) for n, row in current["pickup"].items()} == {
-        n: coefficients(row) for n, row in EXAMPLE2["pickup"].items()}
-    renamed = {"復旧性（損傷）": "使用性（損傷）"}  # the R5 name of the sample's H16 extraction case (decision 73)
-    assert [(row["row"], row["name"]) for row in current["pickup"].values()] == [
-        (row["no"], renamed.get(row["name"], row["name"])) for row in printed]
+def test_combine_names(full):
+    # The check, then the water level and the 列車の配置 where the check is made for them (decisions 102, 120).
+    names = [full["combine"][str(n)]["name"] for n in range(1, 49)]
+    assert len(set(names)) == 48
+    assert {n: names[n - 1] for n in (1, 6, 16, 25, 31, 32, 33, 34, 40, 44, 47, 48)} == {
+        1: "破壊 列車最大 低水位 両側の桁", 6: "破壊 列車最大 高水位 終点側の桁", 16: "破壊 制動最大 死荷重低減 高水位 両側の桁",
+        25: "破壊 ﾛﾝｸﾞ最大 死荷重低減 低水位 両側の桁", 31: "破壊 雪最大 低水位", 32: "破壊 雪最大 高水位", 33: "長期支持",
+        34: "ひび割れ・短期支持 縁応力度 低水位 両側の桁", 40: "ひび割れ 永久荷重 低水位", 44: "ひび割れ 変動荷重 終点側の桁",
+        47: "損傷 列車最大 終点側の桁", 48: "損傷 雪最大"}
+
+
+def test_pickups_are_the_extractions(full, result):
+    # The 8 groups of 8-11 (使用性（損傷） is the R5 name, decision 73), each with the combinations of its checks: 安全性
+    # （安定） takes the safety combinations and 短期支持性能 the edge-stress ones (decision 120).
+    pickups = full["pickup"]
+    assert [(row["row"], row["name"]) for row in pickups.values()] == [
+        (e.number, EXTRACTION_NAMES[e.group]) for e in result.extractions]
+    assert [row["name"] for row in pickups.values()] == [
+        "安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能", "短期支持性能"]
+    for e in result.extractions:
+        assert coefficients(pickups[str(e.number)]) == {f"C{i}": c for i, c in enumerate(e.combinations, 1)}
+    assert [tuple(coefficients(row).values()) for row in pickups.values()] == [
+        tuple(range(1, 33)), tuple(range(34, 40)), (40, 41), (42, 43, 44), (45, 46, 47, 48), tuple(range(1, 33)), (33,),
+        tuple(range(34, 40))]
 
 
 def native_vector(document, combine, sign):
@@ -159,25 +186,24 @@ def test_every_combination_and_direction_is_the_resolved_combination(changes):
             for key, amount in resolved.items():
                 assert abs(native.get(key, Decimal(0)) - amount) <= Decimal("0.005") * count[key], (combination, key)
             states += 1
-    # 28 combinations with a horizontal case in both directions, 10 without (each check with the train for ①, ② and
-    # ③, decision 102)
-    assert states == 28 * 2 + 10
+    # 44 combinations with a horizontal case in both directions, 4 without (長期支持 and 変動作用 ①②③; decisions 102,
+    # 120)
+    assert states == 44 * 2 + 4
 
 
-def test_reversal_is_only_for_the_horizontal_cases(current):
-    for number, define in current["define"].items():
-        assert coefficients(define) == ({"C1": int(number), "C2": -int(number)} if 13 <= int(number) <= 20
-                                        else {"C1": int(number)})
-    for number in range(13, 21):
-        case = current["load"][str(number)]
-        assert all(row["ty"] is None and row["rz"] is None for row in case["load_node"])  # H only
+def test_reversal_is_only_for_the_horizontal_cases(full, result):
+    for basic in result.basic_cases:
+        assert ("C2" in full["define"][str(basic.number)]) is basic.horizontal
+        if basic.horizontal:
+            case = full["load"][str(basic.number)]
+            assert all(row["ty"] is None and row["rz"] is None for row in case["load_node"])  # H only
 
 
 def test_zero_coefficients_are_left_out_and_an_empty_combination_is_an_error():
     # ρs must be positive (decision 37), but a factor is printed with 2 decimals: ρs = 0.004 prints 0.00, and
-    # 0.75 × 0.004 = 0.003 -> 0.00. The serviceability train and impact then add nothing. Combinations 5, 15 and 16
-    # keep their other actions; combination 7 (L1 + I1 only) has nothing, and FrameWeb drops an empty Combine, so
-    # Pickup 4 would fail.
+    # 0.75 × 0.004 = 0.003 -> 0.00. The serviceability train and impact then add nothing. The edge-stress combinations
+    # keep their other actions; 変動作用 (L2 + I2 only, decision 120) has nothing, and FrameWeb drops an empty Combine,
+    # so Pickup 4 would fail.
     result = longitudinal(**{"上部構造/列車/荷重修正係数/使用性": 0.004})
     variable = [c for c in result.combinations if c.check is Check.CRACK_VARIABLE]  # ①, ② and ③
     assert [[k.factor.value for k in c.components] for c in variable] == [[0, 0]] * 3

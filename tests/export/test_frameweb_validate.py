@@ -148,7 +148,7 @@ INVALID = {
     "combine_name": (("combine", "1", "name"), None),
     "combine_row": (("combine", "1", "row"), "1"),
     "combine_empty": (("combine", "6"), {"row": 6, "name": "", "C5": 1}),
-    "pickup_reference": (("pickup", "1", "C1"), 39),
+    "pickup_reference": (("pickup", "1", "C1"), 49),  # one past the 48 combinations (decision 120)
     "pickup_duplicate": (("pickup", "1", "C2"), 1),
     "pickup_empty": (("pickup", "2", "C1"), DELETE),
     "pickup_name": (("pickup", "1", "name"), 3),

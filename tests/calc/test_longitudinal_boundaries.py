@@ -8,6 +8,7 @@ from longitudinal_support import chain, longitudinal
 from reaction_support import D, END_SLOTS, ORIGIN_SLOTS, document, pier, q, value
 from webpier.calc.frame import NodeRole
 from webpier.calc.longitudinal import BasicCase, Item
+from webpier.calc.longitudinal.actions import HORIZONTAL_CASES, bearing_point
 from webpier.core.errors import InputError
 from webpier.inputs import parse_input
 
@@ -44,8 +45,12 @@ def test_the_pedestal_is_a_line_load_and_the_girders_on_it_a_table_of_its_top():
     assert [(line.members, line.n.value) for line in lines] == [((1,), 411.6), ((3, 4, 5), 297.68)]
 
 
+def anchored_point(p):
+    return (p.anchor, p.node, p.n.value, p.h.value, p.m.value)
+
+
 def anchored(action):
-    return [(p.anchor, p.node, p.n.value, p.h.value, p.m.value) for p in action.points]
+    return [anchored_point(p) for p in action.points]
 
 
 def test_bearing_loads_act_at_the_pedestal_top():
@@ -62,11 +67,14 @@ def test_bearing_loads_act_at_the_pedestal_top():
     assert anchored(result.basic(BasicCase.D2))[0] == (seat, 1, 780.0, 0.0, -110.5)
     # Snow 2: 710.00, 19.25 − 106.50 = −87.25; train single 567.39, 110.52 − 85.1085 = 25.4115 -> 25.41.
     assert anchored(result.basic(BasicCase.SNOW2)) == [(seat, 1, 710.0, 0.0, -87.25)]
-    assert anchored(result.basic(BasicCase.TRAIN_SINGLE)) == [(seat, 1, 567.39, 0.0, 25.41)]
+    # The single-track train and impact are not cases on the frame (decision 120): their tables at the seat.
+    single = bearing_point(result.frame, result.train.single.n, result.train.single.m)
+    assert anchored_point(single) == (seat, 1, 567.39, 0.0, 25.41)
     # Impact (decision 77): Ds 3085.36 with the pedestal, 3085.36 / (567.39 + 8380 + 3085.36) = 0.25640 -> ratio 0.744;
     # i = 0.245 × 0.744 = 0.182, 0.546 × 0.744 = 0.406. N = 272.47 × 0.182 + 294.92 × 0.406 = 49.59 + 119.74 = 169.33;
     # M = 49.59 × −0.325 + 119.74 × 0.675 = −16.12 + 80.82 = 64.70; 169.33 × 0.150 = 25.3995; 64.70 − 25.3995 = 39.30.
-    assert anchored(result.basic(BasicCase.IMPACT_SINGLE)) == [(seat, 1, 169.33, 0.0, 39.3)]
+    impact = bearing_point(result.frame, result.impact.ultimate_single.n, result.impact.ultimate_single.m)
+    assert anchored_point(impact) == (seat, 1, 169.33, 0.0, 39.3)
     # The horizontal bearing force acts at the seat: the frame carries H × H1 (0.300).
     assert anchored(result.basic(BasicCase.SAFETY_LR10_B)) == [(seat, 1, 0.0, 473.43, 0.0)]
     # A resolved combination keeps the anchors.
@@ -143,12 +151,15 @@ def test_swapping_fixed_and_movable_bearings():
     data = document(**{"上部構造/支承データ/起点側/支承名": "固定", "上部構造/支承データ/終点側/支承名": "可動"})
     _, reaction, result = chain(parse_input(data))
     default = longitudinal()
-    for row, case in zip(result.horizontal, reaction.longitudinal.cases, strict=True):
+    # 0610 takes all ten 0600 cases, the two reduced ones of decision 120 too.
+    assert len(result.horizontal) == 10
+    for row in result.horizontal:
+        case = reaction.longitudinal.case(row.case)
         assert (row.origin, row.end) == (case.origin.force, case.end.force)
         assert value(row.total) == value(case.origin.force) + value(case.end.force)
     assert [r.total for r in result.horizontal] != [r.total for r in default.horizontal]
-    for number in range(13, 21):
-        assert result.basic(BasicCase(number)).points[0].h == result.horizontal[number - 13].total
+    for case, row in zip(HORIZONTAL_CASES, result.horizontal, strict=True):
+        assert result.basic(case).points[0].h == row.total
 
 
 def test_concrete_outside_the_table_stops_0610():

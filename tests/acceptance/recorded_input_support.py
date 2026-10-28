@@ -14,7 +14,9 @@ recorded before decision 84), also without ``outputs``; the tests still compare 
 Every such form is also tried with the blank 杭頭定着長 and its stirrup in ``鉄筋.杭.cutoff`` (an acceptance recorded
 before decision 98, which made the 杭頭定着長 a calculation; they were never entered in a recorded input), and, for
 P-16, with the car, the axles and the seismic train load after 車両名 (an acceptance recorded before decision 101, which
-made them the program's: the recorded inputs had P-16's own values, so the calculation is the same).
+made them the program's: the recorded inputs had P-16's own values, so the calculation is the same), and, with blank
+``custom_tables`` of the column, as rebar version 3 with the empty ``table_overrides`` (an acceptance recorded before
+decision 111, which replaced them; an empty change of the table is the table made from the bars, as a blank one is).
 """
 
 import json
@@ -65,6 +67,23 @@ def _old_train(train: dict) -> dict:
         if key == "車両名":
             old |= json.loads(json.dumps(P16_TRAIN))
     return old
+
+
+BLANK_CUSTOM_TABLES = {"線路": None, "直角": None}  # 鉄筋.柱.custom_tables with nothing entered (decision 111)
+
+
+def before_custom_tables(data: bytes) -> bytes | None:
+    """The input as it was before decision 111 (rebar version 3, the empty table_overrides of the column where the
+    custom_tables are), or None when it is not rebar version 4 or a table of the column is entered."""
+    document = json.loads(data.decode("utf-8"))
+    rebar = document.get("鉄筋") if isinstance(document, dict) else None
+    column = rebar.get("柱") if isinstance(rebar, dict) else None
+    if not isinstance(column, dict) or rebar.get("version") != 4 or column.get("custom_tables") != BLANK_CUSTOM_TABLES:
+        return None
+    rebar["version"] = 3
+    rebar["柱"] = {("table_overrides" if key == "custom_tables" else key): (
+        {"線路": [], "直角": []} if key == "custom_tables" else value) for key, value in column.items()}
+    return _text(document, data)
 
 
 def before_vehicles(data: bytes) -> bytes | None:
@@ -215,14 +234,18 @@ def _before_outputs(data: bytes) -> set[str]:
 def input_sha256s(data: bytes) -> set[str]:
     """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, as it was with
     the bars of the cast-in-place pile in the 杭基礎, before them, before the joint and before the pile foundation (each
-    with and without the 出力項目), each also as it was before decision 98, and all also as before decision 101."""
+    with and without the 出力項目), each also as it was before decision 98, all also as before decision 101, and all
+    also as before decision 111."""
     found: set[str] = set()
-    for form in (data, before_vehicles(data)):
-        if form is None:
+    for latest in (data, before_custom_tables(data)):
+        if latest is None:
             continue
-        found |= _chain(form)
-        if (older := before_anchorage(form)) is not None:
-            found |= _chain(older)
+        for form in (latest, before_vehicles(latest)):
+            if form is None:
+                continue
+            found |= _chain(form)
+            if (older := before_anchorage(form)) is not None:
+                found |= _chain(older)
     return found
 
 

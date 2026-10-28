@@ -31,15 +31,20 @@ def test_every_nature_has_a_term():
 
 def test_0610_cases_by_nature():
     lr, b = {N.LONG_RAIL}, {N.LONG_RAIL, N.BRAKING}
+    # decision 120: the reduced 1.1 LR + 1.0 B and 1.0 LR + 1.1 B follow their twins, braking with the long rail
     assert [set(NATURES[case]) for case in BasicCase] == [
         {N.DEAD}, {N.DEAD}, {N.WATER}, {N.WATER}, {N.WATER}, {N.SNOW}, {N.SNOW}, {N.SNOW}, {N.TRAIN}, {N.TRAIN},
-        {N.IMPACT}, {N.IMPACT}, lr, lr, b, b, b, lr, b, lr]
+        {N.IMPACT}, {N.IMPACT}, lr, lr, b, b, b, b, b, lr, b, lr]
 
 
 def test_0610_springs_follow_the_rule_and_8_9():
     # The rule agrees with every バネ printed on 8-9 (1 long-term, 2 short-term), including 14, 18 and 20 (1),
     # which the Example2 FrameWeb file saves as 2.
     printed = {row["no"]: row["spring"] for row in SECTIONS["basic_cases"]["rows"]}
+    # The reduced cases of decision 120 are not in Example2: each has its twin's nature, so its twin's バネ (2).
+    twin = {BasicCase.SAFETY_LR11_B_REDUCED: BasicCase.SAFETY_LR11_B,
+            BasicCase.SAFETY_LR10_BMAX_REDUCED: BasicCase.SAFETY_LR10_BMAX}
     for action in longitudinal().basic_cases:
         assert action.spring is spring_term(NATURES[action.case])
-        assert action.spring is {1: SpringTerm.LONG, 2: SpringTerm.SHORT}[printed[action.case.value]]
+        case = twin.get(action.case, action.case)
+        assert action.spring is {1: SpringTerm.LONG, 2: SpringTerm.SHORT}[printed[case.value]]

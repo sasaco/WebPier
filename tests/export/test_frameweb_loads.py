@@ -7,18 +7,19 @@ that is 0 is saved as null, as FrameWeb does.
 
 import pytest
 
-from frameweb_support import (ASYMMETRIC, CENTRED_PEDESTAL, EXAMPLE2, L08, PEDESTAL, first_placing, longitudinal,
-                              mirrored_rows)
+from frameweb_support import (ASYMMETRIC, CENTRED_PEDESTAL, EXAMPLE2, EXAMPLE2_DROPPED, L08, PEDESTAL, REDUCED,
+                              example2_cases, first_placing, longitudinal, mirrored_rows)
 from webpier.calc.frame import NodeRole
 from webpier.calc.longitudinal import Basis, BasicCase, Check, Layout
 from webpier.export.frameweb import build_frameweb
 
-# Example2 prints these from unrounded intermediates; we use the printed operands (see tests/calc):
-# 8-4 L2 1134.77 / 221.04 -> 1134.78 / 221.03. Decision 77: the impact is on the pier body, so I1 / I2 differ from
-# Example2 8-5 (227.78 / 86.99, 428.28 / 168.11), which has no reduction:
-# I1 171.05 / 65.33 and I2 92.09 + 234.76 = 326.85, −29.93 + 158.46 = 128.53 (hand: test_longitudinal_loads).
-DIFFERENT = {"10": [("1", None, 1134.78, 221.03)], "11": [("1", None, 171.05, 65.33)],
-             "12": [("1", None, 326.85, 128.53)]}
+# By Example2's number. Example2 prints these from unrounded intermediates; we use the printed operands (see
+# tests/calc): 8-4 L2 1134.77 / 221.04 -> 1134.78 / 221.03. Decision 77: the impact is on the pier body, so I2 differs
+# from Example2 8-5 (428.28 / 168.11), which has no reduction: 92.09 + 234.76 = 326.85, −29.93 + 158.46 = 128.53 (hand:
+# test_longitudinal_loads). Decision 119: case 17 (1.0LR+1.35B) takes Rm without impact: 308.00 + 188.62 = 496.62
+# (Example2 495.01; hand: test_longitudinal_loads WITHOUT_IMPACT).
+DIFFERENT = {"10": [("1", None, 1134.78, 221.03)], "12": [("1", None, 326.85, 128.53)],
+             "17": [("1", 496.62, None, None)]}
 
 
 @pytest.fixture(scope="module")
@@ -42,9 +43,32 @@ def node_rows(case):
 
 
 def test_basic_load_cases_are_those_of_example2(current):
-    for number in map(str, range(1, 21)):
+    for number, ours in example2_cases(current).items():
         expected = DIFFERENT.get(number, mirrored_rows(node_rows(EXAMPLE2["load"][number])))
-        assert node_rows(current["load"][number]) == expected, number
+        assert node_rows(current["load"][ours]) == expected, number
+
+
+def test_the_single_track_train_and_impact_are_not_load_cases(full):
+    # decision 120 (g): no combination of Example橋脚4 表2.3.2 takes the single-track train or impact, so Example2's
+    # cases 9 (L1) and 11 (I1) and the serviceability I1s are not in the file.
+    assert {EXAMPLE2["load"][n]["symbol"] for n in EXAMPLE2_DROPPED} == {"L1", "I1"}
+    symbols = {case["symbol"].split("-")[0] for case in full["load"].values()}
+    assert not symbols & {"L1", "I1", "I1s"}
+
+
+def test_the_reduced_dead_load_cases_follow_their_twins(current, result):
+    # Decision 120: 1.1LR+1.0B and 1.0LR+1.1B again with 0.9 D1 + 0.8 D2 in 0600's Rm, right after the twin; the same
+    # label with 死荷重低減あり, short-term springs, the bearing force of the reduced 0600 case.
+    reduced = [(n, case) for n, case in current["load"].items() if REDUCED in case["name"]]
+    assert [(n, case["symbol"], case["name"], case["fix_node"]) for n, case in reduced] == [
+        ("15", "1.1LR+1.0B", "ﾛﾝｸﾞﾚｰﾙ+制動　安全性　死荷重低減あり", 2),
+        ("17", "1.0LR+1.1B", "ﾛﾝｸﾞﾚｰﾙ+制動　安全性　死荷重低減あり", 2)]
+    assert [current["load"][n]["symbol"] for n in ("14", "16")] == ["1.1LR+1.0B", "1.0LR+1.1B"]
+    for (number, case), basic in zip(reduced, (BasicCase.SAFETY_LR11_B_REDUCED, BasicCase.SAFETY_LR10_BMAX_REDUCED),
+                                     strict=True):
+        (action,) = [a for a in result.basic_cases if a.case is basic and a.layout is Layout.BOTH]
+        (point,) = action.points
+        assert node_rows(case) == [(str(point.node), point.h.value, None, None)], number
 
 
 def test_node_rows_have_the_example2_layout(current):
@@ -79,8 +103,9 @@ def test_load_case_headers(current):
     # fix_node is the spring set of 8-9 (1 long-term, 2 short-term). The Example2 file saves 2 for cases 14, 18 and
     # 20 where 8-9 prints 1; we follow 8-9.
     printed = {row["no"]: row["spring"] for row in L08["basic_cases"]["rows"]}
-    for number in range(1, 21):
-        case, example = current["load"][str(number)], EXAMPLE2["load"][str(number)]
+    for example_number, ours in example2_cases(current).items():
+        number = int(example_number)
+        case, example = current["load"][ours], EXAMPLE2["load"][example_number]
         assert list(case)[:6] == ["fix_node", "element", "symbol", "LL_pitch", "rate", "name"]
         assert case["fix_node"] == printed[number]
         assert case["fix_node"] == example["fix_node"] or number in EXAMPLE2["known_differences"]["spring_cases"]
@@ -90,29 +115,25 @@ def test_load_case_headers(current):
         assert case["name"] == {18: "ﾛﾝｸﾞﾚｰﾙ縦荷重　安全性", 20: "ﾛﾝｸﾞﾚｰﾙ縦荷重　復旧性"}.get(number, example["name"])
 
 
-def test_serviceability_impacts_are_two_more_load_cases(current, result):
+def test_the_serviceability_impact_is_one_more_load_case(current, result):
     # The serviceability impact (8-5, 0.75 i already in the 0600 serviceability coefficient) is another action than the
-    # basic I; combinations 5, 7, 15 and 16 analyse it, so it is a load case of its own after the 20 basic cases.
-    assert list(current["load"]) == [str(n) for n in range(1, 23)]
-    for number, impact in (("21", result.impact.service_single), ("22", result.impact.service_double)):
-        case = current["load"][number]
-        assert (case["fix_node"], case["symbol"]) == (2, {"21": "I1s", "22": "I2s"}[number])
-        assert case["name"] == {"21": "衝撃荷重　使用性　単線", "22": "衝撃荷重　使用性　複線"}[number]
-        assert node_rows(case) == [("1", None, impact.n.value, impact.m.value)]
-    # Hand, 8-4 single track × the serviceability coefficients on the pier body (decision 77), 0.184 × 0.751 = 0.138 and
-    # 0.41 × 0.751 = 0.308: 272.47 × 0.138 = 37.601 -> 37.60, 294.92 × 0.308 = 90.835 -> 90.84, N = 128.44;
-    # 37.60 × −0.325 = −12.22, 90.84 × 0.675 = 61.317 -> 61.32, M = 49.10.
-    assert node_rows(current["load"]["21"]) == [("1", None, 128.44, 49.1)]
+    # basic I; the edge-stress and variable combinations analyse it (decision 120: of the double track only), so it is
+    # a load case of its own after the 20 basic cases of ①.
+    assert list(current["load"]) == [str(n) for n in range(1, 22)]
+    case, impact = current["load"]["21"], result.impact.service_double
+    assert (case["fix_node"], case["symbol"], case["name"]) == (2, "I2s", "衝撃荷重　使用性　複線")
+    assert node_rows(case) == [("1", None, impact.n.value, impact.m.value)]
 
 
 def test_every_load_is_the_printed_action(full, result):
-    # Values are copied from the calc result: no rounding, no scaling. After the basic cases, the serviceability
-    # impacts: I1s of ①, ②, ③, then I2s (decision 102).
+    # Values are copied from the calc result: no rounding, no scaling. After the 38 basic cases, the serviceability
+    # impact I2s of ①, ② and ③ (decisions 102, 120).
     service = {(k.case, c.layout): k.source for c in result.combinations for k in c.components
                if k.basis is Basis.SERVICE_IMPACT}
-    actions = [*result.basic_cases, *(service[(case, layout)] for case in (BasicCase.IMPACT_SINGLE,
-                                                                         BasicCase.IMPACT_DOUBLE) for layout in Layout)]
-    assert len(full["load"]) == len(actions) == 44
+    assert set(service) == {(BasicCase.IMPACT_DOUBLE, layout) for layout in Layout}
+    actions = [*result.basic_cases, *(service[(BasicCase.IMPACT_DOUBLE, layout)] for layout in Layout)]
+    assert len(result.basic_cases) == 38
+    assert len(full["load"]) == len(actions) == 41
     for number, action in enumerate(actions, 1):
         case = full["load"][str(number)]
         expected = [(str(p.node), p.h.value or None, p.n.value or None, p.m.value or None)
@@ -129,13 +150,13 @@ def test_pedestal_loads_act_at_the_pedestal_top():
     seat = str(result.frame.node(NodeRole.PEDESTAL_TOP).number)
     assert node_rows(document["load"]["1"]) == [("2", None, 699.53, None), (seat, None, 7600, -1940),
                                                 ("7", None, 4167.45, None)]
-    assert node_rows(document["load"]["15"]) == [(seat, 473.43, None, None)]
+    assert node_rows(document["load"][example2_cases(document)["15"]]) == [(seat, 473.43, None, None)]
     # The serviceability impact moves to the seat as well: M − N × 0.175.
-    single = result.impact.service_single
+    double = result.impact.service_double
     (row,) = node_rows(document["load"]["21"])
-    assert row[:3] == (seat, None, single.n.value)
+    assert row[:3] == (seat, None, double.n.value)
     variable = next(c for c in result.combinations if c.check is Check.CRACK_VARIABLE and c.layout is Layout.BOTH)
-    assert row[3] == variable.component(BasicCase.IMPACT_SINGLE).source.points[0].m.value
+    assert row[3] == variable.component(BasicCase.IMPACT_DOUBLE).source.points[0].m.value
     # The pedestal weight q = 7.000 × 1.000 × 24.5 along it (member 1, decision 81), then the column line; not the arm.
     assert [(r["m1"], r["P1"]) for r in document["load"]["1"]["load_member"]] == [
         ("1", 171.5), ("3", 297.68), ("4", 297.68), ("5", 297.68)]

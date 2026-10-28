@@ -3,10 +3,10 @@
   "schema_version": 1,
   "input": {
     "path": "tests/fixtures/inputs/pile.json",
-    "sha256": "f18365b7ca9e6d22358f9f4581013a5e6b15ebdf11db021696d4b038eb7938d7"
+    "sha256": "0320555edd595264d85f43ae2e3f025597ed8c7502baf4c3cd9ff8524e75940d"
   },
   "runner": {
-    "engine_version": "1.0.0+d4068b9ce1ba7798856b25f59c86a8503207fc78",
+    "engine_version": "1.0.0+8044fac9d9b5e7fc5502eecd46b6cd24d8b402e6",
     "summary": {
       "jrsnap": {
         "product": "5.2-L03",

@@ -141,7 +141,7 @@ def by_hand(teq: str, tg: float, kh: str, kheq: str, level: str) -> dict[str, st
 def check_stage(stage: str, source: str, stem: str, inertia_count: int, work: Path, failures: list[str]) -> dict[str, Any]:
     output, post = work / "output", work / "post"
     result = load_json(next(output.glob(f"{stage}_*.json")).read_bytes())
-    response = result["result"]
+    response = result["result"]["response"]  # PileSeismicResult{minimum, response} (decision 98)
     ground = load_json(next(output.glob(f"{source}_*.json")).read_bytes())["result"]["ground_displacement"]
     cases = result["seismic_check"]["cases"]
     count = inertia_count + len(response["cases"])

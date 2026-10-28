@@ -91,7 +91,7 @@ class AdditionalDead:
 class Trains:
     """Train load without load factors (8-4)."""
 
-    single: TopTable  # RB, RC of one track (0600 moving load)
+    single: TopTable  # RB, RC of one track (0600 moving load); tabled only, not a case on the frame (decision 120)
     double: TopTable  # × the loaded tracks of the girder (0600 track total)
 
 
@@ -119,15 +119,15 @@ class ImpactTable:
 class Impacts:
     """Impact with the coefficients on the pier body (decision 77)."""
 
-    ultimate_single: ImpactTable  # safety and restorability coefficients: basic case 11
-    ultimate_double: ImpactTable  # i × (1 − L/200): basic case 12
+    ultimate_single: ImpactTable  # safety and restorability coefficients; tabled only (decision 120)
+    ultimate_double: ImpactTable  # i × (1 − L/200): the basic IMPACT_DOUBLE
     service_single: ImpactTable  # serviceability coefficients, 0.75 i (07 7-2)
     service_double: ImpactTable
 
 
 @dataclass(frozen=True)
 class HorizontalRow:
-    """Bearing horizontal forces of one 0600 case (8-5): the basic cases 13-20 at the beam top."""
+    """Bearing horizontal forces of one 0600 case (8-5): the horizontal basic cases at the beam top."""
 
     case: LongitudinalCase
     origin: Printed  # H at B (origin girder)
@@ -136,7 +136,12 @@ class HorizontalRow:
 
 
 class BasicCase(Enum):
-    """The 20 basic cases of 8-9, by their number with snow (without snow, 17: decision 69)."""
+    """The basic cases of 0610, in the order made (decision 69: without snow the snow cases are not made).
+
+    The values are unique ids: Example2 8-9's numbers with snow for its 20 cases, 21 and 22 for the reduced-dead-load
+    cases of decision 120, which are made right after their unreduced twins. TRAIN_SINGLE and IMPACT_SINGLE are not
+    made on the longitudinal frame (decision 120: Example橋脚4 表2.3.2 has no single-track train); their tables stay.
+    """
 
     D1 = 1
     D2 = 2
@@ -154,7 +159,9 @@ class BasicCase(Enum):
     SERVICE_LR10 = 14
     SAFETY_LR10_B = 15
     SAFETY_LR11_B = 16
+    SAFETY_LR11_B_REDUCED = 21  # 0.9 D1 + 0.8 D2 (decision 120)
     SAFETY_LR10_BMAX = 17
+    SAFETY_LR10_BMAX_REDUCED = 22  # 0.9 D1 + 0.8 D2 (decision 120)
     SAFETY_LR10 = 18
     RESTORABILITY_LR10_B = 19
     RESTORABILITY_LR10 = 20
@@ -166,7 +173,9 @@ HORIZONTAL_CASES = {
     BasicCase.SERVICE_LR10: LongitudinalCase.SERVICE_LR10,
     BasicCase.SAFETY_LR10_B: LongitudinalCase.SAFETY_LR10_B10,
     BasicCase.SAFETY_LR11_B: LongitudinalCase.SAFETY_LR11_B10,
+    BasicCase.SAFETY_LR11_B_REDUCED: LongitudinalCase.SAFETY_LR11_B10_REDUCED,
     BasicCase.SAFETY_LR10_BMAX: LongitudinalCase.SAFETY_LR10_B11,
+    BasicCase.SAFETY_LR10_BMAX_REDUCED: LongitudinalCase.SAFETY_LR10_B11_REDUCED,
     BasicCase.SAFETY_LR10: LongitudinalCase.SAFETY_LR10,
     BasicCase.RESTORABILITY_LR10_B: LongitudinalCase.RESTORABILITY_LR10_B10,
     BasicCase.RESTORABILITY_LR10: LongitudinalCase.RESTORABILITY_LR10,
@@ -174,10 +183,9 @@ HORIZONTAL_CASES = {
 
 
 SNOW_CASES = (BasicCase.SNOW2, BasicCase.SNOW10, BasicCase.SNOW30)
-# The basic cases made for each 列車の配置 (decision 102; Example橋脚4 表2.3.1): the train, its impact and the bearing
-# forces with the train or braking; the others are one case.
-LAYOUT_DEPENDENT = frozenset({BasicCase.TRAIN_SINGLE, BasicCase.TRAIN_DOUBLE, BasicCase.IMPACT_SINGLE,
-                              BasicCase.IMPACT_DOUBLE,
+# The basic cases made for each 列車の配置 (decision 102; Example橋脚4 表2.3.1): the double-track train, its impact and
+# the bearing forces with the train or braking; the others are one case.
+LAYOUT_DEPENDENT = frozenset({BasicCase.TRAIN_DOUBLE, BasicCase.IMPACT_DOUBLE,
                               *(basic for basic, case in HORIZONTAL_CASES.items() if case in LAYOUT_CASES)})
 
 _N = Nature
@@ -193,7 +201,8 @@ NATURES: dict[BasicCase, frozenset[Nature]] = {
     BasicCase.IMPACT_SINGLE: frozenset({_N.IMPACT}), BasicCase.IMPACT_DOUBLE: frozenset({_N.IMPACT}),
     BasicCase.SERVICE_LR08: _RAIL, BasicCase.SERVICE_LR10: _RAIL,
     BasicCase.SAFETY_LR10_B: _RAIL_BRAKING, BasicCase.SAFETY_LR11_B: _RAIL_BRAKING,
-    BasicCase.SAFETY_LR10_BMAX: _RAIL_BRAKING, BasicCase.SAFETY_LR10: _RAIL,
+    BasicCase.SAFETY_LR11_B_REDUCED: _RAIL_BRAKING, BasicCase.SAFETY_LR10_BMAX: _RAIL_BRAKING,
+    BasicCase.SAFETY_LR10_BMAX_REDUCED: _RAIL_BRAKING, BasicCase.SAFETY_LR10: _RAIL,
     BasicCase.RESTORABILITY_LR10_B: _RAIL_BRAKING, BasicCase.RESTORABILITY_LR10: _RAIL,
 }
 
@@ -230,7 +239,7 @@ class Actions:
     snow: tuple[TopTable, TopTable, TopTable] | None  # 2, 10, 30 year; None without snow (decision 69)
     train: Trains  # ① (both girders)
     impact: Impacts
-    horizontal: tuple[HorizontalRow, ...]  # in LongitudinalCase order = basic cases 13-20 (with snow), ①
+    horizontal: tuple[HorizontalRow, ...]  # ①, in LongitudinalCase order = the horizontal basic cases
     one_girder: tuple[LayoutActions, LayoutActions]  # ② and ③
     basic_cases: tuple[BasicAction, ...]
 
@@ -390,9 +399,8 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
                  if layout is Layout.BOTH or basic in LAYOUT_DEPENDENT}
         horizontal = tuple(HorizontalRow(case=c.case, origin=c.origin.force, end=c.end.force, total=c.total)
                            for c in cases.values())
-        points = {BasicCase.TRAIN_SINGLE: (top(single.n, single.m),),
-                  BasicCase.TRAIN_DOUBLE: (top(double.n, double.m),),
-                  BasicCase.IMPACT_SINGLE: (top(impact.ultimate_single.n, impact.ultimate_single.m),),
+        # Decision 120: the single-track train and impact are tabled but not made (no combination uses them).
+        points = {BasicCase.TRAIN_DOUBLE: (top(double.n, double.m),),
                   BasicCase.IMPACT_DOUBLE: (top(impact.ultimate_double.n, impact.ultimate_double.m),),
                   **{basic: (bearing_point(frame, FORCE(0), h=c.total),) for basic, c in cases.items()}}
         return LayoutActions(layout, Trains(single, double), impact, horizontal), points
@@ -406,7 +414,7 @@ def calculate_actions(pier: PierInput, frame: Frame, reaction: ReactionResult) -
             points[case] = (top(table.n, table.m),)
     layouts = {Layout.BOTH: both_points, Layout.ORIGIN: origin_points, Layout.END: end_points}
     # Decision 69: without snow the snow cases are not made, and the cases after them move up. Decision 102: a
-    # LAYOUT_DEPENDENT case is made for ①, ② and ③ in turn.
+    # LAYOUT_DEPENDENT case is made for ①, ② and ③ in turn. Decision 120: the single-track cases are not made.
     made = [(case, layout) for case in BasicCase if case in points
             for layout in (tuple(Layout) if case in LAYOUT_DEPENDENT else (None,))]
     basic_cases = tuple(

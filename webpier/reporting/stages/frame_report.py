@@ -655,11 +655,13 @@ class TableParts:
 # a table of its own below, with the cases again (Example2's 23 pt columns are not on the grid).
 _CASE_COLUMNS = (1, 4, 5)
 _COMBINATION_COLUMNS = 2
+_REMARK_ROWS = 3  # the band of the turned remarks, in grid rows
 
 
 def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
                       rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]],
-                      case_columns: tuple[int, int, int] = _CASE_COLUMNS) -> TableSpec:
+                      case_columns: tuple[int, int, int] = _CASE_COLUMNS,
+                      remark_rows: int = _REMARK_ROWS) -> TableSpec:
     header: list[list[Any]] = [[Span("No", rowspan=4), Span("記号", rowspan=4), Span("荷重名称", rowspan=4)], [], [], []]
     for level in (0, 1):
         index = 0
@@ -675,7 +677,7 @@ def _coefficient_spec(headers: Sequence[tuple[str, str, str]], numbers: Sequence
     body = [(number, Span(symbol), name, *(value(c) if c is not None else Span("－") for c in coefficients))
             for number, symbol, name, coefficients in rows]
     widths = (*case_columns, *(_COMBINATION_COLUMNS,) * len(headers))
-    heights = (2, 1, 3, 1) + (1,) * len(body)
+    heights = (2, 1, remark_rows, 1) + (1,) * len(body)
     return TableSpec(widths, (*(tuple(row) for row in header), *body), heights, header_rows=4,
                      numeric=frozenset({0, *range(3, 3 + len(headers))}), left=0)
 
@@ -703,19 +705,24 @@ def _coefficient_runs(headers: Sequence[tuple[str, str, str]], capacity: int) ->
 
 def coefficient_table(headers: Sequence[tuple[str, str, str]], numbers: Sequence[int],
                       rows: Sequence[tuple[str, Any, str, Sequence[Printed | None]]], *, block_id: str,
-                      case_columns: tuple[int, int, int] = _CASE_COLUMNS) -> FigureSpec:
+                      case_columns: tuple[int, int, int] = _CASE_COLUMNS,
+                      remark_rows: int = _REMARK_ROWS) -> FigureSpec:
     """Cases as rows, combinations as columns, the coefficients as printed (8-10, 9-14).
 
     *headers* gives each combination its requirement, performance item and remark; neighbours with the
     same text share a header cell. A missing coefficient prints '－'. The table is printed in parts of as many
     combinations as the body holds (``_COMBINATION_COLUMNS`` each); its record is the whole table's text.
-    *case_columns* are the widths of No, 記号 and 荷重名称 (0610's symbols of a 列車の配置 take one more, decision 102).
+    *case_columns* are the widths of No, 記号 and 荷重名称 (0610's symbols of a 列車の配置 take one more, decision 102);
+    *remark_rows* the height of the band of turned remarks, two lines across a combination's columns (0610's remarks
+    with the water level and the placing take a longer band, decision 120).
     """
     capacity = (BODY_COLUMNS - sum(case_columns)) // _COMBINATION_COLUMNS
     specs = tuple(_coefficient_spec([headers[index] for index in run], [numbers[index] for index in run],
-                                    [(*row[:3], [row[3][index] for index in run]) for row in rows], case_columns)
+                                    [(*row[:3], [row[3][index] for index in run]) for row in rows], case_columns,
+                                    remark_rows)
                   for run in _coefficient_runs(headers, capacity))
-    return FigureSpec(TableParts(specs, block_id), (plain(_coefficient_spec(headers, numbers, rows, case_columns)),))
+    return FigureSpec(TableParts(specs, block_id),
+                      (plain(_coefficient_spec(headers, numbers, rows, case_columns, remark_rows)),))
 
 
 def factor_lines(m: Manuscript, factors: Any, train: Any, maximum: Any, service_impact: Any) -> None:

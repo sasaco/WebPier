@@ -1,24 +1,24 @@
 {
   "schema_version": 1,
   "kind": "aggrese_project_acceptance",
-  "date": "2026-10-22T08:00:15+09:00",
+  "date": "2026-10-28T21:34:31+09:00",
   "method": "本物の JRSNAP の runner で 0711・0721 を生成し、XML と JRSNAP のフォルダーの複製を Aggre-SE の runner （AggreSE.Headless.exe inspect / run、総括表と計算書）で読込み・計算した。さらに Aggre-SE の Input.SetXmData → applyVersion → Input.GetXmlData → Shift-JIS の保存し直し（scripts/aggrese_project_roundtrip.cs）でバイト列が変わらないことを確かめた。Aggre-SE の照査の判定は扱わない。",
   "seismic_check_judged": false,
   "gui_operated": false,
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "1cbfb7c8fd7d51d3c5965a84514f6aa6e0c9307daef0f5956cdd482526dfc4fa"
+    "sha256": "0aa1c4fbb38cab24c8d81bd98dc885be1b7d15d4b39c1d05fc3001bcc61a310f"
   },
-  "implementation_sha256": "29b54df933afc7d98cc19aa82358dea5676e9d0ef7c7ed433cd5dab2a9b6b14b",
+  "implementation_sha256": "b52f390edf9f30bbba8cf97e85d492f532a0bd3a5fbd0c38ac14b54e902a156c",
   "application": {
     "batch": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\Batch.exe",
       "file_version": "5.3.0.1",
-      "sha256": "8467c15e771e7d905e41b2f121c918efccd26b5544549b92d59c155df4b3869a"
+      "sha256": "19115d90097c7a731ce4d9306428c6ba6cff1dec40657c99a471f604082cb367"
     },
     "runner": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
-      "sha256": "fe1f863c6dfbafa7d2eee41a281238b53fff0378d858d267d28be4e6dd6e57c3"
+      "sha256": "6f217154fef98dbcef75e97a546e979b787aaa870615dcc775fea78a06172ba0"
     }
   },
   "helpers": {
@@ -29,7 +29,7 @@
     "0711": {
       "candidate": {
         "path": "線路方向.xml",
-        "sha256": "4eb1c3fdc8610bf0fdbb8187d9bf3827b29448da441b5f234af13bd6e81f166e"
+        "sha256": "18641111e622c3ba548f46c386be3379b7191d9870c84e4b322ead9791c36f72"
       },
       "databases": [
         "線路方向(Case1_ρm10_αf1_正向).DB1",
@@ -39,12 +39,12 @@
       ],
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "530e7793e0d9905ecc92d6f603451f0e0d334926879de864d0211fc9cd4b62f6",
-        "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
+        "sha256": "dca03606bed430ab876a1e9614e40fc8e13ec1b3ffe64685207ecd38cb8062bc",
+        "runner_engine_version": "1.0.0+8044fac9d9b5e7fc5502eecd46b6cd24d8b402e6",
         "product": "5.2-L03"
       },
       "inspect": {
-        "engine_version": "1.0.0+c15b3c48bc926dcaa47e9bb729bf21b5528d0537",
+        "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
         "cases": [
           {
             "caseNumber": 1,
@@ -73,7 +73,7 @@
         ]
       },
       "run": {
-        "engine_version": "1.0.0+c15b3c48bc926dcaa47e9bb729bf21b5528d0537",
+        "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
         "cases": [
           {
             "caseNumber": 1,
@@ -113,7 +113,7 @@
     "0721": {
       "candidate": {
         "path": "線路直角方向.xml",
-        "sha256": "9559069267d7e25b476efb79d9356dbc849fe3225f8f013660bb15977d4c544d"
+        "sha256": "788f377715c523e316a8173ff3e0e85f7bf605ef887ede422b34557f384a5a81"
       },
       "databases": [
         "線路直角方向(Case1_ρm10_αf1_正向).DB1",
@@ -127,12 +127,12 @@
       ],
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "b36ff8279286472bba1a5547391f61a9c487b67c8cbbd3fd735ba4cf5499c2d6",
-        "runner_engine_version": "1.0.0+2374a5bf0111fcb323e48a95f189061b55d01227",
+        "sha256": "82deca2b2293994ae3127b39b1c1fdc33db1870bf2bc1f5c661270598c46bbaf",
+        "runner_engine_version": "1.0.0+8044fac9d9b5e7fc5502eecd46b6cd24d8b402e6",
         "product": "5.2-L03"
       },
       "inspect": {
-        "engine_version": "1.0.0+c15b3c48bc926dcaa47e9bb729bf21b5528d0537",
+        "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
         "cases": [
           {
             "caseNumber": 1,
@@ -185,7 +185,7 @@
         ]
       },
       "run": {
-        "engine_version": "1.0.0+c15b3c48bc926dcaa47e9bb729bf21b5528d0537",
+        "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
         "cases": [
           {
             "caseNumber": 1,

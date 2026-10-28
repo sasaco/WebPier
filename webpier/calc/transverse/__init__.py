@@ -25,7 +25,7 @@ from .actions import (
     Item, Lateral, Row, TopTable, Track, TrainRow, Trains, TrainTable, Wind, calculate_actions,
 )
 from .combinations import (
-    WIND_SAFETY, Check, Combination, Component, Define, DefineCase, Loading, ResolvedAction, define_cases,
+    EXTRACTIONS, WIND_SAFETY, Check, Combination, Component, Define, DefineCase, Loading, ResolvedAction, define_cases,
     resolve_combinations,
 )
 from .wind import MemberLoad, PierWind, WindSegment
@@ -69,7 +69,8 @@ def calculate_transverse(pier: PierInput, foundation: FoundationResult | PileFou
         snow=actions.snow, train=actions.train, impact=actions.impact, lateral=actions.lateral,
         wind_with_train=actions.wind_with_train, wind_without_train=actions.wind_without_train,
         centrifugal=actions.centrifugal, basic_cases=actions.basic_cases, define_cases=defines, factors=factors,
-        combinations=combinations, extractions=placed_extractions(combinations),  # type: ignore[arg-type]
+        combinations=combinations,
+        extractions=placed_extractions(combinations, EXTRACTIONS),  # type: ignore[arg-type]
     )
 
 

@@ -2,16 +2,16 @@
   "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0622",
-  "verified_at": "2026-10-27T11:11:50+09:00",
+  "verified_at": "2026-10-28T21:32:36+09:00",
   "method": "WebPier が 0620 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0622 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 9-27 と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
+    "sha256": "0aa1c4fbb38cab24c8d81bd98dc885be1b7d15d4b39c1d05fc3001bcc61a310f"
   },
-  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
+  "implementation_sha256": "b52f390edf9f30bbba8cf97e85d492f532a0bd3a5fbd0c38ac14b54e902a156c",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+    "engine_version": "1.0.0+564399b379b78c78226b476facdf1ce089d873f3"
   },
   "frameweb_sha256": "6970e049d280028d46f0d776ce9fd6b29311954f39ea5103aa37ed41dd6038d7",
   "reaction": {
@@ -88,7 +88,7 @@
   },
   "reference": {
     "fempython": {
-      "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+      "engine_version": "1.0.0+564399b379b78c78226b476facdf1ce089d873f3"
     },
     "frameweb_sha256": "ac7d3b1fe6feabda5a68e81a1de0671679ce0efb5378ccfe56ae1489a0202a2c",
     "reaction": {
@@ -98,9 +98,17 @@
     "compared": [
       "vd"
     ],
+    "compared_columns": [
+      "long_term",
+      "short_term",
+      "safety_vertical",
+      "safety_moment"
+    ],
     "tolerance": 0.25,
+    "hand_tolerance": 0.05,
     "columns": {
       "long_term": {
+        "compared_with": "example2",
         "ours": {
           "combination": 14,
           "vd": 16348.95,
@@ -120,6 +128,7 @@
         }
       },
       "short_term": {
+        "compared_with": "example2",
         "ours": {
           "combination": 15,
           "vd": 18788.38,
@@ -139,6 +148,7 @@
         }
       },
       "safety_vertical": {
+        "compared_with": "example2",
         "ours": {
           "combination": 10,
           "vd": 22585.13,
@@ -158,6 +168,7 @@
         }
       },
       "safety_moment": {
+        "compared_with": "example2",
         "ours": {
           "combination": 12,
           "vd": 20045.0,

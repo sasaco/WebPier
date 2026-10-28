@@ -10,8 +10,9 @@ from ....calc.reaction import ReactionResult
 from ....calc.reaction.dead import GirderDead
 from ....calc.reaction.longitudinal import (
     ADHESION, AXLE_BRAKING, AXLE_STARTING, BEARING_LINES, DEFINITIONS, EA17_BRAKING, EA17_STARTING,
-    FRICTION_SHARE, LONG_RAIL, LONG_RAIL_CAP, LONG_RAIL_SERVICE, SEISMIC_KH, BearingForce, BearingType,
-    LAYOUT_CASES, CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing, SeismicForces,
+    FRICTION_SHARE, LONG_RAIL, LONG_RAIL_CAP, LONG_RAIL_SERVICE, REDUCED_D1, REDUCED_D2, SEISMIC_KH, BearingForce,
+    BearingType, LAYOUT_CASES, CaseForces, GirderForces, LongitudinalCase, LongitudinalResult, SeismicBearing,
+    SeismicForces,
 )
 from ....calc.moving_load import MovingLoadResult
 from ....calc.reaction.train import Layout, LayoutTrain
@@ -35,11 +36,16 @@ CASES = {
     LongitudinalCase.SERVICE_LR10: ("使用性", "1.0 LR"),
     LongitudinalCase.SAFETY_LR10_B10: ("安全性（破壊）", "1.0 LR"),
     LongitudinalCase.SAFETY_LR11_B10: ("安全性（破壊）", "1.1 LR"),
+    LongitudinalCase.SAFETY_LR11_B10_REDUCED: ("安全性（破壊）", "1.1 LR"),
     LongitudinalCase.SAFETY_LR10_B11: ("安全性（破壊）", "1.0 LR"),
+    LongitudinalCase.SAFETY_LR10_B11_REDUCED: ("安全性（破壊）", "1.0 LR"),
     LongitudinalCase.SAFETY_LR10: ("安全性（破壊）", "1.0 LR"),
     LongitudinalCase.RESTORABILITY_LR10_B10: ("復旧性", "1.0 LR"),
     LongitudinalCase.RESTORABILITY_LR10: ("復旧性", "1.0 LR"),
 }
+# A case with the reduced dead loads 0.9 D1 + 0.8 D2 (decision 120), wherever it is named without its combination,
+# is told from its unreduced twin by this (Example橋脚4 III-65 "死荷重低減あり").
+REDUCED = "（死荷重低減あり）"
 SNOW = {"snow2": "S2", "snow10": "S10", "snow30": "S30"}
 SIDES = (("origin", "起点側桁", "B", "A"), ("end", "終点側桁", "C", "D"))
 MARKS = {"origin": "T1", "end": "T2"}  # the horizontal force on each girder in 6.4.1 (2) (07 7-5)
@@ -51,7 +57,8 @@ GROUPS = (
     )),
     ("ロングレール縦荷重＋制動荷重", (
         ("安全性（破壊）の照査", (LongitudinalCase.SAFETY_LR10_B10, LongitudinalCase.SAFETY_LR11_B10,
-                              LongitudinalCase.SAFETY_LR10_B11, LongitudinalCase.SAFETY_LR10)),
+                              LongitudinalCase.SAFETY_LR11_B10_REDUCED, LongitudinalCase.SAFETY_LR10_B11,
+                              LongitudinalCase.SAFETY_LR10_B11_REDUCED, LongitudinalCase.SAFETY_LR10)),
         ("復旧性の照査", (LongitudinalCase.RESTORABILITY_LR10_B10, LongitudinalCase.RESTORABILITY_LR10)),
     )),
 )
@@ -71,11 +78,19 @@ def factors(case: CaseForces, pier: PierInput) -> tuple[Printed | None, Printed 
     return live, getattr(case, side).brake_factor
 
 
-def label(case: CaseForces, pier: PierInput) -> str:
-    """"1.0 LR + 1.23B": the long rail and γB."""
+def reduced(case: LongitudinalCase) -> bool:
+    """With the reduced dead loads 0.9 D1 + 0.8 D2 (decision 120)."""
+    definition = DEFINITIONS[case]
+    return (definition.d1, definition.d2) == (REDUCED_D1, REDUCED_D2)
+
+
+def label(case: CaseForces, pier: PierInput, *, separator: str = "") -> str:
+    """"1.0 LR + 1.23B": the long rail and γB, and REDUCED after a reduced-dead-load case (decision 120), put after
+    *separator* (a line break in a narrow table cell)."""
     _, brake = factors(case, pier)
     text = CASES[case.case][1]
-    return text if brake is None else f"{text} + {printed(brake)}B"
+    text = text if brake is None else f"{text} + {printed(brake)}B"
+    return f"{text}{separator}{REDUCED}" if reduced(case.case) else text
 
 
 def combination(case: CaseForces, pier: PierInput) -> str:
@@ -84,7 +99,7 @@ def combination(case: CaseForces, pier: PierInput) -> str:
     live, brake = factors(case, pier)
     parts = [f"{decimal_constant(definition.d1)}D1", f"{decimal_constant(definition.d2)}D2"]
     if live is not None:
-        parts.append(f"{printed(live)}(L+I)")
+        parts.append(f"{printed(live)}(L+I)" if definition.impact else f"{printed(live)}L")  # decision 119
     parts.append(SNOW[definition.snow.value])
     rail = "LR(8 kN/m)" if definition.service_rail else "LR"
     parts.append(f"{decimal_constant(definition.lr_factor)}{rail}")
@@ -204,10 +219,13 @@ def _bearing(m: Manuscript, key: str, force: BearingForce, case: LongitudinalCas
     vertical: list = [definition.d1, "×", loads.d1, "+", definition.d2, "×", loads.d2]
     vertical_symbols: list = [f"{decimal_constant(definition.d1)}D1", "+", f"{decimal_constant(definition.d2)}D2"]
     if force.live_factor is not None:
-        # "× (1 + i)" is one term, so that a wrapped line begins with its operator, never with "(".
-        vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total,
-                     Row("×", " ", inline(expr("(", 1, "+", impact, ")")), gap=0)]
-        vertical_symbols += ["+", f"{printed(force.live_factor)}複線(L+I)"]
+        vertical += ["+", force.live_factor, "×", reaction, "×", girder.track_total]
+        if definition.impact:
+            # "× (1 + i)" is one term, so that a wrapped line begins with its operator, never with "(".
+            vertical.append(Row("×", " ", inline(expr("(", 1, "+", impact, ")")), gap=0))
+            vertical_symbols += ["+", f"{printed(force.live_factor)}複線(L+I)"]
+        else:  # decision 119: the train without impact
+            vertical_symbols += ["+", f"{printed(force.live_factor)}複線L"]
     vertical += ["+", getattr(loads, definition.snow.value)]
     vertical_symbols += ["+", SNOW[definition.snow.value]]
     m.rule_start()
@@ -310,7 +328,8 @@ def _summary(m: Manuscript, result: ReactionResult, pier: PierInput) -> None:
         span = groups.count(group) if group != previous else 0
         group_cell = [CellSpec(group, rowspan=span, align="center")] if span else []
         mark = f"{MARKS_OF[placed.layout]} " if case.case in LAYOUT_CASES else ""  # 列車の配置 (decision 102)
-        body.append((*group_cell, *cells(mark + label(case, pier), case.origin.force, case.end.force, case.total)))
+        name = mark + label(case, pier, separator="\n")  # REDUCED on a line of its own (decision 120)
+        body.append((*group_cell, *cells(name, case.origin.force, case.end.force, case.total)))
         previous = group
     for index, (field, name) in enumerate((("seismic_girder", "1.0 EQ（桁）"), ("seismic_train", "1.0 EQ（列車）"))):
         forces = getattr(lon, field)

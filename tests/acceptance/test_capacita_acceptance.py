@@ -22,7 +22,7 @@ from webpier.core.integrity import load_json, sha256
 from webpier.export.capacita import build_wdj, write_wdj
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes
-from reactions_by_hand import reference_frameweb
+from reactions_by_hand import reference_frameweb, reference_numbers, reference_result
 
 ROOT = Path(__file__).parents[2]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -73,20 +73,46 @@ def test_the_report_has_the_sections_asked_for_but_those_capacita_skipped(accept
 
 
 def test_the_values_are_those_of_example2(accepted):
-    """Mud of both agrees within 0.2 % with the hand calculation for the sample's N'd (column_capacity_by_hand: decision
-    105 counts the side bars, the H16 sample does not). 08_線路.pdf 8-26: the check ratio of 使用性（損傷）and Myd within
-    0.2 % (the sample's WebDan and Capacita). 09_直角.pdf: neither (WebPier's 0620 wind differs, decisions 12 and 35, and
-    decision 103 changes the bars)."""
+    """Mud of both agrees within 0.2 % with the hand calculation (column_capacity_by_hand: decision 105 counts the side
+    bars, the H16 sample does not): for 0611 at the N'd Capacita printed for the check (decision 120: the governing
+    combination of WebPier's 48 is not the sample's, classification 3), for 0621 at the sample's N'd. 08_線路.pdf 8-26:
+    the damage check's Md and N'd are the sample's (decision 120 (f)'s normal-water buoyancy acts at the footing, below
+    the column bottom), its ratio is the printed one and Myd within 0.2 % (the sample's WebDan and Capacita). 09_直角.pdf:
+    neither (WebPier's 0620 wind differs, decisions 12 and 35, and decision 103 changes the bars)."""
     stage, recorded, _ = accepted
     acceptance, values = sample(stage)["acceptance"], recorded["values"]
     assert (recorded["kind"], recorded["schema_version"], recorded["stage"]) == (
         "capacita_column_check_acceptance", 2, stage)
-    assert abs(float(values["bending_safety_destruction"]["capacity"]) - mud(stage)) / mud(stage) < 0.002
+    safety = values["bending_safety_destruction"]
+    n_d = float(safety["n_d"]) * 1e3 if stage == "0611" else None  # kN printed, N by hand
+    assert recorded["mud_n_d_kN"] == (safety["n_d"] if stage == "0611" else None)
+    by_hand = mud(stage, n_d)
+    assert abs(float(safety["capacity"]) - by_hand) / by_hand < 0.002
+    assert recorded["compared"]["bending_safety_destruction"]["capacity"] == round(by_hand, 1)
     if stage == "0611":
         section = "bending_restorability"
+        assert (values[section]["md"].lstrip("-"), values[section]["n_d"]) == (
+            acceptance[section]["Md_kNm"], acceptance[section]["Nd_kN"])
         assert values[section]["ratio"] == acceptance[section]["ratio"]
         printed, expected = float(values[section]["capacity"]), float(acceptance[section]["Myd_kNm"])
         assert abs(printed - expected) / expected < 0.002
+
+
+def test_the_combination_behind_each_check_is_recorded(accepted):
+    """Read from the reference file's PIK (Capacita does not print it): the extraction case of the WDJ row, and for 0611
+    the WebPier combination of that reference number (reactions_by_hand.reference_numbers)."""
+    stage, recorded, check = accepted
+    cases = dict(check.moment_cases)
+    combinations = recorded["combinations"]
+    assert set(combinations) == set(recorded["values"])
+    for section, row in (("bending_safety_destruction", 5), ("bending_restorability", 6)):
+        assert combinations[section]["extraction_case"] == cases[row]
+        if stage == "0611":
+            data = (ROOT / recorded["input"]["path"]).read_bytes()
+            numbers = reference_numbers(reference_result(parse_input(load_json(data)), "0610"))
+            assert combinations[section]["webpier_combination"] == numbers[combinations[section]["reference_case"]]
+        else:
+            assert combinations[section]["webpier_combination"] is None
 
 
 def test_capacita_checked_the_pik_of_the_current_frameweb_file_too(accepted):

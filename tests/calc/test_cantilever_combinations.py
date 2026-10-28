@@ -135,7 +135,8 @@ def test_the_wind_and_seismic_transverse_actions_follow_the_torques(current):
 def test_the_bearing_force_actions(current):
     _, _, result = current
     tables = _actions(result)
-    expected = SAMPLE["actions"]["LRB"]
+    # decision 119: 1.0 LR + 1.35B by hand (test_cantilever_bearings.WITHOUT_IMPACT): H = 208.71, Mt = 281.76
+    expected = {**SAMPLE["actions"]["LRB"], "1.0 LR + 1.35B": {"total_h": 208.71, "total_mt": 281.76}}
     for case, name in ((LongitudinalCase.SAFETY_LR10_B10, "1.0 LR + 1.23B"), (LongitudinalCase.SAFETY_LR11_B10, "1.1 LR + 1.23B"),
                        (LongitudinalCase.SAFETY_LR10_B11, "1.0 LR + 1.35B"), (LongitudinalCase.SAFETY_LR10, "1.0 LR"),
                        (None, "地震時")):

@@ -227,3 +227,8 @@ Differences:
 - The reaction CSV strings in `inputs.reactions` are the sample's, whose impact loads have no pier-body reduction. They are
   fixed inputs here, so these values are unchanged. The input that WebPier itself writes for the frame analysis now has the
   reduced impact loads, so its reactions differ from these (re-accepted with the real runners, see the acceptance records).
+- Decision 120 changed the combinations of the 0612 short-term and safety columns (each check at low and high water,
+  the short term the edge-stress check): the acceptance compares only the long-term column with 8-30 (its combination by
+  the check, 長期支持) and holds the others to the hand sum of the loads of the combination WebPier picks
+  (classification 3). The hand values of those three columns above are kept as transcribed; the acceptance test
+  no longer checks them.

@@ -3,9 +3,9 @@
   "stage": "0612",
   "input": {
     "file": "input.json",
-    "sha256": "d9ffe2969c73a93a5a7e5d4be8b05da6c097198e59b47cdc58f3e1c28cc0e940"
+    "sha256": "e58422fae66a41727e9e0a5be7941c639c1cc7b0fad3903c774928b82f3c243a"
   },
-  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
+  "implementation_sha256": "70891e9c8dd9c18d6e7216de20de186097c12126f87409fd2077f7a82ebf74d5",
   "result": {
     "basis": {
       "members": [
@@ -37,14 +37,14 @@
         "gamma_r": 1.0,
         "vd": 2253.5,
         "vd_row": 1,
-        "vd_combination": 32,
+        "vd_combination": 33,
         "vud": null,
         "vud_row": null,
         "vud_combination": null,
         "delta": 0.167,
-        "delta_combination": 32,
+        "delta_combination": 33,
         "theta": 4e-05,
-        "theta_combination": 32,
+        "theta_combination": 33,
         "limits": {
           "rk": 10914.4,
           "pt": 0.237,
@@ -75,16 +75,16 @@
         "pickup": 8,
         "gamma_i": 1.0,
         "gamma_r": 1.0,
-        "vd": 2503.4,
+        "vd": 3030.9,
         "vd_row": 1,
-        "vd_combination": 33,
+        "vd_combination": 34,
         "vud": null,
         "vud_row": null,
         "vud_combination": null,
-        "delta": 0.263,
-        "delta_combination": 34,
-        "theta": 6e-05,
-        "theta_combination": 34,
+        "delta": 4.284,
+        "delta_combination": 35,
+        "theta": 0.00043,
+        "theta_combination": 35,
         "limits": {
           "rk": 10914.4,
           "pt": 0.237,
@@ -96,16 +96,16 @@
           "theta": 0.002
         },
         "vertical": {
-          "value": 0.27,
+          "value": 0.33,
           "ok": true
         },
         "pull_out": null,
         "horizontal": {
-          "value": 0.03,
+          "value": 0.44,
           "ok": true
         },
         "rotation": {
-          "value": 0.03,
+          "value": 0.22,
           "ok": true
         }
       },
@@ -117,14 +117,14 @@
         "gamma_r": 1.2,
         "vd": 4330.1,
         "vd_row": 1,
-        "vd_combination": 28,
+        "vd_combination": 19,
         "vud": null,
         "vud_row": null,
         "vud_combination": null,
-        "delta": 6.403,
-        "delta_combination": 28,
-        "theta": 0.00071,
-        "theta_combination": 28,
+        "delta": 7.175,
+        "delta_combination": 13,
+        "theta": 0.00078,
+        "theta_combination": 13,
         "limits": {
           "rk": 10914.4,
           "pt": 0.237,
@@ -141,11 +141,11 @@
         },
         "pull_out": null,
         "horizontal": {
-          "value": 0.26,
+          "value": 0.29,
           "ok": true
         },
         "rotation": {
-          "value": 0.14,
+          "value": 0.16,
           "ok": true
         }
       }
@@ -181,31 +181,31 @@
           "cases": [
             {
               "case": 6,
-              "combination": 7,
+              "combination": 16,
               "distance": 3.75,
-              "md": 88.1,
-              "nd": 4089.1,
-              "vd": 18.5,
-              "ratio_tension": -0.37,
-              "ratio_compression": 0.46,
+              "md": 98.0,
+              "nd": 3179.5,
+              "vd": 21.7,
+              "ratio_tension": -0.27,
+              "ratio_compression": 0.37,
               "shear": 0.0,
-              "combined": 0.17
+              "combined": 0.11
             },
             {
               "case": 7,
-              "combination": 7,
+              "combination": 16,
               "distance": 3.75,
-              "md": 75.4,
-              "nd": 2829.0,
-              "vd": 21.5,
-              "ratio_tension": -0.25,
-              "ratio_compression": 0.32,
+              "md": 88.5,
+              "nd": 1741.9,
+              "vd": 24.0,
+              "ratio_tension": -0.13,
+              "ratio_compression": 0.22,
               "shear": 0.0,
-              "combined": 0.09
+              "combined": 0.04
             },
             {
               "case": 8,
-              "combination": 7,
+              "combination": 19,
               "distance": 3.75,
               "md": 88.1,
               "nd": 4089.1,
@@ -223,31 +223,31 @@
           "cases": [
             {
               "case": 6,
-              "combination": 7,
+              "combination": 13,
               "distance": 3.75,
-              "md": 88.3,
-              "nd": 2704.0,
-              "vd": 18.4,
-              "ratio_tension": -0.23,
-              "ratio_compression": 0.32,
+              "md": 98.2,
+              "nd": 1882.9,
+              "vd": 21.7,
+              "ratio_tension": -0.14,
+              "ratio_compression": 0.24,
               "shear": 0.0,
-              "combined": 0.08
+              "combined": 0.05
             },
             {
               "case": 7,
-              "combination": 7,
+              "combination": 13,
               "distance": 3.75,
-              "md": 75.2,
-              "nd": 3964.1,
-              "vd": 21.6,
-              "ratio_tension": -0.36,
-              "ratio_compression": 0.44,
+              "md": 88.3,
+              "nd": 3320.4,
+              "vd": 24.1,
+              "ratio_tension": -0.29,
+              "ratio_compression": 0.38,
               "shear": 0.0,
-              "combined": 0.16
+              "combined": 0.12
             },
             {
               "case": 8,
-              "combination": 7,
+              "combination": 19,
               "distance": 3.75,
               "md": 75.2,
               "nd": 3964.1,
@@ -261,7 +261,7 @@
         }
       ],
       "engine_version": "1.0.0",
-      "wsj_sha256": "17aaa32cd44c58689631ab7275ba2647c9d7d96aebd68a54031a095d088a7e9f"
+      "wsj_sha256": "942bb438d549b5771e66e43b5ea28cb0bb8392685c84c0ec3f3bf30c0cbffa79"
     },
     "joint": {
       "section": {
@@ -287,11 +287,11 @@
           "piles": 3,
           "check": {
             "side": "引抜き側",
-            "combination": 7,
-            "md": 183.0,
-            "nd": 2972.6,
-            "mud": 2800.1,
-            "ratio": 0.08
+            "combination": 16,
+            "md": 204.8,
+            "nd": 1823.1,
+            "mud": 2558.3,
+            "ratio": 0.1
           }
         },
         {
@@ -299,16 +299,16 @@
           "piles": 3,
           "check": {
             "side": "押込み側",
-            "combination": 7,
-            "md": 183.7,
-            "nd": 4197.4,
-            "mud": 3011.7,
-            "ratio": 0.07
+            "combination": 13,
+            "md": 205.3,
+            "nd": 3519.0,
+            "mud": 2902.9,
+            "ratio": 0.08
           }
         }
       ],
       "engine_version": "1.0.0",
-      "input_sha256": "18ef11ace16bb927be088fe34ed2824f13359432689d9f8a38b8f6d3bfd0f983"
+      "input_sha256": "37671b5592b7fc10cc870c09345fa1ec7fbbc655699b8f1fa1d3b46a167ad1ba"
     },
     "cast": null
   }

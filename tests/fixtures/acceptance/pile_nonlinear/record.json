@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "kind": "pile_nonlinear_acceptance",
-  "date": "2026-10-25T22:04:19+09:00",
+  "date": "2026-10-29T01:20:28+09:00",
   "method": "本物の JRSNAP と Aggre-SE の runner で杭基礎の 0711・0721 を生成し、杭基礎の照査の制限値が .sdr の値（SOIL-JR の表から独立に読んだ）と同じであることを計算書で確かめ、見本 RC橋脚L の結果に見本のプロジェクトとWebPier のプロジェクトを当てて、安定レベル1の杭基礎の照査が同じになることを確かめた。判定は扱わない。",
   "seismic_check_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/pile_seismic.json",
-    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715"
+    "sha256": "e1a15edfb54f82dd1b49e1601a5c324d3580b766bbe1ae81439e2f4d21888ffa"
   },
   "runner": {
     "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
-    "sha256": "3c87241c103567a260b6f2bea7d92fb6b6f5d33ce032558a1af593542aa40fd8"
+    "sha256": "6f217154fef98dbcef75e97a546e979b787aaa870615dcc775fea78a06172ba0"
   },
   "helpers": {
     "scripts/accept_pile_nonlinear.py": "bfcd87fcff495b7049c430e893e1fd3881eb848e2bc87a1c821ccc62c6043fe4"
@@ -19,7 +19,7 @@
     "0711": {
       "project": {
         "file": "線路方向.xml",
-        "sha256": "0e3f0d79a851d541559dcd79f021e4f1a6707e6f4e3b0dc808d6501d722704f7",
+        "sha256": "e25061e55f12a79f304598982bd1bd8e5a63d805feb89f2130233b2412494972",
         "databases": [
           "線路方向(Case1_ρm10_αf1_正向).DB1",
           "線路方向(Case2_ρm12_αf1_正向).DB1",
@@ -29,11 +29,11 @@
       },
       "jrsnap": {
         "folder": "線路方向_JRSNAP",
-        "sha256": "0feed4c5d729e2518eaee1d8dc214dcdfc35382c7af553bf4b0da275ada95b90"
+        "sha256": "0d0c21526ace0f0ec70712be8f9cbb6410c0ee9edf4f2ef303b5e08ba336b6e5"
       },
       "report": {
         "file": "0711_線路方向非線形解析.pdf",
-        "pages": 36,
+        "pages": 37,
         "levels": [
           "1",
           "3"
@@ -109,7 +109,7 @@
     "0721": {
       "project": {
         "file": "線路直角方向.xml",
-        "sha256": "9e8a0d0f687a33f48722d9ecb390cdeca4ad70c51504aee494538e5e0976cdb9",
+        "sha256": "5583c60a7b9199296ab4eb04e569297d0b048bf24813ce880dc435c5b3dfca6a",
         "databases": [
           "線路直角方向(Case1_ρm10_αf1_正向).DB1",
           "線路直角方向(Case2_ρm12_αf1_正向).DB1",
@@ -123,11 +123,11 @@
       },
       "jrsnap": {
         "folder": "線路直角方向_JRSNAP",
-        "sha256": "f15b0e35c521484ab57d0eb863e0c4356d46908d1ebf5f9f58f6bd8d3a177749"
+        "sha256": "9ce11c587c1b550de0562615627364ef14eb6fd56b04159f5dd008b3d1814a1c"
       },
       "report": {
         "file": "0721_線路直角方向非線形解析.pdf",
-        "pages": 69,
+        "pages": 70,
         "levels": [
           "1",
           "3"

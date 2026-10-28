@@ -562,14 +562,14 @@
     },
     "杭": {
       "materials": {
-        "main": null,
-        "transverse": null
+        "main": "SD345",
+        "transverse": "SD345"
       },
-      "pure_cover_mm": null,
-      "aggregate_max_mm": null,
+      "pure_cover_mm": 100.0,
+      "aggregate_max_mm": 25.0,
       "main_bars": {
-        "diameter_mm": null,
-        "count": null
+        "diameter_mm": 32,
+        "count": 20
       },
       "hoops": {
         "footing": {
@@ -578,9 +578,9 @@
           "pitch_mm": null
         },
         "zone_2d": {
-          "diameter_mm": null,
-          "sets": null,
-          "pitch_mm": null
+          "diameter_mm": 16,
+          "sets": 1,
+          "pitch_mm": 200.0
         },
         "lower": []
       },

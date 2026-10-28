@@ -10,6 +10,15 @@ fixed bearing the force is T less the friction at the far (movable) bearing.
 
 Train and braking factors are the load factor ρf times the nominal combination
 factor γ, printed to 2 decimals (07 7-7: 1.231 × 1.1 = 1.3541 -> 1.35).
+
+Rm takes the double-track train with impact, ρ·L·(1 + i), except in the
+braking-governed safety 1.0 LR + 1.1 B, which takes the train without impact
+(decision 119), as 0610's braking-maximum combination does.
+
+The safety 1.1 LR + 1.0 B and 1.0 LR + 1.1 B are also taken with the reduced dead
+loads 0.9 D1 + 0.8 D2 (decision 120; Example橋脚4 III-45〜III-57 ⑤ and ③), with the
+same train, impact and LR and B factors as their unreduced twins: ten non-seismic
+combinations in all.
 """
 
 from __future__ import annotations
@@ -57,7 +66,8 @@ class Snow(Enum):
 
 
 class LongitudinalCase(Enum):
-    """The bearing load combinations of 07 7-5 to 7-12, named by their nominal factors.
+    """The bearing load combinations of 07 7-5 to 7-12 and the reduced-dead-load ones of decision 120, named by their
+    nominal factors.
 
     The printed B factor includes ρf: B10 is printed 1.23B and B11 1.35B in Example2.
     """
@@ -66,7 +76,9 @@ class LongitudinalCase(Enum):
     SERVICE_LR10 = "service 1.0 LR"  # D1 + D2 + double (L + I) + S2
     SAFETY_LR10_B10 = "safety 1.0 LR + 1.0 B"  # 1.1D1 + 1.2D2 + 1.1 double (L + I) + S10
     SAFETY_LR11_B10 = "safety 1.1 LR + 1.0 B"  # train 1.0
-    SAFETY_LR10_B11 = "safety 1.0 LR + 1.1 B"  # train 1.0
+    SAFETY_LR11_B10_REDUCED = "safety 1.1 LR + 1.0 B, 0.9 D1 + 0.8 D2"  # decision 120
+    SAFETY_LR10_B11 = "safety 1.0 LR + 1.1 B"  # train 1.0, the train without impact (decision 119)
+    SAFETY_LR10_B11_REDUCED = "safety 1.0 LR + 1.1 B, 0.9 D1 + 0.8 D2"  # decision 120, without impact
     SAFETY_LR10 = "safety 1.0 LR"  # 1.1D1 + 1.2D2 + S30
     RESTORABILITY_LR10_B10 = "restorability 1.0 LR + 1.0 B"  # D1 + D2 + 1.0 double (L + I) + S10
     RESTORABILITY_LR10 = "restorability 1.0 LR"  # D1 + D2 + S30
@@ -79,13 +91,15 @@ class _Definition:
     brake: Decimal | None  # nominal γB
     d1: Decimal
     d2: Decimal
-    live: Decimal | None  # nominal γ of the double-track train with impact
+    live: Decimal | None  # nominal γ of the double-track train
     service_train: bool  # serviceability ρf and impact; otherwise the safety (ultimate) group
     snow: Snow
     restorability: bool
+    impact: bool = True  # the train in Rm with impact (1 + i); False: without impact (decision 119)
 
 
 _ONE, _D1_SAFETY, _D2_SAFETY = Decimal("1.0"), Decimal("1.1"), Decimal("1.2")
+REDUCED_D1, REDUCED_D2 = Decimal("0.9"), Decimal("0.8")  # reduced dead loads (decision 120)
 DEFINITIONS = {
     LongitudinalCase.SERVICE_LR08: _Definition(_ONE, True, None, _ONE, _ONE, None, True, Snow.S2, False),
     LongitudinalCase.SERVICE_LR10: _Definition(_ONE, False, None, _ONE, _ONE, _ONE, True, Snow.S2, False),
@@ -93,8 +107,12 @@ DEFINITIONS = {
                                                   False, Snow.S10, False),
     LongitudinalCase.SAFETY_LR11_B10: _Definition(Decimal("1.1"), False, _ONE, _D1_SAFETY, _D2_SAFETY, _ONE,
                                                   False, Snow.S10, False),
+    LongitudinalCase.SAFETY_LR11_B10_REDUCED: _Definition(Decimal("1.1"), False, _ONE, REDUCED_D1, REDUCED_D2,
+                                                          _ONE, False, Snow.S10, False),
     LongitudinalCase.SAFETY_LR10_B11: _Definition(_ONE, False, Decimal("1.1"), _D1_SAFETY, _D2_SAFETY, _ONE,
-                                                  False, Snow.S10, False),
+                                                  False, Snow.S10, False, impact=False),
+    LongitudinalCase.SAFETY_LR10_B11_REDUCED: _Definition(_ONE, False, Decimal("1.1"), REDUCED_D1, REDUCED_D2,
+                                                          _ONE, False, Snow.S10, False, impact=False),
     LongitudinalCase.SAFETY_LR10: _Definition(_ONE, False, None, _D1_SAFETY, _D2_SAFETY, None, False, Snow.S30, False),
     LongitudinalCase.RESTORABILITY_LR10_B10: _Definition(_ONE, False, _ONE, _ONE, _ONE, _ONE, False, Snow.S10, True),
     LongitudinalCase.RESTORABILITY_LR10: _Definition(_ONE, False, None, _ONE, _ONE, None, False, Snow.S30, True),
@@ -125,7 +143,7 @@ class BearingForce:
     """One combination at the bearing of one girder on this pier."""
 
     bearing: BearingType
-    live_factor: Printed | None  # ρf × γ on the double-track train with impact; None if no train
+    live_factor: Printed | None  # ρf × γ on the double-track train (with impact unless decision 119); None if no train
     brake_factor: Printed | None  # ρu × γB, or the entered restorability braking factor; None if no braking
     applied: Printed  # T = LR factor × LR + brake factor × B
     vertical: Printed  # Rm: at this bearing if movable, at the far bearing if fixed
@@ -185,7 +203,7 @@ class LayoutForces:
 class LongitudinalResult:
     origin: GirderForces
     end: GirderForces
-    cases: tuple[CaseForces, ...]  # the eight non-seismic combinations of ①, in LongitudinalCase order
+    cases: tuple[CaseForces, ...]  # the ten non-seismic combinations of ① (decision 120), in LongitudinalCase order
     seismic_girder: SeismicForces  # girder inertia (Kh = 1.00)
     seismic_train: SeismicForces  # seismic train inertia
     one_girder: tuple[LayoutForces, LayoutForces]  # ② and ③ (decision 102)
@@ -261,7 +279,8 @@ def _vertical(definition: _Definition, loads: SupportLoads, live: Printed | None
     snow: Printed = getattr(loads, definition.snow.value)
     vertical = definition.d1 * d(loads.d1) + definition.d2 * d(loads.d2) + d(snow)
     if live is not None:
-        vertical += d(live) * d(reaction) * d(tracks) * (1 + d(impact))
+        train = d(live) * d(reaction) * d(tracks)
+        vertical += train * (1 + d(impact)) if definition.impact else train
     return put(FORCE, vertical)
 
 

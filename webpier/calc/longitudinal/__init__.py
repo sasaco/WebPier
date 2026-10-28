@@ -24,7 +24,7 @@ from .actions import (
 )
 from .combinations import (
     Basis, Check, Combination, CombinationFactors, DefineCase, Extraction, ExtractionGroup, ResolvedAction, Usage,
-    combination_factors, define_cases, placed_extractions, resolve_combinations,
+    Water, combination_factors, define_cases, placed_extractions, resolve_combinations,
 )
 
 
@@ -42,8 +42,8 @@ class LongitudinalResult:
     basic_cases: tuple[BasicAction, ...]  # 8-6 to 8-9: the basic cases (decision 69, a LAYOUT_DEPENDENT one ×3)
     define_cases: tuple[DefineCase, ...]  # 8-9
     factors: CombinationFactors
-    combinations: tuple[Combination, ...]  # 8-10, with the resolved actions
-    extractions: tuple[Extraction, ...]  # 8-11
+    combinations: tuple[Combination, ...]  # Example橋脚4 表2.3.2 (decision 120), with the resolved actions
+    extractions: tuple[Extraction, ...]  # 表2.3.3: the 8 groups of 8-11
 
     def basic(self, case: BasicCase, layout: Layout = Layout.BOTH) -> BasicAction:
         for action in self.basic_cases:
@@ -72,5 +72,5 @@ __all__ = [
     "DefineCase", "Extraction", "ExtractionGroup", "FixedDead", "HorizontalRow", "ImpactRow", "ImpactTable",
     "Impacts", "Item", "Layout", "LayoutActions", "LongitudinalCase", "LongitudinalResult", "ResolvedAction", "Row",
     "SpringTerm", "TopTable",
-    "Trains", "Usage", "calculate_longitudinal",
+    "Trains", "Usage", "Water", "calculate_longitudinal",
 ]

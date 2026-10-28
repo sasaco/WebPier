@@ -342,21 +342,24 @@ def _rows(page: pymupdf.Page, x: float, top: float) -> list[float]:
     return bands
 
 
-@pytest.mark.parametrize("first_cell,rows", [
-    ("固定死荷重", 6),  # the support table: header + 5 loads
-    ("列車反力", 9),  # the impact table: header + R + 3 single + 4 double
-    # the horizontal summary along the track: header + 8 combinations + 5 with the train of ② and ③ each (decision
-    # 102) + 2 seismic
-    ("荷重種別", 21),
+@pytest.mark.parametrize("first_cell,heights", [
+    ("固定死荷重", [1] * 6),  # the support table: header + 5 loads
+    ("列車反力", [1] * 9),  # the impact table: header + R + 3 single + 4 double
+    # the horizontal summary along the track: header + 10 combinations + 7 with the train of ② and ③ each (decision
+    # 102) + 2 seismic. The reduced-dead-load cases (decision 120), each of ①②③, write "（死荷重低減あり）" on a
+    # second line of their row.
+    ("荷重種別", [1] * 11 + [2] * 3 + [1] * 3 + [2] * 3 + [1] * 7),
 ])
-def test_a_table_row_is_a_grid_row_framed_medium_and_ruled_hair(current_pdf, first_cell: str, rows: int):
+def test_a_table_row_is_a_grid_row_framed_medium_and_ruled_hair(current_pdf, first_cell: str, heights: list[int]):
+    """Each table row takes a grid row per line of its cells."""
+    rows = len(heights)
     page = next(page for page in current_pdf if page.search_for(first_cell))
     anchor = page.search_for(first_cell)[0]
     crossing = column_x(26) - 2  # a column of numbers of each table, where every row has its rules
     bands = _rows(page, crossing, anchor.y0 - 2 * GRID.pitch_y)
     # The frame's medium rule lies inside the table's boundary (half its 1.0 pt), the hair rules on the boundaries.
     tops = [bands[0] - .5, *bands[1:rows], bands[rows] + .5]
-    assert [round((low - high) / GRID.pitch_y, 3) for high, low in zip(tops, tops[1:])] == [1] * rows
+    assert [round((low - high) / GRID.pitch_y, 3) for high, low in zip(tops, tops[1:])] == heights
     offset = (tops[0] - GRID.origin_y) / GRID.pitch_y
     assert offset == pytest.approx(round(offset), abs=1e-3)
     widths = {round(drawing.get("width") or 0, 2) for drawing in page.get_drawings() if drawing["type"] == "s"
@@ -397,9 +400,9 @@ def test_each_bearing_derivation_is_bracketed_by_the_rule(tmp_path: Path, name: 
                 assert top == pytest.approx(row_top(above) + GRID.pitch_y, abs=.01)
                 assert bottom == pytest.approx(row_top(below), abs=.01)
                 rules += 1
-    # both girders of the eight combinations of ①, the five with the train of ② and ③ (decision 102) and the two
-    # seismic actions
-    assert rules == 2 * (8 + 2 * 5) + 2 * 2
+    # both girders of the ten combinations of ① (decision 120), the seven with the train of ② and ③ (decision 102)
+    # and the two seismic actions
+    assert rules == 2 * (10 + 2 * 7) + 2 * 2
 
 
 def test_the_fixed_bearing_candidate_puts_its_result_in_the_result_column(current_pdf):
@@ -414,7 +417,8 @@ def test_the_fixed_bearing_candidate_puts_its_result_in_the_result_column(curren
         for baseline in _baselines(page, lambda text: text.startswith("T - 1/2") or text.startswith("T − 1/2")):
             assert any(abs(unit - baseline - GRID.pitch_y) < .01 for unit in units), baseline
             found += 1
-    assert found == 8 + 2 * 5  # the fixed bearing of ① and of ② and ③ with the train (decision 102)
+    # the fixed bearing of ① and of ② and ③ with the train (decision 102), ten and seven combinations (decision 120)
+    assert found == 10 + 2 * 7
 
 
 def test_a_long_formula_continues_with_its_operator_in_the_relation_column(current_pdf):

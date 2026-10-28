@@ -16,9 +16,10 @@ import pytest
 
 from frame_report_cases import CASES, chain, part_weight, text
 from webpier.calc.frame import NodeRole, Region
-from webpier.calc.longitudinal import BasicCase, Item, SpringTerm
+from webpier.calc.longitudinal import BasicCase, Check, Item, SpringTerm, Water
+from webpier.calc.longitudinal.actions import HORIZONTAL_CASES
 from webpier.core.printed import Printed
-from webpier.calc.reaction.longitudinal import LAYOUT_CASES
+from webpier.calc.reaction.longitudinal import LAYOUT_CASES, LongitudinalCase
 from webpier.calc.reaction.train import Layout
 
 ADDITIONS = {
@@ -27,7 +28,7 @@ ADDITIONS = {
     "0610/fixed.overlap": "q の載荷区間とはり・ハンチの重複 Δh を式で示す（Example2 は 2.00 のみ）",
     "0610/fixed.overlap.note": "Δh の定義（入力票の記号 H2・H3 は印刷しない）",
     "0610/train.double.origin": "複線の鉛直力 = 単線 × 載荷線数（0600）",
-    "0610/impact.service_single": "使用性の衝撃（組合せ 5, 7, 15, 16 で用いる）",
+    "0610/impact.service_double": "使用性の衝撃（縁応力度・変動荷重の組合せで用いる）",
     "0610/factors.maximum": "1.1ρ の計算",
 }
 REGIONS = {Region.BEAM: "はり", Region.HAUNCH: "ハンチ", Region.COLUMN: "柱", Region.COLUMN_BASE: "柱下端の微小部材",
@@ -149,23 +150,47 @@ def brake(reaction, case) -> tuple[str, str]:
     return "B", f"B（起点{t(factors[0])}，終点{t(factors[1])}）"
 
 
-RAILS = ["0.8LR", "1.0LR", "1.0LR", "1.1LR", "1.0LR", "1.0LR", "1.0LR", "1.0LR"]
-REQUIREMENTS = ["使用性", "使用性", "安全性", "安全性", "安全性", "安全性", "復旧性", "復旧性"]
-BASIC = [("固定死荷重", "", "D1"), ("付加死荷重", "", "D2"), ("浮力", "高水位", "WP1"), ("浮力", "平水位", "WP2"),
-         ("浮力", "低水位", "WP3"), ("雪荷重", "2年確率", "SS2"), ("雪荷重", "10年確率", "SS10"),
-         ("雪荷重", "30年確率", "SS30"), ("列車荷重", "単線", "L1"), ("列車荷重", "複線", "L2"),
-         ("衝撃荷重", "安全性・復旧性　単線", "I1"), ("衝撃荷重", "安全性・復旧性　複線", "I2")]
+_L = LongitudinalCase
+# The horizontal cases by the 0600 case: requirement and LR part; decision 120 adds the two reduced-dead-load ones.
+RAILS = {_L.SERVICE_LR08: ("使用性", "0.8LR"), _L.SERVICE_LR10: ("使用性", "1.0LR"),
+         _L.SAFETY_LR10_B10: ("安全性", "1.0LR"), _L.SAFETY_LR11_B10: ("安全性", "1.1LR"),
+         _L.SAFETY_LR11_B10_REDUCED: ("安全性", "1.1LR"), _L.SAFETY_LR10_B11: ("安全性", "1.0LR"),
+         _L.SAFETY_LR10_B11_REDUCED: ("安全性", "1.0LR"), _L.SAFETY_LR10: ("安全性", "1.0LR"),
+         _L.RESTORABILITY_LR10_B10: ("復旧性", "1.0LR"), _L.RESTORABILITY_LR10: ("復旧性", "1.0LR")}
+REDUCED = "（死荷重低減あり）"  # the 0600 wording of a reduced-dead-load case (decision 120)
+# Decision 120 (g): the single-track train and impact are not basic cases any more.
+BASIC = {BasicCase.D1: ("固定死荷重", "", "D1"), BasicCase.D2: ("付加死荷重", "", "D2"),
+         BasicCase.BUOYANCY_HIGH: ("浮力", "高水位", "WP1"), BasicCase.BUOYANCY_NORMAL: ("浮力", "平水位", "WP2"),
+         BasicCase.BUOYANCY_LOW: ("浮力", "低水位", "WP3"), BasicCase.SNOW2: ("雪荷重", "2年確率", "SS2"),
+         BasicCase.SNOW10: ("雪荷重", "10年確率", "SS10"), BasicCase.SNOW30: ("雪荷重", "30年確率", "SS30"),
+         BasicCase.TRAIN_DOUBLE: ("列車荷重", "複線", "L2"),
+         BasicCase.IMPACT_DOUBLE: ("衝撃荷重", "安全性・復旧性　複線", "I2")}
+
+
+def reduced(case) -> bool:
+    return case in (_L.SAFETY_LR11_B10_REDUCED, _L.SAFETY_LR10_B11_REDUCED)
+
+
+def horizontal_name(reaction, case):
+    """(name, requirement, full label, symbol, requirement as the Define table prints it) of a horizontal case."""
+    short, full = brake(reaction, case)
+    requirement, rail = RAILS[case]
+    name = "ﾛﾝｸﾞﾚｰﾙ+制動" if short else "ﾛﾝｸﾞﾚｰﾙ縦荷重"
+    mark = REDUCED if reduced(case) else ""
+    return (name, requirement, rail + (f" + {full}" if full else "") + mark,
+            rail.removesuffix("LR") + "LR" + (f"+{short}" if short else ""), requirement + mark)
 
 
 def horizontal_names(result, reaction):
-    found = []
-    for index, row in enumerate(result.horizontal):
-        short, full = brake(reaction, row.case)
-        rail = RAILS[index]
-        name = "ﾛﾝｸﾞﾚｰﾙ+制動" if short else "ﾛﾝｸﾞﾚｰﾙ縦荷重"
-        found.append((name, REQUIREMENTS[index], rail + (f" + {full}" if full else ""),
-                      rail.removesuffix("LR") + "LR" + (f"+{short}" if short else ""),
-                      rail + (f" + {short}" if short else "")))
+    return [horizontal_name(reaction, row.case) for row in result.horizontal]
+
+
+def case_names(reaction):
+    """By basic case: (name, qualifier, symbol, 区分 of the Define table)."""
+    found = {case: (name, qualifier, symbol, qualifier) for case, (name, qualifier, symbol) in BASIC.items()}
+    for basic, case in HORIZONTAL_CASES.items():
+        name, requirement, full, symbol, define = horizontal_name(reaction, case)
+        found[basic] = (name, f"{requirement}　{full}", symbol, define)
     return found
 
 
@@ -260,14 +285,11 @@ def expected(case: str) -> dict[str, str]:
     # decision 102: the train of ①, ② and ③ in turn; ①'s keys as before, ② and ③ add the placing
     placings = [(Layout.BOTH, result.train, result.impact),
                 *((placed.layout, placed.train, placed.impact) for placed in result.one_girder)]
+    # decision 120 (g): no single-track table, the double track of each placing with its formula from the single track
     for index, (layout, trains, _) in enumerate(placings):
         key = "train" if layout is Layout.BOTH else f"train.{layout.name.lower()}"
         single, double = trains.single, trains.double
-        add(f"{key}.single.heading", f"{2 * index + 1})単線載荷（{layout.value}）")
-        add(f"{key}.single", top(single.rows, single.n, single.m))
-        add(f"{key}.single.seat", seat(frame, single.n, single.m,
-                                       result.basic(BasicCase.TRAIN_SINGLE, layout).points[0]))
-        add(f"{key}.double.heading", f"{2 * index + 2})複線載荷（{layout.value}）")
+        add(f"{key}.double.heading", f"{index + 1})複線載荷（{layout.value}）")
         add(f"{key}.double.origin", f"載荷線数を乗じるRB={t(single.row(Item.ORIGIN).n)}×"
                                     f"{t(reaction.dead.origin.track_total)}={t(double.row(Item.ORIGIN).n)}kN")
         add(f"{key}.double.end", f"RC={t(single.row(Item.END).n)}×{t(reaction.dead.end.track_total)}="
@@ -278,13 +300,10 @@ def expected(case: str) -> dict[str, str]:
     add("impact.heading", f"{item(6)}衝撃荷重")
     add("impact.note", "鉛直力は列車荷重に橋脚く体の衝撃係数を乗じた値とする．")
     number = 0
-    for layout, trains, impact in placings:
+    for layout, trains, impact in placings:  # decision 120 (g): the double track only
         for key, label, table, train, case_ in (
-                ("ultimate_single", "単線載荷（安全性・復旧性", impact.ultimate_single, trains.single,
-                 BasicCase.IMPACT_SINGLE),
                 ("ultimate_double", "複線載荷（安全性・復旧性", impact.ultimate_double, trains.double,
                  BasicCase.IMPACT_DOUBLE),
-                ("service_single", "単線載荷（使用性", impact.service_single, trains.single, None),
                 ("service_double", "複線載荷（使用性", impact.service_double, trains.double, None)):
             number += 1
             name = f"impact.{key}" if layout is Layout.BOTH else f"impact.{key}.{layout.name.lower()}"
@@ -296,9 +315,9 @@ def expected(case: str) -> dict[str, str]:
             if case_ is not None:
                 point = result.basic(case_, layout).points[0]
             else:  # the serviceability impact as the serviceability combinations of the placing put it on the frame
-                wanted = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
                 point = next(c.source.points[0] for combo in result.combinations for c in combo.components
-                             if c.case is wanted and c.basis.value == "service_impact" and combo.layout is layout)
+                             if c.case is BasicCase.IMPACT_DOUBLE and c.basis.value == "service_impact"
+                             and combo.layout is layout)
             add(f"{name}.seat", seat(frame, table.n, table.m, point))
     add("horizontal.heading", f"{item(7)}水平荷重")
     add("horizontal.summary.heading", "1)支承に働く水平荷重のまとめ")
@@ -319,25 +338,24 @@ def expected(case: str) -> dict[str, str]:
     add("diagrams.heading", "8.3荷重図")
     add("combination.heading", "8.4設計作用の組合せ")
     add("basic.heading", "(1)基本ケース")
-    names = [(n, q) for n, q, _ in BASIC] + [(n, f"{r}　{full}") for n, r, full, _, _ in horizontal_names(result, reaction)]
+    names = case_names(reaction)
 
     short = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}  # 備考 (decision 102)
     add("basic", "No荷重名称区分備考バネ" + "".join(
-        f"{a.number}{''.join(names[a.case.value - 1])}{'' if a.layout is None else short[a.layout]}"
+        f"{a.number}{names[a.case][0]}{names[a.case][1]}{'' if a.layout is None else short[a.layout]}"
         f"{1 if a.spring is SpringTerm.LONG else 2}" for a in result.basic_cases))
     add("basic.note", "バネ1は長期，2は短期のフーチング底面のばねを用いる．")
     add("define.heading", "(2)Defineケース")
-    symbols = [sym for _, _, sym in BASIC] + [sym for _, _, _, sym, _ in horizontal_names(result, reaction)]
-    qualifiers = [q for _, q, _ in BASIC] + [r for _, r, _, _, _ in horizontal_names(result, reaction)]
     placings = {Layout.BOTH: "1", Layout.ORIGIN: "2", Layout.END: "3"}
 
     def placed_symbol(case, layout):  # L1-1 of ① (Example橋脚4 表2.3.1), 1.0LR+1.23B-2 of ②
-        symbol = symbols[case.value - 1]
+        symbol = names[case][2]
         return symbol if layout is None else f"{symbol}-{placings[layout]}"
 
+    # 区分: a reduced-dead-load case adds （死荷重低減あり） to its requirement (decision 120)
     add("define", "NoC1C2C3記号荷重名称区分" + "".join(
         f"{d.number}{result.basic(d.case, d.layout or Layout.BOTH).number}{-d.number if -1 in d.signs else ''}"
-        f"{placed_symbol(d.case, d.layout)}{names[d.case.value - 1][0]}{qualifiers[d.case.value - 1]}"
+        f"{placed_symbol(d.case, d.layout)}{names[d.case][0]}{names[d.case][3]}"
         for d in result.define_cases))
     add("define.note", "C2は水平荷重を逆向きにも作用させることを示す．")
     add("factors.heading", "(3)組合せケースと荷重係数")
@@ -348,8 +366,11 @@ def expected(case: str) -> dict[str, str]:
     add("factors.service_impact", f"使用性の衝撃0.75ρ=0.75×{t(train.factor_service)}={t(f.service_impact)}")
     add("combination", combination_text(result, placed_symbol, names))
     services = [str(c.number) for c in result.combinations if any(k.basis.value == "service_impact" for k in c.components)]
-    add("combination.note", f"組合せ{'，'.join(services)}の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2{item(6)}3)，"
-                            f"4)の値にρ={t(f.service)}を乗じる．")
+    # decision 120 (g): the serviceability impact of the double track of ①, ② and ③ is 2), 4) and 6) of 8.2 (6)
+    add("combination.note", f"組合せ{'，'.join(services)}の衝撃荷重には，使用性の衝撃係数（3/4を含む）による8.2{item(6)}2)，"
+                            f"4)，6)の値にρ={t(f.service)}を乗じる．")
+    add("combination.reduced", f"破壊・低減は死荷重を低減した組合せ（D1×{t(f.d1_reduced)}，D2×{t(f.d2_reduced)}）を示す．")
+    add("combination.reduced_case", "荷重名称の低減は水平荷重の（死荷重低減あり）を示す．")
     add("extraction.heading", "(4)抽出ケース")
     width = min(max(len(e.combinations) for e in result.extractions), 9)  # 9 numbers a line, then the next line
     labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",
@@ -359,13 +380,31 @@ def expected(case: str) -> dict[str, str]:
     return out
 
 
-# The 16 checks of 8-10 as Example2 heads them: requirement, performance item, remark
-CHECK_HEADS = [("安全性", "破壊", "列車最大"), ("安全性", "破壊", "制動最大"), ("安全性", "破壊", "ﾛﾝｸﾞ最大"),
-               ("安全性", "破壊", "雪最大"), ("耐久性・使用性", "ひび割れ", "縁応力度"), ("耐久性・使用性", "ひび割れ", "永久荷重"),
-               ("耐久性・使用性", "ひび割れ", "変動荷重"), ("使用性", "損傷", "列車最大"), ("使用性", "損傷", "雪最大"),
-               ("安全性", "地盤の安定", "列車最大"), ("安全性", "地盤の安定", "制動最大"), ("安全性", "地盤の安定", "ﾛﾝｸﾞ最大"),
-               ("安全性", "地盤の安定", "雪最大"), ("使用性", "長期", ""), ("使用性", "短期", ""), ("使用性", "短期", "")]
+# The 12 checks of Example橋脚4 表2.3.2 (decision 120): requirement, performance item, remark; a reduced check names
+# its reduction in the item (破壊・低減), explained under the table
+CHECK_HEADS = {Check.FAILURE_TRAIN_MAX: ("安全性", "破壊", "列車最大"),
+               Check.FAILURE_BRAKING_MAX: ("安全性", "破壊", "制動最大"),
+               Check.FAILURE_BRAKING_MAX_REDUCED: ("安全性", "破壊・低減", "制動最大"),
+               Check.FAILURE_RAIL_MAX: ("安全性", "破壊", "ﾛﾝｸﾞ最大"),
+               Check.FAILURE_RAIL_MAX_REDUCED: ("安全性", "破壊・低減", "ﾛﾝｸﾞ最大"),
+               Check.FAILURE_SNOW_MAX: ("安全性", "破壊", "雪最大"),
+               Check.SUPPORT_LONG_TERM: ("使用性", "長期", ""),
+               Check.CRACK_PERMANENT_VARIABLE: ("耐久性・使用性", "ひび割れ", "縁応力度"),
+               Check.CRACK_PERMANENT: ("耐久性・使用性", "ひび割れ", "永久荷重"),
+               Check.CRACK_VARIABLE: ("耐久性・使用性", "ひび割れ", "変動荷重"),
+               Check.DAMAGE_TRAIN_MAX: ("使用性", "損傷", "列車最大"), Check.DAMAGE_SNOW_MAX: ("使用性", "損傷", "雪最大")}
 SHORT_PLACINGS = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}
+INITIALS = {Layout.BOTH: "両", Layout.ORIGIN: "起", Layout.END: "終"}  # after the water level, as 表2.3.2
+WATERS = {Water.LOW: "低水位", Water.HIGH: "高水位"}
+
+
+def remark(head, combination) -> str:
+    """decision 102: a check with the train names its placing; decision 120: a check made at two levels names its
+    level, then the placing's initial"""
+    water, layout = combination.water, combination.layout
+    if water is None:
+        return head[2] + ("" if layout is None else SHORT_PLACINGS[layout])
+    return head[2] + WATERS[water] + ("" if layout is None else "・" + INITIALS[layout])
 
 
 def merged(texts) -> str:
@@ -373,15 +412,19 @@ def merged(texts) -> str:
     return "".join(text for index, text in enumerate(texts) if not index or text != texts[index - 1])
 
 
+# The combination table's 荷重名称 of the reduced-dead-load cases: the table has no 区分 for （死荷重低減あり）.
+COMBINATION_NAMES = {BasicCase.SAFETY_LR11_B_REDUCED: "ﾛﾝｸﾞ+制動･低減", BasicCase.SAFETY_LR10_BMAX_REDUCED: "ﾛﾝｸﾞ+制動･低減"}
+
+
 def combination_text(result, placed_symbol, names) -> str:
-    heads = [CHECK_HEADS[c.check.value - 1] for c in result.combinations]
-    remarks = [head[2] + ("" if c.layout is None else SHORT_PLACINGS[c.layout]) for head, c in
-               zip(heads, result.combinations)]  # decision 102: a check with the train names its placing
+    heads = [CHECK_HEADS[c.check] for c in result.combinations]
+    remarks = [remark(head, c) for head, c in zip(heads, result.combinations)]
     header = ("No記号荷重名称" + merged([head[0] for head in heads]) + merged([head[1] for head in heads])
               + merged(remarks) + "".join(str(c.number) for c in result.combinations))
     body = ""
     for row, action in enumerate(result.basic_cases):  # the coefficients by the cases made (decision 69)
-        body += f"{action.number}{placed_symbol(action.case, action.layout)}{names[action.case.value - 1][0]}" + "".join(
+        name = COMBINATION_NAMES.get(action.case, names[action.case][0])
+        body += f"{action.number}{placed_symbol(action.case, action.layout)}{name}" + "".join(
             t(c.coefficients[row]) if c.coefficients[row] is not None else "－" for c in result.combinations)
     return header + body
 
@@ -460,3 +503,39 @@ def test_unsupported_nodes_and_duplicate_keys_are_rejected():
     m.paragraph("a", "二")
     with pytest.raises(ValueError, match="重複"):
         document(m.units)
+
+
+def test_decision_120_combinations_name_the_reduced_cases_and_the_water_level():
+    """Decision 120: the reduced-dead-load cases are told apart by （死荷重低減あり）, a combination header names its
+    water level, the table has the 48 combinations of Example橋脚4 表2.3.2 and the 8 extraction groups list them."""
+    from webpier.reporting.stages.frame_report import TableParts
+    from webpier.reporting.stages.longitudinal import content
+
+    pier, reaction, result, _ = chain("current")
+    got = actual("current")
+    assert len(result.combinations) == 48
+    reduced_cases = [a for a in result.basic_cases if a.case in (BasicCase.SAFETY_LR11_B_REDUCED,
+                                                                 BasicCase.SAFETY_LR10_BMAX_REDUCED)]
+    assert len(reduced_cases) == 6  # each of ①, ② and ③
+    assert got["0610/basic"].count("死荷重低減あり") == 6 and got["0610/define"].count("死荷重低減あり") == 6
+    assert got["0610/horizontal"].count("死荷重低減あり") == 6
+    assert "1.1LR+1.23B（死荷重低減あり）" in got["0610/horizontal"]
+    header = got["0610/combination"].split("1D1")[0]
+    assert "破壊・低減" in header and "制動最大低水位・両" in header and "雪最大高水位" in header
+    assert "永久荷重低水位" in header and "縁応力度高水位・終" in header and "変動荷重起点側" in header
+    assert got["0610/combination.reduced"] == "破壊・低減は死荷重を低減した組合せ（D1×0.9，D2×0.8）を示す．"
+    # the reduced cases' rows are told apart by their 荷重名称 (the table has no 区分): 25-27 and 31-33 of Example2
+    body = got["0610/combination"].split("1D1", 1)[1]
+    assert body.count("ﾛﾝｸﾞ+制動･低減") == 6
+    for number, symbol in ((22, "1.1LR+1.23B-1"), (28, "1.0LR+1.35B-1")):
+        assert f"{number}{symbol}ﾛﾝｸﾞﾚｰﾙ+制動" in body and f"{number + 3}{symbol}ﾛﾝｸﾞ+制動･低減" in body
+    assert got["0610/combination.reduced_case"] == "荷重名称の低減は水平荷重の（死荷重低減あり）を示す．"
+    table = next(unit.value.block for unit in content(result, reaction, pier) if unit.key == "0610/combination")
+    assert isinstance(table, TableParts)
+    columns = [number for spec in table.specs for number in spec.rows[3]]
+    assert columns == [str(number) for number in range(1, 49)]
+    labels = ["安全性（破壊）", "永久＋変動", "永久作用", "変動作用", "使用性（損傷）", "安全性（安定）", "長期支持性能",
+              "短期支持性能"]
+    assert [e.number for e in result.extractions] == list(range(1, 9))
+    want = "".join(f"{e.number}{labels[e.number - 1]}" + "".join(map(str, e.combinations)) for e in result.extractions)
+    assert got["0610/extraction"].endswith(want)

@@ -17,9 +17,11 @@ def test_0610_has_no_snow_item_and_17_basic_cases():
     assert not any(key.startswith("0610/snow.") for key in printed)
     assert (printed["0610/train.heading"], printed["0610/impact.heading"], printed["0610/horizontal.heading"]) == (
         "(4) 列車荷重", "(5) 衝撃荷重", "(6) 水平荷重")
-    assert "8.2 (5) 3)，4) の値に" in printed["0610/combination.note"]
+    # decision 120 (g): the serviceability impact of the double track of ①, ② and ③ is 2), 4), 6) of the item
+    assert "8.2 (5) 2)，4)，6) の値に" in printed["0610/combination.note"]
     basic = printed["0610/basic"]
-    # 35 = 38 less the three snow cases (each case of the train made for ①, ② and ③, decision 102)
+    # 35 = 38 less the three snow cases (each case of the train made for ①, ② and ③, decision 102; decision 120: no
+    # single-track train or impact, the two reduced-dead-load cases for ①, ② and ③)
     assert "雪荷重" not in basic and basic.endswith("35ﾛﾝｸﾞﾚｰﾙ縦荷重復旧性　1.0LR1")
     assert "雪荷重" not in printed["0610/define"] and "雪荷重" not in printed["0610/combination"]
 

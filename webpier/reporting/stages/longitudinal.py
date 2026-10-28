@@ -3,8 +3,9 @@
 8.1 the model (figure, springs, nodes and members, sections, Ec), 8.2 the
 actions with their formula lines, 8.3 the load diagrams, drawn by FEMPython
 from the FrameWeb file of this generation and put in as its pages (decision 44),
-8.4 the basic and Define cases, the combination coefficients as printed, and the
-extraction cases. Member and foundation checks (8-12 onward) are not part of
+8.4 the basic and Define cases, the combination coefficients as printed (the 48
+combinations of Example橋脚4 表2.3.2, decision 120), and the extraction cases.
+Member and foundation checks (8-12 onward) are not part of
 this stage. Every number is a Printed value of the
 LongitudinalResult, of the 0600 ReactionResult it was calculated from, or of
 the input.
@@ -20,8 +21,9 @@ from gridlayoutpdf import Document, Row
 
 from ...calc.frame import NodeRole
 from ...calc.longitudinal import (
-    BasicCase, Check, ImpactTable, Item, Layout, LongitudinalResult, SpringTerm, TopTable,
+    BasicCase, Check, ImpactTable, Item, Layout, LongitudinalResult, SpringTerm, TopTable, Water,
 )
+from ...calc.longitudinal.actions import HORIZONTAL_CASES
 from ...calc.longitudinal.combinations import MAXIMUM_TRAIN, SERVICE_IMPACT, Basis
 from ...calc.reaction import ReactionResult
 from ...calc.reaction.longitudinal import LAYOUT_CASES, LongitudinalCase
@@ -29,13 +31,15 @@ from ...inputs import PierInput
 from ..equations import terms
 from ..figures import footing_dimensions, pier_outline
 from ..numbers import constant
+from ..styles import PROFILE
 from .frame_report import (
-    BODY_LEFT, FigureSpec, Manuscript, Span, TableSpec, Unit, bearing_symbol, document,
+    BODY_LEFT, FigureSpec, Manuscript, Span, TableParts, TableSpec, Unit, plain, bearing_symbol, document,
     frame_figure, material_lines, member_table, part_weight, node_table, operand, overlap_lines, section_lines, seat_moment,
     coefficient_table, extraction_table, factor_lines, pedestal_lever_note, seat_heading, seat_tables,
     semantic_records as records, pile_section, spring_note, spring_units, sub, top_table, used_concretes, value, with_unit,
 )
 from .insertion import DIAGRAMS, LOAD_DIAGRAM, Insertion, diagrams_heading, documents, render_with_pages
+from .reaction.longitudinal import REDUCED
 
 PREFIX = "0610/"
 BEARING_SYMBOLS = {"可動": "M", "固定": "F"}
@@ -46,12 +50,22 @@ _HORIZONTAL = {
     LongitudinalCase.SERVICE_LR10: ("使用性", "1.0LR"),
     LongitudinalCase.SAFETY_LR10_B10: ("安全性", "1.0LR"),
     LongitudinalCase.SAFETY_LR11_B10: ("安全性", "1.1LR"),
+    LongitudinalCase.SAFETY_LR11_B10_REDUCED: ("安全性", "1.1LR"),
     LongitudinalCase.SAFETY_LR10_B11: ("安全性", "1.0LR"),
+    LongitudinalCase.SAFETY_LR10_B11_REDUCED: ("安全性", "1.0LR"),
     LongitudinalCase.SAFETY_LR10: ("安全性", "1.0LR"),
     LongitudinalCase.RESTORABILITY_LR10_B10: ("復旧性", "1.0LR"),
     LongitudinalCase.RESTORABILITY_LR10: ("復旧性", "1.0LR"),
 }
-# Basic cases (8-9): name, qualifier and symbol (base, subscript).
+# The reduced-dead-load cases (decision 120), named with the 0600 REDUCED.
+_REDUCED = frozenset({LongitudinalCase.SAFETY_LR11_B10_REDUCED, LongitudinalCase.SAFETY_LR10_B11_REDUCED})
+# Their 荷重名称 in the combination table (8-10), whose rows have no 区分 to say （死荷重低減あり）: "低減" as the
+# table's "破壊・低減", the long rail shortened as its remark "ﾛﾝｸﾞ最大" and a half-width "･", so that the name fits
+# its 5 grid columns (74.4 pt inside the cell: "ﾛﾝｸﾞ+制動･低減" is 70 pt, with a full-width "・" 75 pt).
+# Example橋脚4 表2.3.1 says 死荷重低減あり in a 備考 column the table has not.
+_REDUCED_NAMES = {"ﾛﾝｸﾞﾚｰﾙ+制動": "ﾛﾝｸﾞ+制動･低減", "ﾛﾝｸﾞﾚｰﾙ縦荷重": "ﾛﾝｸﾞﾚｰﾙ･低減"}
+# Basic cases (8-9): name, qualifier and symbol (base, subscript). The single-track train and impact are not basic
+# cases (decision 120 (g)).
 _BASIC = {
     BasicCase.D1: ("固定死荷重", "", ("D", "1")), BasicCase.D2: ("付加死荷重", "", ("D", "2")),
     BasicCase.BUOYANCY_HIGH: ("浮力", "高水位", ("W", "P1")),
@@ -59,25 +73,29 @@ _BASIC = {
     BasicCase.BUOYANCY_LOW: ("浮力", "低水位", ("W", "P3")),
     BasicCase.SNOW2: ("雪荷重", "2年確率", ("S", "S2")), BasicCase.SNOW10: ("雪荷重", "10年確率", ("S", "S10")),
     BasicCase.SNOW30: ("雪荷重", "30年確率", ("S", "S30")),
-    BasicCase.TRAIN_SINGLE: ("列車荷重", "単線", ("L", "1")), BasicCase.TRAIN_DOUBLE: ("列車荷重", "複線", ("L", "2")),
-    BasicCase.IMPACT_SINGLE: ("衝撃荷重", "安全性・復旧性　単線", ("I", "1")),
+    BasicCase.TRAIN_DOUBLE: ("列車荷重", "複線", ("L", "2")),
     BasicCase.IMPACT_DOUBLE: ("衝撃荷重", "安全性・復旧性　複線", ("I", "2")),
 }
-# The 16 combinations of 8-10: requirement, performance item, remark.
+# The 12 checks of Example橋脚4 表2.3.2 (decision 120): requirement, performance item, remark. The turned remark holds
+# two lines of five characters (the table's 38 basic cases leave a band of 4 grid rows on a page), so a reduced check
+# names its reduction in its item, "破壊・低減", over the two or more columns it has in each part of the table.
 _CHECKS = {
     Check.FAILURE_TRAIN_MAX: ("安全性", "破壊", "列車最大"), Check.FAILURE_BRAKING_MAX: ("安全性", "破壊", "制動最大"),
-    Check.FAILURE_RAIL_MAX: ("安全性", "破壊", "ﾛﾝｸﾞ最大"), Check.FAILURE_SNOW_MAX: ("安全性", "破壊", "雪最大"),
+    Check.FAILURE_BRAKING_MAX_REDUCED: ("安全性", "破壊・低減", "制動最大"),
+    Check.FAILURE_RAIL_MAX: ("安全性", "破壊", "ﾛﾝｸﾞ最大"),
+    Check.FAILURE_RAIL_MAX_REDUCED: ("安全性", "破壊・低減", "ﾛﾝｸﾞ最大"),
+    Check.FAILURE_SNOW_MAX: ("安全性", "破壊", "雪最大"),
+    # alone in one column (two grid columns) between 安全性 and 耐久性・使用性: its requirement on two lines
+    Check.SUPPORT_LONG_TERM: ("使用\n性", "長期", ""),
     Check.CRACK_PERMANENT_VARIABLE: ("耐久性・\n使用性", "ひび割れ", "縁応力度"),
     Check.CRACK_PERMANENT: ("耐久性・\n使用性", "ひび割れ", "永久荷重"),
     Check.CRACK_VARIABLE: ("耐久性・\n使用性", "ひび割れ", "変動荷重"),
     Check.DAMAGE_TRAIN_MAX: ("使用性", "損傷", "列車最大"), Check.DAMAGE_SNOW_MAX: ("使用性", "損傷", "雪最大"),
-    Check.STABILITY_TRAIN_MAX: ("安全性", "地盤の安定", "列車最大"),
-    Check.STABILITY_BRAKING_MAX: ("安全性", "地盤の安定", "制動最大"),
-    Check.STABILITY_RAIL_MAX: ("安全性", "地盤の安定", "ﾛﾝｸﾞ最大"),
-    Check.STABILITY_SNOW_MAX: ("安全性", "地盤の安定", "雪最大"),
-    Check.SUPPORT_LONG_TERM: ("使用性", "長期", ""), Check.SUPPORT_SHORT_TERM_LOW_WATER: ("使用性", "短期", ""),
-    Check.SUPPORT_SHORT_TERM_HIGH_WATER: ("使用性", "短期", ""),
 }
+_WATERS = {Water.LOW: "低水位", Water.HIGH: "高水位"}
+# The band of the turned remarks (decision 120): 4 grid rows, two lines of up to five characters ("ﾛﾝｸﾞ最大",
+# "高水位・終"); with the four header bands of 2, 1, 4 and 1 rows the 38 basic cases fill a page with a part.
+_REMARK_ROWS = 4
 _WATER = (("high", "高水位", "1"), ("normal", "平水位", "2"), ("low", "低水位", "3"))
 _ROW_NAMES = {Item.BEAM: "はり"}
 
@@ -98,10 +116,11 @@ def brake_text(reaction: ReactionResult, case: LongitudinalCase) -> tuple[str, s
 
 
 def horizontal_name(reaction: ReactionResult, case: LongitudinalCase) -> tuple[str, str]:
-    """(requirement, ``1.0LR + 1.23B``) of a horizontal case (8-5)."""
+    """(requirement, ``1.0LR + 1.23B``) of a horizontal case (8-5); a reduced-dead-load case adds the 0600 REDUCED
+    (decision 120)."""
     requirement, rail = _HORIZONTAL[case]
     brake = brake_text(reaction, case)[1]
-    return requirement, rail + (" + " + brake if brake else "")
+    return requirement, rail + (" + " + brake if brake else "") + (REDUCED if case in _REDUCED else "")
 
 
 # 列車の配置 (decision 102): the subscript's suffix as the sample's L1-1, L1-2, L1-3 (Example橋脚4 表2.3.1)
@@ -111,12 +130,12 @@ PLACINGS = {Layout.BOTH: "1", Layout.ORIGIN: "2", Layout.END: "3"}
 def basic_name(result: LongitudinalResult, reaction: ReactionResult, case: BasicCase,
                layout: Layout | None = None) -> tuple[str, str, str, Any]:
     """(name, requirement, qualifier, symbol) of a basic case (8-9); the symbol of a case of each placing names its
-    *layout*."""
+    *layout*. The requirement and the qualifier of a reduced-dead-load case end in the 0600 REDUCED (decision 120)."""
     if case in _BASIC:
         name, qualifier, (base, suffix) = _BASIC[case]
         suffix += "" if layout is None else f"-{PLACINGS[layout]}"
         return name, "", qualifier, sub(base, suffix)
-    row = result.horizontal[case.value - BasicCase.SERVICE_LR08.value]
+    row = next(row for row in result.horizontal if row.case is HORIZONTAL_CASES[case])
     requirement, label = horizontal_name(reaction, row.case)
     short = brake_text(reaction, row.case)[0]
     rail = _HORIZONTAL[row.case][1]
@@ -124,7 +143,7 @@ def basic_name(result: LongitudinalResult, reaction: ReactionResult, case: Basic
     parts = [rail.removesuffix("LR"), sub("L", "R"), *((f"+{short}",) if short else ()),
              *(() if layout is None else (f"-{PLACINGS[layout]}",))]  # no empty text: it would be a run of no glyph
     symbol = Row(*parts, gap=0)
-    return name, requirement, f"{requirement}　{label}", symbol
+    return name, requirement + (REDUCED if row.case in _REDUCED else ""), f"{requirement}　{label}", symbol
 
 
 def _model(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
@@ -262,11 +281,11 @@ def _snow_train(m: Manuscript, result: LongitudinalResult, reaction: ReactionRes
             _table_with_seat(m, f"snow.{key}", result, result.snow[index], case)
     m.heading("train.heading", f"{_item(result, 5)} 列車荷重", 2)
     dead = reaction.dead
+    # Decision 120 (g): the double track only (no basic case takes the single track), its RB and RC from the 0600
+    # reaction of one track.
     for index, (layout, trains) in enumerate(_placings(result)):
         key = _key("train", layout)
-        m.heading(f"{key}.single.heading", f"{2 * index + 1}) 単線載荷（{layout.value}）", 3)
-        _table_with_seat(m, f"{key}.single", result, trains.single, BasicCase.TRAIN_SINGLE, layout=layout)
-        m.heading(f"{key}.double.heading", f"{2 * index + 2}) 複線載荷（{layout.value}）", 3)
+        m.heading(f"{key}.double.heading", f"{index + 1}) 複線載荷（{layout.value}）", 3)
         for side, single, double, girder in (("origin", trains.single.row(Item.ORIGIN), trains.double.row(Item.ORIGIN),
                                               dead.origin),
                                              ("end", trains.single.row(Item.END), trains.double.row(Item.END),
@@ -303,23 +322,19 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
     impacts = [(Layout.BOTH, result.impact, result.train),
                *((placed.layout, placed.impact, placed.train) for placed in result.one_girder)]
     number = 0
-    for layout, impact, trains in impacts:
-        for key, label, table, train, case in (
-                ("ultimate_single", "単線載荷（安全性・復旧性", impact.ultimate_single, trains.single,
-                 BasicCase.IMPACT_SINGLE),
-                ("ultimate_double", "複線載荷（安全性・復旧性", impact.ultimate_double, trains.double,
-                 BasicCase.IMPACT_DOUBLE),
-                ("service_single", "単線載荷（使用性", impact.service_single, trains.single, None),
-                ("service_double", "複線載荷（使用性", impact.service_double, trains.double, None)):
+    for layout, impact, trains in impacts:  # decision 120 (g): the double track only
+        for key, label, table, case in (
+                ("ultimate_double", "複線載荷（安全性・復旧性", impact.ultimate_double, BasicCase.IMPACT_DOUBLE),
+                ("service_double", _SERVICE_LABEL, impact.service_double, None)):
             number += 1
             name = _key(f"impact.{key}", layout)
             m.heading(f"{name}.heading", f"{number}) {label}，{layout.value}）", 3)
-            m.table(name, _impact_table(table, train.n))
-            point = result.basic(case, layout).points[0] if case is not None else _service_point(result, key, layout)
+            m.table(name, _impact_table(table, trains.double.n))
+            point = result.basic(case, layout).points[0] if case is not None else _service_point(result, layout)
             seat_moment(m, f"{name}.seat", result.frame, table.n, table.m, point)
     m.heading("horizontal.heading", f"{_item(result, 7)} 水平荷重", 2)
     m.heading("horizontal.summary.heading", "1) 支承に働く水平荷重のまとめ", 3)
-    rows: list[tuple[Any, ...]] = [(Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")]
+    header = (Span("荷　重　種　別", colspan=2), "起点桁 (kN)", "終点桁 (kN)", "合計 (kN)")
     names = {"使用性": "使用性", "安全性": "安全性（破壊）", "復旧性": "復旧性"}
     placed = [(row, None if row.case not in LAYOUT_CASES else Layout.BOTH) for row in result.horizontal]
     listed = []
@@ -328,30 +343,54 @@ def _impact_horizontal(m: Manuscript, result: LongitudinalResult, reaction: Reac
         if layout is not None:
             listed += [(next(r for r in other.horizontal if r.case is row.case), other.layout)
                        for other in result.one_girder]
-    groups: dict[str, int] = {}
-    for row, _ in listed:
-        requirement = horizontal_name(reaction, row.case)[0]
-        groups[requirement] = groups.get(requirement, 0) + 1
-    previous = ""
+    groups: dict[str, list[tuple[Any, ...]]] = {}
     for row, layout in listed:
         requirement, label = horizontal_name(reaction, row.case)
-        lead: tuple[Any, ...] = ()
-        if requirement != previous:
-            lead = (Span(names[requirement], rowspan=groups[requirement], vertical=True),)
-            previous = requirement
         mark = "" if layout is None else f"{_MARKS[layout]} "  # 列車の配置 (decision 102)
-        rows.append((*lead, Span(mark + label, align="left"),
-                     *(Span(value(force), align="right") for force in (row.origin, row.end, row.total))))
-    # Two grid rows a case, as Example2's taller rows, so that 安全性（破壊） stands written down its four cases.
-    m.table("horizontal", TableSpec((2, 12, 4, 4, 4), tuple(rows), (2,) * len(rows)))
+        groups.setdefault(requirement, []).append(
+            (Span(mark + label, align="left"), *(Span(value(force), align="right") for force in (row.origin, row.end,
+                                                                                                  row.total))))
+    # Two grid rows a case and for the header, as Example2's taller rows, so that 安全性（破壊） stands written down its
+    # cases. A table taller than a page is split between requirement groups (decision 120: 24 cases with ①, ② and ③):
+    # the groups in turn go into one part while it fits a page, each part with the header again; a group is never cut.
+    parts: list[list[tuple[str, list[tuple[Any, ...]]]]] = [[]]
+    for requirement, cases in groups.items():
+        height = 2 + 2 * sum(len(own) for _, own in parts[-1]) + 2 * len(cases)
+        if parts[-1] and height > PROFILE.grid.rows:
+            parts.append([])
+        parts[-1].append((requirement, cases))
+    specs = tuple(_horizontal_spec(header, part, names) for part in parts)
+    if len(specs) == 1:
+        m.table("horizontal", specs[0])
+        return
+    whole = _horizontal_spec(header, [item for part in parts for item in part], names)
+    m.figure("horizontal", FigureSpec(TableParts(specs, PREFIX + "horizontal"), (plain(whole),)))
 
 
-def _service_point(result: LongitudinalResult, key: str, layout: Layout) -> Any:
+def _horizontal_spec(header: tuple[Any, ...], groups: list[tuple[str, list[tuple[Any, ...]]]],
+                     names: Mapping[str, str]) -> TableSpec:
+    """The bearing forces of the requirement *groups* under *header*, the requirement written down its cases."""
+    rows: list[tuple[Any, ...]] = [header]
+    for requirement, cases in groups:
+        rows += [(*((Span(names[requirement], rowspan=len(cases), vertical=True),) if index == 0 else ()), *case)
+                 for index, case in enumerate(cases)]
+    return TableSpec((2, 12, 4, 4, 4), tuple(rows), (2,) * len(rows))
+
+
+_SERVICE_LABEL = "複線載荷（使用性"
+
+
+def _service_point(result: LongitudinalResult, layout: Layout) -> Any:
     """The serviceability impact as the serviceability combinations put it on the frame (at the seat)."""
-    case = BasicCase.IMPACT_SINGLE if key == "service_single" else BasicCase.IMPACT_DOUBLE
     return next(component.source.points[0] for combination in result.combinations
                 for component in combination.components
-                if component.case is case and component.basis is Basis.SERVICE_IMPACT and combination.layout is layout)
+                if component.case is BasicCase.IMPACT_DOUBLE and component.basis is Basis.SERVICE_IMPACT
+                and combination.layout is layout)
+
+
+def _service_items(result: LongitudinalResult) -> str:
+    """The items of 8.2 (6) with the serviceability impact of ①, ② and ③: every second one (2), 4), 6))."""
+    return "，".join(f"{2 * (index + 1)})" for index, _ in enumerate(_placings(result)))
 
 
 def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> None:
@@ -384,34 +423,49 @@ def _combinations(m: Manuscript, result: LongitudinalResult, reaction: ReactionR
                 if any(component.basis is Basis.SERVICE_IMPACT for component in c.components)]
     m.paragraph("combination.note",
                 f"組合せ {'，'.join(services)} の衝撃荷重には，使用性の衝撃係数（3/4 を含む）による 8.2 {_item(result, 6)}"
-                " 3)，4) の値に"
+                f" {_service_items(result)} の値に"
                 f" ρ = {value(factors.service)} を乗じる．")
+    m.line("combination.reduced", Row("破壊・低減は死荷重を低減した組合せ（", sub("D", "1"),
+                                      f" × {value(factors.d1_reduced)}，", sub("D", "2"),
+                                      f" × {value(factors.d2_reduced)}）を示す．", gap=0))
+    m.paragraph("combination.reduced_case", f"荷重名称の低減は水平荷重の{REDUCED}を示す．")
     m.heading("extraction.heading", "(4) 抽出ケース", 2)
     extraction_table(m, result.extractions)
 
 
 def _combination_table(result: LongitudinalResult, reaction: ReactionResult) -> FigureSpec:
-    """Basic cases as rows and the 16 combinations as columns, the coefficients as printed (8-10)."""
+    """Basic cases as rows and the 48 combinations of Example橋脚4 表2.3.2 as columns (decision 120), the coefficients
+    as printed (8-10)."""
     rows = []
     for index, action in enumerate(result.basic_cases):
         name, _, _, symbol = basic_name(result, reaction, action.case, action.layout)
+        if action.case in HORIZONTAL_CASES and HORIZONTAL_CASES[action.case] in _REDUCED:
+            name = _REDUCED_NAMES[name]
         rows.append((str(action.number), symbol, name,
                      [combination.coefficients[index] for combination in result.combinations]))
     return coefficient_table([_check_header(c) for c in result.combinations],
                              [c.number for c in result.combinations], rows, block_id=PREFIX + "combination",
-                             case_columns=(1, 5, 5))
+                             case_columns=(1, 5, 5), remark_rows=_REMARK_ROWS)
 
 
 _SHORT_PLACINGS = {Layout.BOTH: "両側", Layout.ORIGIN: "起点側", Layout.END: "終点側"}
+_PLACING_INITIALS = {Layout.BOTH: "両", Layout.ORIGIN: "起", Layout.END: "終"}  # after the water level (表2.3.2)
 _MARKS = {Layout.BOTH: "①", Layout.ORIGIN: "②", Layout.END: "③"}
 
 
 def _check_header(combination: Any) -> tuple[str, str, str]:
-    """The requirement, performance item and remark of a combination; a check with the train adds its placing."""
+    """The requirement, performance item and remark of a combination. On a second line of the remark, a check made at
+    two water levels adds its level and a check with the train its placing: "両側" alone (decision 102), "低水位・両"
+    with the level, the initial as Example橋脚4 表2.3.2 prints it (decision 120)."""
     requirement, item, remark = _CHECKS[combination.check]
-    if combination.layout is None:
+    water, layout = combination.water, combination.layout
+    if water is None and layout is None:
         return requirement, item, remark
-    return requirement, item, f"{remark}\n{_SHORT_PLACINGS[combination.layout]}".lstrip("\n")
+    if water is None:
+        second = _SHORT_PLACINGS[layout]
+    else:
+        second = _WATERS[water] + ("" if layout is None else "・" + _PLACING_INITIALS[layout])
+    return requirement, item, f"{remark}\n{second}".lstrip("\n")
 
 
 def content(result: LongitudinalResult, reaction: ReactionResult, pier: PierInput) -> tuple[Unit, ...]:

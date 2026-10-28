@@ -66,6 +66,9 @@ explanation pages and the result pages print.
   Example橋脚4 does; the H16 sample does not): the real Capacita gives Mud 39497.2 and γi·Md/Mud = 0.125 (the D19 × 9
   side bars of each face). Mud is compared with the hand calculation of tests/acceptance/column_capacity_by_hand.py
   (39541.0, 0.11 %); 8-26 (Myd 38200.7, 0.114) is unchanged and still compared with the sample.
+- Decision 120: 0611's 安全性（破壊） now comes from WebPier's 48 combinations (low / high water, reduced dead loads
+  0.9 D1 + 0.8 D2), so Mud is hand-checked at the N'd Capacita used, not the sample's (classification 3). The
+  transcribed 8-15 values above are unchanged.
 
 # 09_直角 9.5〜9.9 — transcription notes (0621 柱の断面照査, decision 48)
 

@@ -3,7 +3,7 @@
   "schema_version": 1,
   "input": {
     "path": "tests/fixtures/inputs/pile_seismic.json",
-    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715"
+    "sha256": "e1a15edfb54f82dd1b49e1601a5c324d3580b766bbe1ae81439e2f4d21888ffa"
   },
   "ndus": {
     "線路方向.ndu": {

@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 from recorded_input_support import (
-    before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
+    before_custom_tables, before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles,
+    with_blank_rebar)
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -71,3 +72,21 @@ def test_an_input_recorded_before_the_bars_of_the_cast_in_place_pile_is_the_inpu
     text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
     assert before_rebar(text) is None and with_bars_in_piles(text) is None
     assert sha256(older) not in input_sha256s(text) and sha256(with_bars_in_piles(data)) not in input_sha256s(text)
+
+
+def test_an_input_recorded_before_the_custom_tables_is_rebar_version_3_with_empty_table_overrides():
+    """Decision 111: blank custom_tables of the column are no condition of an acceptance recorded before them (rebar
+    version 3 with the empty table_overrides in their place), and an entered table is."""
+    data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
+    older = before_custom_tables(data)
+    rebar = json.loads(older.decode("utf-8"))["鉄筋"]
+    today = json.loads(data.decode("utf-8"))["鉄筋"]
+    assert rebar["version"] == 3 and rebar["柱"]["table_overrides"] == {"線路": [], "直角": []}
+    assert list(rebar["柱"]) == [("table_overrides" if key == "custom_tables" else key) for key in today["柱"]]
+    assert b"\r\n" in older and sha256(older) in input_sha256s(data)  # the line ends of the input are kept
+    assert before_custom_tables(older) is None
+    entered = json.loads(data.decode("utf-8"))
+    entered["鉄筋"]["柱"]["custom_tables"]["線路"] = {"rows": [], "tension_rows": 1}
+    text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
+    assert before_custom_tables(text) is None
+    assert BEFORE["tests/fixtures/inputs/current.json"] not in input_sha256s(text)

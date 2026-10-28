@@ -3,9 +3,9 @@
   "stage": "0600",
   "input": {
     "file": "input.json",
-    "sha256": "d9ffe2969c73a93a5a7e5d4be8b05da6c097198e59b47cdc58f3e1c28cc0e940"
+    "sha256": "e58422fae66a41727e9e0a5be7941c639c1cc7b0fad3903c774928b82f3c243a"
   },
-  "implementation_sha256": "789a9e824bc1ac23a58f0ef3b3f12b8346a54563abe6bcb70f398080a4f8820e",
+  "implementation_sha256": "70891e9c8dd9c18d6e7216de20de186097c12126f87409fd2077f7a82ebf74d5",
   "result": {
     "dead": {
       "origin": {
@@ -1585,15 +1585,43 @@
           "total": 668.49
         },
         {
+          "case": "safety 1.1 LR + 1.0 B, 0.9 D1 + 0.8 D2",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 318.5,
+            "vertical": 3070.02,
+            "share": 159.25,
+            "friction": 307.0,
+            "friction_floor": 15.93,
+            "fixed_candidate": null,
+            "force": 159.25
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": 1.0,
+            "applied": 932.5,
+            "vertical": 7195.16,
+            "share": 466.25,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 572.74,
+            "force": 572.74
+          },
+          "total": 731.99
+        },
+        {
           "case": "safety 1.0 LR + 1.1 B",
           "origin": {
             "bearing": "movable",
             "live_factor": 1.0,
             "brake_factor": 1.1,
             "applied": 316.75,
-            "vertical": 3600.02,
+            "vertical": 3203.88,
             "share": 158.38,
-            "friction": 360.0,
+            "friction": 320.39,
             "friction_floor": 15.84,
             "fixed_candidate": null,
             "force": 158.38
@@ -1603,14 +1631,42 @@
             "live_factor": 1.0,
             "brake_factor": 1.1,
             "applied": 920.75,
-            "vertical": 8465.16,
+            "vertical": 7599.58,
             "share": 460.38,
             "friction": null,
             "friction_floor": null,
-            "fixed_candidate": 497.49,
-            "force": 497.49
+            "fixed_candidate": 540.77,
+            "force": 540.77
           },
-          "total": 655.87
+          "total": 699.15
+        },
+        {
+          "case": "safety 1.0 LR + 1.1 B, 0.9 D1 + 0.8 D2",
+          "origin": {
+            "bearing": "movable",
+            "live_factor": 1.0,
+            "brake_factor": 1.1,
+            "applied": 316.75,
+            "vertical": 2673.88,
+            "share": 158.38,
+            "friction": 267.39,
+            "friction_floor": 15.84,
+            "fixed_candidate": null,
+            "force": 158.38
+          },
+          "end": {
+            "bearing": "fixed",
+            "live_factor": 1.0,
+            "brake_factor": 1.1,
+            "applied": 920.75,
+            "vertical": 6329.58,
+            "share": 460.38,
+            "friction": null,
+            "friction_floor": null,
+            "fixed_candidate": 604.27,
+            "force": 604.27
+          },
+          "total": 762.65
         },
         {
           "case": "safety 1.0 LR",
@@ -1824,15 +1880,43 @@
               "total": 426.75
             },
             {
+              "case": "safety 1.1 LR + 1.0 B, 0.9 D1 + 0.8 D2",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 303.5,
+                "vertical": 3178.69,
+                "share": 151.75,
+                "friction": 317.87,
+                "friction_floor": 15.18,
+                "fixed_candidate": null,
+                "force": 151.75
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 550.0,
+                "vertical": 4665.0,
+                "share": 275.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 316.75,
+                "force": 316.75
+              },
+              "total": 468.5
+            },
+            {
               "case": "safety 1.0 LR + 1.1 B",
               "origin": {
                 "bearing": "movable",
                 "live_factor": 1.0,
                 "brake_factor": 1.1,
                 "applied": 300.25,
-                "vertical": 3708.69,
+                "vertical": 3275.28,
                 "share": 150.13,
-                "friction": 370.87,
+                "friction": 327.53,
                 "friction_floor": 15.01,
                 "fixed_candidate": null,
                 "force": 150.13
@@ -1850,6 +1934,34 @@
                 "force": 250.0
               },
               "total": 400.13
+            },
+            {
+              "case": "safety 1.0 LR + 1.1 B, 0.9 D1 + 0.8 D2",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 300.25,
+                "vertical": 2745.28,
+                "share": 150.13,
+                "friction": 274.53,
+                "friction_floor": 15.01,
+                "fixed_candidate": null,
+                "force": 150.13
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 500.0,
+                "vertical": 4665.0,
+                "share": 250.0,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 266.75,
+                "force": 266.75
+              },
+              "total": 416.88
             },
             {
               "case": "restorability 1.0 LR + 1.0 B",
@@ -1981,6 +2093,34 @@
               "total": 646.74
             },
             {
+              "case": "safety 1.1 LR + 1.0 B, 0.9 D1 + 0.8 D2",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 176.0,
+                "vertical": 1915.0,
+                "share": 88.0,
+                "friction": 191.5,
+                "friction_floor": 8.8,
+                "fixed_candidate": null,
+                "force": 88.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.0,
+                "applied": 975.0,
+                "vertical": 7055.2,
+                "share": 487.5,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 622.24,
+                "force": 622.24
+              },
+              "total": 710.24
+            },
+            {
               "case": "safety 1.0 LR + 1.1 B",
               "origin": {
                 "bearing": "movable",
@@ -1999,14 +2139,42 @@
                 "live_factor": 1.0,
                 "brake_factor": 1.1,
                 "applied": 967.5,
-                "vertical": 8325.2,
+                "vertical": 7507.5,
                 "share": 483.75,
                 "friction": null,
                 "friction_floor": null,
-                "fixed_candidate": 551.24,
-                "force": 551.24
+                "fixed_candidate": 592.13,
+                "force": 592.13
               },
-              "total": 631.24
+              "total": 672.13
+            },
+            {
+              "case": "safety 1.0 LR + 1.1 B, 0.9 D1 + 0.8 D2",
+              "origin": {
+                "bearing": "movable",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 160.0,
+                "vertical": 1915.0,
+                "share": 80.0,
+                "friction": 191.5,
+                "friction_floor": 8.0,
+                "fixed_candidate": null,
+                "force": 80.0
+              },
+              "end": {
+                "bearing": "fixed",
+                "live_factor": 1.0,
+                "brake_factor": 1.1,
+                "applied": 967.5,
+                "vertical": 6237.5,
+                "share": 483.75,
+                "friction": null,
+                "friction_floor": null,
+                "fixed_candidate": 655.63,
+                "force": 655.63
+              },
+              "total": 735.63
             },
             {
               "case": "restorability 1.0 LR + 1.0 B",

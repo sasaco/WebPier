@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "kind": "pile_detailing_acceptance",
-  "date": "2026-10-26T12:42:06+09:00",
+  "date": "2026-10-28T22:22:23+09:00",
   "method": "本物の SOIL-JR・JRSNAP・Aggre-SE の runner で場所打ち杭（段落しあり）の 0400・0711・0721 を生成し、1/β を .sdc から、Pvmax を Aggre-SE のピックアップと NDU から別の読み方で読み直して照合し、⑧ の段落し情報と杭の段落とし計算書の頁を確かめた。⑧ の判定は扱わない。",
   "aggrese_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/pile_cutoff.json",
-    "sha256": "c09e2ac8b64ade685e3211bfcd3db6bf0fdbef7c9acd990cc494603553d4c660"
+    "sha256": "05b913bf0368321499b5693709c6f77890845b3ffc1e7c5986df0d10b0865f40"
   },
   "inverse_beta": {
     "線路方向": 4.377,
@@ -50,7 +50,7 @@
       "files": {
         "線路方向_Aggre-SE.pik": "7fffbb1b7614189a01eba209c01e76ef095c842da39033d58dff7263e7d28598",
         "線路方向.ndu": "bbd4dae74e299875aae1b9c1c4f1dc5f40101db33901a69fd8a3b34c2392dde0",
-        "線路方向.xml": "f862a4fae9c1db872fde75039f4e033c9876585f9a42551d6174d9889df481eb"
+        "線路方向.xml": "1e76408a77ed94b76d1af962886a52117115292fd3506eae5e35f0c06e8c45e0"
       }
     },
     "線路直角方向": {
@@ -93,7 +93,7 @@
       "files": {
         "線路直角方向_Aggre-SE.pik": "929bc8207e1150e4a9d5f7d1924573e169a2a3b61df56ae36a2913c8cab736ed",
         "線路直角方向.ndu": "7c86d66f49071a395de1fe1dab11f8b2757af2afe4f6c2a92bc7a89e16bc3b58",
-        "線路直角方向.xml": "72baa624b9a3e8410a6fe05ada284ea24dde7eb9fab80d90b4dde1286d4d58a2"
+        "線路直角方向.xml": "154726d2fe8e00a1cee3a6d2f7916107617aa648a16658635f3e70eceaa5fc79"
       }
     }
   },

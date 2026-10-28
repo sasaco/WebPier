@@ -79,7 +79,7 @@ def accept(input_path: Path, evidence: Path, overwrite: bool) -> dict:
         source = root / "pre" / "input.json"
         source.write_bytes(input_path.read_bytes())
         generation = generate(GenerationOptions(source, root / "output", root / "post"))
-        if generation.stages != ("0400", "0500", "0600"):
+        if generation.stages != ("0500", "0400", "0600"):
             raise AcceptanceError(f"段階が想定と違います: {generation.stages}")
         written = {kind: (root / "post" / f"杭基礎.{kind}").read_bytes() for kind in ("sdt", "sdr", "sdc")}
         report = (root / "output" / "0500_杭基礎.pdf").read_bytes()

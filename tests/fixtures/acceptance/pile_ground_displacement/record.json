@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "kind": "pile_ground_displacement_acceptance",
-  "date": "2026-10-26T09:54:51+09:00",
+  "date": "2026-10-29T01:09:07+09:00",
   "method": "地盤区分 G4 と各層の Vs を入れた杭基礎の 0711・0721 を本物の SOIL-JR（JRSNAP の runner）・SoilStructure・JRSNAP・Aggre-SE で生成し、全 Case の集計、応答変位法の各 Case の DB1（荷重増分・最大応答震度のステップ・着目点・杭頭の地盤変位）を SNAPDBLib で、総括表の震度と、補正係数を総括表の Teq・Kheq と Tg からの手計算で確かめた。判定は扱わない。",
   "seismic_check_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/pile_seismic.json",
-    "sha256": "5a07ca4c1373012d466ba2e3c2cc0028dd2b10486bce07e8a4efcd36b86e1715",
+    "sha256": "e1a15edfb54f82dd1b49e1601a5c324d3580b766bbe1ae81439e2f4d21888ffa",
     "kept": "input.json",
-    "kept_sha256": "095f5435da7a18cce3f0d62a01b99d2923246bafe57d63b318a3087f99de9e8f",
+    "kept_sha256": "3422046133c6669b49ca8f88d53de97371e9bdce307d291bd082caf37c0f1ec6",
     "velocities": [
       170,
       120,
@@ -20,15 +20,15 @@
   "runners": {
     "soilstructure": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\SoilStructure\\SoilStructure\\Headless\\bin\\Release\\net10.0\\SoilStructure.Headless.exe",
-      "sha256": "678d4f7e5edfcea7e5ddd837846eaaa102bb1d863ca12c21c6592007bf69a360"
+      "sha256": "116405ae21e2f5b2fe006a28643de620f7f0b2366e9e385b7ac78b635a4ee3b3"
     },
     "aggrese": {
       "path": "C:\\Users\\sasai\\Documents\\structural-mcp\\Batch\\Aggre-SE\\Headless\\bin\\Release\\AggreSE.Headless.exe",
-      "sha256": "3c87241c103567a260b6f2bea7d92fb6b6f5d33ce032558a1af593542aa40fd8"
+      "sha256": "6f217154fef98dbcef75e97a546e979b787aaa870615dcc775fea78a06172ba0"
     }
   },
   "helpers": {
-    "scripts/accept_pile_ground_displacement.py": "44badec8ef6a010e5b5a13e7dfab9ae97dd5d5508484e275bb6e628c86cdcd5b"
+    "scripts/accept_pile_ground_displacement.py": "c4fbd9060dfcdc222b443bbcaae793221f4a291fb128dea01f0a9b8012da878b"
   },
   "ground": {
     "0710": {
@@ -587,12 +587,12 @@
         }
       ],
       "report": {
-        "pages": 75,
+        "pages": 76,
         "webpier_pages_at_least": 1
       },
       "project": {
         "file": "線路方向.xml",
-        "sha256": "039b8a3f97c56d832b8eca6c88faab5905d636887ed1ba77a1391c04427fbfff"
+        "sha256": "7585746b0054b86ed53601c9d9d94b62cd2e9faf293e791dbc89996aa54238a7"
       }
     },
     "0721": {
@@ -784,12 +784,12 @@
         }
       ],
       "report": {
-        "pages": 114,
+        "pages": 115,
         "webpier_pages_at_least": 1
       },
       "project": {
         "file": "線路直角方向.xml",
-        "sha256": "3006f803f9137d85b8e81de6f99fe957ed35623252076ec9984868b1bfeba8ff"
+        "sha256": "972e57e95587d5ec66cd558131c6bc71452170fc65ed13bc8bc13a079bf0a6a1"
       }
     }
   },

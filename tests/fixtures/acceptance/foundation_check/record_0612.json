@@ -2,28 +2,28 @@
   "schema_version": 2,
   "kind": "foundation_check_acceptance",
   "stage": "0612",
-  "verified_at": "2026-10-26T23:00:55+09:00",
-  "method": "WebPier が 0610 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0612 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、Example2 8-30 と比べた。",
+  "verified_at": "2026-10-28T21:32:29+09:00",
+  "method": "WebPier が 0610 で書く FrameWeb 入力（橋脚く体の衝撃の低減あり、決定77）を本物の FEMPython（FrameWebforCS.Headless）で骨組解析し、反力の CSV の支点（節点 6）から 0612 が読む作用を、その組合せの荷重の和と比べた。低減のない参照の FrameWeb 入力も解析し、組合せが Example2 と同じ列（long_term）は Example2 8-30 と、他の列（決定120）はその組合せの荷重の和と比べた。",
   "input": {
     "path": "tests/fixtures/inputs/current.json",
-    "sha256": "b4bf41256d55f1d9cefc7b527d0ffdf1777e71fa46ec28ffc96b0a3fc3cde698"
+    "sha256": "0aa1c4fbb38cab24c8d81bd98dc885be1b7d15d4b39c1d05fc3001bcc61a310f"
   },
-  "implementation_sha256": "062da49993d358b54fe617593e09c57a7fb20d4302d61600529ca76c80d7d51f",
+  "implementation_sha256": "b52f390edf9f30bbba8cf97e85d492f532a0bd3a5fbd0c38ac14b54e902a156c",
   "fempython": {
     "runner": "C:\\Users\\sasai\\Documents\\structural-mcp\\FEMPython\\FrameWebforCS\\Headless\\bin\\Release\\net10.0-windows\\FrameWebforCS.Headless.exe",
-    "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+    "engine_version": "1.0.0+564399b379b78c78226b476facdf1ce089d873f3"
   },
-  "frameweb_sha256": "42b17644a0e35159b6e26154b3a2c60328d215c7b98ad2d7f85200aadc9444a6",
+  "frameweb_sha256": "f415092f0366d2f3fa0fb81c629421adefbc58330282c2958a3d341ee81ee7b4",
   "reaction": {
     "file": "線路方向_ピックアップ反力_橋脚く体の衝撃.csv",
-    "sha256": "c2f35ae8ade4885030107a8c45f30b977f22333fc1eb235eaafdc44e9a904bf3"
+    "sha256": "c08396d7608cb7af3e225bb3119dccc1a727ed5cbd1731136726f804e0a00d65"
   },
   "node": 6,
   "hand_tolerance": 0.05,
   "columns": {
     "long_term": {
       "real": {
-        "combination": 32,
+        "combination": 33,
         "vd": 16348.948,
         "fx": -0.0,
         "mz": 584.25
@@ -41,15 +41,15 @@
     },
     "short_term": {
       "real": {
-        "combination": 33,
-        "vd": 18745.778,
-        "fx": -0.0,
-        "mz": 424.63
+        "combination": 34,
+        "vd": 19429.708,
+        "fx": 300.0,
+        "mz": 3357.07
       },
       "by_hand": {
-        "vd": 18745.778,
-        "fx": -0.0,
-        "mz": 424.63
+        "vd": 19429.708,
+        "fx": 300.0,
+        "mz": 3357.07
       },
       "differences": {
         "vd": 0.0,
@@ -59,7 +59,7 @@
     },
     "safety_vertical": {
       "real": {
-        "combination": 22,
+        "combination": 1,
         "vd": 22448.2033,
         "fx": -473.43,
         "mz": -4714.535
@@ -77,45 +77,54 @@
     },
     "safety_moment": {
       "real": {
-        "combination": 29,
-        "vd": 22006.0699,
-        "fx": 428.4,
-        "mz": 5543.8165
+        "combination": 25,
+        "vd": 18282.6981,
+        "fx": 537.69,
+        "mz": 5622.5482
       },
       "by_hand": {
-        "vd": 22006.09,
-        "fx": 428.4,
-        "mz": 5543.82
+        "vd": 18282.696,
+        "fx": 537.69,
+        "mz": 5622.547
       },
       "differences": {
-        "vd": -0.0201,
+        "vd": 0.0021,
         "fx": 0.0,
-        "mz": -0.0035
+        "mz": 0.0012
       }
     }
   },
   "reference": {
     "fempython": {
-      "engine_version": "1.0.0+7b83fa11858c53882e850cbcb223f4b3a0d8cb9e"
+      "engine_version": "1.0.0+564399b379b78c78226b476facdf1ce089d873f3"
     },
-    "frameweb_sha256": "dee7b087f1eee941f757f7344f4a7c6dadf58edeb8e0a5d5b865cfa1e51f3d9d",
+    "frameweb_sha256": "0661fe487015b7b48d01945d34c67992364b3c684bd2acf4658c353304920a02",
     "reaction": {
       "file": "線路方向_ピックアップ反力.csv",
-      "sha256": "0c017670dae4c60f38821d36d0c45744e1a14d579c149b73bf8b221040cb18ce"
+      "sha256": "27682b81b3fbab670ea16335a87b0618eb08c017d2404471f468e71e82b7eea3"
     },
     "compared": [
       "vd",
       "hd",
       "md"
     ],
+    "compared_columns": [
+      "long_term"
+    ],
     "tolerance": 0.25,
+    "hand_tolerance": 0.05,
     "columns": {
       "long_term": {
+        "compared_with": "example2",
         "ours": {
-          "combination": 14,
+          "combination": 13,
           "vd": 16348.95,
           "hd": 0.0,
-          "md": 584.25
+          "md": 584.25,
+          "webpier_combination": 33,
+          "check": "SUPPORT_LONG_TERM",
+          "water": null,
+          "placing": null
         },
         "sample": {
           "combination": 14,
@@ -130,11 +139,16 @@
         }
       },
       "short_term": {
+        "compared_with": "by_hand",
         "ours": {
-          "combination": 15,
-          "vd": 18788.39,
-          "hd": 0.0,
-          "md": 408.4
+          "combination": 14,
+          "vd": 19506.36,
+          "hd": 300.0,
+          "md": 3327.12,
+          "webpier_combination": 34,
+          "check": "CRACK_PERMANENT_VARIABLE",
+          "water": "低水位",
+          "placing": "両側の桁"
         },
         "sample": {
           "combination": 15,
@@ -142,18 +156,33 @@
           "hd": 0.0,
           "md": 408.49
         },
+        "real": {
+          "vd": 19506.358,
+          "fx": 300.0,
+          "mz": 3327.12
+        },
+        "by_hand": {
+          "vd": 19506.358,
+          "fx": 300.0,
+          "mz": 3327.12
+        },
         "differences": {
-          "vd": 0.22,
-          "hd": 0.0,
-          "md": -0.09
+          "vd": 0.0,
+          "fx": 0.0,
+          "mz": 0.0
         }
       },
       "safety_vertical": {
+        "compared_with": "by_hand",
         "ours": {
-          "combination": 10,
+          "combination": 1,
           "vd": 22585.15,
           "hd": 473.43,
-          "md": 4767.97
+          "md": 4767.97,
+          "webpier_combination": 1,
+          "check": "FAILURE_TRAIN_MAX",
+          "water": "低水位",
+          "placing": "両側の桁"
         },
         "sample": {
           "combination": 10,
@@ -161,18 +190,33 @@
           "hd": 473.43,
           "md": 4767.98
         },
+        "real": {
+          "vd": 22585.1473,
+          "fx": -473.43,
+          "mz": -4767.968
+        },
+        "by_hand": {
+          "vd": 22585.16,
+          "fx": -473.43,
+          "mz": -4767.969
+        },
         "differences": {
-          "vd": 0.03,
-          "hd": 0.0,
-          "md": -0.01
+          "vd": -0.0127,
+          "fx": 0.0,
+          "mz": 0.001
         }
       },
       "safety_moment": {
+        "compared_with": "by_hand",
         "ours": {
-          "combination": 11,
-          "vd": 21870.78,
-          "hd": 495.01,
-          "md": 5460.44
+          "combination": 5,
+          "vd": 17880.67,
+          "hd": 520.42,
+          "md": 5602.76,
+          "webpier_combination": 13,
+          "check": "FAILURE_BRAKING_MAX_REDUCED",
+          "water": "低水位",
+          "placing": "両側の桁"
         },
         "sample": {
           "combination": 11,
@@ -180,10 +224,20 @@
           "hd": 495.01,
           "md": 5460.42
         },
+        "real": {
+          "vd": 17880.6726,
+          "fx": 520.42,
+          "mz": 5602.7591
+        },
+        "by_hand": {
+          "vd": 17880.666,
+          "fx": 520.42,
+          "mz": 5602.756
+        },
         "differences": {
-          "vd": 0.01,
-          "hd": 0.0,
-          "md": 0.02
+          "vd": 0.0066,
+          "fx": 0.0,
+          "mz": 0.0031
         }
       }
     }

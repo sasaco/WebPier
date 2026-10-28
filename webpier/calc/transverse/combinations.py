@@ -38,6 +38,7 @@ from enum import Enum
 from itertools import product
 
 from ...core.printed import FORCE, LINE_LOAD, MOMENT, Printed
+from ...loadmodel import ExtractionGroup
 from .._exact import d, put
 from ..frame import Frame, LineLoad, PointLoad
 from ..longitudinal.actions import bearing_point
@@ -116,6 +117,22 @@ class Check(Enum):
     SUPPORT_LONG_TERM = 14
     SUPPORT_SHORT_TERM_LOW_WATER = 15
     SUPPORT_SHORT_TERM_HIGH_WATER = 16
+
+
+# The checks of each extraction group (9-15, as 8-11 of Example2): 0620's own table (decision 120 changed 0610's).
+EXTRACTIONS: dict[ExtractionGroup, frozenset[Enum]] = {
+    ExtractionGroup.FAILURE: frozenset({Check.FAILURE_TRAIN_MAX, Check.FAILURE_LATERAL_MAX, Check.FAILURE_WIND_MAX,
+                                        Check.FAILURE_SNOW_MAX}),
+    ExtractionGroup.PERMANENT_VARIABLE: frozenset({Check.CRACK_PERMANENT_VARIABLE}),
+    ExtractionGroup.PERMANENT: frozenset({Check.CRACK_PERMANENT}),
+    ExtractionGroup.VARIABLE: frozenset({Check.CRACK_VARIABLE}),
+    ExtractionGroup.DAMAGE: frozenset({Check.DAMAGE_TRAIN_MAX, Check.DAMAGE_SNOW_MAX}),
+    ExtractionGroup.STABILITY: frozenset({Check.STABILITY_TRAIN_MAX, Check.STABILITY_LATERAL_MAX,
+                                          Check.STABILITY_WIND_MAX, Check.STABILITY_SNOW_MAX}),
+    ExtractionGroup.SUPPORT_LONG_TERM: frozenset({Check.SUPPORT_LONG_TERM}),
+    ExtractionGroup.SUPPORT_SHORT_TERM: frozenset({Check.SUPPORT_SHORT_TERM_LOW_WATER,
+                                                   Check.SUPPORT_SHORT_TERM_HIGH_WATER}),
+}
 
 
 @dataclass(frozen=True)

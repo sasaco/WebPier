@@ -28,8 +28,9 @@ CONSTANTS = {
     "0.5", "0.75", "1.0", "1.1", "1.2", "1.00", "0.20", "0.30", "0.2", "1.5", "3.0", "10.0",
     "0.80", "0.19", "0.76", "0.25",
     "0.15", "170.00",  # EA-17's vehicle lateral load 0.15 × 170 (calc.vehicles, decision 101)
+    "0.9",  # the reduced dead load 0.9 D1 (calc.reaction.longitudinal.REDUCED_D1, decision 120)
 }
-# Numbers that are names, not values: the 0.8 LR combination.
+# Numbers that are names, not values: the 0.8 LR combination (0.8 is also the reduced dead load 0.8 D2, decision 120).
 NAMES = {"0.8"}
 
 

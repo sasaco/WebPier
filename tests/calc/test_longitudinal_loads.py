@@ -8,6 +8,7 @@ from longitudinal_support import SECTIONS, chain, diagram, items, longitudinal, 
 from reaction_support import D, pier_ratios, q, value
 from webpier.calc.frame import NodeRole
 from webpier.calc.longitudinal import BasicCase, Item, SpringTerm
+from webpier.calc.longitudinal.actions import HORIZONTAL_CASES
 from webpier.calc.reaction.longitudinal import LongitudinalCase
 from webpier.calc.reaction.train import Layout
 
@@ -153,12 +154,23 @@ def test_impact_is_the_train_times_the_0600_coefficient_on_the_pier_body(usage, 
             [0.138, 0.308] if track == "single" else [0.127, 0.298])
 
 
+# Decision 119: 1.0 LR + 1.35B takes the train without impact in Rm, so its fixed-bearing H differs from Example2's
+# 187.01 (08 8-5; 07 7-9 has (1 + i) in Rm): 329.60 − ½ × 0.1 × 2819.70 = 188.615 -> 188.62, where
+# Rm = 1.1 × 1860 + 1.2 × 260 + 1.23 × 25.08 × 2 + 400 = 2819.6968 -> 2819.70. The movable 308.00 = T/n is unchanged.
+WITHOUT_IMPACT = {"safety_1.0LR+1.35B": [308.0, 188.62]}
+# Decision 120: 0600's reduced-dead-load cases are 0610's horizontal rows too (not in Example2); their forces are the
+# hand calculations of tests/calc/test_reaction_longitudinal.py: 1.1 LR + 1.23B 318.40 + 219.29 and 1.0 LR + 1.35B
+# 308.00 + 212.42.
+REDUCED = {"safety_1.1LR+1.23B_reduced": [318.4, 219.29], "safety_1.0LR+1.35B_reduced": [308.0, 212.42]}
+
+
 def test_8_5_horizontal_bearing_loads():
-    rows = table("bearing_horizontal_loads")
+    rows = {**table("bearing_horizontal_loads"), **WITHOUT_IMPACT, **REDUCED}
     result = longitudinal()
     keys = ("serviceability_0.8LR", "serviceability_1.0LR", "safety_1.0LR+1.23B", "safety_1.1LR+1.23B",
-            "safety_1.0LR+1.35B", "safety_1.0LR", "restorability_1.0LR+1.23B", "restorability_1.0LR")
-    assert [row.case for row in result.horizontal] == list(LongitudinalCase)
+            "safety_1.1LR+1.23B_reduced", "safety_1.0LR+1.35B", "safety_1.0LR+1.35B_reduced", "safety_1.0LR",
+            "restorability_1.0LR+1.23B", "restorability_1.0LR")
+    assert [row.case for row in result.horizontal] == list(LongitudinalCase) == list(HORIZONTAL_CASES.values())
     for row, key in zip(result.horizontal, keys, strict=True):
         assert [row.origin.value, row.end.value] == rows[key]
         assert value(row.total) == D(rows[key][0]) + D(rows[key][1])
@@ -183,10 +195,14 @@ def test_8_6_to_8_8_load_diagrams_vertical():
     for case, number in ((B.BUOYANCY_HIGH, 3), (B.BUOYANCY_NORMAL, 4), (B.BUOYANCY_LOW, 5)):
         assert points(result.basic(case)) == {FOOTING: (5, diagram(number)["P"], 0.0, 0.0)}
         assert result.basic(case).line_loads == ()
-    for case, number in ((B.SNOW2, 6), (B.SNOW10, 7), (B.SNOW30, 8), (B.TRAIN_SINGLE, 9)):
+    for case, number in ((B.SNOW2, 6), (B.SNOW10, 7), (B.SNOW30, 8)):
         assert points(result.basic(case)) == {CAP: (1, diagram(number)["N"], 0.0, diagram(number)["M"])}
+    # Decision 120: the single-track train (Example2 case 9) and impact (11) are tabled but not cases on the frame.
+    single = result.train.single
+    assert (single.n.value, single.m.value) == (diagram(9)["N"], diagram(9)["M"])
+    assert (result.impact.ultimate_single.n.value, result.impact.ultimate_single.m.value) == (171.05, 65.33)
+    assert all(a.case not in (B.TRAIN_SINGLE, B.IMPACT_SINGLE) for a in result.basic_cases)
     assert points(result.basic(B.TRAIN_DOUBLE)) == {CAP: (1, 1134.78, 0.0, 221.03)}  # see the double-track test
-    assert points(result.basic(B.IMPACT_SINGLE)) == {CAP: (1, 171.05, 0.0, 65.33)}  # see the 8-5 test
     assert points(result.basic(B.IMPACT_DOUBLE)) == {
         CAP: (1, result.impact.ultimate_double.n.value, 0.0, result.impact.ultimate_double.m.value)}
 
@@ -194,18 +210,27 @@ def test_8_6_to_8_8_load_diagrams_vertical():
 def test_8_8_load_diagrams_horizontal():
     result = longitudinal()
     for number in range(13, 21):
-        assert points(result.basic(BasicCase(number))) == {CAP: (1, 0.0, diagram(number)["H"], 0.0)}
+        # decision 119: case 17 (1.0 LR + 1.35B) is 308.00 + 188.62 = 496.62 (Example2 495.01; see WITHOUT_IMPACT)
+        h = 496.62 if number == BasicCase.SAFETY_LR10_BMAX.value else diagram(number)["H"]
+        assert points(result.basic(BasicCase(number))) == {CAP: (1, 0.0, h, 0.0)}
+    # decision 120: the reduced cases (see REDUCED): 318.40 + 219.29 = 537.69, 308.00 + 212.42 = 520.42
+    assert points(result.basic(B.SAFETY_LR11_B_REDUCED)) == {CAP: (1, 0.0, 537.69, 0.0)}
+    assert points(result.basic(B.SAFETY_LR10_BMAX_REDUCED)) == {CAP: (1, 0.0, 520.42, 0.0)}
 
 
 def test_8_9_basic_cases_and_springs():
     printed = {row["no"]: row for row in SECTIONS["basic_cases"]["rows"]}
     result = longitudinal()
     first = [action for action in result.basic_cases if action.layout in (None, Layout.BOTH)]  # Example2: ① only
-    assert [action.case.value for action in first] == list(range(1, 21))
-    # 8-9 prints バネ 1 / 2; 1 is the long-term and 2 the short-term spring set of 8-1.
+    # Decision 120: Example2's 20 cases without the single-track train (9) and impact (11), with the reduced
+    # 1.1 LR + 1.23B (21) and 1.0 LR + 1.35B (22) after their twins (16, 17); Example2 has 20 (classification 3).
+    numbers = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15, 16, 21, 17, 22, 18, 19, 20]
+    assert [action.case.value for action in first] == numbers
+    # 8-9 prints バネ 1 / 2; 1 is the long-term and 2 the short-term spring set of 8-1. A reduced case has its twin's.
     terms = {1: SpringTerm.LONG, 2: SpringTerm.SHORT}
-    assert [action.spring for action in first] == [terms[printed[n]["spring"]] for n in range(1, 21)]
-    assert [action.horizontal for action in first] == [n >= 13 for n in range(1, 21)]
+    twin = {21: 16, 22: 17}
+    assert [action.spring for action in first] == [terms[printed[twin.get(n, n)]["spring"]] for n in numbers]
+    assert [action.horizontal for action in first] == [n >= 13 for n in numbers]
     # ② and ③ have the spring and the direction of their case
-    assert all((a.spring, a.horizontal) == (terms[printed[a.case.value]["spring"]], a.case.value >= 13)
-               for a in result.basic_cases)
+    assert all((a.spring, a.horizontal) == (terms[printed[twin.get(a.case.value, a.case.value)]["spring"]],
+                                            a.case in HORIZONTAL_CASES) for a in result.basic_cases)

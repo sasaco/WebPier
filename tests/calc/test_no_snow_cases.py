@@ -1,4 +1,5 @@
-"""Decision 69: without snow on the pier no snow case is made from 0610 on; the cases after it move up."""
+"""Decision 69: without snow on the pier no snow case is made from 0610 on; the cases after it move up. The 0610
+combinations (with 雪最大) and the extractions do not change."""
 
 from functools import cache
 
@@ -8,6 +9,8 @@ from cantilever_support import result_of
 from reaction_support import document
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import BasicCase as L
+from webpier.calc.longitudinal import Check
+from webpier.calc.longitudinal.actions import HORIZONTAL_CASES
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import BasicCase as T
@@ -52,8 +55,9 @@ def test_snow_is_any_snow_on_a_bearing_of_this_pier():
 def test_0610_has_17_basic_cases_numbered_without_the_snow_cases():
     full, result = results(True)[1], results(False)[1]
     assert result.snow is None
-    made = [(case, layout) for case in L if case not in (L.SNOW2, L.SNOW10, L.SNOW30)
-            for layout in (tuple(Layout) if case in LAYOUT_DEPENDENT else (None,))]  # decision 102
+    # decision 102; decision 120: no single-track train or impact
+    made = [(case, layout) for case in L if case not in (L.SNOW2, L.SNOW10, L.SNOW30, L.TRAIN_SINGLE, L.IMPACT_SINGLE)
+            for layout in (tuple(Layout) if case in LAYOUT_DEPENDENT else (None,))]
     assert [(a.number, (a.case, a.layout)) for a in result.basic_cases] == list(enumerate(made, 1))
     # the same vertical actions as with snow (the bearing friction of the horizontal ones carries the snow)
     assert [(a.case, a.layout, a.spring, a.points, a.line_loads) for a in result.basic_cases if not a.horizontal] == [
@@ -61,18 +65,29 @@ def test_0610_has_17_basic_cases_numbered_without_the_snow_cases():
         if (a.case, a.layout) in made and not a.horizontal]
     # Define n is basic case n; the horizontal ones in both directions
     assert [(d.number, (d.case, d.layout), d.signs) for d in result.define_cases] == [
-        (n, made_case, (1, -1) if made_case[0].value >= 13 else (1,)) for n, made_case in enumerate(made, 1)]
+        (n, made_case, (1, -1) if made_case[0] in HORIZONTAL_CASES else (1,)) for n, made_case in enumerate(made, 1)]
 
 
-def test_0610_combinations_keep_their_numbers_and_lose_the_snow_column():
+def test_0610_without_snow_keeps_the_snow_maxima_without_the_snow_column():
+    """Decision 69: without snow the snow basic cases are not made, but the combinations (their numbers and the name
+    雪最大) and the extractions do not change: 48 combinations in the same check, water and placing sequence as with
+    snow. A 雪最大 without snow has no snow term; every combination loses only the snow column."""
     full, result = results(True)[1], results(False)[1]
-    assert [c.number for c in result.combinations] == [c.number for c in full.combinations] == list(range(1, 39))
+    assert len(full.combinations) == len(result.combinations) == 48
+    assert [c.number for c in result.combinations] == list(range(1, 49))
     snow = [a.case in (L.SNOW2, L.SNOW10, L.SNOW30) for a in full.basic_cases]
     for with_snow, without in zip(full.combinations, result.combinations, strict=True):
+        assert (without.number, without.check, without.water, without.layout) == (
+            with_snow.number, with_snow.check, with_snow.water, with_snow.layout)
         assert without.coefficients == tuple(coefficient for is_snow, coefficient in zip(snow, with_snow.coefficients)
                                              if not is_snow)
+        assert not any(c.case in (L.SNOW2, L.SNOW10, L.SNOW30) for c in without.components)
         assert resolved(without) == resolved(with_snow)
-    assert result.extractions == full.extractions
+    snow_max = [c for c in result.combinations if c.check in (Check.FAILURE_SNOW_MAX, Check.DAMAGE_SNOW_MAX)]
+    assert [c.number for c in snow_max] == [31, 32, 48]
+    assert all(c.components for c in snow_max)  # made, with the dead loads and the bearing action
+    assert [(e.number, e.group, e.combinations) for e in result.extractions] == [
+        (e.number, e.group, e.combinations) for e in full.extractions]
 
 
 def test_0620_has_15_basic_cases_and_13_defines_without_the_snow_cases():

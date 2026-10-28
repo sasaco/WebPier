@@ -75,7 +75,9 @@ def test_every_scalar_of_the_input_has_a_field():
                if not path_text(path).startswith(NOT_FIELDS) and pattern(path_text(path)) not in fields.FIELDS]
     # An empty bearing slot is a null object, not a field (CONTEXT.md 空き支承枠).
     assert set(missing) == {f"上部工反力.起点側.B支点[{index}]" for index in range(4, 10)} | {
-        f"上部工反力.終点側.C支点[{index}]" for index in range(2, 10)}
+        f"上部工反力.終点側.C支点[{index}]" for index in range(2, 10)} | {
+        # decision 111: a direction's 配置表の手直し is null (not adjusted) or an object; a null object is not a field
+        "鉄筋.柱.custom_tables.線路", "鉄筋.柱.custom_tables.直角"}
 
 
 def test_units_come_from_the_program():

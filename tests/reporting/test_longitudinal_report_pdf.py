@@ -75,13 +75,14 @@ def test_every_printed_formula_and_table_row_recomputes_from_the_printed_numbers
     assert [check for check in formulas if not check.ok] == []
     rows = table_checks(path)
     kinds = Counter(check.kind for check in rows)
-    # D1, D2, 3 snow, 2 train tables (2 or 3 rows each) and 4 impact tables of 2 rows; 11 totals; 8 horizontal.
-    # Without snow, no snow table (decision 69); with girders on the pedestal, D1 at its top too (decision 81).
+    # D1, D2, 3 snow, the double-track train table (2 or 3 rows) and 2 impact tables of 2 rows each placing; 10
+    # horizontal. Decision 120 (g): no single-track train or impact table. Without snow, no snow table (decision 69);
+    # with girders on the pedestal, D1 at its top too (decision 81).
     result = chain(case)[2]
     snow = 3 if result.snow is not None else 0
-    # the train and impact tables of ①, ② and ③, and the bearing forces of ① and the five with the train of ② and ③
-    # (decision 102)
-    assert kinds["total"] == 6 * 3 + len(dead_tables(result)) + snow and kinds["horizontal"] == 8 + 2 * 5
+    # the train and impact tables of ①, ② and ③, and the bearing forces of ① and the seven with the train of ② and ③
+    # (decisions 102, 120: the two reduced-dead-load cases)
+    assert kinds["total"] == 3 * 3 + len(dead_tables(result)) + snow and kinds["horizontal"] == 10 + 2 * 7
     assert kinds["row"] >= 17 + 2 * snow
     assert [check for check in rows if not check.ok] == []
 
@@ -153,7 +154,8 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
     """Headings at their level's column in MS Gothic 10 pt and the body from column 4 in MS Mincho 10 pt, each line on
     a grid row; the figure's numbers and dimensions; the result "=" of the action formulas centred on the boundary
     before column 22; nothing beyond the body's 30 columns; and the coefficient table (8-10) in whole grid rows:
-    four header bands of 2, 1, 3 and 1 rows, then a row a basic case."""
+    four header bands of 2, 1, 4 and 1 rows (the remarks with the water level and the placing, decision 120), then a
+    row a basic case."""
     with pymupdf.open(render("current", tmp_path / "0610.pdf")) as pdf:
         found = spans(pdf)
         placed = (("§8. 線路方向の計算（地震時以外）", 0, HEADING), ("8.1 検討モデル", 1, HEADING), ("(1) 骨組図", 2, HEADING),
@@ -173,10 +175,49 @@ def test_the_pages_follow_the_grid_contract(tmp_path: Path):
         assert [error for page in pdf if not inserted(page) for error in outside_body(page)] == []
         page = next(p for p in pdf if "制動最大" in p.get_text())  # the first part of the table
         top = next(span for span in found if span.text == "安全性" and span.page == page.number + 1).baseline - 25
-        rows = [2, 1, 3, 1] + [1] * len(chain("current")[2].basic_cases)
+        rows = [2, 1, 4, 1] + [1] * len(chain("current")[2].basic_cases)
         # the first combination column: after No, 記号 and 荷重名称 of 1, 5 and 5 columns (decision 102)
         assert band_errors(row_bands(page, column_x(11) + 8, top)[:len(rows) + 1], rows) == []
         assert all(measure.monochrome_errors(p) == [] for p in pdf)
+
+
+def test_the_horizontal_summary_is_split_between_requirement_groups_with_the_header_again(tmp_path: Path):
+    """8.2 (7) 1): two grid rows the header and each case, as Example2's. Example2 with ①, ② and ③ (decisions 102,
+    120) has 使用性 0.8LR and 1.0LR of ①, ② and ③ (4 cases), 安全性（破壊） 1.0LR + 1.23B, 1.1LR + 1.23B and
+    1.0LR + 1.35B of ①, ② and ③, the latter two also with the reduced dead loads, and 1.0LR (5 × 3 + 1 = 16), 復旧性
+    1.0LR + B of ①, ② and ③ and 1.0LR (4). 2 + 2 × (4 + 16 + 4) = 50 grid rows do not fit a page of 47, so the table
+    is cut between requirement groups: 使用性 and 安全性 (2 + 2 × 20 = 42 rows) on one page, 復旧性 (2 + 2 × 4 = 10) on
+    the next, each with the header; no requirement's vertical label is cut."""
+    path = render("current", tmp_path / "0610.pdf")
+    by_page = Counter(check.page for check in table_checks(path) if check.kind == "horizontal")
+    with pymupdf.open(path) as pdf:
+        found = spans(pdf)
+        header = [page for page in pdf if "荷重種別起点桁(kN)終点桁(kN)合計(kN)" in squeeze(page.get_text())]
+        assert len(header) == 2 and header[1].number == header[0].number + 1
+        texts = [squeeze(page.get_text()) for page in header]
+        assert ["使用性" in t and "安全性（破壊）" in t and "復旧性" not in t for t in texts] == [True, False]
+        assert "復旧性" in texts[1] and "安全性（破壊）" not in texts[1]
+        assert [by_page[page.number + 1] for page in header] == [4 + 16, 4]
+        for page, cases in zip(header, (20, 4)):
+            top = next(span for span in found if span.text.startswith("起点桁") and span.page == page.number + 1)
+            rows = [2] * (1 + cases)
+            # the 起点桁 column: after the requirement and the name of 2 and 12 columns from the table's left edge
+            assert band_errors(row_bands(page, column_x(3 + 14) + 8, top.baseline - 25)[:len(rows) + 1], rows) == []
+
+
+def test_the_reduced_cases_of_the_combination_table_have_their_own_name(tmp_path: Path):
+    """8.4 (3): the combination table has no 区分, so the rows of the reduced-dead-load cases (Example2's 25-27 and
+    31-33) print "ﾛﾝｸﾞ+制動･低減" in the 荷重名称 of 5 grid columns, in every part of the table, and the note says what
+    the 低減 is; the other rows of the same symbols keep "ﾛﾝｸﾞﾚｰﾙ+制動"."""
+    path = render("current", tmp_path / "0610.pdf")
+    with pymupdf.open(path) as pdf:
+        parts = [text for text in (squeeze(page.get_text()) for page in pdf) if text.startswith("No記号荷重名称")]
+        assert len(parts) == 6  # 48 combinations, 8 a part
+        for text in parts:
+            assert text.count("ﾛﾝｸﾞ+制動･低減") == 6
+            assert "251.1LR+1.23B-1ﾛﾝｸﾞ+制動･低減" in text and "221.1LR+1.23B-1ﾛﾝｸﾞﾚｰﾙ+制動" in text
+            assert "311.0LR+1.35B-1ﾛﾝｸﾞ+制動･低減" in text and "281.0LR+1.35B-1ﾛﾝｸﾞﾚｰﾙ+制動" in text
+        assert sum("荷重名称の低減は水平荷重の（死荷重低減あり）を示す．" in squeeze(page.get_text()) for page in pdf) == 1
 
 
 def test_headings_stay_with_what_follows_and_tables_are_not_split():
@@ -191,7 +232,7 @@ def test_headings_stay_with_what_follows_and_tables_are_not_split():
 
     units = content(result, reaction, pier)
     for index, unit in enumerate(units):
-        if isinstance(getattr(unit.value, "block", None), TableParts):  # one page at most a part (8-10)
+        if isinstance(getattr(unit.value, "block", None), TableParts):  # one page at most a part (8-10, 8.2 (7) 1))
             assert len(owners[unit.key]) <= len(unit.value.block.specs), unit.key
         elif unit.kind in ("table", "figure"):
             assert len(owners[unit.key]) == 1, unit.key

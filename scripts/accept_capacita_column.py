@@ -12,11 +12,22 @@ to Capacita too, which must check the same sections and skip the same ones, and 
 column_section_check_09.json, ``acceptance``):
 
 - Mud of both: decision 105 counts the side bars in 安全性（破壊）（the H16 sample does not), so Mud must agree within
-  0.2 % with the hand calculation for the sample's N'd (tests/acceptance/column_capacity_by_hand.py);
-- 0611 (08_線路.pdf 8-26): the check ratio and Myd of 使用性（損傷）must be the printed ones;
+  0.2 % with the hand calculation (tests/acceptance/column_capacity_by_hand.py). For 0611 it is made at the N'd Capacita
+  printed for that check (``Nd (kN)`` on its first result page, given to the hand calculation in N): decision 120 makes
+  0610's 安全性（破壊） from WebPier's 48 combinations (low / high water, reduced dead loads 0.9 D1 + 0.8 D2), so the
+  governing combination and its N'd are no longer the sample's (classification 3). For 0621 it is the sample's N'd;
+- 0611 (08_線路.pdf 8-26): the check ratio and Myd of 使用性（損傷）must be the printed ones. Decision 120 (f) adds the
+  normal-water buoyancy (Example2 −1701.00 kN, h_w 2.70) to the damage combinations, but it acts at the footing node,
+  below the column bottom, so the checked Md and N'd must still be the sample's (3619.6, 14404.5); were they not, the
+  values could only be recorded (decision 120 (f), classification 3), and the acceptance stops instead;
 - 0621 (09_直角.pdf 9-19, 9-23): WebPier's 0620 wind differs from the sample's (decisions 12, 35), so Md and the
   ratios differ, and decision 103 puts the corner D32 in the main bars, so Myd differs too and is recorded only;
   Capacita must skip the checks the sample omits (``skipped_by_capacita``) and no other.
+
+Capacita does not print the combination behind a check. It is read from the PIK of the reference file (the row of the
+check's extraction case at the column bottom whose Md and N'd are the printed ones) and recorded as ``combinations``
+with the WebPier combination of that number (0611, ``reactions_by_hand.reference_numbers``; 0620's reference file is
+numbered as Example2, so 0621 records the PIK's number only).
 
 The record goes to tests/fixtures/acceptance/capacita/record.json (0611) or record_0621.json, and tests/acceptance
 checks that it still belongs to the current generator. It records that Capacita checked the WDJ as WebPier writes
@@ -53,14 +64,16 @@ from webpier.pipeline import capacita, fempython  # noqa: E402
 from webpier.pipeline.generate import export_bytes  # noqa: E402
 from webpier.pipeline.runtime import dependency_hashes  # noqa: E402
 from column_capacity_by_hand import mud  # noqa: E402
-from reactions_by_hand import reference_frameweb  # noqa: E402
+from reactions_by_hand import reference_frameweb, reference_numbers, reference_result  # noqa: E402
 
 INPUT = "tests/fixtures/inputs/current.json"
 EXAMPLE2 = PROJECT / "tests" / "fixtures" / "example2"
 RECORDS = PROJECT / "tests" / "fixtures" / "acceptance" / "capacita"
-# (section, label of the ratio, label of the capacity, key of the capacity in the sample) on the first result page
-CHECKS = {"bending_safety_destruction": ("γi･Md/Mud", "Mud (kN･m)", "Mud_kNm"),
-          "bending_restorability": ("γi･Md/Myd", "Myd (kN･m)", "Myd_kNm")}
+# (section, label of the ratio, label of the capacity, key of the capacity in the sample, Capacita's row id in WDJ
+# basic.pickup_moment) on the first result page
+CHECKS = {"bending_safety_destruction": ("γi･Md/Mud", "Mud (kN･m)", "Mud_kNm", 5),
+          "bending_restorability": ("γi･Md/Myd", "Myd (kN･m)", "Myd_kNm", 6)}
+FORCES = {"md": "Md (kN･m)", "n_d": "Nd (kN)"}  # the section forces of the check, printed on the same page
 TOLERANCE = 0.002  # the sample's WebDan and the current Capacita (the sample's own WDJ shows the same difference)
 
 
@@ -84,8 +97,13 @@ STAGES = {
         ("使用性（損傷）の照査値（γi・Md/Myd＝0.114）は見本と一致し、Myd は見本の WebDan といまの Capacita で 0.2% 未満違う"
          "（38200.7／38260.8。見本自身の WDJ と PIK をいまの Capacita で計算しても同じ値になる）。",
          "安全性（破壊）は決定105 で側方鉄筋 D19×9（片面）を数えるので、Mud と照査値は見本（側方鉄筋を数えない H16。Mud 37449.1、"
-         "0.132）と違う。Mud は見本の N'd 15089.9 での手計算（RC標準の応力ひずみ曲線、側方鉄筋込み）と 0.2% 未満で合う。等価応力ブロックで側方鉄筋を"
-         "数えない同じ手計算は 37490.6（いまの Capacita の数えない値 37426.2 と 0.17%）。",
+         "0.132）と違う。等価応力ブロックで側方鉄筋を数えない見本の N'd 15089.9 での手計算は 37490.6（いまの Capacita の数えない値"
+         " 37426.2 と 0.17%）。",
+         "決定120 で 0610 の安全性（破壊）は WebPier の 48 の組合せ（低水位・高水位、死荷重を減らした 0.9D1＋0.8D2）から採るので、"
+         "決める組合せと N'd は見本と違う（分類3。参照の FrameWeb 入力では制動最大（死荷重低減）の組合せ）。Mud は Capacita が"
+         "その照査に使った N'd での手計算（RC標準の応力ひずみ曲線、側方鉄筋込み）と 0.2% 未満で合う。",
+         "使用性（損傷）の組合せは決定120 (f) で平水位の浮力を含むが、浮力はフーチングの節点に作用し柱下端の断面力を変えないので、"
+         "Md・N'd（3619.6・14404.5）は見本と同じで、照査値と Myd を見本と比べる。",
          "使用性（損傷）のせん断のページが加わる（見本 8.9(2) は省略。決定48）。",
          "断面力一覧のページが加わる（print_section_force_checked。見本 8.5 に相当）。",
          "基準は RC標準 R5（見本は H16。決定73）で、照査値と耐力は H16 のときと同じ。最小鉄筋量及び最大鉄筋量の節"
@@ -132,11 +150,27 @@ def _check(wdj: bytes, stage: Stage, pik: bytes, check, runner):
     values = {}
     with pymupdf.open(stream=pages.pdf, filetype="pdf") as document:
         page_count = len(document)
-        for section, (ratio, capacity, _) in CHECKS.items():
+        for section, (ratio, capacity, _, _) in CHECKS.items():
             first, _ = pages.section(section)
             lines = [line.strip() for line in document[first - 1].get_text().splitlines() if line.strip()]
-            values[section] = {"page": first, "ratio": _after(lines, ratio), "capacity": _after(lines, capacity)}
+            values[section] = {"page": first, "ratio": _after(lines, ratio), "capacity": _after(lines, capacity),
+                               **{key: _after(lines, label) for key, label in FORCES.items()}}
     return pages, values, page_count
+
+
+def _pik_case(pik: bytes, group: int, member: int, md: str, n_d: str) -> int:
+    """The combination number (of the analysed FrameWeb file) of the PIK row of extraction case *group*, moment, at the
+    J end of *member* whose Md and N'd are the printed *md* (kN·m) and *n_d* (kN; the PIK has compression negative)."""
+    for line in pik.decode("utf-8-sig").replace("\r\n", "\n").split("\n")[1:]:
+        if (line[0:5].strip(), line[5:10].strip(), line[10:15].strip(), line[25:30].strip()) != (
+                str(group), "M", str(member), "JTAN"):
+            continue
+        forces = [float(value) for value in line[30:].split()][1:]  # the distance, then max Md Vd Nd, min Md Vd Nd
+        for case, (moment, _, axial) in zip((int(line[15:20]), int(line[20:25])), (forces[0:3], forces[3:6])):
+            if f"{moment:.1f}" == md and f"{-axial:.1f}" == n_d:
+                return case
+        raise AcceptanceError(f"PIK の抽出ケース{group}の部材{member}の JTAN に Md {md}・N'd {n_d} の行がありません")
+    raise AcceptanceError(f"PIK に抽出ケース{group}の部材{member}の JTAN の行がありません")
 
 
 def main(stage_id: str) -> int:
@@ -155,16 +189,37 @@ def main(stage_id: str) -> int:
     wdj = write_wdj(build_wdj(check, index))
     pages, values, page_count = _check(wdj, stage, pik, check, capacita_runner)
     sample = load_json(stage.sample.read_bytes())["acceptance"]
-    expected = {section: (sample[section]["ratio"], sample[section][key]) for section, (_, _, key) in CHECKS.items()}
-    # decisions 103 and 105: Mud is compared with the hand calculation; Myd with the sample along the track only
-    compared = {"bending_safety_destruction": (None, round(mud(stage_id), 1))}
+    expected = {section: (sample[section]["ratio"], sample[section][key])
+                for section, (_, _, key, _) in CHECKS.items()}
+    # decisions 103 and 105: Mud is compared with the hand calculation; Myd with the sample along the track only.
+    # Decision 120: along the track the hand calculation is made at the N'd Capacita printed (kN -> N)
+    safety = values["bending_safety_destruction"]
+    n_d = None if stage.transverse else float(safety["n_d"]) * 1e3
+    compared = {"bending_safety_destruction": (None, round(mud(stage_id, n_d), 1))}
+    basis = {"bending_safety_destruction": "見本の N'd での手計算" if n_d is None else
+             f"Capacita の N'd {safety['n_d']} kN での手計算", "bending_restorability": "見本"}
     if not stage.transverse:
         compared["bending_restorability"] = expected["bending_restorability"]
+        damage, printed = values["bending_restorability"], sample["bending_restorability"]
+        if (damage["md"].lstrip("-"), damage["n_d"]) != (printed["Md_kNm"], printed["Nd_kN"]):
+            raise AcceptanceError(
+                f"bending_restorability: Md {damage['md']}・N'd {damage['n_d']} が見本（{printed['Md_kNm']}・"
+                f"{printed['Nd_kN']}）と違います。平水位の浮力（決定120 (f)）が柱下端に効くなら、照査値と Myd は見本と"
+                "比べず記録だけにする（分類3）ので、受入を見直してください")
     for section, (ratio, capacity) in compared.items():
         if ratio is not None and values[section]["ratio"] != ratio:
             raise AcceptanceError(f"{section}: γi・Md/M = {values[section]['ratio']}（見本は {ratio}）")
         if abs(float(values[section]["capacity"]) - float(capacity)) / float(capacity) >= TOLERANCE:
-            raise AcceptanceError(f"{section}: 耐力 {values[section]['capacity']}（比べる値は {capacity}）")
+            raise AcceptanceError(
+                f"{section}: 耐力 {values[section]['capacity']}（比べる値は {basis[section]}の {capacity}）")
+    # the combination behind each check, from the PIK (Capacita does not print it)
+    cases = dict(check.moment_cases)
+    numbers = None if stage.transverse else reference_numbers(reference_result(pier, stage.source))
+    combinations = {}
+    for section, (_, _, _, row) in CHECKS.items():
+        case = _pik_case(pik, cases[row], check.member, values[section]["md"], values[section]["n_d"])
+        combinations[section] = {"extraction_case": cases[row], "reference_case": case,
+                                 "webpier_combination": None if numbers is None else numbers[case]}
     if sorted(pages.skipped) != sorted(sample.get("skipped_by_capacita", [])):
         raise AcceptanceError(f"Capacita が省略した照査 {list(pages.skipped)}（見本は {sample.get('skipped_by_capacita', [])}）")
     current_analysis = fempython.analyze_frame(f"{stage.name}.json", frameweb, fempython_runner)
@@ -195,16 +250,20 @@ def main(stage_id: str) -> int:
                                                        "last": section.last} for section in pages.sections],
                    "skipped": list(pages.skipped)},
         "values": values,
+        "combinations": combinations,
         "current": {"frameweb_sha256": sha256(frameweb), "reference_frameweb_sha256": sha256(reference),
                     "pik_sha256": sha256(current_pik), "values": current_values,
                     "skipped": list(current_pages.skipped)},
         "sample": {section: {"ratio": ratio, "capacity": capacity} for section, (ratio, capacity) in expected.items()},
-        "compared": {section: {"ratio": ratio, "capacity": capacity} for section, (ratio, capacity) in compared.items()},
+        "compared": {section: {"ratio": ratio, "capacity": capacity, "basis": basis[section]}
+                     for section, (ratio, capacity) in compared.items()},
+        "mud_n_d_kN": safety["n_d"] if n_d is not None else None,
         "expected_differences": list(stage.differences),
     }
     stage.record.parent.mkdir(parents=True, exist_ok=True)
     stage.record.write_bytes(dump_json(record))
-    print(json.dumps({"values": values, "skipped": list(pages.skipped)}, ensure_ascii=False))
+    print(json.dumps({"values": values, "compared": record["compared"], "combinations": combinations,
+                      "skipped": list(pages.skipped)}, ensure_ascii=False))
     return 0
 
 

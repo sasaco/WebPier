@@ -1,9 +1,13 @@
-"""The FrameWeb input of 0610 (longitudinal, non-seismic): Example2 08 pp.8-1 to 8-11.
+"""The FrameWeb input of 0610 (longitudinal, non-seismic): Example2 08 pp.8-1 to 8-11, Example橋脚4 表2.3.2.
 
 The labels are those of the Example2 FrameWeb file (symbols with the nominal factors, 1.0LR+1.0B), except
-basic cases 18 and 20, which carry the rail force only and are named as 8-9 prints them. The serviceability
-impact (8-5, ``Basis.SERVICE_IMPACT``) is two more load cases. Combine names are the 8-10 performance item and
-remark, Pickup names those of 8-11.
+basic cases 18 and 20, which carry the rail force only and are named as 8-9 prints them. The cases with the reduced
+dead loads (decision 120) take their twin's label with 死荷重低減あり; the single-track train and impact are not made
+(decision 120), so they have no label. The serviceability impact (8-5, ``Basis.SERVICE_IMPACT``) of the double track
+is one more load case per 列車の配置.
+
+The combinations follow Example橋脚4 表2.3.2 (decision 120): 48 Combines, each named by its check, then its water
+level and its 列車の配置 where the check is made for them. Pickup names are those of 8-11.
 """
 
 from __future__ import annotations
@@ -11,7 +15,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
-from ...calc.longitudinal import BasicCase, Basis, Combination, Layout, LongitudinalResult, SpringTerm
+from ...calc.longitudinal import BasicCase, Basis, Check, Combination, Layout, LongitudinalResult, SpringTerm
 from ...calc.longitudinal.actions import LAYOUT_DEPENDENT
 from ...calc.longitudinal.combinations import EXTRACTION_NAMES
 from .build import frameweb_document
@@ -31,29 +35,39 @@ _LOADS = {
     B.SNOW2: Label("Ss2", f"雪荷重{_S}2年確率"),
     B.SNOW10: Label("Ss10", f"雪荷重{_S}10年確率"),
     B.SNOW30: Label("Ss30", f"雪荷重{_S}30年確率"),
-    B.TRAIN_SINGLE: Label("L1", f"列車荷重{_S}単線"),
     B.TRAIN_DOUBLE: Label("L2", f"列車荷重{_S}複線"),
-    B.IMPACT_SINGLE: Label("I1", f"衝撃荷重{_S}安全性・復旧性{_S}単線"),
     B.IMPACT_DOUBLE: Label("I2", f"衝撃荷重{_S}安全性・復旧性{_S}複線"),
     B.SERVICE_LR08: Label("0.8LR", f"ﾛﾝｸﾞﾚｰﾙ縦荷重{_S}使用性"),
     B.SERVICE_LR10: Label("1.0LR", f"ﾛﾝｸﾞﾚｰﾙ縦荷重{_S}使用性"),
     B.SAFETY_LR10_B: Label("1.0LR+1.0B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}安全性"),
     B.SAFETY_LR11_B: Label("1.1LR+1.0B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}安全性"),
+    B.SAFETY_LR11_B_REDUCED: Label("1.1LR+1.0B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}安全性{_S}死荷重低減あり"),
     B.SAFETY_LR10_BMAX: Label("1.0LR+1.1B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}安全性"),
+    B.SAFETY_LR10_BMAX_REDUCED: Label("1.0LR+1.1B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}安全性{_S}死荷重低減あり"),
     B.SAFETY_LR10: Label("1.0LR", f"ﾛﾝｸﾞﾚｰﾙ縦荷重{_S}安全性"),
     B.RESTORABILITY_LR10_B: Label("1.0LR+1.0B", f"ﾛﾝｸﾞﾚｰﾙ+制動{_S}復旧性"),
     B.RESTORABILITY_LR10: Label("1.0LR", f"ﾛﾝｸﾞﾚｰﾙ縦荷重{_S}復旧性"),
 }
-_AUXILIARY = {
-    B.IMPACT_SINGLE: Label("I1s", f"衝撃荷重{_S}使用性{_S}単線"),
+_AUXILIARY = {  # the serviceability impact, taken on the double track only (decision 120)
     B.IMPACT_DOUBLE: Label("I2s", f"衝撃荷重{_S}使用性{_S}複線"),
 }
 # 列車の配置 (decision 102): the symbol's suffix as the sample's L1-1, L1-2, L1-3 (Example橋脚4 表2.3.1) and the name's
 # remark as its 備考 (両側の桁, 起点側の桁, 終点側の桁)
 _PLACINGS = {Layout.BOTH: "1", Layout.ORIGIN: "2", Layout.END: "3"}
-_CHECKS = ("破壊 列車最大", "破壊 制動最大", "破壊 ﾛﾝｸﾞ最大", "破壊 雪最大", "ひび割れ 縁応力度", "ひび割れ 永久荷重",
-           "ひび割れ 変動荷重", "損傷 列車最大", "損傷 雪最大", "地盤の安定 列車最大", "地盤の安定 制動最大",
-           "地盤の安定 ﾛﾝｸﾞ最大", "地盤の安定 雪最大", "長期支持", "短期支持 低水位", "短期支持 高水位")
+_CHECKS = {
+    Check.FAILURE_TRAIN_MAX: "破壊 列車最大",
+    Check.FAILURE_BRAKING_MAX: "破壊 制動最大",
+    Check.FAILURE_BRAKING_MAX_REDUCED: "破壊 制動最大 死荷重低減",
+    Check.FAILURE_RAIL_MAX: "破壊 ﾛﾝｸﾞ最大",
+    Check.FAILURE_RAIL_MAX_REDUCED: "破壊 ﾛﾝｸﾞ最大 死荷重低減",
+    Check.FAILURE_SNOW_MAX: "破壊 雪最大",
+    Check.SUPPORT_LONG_TERM: "長期支持",
+    Check.CRACK_PERMANENT_VARIABLE: "ひび割れ・短期支持 縁応力度",
+    Check.CRACK_PERMANENT: "ひび割れ 永久荷重",
+    Check.CRACK_VARIABLE: "ひび割れ 変動荷重",
+    Check.DAMAGE_TRAIN_MAX: "損傷 列車最大",
+    Check.DAMAGE_SNOW_MAX: "損傷 雪最大",
+}
 
 
 def _placed(label: Label, layout: Layout | None) -> Label:
@@ -75,8 +89,9 @@ LONGITUDINAL = Profile(
 
 
 def combination_name(combination: Combination) -> str:
-    name = _CHECKS[combination.check.value - 1]
-    return name if combination.layout is None else f"{name} {combination.layout.value}"
+    """The check, then " " and the water level and " " and the 列車の配置 where it has them (decisions 102, 120)."""
+    suffixes = (part.value for part in (combination.water, combination.layout) if part is not None)
+    return " ".join((_CHECKS[combination.check], *suffixes))
 
 
 def longitudinal_profile(result: LongitudinalResult) -> Profile:

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "kind": "pile_footing_acceptance",
-  "date": "2026-10-27T11:25:19+09:00",
+  "date": "2026-10-28T22:54:06+09:00",
   "method": "本物の SOIL-JR・JRSNAP・FEMPython・Aggre-SE・Capacita の runner で杭基礎の 0800・0810・0820 を生成し、フーチングの断面力を runner が返したファイルから別の読み方で読み直して 0800 と照合し、PIK の断面力が杭頭の力と静力学でつり合うことと、Capacita のページが各節にそろうことを確かめた。判定は扱わない。",
   "capacita_judged": false,
   "input": {
     "path": "tests/fixtures/inputs/pile_seismic.json",
-    "sha256": "d64d04c0cdfbff5cfd8896f3fca629f79206febe18edc394a3ea3dfb9686fe1c"
+    "sha256": "e1a15edfb54f82dd1b49e1601a5c324d3580b766bbe1ae81439e2f4d21888ffa"
   },
   "runner": {
     "capacita": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
-    "capacita_sha256": "44c6de2d673c44a7796b7bbee8cb2cfa8a20ced295f42763cabc8ceedab16472"
+    "capacita_sha256": "44f8672d24961c99c1475deafe618720c342f67ce99fd442b8ecacb2fe71661d"
   },
   "helpers": {
     "scripts/accept_pile_footing.py": "7f6d0c9e80545578b021317ec8c318977ace65de206a4b07659a5931f97fb73d"
@@ -27,21 +27,21 @@
               "case": "安全性（破壊）",
               "pickup": 1,
               "md": 16795.0,
-              "md_combination": 7,
+              "md_combination": 19,
               "vd": null
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": 11983.5,
-              "md_combination": 12,
+              "md_combination": 35,
               "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": 10954.9,
-              "md_combination": 14,
+              "md_combination": 40,
               "vd": null
             },
             {
@@ -62,21 +62,21 @@
               "case": "安全性（破壊）",
               "pickup": 1,
               "md": 0.0,
-              "md_combination": 10,
+              "md_combination": 16,
               "vd": null
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": 0.0,
-              "md_combination": 12,
+              "md_combination": 38,
               "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": 0.0,
-              "md_combination": 14,
+              "md_combination": 41,
               "vd": null
             },
             {
@@ -96,22 +96,22 @@
             {
               "case": "安全性（破壊）",
               "pickup": 1,
-              "md": 146.0,
-              "md_combination": 2,
+              "md": 146.3,
+              "md_combination": 5,
               "vd": null
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
-              "md": 122.1,
-              "md_combination": 12,
+              "md": 122.3,
+              "md_combination": 38,
               "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
-              "md": 88.5,
-              "md_combination": 14,
+              "md": 88.7,
+              "md_combination": 41,
               "vd": null
             },
             {
@@ -139,14 +139,14 @@
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": -125.7,
-              "md_combination": 12,
+              "md_combination": 35,
               "vd": 7188.7
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": -91.8,
-              "md_combination": 14,
+              "md_combination": 40,
               "vd": 6585.7
             },
             {
@@ -167,21 +167,21 @@
               "case": "安全性（破壊）",
               "pickup": 1,
               "md": 16795.0,
-              "md_combination": 7,
+              "md_combination": 19,
               "vd": 10189.4
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": 11983.5,
-              "md_combination": 12,
+              "md_combination": 35,
               "vd": 7188.7
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": 10954.9,
-              "md_combination": 14,
+              "md_combination": 40,
               "vd": 6585.7
             },
             {
@@ -196,12 +196,12 @@
       ],
       "checked": {
         "reading": 20,
-        "moment_shear": 6,
+        "moment_shear": 0,
         "head": 8
       },
       "worst": {
         "reading": 0.05,
-        "moment_shear": 0.009,
+        "moment_shear": 0.0,
         "head": 0.0
       },
       "report": {
@@ -218,7 +218,7 @@
       },
       "wdj": {
         "file": "線路方向フーチング.wdj",
-        "sha256": "ec9b4d196f7e61b36d2889fb807bf5c545e7d71167cfe7b99be3ec8858c545c5"
+        "sha256": "542d586ad9931a9c7e845bb815783280c1cf640cb02618414337f1a844ff26a8"
       }
     },
     "transverse": {

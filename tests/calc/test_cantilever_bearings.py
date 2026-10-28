@@ -69,17 +69,26 @@ def test_the_fixed_end_girder_loads_its_stoppers(cases):
     assert end.stopper.total == force.force and end.candidate == force.fixed_candidate
 
 
+# Decision 119: 0600's 1.0 LR + 1.35B takes the train without impact in Rm (Example2's 13 carries 07 7-9's Rm with
+# (1 + i)). By hand: origin Rm = 7678 + 1.23 × 272.47 × 2 = 8348.28, Hbd = μRm = 0.1 × 8348.28 = 834.83,
+# per rubber 834.83 / 4 = 208.7075 -> 208.71, H = 208.71 × 1 = 208.71, Mt = 208.71 × 1.35 = 281.7585 -> 281.76;
+# end Rm = 2758 + 1.23 × 25.08 × 2 = 2819.70, Hsd = 329.60 − ½ × 0.1 × 2819.70 = 188.62, per stopper
+# 188.62 / 7 = 26.9457 -> 26.95 (none on the cantilever).
+WITHOUT_IMPACT = {"1.0 LR + 1.35B": ({"origin": {"Hbd": 834.83, "per_rubber": 208.71},
+                                      "end": {"Hsd": 188.62, "per_stopper": 26.95}}, {"H": 208.71, "Mt": 281.76})}
+
+
 @pytest.mark.parametrize("index,name", [(1, "1.1 LR + 1.23B"), (2, "1.0 LR + 1.35B"), (3, "1.0 LR")])
 def test_the_other_combinations(cases, index, name):
     _, found = cases
-    expected = SAMPLE["bearing_forces"][name]
+    expected, moments = WITHOUT_IMPACT.get(name, (SAMPLE["bearing_forces"][name],
+                                                  SAMPLE["bearing_forces"]["cantilever_moments"][name]))
     case = found[index]
     assert case.label == name
     assert case.origin.rubber.total.value == expected["origin"]["Hbd"]
     assert case.origin.rubber.each.value == expected["origin"]["per_rubber"]
     assert case.end.stopper.total.value == expected["end"]["Hsd"]
     assert case.end.stopper.each.value == expected["end"]["per_stopper"]
-    moments = SAMPLE["bearing_forces"]["cantilever_moments"][name]
     assert (case.force.value, case.moment.value) == (moments["H"], moments["Mt"])
 
 

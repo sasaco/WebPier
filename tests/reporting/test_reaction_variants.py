@@ -144,9 +144,31 @@ def test_each_combination_is_named_with_its_printed_factors():
     """07 7-7 to 7-13: γB in the label, γL and γB in the combination, the same names in the summary."""
     actual = records("current")
     assert actual["long.case.service_lr08.label"] == "・0.8LR[1.0D1+1.0D2+S2+1.0LR(8kN/m)の組合せ]"
-    assert actual["long.case.safety_lr10_b11.label"] == "・1.0LR+1.35B[1.1D1+1.2D2+1.23(L+I)+S10+1.0LR+1.35Bの組合せ]"
+    # decision 119: the braking-governed combination takes the train without impact (L, not L+I)
+    assert actual["long.case.safety_lr10_b11.label"] == "・1.0LR+1.35B[1.1D1+1.2D2+1.23L+S10+1.0LR+1.35Bの組合せ]"
+    assert actual["long.case.safety_lr10_b11.origin.vertical.symbols"] == "Rm=1.1D1+1.2D2+1.23複線L+S10"
+    assert "(1+" not in actual["long.case.safety_lr10_b11.origin.vertical"]
+    assert "(1+0.222)" in actual["long.case.safety_lr11_b10.origin.vertical"]
     assert actual["long.case.safety_lr10_b10.origin.vertical.symbols"] == "Rm=1.1D1+1.2D2+1.35複線(L+I)+S10"
     assert "|①1.0LR+1.23B|298.40|175.03|473.43|②1.0LR+1.23B|" in actual["long.summary.table"]
+
+
+def test_reduced_dead_load_combinations_are_named_apart_from_their_twins():
+    """Decision 120: 0.9D1 + 0.8D2 (Example橋脚4 III-45〜57 ③⑤) is written in the combination, and wherever a case
+    is named without it (its label, the 6.4.1 summary) it reads "（死荷重低減あり）" (Example橋脚4 III-65)."""
+    actual = records("current")
+    assert actual["long.case.safety_lr10_b11_reduced.label"] == (
+        "・1.0LR+1.35B（死荷重低減あり）[0.9D1+0.8D2+1.23L+S10+1.0LR+1.35Bの組合せ]")
+    assert actual["long.case.safety_lr11_b10_reduced.label"] == (
+        "・1.1LR+1.23B（死荷重低減あり）[0.9D1+0.8D2+1.23(L+I)+S10+1.1LR+1.23Bの組合せ]")
+    assert actual["long.case.safety_lr10_b11_reduced.origin.vertical.symbols"] == "Rm=0.9D1+0.8D2+1.23複線L+S10"
+    assert actual["long.case.safety_lr10_b11_reduced.one_origin.label"].startswith(
+        "・1.0LR+1.35B（死荷重低減あり）（起点側の桁）[0.9D1+0.8D2+")
+    table = actual["long.summary.table"]
+    # H values: the hand calculations of tests/calc/test_reaction_longitudinal.py (decision 120)
+    assert "|①1.0LR+1.35B|308.00|188.62|496.62|" in table
+    assert "|①1.0LR+1.35B（死荷重低減あり）|308.00|212.42|520.42|" in table
+    assert "|①1.1LR+1.23B（死荷重低減あり）|318.40|219.29|537.69|" in table
 
 
 def test_a_girder_without_axles_prints_its_reactions_as_values():

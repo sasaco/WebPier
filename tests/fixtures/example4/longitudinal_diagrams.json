@@ -1,0 +1,4714 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_1of3.pdf",
+    "pages": "III-75〜III-110（page index 221〜256）",
+    "section": "第III編 2.4 断面力図",
+    "page_mapping": "page index = 印刷頁 III-n の n + 146（各頁下端の印刷番号で確認）"
+  },
+  "units": {
+    "M": "kN·m",
+    "V": "kN",
+    "N": "kN"
+  },
+  "conventions": {
+    "sign": "値は図の印字どおり。M 図・V 図の印字には符号がない（すべて正の数で印字）。N 図は圧縮が負（−付き）、引張が正。",
+    "null": "null は図に印字がない、または読めない（unreadable に理由）。",
+    "column_top": "柱(1)の上端（節点1、上部工反力の作用点）",
+    "column_bottom": "柱(1)の下端（節点2、フーチング天端）。member2_label は柱下端の横にある2段目の印字（節点2〜3の部材）",
+    "footing": "フーチング（節点4〜3〜5）。M_left_end/M_right_end はフーチング両端（杭列の位置）、M_center_left_member/M_center_right_member はフーチング中央（節点3）での左右の部材端の値。V_left_end〜V_right_end はせん断力図の左端・左側中央寄り・右側中央寄り・右端の印字",
+    "piles": "head.M_footing_level_kNm はフーチング高さ（節点4・5）の印字、head.M_kNm はその1段下（杭頭＝フーチング下面、節点6・8）の印字。head.V_kN・N_kN は杭頭の値（2段とも同じ値）。tip.N_kN は杭先端の印字",
+    "left_right": "左右は図の左右（左杭＝節点4〜6〜7の列、右杭＝節点5〜8〜9の列）"
+  },
+  "cases": [
+    {
+      "page": 221,
+      "printed_page": "III-75",
+      "case": 1,
+      "name": "固定死荷重",
+      "symbol": "D1",
+      "title_printed": "Case1 固定死荷重（D1）",
+      "section": "(1) 死荷重（D）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 347.0,
+        "V_kN": null,
+        "N_kN": -5960.0,
+        "printed": {
+          "M": "347.00",
+          "N": "-5960.00"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 347.0,
+        "V_kN": null,
+        "N_kN": -8382.36,
+        "printed": {
+          "M": "347.00",
+          "N": "-8382.36"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 347.0,
+          "N_kN": -8382.36,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": null,
+        "M_right_end_kNm": 205.52,
+        "M_center_left_member_kNm": 11435.58,
+        "M_center_right_member_kNm": 11782.58,
+        "V_left_end_kN": 5204.12,
+        "V_left_center_kN": 4126.12,
+        "V_right_center_kN": 4256.24,
+        "V_right_end_kN": null,
+        "N_left_member_kN": -0.15,
+        "N_right_member_kN": -0.15,
+        "printed": {
+          "M": [
+            null,
+            "205.52",
+            "11435.58",
+            "11782.58"
+          ],
+          "V": [
+            "5204.12",
+            "4126.12",
+            "4256.24",
+            null
+          ],
+          "N": "-0.15"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 11.46,
+            "M_footing_level_kNm": 11.62,
+            "V_kN": 0.15,
+            "N_kN": -5635.32,
+            "printed": {
+              "M_footing_level": "11.62",
+              "M_head": "11.46",
+              "V": "0.15",
+              "N": "-5635.32"
+            }
+          },
+          "tip": {
+            "N_kN": -931.65,
+            "printed": "-931.65"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 10.24,
+            "M_footing_level_kNm": 10.08,
+            "V_kN": 0.15,
+            "N_kN": -5765.44,
+            "printed": {
+              "M_footing_level": "10.08",
+              "M_head": "10.24",
+              "V": "0.15",
+              "N": "-5765.44"
+            },
+            "M_third_label_kNm": 9.98,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -953.16,
+            "printed": "-953.16"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.73,
+          "printed": "0.73",
+          "location": "左杭の中間（杭頭より下）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.57,
+          "printed": "1.57",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.39,
+          "printed": "1.39",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [
+        {
+          "item": "footing.M_left_end_kNm",
+          "printed": "22?.22（縦書きの印字が柱下端の 347.00 と重なる）",
+          "candidates": [
+            222.22,
+            227.22
+          ],
+          "equilibrium_estimate": 227.22,
+          "reason": "unreadable: overlap"
+        },
+        {
+          "item": "footing.V_right_end_kN",
+          "printed": "?334.24（先頭の字が右杭の線と重なる）",
+          "candidates": [
+            4334.24,
+            5334.24
+          ],
+          "equilibrium_estimate": 5334.24,
+          "reason": "unreadable: overlap"
+        }
+      ],
+      "notes": "フーチングの N（-0.15）は左右の部材と節点付近に4か所印字。"
+    },
+    {
+      "page": 222,
+      "printed_page": "III-76",
+      "case": 2,
+      "name": "付加死荷重",
+      "symbol": "D2",
+      "title_printed": "Case2 付加死荷重（D2）",
+      "section": "(1) 死荷重（D）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 119.0,
+        "V_kN": null,
+        "N_kN": -1520.0,
+        "printed": {
+          "M": "119.00",
+          "N": "-1520.00"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 119.0,
+        "V_kN": null,
+        "N_kN": -1520.0,
+        "printed": {
+          "M": "119.00",
+          "N": "-1520.00"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 119.0,
+          "N_kN": -1520.0,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 34.26,
+        "M_right_end_kNm": 26.82,
+        "M_center_left_member_kNm": 1999.96,
+        "M_center_right_member_kNm": 2118.96,
+        "V_left_end_kN": 889.69,
+        "V_left_center_kN": 737.69,
+        "V_right_center_kN": 782.31,
+        "V_right_end_kN": null,
+        "N_left_member_kN": -0.03,
+        "N_right_member_kN": -0.03,
+        "printed": {
+          "M": [
+            "34.26",
+            "26.82",
+            "1999.96",
+            "2118.96"
+          ],
+          "V": [
+            "889.69",
+            "737.69",
+            "782.31",
+            null
+          ],
+          "N": "-0.03"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 3.83,
+            "M_footing_level_kNm": 3.86,
+            "V_kN": 0.03,
+            "N_kN": -950.49,
+            "printed": {
+              "M_footing_level": "3.86",
+              "M_head": "3.83",
+              "V": "0.03",
+              "N": "-950.49"
+            }
+          },
+          "tip": {
+            "N_kN": -157.14,
+            "printed": "-157.14"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 3.61,
+            "M_footing_level_kNm": 3.58,
+            "V_kN": 0.03,
+            "N_kN": -995.11,
+            "printed": {
+              "M_footing_level": "3.58",
+              "M_head": "3.61",
+              "V": "0.03",
+              "N": "-995.11"
+            },
+            "M_third_label_kNm": 3.5,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -164.51,
+            "printed": "-164.51"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.25,
+          "printed": "0.25",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.52,
+          "printed": "0.52",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.49,
+          "printed": "0.49",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [
+        {
+          "item": "footing.V_right_end_kN",
+          "printed": "93?.31（931.31 とも 934.31 とも読める）",
+          "candidates": [
+            931.31,
+            934.31
+          ],
+          "equilibrium_estimate": 934.31,
+          "reason": "unreadable: blur"
+        }
+      ]
+    },
+    {
+      "page": 223,
+      "printed_page": "III-77",
+      "case": 3,
+      "name": "平水位",
+      "symbol": "Wp1",
+      "title_printed": "Case3 平水位（Wp1）",
+      "section": "(2) 浮力（Wp）",
+      "empty": true,
+      "column_top": null,
+      "column_bottom": null,
+      "footing": null,
+      "piles": null,
+      "other_values": [],
+      "unreadable": [],
+      "notes": "3つの図とも値の印字なし（骨組の線だけ）。"
+    },
+    {
+      "page": 224,
+      "printed_page": "III-78",
+      "case": 4,
+      "name": "高水位",
+      "symbol": "Wp2-1",
+      "title_printed": "Case4 高水位（Wp2-1）",
+      "section": "(2) 浮力（Wp）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": null,
+        "N_kN": null,
+        "note": "柱に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": null,
+        "V_kN": null,
+        "N_kN": null,
+        "note": "柱に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 88.04,
+        "M_right_end_kNm": 88.04,
+        "M_center_left_member_kNm": 461.96,
+        "M_center_right_member_kNm": 461.96,
+        "V_left_end_kN": 440.0,
+        "V_right_end_kN": 440.0,
+        "V_left_center_kN": null,
+        "V_right_center_kN": null,
+        "N_left_member_kN": 0.01,
+        "N_right_member_kN": 0.01,
+        "printed": {
+          "M": [
+            "88.04",
+            "88.04",
+            "461.96",
+            "461.96"
+          ],
+          "V": [
+            "440.00",
+            "440.00"
+          ],
+          "N": "0.01"
+        },
+        "note": "V は左端（線の下側）と右端（線の上側）に 440.00 が1つずつ。中央は0を通る斜線で値の印字なし。"
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 0.03,
+            "M_footing_level_kNm": 0.04,
+            "V_kN": 0.01,
+            "N_kN": 616.0,
+            "printed": {
+              "M_footing_level": "0.04",
+              "M_head": "0.03",
+              "V": "0.01",
+              "N": "616.00"
+            }
+          },
+          "tip": {
+            "N_kN": 101.84,
+            "printed": "101.84"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 0.03,
+            "M_footing_level_kNm": 0.04,
+            "V_kN": 0.01,
+            "N_kN": 616.0,
+            "printed": {
+              "M_footing_level": "0.04",
+              "M_head": "0.03",
+              "V": "0.01",
+              "N": "616.00"
+            }
+          },
+          "tip": {
+            "N_kN": 101.84,
+            "printed": "101.84"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.0,
+          "printed": "0.00",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 0.0,
+          "printed": "0.00",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "杭の N は正（引張）。616.00 の印字は左右とも2段ずつ。"
+    },
+    {
+      "page": 225,
+      "printed_page": "III-79",
+      "case": 5,
+      "name": "低水位",
+      "symbol": "Wp2-2",
+      "title_printed": "Case5 低水位（Wp2-2）",
+      "section": "(2) 浮力（Wp）",
+      "empty": true,
+      "column_top": null,
+      "column_bottom": null,
+      "footing": null,
+      "piles": null,
+      "other_values": [],
+      "unreadable": [],
+      "notes": "3つの図とも値の印字なし。"
+    },
+    {
+      "page": 226,
+      "printed_page": "III-80",
+      "case": 6,
+      "name": "（複線，両側の桁）",
+      "symbol": "L1-1",
+      "title_printed": "Case6 （複線，両側の桁） （L1-1）",
+      "section": "(3) 列車荷重（L）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 236.5,
+        "V_kN": null,
+        "N_kN": -2132.0,
+        "printed": {
+          "M": "236.50",
+          "N": "-2132.00"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 236.5,
+        "V_kN": null,
+        "N_kN": -2132.0,
+        "printed": {
+          "M": "236.50",
+          "N": "-2132.00"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 236.5,
+          "N_kN": -2132.0,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 6.96,
+        "M_right_end_kNm": null,
+        "M_center_left_member_kNm": 2546.53,
+        "M_center_right_member_kNm": 2783.03,
+        "V_left_end_kN": 1021.4,
+        "V_left_center_kN": 1021.4,
+        "V_right_center_kN": 1110.6,
+        "V_right_end_kN": 1110.6,
+        "N_left_member_kN": -0.05,
+        "N_right_member_kN": -0.05,
+        "printed": {
+          "M": [
+            "6.96",
+            null,
+            "2546.53",
+            "2783.03"
+          ],
+          "V": [
+            "1021.40",
+            "1021.40",
+            "1110.60",
+            "1110.60"
+          ],
+          "N": "-0.05"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 6.91,
+            "M_footing_level_kNm": 6.96,
+            "V_kN": 0.05,
+            "N_kN": -1021.4,
+            "printed": {
+              "M_footing_level": "6.96",
+              "M_head": "6.91",
+              "V": "0.05",
+              "N": "-1021.40"
+            }
+          },
+          "tip": {
+            "N_kN": -76.75,
+            "printed": "-76.75"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": null,
+            "M_footing_level_kNm": null,
+            "V_kN": 0.05,
+            "N_kN": -1110.6,
+            "printed": {
+              "M_footing_level": null,
+              "M_head": null,
+              "V": "0.05",
+              "N": "-1110.60"
+            },
+            "M_third_label_kNm": 6.27,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -83.45,
+            "printed": "-83.45"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.33,
+          "printed": "0.33",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.12,
+          "printed": "1.12",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.07,
+          "printed": "1.07",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.04,
+          "printed": "0.04",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.04,
+          "printed": "0.04",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [
+        {
+          "item": "footing.M_right_end_kNm と piles.right.head.M_footing_level_kNm・M_kNm",
+          "printed": "右杭の横の上段「6.5?」、中段「6.5?」、縦書き「6.5?」が重なる（上段は 6.58 とも 6.53 とも見える）",
+          "candidates": [
+            6.53,
+            6.58,
+            6.59
+          ],
+          "equilibrium_estimate": "フーチング右端（節点5）＝6.53（2783.03−1110.60×2.5）、杭頭は約 6.58〜6.59",
+          "reason": "unreadable: overlap"
+        }
+      ]
+    },
+    {
+      "page": 227,
+      "printed_page": "III-81",
+      "case": 7,
+      "name": "（複線，起点側の桁）",
+      "symbol": "L1-2",
+      "title_printed": "Case7 （複線，起点側の桁） （L1-2）",
+      "section": "(3) 列車荷重（L）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 489.2,
+        "V_kN": null,
+        "N_kN": -698.8,
+        "printed": {
+          "M": "489.20",
+          "N": "-698.80"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 489.2,
+        "V_kN": null,
+        "N_kN": -698.8,
+        "printed": {
+          "M": "489.20",
+          "N": "-698.80"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 489.2,
+          "N_kN": -698.8,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 14.02,
+        "M_right_end_kNm": 13.87,
+        "M_center_left_member_kNm": 628.83,
+        "M_center_right_member_kNm": 1118.03,
+        "V_left_end_kN": 257.14,
+        "V_left_center_kN": 257.14,
+        "V_right_center_kN": 441.66,
+        "V_right_end_kN": 441.66,
+        "N_left_member_kN": -0.02,
+        "N_right_member_kN": -0.02,
+        "printed": {
+          "M": [
+            "14.02",
+            "13.87",
+            "628.83",
+            "1118.03"
+          ],
+          "V": [
+            "257.14",
+            "257.14",
+            "441.66",
+            "441.66"
+          ],
+          "N": "-0.02"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 14.0,
+            "M_footing_level_kNm": 14.02,
+            "V_kN": 0.02,
+            "N_kN": -257.14,
+            "printed": {
+              "M_footing_level": "14.02",
+              "M_head": "14.00",
+              "V": "0.02",
+              "N": "-257.14"
+            }
+          },
+          "tip": {
+            "N_kN": -19.32,
+            "printed": "-19.32"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 13.89,
+            "M_footing_level_kNm": 13.87,
+            "V_kN": 0.02,
+            "N_kN": -441.66,
+            "printed": {
+              "M_footing_level": "13.87",
+              "M_head": "13.89",
+              "V": "0.02",
+              "N": "-441.66"
+            },
+            "M_third_label_kNm": 13.18,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -33.19,
+            "printed": "-33.19"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.68,
+          "printed": "0.68",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 2.26,
+          "printed": "2.26",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 2.25,
+          "printed": "2.25",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.08,
+          "printed": "0.08",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.08,
+          "printed": "0.08",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": []
+    },
+    {
+      "page": 228,
+      "printed_page": "III-82",
+      "case": 8,
+      "name": "（複線，終点側の桁）",
+      "symbol": "L1-3",
+      "title_printed": "Case8 （複線，終点側の桁） （L1-3）",
+      "section": "(3) 列車荷重（L）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 352.8,
+        "V_kN": null,
+        "N_kN": -1763.8,
+        "printed": {
+          "M": "352.80",
+          "N": "-1763.80"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 352.8,
+        "V_kN": null,
+        "N_kN": -1763.8,
+        "printed": {
+          "M": "352.80",
+          "N": "-1763.80"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 352.8,
+          "N_kN": -1763.8,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 9.87,
+        "M_right_end_kNm": 10.24,
+        "M_center_left_member_kNm": 2380.97,
+        "M_center_right_member_kNm": 2028.17,
+        "V_left_end_kN": 948.44,
+        "V_left_center_kN": 948.44,
+        "V_right_center_kN": 815.36,
+        "V_right_end_kN": 815.36,
+        "N_left_member_kN": -0.04,
+        "N_right_member_kN": -0.04,
+        "printed": {
+          "M": [
+            "9.87",
+            "10.24",
+            "2380.97",
+            "2028.17"
+          ],
+          "V": [
+            "948.44",
+            "948.44",
+            "815.36",
+            "815.36"
+          ],
+          "N": "-0.04"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 9.92,
+            "M_footing_level_kNm": 9.87,
+            "V_kN": 0.04,
+            "N_kN": -948.44,
+            "printed": {
+              "M_footing_level": "9.87",
+              "M_head": "9.92",
+              "V": "0.04",
+              "N": "-948.44"
+            },
+            "M_third_label_kNm": 9.44,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -71.27,
+            "printed": "-71.27"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 10.19,
+            "M_footing_level_kNm": 10.24,
+            "V_kN": 0.04,
+            "N_kN": -815.36,
+            "printed": {
+              "M_footing_level": "10.24",
+              "M_head": "10.19",
+              "V": "0.04",
+              "N": "-815.36"
+            }
+          },
+          "tip": {
+            "N_kN": -61.27,
+            "printed": "-61.27"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.49,
+          "printed": "0.49",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.61,
+          "printed": "1.61",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 1.65,
+          "printed": "1.65",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.05,
+          "printed": "0.05",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.06,
+          "printed": "0.06",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱の M の印字は柱の右側（荷重図の M=-352.80 に対応。断面力図の印字に符号はない）。"
+    },
+    {
+      "page": 229,
+      "printed_page": "III-83",
+      "case": 9,
+      "name": "安全性(破壊)および使用性（損傷） （複線，両側の桁）",
+      "symbol": "I1-1",
+      "title_printed": "Case9 安全性(破壊)および使用性（損傷） （複線，両側の桁） （I1-1）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 95.3,
+        "V_kN": null,
+        "N_kN": -882.5,
+        "printed": {
+          "M": "95.30",
+          "N": "-882.50"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 95.3,
+        "V_kN": null,
+        "N_kN": -882.5,
+        "printed": {
+          "M": "95.30",
+          "N": "-882.50"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 95.3,
+          "N_kN": -882.5,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 2.81,
+        "M_right_end_kNm": 2.62,
+        "M_center_left_member_kNm": 1055.38,
+        "M_center_right_member_kNm": 1150.68,
+        "V_left_end_kN": 423.28,
+        "V_left_center_kN": 423.28,
+        "V_right_center_kN": 459.22,
+        "V_right_end_kN": 459.22,
+        "N_left_member_kN": -0.02,
+        "N_right_member_kN": -0.02,
+        "printed": {
+          "M": [
+            "2.81",
+            "2.62",
+            "1055.38",
+            "1150.68"
+          ],
+          "V": [
+            "423.28",
+            "423.28",
+            "459.22",
+            "459.22"
+          ],
+          "N": "-0.02"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 2.79,
+            "M_footing_level_kNm": 2.81,
+            "V_kN": 0.02,
+            "N_kN": -423.28,
+            "printed": {
+              "M_footing_level": "2.81",
+              "M_head": "2.79",
+              "V": "0.02",
+              "N": "-423.28"
+            }
+          },
+          "tip": {
+            "N_kN": -31.81,
+            "printed": "-31.81"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 2.65,
+            "M_footing_level_kNm": 2.62,
+            "V_kN": 0.02,
+            "N_kN": -459.22,
+            "printed": {
+              "M_footing_level": "2.62",
+              "M_head": "2.65",
+              "V": "0.02",
+              "N": "-459.22"
+            },
+            "M_third_label_kNm": 2.53,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -34.51,
+            "printed": "-34.51"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.13,
+          "printed": "0.13",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.45,
+          "printed": "0.45",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.43,
+          "printed": "0.43",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.01,
+          "printed": "0.01",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": []
+    },
+    {
+      "page": 230,
+      "printed_page": "III-84",
+      "case": 10,
+      "name": "安全性(破壊)および使用性（損傷） （複線，起点側の桁）",
+      "symbol": "I1-2",
+      "title_printed": "Case10 安全性(破壊)および使用性（損傷） （複線，起点側の桁） （I1-2）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 193.2,
+        "V_kN": null,
+        "N_kN": -276.0,
+        "printed": {
+          "M": "193.20",
+          "N": "-276.00"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 193.2,
+        "V_kN": null,
+        "N_kN": -276.0,
+        "printed": {
+          "M": "193.20",
+          "N": "-276.00"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 193.2,
+          "N_kN": -276.0,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 5.54,
+        "M_right_end_kNm": 5.48,
+        "M_center_left_member_kNm": 248.37,
+        "M_center_right_member_kNm": 441.57,
+        "V_left_end_kN": 101.56,
+        "V_left_center_kN": 101.56,
+        "V_right_center_kN": 174.44,
+        "V_right_end_kN": 174.44,
+        "N_left_member_kN": -0.01,
+        "N_right_member_kN": -0.01,
+        "printed": {
+          "M": [
+            "5.54",
+            "5.48",
+            "248.37",
+            "441.57"
+          ],
+          "V": [
+            "101.56",
+            "101.56",
+            "174.44",
+            "174.44"
+          ],
+          "N": "-0.01"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 5.53,
+            "M_footing_level_kNm": 5.54,
+            "V_kN": 0.01,
+            "N_kN": -101.56,
+            "printed": {
+              "M_footing_level": "5.54",
+              "M_head": "5.53",
+              "V": "0.01",
+              "N": "-101.56"
+            }
+          },
+          "tip": {
+            "N_kN": -7.63,
+            "printed": "-7.63"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": null,
+            "M_footing_level_kNm": 5.48,
+            "V_kN": 0.01,
+            "N_kN": -174.44,
+            "printed": {
+              "M_footing_level": "5.48",
+              "M_head": null,
+              "V": "0.01",
+              "N": "-174.44"
+            },
+            "M_third_label_kNm": 5.21,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -13.11,
+            "printed": "-13.11"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.27,
+          "printed": "0.27",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.89,
+          "printed": "0.89",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.89,
+          "printed": "0.89",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.03,
+          "printed": "0.03",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.03,
+          "printed": "0.03",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [
+        {
+          "item": "piles.right.head.M_kNm",
+          "printed": "5.4?（末尾が縦書きの 5.48 と重なる）",
+          "candidates": [
+            5.48,
+            5.49
+          ],
+          "reason": "unreadable: overlap"
+        }
+      ]
+    },
+    {
+      "page": 231,
+      "printed_page": "III-85",
+      "case": 11,
+      "name": "安全性(破壊)および使用性（損傷） （複線，終点側の桁）",
+      "symbol": "I1-3",
+      "title_printed": "Case11 安全性(破壊)および使用性（損傷） （複線，終点側の桁） （I1-3）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 145.3,
+        "V_kN": null,
+        "N_kN": -726.7,
+        "printed": {
+          "M": "145.30",
+          "N": "-726.70"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 145.3,
+        "V_kN": null,
+        "N_kN": -726.7,
+        "printed": {
+          "M": "145.30",
+          "N": "-726.70"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 145.3,
+          "N_kN": -726.7,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 4.07,
+        "M_right_end_kNm": 4.22,
+        "M_center_left_member_kNm": 980.95,
+        "M_center_right_member_kNm": 835.65,
+        "V_left_end_kN": 390.75,
+        "V_left_center_kN": 390.75,
+        "V_right_center_kN": 335.95,
+        "V_right_end_kN": 335.95,
+        "N_left_member_kN": -0.02,
+        "N_right_member_kN": -0.02,
+        "printed": {
+          "M": [
+            "4.07",
+            "4.22",
+            "980.95",
+            "835.65"
+          ],
+          "V": [
+            "390.75",
+            "390.75",
+            "335.95",
+            "335.95"
+          ],
+          "N": "-0.02"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 4.08,
+            "M_footing_level_kNm": 4.07,
+            "V_kN": 0.02,
+            "N_kN": -390.75,
+            "printed": {
+              "M_footing_level": "4.07",
+              "M_head": "4.08",
+              "V": "0.02",
+              "N": "-390.75"
+            },
+            "M_third_label_kNm": 3.89,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -29.36,
+            "printed": "-29.36"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 4.2,
+            "M_footing_level_kNm": 4.22,
+            "V_kN": 0.02,
+            "N_kN": -335.95,
+            "printed": {
+              "M_footing_level": "4.22",
+              "M_head": "4.20",
+              "V": "0.02",
+              "N": "-335.95"
+            }
+          },
+          "tip": {
+            "N_kN": -25.24,
+            "printed": "-25.24"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.2,
+          "printed": "0.20",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.66,
+          "printed": "0.66",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.68,
+          "printed": "0.68",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": []
+    },
+    {
+      "page": 232,
+      "printed_page": "III-86",
+      "case": 12,
+      "name": "使用性（外観）および耐久性 （複線，両側の桁）",
+      "symbol": "I2-1",
+      "title_printed": "Case12 使用性（外観）および耐久性 （複線，両側の桁） （I2-1）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 71.2,
+        "V_kN": null,
+        "N_kN": -661.5,
+        "printed": {
+          "M": "71.20",
+          "N": "-661.50"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 71.2,
+        "V_kN": null,
+        "N_kN": -661.5,
+        "printed": {
+          "M": "71.20",
+          "N": "-661.50"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 71.2,
+          "N_kN": -661.5,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 2.1,
+        "M_right_end_kNm": 1.96,
+        "M_center_left_member_kNm": 791.21,
+        "M_center_right_member_kNm": 862.41,
+        "V_left_end_kN": 317.32,
+        "V_left_center_kN": 317.32,
+        "V_right_center_kN": 344.18,
+        "V_right_end_kN": 344.18,
+        "N_left_member_kN": -0.02,
+        "N_right_member_kN": -0.02,
+        "printed": {
+          "M": [
+            "2.10",
+            "1.96",
+            "791.21",
+            "862.41"
+          ],
+          "V": [
+            "317.32",
+            "317.32",
+            "344.18",
+            "344.18"
+          ],
+          "N": "-0.02"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 2.08,
+            "M_footing_level_kNm": 2.1,
+            "V_kN": 0.02,
+            "N_kN": -317.32,
+            "printed": {
+              "M_footing_level": "2.10",
+              "M_head": "2.08",
+              "V": "0.02",
+              "N": "-317.32"
+            }
+          },
+          "tip": {
+            "N_kN": -23.84,
+            "printed": "-23.84"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 1.98,
+            "M_footing_level_kNm": 1.96,
+            "V_kN": 0.02,
+            "N_kN": -344.18,
+            "printed": {
+              "M_footing_level": "1.96",
+              "M_head": "1.98",
+              "V": "0.02",
+              "N": "-344.18"
+            },
+            "M_third_label_kNm": 1.89,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -25.86,
+            "printed": "-25.86"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.1,
+          "printed": "0.10",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.34,
+          "printed": "0.34",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.32,
+          "printed": "0.32",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.01,
+          "printed": "0.01",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.01,
+          "printed": "0.01",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": []
+    },
+    {
+      "page": 233,
+      "printed_page": "III-87",
+      "case": 13,
+      "name": "使用性（外観）および耐久性 （複線，起点側の桁）",
+      "symbol": "I2-2",
+      "title_printed": "Case13 使用性（外観）および耐久性 （複線，起点側の桁） （I2-2）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 144.8,
+        "V_kN": null,
+        "N_kN": -206.8,
+        "printed": {
+          "M": "144.80",
+          "N": "-206.80"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 144.8,
+        "V_kN": null,
+        "N_kN": -206.8,
+        "printed": {
+          "M": "144.80",
+          "N": "-206.80"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 144.8,
+          "N_kN": -206.8,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 4.15,
+        "M_right_end_kNm": null,
+        "M_center_left_member_kNm": 186.08,
+        "M_center_right_member_kNm": 330.88,
+        "V_left_end_kN": 76.09,
+        "V_left_center_kN": 76.09,
+        "V_right_center_kN": 130.71,
+        "V_right_end_kN": 130.71,
+        "N_left_member_kN": null,
+        "N_right_member_kN": null,
+        "printed": {
+          "M": [
+            "4.15",
+            null,
+            "186.08",
+            "330.88"
+          ],
+          "V": [
+            "76.09",
+            "76.09",
+            "130.71",
+            "130.71"
+          ],
+          "N": null
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 4.14,
+            "M_footing_level_kNm": 4.15,
+            "V_kN": null,
+            "N_kN": -76.09,
+            "printed": {
+              "M_footing_level": "4.15",
+              "M_head": "4.14",
+              "V": null,
+              "N": "-76.09"
+            }
+          },
+          "tip": {
+            "N_kN": -5.72,
+            "printed": "-5.72"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": null,
+            "M_footing_level_kNm": null,
+            "V_kN": null,
+            "N_kN": -130.71,
+            "printed": {
+              "M_footing_level": null,
+              "M_head": null,
+              "V": null,
+              "N": "-130.71"
+            },
+            "M_third_label_kNm": 3.9,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -9.82,
+            "printed": "-9.82"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.2,
+          "printed": "0.20",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.67,
+          "printed": "0.67",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.67,
+          "printed": "0.67",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [
+        {
+          "item": "footing.M_right_end_kNm, piles.right.head.M_footing_level_kNm, piles.right.head.M_kNm",
+          "printed": "右杭の横の上段・中段とも「4.1?」、縦書きも「4.1?」（末尾が杭の線と縦書きに重なる）",
+          "candidates": [
+            4.11,
+            4.12,
+            4.14
+          ],
+          "equilibrium_estimate": "節点5 ≈ 4.11（330.88−130.71×2.5=4.105）",
+          "reason": "unreadable: overlap"
+        }
+      ],
+      "notes": "この頁は杭頭のせん断力（他の頁の 0.0x）とフーチングの軸力が印字されていない。"
+    },
+    {
+      "page": 234,
+      "printed_page": "III-88",
+      "case": 14,
+      "name": "使用性（外観）および耐久性 （複線，終点側の桁）",
+      "symbol": "I2-3",
+      "title_printed": "Case14 使用性（外観）および耐久性 （複線，終点側の桁） （I2-3）",
+      "section": "(4) 衝撃荷重（I）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": 109.0,
+        "V_kN": null,
+        "N_kN": -545.0,
+        "printed": {
+          "M": "109.00",
+          "N": "-545.00"
+        },
+        "V_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 109.0,
+        "V_kN": null,
+        "N_kN": -545.0,
+        "printed": {
+          "M": "109.00",
+          "N": "-545.00"
+        },
+        "V_note": "図に印字なし",
+        "member2_label": {
+          "M_kNm": 109.0,
+          "N_kN": -545.0,
+          "note": "柱下端の横に同じ値が2段に印字（上段＝柱(1)の下端、下段＝節点2〜3の部材の値と読む）"
+        }
+      },
+      "footing": {
+        "M_left_end_kNm": 3.05,
+        "M_right_end_kNm": 3.16,
+        "M_center_left_member_kNm": 735.69,
+        "M_center_right_member_kNm": 626.69,
+        "V_left_end_kN": 293.06,
+        "V_left_center_kN": 293.06,
+        "V_right_center_kN": 251.94,
+        "V_right_end_kN": 251.94,
+        "N_left_member_kN": -0.01,
+        "N_right_member_kN": -0.01,
+        "printed": {
+          "M": [
+            "3.05",
+            "3.16",
+            "735.69",
+            "626.69"
+          ],
+          "V": [
+            "293.06",
+            "293.06",
+            "251.94",
+            "251.94"
+          ],
+          "N": "-0.01"
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 3.06,
+            "M_footing_level_kNm": 3.05,
+            "V_kN": 0.01,
+            "N_kN": -293.06,
+            "printed": {
+              "M_footing_level": "3.05",
+              "M_head": "3.06",
+              "V": "0.01",
+              "N": "-293.06"
+            },
+            "M_third_label_kNm": 2.92,
+            "M_third_label_note": "杭頭の値のさらに下にもう1つ印字がある（何の値か決めきれない。location_uncertain）"
+          },
+          "tip": {
+            "N_kN": -22.02,
+            "printed": "-22.02"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 3.15,
+            "M_footing_level_kNm": 3.16,
+            "V_kN": 0.01,
+            "N_kN": -251.94,
+            "printed": {
+              "M_footing_level": "3.16",
+              "M_head": "3.15",
+              "V": "0.01",
+              "N": "-251.94"
+            }
+          },
+          "tip": {
+            "N_kN": -18.93,
+            "printed": "-18.93"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 0.15,
+          "printed": "0.15",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.5,
+          "printed": "0.50",
+          "location": "左杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.51,
+          "printed": "0.51",
+          "location": "右杭の上部",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 0.02,
+          "printed": "0.02",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "フーチング右側のせん断力は2つの縦書きのうち1つが 251.91 のようにも見えるが 251.94 と読んだ。"
+    },
+    {
+      "page": 235,
+      "printed_page": "III-89",
+      "case": 15,
+      "name": "列車最大 （複線，両側の桁，死荷重低減なし）",
+      "symbol": "(B+LR)1-1",
+      "title_printed": "Case15 列車最大 （複線，両側の桁，死荷重低減なし） （B+LR）1-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 966.1,
+        "N_kN": null,
+        "printed": {
+          "V": "966.10"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 8888.12,
+        "V_kN": 966.1,
+        "N_kN": null,
+        "printed": {
+          "M": "8888.12",
+          "V": "966.10"
+        },
+        "member2_label": {
+          "M_kNm": 9950.83,
+          "V_kN": 966.1,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1151.57,
+        "M_right_end_kNm": 1151.57,
+        "M_center_left_member_kNm": 4975.42,
+        "M_center_right_member_kNm": 4975.42,
+        "V_left_end_kN": 2450.8,
+        "V_left_center_kN": 2450.8,
+        "V_right_center_kN": 2450.8,
+        "V_right_end_kN": 2450.8,
+        "N_left_member_kN": 483.05,
+        "N_right_member_kN": -483.05,
+        "printed": {
+          "M": [
+            "1151.57",
+            "1151.57",
+            "4975.42",
+            "4975.42"
+          ],
+          "V": [
+            "2450.80",
+            "2450.80",
+            "2450.80",
+            "2450.80"
+          ],
+          "N": [
+            "483.05",
+            "-483.05"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 620.22,
+            "M_footing_level_kNm": 1151.57,
+            "V_kN": 483.05,
+            "N_kN": 2450.8,
+            "printed": {
+              "M_footing_level": "1151.57",
+              "M_head": "620.22",
+              "V": "483.05",
+              "N": "2450.80"
+            }
+          },
+          "tip": {
+            "N_kN": 184.16,
+            "printed": "184.16"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 620.22,
+            "M_footing_level_kNm": 1151.57,
+            "V_kN": 483.05,
+            "N_kN": -2450.8,
+            "printed": {
+              "M_footing_level": "1151.57",
+              "M_head": "620.22",
+              "V": "483.05",
+              "N": "-2450.80"
+            }
+          },
+          "tip": {
+            "N_kN": -184.16,
+            "printed": "-184.16"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 297.51,
+          "printed": "297.51",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 297.51,
+          "printed": "297.51",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 39.86,
+          "printed": "39.86",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 39.86,
+          "printed": "39.86",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 483.05）、右半分が負（印字 -483.05）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 236,
+      "printed_page": "III-90",
+      "case": 16,
+      "name": "列車最大 （複線，起点側の桁，死荷重低減なし）",
+      "symbol": "(B+LR)1-2",
+      "title_printed": "Case16 列車最大 （複線，起点側の桁，死荷重低減なし） （B+LR）1-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 501.7,
+        "N_kN": null,
+        "printed": {
+          "V": "501.70"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 4615.64,
+        "V_kN": 501.7,
+        "N_kN": null,
+        "printed": {
+          "M": "4615.64",
+          "V": "501.70"
+        },
+        "member2_label": {
+          "M_kNm": 5167.51,
+          "V_kN": 501.7,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 598.02,
+        "M_right_end_kNm": 598.02,
+        "M_center_left_member_kNm": 2583.75,
+        "M_center_right_member_kNm": 2583.75,
+        "V_left_end_kN": 1272.71,
+        "V_left_center_kN": 1272.71,
+        "V_right_center_kN": 1272.71,
+        "V_right_end_kN": 1272.71,
+        "N_left_member_kN": 250.85,
+        "N_right_member_kN": -250.85,
+        "printed": {
+          "M": [
+            "598.02",
+            "598.02",
+            "2583.75",
+            "2583.75"
+          ],
+          "V": [
+            "1272.71",
+            "1272.71",
+            "1272.71",
+            "1272.71"
+          ],
+          "N": [
+            "250.85",
+            "-250.85"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 322.08,
+            "M_footing_level_kNm": 598.02,
+            "V_kN": 250.85,
+            "N_kN": 1272.71,
+            "printed": {
+              "M_footing_level": "598.02",
+              "M_head": "322.08",
+              "V": "250.85",
+              "N": "1272.71"
+            }
+          },
+          "tip": {
+            "N_kN": 95.64,
+            "printed": "95.64"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 322.08,
+            "M_footing_level_kNm": 598.02,
+            "V_kN": 250.85,
+            "N_kN": -1272.71,
+            "printed": {
+              "M_footing_level": "598.02",
+              "M_head": "322.08",
+              "V": "250.85",
+              "N": "-1272.71"
+            }
+          },
+          "tip": {
+            "N_kN": -95.64,
+            "printed": "-95.64"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 154.5,
+          "printed": "154.50",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 154.5,
+          "printed": "154.50",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 20.7,
+          "printed": "20.70",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 20.7,
+          "printed": "20.70",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 250.85）、右半分が負（印字 -250.85）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 237,
+      "printed_page": "III-91",
+      "case": 17,
+      "name": "列車最大 （複線，終点側の桁，死荷重低減なし）",
+      "symbol": "(B+LR)1-3",
+      "title_printed": "Case17 列車最大 （複線，終点側の桁，死荷重低減なし） （B+LR）1-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 926.2,
+        "N_kN": null,
+        "printed": {
+          "V": "926.20"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 8521.04,
+        "V_kN": 926.2,
+        "N_kN": null,
+        "printed": {
+          "M": "8521.04",
+          "V": "926.20"
+        },
+        "member2_label": {
+          "M_kNm": 9539.86,
+          "V_kN": 926.2,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1104.01,
+        "M_right_end_kNm": 1104.01,
+        "M_center_left_member_kNm": 4769.93,
+        "M_center_right_member_kNm": 4769.93,
+        "V_left_end_kN": 2349.58,
+        "V_left_center_kN": 2349.58,
+        "V_right_center_kN": 2349.58,
+        "V_right_end_kN": 2349.58,
+        "N_left_member_kN": 463.1,
+        "N_right_member_kN": -463.1,
+        "printed": {
+          "M": [
+            "1104.01",
+            "1104.01",
+            "4769.93",
+            "4769.93"
+          ],
+          "V": [
+            "2349.58",
+            "2349.58",
+            "2349.58",
+            "2349.58"
+          ],
+          "N": [
+            "463.10",
+            "-463.10"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 594.6,
+            "M_footing_level_kNm": 1104.01,
+            "V_kN": 463.1,
+            "N_kN": 2349.58,
+            "printed": {
+              "M_footing_level": "1104.01",
+              "M_head": "594.60",
+              "V": "463.10",
+              "N": "2349.58"
+            }
+          },
+          "tip": {
+            "N_kN": 176.55,
+            "printed": "176.55"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 594.6,
+            "M_footing_level_kNm": 1104.01,
+            "V_kN": 463.1,
+            "N_kN": -2349.58,
+            "printed": {
+              "M_footing_level": "1104.01",
+              "M_head": "594.60",
+              "V": "463.10",
+              "N": "-2349.58"
+            }
+          },
+          "tip": {
+            "N_kN": -176.55,
+            "printed": "-176.55"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 285.22,
+          "printed": "285.22",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 285.22,
+          "printed": "285.22",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 38.22,
+          "printed": "38.22",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 38.22,
+          "printed": "38.22",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 463.10）、右半分が負（印字 -463.10）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 238,
+      "printed_page": "III-92",
+      "case": 18,
+      "name": "制動最大 （複線，両側の桁，死荷重低減なし）",
+      "symbol": "(1.1B+LR)2-1",
+      "title_printed": "Case18 制動最大 （複線，両側の桁，死荷重低減なし） （1.1B+LR）2-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1079.7,
+        "N_kN": null,
+        "printed": {
+          "V": "1079.70"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9933.24,
+        "V_kN": 1079.7,
+        "N_kN": null,
+        "printed": {
+          "M": "9933.24",
+          "V": "1079.70"
+        },
+        "member2_label": {
+          "M_kNm": 11120.91,
+          "V_kN": 1079.7,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1286.98,
+        "M_right_end_kNm": 1286.98,
+        "M_center_left_member_kNm": 5560.46,
+        "M_center_right_member_kNm": 5560.46,
+        "V_left_end_kN": 2738.97,
+        "V_left_center_kN": 2738.97,
+        "V_right_center_kN": 2738.97,
+        "V_right_end_kN": 2738.97,
+        "N_left_member_kN": 539.85,
+        "N_right_member_kN": -539.85,
+        "printed": {
+          "M": [
+            "1286.98",
+            "1286.98",
+            "5560.46",
+            "5560.46"
+          ],
+          "V": [
+            "2738.97",
+            "2738.97",
+            "2738.97",
+            "2738.97"
+          ],
+          "N": [
+            "539.85",
+            "-539.85"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 693.15,
+            "M_footing_level_kNm": 1286.98,
+            "V_kN": 539.85,
+            "N_kN": 2738.97,
+            "printed": {
+              "M_footing_level": "1286.98",
+              "M_head": "693.15",
+              "V": "539.85",
+              "N": "2738.97"
+            }
+          },
+          "tip": {
+            "N_kN": 205.81,
+            "printed": "205.81"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 693.15,
+            "M_footing_level_kNm": 1286.98,
+            "V_kN": 539.85,
+            "N_kN": -2738.97,
+            "printed": {
+              "M_footing_level": "1286.98",
+              "M_head": "693.15",
+              "V": "539.85",
+              "N": "-2738.97"
+            }
+          },
+          "tip": {
+            "N_kN": -205.81,
+            "printed": "-205.81"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 332.49,
+          "printed": "332.49",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 332.49,
+          "printed": "332.49",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 44.55,
+          "printed": "44.55",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 44.55,
+          "printed": "44.55",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 539.85）、右半分が負（印字 -539.85）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 239,
+      "printed_page": "III-93",
+      "case": 19,
+      "name": "制動最大 （複線，起点側の桁，死荷重低減なし）",
+      "symbol": "(1.1B+LR)2-2",
+      "title_printed": "Case19 制動最大 （複線，起点側の桁，死荷重低減なし） （1.1B+LR）2-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 464.4,
+        "N_kN": null,
+        "printed": {
+          "V": "464.40"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 4272.48,
+        "V_kN": 464.4,
+        "N_kN": null,
+        "printed": {
+          "M": "4272.48",
+          "V": "464.40"
+        },
+        "member2_label": {
+          "M_kNm": 4783.32,
+          "V_kN": 464.4,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 553.56,
+        "M_right_end_kNm": 553.56,
+        "M_center_left_member_kNm": 2391.66,
+        "M_center_right_member_kNm": 2391.66,
+        "V_left_end_kN": 1178.09,
+        "V_left_center_kN": 1178.09,
+        "V_right_center_kN": 1178.09,
+        "V_right_end_kN": 1178.09,
+        "N_left_member_kN": 232.2,
+        "N_right_member_kN": -232.2,
+        "printed": {
+          "M": [
+            "553.56",
+            "553.56",
+            "2391.66",
+            "2391.66"
+          ],
+          "V": [
+            "1178.09",
+            "1178.09",
+            "1178.09",
+            "1178.09"
+          ],
+          "N": [
+            "232.20",
+            "-232.20"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 298.14,
+            "M_footing_level_kNm": 553.56,
+            "V_kN": 232.2,
+            "N_kN": 1178.09,
+            "printed": {
+              "M_footing_level": "553.56",
+              "M_head": "298.14",
+              "V": "232.20",
+              "N": "1178.09"
+            }
+          },
+          "tip": {
+            "N_kN": 88.53,
+            "printed": "88.53"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 298.14,
+            "M_footing_level_kNm": 553.56,
+            "V_kN": 232.2,
+            "N_kN": -1178.09,
+            "printed": {
+              "M_footing_level": "553.56",
+              "M_head": "298.14",
+              "V": "232.20",
+              "N": "-1178.09"
+            }
+          },
+          "tip": {
+            "N_kN": -88.53,
+            "printed": "-88.53"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 143.01,
+          "printed": "143.01",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 143.01,
+          "printed": "143.01",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 19.16,
+          "printed": "19.16",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 19.16,
+          "printed": "19.16",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 232.20）、右半分が負（印字 -232.20）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 240,
+      "printed_page": "III-94",
+      "case": 20,
+      "name": "制動最大 （複線，終点側の桁，死荷重低減なし）",
+      "symbol": "(1.1B+LR)2-3",
+      "title_printed": "Case20 制動最大 （複線，終点側の桁，死荷重低減なし） （1.1B+LR）2-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1056.4,
+        "N_kN": null,
+        "printed": {
+          "V": "1056.40"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9718.88,
+        "V_kN": 1056.4,
+        "N_kN": null,
+        "printed": {
+          "M": "9718.88",
+          "V": "1056.40"
+        },
+        "member2_label": {
+          "M_kNm": 10880.92,
+          "V_kN": 1056.4,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1259.21,
+        "M_right_end_kNm": 1259.21,
+        "M_center_left_member_kNm": 5440.46,
+        "M_center_right_member_kNm": 5440.46,
+        "V_left_end_kN": 2679.87,
+        "V_left_center_kN": 2679.87,
+        "V_right_center_kN": 2679.87,
+        "V_right_end_kN": 2679.87,
+        "N_left_member_kN": 528.2,
+        "N_right_member_kN": -528.2,
+        "printed": {
+          "M": [
+            "1259.21",
+            "1259.21",
+            "5440.46",
+            "5440.46"
+          ],
+          "V": [
+            "2679.87",
+            "2679.87",
+            "2679.87",
+            "2679.87"
+          ],
+          "N": [
+            "528.20",
+            "-528.20"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 678.19,
+            "M_footing_level_kNm": 1259.21,
+            "V_kN": 528.2,
+            "N_kN": 2679.87,
+            "printed": {
+              "M_footing_level": "1259.21",
+              "M_head": "678.19",
+              "V": "528.20",
+              "N": "2679.87"
+            }
+          },
+          "tip": {
+            "N_kN": 201.37,
+            "printed": "201.37"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 678.19,
+            "M_footing_level_kNm": 1259.21,
+            "V_kN": 528.2,
+            "N_kN": -2679.87,
+            "printed": {
+              "M_footing_level": "1259.21",
+              "M_head": "678.19",
+              "V": "528.20",
+              "N": "-2679.87"
+            }
+          },
+          "tip": {
+            "N_kN": -201.37,
+            "printed": "-201.37"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 325.32,
+          "printed": "325.32",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 325.32,
+          "printed": "325.32",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 43.59,
+          "printed": "43.59",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 43.59,
+          "printed": "43.59",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 528.20）、右半分が負（印字 -528.20）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 241,
+      "printed_page": "III-95",
+      "case": 21,
+      "name": "制動最大 （複線，両側の桁，死荷重低減あり）",
+      "symbol": "(1.1B+LR)3-1",
+      "title_printed": "Case21 制動最大 （複線，両側の桁，死荷重低減あり） （1.1B+LR）3-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1090.2,
+        "N_kN": null,
+        "printed": {
+          "V": "1090.20"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 10029.84,
+        "V_kN": 1090.2,
+        "N_kN": null,
+        "printed": {
+          "M": "10029.84",
+          "V": "1090.20"
+        },
+        "member2_label": {
+          "M_kNm": 11229.06,
+          "V_kN": 1090.2,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1299.5,
+        "M_right_end_kNm": 1299.5,
+        "M_center_left_member_kNm": 5614.53,
+        "M_center_right_member_kNm": 5614.53,
+        "V_left_end_kN": 2765.61,
+        "V_left_center_kN": 2765.61,
+        "V_right_center_kN": 2765.61,
+        "V_right_end_kN": 2765.61,
+        "N_left_member_kN": 545.1,
+        "N_right_member_kN": -545.1,
+        "printed": {
+          "M": [
+            "1299.50",
+            "1299.50",
+            "5614.53",
+            "5614.53"
+          ],
+          "V": [
+            "2765.61",
+            "2765.61",
+            "2765.61",
+            "2765.61"
+          ],
+          "N": [
+            "545.10",
+            "-545.10"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 699.89,
+            "M_footing_level_kNm": 1299.5,
+            "V_kN": 545.1,
+            "N_kN": 2765.61,
+            "printed": {
+              "M_footing_level": "1299.50",
+              "M_head": "699.89",
+              "V": "545.10",
+              "N": "2765.61"
+            }
+          },
+          "tip": {
+            "N_kN": 207.82,
+            "printed": "207.82"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 699.89,
+            "M_footing_level_kNm": 1299.5,
+            "V_kN": 545.1,
+            "N_kN": -2765.61,
+            "printed": {
+              "M_footing_level": "1299.50",
+              "M_head": "699.89",
+              "V": "545.10",
+              "N": "-2765.61"
+            }
+          },
+          "tip": {
+            "N_kN": -207.82,
+            "printed": "-207.82"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 335.73,
+          "printed": "335.73",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 335.73,
+          "printed": "335.73",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 44.99,
+          "printed": "44.99",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 44.99,
+          "printed": "44.99",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 545.10）、右半分が負（印字 -545.10）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 242,
+      "printed_page": "III-96",
+      "case": 22,
+      "name": "制動最大 （複線，起点側の桁，死荷重低減あり）",
+      "symbol": "(1.1B+LR)3-2",
+      "title_printed": "Case22 制動最大 （複線，起点側の桁，死荷重低減あり） （1.1B+LR）3-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 411.4,
+        "N_kN": null,
+        "printed": {
+          "V": "411.40"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 3784.88,
+        "V_kN": 411.4,
+        "N_kN": null,
+        "printed": {
+          "M": "3784.88",
+          "V": "411.40"
+        },
+        "member2_label": {
+          "M_kNm": 4237.42,
+          "V_kN": 411.4,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 490.38,
+        "M_right_end_kNm": 490.38,
+        "M_center_left_member_kNm": 2118.71,
+        "M_center_right_member_kNm": 2118.71,
+        "V_left_end_kN": 1043.64,
+        "V_left_center_kN": 1043.64,
+        "V_right_center_kN": 1043.64,
+        "V_right_end_kN": 1043.64,
+        "N_left_member_kN": 205.7,
+        "N_right_member_kN": -205.7,
+        "printed": {
+          "M": [
+            "490.38",
+            "490.38",
+            "2118.71",
+            "2118.71"
+          ],
+          "V": [
+            "1043.64",
+            "1043.64",
+            "1043.64",
+            "1043.64"
+          ],
+          "N": [
+            "205.70",
+            "-205.70"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 264.11,
+            "M_footing_level_kNm": 490.38,
+            "V_kN": 205.7,
+            "N_kN": 1043.64,
+            "printed": {
+              "M_footing_level": "490.38",
+              "M_head": "264.11",
+              "V": "205.70",
+              "N": "1043.64"
+            }
+          },
+          "tip": {
+            "N_kN": 78.42,
+            "printed": "78.42"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 264.11,
+            "M_footing_level_kNm": 490.38,
+            "V_kN": 205.7,
+            "N_kN": -1043.64,
+            "printed": {
+              "M_footing_level": "490.38",
+              "M_head": "264.11",
+              "V": "205.70",
+              "N": "-1043.64"
+            }
+          },
+          "tip": {
+            "N_kN": -78.42,
+            "printed": "-78.42"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 126.69,
+          "printed": "126.69",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 126.69,
+          "printed": "126.69",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 16.98,
+          "printed": "16.98",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 16.98,
+          "printed": "16.98",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 205.70）、右半分が負（印字 -205.70）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 243,
+      "printed_page": "III-97",
+      "case": 23,
+      "name": "制動最大 （複線，終点側の桁，死荷重低減あり）",
+      "symbol": "(1.1B+LR)3-3",
+      "title_printed": "Case23 制動最大 （複線，終点側の桁，死荷重低減あり） （1.1B+LR）3-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1111.4,
+        "N_kN": null,
+        "printed": {
+          "V": "1111.40"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 10224.88,
+        "V_kN": 1111.4,
+        "N_kN": null,
+        "printed": {
+          "M": "10224.88",
+          "V": "1111.40"
+        },
+        "member2_label": {
+          "M_kNm": 11447.42,
+          "V_kN": 1111.4,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1324.77,
+        "M_right_end_kNm": 1324.77,
+        "M_center_left_member_kNm": 5723.71,
+        "M_center_right_member_kNm": 5723.71,
+        "V_left_end_kN": 2819.39,
+        "V_left_center_kN": 2819.39,
+        "V_right_center_kN": 2819.39,
+        "V_right_end_kN": 2819.39,
+        "N_left_member_kN": 555.7,
+        "N_right_member_kN": -555.7,
+        "printed": {
+          "M": [
+            "1324.77",
+            "1324.77",
+            "5723.71",
+            "5723.71"
+          ],
+          "V": [
+            "2819.39",
+            "2819.39",
+            "2819.39",
+            "2819.39"
+          ],
+          "N": [
+            "555.70",
+            "-555.70"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 713.5,
+            "M_footing_level_kNm": 1324.77,
+            "V_kN": 555.7,
+            "N_kN": 2819.39,
+            "printed": {
+              "M_footing_level": "1324.77",
+              "M_head": "713.50",
+              "V": "555.70",
+              "N": "2819.39"
+            }
+          },
+          "tip": {
+            "N_kN": 211.86,
+            "printed": "211.86"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 713.5,
+            "M_footing_level_kNm": 1324.77,
+            "V_kN": 555.7,
+            "N_kN": -2819.39,
+            "printed": {
+              "M_footing_level": "1324.77",
+              "M_head": "713.50",
+              "V": "555.70",
+              "N": "-2819.39"
+            }
+          },
+          "tip": {
+            "N_kN": -211.86,
+            "printed": "-211.86"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 342.26,
+          "printed": "342.26",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 342.26,
+          "printed": "342.26",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 45.86,
+          "printed": "45.86",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 45.86,
+          "printed": "45.86",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 555.70）、右半分が負（印字 -555.70）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 244,
+      "printed_page": "III-98",
+      "case": 24,
+      "name": "ロング最大 （複線，両側の桁，死荷重低減なし）",
+      "symbol": "(B+1.1LR)4-1",
+      "title_printed": "Case24 ロング最大 （複線，両側の桁，死荷重低減なし） （B+1.1LR）4-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1027.9,
+        "N_kN": null,
+        "printed": {
+          "V": "1027.90"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9456.68,
+        "V_kN": 1027.9,
+        "N_kN": null,
+        "printed": {
+          "M": "9456.68",
+          "V": "1027.90"
+        },
+        "member2_label": {
+          "M_kNm": 10587.37,
+          "V_kN": 1027.9,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1225.24,
+        "M_right_end_kNm": 1225.24,
+        "M_center_left_member_kNm": 5293.69,
+        "M_center_right_member_kNm": 5293.69,
+        "V_left_end_kN": 2607.57,
+        "V_left_center_kN": 2607.57,
+        "V_right_center_kN": 2607.57,
+        "V_right_end_kN": 2607.57,
+        "N_left_member_kN": 513.95,
+        "N_right_member_kN": -513.95,
+        "printed": {
+          "M": [
+            "1225.24",
+            "1225.24",
+            "5293.69",
+            "5293.69"
+          ],
+          "V": [
+            "2607.57",
+            "2607.57",
+            "2607.57",
+            "2607.57"
+          ],
+          "N": [
+            "513.95",
+            "-513.95"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 659.89,
+            "M_footing_level_kNm": 1225.24,
+            "V_kN": 513.95,
+            "N_kN": 2607.57,
+            "printed": {
+              "M_footing_level": "1225.24",
+              "M_head": "659.89",
+              "V": "513.95",
+              "N": "2607.57"
+            }
+          },
+          "tip": {
+            "N_kN": 195.94,
+            "printed": "195.94"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 659.89,
+            "M_footing_level_kNm": 1225.24,
+            "V_kN": 513.95,
+            "N_kN": -2607.57,
+            "printed": {
+              "M_footing_level": "1225.24",
+              "M_head": "659.89",
+              "V": "513.95",
+              "N": "-2607.57"
+            }
+          },
+          "tip": {
+            "N_kN": -195.94,
+            "printed": "-195.94"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 316.54,
+          "printed": "316.54",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 316.54,
+          "printed": "316.54",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.41,
+          "printed": "42.41",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.41,
+          "printed": "42.41",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 513.95）、右半分が負（印字 -513.95）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 245,
+      "printed_page": "III-99",
+      "case": 25,
+      "name": "ロング最大 （複線，起点側の桁，死荷重低減なし）",
+      "symbol": "(B+1.1LR)4-2",
+      "title_printed": "Case25 ロング最大 （複線，起点側の桁，死荷重低減なし） （B+1.1LR）4-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 507.0,
+        "N_kN": null,
+        "printed": {
+          "V": "507.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 4664.4,
+        "V_kN": 507.0,
+        "N_kN": null,
+        "printed": {
+          "M": "4664.40",
+          "V": "507.00"
+        },
+        "member2_label": {
+          "M_kNm": 5222.1,
+          "V_kN": 507.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 604.33,
+        "M_right_end_kNm": 604.33,
+        "M_center_left_member_kNm": 2611.05,
+        "M_center_right_member_kNm": 2611.05,
+        "V_left_end_kN": 1286.15,
+        "V_left_center_kN": 1286.15,
+        "V_right_center_kN": 1286.15,
+        "V_right_end_kN": 1286.15,
+        "N_left_member_kN": 253.5,
+        "N_right_member_kN": -253.5,
+        "printed": {
+          "M": [
+            "604.33",
+            "604.33",
+            "2611.05",
+            "2611.05"
+          ],
+          "V": [
+            "1286.15",
+            "1286.15",
+            "1286.15",
+            "1286.15"
+          ],
+          "N": [
+            "253.50",
+            "-253.50"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 325.48,
+            "M_footing_level_kNm": 604.33,
+            "V_kN": 253.5,
+            "N_kN": 1286.15,
+            "printed": {
+              "M_footing_level": "604.33",
+              "M_head": "325.48",
+              "V": "253.50",
+              "N": "1286.15"
+            }
+          },
+          "tip": {
+            "N_kN": 96.65,
+            "printed": "96.65"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 325.48,
+            "M_footing_level_kNm": 604.33,
+            "V_kN": 253.5,
+            "N_kN": -1286.15,
+            "printed": {
+              "M_footing_level": "604.33",
+              "M_head": "325.48",
+              "V": "253.50",
+              "N": "-1286.15"
+            }
+          },
+          "tip": {
+            "N_kN": -96.65,
+            "printed": "-96.65"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 156.13,
+          "printed": "156.13",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 156.13,
+          "printed": "156.13",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 20.92,
+          "printed": "20.92",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 20.92,
+          "printed": "20.92",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 253.50）、右半分が負（印字 -253.50）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 246,
+      "printed_page": "III-100",
+      "case": 26,
+      "name": "ロング最大 （複線，終点側の桁，死荷重低減なし）",
+      "symbol": "(B+1.1LR)4-3",
+      "title_printed": "Case26 ロング最大 （複線，終点側の桁，死荷重低減なし） （B+1.1LR）4-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 987.7,
+        "N_kN": null,
+        "printed": {
+          "V": "987.70"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9086.84,
+        "V_kN": 987.7,
+        "N_kN": null,
+        "printed": {
+          "M": "9086.84",
+          "V": "987.70"
+        },
+        "member2_label": {
+          "M_kNm": 10173.31,
+          "V_kN": 987.7,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1177.32,
+        "M_right_end_kNm": 1177.32,
+        "M_center_left_member_kNm": 5086.65,
+        "M_center_right_member_kNm": 5086.65,
+        "V_left_end_kN": 2505.59,
+        "V_left_center_kN": 2505.59,
+        "V_right_center_kN": 2505.59,
+        "V_right_end_kN": 2505.59,
+        "N_left_member_kN": 493.85,
+        "N_right_member_kN": -493.85,
+        "printed": {
+          "M": [
+            "1177.32",
+            "1177.32",
+            "5086.65",
+            "5086.65"
+          ],
+          "V": [
+            "2505.59",
+            "2505.59",
+            "2505.59",
+            "2505.59"
+          ],
+          "N": [
+            "493.85",
+            "-493.85"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 634.09,
+            "M_footing_level_kNm": 1177.32,
+            "V_kN": 493.85,
+            "N_kN": 2505.59,
+            "printed": {
+              "M_footing_level": "1177.32",
+              "M_head": "634.09",
+              "V": "493.85",
+              "N": "2505.59"
+            }
+          },
+          "tip": {
+            "N_kN": 188.28,
+            "printed": "188.28"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 634.09,
+            "M_footing_level_kNm": 1177.32,
+            "V_kN": 493.85,
+            "N_kN": -2505.59,
+            "printed": {
+              "M_footing_level": "1177.32",
+              "M_head": "634.09",
+              "V": "493.85",
+              "N": "-2505.59"
+            }
+          },
+          "tip": {
+            "N_kN": -188.28,
+            "printed": "-188.28"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 304.16,
+          "printed": "304.16",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 304.16,
+          "printed": "304.16",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 40.76,
+          "printed": "40.76",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 40.76,
+          "printed": "40.76",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 493.85）、右半分が負（印字 -493.85）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 247,
+      "printed_page": "III-101",
+      "case": 27,
+      "name": "ロング最大 （複線，両側の桁，死荷重低減あり）",
+      "symbol": "(B+1.1LR)5-1",
+      "title_printed": "Case27 ロング最大 （複線，両側の桁，死荷重低減あり） （B+1.1LR）5-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1039.3,
+        "N_kN": null,
+        "printed": {
+          "V": "1039.30"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9561.56,
+        "V_kN": 1039.3,
+        "N_kN": null,
+        "printed": {
+          "M": "9561.56",
+          "V": "1039.30"
+        },
+        "member2_label": {
+          "M_kNm": 10704.79,
+          "V_kN": 1039.3,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1238.83,
+        "M_right_end_kNm": 1238.83,
+        "M_center_left_member_kNm": 5352.4,
+        "M_center_right_member_kNm": 5352.4,
+        "V_left_end_kN": 2636.49,
+        "V_left_center_kN": 2636.49,
+        "V_right_center_kN": 2636.49,
+        "V_right_end_kN": 2636.49,
+        "N_left_member_kN": 519.65,
+        "N_right_member_kN": -519.65,
+        "printed": {
+          "M": [
+            "1238.83",
+            "1238.83",
+            "5352.40",
+            "5352.40"
+          ],
+          "V": [
+            "2636.49",
+            "2636.49",
+            "2636.49",
+            "2636.49"
+          ],
+          "N": [
+            "519.65",
+            "-519.65"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 667.21,
+            "M_footing_level_kNm": 1238.83,
+            "V_kN": 519.65,
+            "N_kN": 2636.49,
+            "printed": {
+              "M_footing_level": "1238.83",
+              "M_head": "667.21",
+              "V": "519.65",
+              "N": "2636.49"
+            }
+          },
+          "tip": {
+            "N_kN": 198.11,
+            "printed": "198.11"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 667.21,
+            "M_footing_level_kNm": 1238.83,
+            "V_kN": 519.65,
+            "N_kN": -2636.49,
+            "printed": {
+              "M_footing_level": "1238.83",
+              "M_head": "667.21",
+              "V": "519.65",
+              "N": "-2636.49"
+            }
+          },
+          "tip": {
+            "N_kN": -198.11,
+            "printed": "-198.11"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 320.05,
+          "printed": "320.05",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 320.05,
+          "printed": "320.05",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.88,
+          "printed": "42.88",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.88,
+          "printed": "42.88",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 519.65）、右半分が負（印字 -519.65）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 248,
+      "printed_page": "III-102",
+      "case": 28,
+      "name": "ロング最大 （複線，起点側の桁，死荷重低減あり）",
+      "symbol": "(B+1.1LR)5-2",
+      "title_printed": "Case28 ロング最大 （複線，起点側の桁，死荷重低減あり） （B+1.1LR）5-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 454.0,
+        "N_kN": null,
+        "printed": {
+          "V": "454.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 4176.8,
+        "V_kN": 454.0,
+        "N_kN": null,
+        "printed": {
+          "M": "4176.80",
+          "V": "454.00"
+        },
+        "member2_label": {
+          "M_kNm": 4676.2,
+          "V_kN": 454.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 541.16,
+        "M_right_end_kNm": 541.16,
+        "M_center_left_member_kNm": 2338.1,
+        "M_center_right_member_kNm": 2338.1,
+        "V_left_end_kN": 1151.7,
+        "V_left_center_kN": 1151.7,
+        "V_right_center_kN": 1151.7,
+        "V_right_end_kN": 1151.7,
+        "N_left_member_kN": 227.0,
+        "N_right_member_kN": -227.0,
+        "printed": {
+          "M": [
+            "541.16",
+            "541.16",
+            "2338.10",
+            "2338.10"
+          ],
+          "V": [
+            "1151.70",
+            "1151.70",
+            "1151.70",
+            "1151.70"
+          ],
+          "N": [
+            "227.00",
+            "-227.00"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 291.46,
+            "M_footing_level_kNm": 541.16,
+            "V_kN": 227.0,
+            "N_kN": 1151.7,
+            "printed": {
+              "M_footing_level": "541.16",
+              "M_head": "291.46",
+              "V": "227.00",
+              "N": "1151.70"
+            }
+          },
+          "tip": {
+            "N_kN": 86.54,
+            "printed": "86.54"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 291.46,
+            "M_footing_level_kNm": 541.16,
+            "V_kN": 227.0,
+            "N_kN": -1151.7,
+            "printed": {
+              "M_footing_level": "541.16",
+              "M_head": "291.46",
+              "V": "227.00",
+              "N": "-1151.70"
+            }
+          },
+          "tip": {
+            "N_kN": -86.54,
+            "printed": "-86.54"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 139.81,
+          "printed": "139.81",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 139.81,
+          "printed": "139.81",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 18.73,
+          "printed": "18.73",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 18.73,
+          "printed": "18.73",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 227.00）、右半分が負（印字 -227.00）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 249,
+      "printed_page": "III-103",
+      "case": 29,
+      "name": "ロング最大 （複線，終点側の桁，死荷重低減あり）",
+      "symbol": "(B+1.1LR)5-3",
+      "title_printed": "Case29 ロング最大 （複線，終点側の桁，死荷重低減あり） （B+1.1LR）5-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（安全性（破壊））",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1022.7,
+        "N_kN": null,
+        "printed": {
+          "V": "1022.70"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9408.84,
+        "V_kN": 1022.7,
+        "N_kN": null,
+        "printed": {
+          "M": "9408.84",
+          "V": "1022.70"
+        },
+        "member2_label": {
+          "M_kNm": 10533.81,
+          "V_kN": 1022.7,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1219.04,
+        "M_right_end_kNm": 1219.04,
+        "M_center_left_member_kNm": 5266.9,
+        "M_center_right_member_kNm": 5266.9,
+        "V_left_end_kN": 2594.38,
+        "V_left_center_kN": 2594.38,
+        "V_right_center_kN": 2594.38,
+        "V_right_end_kN": 2594.38,
+        "N_left_member_kN": 511.35,
+        "N_right_member_kN": -511.35,
+        "printed": {
+          "M": [
+            "1219.04",
+            "1219.04",
+            "5266.90",
+            "5266.90"
+          ],
+          "V": [
+            "2594.38",
+            "2594.38",
+            "2594.38",
+            "2594.38"
+          ],
+          "N": [
+            "511.35",
+            "-511.35"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 656.55,
+            "M_footing_level_kNm": 1219.04,
+            "V_kN": 511.35,
+            "N_kN": 2594.38,
+            "printed": {
+              "M_footing_level": "1219.04",
+              "M_head": "656.55",
+              "V": "511.35",
+              "N": "2594.38"
+            }
+          },
+          "tip": {
+            "N_kN": 194.95,
+            "printed": "194.95"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 656.55,
+            "M_footing_level_kNm": 1219.04,
+            "V_kN": 511.35,
+            "N_kN": -2594.38,
+            "printed": {
+              "M_footing_level": "1219.04",
+              "M_head": "656.55",
+              "V": "511.35",
+              "N": "-2594.38"
+            }
+          },
+          "tip": {
+            "N_kN": -194.95,
+            "printed": "-194.95"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 314.94,
+          "printed": "314.94",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 314.94,
+          "printed": "314.94",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.2,
+          "printed": "42.20",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 42.2,
+          "printed": "42.20",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 511.35）、右半分が負（印字 -511.35）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 250,
+      "printed_page": "III-104",
+      "case": 30,
+      "name": "ひび割れ検討時",
+      "symbol": "(LR)6-1",
+      "title_printed": "Case30 ひび割れ検討時 （LR）6-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 280.0,
+        "N_kN": null,
+        "printed": {
+          "V": "280.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 2576.0,
+        "V_kN": 280.0,
+        "N_kN": null,
+        "printed": {
+          "M": "2576.00",
+          "V": "280.00"
+        },
+        "member2_label": {
+          "M_kNm": 2884.0,
+          "V_kN": 280.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 333.75,
+        "M_right_end_kNm": 333.75,
+        "M_center_left_member_kNm": 1442.0,
+        "M_center_right_member_kNm": 1442.0,
+        "V_left_end_kN": 710.3,
+        "V_left_center_kN": 710.3,
+        "V_right_center_kN": 710.3,
+        "V_right_end_kN": 710.3,
+        "N_left_member_kN": 140.0,
+        "N_right_member_kN": -140.0,
+        "printed": {
+          "M": [
+            "333.75",
+            "333.75",
+            "1442.00",
+            "1442.00"
+          ],
+          "V": [
+            "710.30",
+            "710.30",
+            "710.30",
+            "710.30"
+          ],
+          "N": [
+            "140.00",
+            "-140.00"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 179.75,
+            "M_footing_level_kNm": 333.75,
+            "V_kN": 140.0,
+            "N_kN": 710.3,
+            "printed": {
+              "M_footing_level": "333.75",
+              "M_head": "179.75",
+              "V": "140.00",
+              "N": "710.30"
+            }
+          },
+          "tip": {
+            "N_kN": 53.37,
+            "printed": "53.37"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 179.75,
+            "M_footing_level_kNm": 333.75,
+            "V_kN": 140.0,
+            "N_kN": -710.3,
+            "printed": {
+              "M_footing_level": "333.75",
+              "M_head": "179.75",
+              "V": "140.00",
+              "N": "-710.30"
+            }
+          },
+          "tip": {
+            "N_kN": -53.37,
+            "printed": "-53.37"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 86.23,
+          "printed": "86.23",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 86.23,
+          "printed": "86.23",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 11.55,
+          "printed": "11.55",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 11.55,
+          "printed": "11.55",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 140.00）、右半分が負（印字 -140.00）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。 この頁の節見出しは「(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）」（荷重図では Case30〜33 が (6) ロングレール縦荷重、Case34〜36 が (7) …（使用性（損傷））で、見出しが食い違う）。"
+    },
+    {
+      "page": 251,
+      "printed_page": "III-105",
+      "case": 31,
+      "name": "縁応力検討時（複線，両側の桁）",
+      "symbol": "(LR)7-1",
+      "title_printed": "Case31 縁応力検討時（複線，両側の桁） （LR）7-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "V": "350.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 3220.0,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "M": "3220.00",
+          "V": "350.00"
+        },
+        "member2_label": {
+          "M_kNm": 3605.0,
+          "V_kN": 350.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 417.19,
+        "M_right_end_kNm": 417.19,
+        "M_center_left_member_kNm": 1802.5,
+        "M_center_right_member_kNm": 1802.5,
+        "V_left_end_kN": 887.88,
+        "V_left_center_kN": 887.88,
+        "V_right_center_kN": 887.88,
+        "V_right_end_kN": 887.88,
+        "N_left_member_kN": 175.0,
+        "N_right_member_kN": -175.0,
+        "printed": {
+          "M": [
+            "417.19",
+            "417.19",
+            "1802.50",
+            "1802.50"
+          ],
+          "V": [
+            "887.88",
+            "887.88",
+            "887.88",
+            "887.88"
+          ],
+          "N": [
+            "175.00",
+            "-175.00"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": 887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "887.88"
+            }
+          },
+          "tip": {
+            "N_kN": 66.72,
+            "printed": "66.72"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": -887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "-887.88"
+            }
+          },
+          "tip": {
+            "N_kN": -66.72,
+            "printed": "-66.72"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 175.00）、右半分が負（印字 -175.00）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 252,
+      "printed_page": "III-106",
+      "case": 32,
+      "name": "縁応力検討時（複線，起点側の桁）",
+      "symbol": "(LR)7-2",
+      "title_printed": "Case32 縁応力検討時（複線，起点側の桁） （LR）7-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "V": "350.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 3220.0,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "M": "3220.00",
+          "V": "350.00"
+        },
+        "member2_label": {
+          "M_kNm": 3605.0,
+          "V_kN": 350.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 417.19,
+        "M_right_end_kNm": 417.19,
+        "M_center_left_member_kNm": 1802.5,
+        "M_center_right_member_kNm": 1802.5,
+        "V_left_end_kN": 887.88,
+        "V_left_center_kN": 887.88,
+        "V_right_center_kN": 887.88,
+        "V_right_end_kN": 887.88,
+        "N_left_member_kN": 175.0,
+        "N_right_member_kN": -175.0,
+        "printed": {
+          "M": [
+            "417.19",
+            "417.19",
+            "1802.50",
+            "1802.50"
+          ],
+          "V": [
+            "887.88",
+            "887.88",
+            "887.88",
+            "887.88"
+          ],
+          "N": [
+            "175.00",
+            "-175.00"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": 887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "887.88"
+            }
+          },
+          "tip": {
+            "N_kN": 66.72,
+            "printed": "66.72"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": -887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "-887.88"
+            }
+          },
+          "tip": {
+            "N_kN": -66.72,
+            "printed": "-66.72"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 175.00）、右半分が負（印字 -175.00）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 253,
+      "printed_page": "III-107",
+      "case": 33,
+      "name": "縁応力検討時（複線，起点側の桁）",
+      "symbol": "(LR)7-3",
+      "title_printed": "Case33 縁応力検討時（複線，起点側の桁） （LR）7-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "V": "350.00"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 3220.0,
+        "V_kN": 350.0,
+        "N_kN": null,
+        "printed": {
+          "M": "3220.00",
+          "V": "350.00"
+        },
+        "member2_label": {
+          "M_kNm": 3605.0,
+          "V_kN": 350.0,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 417.19,
+        "M_right_end_kNm": 417.19,
+        "M_center_left_member_kNm": 1802.5,
+        "M_center_right_member_kNm": 1802.5,
+        "V_left_end_kN": 887.88,
+        "V_left_center_kN": 887.88,
+        "V_right_center_kN": 887.88,
+        "V_right_end_kN": 887.88,
+        "N_left_member_kN": 175.0,
+        "N_right_member_kN": -175.0,
+        "printed": {
+          "M": [
+            "417.19",
+            "417.19",
+            "1802.50",
+            "1802.50"
+          ],
+          "V": [
+            "887.88",
+            "887.88",
+            "887.88",
+            "887.88"
+          ],
+          "N": [
+            "175.00",
+            "-175.00"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": 887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "887.88"
+            }
+          },
+          "tip": {
+            "N_kN": 66.72,
+            "printed": "66.72"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 224.69,
+            "M_footing_level_kNm": 417.19,
+            "V_kN": 175.0,
+            "N_kN": -887.88,
+            "printed": {
+              "M_footing_level": "417.19",
+              "M_head": "224.69",
+              "V": "175.00",
+              "N": "-887.88"
+            }
+          },
+          "tip": {
+            "N_kN": -66.72,
+            "printed": "-66.72"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 107.78,
+          "printed": "107.78",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 14.44,
+          "printed": "14.44",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 175.00）、右半分が負（印字 -175.00）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。 見出しは「起点側の桁」と印字されているが、荷重図 (LR)7-3 は「終点側の桁」。Case32 と同じ見出しになっている（見出しの誤記と思われる）。"
+    },
+    {
+      "page": 254,
+      "printed_page": "III-108",
+      "case": 34,
+      "name": "（複線，両側の桁）",
+      "symbol": "(B+LR)8-1",
+      "title_printed": "Case34 （複線，両側の桁） （B+LR）8-1",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 1004.2,
+        "N_kN": null,
+        "printed": {
+          "V": "1004.20"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 9238.64,
+        "V_kN": 1004.2,
+        "N_kN": null,
+        "printed": {
+          "M": "9238.64",
+          "V": "1004.20"
+        },
+        "member2_label": {
+          "M_kNm": 10343.26,
+          "V_kN": 1004.2,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1196.99,
+        "M_right_end_kNm": 1196.99,
+        "M_center_left_member_kNm": 5171.63,
+        "M_center_right_member_kNm": 5171.63,
+        "V_left_end_kN": 2547.45,
+        "V_left_center_kN": 2547.45,
+        "V_right_center_kN": 2547.45,
+        "V_right_end_kN": 2547.45,
+        "N_left_member_kN": 502.1,
+        "N_right_member_kN": -502.1,
+        "printed": {
+          "M": [
+            "1196.99",
+            "1196.99",
+            "5171.63",
+            "5171.63"
+          ],
+          "V": [
+            "2547.45",
+            "2547.45",
+            "2547.45",
+            "2547.45"
+          ],
+          "N": [
+            "502.10",
+            "-502.10"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 644.68,
+            "M_footing_level_kNm": 1196.99,
+            "V_kN": 502.1,
+            "N_kN": 2547.45,
+            "printed": {
+              "M_footing_level": "1196.99",
+              "M_head": "644.68",
+              "V": "502.10",
+              "N": "2547.45"
+            }
+          },
+          "tip": {
+            "N_kN": 191.42,
+            "printed": "191.42"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 644.68,
+            "M_footing_level_kNm": 1196.99,
+            "V_kN": 502.1,
+            "N_kN": -2547.45,
+            "printed": {
+              "M_footing_level": "1196.99",
+              "M_head": "644.68",
+              "V": "502.10",
+              "N": "-2547.45"
+            }
+          },
+          "tip": {
+            "N_kN": -191.42,
+            "printed": "-191.42"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 309.24,
+          "printed": "309.24",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 309.24,
+          "printed": "309.24",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 41.44,
+          "printed": "41.44",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 41.44,
+          "printed": "41.44",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 502.10）、右半分が負（印字 -502.10）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。 この頁の節見出しは「(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）」（荷重図では Case30〜33 が (6) ロングレール縦荷重、Case34〜36 が (7) …（使用性（損傷））で、見出しが食い違う）。"
+    },
+    {
+      "page": 255,
+      "printed_page": "III-109",
+      "case": 35,
+      "name": "（複線，起点側の桁）",
+      "symbol": "(B+LR)8-2",
+      "title_printed": "Case35 （複線，起点側の桁） （B+LR）8-2",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 465.5,
+        "N_kN": null,
+        "printed": {
+          "V": "465.50"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 4282.6,
+        "V_kN": 465.5,
+        "N_kN": null,
+        "printed": {
+          "M": "4282.60",
+          "V": "465.50"
+        },
+        "member2_label": {
+          "M_kNm": 4794.65,
+          "V_kN": 465.5,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 554.87,
+        "M_right_end_kNm": 554.87,
+        "M_center_left_member_kNm": 2397.32,
+        "M_center_right_member_kNm": 2397.32,
+        "V_left_end_kN": 1180.88,
+        "V_left_center_kN": 1180.88,
+        "V_right_center_kN": 1180.88,
+        "V_right_end_kN": 1180.88,
+        "N_left_member_kN": 232.75,
+        "N_right_member_kN": -232.75,
+        "printed": {
+          "M": [
+            "554.87",
+            "554.87",
+            "2397.32",
+            "2397.32"
+          ],
+          "V": [
+            "1180.88",
+            "1180.88",
+            "1180.88",
+            "1180.88"
+          ],
+          "N": [
+            "232.75",
+            "-232.75"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 298.84,
+            "M_footing_level_kNm": 554.87,
+            "V_kN": 232.75,
+            "N_kN": 1180.88,
+            "printed": {
+              "M_footing_level": "554.87",
+              "M_head": "298.84",
+              "V": "232.75",
+              "N": "1180.88"
+            }
+          },
+          "tip": {
+            "N_kN": 88.73,
+            "printed": "88.73"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 298.84,
+            "M_footing_level_kNm": 554.87,
+            "V_kN": 232.75,
+            "N_kN": -1180.88,
+            "printed": {
+              "M_footing_level": "554.87",
+              "M_head": "298.84",
+              "V": "232.75",
+              "N": "-1180.88"
+            }
+          },
+          "tip": {
+            "N_kN": -88.73,
+            "printed": "-88.73"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 143.35,
+          "printed": "143.35",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 143.35,
+          "printed": "143.35",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 19.21,
+          "printed": "19.21",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 19.21,
+          "printed": "19.21",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 232.75）、右半分が負（印字 -232.75）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。"
+    },
+    {
+      "page": 256,
+      "printed_page": "III-110",
+      "case": 36,
+      "name": "（複線，終点側の桁）",
+      "symbol": "(B+LR)8-3",
+      "title_printed": "Case36 （複線，終点側の桁） （B+LR）8-3",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（使用性（外観），耐久性）",
+      "empty": false,
+      "column_top": {
+        "M_kNm": null,
+        "V_kN": 969.5,
+        "N_kN": null,
+        "printed": {
+          "V": "969.50"
+        },
+        "M_note": "印字なし（0）",
+        "N_note": "図に印字なし"
+      },
+      "column_bottom": {
+        "M_kNm": 8919.4,
+        "V_kN": 969.5,
+        "N_kN": null,
+        "printed": {
+          "M": "8919.40",
+          "V": "969.50"
+        },
+        "member2_label": {
+          "M_kNm": 9985.85,
+          "V_kN": 969.5,
+          "note": "柱下端の横の2段目。節点2〜3（柱下端〜フーチング中央）の部材の下端（フーチング中央）の値と読む"
+        },
+        "N_note": "図に印字なし"
+      },
+      "footing": {
+        "M_left_end_kNm": 1155.63,
+        "M_right_end_kNm": 1155.63,
+        "M_center_left_member_kNm": 4992.92,
+        "M_center_right_member_kNm": 4992.92,
+        "V_left_end_kN": 2459.42,
+        "V_left_center_kN": 2459.42,
+        "V_right_center_kN": 2459.42,
+        "V_right_end_kN": 2459.42,
+        "N_left_member_kN": 484.75,
+        "N_right_member_kN": -484.75,
+        "printed": {
+          "M": [
+            "1155.63",
+            "1155.63",
+            "4992.92",
+            "4992.92"
+          ],
+          "V": [
+            "2459.42",
+            "2459.42",
+            "2459.42",
+            "2459.42"
+          ],
+          "N": [
+            "484.75",
+            "-484.75"
+          ]
+        }
+      },
+      "piles": {
+        "left": {
+          "head": {
+            "M_kNm": 622.4,
+            "M_footing_level_kNm": 1155.63,
+            "V_kN": 484.75,
+            "N_kN": 2459.42,
+            "printed": {
+              "M_footing_level": "1155.63",
+              "M_head": "622.40",
+              "V": "484.75",
+              "N": "2459.42"
+            }
+          },
+          "tip": {
+            "N_kN": 184.81,
+            "printed": "184.81"
+          }
+        },
+        "right": {
+          "head": {
+            "M_kNm": 622.4,
+            "M_footing_level_kNm": 1155.63,
+            "V_kN": 484.75,
+            "N_kN": -2459.42,
+            "printed": {
+              "M_footing_level": "1155.63",
+              "M_head": "622.40",
+              "V": "484.75",
+              "N": "-2459.42"
+            }
+          },
+          "tip": {
+            "N_kN": -184.81,
+            "printed": "-184.81"
+          }
+        }
+      },
+      "other_values": [
+        {
+          "diagram": "M",
+          "value": 298.56,
+          "printed": "298.56",
+          "location": "左杭の中間（杭頭より下の極値）",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "M",
+          "value": 298.56,
+          "printed": "298.56",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 40.0,
+          "printed": "40.00",
+          "location": "左杭の中間",
+          "location_uncertain": true
+        },
+        {
+          "diagram": "V",
+          "value": 40.0,
+          "printed": "40.00",
+          "location": "右杭の中間",
+          "location_uncertain": true
+        }
+      ],
+      "unreadable": [],
+      "notes": "柱頭の M は 0 で印字なし（三角形の頂点）。柱の N は印字なし。 フーチングの N は左半分が正（引張、印字 484.75）、右半分が負（印字 -484.75）。 杭の N は左杭が正（引張）、右杭が負（圧縮）。 軸力図のフーチング左半分の2つの縦書きのうち1つは 481.75 のようにも見える（かすれ）。もう1つは 484.75 で、せん断力図の 484.75 と合う。"
+    }
+  ]
+}

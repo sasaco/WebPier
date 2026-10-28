@@ -5,10 +5,14 @@ decision 103 puts the track rows' corner D32 in the main bars across the track, 
 sample's (08_線路.pdf 8-15, 09_直角.pdf 9-19). It is compared with this hand calculation instead: the concrete by the
 RC標準 stress-strain curve (the parabola k1·f'cd·(ε'/0.002)(2 − ε'/0.002) up to 0.002, then k1·f'cd, k1 = 1 − 0.003·f'ck ≦
 0.85, ε'cu = (155 − f'ck)／30000 ≦ 0.0035) integrated over thin strips, f'cd = f'ck／γc, the bars elastic-plastic at
-fyd = fyk／γs, the neutral axis found for the sample's N'd, Mud = Mu／γb. The bars are those of the drawing at their own
+fyd = fyk／γs, the neutral axis found for the axial force N'd, Mud = Mu／γb. The bars are those of the drawing at their own
 centres (not the count by area WebPier writes): each main face and one bar of each side face at each side bar centre.
-Capacita gives 39497.2 and 59170.6 (0.11 % and 0.08 % below). The side bars lie near the neutral axis, so the rectangular
-block over β·x is not close enough (0.22 % and 0.36 %).
+For the sample's N'd Capacita gave 39497.2 and 59170.6 (0.11 % and 0.08 % below). The side bars lie near the neutral axis,
+so the rectangular block over β·x is not close enough (0.22 % and 0.36 %).
+
+Decision 120: 0611's 安全性（破壊） is now governed by one of WebPier's 48 combinations (low / high water, reduced dead
+loads 0.9 D1 + 0.8 D2), not by the sample's, so its N'd is not the sample's 15089.9 kN. The acceptance then gives ``mud``
+the N'd Capacita printed for that check (``n_d``, in N); without it the sample's N'd is used (0621).
 """
 
 FCK, GAMMA_C, GAMMA_B = 27.0, 1.3, 1.1  # 8-14, 9-18
@@ -24,9 +28,11 @@ SECTIONS = {
 }
 
 
-def mud(stage: str) -> float:
-    """Mud (kN·m) of 安全性（破壊）の曲げ of *stage*, the side bars counted."""
-    b, h, face, (side_area, side_centres), n_d = SECTIONS[stage]
+def mud(stage: str, n_d: float | None = None) -> float:
+    """Mud (kN·m) of 安全性（破壊）の曲げ of *stage*, the side bars counted, for the axial force *n_d* in N (compression
+    positive; None: the sample's N'd of SECTIONS)."""
+    b, h, face, (side_area, side_centres), sample_n_d = SECTIONS[stage]
+    n_d = sample_n_d if n_d is None else n_d
     fcd, fyd = FCK / GAMMA_C, FYK / GAMMA_S
     ecu = min((155 - FCK) / 30000, 0.0035)
     k1 = min(1 - 0.003 * FCK, 0.85)

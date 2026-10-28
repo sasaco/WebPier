@@ -53,3 +53,4 @@ the sample that WebPier deliberately does not reproduce.
   N-EQUIVALENT program's 10.39 is an input (片持ち梁の照査.疲労).
 - **Factor of one**: the train and impact factor is ρ × γ at 0600's two decimals, so cases 23〜31 print `1.00` where
   the sample prints `1.0`.
+- Decision 119: the 1.0 LR + 1.35B bearing case takes the train without impact in Rm (the label of 07 7-9 says "1.23複線L", but its formula has (1 + i)). The values from it (13 bearing forces and LRB actions of 1.0 LR + 1.35B: Hbd 849.71, per rubber 212.43, Hsd 187.01, per stopper 26.72, H 212.43, Mt 286.78) are tested by independent hand calculation, not against this sample. The transcription is unchanged.

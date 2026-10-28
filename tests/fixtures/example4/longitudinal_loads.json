@@ -1,0 +1,1109 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_1of3.pdf",
+    "pages": "III-58〜III-67（page index 204〜213）",
+    "section": "第III編 2. 線路方向の応答値の算定 2.2 荷重図",
+    "page_mapping": "page index = 印刷頁 III-n の n + 146（各頁下端の印刷番号で確認）",
+    "method": "スキャン画像（約150dpi、文字層なし）を pymupdf で画像化し目視で転記。実装・既存の期待値は見ていない。"
+  },
+  "units": {
+    "force": "kN",
+    "moment": "kN·m",
+    "distributed": "kN/m",
+    "length": "m"
+  },
+  "conventions": "value は印字の数値（符号を含む）。printed は印字の文字列。raw_reading は荷重図の字形が紛らわしかったときの読み。confirmed_by は同じケースの断面力図（2.4、字が大きく読みやすい）の印字で値を確かめたもの。荷重図の字が判別できず断面力図で値を決めたものは raw_reading と confirmed_by の両方を書いた。",
+  "model": {
+    "description": "荷重図の骨組（読み取れた範囲）。節点1＝柱頭（上部工反力の作用点）、部材(1)＝柱、節点2＝柱の下端（フーチング天端）、部材(2)＝節点2〜3、節点3＝フーチング中央、部材(3)(4)＝フーチング（節点4〜3〜5）、節点4・5＝フーチング両端（杭列の位置）、部材(5)(6)＝節点4〜6・5〜8の短い部材、節点6・8＝杭頭、部材(7)(8)＝左右の杭、節点7・9＝杭先端。",
+    "node_numbers_printed": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "member_numbers_printed": [
+      "(1)",
+      "(2)",
+      "(3)",
+      "(4)",
+      "(5)",
+      "(6)",
+      "(7)",
+      "(8)"
+    ],
+    "node_member_reading_uncertain": true,
+    "note": "節点・部材の番号は 150dpi の走査画像で数 px の文字。上の対応は図の配置と断面力図の値の並びから決めたもので、番号の一部（特に(5)〜(8)）は字形が確かでない。長さは図に印字されていない（印字の寸法は 5.00 だけ）。断面力図の値から逆算すると柱(1)は 9.2 m、部材(2)と(5)(6)は 1.1 m（notes 参照）。",
+    "dimensions_printed": [
+      {
+        "printed": "5.00",
+        "value_m": 5.0,
+        "where": "フーチングの上の寸法線。節点4〜節点5（左右の杭列の間）。D1・D2・Wp2-1 の図に印字"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "page_index": 204,
+      "printed_page": "III-58",
+      "section": "(1) 死荷重（D）",
+      "heading": "固定死荷重（D1）",
+      "symbol": "D1",
+      "diagram_case": 1,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 5960.0,
+          "printed": "P=5960.00kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case1 の柱頭 N=-5960.00"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 347.0,
+          "printed": "M=347.00kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case1 の柱頭 M=347.00"
+        },
+        {
+          "type": "P",
+          "node": 4,
+          "location": "フーチング左端（節点4、左杭列の位置）",
+          "value_kN": 431.2,
+          "printed": "P=431.20kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "P=?31.20（先頭の字は 4 と 1 の区別が付きにくい）",
+          "note": "P の印字は2つ：分布荷重の帯の中（中央寄り）と節点5の右。中央寄りの印字を節点4のものとした（location_uncertain）。両端に同じ荷重があることは杭の軸力の和で確かめた（notes）"
+        },
+        {
+          "type": "P",
+          "node": 5,
+          "location": "フーチング右端（節点5、右杭列の位置）",
+          "value_kN": 431.2,
+          "printed": "P=431.20kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "P=?31.20"
+        },
+        {
+          "type": "M",
+          "node": 4,
+          "location": "フーチング左端（節点4）",
+          "value_kNm": -215.6,
+          "printed": "M=-215.60kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case1：フーチング左端 M − 杭の節点4の M の差と整合"
+        },
+        {
+          "type": "M",
+          "node": 5,
+          "location": "フーチング右端（節点5）",
+          "value_kNm": 215.6,
+          "printed": "M=215.60kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true
+        }
+      ],
+      "distributed_loads": [
+        {
+          "member": "(1)",
+          "location": "柱（節点1〜節点2）の全長",
+          "value_kN_per_m": 263.3,
+          "printed": "q=263.30kN/m",
+          "direction": "下向き（柱の軸方向。破線の矢印）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case1：柱の N が -5960.00 → -8382.36（差 2422.36 = 263.30×9.2）"
+        },
+        {
+          "member": "(3)(4)",
+          "location": "フーチング（節点4〜節点5、寸法 5.00）",
+          "length_m": 5.0,
+          "value_kN_per_m": 431.2,
+          "printed": "431.20kN/m",
+          "raw_reading": "?31.20kN/m（先頭の字は 4 と 1 の区別が付きにくい）",
+          "direction": "下向き",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case1：フーチングのせん断力の勾配 (5204.12−4126.12)/2.5 = 431.2"
+        }
+      ],
+      "notes": "フーチング両端の P と M は、杭列より外の張出し 1.0 m の自重（431.20×1.0、431.20×1.0²/2=215.60）と読める（notes の検算）。"
+    },
+    {
+      "page_index": 204,
+      "printed_page": "III-58",
+      "section": "(1) 死荷重（D）",
+      "heading": "付加死荷重（D2）",
+      "symbol": "D2",
+      "diagram_case": 2,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1520.0,
+          "printed": "P=1520.00kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "1520.00／1620.00 のどちらとも読める",
+          "confirmed_by": "断面力図 Case2 の柱頭 N=-1520.00"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 119.0,
+          "printed": "M=119.00kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "raw_reading": "119.00／110.00",
+          "confirmed_by": "断面力図 Case2 の柱頭 M=119.00"
+        },
+        {
+          "type": "P",
+          "node": 4,
+          "location": "フーチング左端（節点4）",
+          "value_kN": 60.8,
+          "printed": "P=60.80kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "note": "P の印字は帯の中（中央寄り）と節点5の右の2つ。D1 と同じ割り当て（location_uncertain）"
+        },
+        {
+          "type": "P",
+          "node": 5,
+          "location": "フーチング右端（節点5）",
+          "value_kN": 60.8,
+          "printed": "P=60.80kN",
+          "direction": "下向き",
+          "direction_uncertain": true
+        },
+        {
+          "type": "M",
+          "node": 4,
+          "location": "フーチング左端（節点4）",
+          "value_kNm": -30.4,
+          "printed": "M=-30.40kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true
+        },
+        {
+          "type": "M",
+          "node": 5,
+          "location": "フーチング右端（節点5）",
+          "value_kNm": 30.4,
+          "printed": "M=30.40kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true
+        }
+      ],
+      "distributed_loads": [
+        {
+          "member": "(3)(4)",
+          "location": "フーチング（節点4〜節点5、寸法 5.00）",
+          "length_m": 5.0,
+          "value_kN_per_m": 60.8,
+          "printed": "60.80kN/m",
+          "direction": "下向き",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case2：せん断力の勾配 (889.69−737.69)/2.5 = 60.8"
+        }
+      ]
+    },
+    {
+      "page_index": 204,
+      "printed_page": "III-58",
+      "section": "(2) 浮力（Wp1）",
+      "heading": "浮力（平水位）（WP1）",
+      "symbol": "Wp1",
+      "diagram_case": 3,
+      "empty": true,
+      "nodal_loads": [],
+      "distributed_loads": [],
+      "notes": "荷重の印字なし（骨組と節点番号だけ）。断面力図 Case3 も値なし。"
+    },
+    {
+      "page_index": 205,
+      "printed_page": "III-59",
+      "section": "(2) 浮力",
+      "heading": "浮力（高水位）（Wp2-1）",
+      "symbol": "Wp2-1",
+      "diagram_case": 4,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 4,
+          "location": "フーチング左端（節点4）",
+          "value_kN": -176.0,
+          "printed": "P=-176.00kN",
+          "direction": "上向き（矢印は上）",
+          "direction_uncertain": false
+        },
+        {
+          "type": "P",
+          "node": 5,
+          "location": "フーチング右端（節点5）",
+          "value_kN": -176.0,
+          "printed": "P=-176.00kN",
+          "direction": "上向き（矢印は上）",
+          "direction_uncertain": false
+        },
+        {
+          "type": "M",
+          "node": 4,
+          "location": "フーチング左端（節点4）",
+          "value_kNm": 88.0,
+          "printed": "M=88.00kN·m（右の M の印字と重なる）",
+          "sign_uncertain": true,
+          "direction": "曲線の矢印",
+          "direction_uncertain": true
+        },
+        {
+          "type": "M",
+          "node": 5,
+          "location": "フーチング右端（節点5）",
+          "value_kNm": 88.0,
+          "printed": "88.00kN·m（左の M の印字と重なり、符号が読めない）",
+          "sign_uncertain": true,
+          "direction": "曲線の矢印",
+          "direction_uncertain": true
+        }
+      ],
+      "distributed_loads": [
+        {
+          "member": "(3)(4)",
+          "location": "フーチング（節点4〜節点5、寸法 5.00 は図の下に印字）",
+          "length_m": 5.0,
+          "value_kN_per_m": 176.0,
+          "printed": "176.00kN/m",
+          "direction": "上向き（矢印は上）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case4：フーチングのせん断力 440.00 = 176.00×2.5"
+        }
+      ],
+      "notes": "M の2つの印字が柱の付け根で重なっていて、符号と左右の割り当ては決めきれない。D1 の符号の付け方（左 −、右 ＋）に倣えば上向き荷重では左 ＋88.00・右 −88.00 になるはずだが、印字からは確かめられない。"
+    },
+    {
+      "page_index": 205,
+      "printed_page": "III-59",
+      "section": "(2) 浮力",
+      "heading": "浮力（低水位）（Wp2-2）",
+      "symbol": "Wp2-2",
+      "diagram_case": 5,
+      "empty": true,
+      "nodal_loads": [],
+      "distributed_loads": [],
+      "notes": "荷重の印字なし。断面力図 Case5 も値なし。"
+    },
+    {
+      "page_index": 205,
+      "printed_page": "III-59",
+      "section": "(3) 列車荷重（L）",
+      "heading": "列車荷重(地震時以外)(複線, 両側の桁)(L1-1)",
+      "symbol": "L1-1",
+      "diagram_case": 6,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 2132.0,
+          "printed": "P=2132.00kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "2132.00／2152.00",
+          "confirmed_by": "断面力図 Case6 の柱頭 N=-2132.00"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 236.5,
+          "printed": "M=236.50kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case6 の柱頭 M=236.50"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 205,
+      "printed_page": "III-59",
+      "section": "(3) 列車荷重（L）",
+      "heading": "列車荷重(地震時以外)(複線, 起点側の桁)(L1-2)",
+      "symbol": "L1-2",
+      "diagram_case": 7,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 698.8,
+          "printed": "P=698.80kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "698.80／906.80 と紛らわしい",
+          "confirmed_by": "断面力図 Case7 の柱頭 N=-698.80"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 489.2,
+          "printed": "M=489.20kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case7 の柱頭 M=489.20"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 206,
+      "printed_page": "III-60",
+      "section": "(3) 列車荷重（L）",
+      "heading": "列車荷重(地震時以外)(複線, 終点側の桁)(L1-3)",
+      "symbol": "L1-3",
+      "diagram_case": 8,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1763.8,
+          "printed": "P=1763.80kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case8 の柱頭 N=-1763.80"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": -352.8,
+          "printed": "M=-352.80kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case8 の柱頭 M=352.80（断面力図は符号なし）",
+          "note": "M の印字は節点1の左側"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 206,
+      "printed_page": "III-60",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（安全性(破壊)および使用性（損傷））〔複線, 両側の桁〕(I1-1)",
+      "symbol": "I1-1",
+      "diagram_case": 9,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 882.5,
+          "printed": "P=882.50kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case9 N=-882.50"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 95.3,
+          "printed": "M=95.30kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "raw_reading": "95.30（95.20 とも見える）",
+          "confirmed_by": "断面力図 Case9 M=95.30"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 206,
+      "printed_page": "III-60",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（安全性(破壊)および使用性（損傷））(複線, 起点側の桁)(I1-2)",
+      "symbol": "I1-2",
+      "diagram_case": 10,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 276.0,
+          "printed": "P=276.00kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case10 N=-276.00"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 193.2,
+          "printed": "M=193.20kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "raw_reading": "193.20／103.20",
+          "confirmed_by": "断面力図 Case10 M=193.20"
+        }
+      ],
+      "distributed_loads": [],
+      "notes": "見出しの記号は走査画像で「(II-2)」のようにも見える（I の添字1の組み方）。"
+    },
+    {
+      "page_index": 207,
+      "printed_page": "III-61",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（安全性(破壊)および使用性(損傷)）(複線, 終点側の桁)(I1-3)",
+      "symbol": "I1-3",
+      "diagram_case": 11,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 726.7,
+          "printed": "P=726.70kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case11 N=-726.70"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": -145.3,
+          "printed": "M=-145.30kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case11 M=145.30",
+          "note": "M の印字は節点1の左側"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 207,
+      "printed_page": "III-61",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（使用性（外観）および耐久性）(複線, 両側の桁)(I2-1)",
+      "symbol": "I2-1",
+      "diagram_case": 12,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 661.5,
+          "printed": "P=661.50kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "raw_reading": "661.50／461.50",
+          "confirmed_by": "断面力図 Case12 N=-661.50"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 71.2,
+          "printed": "M=71.20kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case12 M=71.20"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 207,
+      "printed_page": "III-61",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（使用性（外観）および耐久性）(複線, 起点側の桁)(I2-2-使)",
+      "symbol": "I2-2-使",
+      "diagram_case": 13,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 206.8,
+          "printed": "P=206.80kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case13 N=-206.80"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": 144.8,
+          "printed": "M=144.80kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "raw_reading": "144.80／141.80",
+          "confirmed_by": "断面力図 Case13 M=144.80"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 207,
+      "printed_page": "III-61",
+      "section": "(4) 衝撃荷重（I）",
+      "heading": "衝撃荷重（使用性（外観）および耐久性）(複線, 終点側の桁)(I2-3-使)",
+      "symbol": "I2-3-使",
+      "diagram_case": 14,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "P",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 545.0,
+          "printed": "P=545.00kN",
+          "direction": "下向き",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case14 N=-545.00"
+        },
+        {
+          "type": "M",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kNm": -109.0,
+          "printed": "M=-109.00kN·m",
+          "direction": "曲線の矢印（回転の向きは走査画像で判別できない）",
+          "direction_uncertain": true,
+          "confirmed_by": "断面力図 Case14 M=109.00",
+          "note": "M の印字は節点1の左側"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 208,
+      "printed_page": "III-62",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+LR)1-1 (列車最大)(複線, 両側の桁, 死荷重低減なし)",
+      "symbol": "(B+LR)1-1",
+      "diagram_case": 15,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 966.1,
+          "printed": "H=966.10kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "966.10／968.10",
+          "confirmed_by": "断面力図 Case15 の柱のせん断力 966.10（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 208,
+      "printed_page": "III-62",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+LR)1-2 (列車最大)(複線, 起点側の桁, 死荷重低減なし)",
+      "symbol": "(B+LR)1-2",
+      "diagram_case": 16,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 501.7,
+          "printed": "H=501.70kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "591.70／601.70 と読めた（荷重図の字形）",
+          "confirmed_by": "断面力図 Case16 の柱のせん断力 501.70（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 208,
+      "printed_page": "III-62",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+LR)1-3 (列車最大)(複線, 終点側の桁, 死荷重低減なし)",
+      "symbol": "(B+LR)1-3",
+      "diagram_case": 17,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 926.2,
+          "printed": "H=926.20kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "926.20／936.20",
+          "confirmed_by": "断面力図 Case17 の柱のせん断力 926.20（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 208,
+      "printed_page": "III-62",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)2-1 (制動最大)(複線, 両側の桁, 死荷重低減なし)",
+      "symbol": "(1.1B+LR)2-1",
+      "diagram_case": 18,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1079.7,
+          "printed": "H=1079.70kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case18 の柱のせん断力 1079.70（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 209,
+      "printed_page": "III-63",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)2-2 (制動最大)(複線, 起点側の桁, 死荷重低減なし)",
+      "symbol": "(1.1B+LR)2-2",
+      "diagram_case": 19,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 464.4,
+          "printed": "H=464.40kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "461.10／161.10 と読めた（荷重図の字形）",
+          "confirmed_by": "断面力図 Case19 の柱のせん断力 464.40（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 209,
+      "printed_page": "III-63",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)2-3 (制動最大)(複線, 終点側の桁, 死荷重低減なし)",
+      "symbol": "(1.1B+LR)2-3",
+      "diagram_case": 20,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1056.4,
+          "printed": "H=1056.40kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "1056.10 と読めた",
+          "confirmed_by": "断面力図 Case20 の柱のせん断力 1056.40（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 209,
+      "printed_page": "III-63",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)3-1 (制動最大)(複線, 両側の桁, 死荷重低減あり)",
+      "symbol": "(1.1B+LR)3-1",
+      "diagram_case": 21,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1090.2,
+          "printed": "H=1090.20kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case21 の柱のせん断力 1090.20（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 209,
+      "printed_page": "III-63",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)3-2 (制動最大)(複線, 起点側の桁, 死荷重低減あり)",
+      "symbol": "(1.1B+LR)3-2",
+      "diagram_case": 22,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 411.4,
+          "printed": "H=411.40kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "411.10 と読めた",
+          "confirmed_by": "断面力図 Case22 の柱のせん断力 411.40（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 210,
+      "printed_page": "III-64",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(1.1B+LR)3-3 (制動最大)(複線, 終点側の桁, 死荷重低減あり)",
+      "symbol": "(1.1B+LR)3-3",
+      "diagram_case": 23,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1111.4,
+          "printed": "H=1111.40kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "1111.10／1111.40",
+          "confirmed_by": "断面力図 Case23 の柱のせん断力 1111.40（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 210,
+      "printed_page": "III-64",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)4-1 (ロング最大)(複線, 両側の桁, 死荷重低減なし)",
+      "symbol": "(B+1.1LR)4-1",
+      "diagram_case": 24,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1027.9,
+          "printed": "H=1027.90kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case24 の柱のせん断力 1027.90（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 210,
+      "printed_page": "III-64",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)4-2 (ロング最大)(複線, 起点側の桁, 死荷重低減なし)",
+      "symbol": "(B+1.1LR)4-2",
+      "diagram_case": 25,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 507.0,
+          "printed": "H=507.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case25 の柱のせん断力 507.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 210,
+      "printed_page": "III-64",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)4-3 (ロング最大)(複線, 終点側の桁, 死荷重低減なし)",
+      "symbol": "(B+1.1LR)4-3",
+      "diagram_case": 26,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 987.7,
+          "printed": "H=987.70kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case26 の柱のせん断力 987.70（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 211,
+      "printed_page": "III-65",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)5-1 (ロング最大)(複線, 終点側の桁, 死荷重低減あり)",
+      "symbol": "(B+1.1LR)5-1",
+      "diagram_case": 27,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1039.3,
+          "printed": "H=1039.30kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "1039.20／1039.30",
+          "confirmed_by": "断面力図 Case27 の柱のせん断力 1039.30（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": [],
+      "notes": "見出しは「終点側の桁」と印字されているが、断面力図 Case27 の見出しは「両側の桁」で、並び（4-1 が両側）からも両側の誤記と思われる。"
+    },
+    {
+      "page_index": 211,
+      "printed_page": "III-65",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)5-2 (ロング最大)(複線, 起点側の桁, 死荷重低減あり)",
+      "symbol": "(B+1.1LR)5-2",
+      "diagram_case": 28,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 454.0,
+          "printed": "H=454.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "454.00／434.00",
+          "confirmed_by": "断面力図 Case28 の柱のせん断力 454.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 211,
+      "printed_page": "III-65",
+      "section": "(5) 制動荷重＋ロングレール縦荷重（B＋LR）（安全性（破壊））",
+      "heading": "(B+1.1LR)5-3 (ロング最大)(複線, 終点側の桁, 死荷重低減あり)",
+      "symbol": "(B+1.1LR)5-3",
+      "diagram_case": 29,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1022.7,
+          "printed": "H=1022.70kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case29 の柱のせん断力 1022.70（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 212,
+      "printed_page": "III-66",
+      "section": "(6) ロングレール縦荷重（LR）（使用性（外観），耐久性）",
+      "heading": "(LR)6-1(ひび割れ検討時)",
+      "symbol": "(LR)6-1",
+      "diagram_case": 30,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 280.0,
+          "printed": "H=280.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case30 の柱のせん断力 280.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 212,
+      "printed_page": "III-66",
+      "section": "(6) ロングレール縦荷重（LR）（使用性（外観），耐久性）",
+      "heading": "(LR)7-1(縁応力検討時)(複線, 両側の桁)",
+      "symbol": "(LR)7-1",
+      "diagram_case": 31,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 350.0,
+          "printed": "H=350.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case31 の柱のせん断力 350.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 212,
+      "printed_page": "III-66",
+      "section": "(6) ロングレール縦荷重（LR）（使用性（外観），耐久性）",
+      "heading": "(LR)7-2(縁応力検討時)(複線, 起点側の桁)",
+      "symbol": "(LR)7-2",
+      "diagram_case": 32,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 350.0,
+          "printed": "H=350.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case32 の柱のせん断力 350.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 212,
+      "printed_page": "III-66",
+      "section": "(6) ロングレール縦荷重（LR）（使用性（外観），耐久性）",
+      "heading": "(LR)7-3(縁応力検討時)(複線, 終点側の桁)",
+      "symbol": "(LR)7-3",
+      "diagram_case": 33,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 350.0,
+          "printed": "H=350.00kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "confirmed_by": "断面力図 Case33 の柱のせん断力 350.00（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 213,
+      "printed_page": "III-67",
+      "section": "(7) 制動荷重＋ロングレール縦荷重（B＋LR）（使用性（損傷））",
+      "heading": "(B+LR)8-1 (使用性（損傷）)(複線, 両側の桁)",
+      "symbol": "(B+LR)8-1",
+      "diagram_case": 34,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 1004.2,
+          "printed": "H=1004.20kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "1004.20／1001.20",
+          "confirmed_by": "断面力図 Case34 の柱のせん断力 1004.20（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 213,
+      "printed_page": "III-67",
+      "section": "(7) 制動荷重＋ロングレール縦荷重（B＋LR）（使用性（損傷））",
+      "heading": "(B+LR)8-2 (使用性（損傷）)(複線, 起点側の桁)",
+      "symbol": "(B+LR)8-2",
+      "diagram_case": 35,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 465.5,
+          "printed": "H=465.50kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "465.50／165.50",
+          "confirmed_by": "断面力図 Case35 の柱のせん断力 465.50（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": []
+    },
+    {
+      "page_index": 213,
+      "printed_page": "III-67",
+      "section": "(7) 制動荷重＋ロングレール縦荷重（B＋LR）（使用性（損傷））",
+      "heading": "(B+LR)8-3 (使用性（外観）)(複線, 終点側の桁)",
+      "symbol": "(B+LR)8-3",
+      "diagram_case": 36,
+      "empty": false,
+      "nodal_loads": [
+        {
+          "type": "H",
+          "node": 1,
+          "location": "柱頭（節点1）",
+          "value_kN": 969.5,
+          "printed": "H=969.50kN",
+          "direction": "右向き（節点1の左に引いた線の右端に矢じり）",
+          "direction_uncertain": false,
+          "raw_reading": "969.50／960.50",
+          "confirmed_by": "断面力図 Case36 の柱のせん断力 969.50（柱頭・柱下端とも）"
+        }
+      ],
+      "distributed_loads": [],
+      "notes": "見出しの照査項目が 8-1・8-2 の「使用性（損傷）」と違い「使用性（外観）」と印字されている。"
+    }
+  ]
+}

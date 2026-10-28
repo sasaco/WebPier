@@ -60,23 +60,15 @@ def by_hand(result, number: int, fx: float, support: int) -> ByHand:
     return ByHand(vd=round(vd, 4), fx=round(-horizontal, 4), mz=round(-moment, 4))
 
 
-def reference_frameweb(pier, stage: str) -> bytes:
-    """The FrameWeb file of the 0610 / 0620 frame as before decision 77: the impact with the girder coefficients, and
-    for 0610 the train on both girders only (decision 102), for 0620 Example2's one loading of each check with the train
-    and its one vehicle lateral load (decision 106), numbered as Example2.
-
-    Example2 has no impact reduction on the pier body, no other 列車の配置 and no other loading, so its sample values are compared with
-    the real reactions of this file; the file of the current generator is held to ``by_hand`` instead.
-    """
+def reference_result(pier, stage: str):
+    """The 0610 / 0620 result whose frame ``reference_frameweb`` writes: the impact with the girder coefficients, as
+    before decision 77. ``by_hand`` of this result is what the reference file's real reactions are held to."""
     from dataclasses import replace
 
     from webpier.calc.foundation import calculate_foundation
     from webpier.calc.longitudinal import calculate_longitudinal
     from webpier.calc.reaction import calculate_reaction
     from webpier.calc.transverse import calculate_transverse
-    from webpier.core.integrity import dump_json
-    from webpier.export.frameweb import build_frameweb, build_frameweb_transverse
-    from frameweb_placing import example2_loading, first_placing
 
     foundation, reaction = calculate_foundation(pier), calculate_reaction(pier)
     train = reaction.train
@@ -84,9 +76,35 @@ def reference_frameweb(pier, stage: str) -> bytes:
                             end_pier_impact=getattr(train, name).end_impact)
               for name in ("ultimate", "service", "fatigue")}
     reference = replace(reaction, train=replace(train, **groups))
+    return (calculate_longitudinal if stage == "0610" else calculate_transverse)(pier, foundation, reference)
+
+
+def reference_numbers(result) -> dict[int, int]:
+    """0610: the combination number of the reference file (``first_placing``: the train on both girders only,
+    renumbered in order) -> the number of the same combination in *result*."""
+    from webpier.calc.reaction.train import Layout
+
+    kept = [c.number for c in result.combinations if c.layout in (None, Layout.BOTH)]
+    return {reference: number for reference, number in enumerate(kept, 1)}
+
+
+def reference_frameweb(pier, stage: str) -> bytes:
+    """The FrameWeb file of the 0610 / 0620 frame as before decision 77: the impact with the girder coefficients, and
+    for 0610 the train on both girders only (decision 102), for 0620 Example2's one loading of each check with the train
+    and its one vehicle lateral load (decision 106), numbered as Example2.
+
+    Example2 has no impact reduction on the pier body, no other 列車の配置 and no other loading, so its sample values are
+    compared with the real reactions of this file where the combination is still Example2's (decision 120: the 0612
+    long term and 0622); the others, and the file of the current generator, are held to ``by_hand``.
+    """
+    from webpier.core.integrity import dump_json
+    from webpier.export.frameweb import build_frameweb, build_frameweb_transverse
+    from frameweb_placing import example2_loading, first_placing
+
+    result = reference_result(pier, stage)
     if stage == "0610":
-        return dump_json(first_placing(build_frameweb(calculate_longitudinal(pier, foundation, reference))))
-    return dump_json(example2_loading(build_frameweb_transverse(calculate_transverse(pier, foundation, reference))))
+        return dump_json(first_placing(build_frameweb(result)))
+    return dump_json(example2_loading(build_frameweb_transverse(result)))
 
 
 def by_hand_absolute(result, number: int, hd: float, md: float, support: int) -> ByHand:
