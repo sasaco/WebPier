@@ -296,6 +296,15 @@ class CantileverCheck:
 
 
 @dataclass(frozen=True)
+class CalculationSection:
+    """計算上断面 of the column (CONTEXT.md, decision 118): the rectangle it is an RC section with, which an add-in
+    gives in place of its 実断面 B6 × W6."""
+
+    b: Printed  # along the track, in place of B6
+    w: Printed  # across the track, in place of W6
+
+
+@dataclass(frozen=True)
 class PierInput:
     substructure: Substructure
     spans: Spans
@@ -311,3 +320,12 @@ class PierInput:
     cantilever_check: CantileverCheck  # 片持ち梁の照査 (decision 59)
     jrsnap: Jrsnap
     outputs: tuple[str, ...]  # the chosen 出力項目 (decision 72), in the order of inputs.outputs.OUTPUT_KEYS
+    calculation_section: CalculationSection | None = None  # an add-in's (decision 118); None: the 実断面
+
+    @property
+    def column_section(self) -> tuple[Printed, Printed]:
+        """B and W of the column as an RC section (decision 118): its 計算上断面, or the 実断面 B6 × W6 without one.
+        Its shape (weight, inertia, buoyancy, wind, faces) is always the 実断面."""
+        if self.calculation_section is None:
+            return self.substructure.b[6], self.substructure.w[6]
+        return self.calculation_section.b, self.calculation_section.w

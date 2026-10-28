@@ -11,8 +11,11 @@ combination refers to them by their ids (``APP_*``). Everything else here is the
 the 支承作用 into the frame and cantilever loads, writes FrameWeb, the NDU and the reports in its own format, and
 prints the sections the load model writes about where its values come from.
 
-The values are Decimal at their printed digits (ADR-0003): forces 2 decimals (kN), heights 3 (m), the wind pressures
-1 (kN/m2) and the factors as written. A load model imports this package only.
+Version 2 (decision 118): besides its load model, an add-in may give the 計算上断面 of the column (CONTEXT.md,
+``ColumnSection``), a function of the ``Context`` it declares apart from the load model.
+
+The values are Decimal at their printed digits (ADR-0003): forces 2 decimals (kN), heights and sizes 3 (m), the wind
+pressures 1 (kN/m2) and the factors as written. A load model imports this package only.
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ from typing import Any, Protocol
 
 from ..core.errors import InputError
 
-CONTRACT_VERSION = 1
+CONTRACT_VERSION = 2
 
 # The basic cases of the application, by the id a combination refers to them with.
 D1 = "D1"  # 固定死荷重: the dead load reactions D1 of the bearings and the pier body
@@ -241,6 +244,20 @@ class Context:
 
 class LoadModel(Protocol):
     def calculate(self, context: Context) -> LoadModelResult: ...
+
+
+@dataclass(frozen=True)
+class ColumnSection:
+    """柱の計算上断面 (CONTEXT.md, decision 118): the rectangle the column is an RC section with, in place of its 実断面
+    B6 × W6, in m. The application keeps the 実断面 for the shape of the column: its weight, inertia, buoyancy and
+    wind, and the faces the footing and the cantilevers are measured from."""
+
+    along: Decimal  # along the track, in place of B6
+    across: Decimal  # across the track, in place of W6
+
+
+class ColumnSectionFunction(Protocol):
+    def __call__(self, context: Context) -> ColumnSection: ...
 
 
 class LoadModelInputError(InputError):

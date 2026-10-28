@@ -33,3 +33,4 @@ LRT の P7橋脚では、列車荷重のかわりに車荷重が載り、その�
 - 列車を前提にした箇所を作り直す改修が大きい（20個の `BasicCase`、決定69の分岐、NDU の検証器のケースの名前と並び、計算書の基本ケースの表）。
 - 片持ち梁の組合せは Capacita の断面力の表の8行に割り当てる（5区分ではない）。0720 の制御節点の重みは、増分の地震時ケースの直角方向の支承作用を起点側・終点側ごとに合計したもの（owner 2026-10-20）。
 - 細目は `.claude/docs/plans/refactoring-decisions.md` の決定70。差し込み口と約束（①）は `webpier/loadmodel/`・`webpier/calc/generic/`・`webpier/reporting/stages/generic/`・`webpier/pipeline/addin.py`、使い方は README の「荷重モデルのアドイン」。
+- 約束の版 2（決定118、2026-10-28）から、アドインは荷重モデルとは別に、柱の計算上断面（CONTEXT.md）も与えられる。荷重モデルの定義は広げず、アプリの持つ柱の断面のうち、RC 断面として扱うところだけを差し替える。

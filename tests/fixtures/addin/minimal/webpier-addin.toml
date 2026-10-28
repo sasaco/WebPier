@@ -1,4 +1,4 @@
 name = "minimal"
 version = "1.0.0"
-contract = 1
+contract = 2
 entry = "minimal_load_model:load_model"

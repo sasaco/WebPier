@@ -14,6 +14,9 @@ calculation and the files for the other programs need:
 - a seismic combination loads seismic cases only, and the cases of one direction are at most 15 (the NDU), whose
   names are the NDU's titles: Shift-JIS, 40 bytes at most;
 - the sections go to the stages that print them, and the provenance can be written as JSON.
+
+The 計算上断面 of the column an add-in gives (decision 118) is checked apart: each size at the printed digits of the
+dimensions (3), positive and not larger than the 実断面 it stands for (B6 along the track, W6 across it).
 """
 
 from __future__ import annotations
@@ -25,8 +28,8 @@ from typing import Any
 from ..core.errors import InputError
 from .contract import (
     D1, D2, EQ2, PIER_WIND, SECTION_STAGES, WP_HIGH, WP_LOW, WP_NORMAL, BasicCase, BearingAction, BearingRef,
-    CantileverCombination, CantileverRow, CantileverTerm, Candidate, Combination, Context, ExtractionGroup,
-    FrameDirection, Increment, LoadModelResult, MaxResponse, Paragraph, Section, Seismic, SeismicCombination,
+    CantileverCombination, CantileverRow, CantileverTerm, Candidate, ColumnSection, Combination, Context,
+    ExtractionGroup, FrameDirection, Increment, LoadModelResult, MaxResponse, Paragraph, Section, Seismic, SeismicCombination,
     SeismicDirection, Side, SpringTerm, Table, Term, pier_wind,
 )
 
@@ -34,6 +37,7 @@ FORCE_DIGITS = 2
 HEIGHT_DIGITS = 3
 FACTOR_DIGITS = 3
 PRESSURE_DIGITS = 1
+SIZE_DIGITS = 3  # 下部構造.寸法, m
 NDU_CASES = 15  # the basic cases an NDU can hold (export.jrsnap.validate)
 NDU_TITLE_BYTES = 40  # a title of the NDU, CP932 (export.jrsnap.validate)
 
@@ -300,4 +304,16 @@ def validate(result: LoadModelResult, context: Context) -> LoadModelResult:
     return result
 
 
-__all__ = ["bearing_label", "validate"]
+def validate_column_section(section: ColumnSection, b6: Decimal, w6: Decimal) -> ColumnSection:
+    """*section* as it is, if it fits in the 実断面 *b6* × *w6* (m); otherwise an input error naming the size."""
+    if not isinstance(section, ColumnSection):
+        raise _error("", f"柱の計算上断面は ColumnSection が必要です（{type(section).__name__}）")
+    for key, size, real, name in (("along", section.along, b6, "B6"), ("across", section.across, w6, "W6")):
+        where = f"column_section.{key}"
+        _digits(where, size, SIZE_DIGITS)
+        if not Decimal(0) < size <= real:
+            raise _error(where, f"0 より大きく、実断面の {name} = {real:.3f} m 以下の値が必要です（{size}）")
+    return section
+
+
+__all__ = ["bearing_label", "validate", "validate_column_section"]

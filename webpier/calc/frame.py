@@ -387,7 +387,10 @@ def build_frame(pier: PierInput, self_weight: SelfWeightResult, foundation: Foun
     longitudinal = direction is Direction.LONGITUDINAL
     plane, normal, dims = (s.b, s.w, "B") if longitudinal else (s.w, s.b, "W")
     other = "W" if longitudinal else "B"
-    column_section = _section(normal[6], plane[6], f"下部構造.寸法 B6/W6（{dims}6 が面内）")
+    # the column's stiffness is that of its RC section, the 計算上断面 when an add-in gives one (decision 118)
+    b, w = pier.column_section
+    column_section = _section(w if longitudinal else b, b if longitudinal else w,
+                              f"下部構造.寸法 B6/W6（{dims}6 が面内）")
     axis = self_weight.column.x_l if longitudinal else self_weight.column.x_c
 
     zf = LENGTH.total((h[5], h[6]))

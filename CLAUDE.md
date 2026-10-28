@@ -58,7 +58,7 @@ Windows専用。帳票は `%WINDIR%/Fonts` の MS明朝・MSゴシック・MS P�
 
 - `core`: 印字桁つきの値 `Printed`、厳密なJSON読込み、エラー、ハッシュ。
 - `inputs`: schema 2 の解析と検証。`fields.py` の項目表（桁・単位・符号・選択肢・予約項目）をparserとエディタが共用する。選択肢は `choices.py`。`parse_input(load_model=True)` は荷重モデルの項目を読まない（決定70）。
-- `loadmodel`: 荷重モデルの約束（決定70、ADR-0010）。アドインが import してよいのはここだけで、core にだけ依存する。結果はアプリが `validate` で検査する（違反は `アドイン:` の入力エラー）。
+- `loadmodel`: 荷重モデルの約束（決定70、ADR-0010）と、アドインが与えてよい柱の計算上断面（版2、決定118）。アドインが import してよいのはここだけで、core にだけ依存する。結果はアプリが `validate` で検査する（違反は `アドイン:` の入力エラー）。
 - `calc`: 段階の計算。結果は `Printed` を持つ frozen dataclass で、描画に依存しない。
 - `reporting`: GridLayoutPdf で組む帳票（`reporting/stages/`）。工学計算をここに置かない。
 - `export`: `frameweb`（FEMPython/FrameWebforCS）、`jrsnap`（JRSNAP 5.2-L03 NDU、CP932/CRLF）、`aggrese`（Aggre-SE のプロジェクトXML。Aggre-SE が保存する書式どおりで、宣言は utf-16・中身は Shift-JIS）、`capacita`（Capacita の WDJ）、`drawing`（ezdxf の配筋図。DXF と図ごとの PDF・PNG）。

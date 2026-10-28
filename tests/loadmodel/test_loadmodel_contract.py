@@ -7,7 +7,7 @@ from webpier.calc.longitudinal import combinations
 
 
 def test_the_version_of_the_contract():
-    assert loadmodel.CONTRACT_VERSION == 1
+    assert loadmodel.CONTRACT_VERSION == 2
 
 
 def test_the_spring_terms_and_extraction_groups_are_the_contract_s():

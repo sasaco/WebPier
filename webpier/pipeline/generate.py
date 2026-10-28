@@ -201,9 +201,11 @@ def _stale(options: GenerationOptions, artifacts: list[Artifact]) -> list[Artifa
 
 
 def _read(options: GenerationOptions, registry: Registry) -> tuple[bytes, PierInput]:
-    """The input's bytes, read once, and the input parsed from them strictly."""
+    """The input's bytes, read once, and the input parsed from them strictly, with the 計算上断面 of the column the
+    add-in gives (decision 118)."""
     data = Path(options.input_path).read_bytes()
-    return data, parse_input(load_json(data), load_model=registry.load_model is not None)
+    pier = parse_input(load_json(data), load_model=registry.load_model is not None)
+    return data, pier if registry.load_model is None else registry.load_model.with_section(pier)
 
 
 def resolve_input(options: GenerationOptions, registry: Registry = STAGES

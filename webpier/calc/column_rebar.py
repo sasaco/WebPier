@@ -312,7 +312,9 @@ def _overlap(bars: list[Bar]) -> None:
 
 
 def column_layout(pier: PierInput) -> ColumnLayout:
-    return section_layout(pier.rebar.column, pier.substructure.w[6], pier.substructure.b[6])
+    """The layout in the column as an RC section: its 計算上断面 when an add-in gives one (decision 118)."""
+    b, w = pier.column_section
+    return section_layout(pier.rebar.column, w, b)
 
 
 def section_layout(column: ColumnBars, w6: Printed, b6: Printed) -> ColumnLayout:

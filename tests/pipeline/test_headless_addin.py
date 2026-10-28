@@ -96,7 +96,7 @@ def addin(folder: Path, *, contract: int = CONTRACT_VERSION, body: str = "") -> 
 
 
 @pytest.mark.parametrize("case,code,message", [
-    ("version", "ADDIN_ERROR", "アドイン x の約束の版 2 は、この WebPier の約束の版 1 と違います"),
+    ("version", "ADDIN_ERROR", "アドイン x の約束の版 1 は、この WebPier の約束の版 2 と違います"),
     ("missing", "ADDIN_ERROR", "アドインの宣言"),
     ("import", "ADDIN_ERROR", "アドイン x を読み込めません"),
     ("raises", "ADDIN_ERROR", "アドイン x の calculate が失敗しました: RuntimeError"),
@@ -106,7 +106,7 @@ def addin(folder: Path, *, contract: int = CONTRACT_VERSION, body: str = "") -> 
 def test_the_errors_of_an_add_in(tmp_path: Path, capsys, case, code, message, command):
     folder = tmp_path / "addin"
     if case == "version":
-        addin(folder, contract=2)
+        addin(folder, contract=1)
     elif case == "missing":
         folder.mkdir()
     elif case == "import":
