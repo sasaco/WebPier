@@ -37,6 +37,12 @@ Capacita/SteelDan PipePileVerifier (the same rounding), and the info message SD-
 ``steel-engine``, ``steel-artifacts``, ``steel-sha``, ``steel-missing``, ``steel-short`` (a check left out), ``steel-duplicate``,
 ``steel-text-value`` (a value that is no number) and ``steel-version`` misbehave in it.
 
+``--commentary-chapter <n> --commentary-first-section <k>`` (both or neither, after the others; decision 121) number the
+commentary of a WDJ with ``calc.print_commentary_checked`` true: each reportSections item has ``heading``, "n.k" for the
+first printed section of each commentary group (COMMENTARY_GROUPS, RcDan CommentaryGroups) numbered from k over the
+printed groups, else null (the key is always there, as the real runner of 2026-10-29 writes it). Mode ``heading``
+writes a heading of another chapter on the first section, ``headingtype`` a number in place of one.
+
 When the real runner's protocol changes, change this too (the real-runner test is the signal). ``FAKE_CAPACITA`` makes
 it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
 listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), extra (an unlisted file), sections
@@ -67,6 +73,16 @@ FORCE_SECTIONS = (("bending_safety_destruction", 1), ("shear_safety_destruction"
                   ("bending_restorability", 1), ("shear_restorability", 2), ("torsion_restorability", 3),
                   ("bending_restorability_eq", 1), ("shear_restorability_eq", 2), ("torsion_restorability_eq", 3),
                   ("bending_rebar_amount", 3))
+# The commentary groups, in report order (Capacita RcDan/Printers/Commentary/CommentaryGroups.cs): the first printed
+# section of a group carries its heading.
+COMMENTARY_GROUPS = (("section_forces",),
+                     ("bending_safety_destruction", "shear_safety_destruction", "shear_deep_beam_safety_destruction",
+                      "torsion_safety_destruction"),
+                     ("bending_safety_fatigue", "shear_safety_fatigue"),
+                     ("bending_durability", "shear_durability", "torsion_durability"), ("bending_serviceability",),
+                     ("bending_restorability", "shear_restorability", "torsion_restorability"),
+                     ("bending_restorability_eq", "shear_restorability_eq", "torsion_restorability_eq"),
+                     ("bending_rebar_amount",))
 # The section each row of the force table asks for, by the row's prefix and limit state id.
 SECTION_OF_ROW = {("Md", 0): "bending_durability", ("Md", 1): "bending_durability", ("Md", 3): "bending_safety_fatigue",
                   ("Md", 4): "bending_safety_fatigue", ("Md", 5): "bending_safety_destruction",
@@ -143,6 +159,20 @@ def report(sections, digest):
             page.showPage()
     page.save()
     return stream.getvalue(), ranges
+
+
+def number_headings(ranges, numbering):
+    """Each range's ``heading``: with *numbering* (chapter, first section), "chapter.k" on the first printed section of
+    each commentary group, k counted over the printed groups; else null."""
+    group, following = None, None if numbering is None else numbering[1]
+    for item in ranges:
+        own = next(index for index, sections in enumerate(COMMENTARY_GROUPS) if item["id"] in sections)
+        item["heading"] = None
+        if own != group:
+            group = own
+            if numbering is not None:
+                item["heading"] = f"{numbering[0]}.{following}"
+                following += 1
 
 
 def round_half_up(value, digits):
@@ -285,8 +315,14 @@ def main(argv):
         return run_steel(argv, mode)
     if argv and argv[0] == "run-pile-joint":
         return run_pile_joint(argv, mode)
+    numbering = None
+    if len(argv) >= 4 and argv[-4] == "--commentary-chapter" and argv[-2] == "--commentary-first-section":
+        if not all(text.isdigit() and int(text) > 0 for text in (argv[-3], argv[-1])):
+            return failure("invalid_commentary_number", " ".join(argv), 2)
+        numbering, argv = (int(argv[-3]), int(argv[-1])), argv[:-4]
     if (len(argv) not in (7, 9) or argv[0] != "run-rc" or argv[1] != "--input" or argv[3] != "--output-dir"
-            or argv[5:7] != ["--output-format", "pdf"] or (len(argv) == 9 and argv[7] != "--pickup")):
+            or argv[5:7] != ["--output-format", "pdf"] or (len(argv) == 9 and argv[7] != "--pickup")
+            or "--commentary-chapter" in argv or "--commentary-first-section" in argv):
         return failure("invalid_arguments", " ".join(argv), 2)
     source, output = Path(argv[2]), Path(argv[4])
     pickup = Path(argv[8]) if len(argv) == 9 else None
@@ -341,6 +377,11 @@ def main(argv):
                                                    else content).hexdigest()})
     if mode == "extra":
         (output / "summary.xlsx").write_bytes(b"x")
+    number_headings(ranges, numbering if (document.get("calc") or {}).get("print_commentary_checked") else None)
+    if mode == "heading":
+        ranges[0]["heading"] = "1.5"
+    if mode == "headingtype":
+        ranges[0]["heading"] = 8.5
     if mode == "order":
         ranges.reverse()
     if mode == "gap":

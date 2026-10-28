@@ -150,6 +150,19 @@ def test_the_frame_analysis_stages_analyze_the_frameweb_files():
             ("reaction", f"{stem}_ピックアップ反力.csv")))
 
 
+def test_capacita_numbers_the_column_checks_that_0400_and_the_foundation_checks_refer_to():
+    """Decision 121: 0611 / 0621 have Capacita's commentary numbered from 8.5 / 9.5 and no grid Excel workbook; 0400
+    reads both and 0612 / 0622 (also on piles) their direction's when the same generation makes them, without
+    depending on them (ADR-0012)."""
+    for stage_id, chapter in (("0611", 8), ("0621", 9)):
+        stage = STAGES.get(stage_id)
+        assert stage.section_check.commentary == (chapter, 5) and stage.grid_documents is None
+    assert STAGES.get("0400").reads == ("0611", "0621") and STAGES.get("0400").depends_on == ()
+    for stage_id, column in (("0612", "0611"), ("0622", "0621")):
+        assert STAGES.get(stage_id).reads == (column,) and column not in STAGES.get(stage_id).depends_on
+        assert all(pile.reads == (column,) for pile in STAGES.get(stage_id).foundations.values())
+
+
 def test_the_nonlinear_analysis_stages_analyze_the_ndu_files():
     """Decision 47: 0711 and 0721 publish the folder of the JRSNAP analysis of their seismic stage's NDU, and beside it
     the Aggre-SE project that reads it (decision 49); their report is Aggre-SE's, without a calculation of their own
@@ -250,6 +263,9 @@ def test_get_returns_the_spec():
     ((spec("A"), spec("A")), "段階が重複しています: A"),
     ((spec("A", "B"), spec("B")), "Aの依存段階Bが先に登録されていません"),
     ((spec("A", "A"),), "Aの依存段階Aが先に登録されていません"),
+    # the stages a report reads when the same generation makes them (decision 121): registered, not itself
+    ((replace(spec("A"), reads=("X",)),), "Aが読む段階がありません: X"),
+    ((replace(spec("A"), reads=("A",)),), "Aが読む段階がありません: A"),
     ((StageSpec("A", "B_名前", (), lambda p, r: 0, lambda r, p, path, pages: path),), "AのファイルB_名前の名前"),
     ((spec("A", exports=(export("frameweb", "x.json"),)), spec("B", exports=(export("frameweb", "x.json"),))),
      "出力ファイル名が重複しています: x.json"),

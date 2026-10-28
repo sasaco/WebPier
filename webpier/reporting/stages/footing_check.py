@@ -2,7 +2,7 @@
 ADR-0008).
 
 WebPier lays out only the headings and the explanations (the check formulas, their symbols and the flowchart of the
-flexural crack check, as 0611's); each part is followed by Capacita's pages of its section (``stages.insertion``),
+flexural crack check, stages.check_text); each part is followed by Capacita's pages of its section (``stages.insertion``),
 cut from Capacita's report by the page ranges it returns: n.a 安全性の照査 1) bending, 2) shear; n.b 耐久性の照査
 1) the flexural crack check, 2) the shear crack check, which is not asked of Capacita (面部材のため省略: the
 sample's sentence, 12_フーチング.pdf 262, printed after the durability pages); n.c 復旧性（地震時）の照査 1) bending,
@@ -12,9 +12,9 @@ the four section numbers of the ``Chapter`` (12.2〜12.5 for 0810, 12.6〜12.9 f
 耐久性 and the rebar amount (12.2〜12.4, 12.5〜12.7), with the nonlinear ones alone 復旧性（地震時） (12.2, 12.3). The
 chapter heading (§12) and 12.1 are 0800's and not printed here.
 
-The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as 0611 writes them
+The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259〜261, 263, 265 and 266 as check_text writes them
 (decision 48), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5
-flexural crack method and flowchart of 0611): the values WebPier writes to the WDJ (γi, γb, k4, ε'csd) and the
+flexural crack method and flowchart of check_text): the values WebPier writes to the WDJ (γi, γb, k4, ε'csd) and the
 水掛かりの程度 of the input are printed from the same result; the values and formulas of RC標準 that only Capacita
 evaluates (σsl1 and Wlim by 水掛かりの程度, fvcd, fwcd, βd, βp, βn, z) are not: the inserted result pages show the
 values used. The seismic restorability prints the factors of 復旧性（損傷）地震時 (γi 1.0, γb 1.0; the sample 263). Not
@@ -34,7 +34,7 @@ from ...calc.column_check import SafetyFactors
 from ...calc.footing_check import FootingCheckResult
 from ..equations import Definition
 from . import insertion
-from .column_check import COLON, CRACK_METHOD, CRACK_STRESS, SIGMA_SE, _blocks, ecsd_text, flowchart
+from .check_text import COLON, CRACK_METHOD, CRACK_STRESS, SIGMA_SE, _blocks, ecsd_text, flowchart
 from .frame_report import Manuscript, Unit, value
 from .insertion import Insertion, documents, render_with_pages
 

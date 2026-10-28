@@ -27,6 +27,9 @@ def printed(stage: str, check: fc.FoundationCheckResult | None = None) -> str:
 def test_the_section_continues_the_column_check_of_its_direction(stage, number):
     first = records(result(stage), chapter(stage))[0]
     assert (first["id"], first["text"]) == (f"{stage}/heading", f"{number}.11 基礎の照査")  # after n.10 (decision 73)
+    # after the last group Capacita numbered (decision 121): Example2 across the track ends at 9.9
+    first = records(result(stage), replace(chapter(stage), section=10))[0]
+    assert first["text"] == f"{number}.10 基礎の照査"
 
 
 @pytest.mark.parametrize("stage", ["0612", "0622"])

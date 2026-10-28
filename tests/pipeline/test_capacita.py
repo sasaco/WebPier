@@ -25,6 +25,9 @@ SECTIONS = ("section_forces", "bending_safety_destruction", "shear_safety_destru
             "shear_durability", "bending_serviceability", "bending_restorability", "shear_restorability",
             "bending_rebar_amount")
 WDJ = json.dumps({"crack": [{"vis_u": True}], "points": []}).encode("utf-8")
+# a WDJ that asks for the commentary (calc.print_commentary_checked), as 0611 and 0621 write it (decision 121)
+COMMENTED = json.dumps({"crack": [{"vis_u": True}], "points": [],
+                        "calc": {"print_commentary_checked": True}}).encode("utf-8")
 PIK = b"PickUpNo\n    1    M    1\n"
 FOOTING_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
                     "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
@@ -123,6 +126,42 @@ def test_the_report_takes_the_pages_of_each_returned_section_by_its_id(fake_capa
     assert {section: texts(content) for section, content in checked.pages.items()} == {
         section.id: report[section.first - 1:section.last] for section in checked.sections}
     assert len(texts(checked.pages["section_forces"])) == 2 and "shear_durability" not in checked.pages
+
+
+def test_the_commentary_is_numbered_from_the_section_asked_for(fake_capacita_runner: Path):
+    """Decision 121: --commentary-chapter 8 --commentary-first-section 5; the first printed section of each commentary
+    group carries its number, 8.5 to 8.10, the others none."""
+    checked = check_column(COMMENTED, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS, commentary=(8, 5))
+    assert checked.headings == {"section_forces": "8.5", "bending_safety_destruction": "8.6",
+                                "shear_safety_destruction": None, "bending_durability": "8.7", "shear_durability": None,
+                                "bending_serviceability": "8.8", "bending_restorability": "8.9",
+                                "shear_restorability": None, "bending_rebar_amount": "8.10"}
+    # without the numbers asked for no section has a number
+    assert set(check_column(COMMENTED, "a.pik", PIK, fake_capacita_runner, SECTIONS).headings.values()) == {None}
+    # numbers asked for but none returned (a report without the commentary): the report is not the one asked for
+    with pytest.raises(RunnerError, match="計算書の解説の見出し番号が違います"):
+        check_column(WDJ, "a.pik", PIK, fake_capacita_runner, SECTIONS, commentary=(8, 5))
+
+
+def test_a_group_capacita_does_not_print_takes_no_number(fake_capacita_runner: Path, monkeypatch: pytest.MonkeyPatch):
+    """Across the track in Example2 Capacita skips the serviceability (its whole group) and the shear durability: the
+    groups after it move up, 9.8 使用性（損傷） and 9.9 最小鉄筋量及び最大鉄筋量 (Capacita's decision 5)."""
+    monkeypatch.setenv("FAKE_CAPACITA", "skip")
+    checked = check_column(COMMENTED, "線路直角方向.pik", PIK, fake_capacita_runner, SECTIONS, commentary=(9, 5))
+    assert checked.headings == {"section_forces": "9.5", "bending_safety_destruction": "9.6",
+                                "shear_safety_destruction": None, "bending_durability": "9.7",
+                                "bending_restorability": "9.8", "shear_restorability": None,
+                                "bending_rebar_amount": "9.9"}
+
+
+@pytest.mark.parametrize("mode", ["heading", "headingtype"])
+def test_headings_other_than_those_asked_for_are_an_error(fake_capacita_runner: Path, monkeypatch: pytest.MonkeyPatch,
+                                                          mode):
+    monkeypatch.setenv("FAKE_CAPACITA", mode)
+    with pytest.raises(RunnerError, match="線路方向.pik で柱の断面照査ができません: 計算書の解説の見出し番号が違います"):
+        check_column(COMMENTED, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS, commentary=(8, 5))
+    with pytest.raises(RunnerError, match="計算書の解説の見出し番号が違います"):  # a number not asked for
+        check_section(FOOTING_WDJ, "線路方向フーチング.wdj", fake_capacita_runner, FOOTING_SECTIONS)
 
 
 def test_the_codes_of_the_skipped_checks_are_capacitas():
@@ -287,6 +326,8 @@ def test_the_real_runner_checks_the_example2_column(real_capacita_runner: Path):
     is the column, its JTAN the column bottom); skipped without a runner set up in .env."""
     checked = _real(real_capacita_runner, "08_線路", "線路方向.pik", transverse=False)
     assert [section.id for section in checked.sections] == list(SECTIONS) and checked.skipped == ()
+    assert [heading for heading in checked.headings.values() if heading] == ["8.5", "8.6", "8.7", "8.8", "8.9", "8.10"]
+    assert "8.7 耐久性の照査" in texts(checked.pages["bending_durability"])[0]  # the commentary is in the section's pages
     assert len(texts(checked.pdf)) == checked.sections[-1].last
     completed_document = json.loads(checked.wdj.decode("utf-8"))
     assert completed_document["pickup_filename"] == "線路方向.pik" and completed_document["pickup_data"]
@@ -300,6 +341,7 @@ def test_the_real_runner_skips_the_zero_force_checks_across_the_track(real_capac
                         .read_text(encoding="utf-8"))
     assert sorted(checked.skipped) == sorted(sample["acceptance"]["skipped_by_capacita"])
     assert [section.id for section in checked.sections] == [name for name in SECTIONS if name not in checked.skipped]
+    assert checked.headings["bending_restorability"] == "9.8" and checked.headings["bending_rebar_amount"] == "9.9"
 
 
 def _real(runner: Path, sample: str, pik_name: str, *, transverse: bool) -> capacita.ColumnCheckPages:
@@ -318,4 +360,4 @@ def _real(runner: Path, sample: str, pik_name: str, *, transverse: bool) -> capa
              else calculate_column_check(pier, calculate_longitudinal(pier, foundation, reaction), LONGITUDINAL))
     pik = (root / ".claude" / "docs" / "Example橋脚2" / sample / "frameWebForJS.pik").read_bytes()
     return check_column(write_wdj(build_wdj(check, point_index(pik, check.member))), pik_name, pik, runner,
-                        check.sections)
+                        check.sections, commentary=(9 if transverse else 8, 5))

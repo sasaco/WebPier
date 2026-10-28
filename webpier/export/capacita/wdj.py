@@ -14,7 +14,8 @@ fails the runner and stops the generation. The bar row has no ``position`` (the 
 point's), and the document no ``steel`` rows (an RC WDJ with them is refused).
 
 Only the column bottom is checked (bending about z, shear in y; no torsion). ``shape`` is the number 1 (rectangle;
-RcDan does not read "矩形"). The section force list is printed: 0611 inserts it as 8.5, 0621 as 9.5. The counts of
+RcDan does not read "矩形"). The section force list is printed, and Capacita's commentary before each section's
+result (``print_commentary_checked``, decision 121): 0611 numbers it from 8.5, 0621 from 9.5. The counts of
 the bars may have decimals (counted by area, calc.column_check.COUNT; decision 103). The footing WDJ (footing_wdj) shares the basic lists, the safety tables and the
 number formatting of this module.
 """
@@ -171,6 +172,7 @@ def build_wdj(check: ColumnCheckResult, index: int) -> dict[str, Any]:
         "safety": _safety(check),
         "force": [],
         "calc": {"print_calculate_checked": True, "print_section_force_checked": True,
+                 "print_commentary_checked": True,
                  "print_safety_ratio_checked": False, "print_summary_table_checked": False,
                  "calculate_moment_checked": True, "calculate_shear_force": True,
                  "calculate_torsional_moment": False, "member_group_selection": []},

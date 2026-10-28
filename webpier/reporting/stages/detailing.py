@@ -10,9 +10,10 @@ its formulas and its tables) and, for what the sample has not, Example2 06_照�
 - 4.3 梁の構造細目 and 4.4 フーチングの構造細目 ((1) 線路方向, (2) 線路直角方向).
 
 The checks that use section forces (Mcrd, 0.008Ac, the maximum reinforcement, σc) print only the section of the check
-that has them (ADR-0012), whether that is made or not (``references``): 0611 / 0621 n.10 and n.7, 0810 / 0820 the
-section after their seismic restorability and their durability, 0910 the section after its restorability and its
-durability. 9) prints its value and its sign without a judgement. Every number is a Printed value of the calc result (ADR-0003).
+that has them (ADR-0012), whether that is made or not (``references``): 0611 / 0621 the numbers Capacita gave its
+最小鉄筋量及び最大鉄筋量 and 耐久性 (n.10 and n.7 when every group is printed) when the same generation checks the
+column, else the check without a number (decision 121), 0810 / 0820 the section after their seismic restorability
+and their durability, 0910 the section after its restorability and its durability. 9) prints its value and its sign without a judgement. Every number is a Printed value of the calc result (ADR-0003).
 
 Not reproduced from the sample (ADR-0001): the #REF! of its (2), its duplicated pages, its b = 1140 of 6), the
 footing's N'd of the column and the column's limits of the clear spacing in the footing, the "小判形" sentence of its
@@ -30,6 +31,7 @@ from typing import Any
 from gridlayoutpdf import Document, Equation, KeepWithNext, PageBreak, PdfFigure, PreferKeepTogether, Row
 from pypdf import PdfReader
 
+from ...calc.column_check import ColumnCheckResult
 from ...calc.detailing import DetailingResult
 from ...calc.detailing.beam import BeamDetailing, SkinBars
 from ...calc.detailing.column import ColumnDetailing, ColumnDirection
@@ -88,23 +90,27 @@ NEW_PAGES = frozenset({*(f"{PREFIX}{member}{direction}.heading" for member in ("
 class References:
     """The sections a check that uses section forces is printed in, by member (and direction)."""
 
-    column: Mapping[str, tuple[str, str]]  # direction → (最小鉄筋量及び最大鉄筋量, 耐久性の照査)
+    # direction → (最小鉄筋量及び最大鉄筋量, 耐久性の照査); None: the column check not numbered (decision 121)
+    column: Mapping[str, tuple[str | None, str | None]]
     beam: tuple[str, str]
     # None: the footing check has neither section (decision 110: no footing, or its seismic part alone)
     footing: Mapping[str, tuple[str, str] | tuple[None, None]]
 
 
-def references(appearance: bool, footing: FootingParts = FootingParts(frames=True, seismic=True)) -> References:
+def references(appearance: bool, footing: FootingParts = FootingParts(frames=True, seismic=True),
+               columns: Mapping[str, ColumnCheckResult | None] | None = None) -> References:
     """The sections 0400 refers to, as (最小鉄筋量及び最大鉄筋量, 耐久性の照査), numbered by the reports that print them
-    (decision 73): 0611 / 0621 n.10 and n.7 (column_check), 0810 / 0820 by the parts of the footing the outputs choose
-    (footing_check.chapters, decision 110; none without its frame part), 0910's following the appearance check of the
-    input (cantilever_check.Numbering)."""
-    columns = {"線路": column_check.LONGITUDINAL, "直角": column_check.TRANSVERSE}
+    (decision 73): 0611 / 0621 by the numbers Capacita gave them in *columns*, the column checks of the same generation
+    by direction (column_check.reference; none when a direction's is not there or not numbered, decision 121), 0810 /
+    0820 by the parts of the footing the outputs choose (footing_check.chapters, decision 110; none without its frame
+    part), 0910's following the appearance check of the input (cantilever_check.Numbering)."""
+    columns = columns or {}
     footings = dict(zip(("線路", "直角"), footing_check.chapters(footing.frames, footing.seismic)))
     beam = cantilever_check.Numbering.with_appearance(appearance)
     return References(
-        column={direction: (f"{chapter.number}.{column_check.REBAR_AMOUNT_SECTION}",
-                            f"{chapter.number}.{column_check.DURABILITY_SECTION}") for direction, chapter in columns.items()},
+        column={direction: (column_check.reference(columns.get(direction), column_check.REBAR_AMOUNT),
+                            column_check.reference(columns.get(direction), column_check.DURABILITY))
+                for direction in DIRECTIONS},
         beam=(f"{cantilever_check.CHAPTER}.{beam.rebar_amount}", f"{cantilever_check.CHAPTER}.{beam.durability}"),
         footing={direction: (chapter.section(footing_check.REBAR_AMOUNT_GROUP),
                              chapter.section(footing_check.DURABILITY_GROUP)) if footing.frames else (None, None)
@@ -191,9 +197,14 @@ def _group(group: BarGroup) -> str:
     return f"{_bar(group.diameter)} − {value(group.count)} 本"
 
 
+# The check that has a section without a number, by the member: the footing check without its frame part (decision
+# 110), the column check not made in the same generation (decision 121).
+UNNUMBERED = {"footing": "フーチングの断面照査で地震時以外の照査を行うとき", "column": "柱の断面照査を行うとき"}
+
+
 def _reference(m: _Manuscript, key: str, section: str | None, title: str) -> None:
-    if section is None:  # the footing check without its frame part (decision 110)
-        m.paragraph(key, f"照査は、フーチングの断面照査で地震時以外の照査を行うときに「{title}」で確かめる。")
+    if section is None:
+        m.paragraph(key, f"照査は、{UNNUMBERED[key.split('.')[0]]}に「{title}」で確かめる。")
         return
     m.paragraph(key, f"照査は「{section} {title}」に示す。")
 
@@ -1195,14 +1206,16 @@ def figure_specs(drawings: Mapping[str, tuple[bytes, bytes]]) -> dict[str, Figur
     return specs
 
 
-def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None) -> tuple[Unit, ...]:
+def content(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None,
+            columns: Mapping[str, ColumnCheckResult | None] | None = None) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests. *figures* are the 配筋図 of 4.1 by
-    name (FIGURES); a missing one leaves its heading alone."""
+    name (FIGURES); a missing one leaves its heading alone. *columns* are the column checks of the same generation by
+    direction, whose sections 4.2 refers to by number (``references``)."""
     figures = figures or {}
     if unknown := set(figures) - set(FIGURES):
         raise ValueError(f"配筋図の名前が不正です: {'・'.join(sorted(unknown))}")
     m = _Manuscript()
-    refs = references(result.cantilever_appearance, result.footing_parts)
+    refs = references(result.cantilever_appearance, result.footing_parts, columns)
     m.heading("heading", "§4. 照査の前提", 0)
     m.heading("layout.heading", "4.1 配筋要領", 1)
     for index, (name, title) in enumerate(zip(FIGURES, ("梁", "柱", "フーチング", "杭"))):
@@ -1306,19 +1319,21 @@ def _blocks(units: Sequence[Unit]) -> list:
     return found
 
 
-def build_detailing(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None) -> Document:
-    units = content(result, figures)
+def build_detailing(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None,
+                    columns: Mapping[str, ColumnCheckResult | None] | None = None) -> Document:
+    units = content(result, figures, columns)
     if len({unit.key for unit in units}) != len(units):
         raise ValueError("帳票の単位に重複したキーがあります")
     return report(*_blocks(units))
 
 
-def render_detailing(result: DetailingResult, path: str | Path,
-                     figures: Mapping[str, FigureSpec] | None = None) -> Path:
+def render_detailing(result: DetailingResult, path: str | Path, figures: Mapping[str, FigureSpec] | None = None,
+                     columns: Mapping[str, ColumnCheckResult | None] | None = None) -> Path:
     """Lay out completely, then atomically replace *path*; the same result gives the same bytes."""
-    return build_detailing(result, figures).render(path, invariant=True)
+    return build_detailing(result, figures, columns).render(path, invariant=True)
 
 
-def grid_documents(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None) -> tuple[Document, ...]:
+def grid_documents(result: DetailingResult, figures: Mapping[str, FigureSpec] | None = None,
+                   columns: Mapping[str, ColumnCheckResult | None] | None = None) -> tuple[Document, ...]:
     """The documents of the report WebPier lays out (its grid Excel workbook): the whole report."""
-    return (build_detailing(result, figures),)
+    return (build_detailing(result, figures, columns),)

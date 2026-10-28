@@ -9,3 +9,7 @@
 - 差し込むページの中身・決定性は Capacita の責務で、0611・0621 の計算書は毎回同じバイトになるとは限らない。
 - Capacita は断面力0の照査を RC標準の規則で飛ばし、その節を返さない（理由は info のメッセージ）。WebPier はその節の見出しと解説に省略の理由を付けて印刷するので、どの照査を省いたかは計算書と結果JSONでわかる。省略を判断するのは Capacita で、WebPier は断面力を見ない。
 - 細目は `.claude/docs/plans/refactoring-decisions.md` の決定48。
+
+## 改訂（決定121、2026-10-29）
+
+解説の正本を Capacita に移した（Capacita の ADR-0001「解説の正本は Capacita」と計画 `rc-report-commentary.md`、owner 2026-10-28）。0611・0621 の計算書は Capacita の計算書そのもので、WebPier は見出しも解説も描かない。WDJ の `calc.print_commentary_checked: true` で Capacita が各節の照査結果の前に群の見出しと解説を印字し、`run-rc --commentary-chapter 8|9 --commentary-first-section 5` で見出しに 8.5・9.5 から番号を振る。番号は Capacita が印字した群に欠番なく振られるので、断面力0で省略した照査は計算書に何も残らず（省略の理由も印刷しない）、印字する節のない群は番号ごと詰まる。上の「WebPier はその節の見出しと解説に省略の理由を付けて印刷する」と「WebPier の解説には WDJ に書く値を印刷する」はこれで改めた：解説に値は書かず、値は照査結果の表で読む。省略した節は結果JSONの `skipped_sections` に残る。方眼Excel に 0611・0621 の頁はない（WebPier が組む頁がないため。owner 受け入れ済み）。Capacita が節ごとに返す見出し番号（`reportSections[].heading`）は、0400 の参照先と 0612・0622 の節の番号に使う。

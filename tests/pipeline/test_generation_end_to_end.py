@@ -286,14 +286,16 @@ def test_a_blank_seismic_design_condition_stops_a_nonlinear_analysis_before_it_r
 
 
 def test_the_column_section_check_of_0611(analysis_generation):
-    """Decision 48: Capacita (the stand-in) checks the WDJ with the published PIK; the report inserts its pages
-    after WebPier's headings, the WDJ it returns is published, and the result JSON records that the check ran."""
+    """Decisions 48, 121: Capacita (the stand-in) checks the WDJ with the published PIK and its commentary numbered
+    from 8.5; the report is its pages, the WDJ it returns is published, and the result JSON records that the check ran
+    and the numbers of the sections."""
     root, _, _ = analysis_generation
     post, output = tree(root / "post"), tree(root / "output")
     completed = load_json(post["線路方向.wdj"])
     assert completed["pickup_filename"] == "線路方向.pik"
     assert completed["pickup_data"] == {"fake": sha256(post["線路方向.pik"])}
     assert completed["members"][0]["shape"] == 1 and completed["calc"]["print_section_force_checked"] is True
+    assert completed["calc"]["print_commentary_checked"] is True
     sidecar = load_json(post["線路方向.wdj.provenance.json"])
     assert (sidecar["stage"], sidecar["export"], sidecar["sha256"]) == ("0611", "wdj", sha256(post["線路方向.wdj"]))
     assert sidecar["section_check"]["pik"]["sha256"] == sha256(post["線路方向.pik"])
@@ -303,14 +305,21 @@ def test_the_column_section_check_of_0611(analysis_generation):
                                          "engineering_status": "not_evaluated",
                                          "wdj": {"file": "線路方向.wdj", "sha256": sha256(post["線路方向.wdj"])},
                                          "skipped_sections": []}
+    assert document["result"]["headings"] == {
+        "section_forces": "8.5", "bending_safety_destruction": "8.6", "shear_safety_destruction": None,
+        "bending_durability": "8.7", "shear_durability": None, "bending_serviceability": "8.8",
+        "bending_restorability": "8.9", "shear_restorability": None, "bending_rebar_amount": "8.10"}
     with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
-        texts = [page.get_text() for page in pdf]
-    assert texts[0].strip().startswith("8.5 断面力の総括") and "FAKE CAPACITA section_forces 1/2" in texts[1]
-    assert sum("FAKE CAPACITA" in text for text in texts) == 10 and "8.10 最小鉄筋量及び最大鉄筋量" in "".join(texts)
+        texts = [page.get_text().strip() for page in pdf]
+    assert len(texts) == 10 and all(text.startswith("FAKE CAPACITA") for text in texts)  # WebPier lays out nothing
+    assert texts[0].startswith("FAKE CAPACITA section_forces 1/2")
+    assert f"{STAGES.get('0611').stem}.xlsx" not in tree(root / "export")  # no grid Excel workbook (decision 121)
+    with pymupdf.open(stream=output[f"{STAGES.get('0612').stem}.pdf"], filetype="pdf") as pdf:
+        assert pdf[0].get_text().strip().startswith("8.11 基礎の照査")
 
 
 def test_the_column_section_check_of_0621(analysis_generation):
-    """Decision 48: across the track the same, numbered 9.5 to 9.9, with the column bottom at its place in the PIK
+    """Decisions 48, 121: across the track the same, numbered from 9.5, with the column bottom at its place in the PIK
     of 0620 (after the point the wind load on the column adds: 7, the stand-in writing FEMPython's points)."""
     root, _, _ = analysis_generation
     post, output = tree(root / "post"), tree(root / "output")
@@ -322,9 +331,32 @@ def test_the_column_section_check_of_0621(analysis_generation):
     assert sidecar["section_check"]["pik"]["sha256"] == sha256(post["線路直角方向.pik"])
     stem = STAGES.get("0621").stem
     assert load_json(output[f"{stem}.json"])["section_check"]["wdj"]["file"] == "線路直角方向.wdj"
+    assert load_json(output[f"{stem}.json"])["result"]["headings"]["bending_rebar_amount"] == "9.10"
     with pymupdf.open(stream=output[f"{stem}.pdf"], filetype="pdf") as pdf:
-        texts = [page.get_text() for page in pdf]
-    assert texts[0].strip().startswith("9.5 断面力の総括") and "9.9 使用性（損傷）の照査" in "".join(texts)
+        texts = [page.get_text().strip() for page in pdf]
+    assert len(texts) == 10 and texts[0].startswith("FAKE CAPACITA section_forces 1/2")
+
+
+def test_0400_and_the_foundation_check_take_the_numbers_capacita_gave(tmp_path, monkeypatch):
+    """Decision 121: with 0621 in the same generation 0400 refers to the numbers Capacita gave its sections, and 0622
+    follows the last of them. Capacita skips the serviceability across the track (the stand-in's skip, as Example2):
+    使用性（損傷） 9.8, 最小鉄筋量及び最大鉄筋量 9.9, 基礎の照査 9.10. Along the track, not checked in this generation,
+    0400 names the column check without a number."""
+    monkeypatch.setenv("FAKE_CAPACITA", "skip")
+    source = copy_input(tmp_path / "pre", "detailing", *items_for("0621"))
+    generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    output = tree(tmp_path / "output")
+    assert load_json(output[f"{STAGES.get('0621').stem}.json"])["result"]["headings"] == {
+        "section_forces": "9.5", "bending_safety_destruction": "9.6", "shear_safety_destruction": None,
+        "bending_durability": "9.7", "bending_restorability": "9.8", "shear_restorability": None,
+        "bending_rebar_amount": "9.9"}
+    with pymupdf.open(stream=output[f"{STAGES.get('0622').stem}.pdf"], filetype="pdf") as pdf:
+        assert pdf[0].get_text().strip().startswith("9.10 基礎の照査")
+    with pymupdf.open(stream=output[f"{STAGES.get('0400').stem}.pdf"], filetype="pdf") as pdf:
+        text = "".join(page.get_text() for page in pdf).replace("\n", "")
+    assert "照査は「9.9 最小鉄筋量及び最大鉄筋量」に示す。" in text and "照査は「9.7 耐久性の照査」に示す。" in text
+    assert "照査は、柱の断面照査を行うときに「最小鉄筋量及び最大鉄筋量」で確かめる。" in text
+    assert "9.10 最小鉄筋量" not in text and "8.10" not in text
 
 
 @pytest.mark.parametrize("item,stages", [("longitudinal_frame_analysis", ("0611", "0612")),

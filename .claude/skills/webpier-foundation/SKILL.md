@@ -5,7 +5,7 @@ description: WebPier の 0612・0622 基礎の照査（決定54、CONTEXT.md「�
 
 # 基礎の照査（0612・0622）
 
-0612（線路方向）・0622（直角方向）は、直接基礎の鉛直支持・水平支持・回転を WebPier の `calc` で照査し、計算書（8.11・9.11。決定73 で 0611・0621 の n.10 に最小鉄筋量及び最大鉄筋量が入るまでは 8.10・9.10）をすべて WebPier が描く（決定54、ADR-0006）。設計応答値は FEMPython の骨組解析の支点反力で、WebPier は荷重から断面力を組み立て直さない。2方向の違いは `calc.foundation_check.Direction`（B と L の入れ替え）と `reporting.stages.foundation_check.Chapter`（8・9）だけ。
+0612（線路方向）・0622（直角方向）は、直接基礎の鉛直支持・水平支持・回転を WebPier の `calc` で照査し、計算書（8.11・9.11。決定73 で 0611・0621 の n.10 に最小鉄筋量及び最大鉄筋量が入るまでは 8.10・9.10。決定121 から同じ方向の柱の断面照査で Capacita が最後に振った番号の次：`Chapter.section`、Example2 の 0622 は 9.10）をすべて WebPier が描く（決定54、ADR-0006）。設計応答値は FEMPython の骨組解析の支点反力で、WebPier は荷重から断面力を組み立て直さない。2方向の違いは `calc.foundation_check.Direction`（B と L の入れ替え）と `reporting.stages.foundation_check.Chapter`（8・9）だけ。
 
 ## 置き場所
 

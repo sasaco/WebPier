@@ -15,7 +15,7 @@ Capacita's pages.
 
 The explanations keep the structure of Example2 13 pp.13-38 .. 13-65 (the texts the column check also has use its
 wording), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5 flexural
-crack method and flowchart of 0611, Vyd = Vcd + Vsd). The values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd,
+crack method and flowchart of stages.check_text, Vyd = Vcd + Vsd). The values WebPier writes to the WDJ (γi, γb, kr, k4, ε'csd,
 the trains of the fatigue check) and the 水掛かりの程度 of each face are printed from the same result; the values of
 RC標準 that only Capacita holds are not.
 Not reproduced from the reference (decision 59): the train figure, the reaction chart and the numeric ΣN line of
@@ -39,8 +39,8 @@ from ...inputs import PierInput
 from ...inputs.fields import BEAM_SURFACES
 from ..equations import Definition
 from . import insertion
-from .column_check import (COLON, CONTINUED, CRACK_METHOD, CRACK_STRESS, OMITTED as COLUMN_OMITTED, SIGMA_SE, _blocks,
-                           ecsd_text, flowchart, wrap)
+from .check_text import (COLON, CONTINUED, CRACK_METHOD, CRACK_STRESS, OMITTED as COLUMN_OMITTED, SIGMA_SE, _blocks,
+                         ecsd_text, flowchart, wrap)
 from .frame_report import BODY_LEFT, Manuscript, Span, TableSpec, Unit, value
 from .insertion import Insertion, documents, render_with_pages
 

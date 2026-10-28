@@ -1,7 +1,8 @@
 """0612 線路方向の基礎の照査 (8.11) and 0622 直角方向の基礎の照査 (9.11) of a pile foundation (decision 89, Example橋脚4
 III-3.3).
 
-The section continues the column check of the same direction (n.5 to n.10) as n.11. For a steel pipe pile it first prints the
+The section continues the column check of the same direction (n.5 to n.10) as n.11 (``Chapter.section``, decision
+121). For a steel pipe pile it first prints the
 check of the pile body (SteelDan's values: the resistances of the pipe, and for each pile row the largest bending moment, shear
 force and axial compression of its pile with the three checks); for a cast-in-place pile the section of the pile and the
 design forces of each pile row, each followed by Capacita's pages of its check (decision 91, with the mechanism of the
@@ -30,7 +31,7 @@ from ...calc.pile_joint import PileJointResult, RowJoint, Side
 from ...core.printed import Printed
 from ..document import blank, report
 from ..equations import Definition
-from .column_check import OMITTED
+from .check_text import OMITTED
 from .foundation_check import COLON, Chapter, LONGITUDINAL, TRANSVERSE
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, semantic_records, value
 from .insertion import Insertion, documents, render_with_pages
@@ -312,7 +313,7 @@ def _body(m: Manuscript, body: PileBodyResult, *, subheading: bool = False) -> N
 def content(result: PileCheckResult, chapter: Chapter) -> tuple[Unit, ...]:
     """The ordered manuscript, used by both the layout and the semantic tests."""
     m = Manuscript(chapter.prefix)
-    m.heading("heading", f"{chapter.number}.11 基礎の照査", 1)
+    m.heading("heading", chapter.heading, 1)
     m.paragraph("response", "作用の組合せで求めた応答値に応答値係数γRを乗じたものを設計応答値とする．地盤および基礎部材等の非線形を"
                 f"無視した線形モデルにより構造解析を実施するので，安全性に関する応答値係数γRは{value(GAMMA_R)}とする．")
     if result.cast is not None:

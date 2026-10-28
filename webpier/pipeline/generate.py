@@ -263,8 +263,10 @@ def _calculate(registry: Registry, pier: PierInput, selected: tuple[str, ...], r
 
 
 def _own(registry: Registry, results: Mapping[str, Any], stage_id: str) -> dict[str, Any]:
-    """The results a stage's report and exports may read: its dependencies and itself (those that calculate)."""
-    return {name: results[name] for name in (*registry.get(stage_id).depends_on, stage_id) if name in results}
+    """The results a stage's report and exports may read: its dependencies, the stages it reads when the same
+    generation makes them (``StageSpec.reads``, decision 121) and itself (those that calculate)."""
+    spec = registry.get(stage_id)
+    return {name: results[name] for name in (*spec.depends_on, *spec.reads, stage_id) if name in results}
 
 
 def _source(registry: Registry, analysis: FrameAnalysis | NonlinearAnalysis) -> Export:
@@ -638,10 +640,10 @@ def _check_seismic(project: Path, folder: Path, runner: Path, limits: aggrese.Li
     return checked
 
 
-def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections: tuple[str, ...]
-                  ) -> capacita.ColumnCheckPages:
+def _check_column(pik_name: str, wdj: bytes, pik: bytes, runner: Path, sections: tuple[str, ...],
+                  commentary: tuple[int, int] | None) -> capacita.ColumnCheckPages:
     try:
-        return capacita.check_column(wdj, pik_name, pik, runner, sections)
+        return capacita.check_column(wdj, pik_name, pik, runner, sections, commentary=commentary)
     except RunnerError as exc:
         raise GenerationError(str(exc)) from exc
 
@@ -993,11 +995,13 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
                     pik = analyzed[stage_id].files["pik"]
                     given[stage_id] = _build_wdj(check, own, pier, _pik_name(registry, stage_id), pik)
                     inspected[stage_id] = _check_column(_pik_name(registry, stage_id), given[stage_id], pik,
-                                                        capacita_runner, tuple(check.sections(own)))
+                                                        capacita_runner, tuple(check.sections(own)), check.commentary)
                 else:
                     given[stage_id] = check.build(own, pier, None)
                     inspected[stage_id] = _check_section(check.file_name, given[stage_id], capacita_runner,
                                                          tuple(check.sections(own)))
+                if check.finish is not None:  # the numbers Capacita gave the sections (decision 121)
+                    results[stage_id] = check.finish(results[stage_id], inspected[stage_id].headings)
         for post in posts:
             if post.check is not None:
                 staging.path_for(post.native.path).write_bytes(inspected[post.stage].wdj)
