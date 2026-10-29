@@ -12,8 +12,10 @@ it with the rule, as the sample's tables do (its design values are its condition
   above the pipe, rounded up to 50 mm), the length of the filling concrete (the H26 formula of 解説図1.10-4, which gives
   the sample's 1550), the hoops in the footing (解説表1.10-1, 解説図1.10-5) and in the pipe (D10, the range split at
   300 mm or less), and the ずれ止め (SS400, the JIS flat bar of the largest standard thickness within the effective
-  thickness and 20 mm, its width the least standard width of 2t', the spacing of 表1.10-1, two steps until the seismic
-  check decides them);
+  thickness and 20 mm, its width the least standard width of 2t', the spacing of 表1.10-1, two steps from the input
+  alone), and the ずれ止めの杭頭反力に対する検討 of 手引き 2.4 (decision 123, the sample V-179〜181), which takes the
+  least steps (two or more) that carry the pile's largest axial forces of 0711・0721, at most the steps the position of
+  the lowest one allows (``with_joint_forces``);
 - (3) ソイルセメント: the strengths of 解説表1.8-1 as the design, and the nominal diameter (Dsc − Dsp ≧ 200 mm).
 
 The sizes are measured from the top of the pipe (the 杭頭), embedded 50 mm in the footing. Every value is printed and
@@ -23,7 +25,8 @@ later formulas use the printed value (ADR-0003).
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field, replace
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 
 from ...core.errors import InputError
@@ -31,6 +34,7 @@ from ...core.printed import Precision, Printed
 from ...inputs import PierInput
 from .._exact import d, put
 from ..column_rebar import yield_strength
+from ..pile_body import PointForces
 from .common import AREA, GAMMA_C, GAMMA_S, bar_area
 from .pile import BOND
 
@@ -100,7 +104,22 @@ RIB_THICKNESS_MOST = Decimal(20)
 RIB_SPACINGS = ((Decimal(9), Decimal(11), 150), (Decimal(12), Decimal(14), 200), (Decimal(15), Decimal(17), 250),
                 (Decimal(18), Decimal(20), 300))  # t' from, to → lz
 RIB_WIDTH_FACTOR = 2
-RIB_STEPS = 2  # 2 段以上; the seismic check (P10) raises it
+RIB_STEPS = 2  # 2 段以上 (表1.10-1): the steps from the input alone; the check against the forces may raise them
+# (decision 123)
+# the ずれ止めの杭頭反力に対する検討 (手引き 2.4 of the sample's edition, decision 123): τd = (3.5 ＋ 190f'ck・t'／lz・t／D)／γc
+# ≦ 15 (解(2.4-19)), Rd = η・f'ck・Aa／γc (解(2.4-20)), γi・Nd／[{π(D − 2t)・Ld・τd}／γb] ≦ 1.0 (解(2.4-21)) and
+# γi・Np／[{π(D − 2t)・Ld・τd ＋ Rd}／γb] ≦ 1.0 (解(2.4-22)), Ld = n・lz
+BOND_CONSTANT = Printed(3.5, 1, "")
+BOND_COEFFICIENT = Printed(190, 0, "")
+BOND_MOST = Printed(15, 0, "N/mm2")
+BEARING_ETA = Printed(1, 0, "")
+GAMMA_B = Printed(1.0, 1, "")
+GAMMA_I = Printed(1.0, 1, "")
+BOND_RATIO_MOST = Printed(1.0, 2, "")
+BOND_STRESS = Precision(2, "N/mm2")  # τd: 8.06
+AREA_WHOLE = Precision(0, "mm2")  # Aa: 44221
+FORCE_N = Precision(0, "N")  # Rd: 918436
+FORCE_KN = Precision(2, "kN")  # Nd, Np per pile: 5695.00
 # (3) ソイルセメント (解説表1.8-1), kN/m2, and the nominal diameter
 STRENGTHS = (("杭一般部（砂質土）", Printed(1000, 0, "kN/m2")), ("杭一般部（粘性土）", Printed(750, 0, "kN/m2")),
              ("杭先端部（砂質土）", Printed(15000, 0, "kN/m2")))
@@ -255,6 +274,61 @@ class Ribs:
 
 
 @dataclass(frozen=True)
+class JointAxial:
+    """The largest axial force of one pile at the joint (decision 123): its magnitude, positive whether it pulls or
+    pushes, in kN per pile, and the direction of the analysis it comes from ("線路方向" or "線路直角方向")."""
+
+    value: Printed  # kN, 2 decimals
+    direction: str
+
+    def __post_init__(self) -> None:
+        if d(self.value) <= 0:
+            raise ValueError(f"杭 1 本当りの軸力は正の値が必要です（{self.value.value!r} kN）")
+
+
+@dataclass(frozen=True)
+class RibBond:
+    """The ずれ止めの杭頭反力に対する検討 (手引き 2.4, decision 123) at *steps* steps.
+
+    The ratios are the whole formula rounded once (the bond capacity is not printed); a ratio is None when its force
+    is None (no tension or no compression), and that check is then satisfied.
+    """
+
+    fill_fck: Printed  # f'ck of the filling concrete
+    thickness: Printed  # t' of the flat bar
+    spacing: Printed  # lz
+    effective: Printed  # t of the pipe
+    diameter: Printed  # D
+    tau: Printed  # τd, N/mm2, at most 15
+    footing_fck: Printed  # f'ck of the footing
+    made: Printed  # t0 of the pipe, without the corrosion allowance taken off
+    inner: Printed  # D − 2t0
+    area: Printed  # Aa = π／4・(D² − (D − 2t0)²)
+    bearing: Printed  # Rd = η・f'ck・Aa／γc, N
+    steps: int  # n
+    length: Printed  # Ld = n・lz
+    tension: JointAxial | None  # Nd
+    compression: JointAxial | None  # Np
+    tension_n: Printed | None  # Nd in N
+    compression_n: Printed | None  # Np in N
+    tension_ratio: Printed | None
+    compression_ratio: Printed | None
+    most: int  # the most steps the position of the lowest one allows (may be below 2)
+
+    @property
+    def tension_ok(self) -> bool:
+        return self.tension_ratio is None or d(self.tension_ratio) <= d(BOND_RATIO_MOST)
+
+    @property
+    def compression_ok(self) -> bool:
+        return self.compression_ratio is None or d(self.compression_ratio) <= d(BOND_RATIO_MOST)
+
+    @property
+    def ok(self) -> bool:
+        return self.tension_ok and self.compression_ok
+
+
+@dataclass(frozen=True)
 class Joint:
     """(2) 杭とフーチングの結合部."""
 
@@ -278,6 +352,8 @@ class Joint:
     footing_hoops: FootingHoops
     pipe_hoops: PipeHoops
     ribs: Ribs
+    # the check against the pile's axial forces (decision 123); None from the input alone, and then not in the JSON
+    bond: RibBond | None = field(default=None, metadata={"json": "set"})
 
     @property
     def grade_ok(self) -> bool:
@@ -306,7 +382,7 @@ class Joint:
     @property
     def ok(self) -> bool:
         return (self.grade_ok and self.size_ok and self.cover_ok and self.clear_ok and self.rib_gap_ok and self.pc_ok
-                and self.pipe_hoops.ok and self.ribs.ok)
+                and self.pipe_hoops.ok and self.ribs.ok and (self.bond is None or self.bond.ok))
 
 
 @dataclass(frozen=True)
@@ -444,9 +520,13 @@ def _ribs(effective: Printed, diameter: Printed, filling: Filling) -> Ribs:
     least = RIB_WIDTH_FACTOR * thickness
     width = next(size for size in FLAT_WIDTHS if size >= least)
     spacing = _mm(Decimal(band))
-    lowest = d(quarter) + (RIB_STEPS - 1) * d(spacing)
     return Ribs(RIB_GRADE, effective, _mm(thickness), _mm(Decimal(width)), _mm(least), spacing, quarter,
-                max(quarter, spacing, key=d), RIB_STEPS, _mm(d(filling.length) - lowest))
+                max(quarter, spacing, key=d), RIB_STEPS, _bottom(filling, quarter, spacing, RIB_STEPS))
+
+
+def _bottom(filling: Filling, quarter: Printed, spacing: Printed, steps: int) -> Printed:
+    """The lowest step above the bottom of the filling: lc − {D／4 ＋ (n − 1)lz}."""
+    return _mm(d(filling.length) - (d(quarter) + (steps - 1) * d(spacing)))
 
 
 def joint(pier: PierInput, pipe: SteelPipe) -> Joint:
@@ -482,3 +562,92 @@ def steel_pile_detailing(pier: PierInput) -> SteelPileDetailing:
     """The 杭の構造細目 of the 鋼管ソイルセメント杭 of *pier* (decision 99)."""
     pipe = steel_pipe(pier)
     return SteelPileDetailing(pipe, joint(pier, pipe), SoilCement(STRENGTHS, pipe.soil_cement, pipe.diameter))
+
+
+def most_rib_steps(ribs: Ribs, filling: Filling) -> int:
+    """The most steps whose lowest one keeps lc − {D／4 ＋ (n − 1)lz} ≧ lz0 (decision 99); below 2 when even two do
+    not. Only for ribs with a flat bar."""
+    assert ribs.spacing is not None and ribs.bottom_least is not None, "the steps need a flat bar (表1.10-1)"
+    room = (d(filling.length) - d(ribs.bottom_least) - d(ribs.quarter)) / d(ribs.spacing)
+    return int(room.to_integral_value(rounding=ROUND_FLOOR)) + 1
+
+
+def bond_strength(fill_fck: Printed, thickness: Printed, spacing: Printed, effective: Printed,
+                  diameter: Printed) -> Printed:
+    """τd = (3.5 ＋ 190f'ck・t'／lz・t／D)／γc ≦ 15 N/mm2 (解(2.4-19))."""
+    raw = ((d(BOND_CONSTANT) + d(BOND_COEFFICIENT) * d(fill_fck) * d(thickness) / d(spacing) * d(effective)
+            / d(diameter)) / d(GAMMA_C))
+    return put(BOND_STRESS, min(raw, d(BOND_MOST)))
+
+
+def _newtons(force: JointAxial | None) -> Printed | None:
+    return None if force is None else put(FORCE_N, d(force.value) * _MILLI)
+
+
+def _ratio(force: Printed | None, capacity: Decimal) -> Printed | None:
+    return None if force is None else put(FACTOR, d(GAMMA_I) * d(force) / (capacity / d(GAMMA_B)))
+
+
+def rib_bond(detailing: SteelPileDetailing, steps: int, tension: JointAxial | None,
+             compression: JointAxial | None) -> RibBond:
+    """The check of 手引き 2.4 at *steps* steps (Nd for tension, Np for compression; None: none arises)."""
+    pipe, found = detailing.pipe, detailing.joint
+    ribs, filling = found.ribs, found.filling
+    assert ribs.thickness is not None and ribs.spacing is not None, "the check needs a flat bar (表1.10-1)"
+    diameter, effective, made = pipe.diameter, pipe.effective.value, pipe.made.value
+    tau = bond_strength(filling.fck, ribs.thickness, ribs.spacing, effective, diameter)
+    footing_fck = found.anchorage.fck
+    inner = _mm(d(diameter) - 2 * d(made))
+    pi = Decimal(repr(math.pi))
+    area = put(AREA_WHOLE, pi / 4 * (d(diameter) ** 2 - d(inner) ** 2))
+    bearing = put(FORCE_N, d(BEARING_ETA) * d(footing_fck) * d(area) / d(GAMMA_C))
+    length = put(WHOLE, steps * d(ribs.spacing))
+    bond = pi * (d(diameter) - 2 * d(effective)) * d(length) * d(tau)  # not printed: the ratio is rounded once
+    tension_n, compression_n = _newtons(tension), _newtons(compression)
+    return RibBond(filling.fck, ribs.thickness, ribs.spacing, effective, diameter, tau, footing_fck, made, inner, area,
+                   bearing, steps, length, tension, compression, tension_n, compression_n,
+                   _ratio(tension_n, bond), _ratio(compression_n, bond + d(bearing)), most_rib_steps(ribs, filling))
+
+
+def least_rib_bond(detailing: SteelPileDetailing, tension: JointAxial | None,
+                   compression: JointAxial | None) -> RibBond:
+    """The least steps of two or more that satisfy both checks, at most ``most_rib_steps``; when none does, the most
+    (two when the position allows fewer, whose position is then not ok) and a check that is not ok (decision 123)."""
+    last = max(most_rib_steps(detailing.joint.ribs, detailing.joint.filling), RIB_STEPS)
+    for steps in range(RIB_STEPS, last):
+        found = rib_bond(detailing, steps, tension, compression)
+        if found.ok:
+            return found
+    return rib_bond(detailing, last, tension, compression)
+
+
+def with_joint_forces(detailing: SteelPileDetailing, tension: JointAxial | None,
+                      compression: JointAxial | None) -> SteelPileDetailing:
+    """*detailing* with the ずれ止め at the least steps that carry Nd (*tension*) and Np (*compression*), and their
+    check (decision 123); unchanged when no flat bar fits 表1.10-1 (whose ribs are not ok already)."""
+    found = detailing.joint
+    ribs = found.ribs
+    if ribs.thickness is None or ribs.spacing is None:
+        return detailing
+    bond = least_rib_bond(detailing, tension, compression)
+    ribs = replace(ribs, steps=bond.steps, bottom=_bottom(found.filling, ribs.quarter, ribs.spacing, bond.steps))
+    return replace(detailing, joint=replace(found, ribs=ribs, bond=bond))
+
+
+def joint_axial(directions: Sequence[tuple[str, Sequence[tuple[Sequence[PointForces], int]]]],
+                tension: bool) -> JointAxial | None:
+    """Nd (*tension*) or Np of the ずれ止め (decision 123): of each direction (its words, and of each pile row the lines of
+    the element at its head in the pickup of Aggre-SE's check, the forces of the bundle with compression negative, and its
+    piles in the depth), the largest axial tension (positive) or compression (negative, taken by its size) at the head
+    (ITAN) of one pile of any row and any Case, in kN to 2 decimals; the largest of the directions, the first of equal
+    ones. None when no direction has one."""
+    found: JointAxial | None = None
+    for words, rows in directions:
+        forces = [Decimal(repr(line.largest.nd if tension else -line.smallest.nd)) / piles
+                  for lines, piles in rows for line in lines if line.focus == "N" and line.point == "ITAN"
+                  and (line.largest.nd > 0 if tension else line.smallest.nd < 0)]
+        if forces:
+            value = put(FORCE_KN, max(forces))
+            if d(value) > 0 and (found is None or d(value) > d(found.value)):  # (one below 0.005 kN is none)
+                found = JointAxial(value, words)
+    return found

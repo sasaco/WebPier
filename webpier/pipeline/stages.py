@@ -71,8 +71,9 @@ from ..calc.cantilever.check import calculate_cantilever_section
 from ..calc.column_check import LONGITUDINAL as COLUMN_LONGITUDINAL, TRANSVERSE as COLUMN_TRANSVERSE
 from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
-from ..calc.detailing import calculate_detailing
+from ..calc.detailing import calculate_detailing, with_joint_forces
 from ..calc.detailing.pile import PileSeismicResult, minimum_bars, pile_head_reaction
+from ..calc.detailing.steel_pile import joint_axial
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.footing import calculate_footing, complete_footing
 from ..calc.footing_check import calculate_footing_check
@@ -170,6 +171,9 @@ from .aggrese import AXIAL, PILE_PUBLISHED as AGGRESE_PILE_FILES, PUBLISHED as A
 from .fempython import ANALYSIS_FILES, footing_displacements, head_forces, member_forces, support_reactions
 
 Results = Mapping[str, Any]
+# Aggre-SE's pickup of the L1地震動 (復旧性_L1震度step; structural-aggrese outputs.md, aggrese.PICKUPS), whose largest
+# compression at the pile heads is Np of a 鋼管ソイルセメント杭's ずれ止め (decision 123)
+L1_PICKUP = 1
 # The stages of each 出力項目 (decision 72): the frame analysis (decisions 46, 54), the static nonlinear analysis
 # (decision 47), the footing (decision 60) and the cantilever (decision 59) are items of their own.
 OUTPUT_STAGES: Mapping[str, tuple[str, ...]] = MappingProxyType({
@@ -560,17 +564,22 @@ class Registry:
                 if (part not in (FRAMES_PART, SEISMIC_PART) or variant.id != stage.id or variant.stem != stage.stem
                         or variant.parts or variant.foundations):
                     raise ValueError(f"{stage.id}の{part}の段階が不正です")
-        for foundation in sorted({name for stage in self.stages for name in stage.foundations}):
-            self.for_foundation(foundation)  # the registry of each 基礎形式 is checked as a registry is
+        # the registry of each 基礎形式 is checked as a registry is (from the direct foundation's: that of one 基礎形式 is not
+        # one of another)
+        for foundation in sorted({name for stage in self.stages for name in stage.foundations} if self.foundation is None
+                                 else ()):
+            self.for_foundation(foundation)
         for part in sorted({name for stage in self.stages for name in stage.parts}):
             self._for_part(part)  # and so is the registry of each part of the footing
 
     def for_foundation(self, foundation: str | None) -> Registry:
-        """The registry of the 基礎形式 *foundation*: each stage that has a stage for it is replaced by that; the registry
-        itself when none has (the direct foundation, decision 85)."""
+        """The registry of the 基礎形式 *foundation*: each stage that has a stage for it is replaced by that, and a stage
+        that then reads a stage registered after it is moved to just after the last of them (``_ordered``: a
+        鋼管ソイルセメント杭's 0400 after 0721, decision 123); the registry itself when none has (the direct foundation,
+        decision 85)."""
         if not any(foundation in stage.foundations for stage in self.stages):
             return self
-        return replace(self, stages=tuple(stage.foundations.get(foundation, stage) for stage in self.stages),
+        return replace(self, stages=_ordered(tuple(stage.foundations.get(foundation, stage) for stage in self.stages)),
                        foundation=foundation)
 
     def _for_part(self, part: str | None) -> Registry:
@@ -622,6 +631,22 @@ class Registry:
         stage = self.get(stage_id)
         return bool(stage.after) or any(self.waits(name) for name in stage.depends_on)
 
+    def finished(self, stage_id: str) -> tuple[Export, ...]:
+        """The exports of the stage built from its finished result, once ``complete`` has run: every export of a stage
+        that finishes its result except those a runner reads (SOIL-JR's .sdt, the files FEMPython or JRSNAP draws or
+        analyzes). A 鋼管ソイルセメント杭's 0400 draws the ずれ止め its completion decides (decision 123)."""
+        stage = self.get(stage_id)
+        if stage.complete is None:
+            return ()
+        read = {stage.load_diagram, *((stage.soil_jr.export,) if stage.soil_jr is not None else ())}
+        if (figures := stage.jrsnap_figures) is not None:
+            read |= {figures.export, *(item.export for item in figures.also)}
+        for other in self.stages:
+            for analysis in (other.frame_analysis, other.nonlinear_analysis):
+                if analysis is not None and analysis.stage == stage_id:
+                    read |= {analysis.export, *(analysis.also if isinstance(analysis, NonlinearAnalysis) else ())}
+        return tuple(item for item in stage.exports if item.kind not in read)
+
     def deferred(self, stage_ids: Sequence[str]) -> tuple[str, ...]:
         """Those of *stage_ids* that wait for a runner's result (``after``), in registry order."""
         return tuple(stage_id for stage_id in self.ids if stage_id in stage_ids and self.get(stage_id).after)
@@ -633,6 +658,20 @@ class Registry:
             if stage.id in needed:
                 needed.update(stage.depends_on)
         return tuple(stage_id for stage_id in self.ids if stage_id in needed)
+
+
+def _ordered(stages: tuple[StageSpec, ...]) -> tuple[StageSpec, ...]:
+    """*stages* with each stage that reads a later one moved to just after the last stage it reads, the others in their
+    order (a stable order of dependencies); a stage whose dependencies never come stays last, for the registry to refuse."""
+    placed: list[StageSpec] = []
+    pending: list[StageSpec] = []
+    for stage in stages:
+        pending.append(stage)
+        while ready := [waiting for waiting in pending
+                        if all(name in {done.id for done in placed} for name in waiting.depends_on)]:
+            placed.append(ready[0])
+            pending.remove(ready[0])
+    return (*placed, *pending)
 
 
 # The 配筋図 of 4.1 by the report's names: export.drawing draws them, the report puts their (PDF, PNG) as they are.
@@ -696,14 +735,35 @@ def _pile_minimum(stage_id: str, source: str, profile: NduProfile, direction: st
     """How 0711 / 0721 of a 場所打ち杭 finishes its result (decision 98): Pvmax from the pickup of 復旧性L2 of its own Aggre-SE
     check, at the head element of each pile row of the NDU of *source*, for 杭頭反力の最大値から定める最小鉄筋量."""
     def complete(result: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> PileSeismicResult:
-        model = _pile_ndu_model(source, profile, results, pier)
-        members = {member.number: member for member in model.members}
-        heads = [(pile.first, members[pile.member].depth_piles) for pile in model.piles]
-        lines = member_forces(files[seismic_file(stage_id, "pik")], [first for first, _ in heads], SEISMIC_PICKUP)
-        pvmax = pile_head_reaction([(lines[first], piles) for first, piles in heads])
+        pvmax = pile_head_reaction(_pile_heads(stage_id, source, profile, SEISMIC_PICKUP, files, pier, results))
         words = "線路方向" if direction == AXIAL else "線路直角方向"
         return PileSeismicResult(minimum_bars(pier, words, pvmax), result)
     return complete
+
+
+def _pile_heads(stage_id: str, source: str, profile: NduProfile, pickup: int, files: Mapping[str, bytes],
+                pier: PierInput, results: Results) -> list[tuple[Any, int]]:
+    """Of each pile row of the NDU of *source*, the lines of its head element (KGInfo's first) in the pickup *pickup* of the
+    Aggre-SE check of *stage_id*, and its piles in the depth (decisions 98, 123)."""
+    model = _pile_ndu_model(source, profile, results, pier)
+    members = {member.number: member for member in model.members}
+    heads = [(pile.first, members[pile.member].depth_piles) for pile in model.piles]
+    lines = member_forces(files[seismic_file(stage_id, "pik")], [first for first, _ in heads], pickup)
+    return [(lines[first], piles) for first, piles in heads]
+
+
+# The seismic checks a 鋼管ソイルセメント杭's 0400 reads (decision 123): (stage, its NDU's stage, the profile, the direction).
+_JOINT_CHECKS = (("0711", "0710", NDU_LONGITUDINAL, "線路方向"), ("0721", "0720", NDU_TRANSVERSE, "線路直角方向"))
+
+
+def _joint_forces(result: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
+    """How 0400 of a 鋼管ソイルセメント杭 finishes its result (decision 123): the ずれ止め at the least steps that carry Nd, the
+    largest tension of one pile at its head in the pickup of 復旧性L2 (``SEISMIC_PICKUP``), and Np, the largest compression in
+    the pickup of the L1地震動 (``L1_PICKUP``), of the Aggre-SE checks of both directions."""
+    def forces(pickup: int, tension: bool) -> Any:
+        return joint_axial([(words, _pile_heads(stage_id, source, profile, pickup, files, pier, results))
+                            for stage_id, source, profile, words in _JOINT_CHECKS], tension)
+    return with_joint_forces(result, forces(SEISMIC_PICKUP, True), forces(L1_PICKUP, False))
 
 
 def _aggrese_files(stem: str) -> SeismicCheck:
@@ -1202,10 +1262,14 @@ STAGES = Registry((
                   results["0500"], pier, applicable_embedment(pier, results["0500"])),
               foundations={foundation: _pile_ground() for foundation in choices.PILE_FOUNDATIONS}),
     # 照査の前提 (decision 73): the input alone; the 配筋図 in 4.1 and in post/ (one DXF of the three). A 場所打ち杭's
-    # 杭の構造細目 read 1/β of SOIL-JR's .sdc, so its 0400 is calculated once 0500 is complete (decision 98).
-    replace(_DETAILING, foundations={choices.CAST_IN_PLACE_PILE: replace(
-        _DETAILING, depends_on=("0500",), after=("0500",),
-        calculate=lambda pier, results: calculate_detailing(pier, results["0500"].springs))}),
+    # 杭の構造細目 read 1/β of SOIL-JR's .sdc, so its 0400 is calculated once 0500 is complete (decision 98). A
+    # 鋼管ソイルセメント杭's finishes its ずれ止め with the axial forces of the piles of 0711 and 0721, and is registered after
+    # them (decision 123); its 配筋図 is drawn from the finished result (``Registry.finished``).
+    replace(_DETAILING, foundations={
+        choices.CAST_IN_PLACE_PILE: replace(
+            _DETAILING, depends_on=("0500",), after=("0500",),
+            calculate=lambda pier, results: calculate_detailing(pier, results["0500"].springs)),
+        choices.STEEL_SOIL_CEMENT_PILE: replace(_DETAILING, depends_on=("0711", "0721"), complete=_joint_forces)}),
     StageSpec("0600", "0600_上部工反力", (),
               lambda pier, results: calculate_reaction(pier),
               lambda results, pier, path, pages: render_reaction(results["0600"], pier, path),
@@ -1325,11 +1389,12 @@ def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: L
 
 
 def _refuse_piles(stage: StageSpec) -> StageSpec:
-    """*stage* of a load model's frame on a pile foundation: its frame is not built (the frame of a pile foundation is of
-    the train load, decision 88), so the input is refused as the stage is calculated."""
+    """*stage* (0610 / 0620 / 0710 / 0720) of a load model on a pile foundation: neither its frame nor its NDU of the piles
+    is built (the frame and the NDU of a pile foundation are of the train load, decisions 88 and 94), so the input is
+    refused as the stage is calculated (and 0711 / 0721, using 0710 / 0720, stop with it)."""
     def refuse(pier: PierInput, results: Results) -> Any:
         raise InputError(f"下部構造.基礎形式: 荷重モデル（--addin）の{stage.id}は、{pier.substructure.foundation}では"
-                         "計算できません（杭基礎の骨組は列車荷重だけです）")
+                         "計算できません（杭基礎の骨組と NDU は列車荷重だけです）")
 
     return replace(stage, calculate=refuse)
 
@@ -1337,7 +1402,7 @@ def _refuse_piles(stage: StageSpec) -> StageSpec:
 def stages_for(source: LoadModelSource) -> Registry:
     """The stages with the load model *source* (decision 70): 0600 the dead loads only, 0610 / 0620 / 0710 / 0720 /
     0900 from its result, 0711 / 0721 with the project of their generic NDU; every other stage is shared, reading the
-    generic results as it reads the train path's."""
+    generic results as it reads the train path's. On a pile foundation 0610 / 0620 / 0710 / 0720 refuse the input."""
     generic = {
         "0600": StageSpec("0600", STAGES.get("0600").stem, (),
                           lambda pier, results: calculate_dead_reaction(pier),
@@ -1372,7 +1437,7 @@ def stages_for(source: LoadModelSource) -> Registry:
         "0721": _generic_nonlinear(STAGES.get("0721"), "0720", NDU_TRANSVERSE),
         "0900": _generic_cantilever(STAGES.get("0900").stem, "0711", "0721", source),
     }
-    for stage_id in ("0610", "0620"):
+    for stage_id in ("0610", "0620", "0710", "0720"):  # (a load model has no frame or NDU of the piles: _refuse_piles)
         generic[stage_id] = replace(generic[stage_id], foundations={
             foundation: _refuse_piles(generic[stage_id]) for foundation in choices.PILE_FOUNDATIONS})
     return Registry(tuple(generic.get(stage.id, stage) for stage in STAGES.stages), load_model=source)

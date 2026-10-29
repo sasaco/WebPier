@@ -240,3 +240,28 @@ def test_the_note_names_the_items_a_pile_foundation_can_make(calculation, monkey
     page, disabled = states(calculation)
     assert "いま選べる項目: detailing・ground_model・reactions" in page.foundation_note.get()
     assert not disabled["detailing"] and not disabled["reactions"] and disabled["longitudinal_frame_analysis"]
+
+
+def test_a_steel_pile_s_detailing_needs_the_nonlinear_analyses_of_both_directions(calculation):
+    """Decision 123: a 鋼管ソイルセメント杭's 0400 uses 0711 and 0721 (outputs.FOUNDATION_REQUIRES), so 計算・印刷 enables it only
+    with both nonlinear analyses chosen."""
+    calculation.select("下部構造")
+    type_in(calculation, FOUNDATION, "鋼管ソイルセメント杭")
+
+    def choose(key, value):
+        page, _ = states(calculation)
+        page.outputs[key].set(value)
+        page._output_changed(key)
+
+    for key in OUTPUT_KEYS:
+        choose(key, False)
+    _, disabled = states(calculation)
+    assert disabled["detailing"]
+    for key in ("ground_model", "reactions", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
+                "transverse_seismic"):
+        choose(key, True)
+    _, disabled = states(calculation)
+    assert disabled["detailing"] and not disabled["transverse_nonlinear_analysis"]
+    choose("transverse_nonlinear_analysis", True)
+    _, disabled = states(calculation)
+    assert not disabled["detailing"]

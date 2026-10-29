@@ -149,17 +149,14 @@ def test_the_published_files_are_the_planned_ones(made):
 
 
 def test_a_steel_soil_cement_pile_foundation_is_calculated_the_same_way(tmp_path):
-    opts = options(tmp_path, **{"下部構造/基礎形式": "鋼管ソイルセメント杭"})
+    # (its 0400 uses 0711 and 0721, decision 123: tests/pipeline/test_generation_steel_pile_seismic.py)
+    opts = options(tmp_path, **{"下部構造/基礎形式": "鋼管ソイルセメント杭", "outputs/detailing": False})
     generation = generate.generate(opts)
     assert sorted(name for name in tree(tmp_path / "post") if name.startswith("杭基礎") and "provenance" not in name) == POST
     sdt = (tmp_path / "post" / "杭基礎.sdt").read_bytes().decode("cp932").split("\r\n")
     assert sdt[sdt.index("●杭条件●") + 1].endswith(",5,7,0,0,0,0,0")
     assert load_json((tmp_path / "output" / "0500_杭基礎.json").read_bytes())["result"]["ground"]["foundation"] == "鋼管ソイルセメント杭"
-    assert generation.stages == ("0500", "0400", "0600")
-    # its 0400 has the 杭の構造細目 of the steel pile and draws it (decision 99): D 1000, so lc = max(1500, 1522) → 1550
-    detailing = load_json((tmp_path / "output" / "0400_照査の前提.json").read_bytes())["result"]
-    assert detailing["pile"] is None and detailing["steel_pile"]["joint"]["filling"]["length"] == 1550
-    assert "杭（杭頭の結合部・断面と杭先端部）".encode("utf-8") in (tmp_path / "post" / "配筋図.dxf").read_bytes()
+    assert generation.stages == ("0500", "0600")
 
 
 def liquefying(layers=None):
@@ -246,8 +243,11 @@ def test_the_stage_alone_needs_the_runner_and_the_items_without_it_do_not(tmp_pa
         return generate.generate(GenerationOptions(path, path.parents[1] / "output", path.parents[1] / "post")).stages
 
     assert generated("場所打ち杭", "reactions") == ("0600",)
-    # the 0400 of a steel soil cement pile is the input's alone; that of a 場所打ち杭 reads 1/β of 0500 (decision 98)
-    assert generated("鋼管ソイルセメント杭", "detailing", "reactions") == ("0400", "0600")
+    # the 0400 of a steel soil cement pile uses 0711 and 0721 (decision 123); that of a 場所打ち杭 reads 1/β of 0500
+    # (decision 98)
+    with pytest.raises(InputError, match="outputs.detailing: outputs.longitudinal_nonlinear_analysis・"
+                                         "outputs.transverse_nonlinear_analysis も true が必要です"):
+        generated("鋼管ソイルセメント杭", "detailing", "reactions")
     assert not any(name.startswith("杭基礎") for name in tree(tmp_path))
     with pytest.raises(InputError, match="outputs.detailing: outputs.ground_model も true が必要です"):
         generated("場所打ち杭", "detailing", "reactions")

@@ -29,7 +29,9 @@ def made(monkeypatch):
 def pile_input(kind="場所打ち杭"):
     data = deepcopy(CURRENT)
     data["下部構造"]["基礎形式"] = kind
-    data["outputs"] = {key: key in MADE for key in data["outputs"]}
+    # (a 鋼管ソイルセメント杭's 0400 uses the nonlinear analyses of both directions, decision 123: not chosen here)
+    data["outputs"] = {key: key in MADE and not (key == "detailing" and kind == "鋼管ソイルセメント杭")
+                       for key in data["outputs"]}
     piles = data["杭基礎"]
     piles["杭長"] = 19.0
     piles["杭の単位体積重量"] = 24.5
@@ -237,7 +239,18 @@ def test_a_pile_foundation_makes_only_the_items_it_can_so_far(key):
 def test_a_pile_foundation_makes_no_item_before_one_is_supported(monkeypatch):
     monkeypatch.setattr(outputs, "PILE_OUTPUT_KEYS", ())
     monkeypatch.setattr(parse, "PILE_OUTPUT_KEYS", ())
-    fails(pile_input("鋼管ソイルセメント杭"), "outputs.detailing: 鋼管ソイルセメント杭は未対応です（鋼管ソイルセメント杭で選べる出力項目: なし）")
+    fails(pile_input("鋼管ソイルセメント杭"), "outputs.ground_model: 鋼管ソイルセメント杭は未対応です（鋼管ソイルセメント杭で選べる出力項目: なし）")
+
+
+def test_a_steel_pile_s_detailing_uses_the_nonlinear_analyses_of_both_directions():
+    """Decision 123: the ずれ止め of a 鋼管ソイルセメント杭 are decided by the axial forces of 0711 and 0721."""
+    assert outputs.requires("detailing", "鋼管ソイルセメント杭") == (
+        "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
+    assert outputs.requires("detailing") == () and outputs.requires("detailing", "場所打ち杭") == ("ground_model",)
+    data = pile_input("鋼管ソイルセメント杭")
+    data["outputs"]["detailing"] = True
+    fails(data, "outputs.detailing: outputs.longitudinal_nonlinear_analysis・outputs.transverse_nonlinear_analysis も true が"
+                "必要です")
 
 
 def test_a_direct_foundation_makes_every_item():

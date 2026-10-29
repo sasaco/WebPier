@@ -1,7 +1,8 @@
 """0400 照査の前提（構造細目） (decision 73, ADR-0012): the detailing checks of the column (4.2), the beam (4.3) and
 the footing (4.4) that the bars and the dimensions decide, from the input alone, and the 中間帯鉄筋 of the column
 (ties). A 場所打ち杭 adds the 杭の構造細目 (4.5, decision 98), whose hoops read 1/β of SOIL-JR's .sdc (0500), and a
-鋼管ソイルセメント杭 its own (decision 99), from the input alone.
+鋼管ソイルセメント杭 its own (decision 99), from the input alone and then, by ``with_joint_forces``, with the ずれ止め
+checked against the pile's largest axial forces of 0711・0721 (decision 123).
 
 The result has a judgement of every check (``ok``) and ``engineering_status``: ok when every check WebPier judges is
 satisfied, else not_ok. The checks that use section forces are Capacita's and only referred to (ADR-0012); 9) (the
@@ -11,7 +12,7 @@ upper limit of the shear capacity) prints its value and its sign and is not judg
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ...inputs import PierInput, choices
 from ...inputs.outputs import FootingParts, footing_parts
@@ -21,7 +22,8 @@ from ..pile_springs import GroundSprings
 from .common import need
 from .footing import FootingDetailing, footing_detailing
 from .pile import DIRECTIONS, PileDetailing, pile_detailing
-from .steel_pile import SteelPileDetailing, steel_pile_detailing
+from . import steel_pile as _steel_pile
+from .steel_pile import JointAxial, SteelPileDetailing, steel_pile_detailing
 
 
 @dataclass(frozen=True)
@@ -48,12 +50,28 @@ def calculate_detailing(pier: PierInput, springs: GroundSprings | None = None) -
     steel_pile = None
     if pier.substructure.foundation == choices.STEEL_SOIL_CEMENT_PILE:
         steel_pile = steel_pile_detailing(pier)
-    ok = (column.ok and beam.ok and footing.ok and (pile is None or pile.ok)
-          and (steel_pile is None or steel_pile.ok))
     appearance = need(pier.cantilever_check.appearance, "片持ち梁の照査.外観の照査")
     return DetailingResult(column=column, beam=beam, footing=footing, pile=pile, steel_pile=steel_pile,
                            cantilever_appearance=appearance == choices.APPEARANCE_CHECKED,
-                           engineering_status="ok" if ok else "not_ok", footing_parts=footing_parts(pier.outputs))
+                           engineering_status=_status(column, beam, footing, pile, steel_pile),
+                           footing_parts=footing_parts(pier.outputs))
+
+
+def with_joint_forces(result: DetailingResult, tension: JointAxial | None,
+                      compression: JointAxial | None) -> DetailingResult:
+    """*result* of a 鋼管ソイルセメント杭 with its ずれ止め decided by Nd (*tension*) and Np (*compression*), the
+    largest axial forces per pile of 0711・0721 (None: none arises), and its status again (decision 123)."""
+    assert result.steel_pile is not None, "the forces decide the ずれ止め of a 鋼管ソイルセメント杭 only"
+    steel_pile = _steel_pile.with_joint_forces(result.steel_pile, tension, compression)
+    return replace(result, steel_pile=steel_pile, engineering_status=_status(
+        result.column, result.beam, result.footing, result.pile, steel_pile))
+
+
+def _status(column: ColumnDetailing, beam: BeamDetailing, footing: FootingDetailing, pile: PileDetailing | None,
+            steel_pile: SteelPileDetailing | None) -> str:
+    ok = (column.ok and beam.ok and footing.ok and (pile is None or pile.ok)
+          and (steel_pile is None or steel_pile.ok))
+    return "ok" if ok else "not_ok"
 
 
 def _inverse_betas(springs: GroundSprings | None) -> Sequence[tuple[str, float]]:

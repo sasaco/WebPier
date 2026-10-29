@@ -11,7 +11,7 @@ from webpier.inputs import choices
 from webpier.inputs.outputs import OUTPUT_KEYS, FootingParts, uses
 from webpier.pipeline.aggrese import AXIAL, TRANSVERSE
 from webpier.pipeline.stages import (OUTPUT_STAGES, STAGES, Export, FrameAnalysis, NonlinearAnalysis, Project,
-                                     Registry, SeismicCheck, SoilJrCalculation, StageSpec)
+                                     JrsnapFigures, Registry, SeismicCheck, SoilJrCalculation, StageSpec)
 
 
 def spec(stage_id, *depends_on, exports=()):
@@ -505,9 +505,10 @@ def test_the_frame_analyses_of_a_pile_foundation_wait_and_have_their_own_stage()
     for foundation in ("場所打ち杭", "鋼管ソイルセメント杭"):
         piles = STAGES.for_foundation(foundation)
         cast = foundation == "場所打ち杭"
+        # a 鋼管ソイルセメント杭's 0400 reads 0711 and 0721 (decision 123), so it waits too, registered after them
         assert [stage_id for stage_id in piles.ids if piles.waits(stage_id)] == [
             *(["0400"] if cast else []), "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
-            "0800", "0810", "0820", "0900", "0910"]
+            *([] if cast else ["0400"]), "0800", "0810", "0820", "0900", "0910"]
         assert piles.get("0612").depends_on == ("0500", "0610") and piles.get("0612").complete is not None
         assert piles.get("0612").frame_analysis.files == STAGES.get("0612").frame_analysis.files  # shared with 0611
         assert piles.get("0612").stem == "0612_線路方向基礎" and piles.get("0622").stem == "0622_直角方向基礎"
@@ -539,3 +540,32 @@ def test_the_nonlinear_stages_of_the_piles_analyze_both_ndus_and_check_with_the_
     assert piles.waits("0711") and piles.waits("0721")  # they read 0710 / 0720, which wait for SOIL-JR's springs
     assert piles.get("0720").nonlinear_analysis is None
     assert {kind for kind in (item.kind for item in piles.get("0720").exports)} >= {"jrsnap", "jrsnapreverse"}
+
+
+# --- the order of a 基礎形式's stages and the exports of finished results (decision 123) ---------------------------------
+
+def test_a_foundation_s_stage_that_reads_a_later_one_moves_after_it():
+    """The stage A of a 場所打ち杭 reads C, registered after it: A goes just after C, the others keep their order."""
+    registry = one_item(replace(spec("A"), foundations={"場所打ち杭": spec("A", "C")}), spec("B"), spec("C"), spec("D", "B"))
+    assert registry.ids == ("A", "B", "C", "D")
+    assert registry.for_foundation("場所打ち杭").ids == ("B", "C", "A", "D")
+
+
+def test_a_foundation_s_stage_whose_dependency_never_comes_is_refused():
+    with pytest.raises(ValueError, match="Aの依存段階Zが先に登録されていません"):
+        one_item(replace(spec("A"), foundations={"場所打ち杭": spec("A", "Z")}), spec("B"))
+
+
+def test_the_exports_a_runner_reads_are_not_built_from_the_finished_result():
+    """Of a stage that finishes its result, an export SOIL-JR calculates (sdt), JRSNAP draws (jrsnap), or a later stage
+    analyzes (frameweb, ndu) is built before; the rest (dxf) from the finished result. A stage without ``complete`` has none."""
+    figures = JrsnapFigures("jrsnap", lambda results, pier: ())
+    first = calculating(exports=(export("sdt", "x.sdt"), export("jrsnap", "x.ndu"), export("frameweb", "x.json"),
+                                 export("ndu", "y.ndu"), export("dxf", "x.dxf")), jrsnap_figures=figures)
+    registry = one_item(first, StageSpec("B", "B_解析", ("A",), frame_analysis=FrameAnalysis("A", "frameweb", PICKUPS)),
+                        StageSpec("C", "C_解析", ("A",), nonlinear_analysis=NonlinearAnalysis("A", "ndu", "jrsnap",
+                                                                                            "x_JRSNAP")))
+    assert [item.kind for item in registry.finished("A")] == ["dxf"]
+    assert registry.finished("B") == registry.finished("C") == ()
+    drawn = one_item(calculating(exports=(export("sdt", "x.sdt"), export("frameweb", "x.json")), load_diagram="frameweb"))
+    assert drawn.finished("A") == ()

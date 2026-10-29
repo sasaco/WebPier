@@ -35,7 +35,8 @@ _FRAMES = ("longitudinal_frame_analysis", "transverse_frame_analysis")
 _NONLINEAR = ("longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis")
 
 OUTPUT_ITEMS = (
-    OutputItem("detailing", ()),  # 0400 (decision 73: the input alone; a 場所打ち杭's also 0500, FOUNDATION_REQUIRES)
+    # 0400 (decision 73: the input alone; a 場所打ち杭's also 0500, a 鋼管ソイルセメント杭's 0711 and 0721: FOUNDATION_REQUIRES)
+    OutputItem("detailing", ()),
     OutputItem("ground_model", ()),  # 0500
     OutputItem("reactions", ()),  # 0600
     OutputItem("longitudinal", ("ground_model", "reactions")),  # 0610
@@ -64,8 +65,12 @@ PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "
 # 鋼管ソイルセメント杭 have its joint and its pipe in the NDU (decision 122).
 CAST_IN_PLACE_ONLY: tuple[str, ...] = ("footing",)
 # The items an item uses besides the table's for a 基礎形式: the 杭の構造細目 of a 場所打ち杭 in 0400 read 1/β of SOIL-JR's
-# ground model, 0500 (decision 98).
-FOUNDATION_REQUIRES: dict[str | None, dict[str, tuple[str, ...]]] = {CAST_IN_PLACE_PILE: {"detailing": ("ground_model",)}}
+# ground model, 0500 (decision 98); those of a 鋼管ソイルセメント杭 decide the steps of the ずれ止め by the pile's largest axial
+# forces of the seismic checks of both directions, 0711 and 0721 (decision 123).
+FOUNDATION_REQUIRES: dict[str | None, dict[str, tuple[str, ...]]] = {
+    CAST_IN_PLACE_PILE: {"detailing": ("ground_model",)},
+    STEEL_SOIL_CEMENT_PILE: {"detailing": _NONLINEAR},
+}
 
 
 def foundation_makes(foundation: str | None, key: str) -> bool:

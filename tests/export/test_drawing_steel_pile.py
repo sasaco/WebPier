@@ -33,6 +33,10 @@ def pier(**steel):
     data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
     data["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
     data["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0
+    # its 0400 uses the seismic checks of both directions (decision 123)
+    data["outputs"] = {key: key in ("detailing", "ground_model", "reactions", "longitudinal_seismic",
+                                    "longitudinal_nonlinear_analysis", "transverse_seismic", "transverse_nonlinear_analysis")
+                       for key in data["outputs"]}
     return parse_input(data)
 
 

@@ -327,6 +327,7 @@ def test_the_contract_is_the_registry(capsys):
     # inputs have; which items it can make so far
     assert ground["pileFoundation"] == {
         "supported": True, "foundations": ["場所打ち杭", "鋼管ソイルセメント杭"], "requires": [], "runners": ["jrsnap"],
+        "byFoundation": {name: {"requires": [], "runners": ["jrsnap"]} for name in ("場所打ち杭", "鋼管ソイルセメント杭")},
         "files": [{"role": role, "path": path, "folder": False} for role, path in (
             ("0500.pdf", "output/0500_杭基礎.pdf"), ("0500.json", "output/0500_杭基礎.json"),
             ("0500.sdt", "post/杭基礎.sdt"), ("0500.sdr", "post/杭基礎.sdr"), ("0500.sdc", "post/杭基礎.sdc"),
@@ -341,7 +342,20 @@ def test_the_contract_is_the_registry(capsys):
     # decision 98: the 0400 of a 場所打ち杭 uses 0500 (1/β of the .sdc), so it calls the JRSNAP runner (SOIL-JR)
     detailing = outputs["detailing"]
     assert (detailing["requires"], detailing["runners"]) == ([], [])
-    assert (detailing["pileFoundation"]["requires"], detailing["pileFoundation"]["runners"]) == (["ground_model"], ["jrsnap"])
+    # decision 123: a 鋼管ソイルセメント杭's uses 0711 and 0721 (JRSNAP, Aggre-SE, and SoilStructure for an input on G3〜G5);
+    # the item's requires and runners are those of any pile foundation, in the table's order
+    assert detailing["pileFoundation"]["byFoundation"] == {
+        "場所打ち杭": {"requires": ["ground_model"], "runners": ["jrsnap"]},
+        "鋼管ソイルセメント杭": {"requires": ["longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"],
+                          "runners": ["jrsnap", "aggrese", "soilstructure"]}}
+    assert (detailing["pileFoundation"]["requires"], detailing["pileFoundation"]["runners"]) == (
+        ["ground_model", "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"],
+        ["jrsnap", "aggrese", "soilstructure"])
+    # an item only a 場所打ち杭 makes has its uses alone; one no pile foundation makes none (0900: cantilever)
+    assert list(outputs["footing"]["pileFoundation"]["byFoundation"]) == ["場所打ち杭"]
+    assert outputs["cantilever"]["pileFoundation"]["byFoundation"] == {}
+    assert (outputs["cantilever"]["pileFoundation"]["requires"], outputs["cantilever"]["pileFoundation"]["runners"]) == (
+        [], [])
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
         "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",

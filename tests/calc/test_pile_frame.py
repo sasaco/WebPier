@@ -108,7 +108,8 @@ def test_the_springs_of_the_rows_of_a_staggered_layout_are_those_of_their_column
     from pile_ground_support import pile_pier
 
     pile = pile_pier(**{"下部構造/基礎形式": "鋼管ソイルセメント杭", "杭基礎/配置/形式": "千鳥",
-                        "杭基礎/配置/線路方向の列の位置": [-3.0, 0.0, 3.0], "杭基礎/配置/抜く杭": []})
+                        "杭基礎/配置/線路方向の列の位置": [-3.0, 0.0, 3.0], "杭基礎/配置/抜く杭": [],
+                        "outputs/detailing": False})  # (a 鋼管ソイルセメント杭's 0400 uses 0711 and 0721, decision 123)
     group = pile_group(pile, foundation(pile, "pile_steel_staggered"), LONGITUDINAL)
     assert [row.column for row in group.rows] == ["奇数列", "偶数列", "奇数列"]
     assert [row.piles for row in group.rows] == [2, 1, 2]

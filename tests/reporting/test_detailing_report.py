@@ -19,16 +19,19 @@ from gridlayoutpdf import Figure, Line
 from dataclasses import replace
 
 from webpier.calc.column_check import LONGITUDINAL, TRANSVERSE, calculate_column_check
-from webpier.calc.detailing import calculate_detailing
+from webpier.calc.detailing import calculate_detailing, with_joint_forces
+from webpier.calc.detailing.steel_pile import JointAxial, rib_bond
 from webpier.calc.foundation import calculate_foundation
 from webpier.calc.longitudinal import calculate_longitudinal
 from webpier.calc.reaction import calculate_reaction
 from webpier.calc.transverse import calculate_transverse
+from webpier.core.printed import Printed
 from webpier.inputs import parse_input
 from webpier.inputs.outputs import FootingParts
 from webpier.reporting.stages.detailing import (FigureSpec, build_detailing, content, grid_documents, records,
                                                 references, render_detailing)
 from webpier.reporting.stages.frame_report import plain
+from webpier.reporting.workbook import write_workbook
 from example4_support import EXAMPLE4_INPUT
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
@@ -361,6 +364,10 @@ def steel_document(**steel):
     document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
     document["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
     document["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0
+    # its 0400 uses the seismic checks of both directions (decision 123)
+    document["outputs"] = {key: key in ("detailing", "ground_model", "reactions", "longitudinal_seismic",
+                                        "longitudinal_nonlinear_analysis", "transverse_seismic",
+                                        "transverse_nonlinear_analysis") for key in document["outputs"]}
     return document
 
 
@@ -439,3 +446,124 @@ def test_the_steel_pile_s_4_5_lays_out_on_pages_and_the_pdf_is_the_same_bytes(tm
         assert "0400/pile.heading" in [page.metadata["placements"][0]["block_id"] for page in pages]
     first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
     assert first == render_detailing(detailing, tmp_path / "b.pdf").read_bytes()
+
+
+# --- (b) ずれ止めの杭頭反力に対する検討 of the 鋼管ソイルセメント杭 (decision 123, the sample V-179〜181) ----------------------
+
+
+def kN(number, direction="線路直角方向"):
+    return JointAxial(Printed(number, 2, "kN"), direction)
+
+
+def bonded(tension, compression, document=None):
+    """The steel pile's 0400 with its ずれ止め decided by the forces, as the pipeline completes it after 0711・0721."""
+    return with_joint_forces(result(document if document is not None else steel_document()), tension, compression)
+
+
+def bond_texts(detailing) -> dict[str, str]:
+    return {record["id"].removeprefix("0400/"): record["text"] for record in records(detailing)}
+
+
+BOND = "steel.joint.ribs.bond"
+
+
+def test_the_bond_check_prints_the_sample_s_formulas_and_takes_two_steps(tmp_path):
+    """The sample's Nd 5695.00 kN and Np 6796.00 kN: τd 8.06, Aa 44221, Rd 918436 (V-179・180) and at n = 2 (Ld 500)
+    0.59・0.64 (decision 123 (3)), in the PDF's text and in the grid Excel workbook of the same document."""
+    detailing = bonded(kN(5695.00), kN(6796.00, "線路方向"))
+    found = bond_texts(detailing)
+    assert found[f"{BOND}.heading"] == "(b) ずれ止めの杭頭反力に対する検討"
+    assert found[f"{BOND}.text"].endswith("付着耐力のみによって抵抗するものとする。【杭体設計の手引き 2.4】")
+    assert found[f"{BOND}.strength.tau"] == "τd ＝ (3.5 ＋ 190 × 27.0 × 16 ／ 250 × 17 ／ 800) ／ 1.3"
+    assert found[f"{BOND}.strength.most"] == "＝ 8.06 N/mm2 ≦ 15 N/mm2"
+    assert found[f"{BOND}.bearing.inner"] == "鋼管の内径（製造時の肉厚 18 mm）　：　800 － 2 × 18 ＝ 764 mm"
+    assert "800²" in found[f"{BOND}.bearing.area"] and "764²" in found[f"{BOND}.bearing.area"]
+    assert "44221" in found[f"{BOND}.bearing.area"] and "918436" in found[f"{BOND}.bearing.rd"]
+    # the sample's misprint (設計最大引張軸力 twice) is printed corrected (ADR-0001)
+    assert "設計最大圧縮軸力はＬ１地震時における最大応答時の値" in found[f"{BOND}.check.text"]
+    symbols = found[f"{BOND}.check.symbols"]
+    assert "2 × 250 ＝ 500 mm" in symbols and "5695000 N" in symbols and "6796000 N" in symbols
+    assert "（Ｌ２地震時、線路直角方向の最大応答値）" in symbols and "（Ｌ１地震時、線路方向の最大応答値）" in symbols
+    assert found[f"{BOND}.tension.value"] == "1.0 × 5695000 / [{π × (800 - 2 × 17) × 500 × 8.06} / 1.0]"
+    assert found[f"{BOND}.compression.value"] == ("1.0 × 6796000 / [{π × (800 - 2 × 17) × 500 × 8.06 + 918436} / "
+                                                  "1.0]")
+    assert found[f"{BOND}.tension.check"] == "＝ 0.59 ≦ 1.00 ・・・・・・ OK"
+    assert found[f"{BOND}.compression.check"] == "＝ 0.64 ≦ 1.00 ・・・・・・ OK"
+    assert found[f"{BOND}.result"] == "以上より、ずれ止めの段数は、2段以上でこの検討を満足する最小の 2 段とする。"
+    assert found["steel.joint.ribs.steps.text"] == ("・ずれ止めの段数は2段以上とし、(b) ずれ止めの杭頭反力に対する検討を満足"
+                                                    "する最小の段数とする。")
+    assert found["steel.joint.ribs.steps.result"] == "実際に配置したずれ止めは、2 段なので、上記条件を満足する。"
+    table = found["steel.joint.summary.table"]
+    assert "2段以上かつ(b)を満足" in table and "引張 0.59" in table and "圧縮 0.64" in table and "×" not in table
+    first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
+    (document,) = grid_documents(detailing)
+    assert document.render(tmp_path / "b.pdf", invariant=True).read_bytes() == first
+    with pymupdf.open(tmp_path / "a.pdf") as pdf:
+        text = "".join(page.get_text() for page in pdf)
+    for word in ("(b) ずれ止めの杭頭反力に対する検討", "8.06", "44221", "918436", "0.59 ≦ 1.00", "0.64 ≦ 1.00"):
+        assert word in text, word
+    write_workbook((document,), tmp_path / "0400.xlsx", "0400")  # strict: nothing shifted
+    from openpyxl import load_workbook
+    sheet = load_workbook(tmp_path / "0400.xlsx", read_only=True).active
+    cells = " ".join(str(cell) for row in sheet.iter_rows(values_only=True) for cell in row if cell is not None)
+    for word in ("(b) ずれ止めの杭頭反力に対する検討", "8.06", "44221", "918436", "＝ 0.59 ≦ 1.00", "引張 0.59"):
+        assert word in cells, word
+
+
+def test_the_bond_check_at_the_sample_s_three_steps_prints_v_181():
+    """n = 3 as the sample chose (Ld 750): 0.39・0.44."""
+    detailing = bonded(kN(5695.00), kN(6796.00))
+    steel = detailing.steel_pile
+    three = replace(steel, joint=replace(steel.joint, bond=rib_bond(steel, 3, kN(5695.00), kN(6796.00))))
+    found = bond_texts(replace(detailing, steel_pile=three))
+    assert "3 × 250 ＝ 750 mm" in found[f"{BOND}.check.symbols"]
+    assert found[f"{BOND}.tension.check"] == "＝ 0.39 ≦ 1.00 ・・・・・・ OK"
+    assert found[f"{BOND}.compression.check"] == "＝ 0.44 ≦ 1.00 ・・・・・・ OK"
+    assert found[f"{BOND}.result"].endswith("最小の 3 段とする。")
+
+
+def test_a_check_without_its_force_is_left_out():
+    found = bond_texts(bonded(None, kN(6796.00)))
+    assert found[f"{BOND}.tension.none"] == "引張軸力は生じないため、照査を省略する。"
+    assert f"{BOND}.tension.value" not in found and found[f"{BOND}.compression.check"].startswith("＝ 0.64")
+    assert "杭1本当りの設計最大引張軸力（生じない）" in found[f"{BOND}.check.symbols"] and "引張 －" in found["steel.joint.summary.table"]
+    found = bond_texts(bonded(kN(5695.00), None))
+    assert found[f"{BOND}.compression.none"] == "圧縮軸力は生じないため、照査を省略する。"
+    assert "圧縮 －" in found["steel.joint.summary.table"]
+
+
+def test_forces_the_most_steps_cannot_carry_are_not_satisfied():
+    """Nd 30000.00 kN at the most steps n = 5: 1.24 > 1.00 (the calc's test)."""
+    found = bond_texts(bonded(kN(30000.00), kN(6796.00)))
+    assert found[f"{BOND}.tension.check"] == "＝ 1.24 ＞ 1.00 ・・・・・・ NG"
+    assert found[f"{BOND}.result"] == "以上より、最下段の取付中心位置の条件を満たす最大の段数（5 段）でもこの検討を満足しない。"
+    assert found["steel.joint.ribs.steps.result"] == "実際に配置したずれ止めは、5 段なので、上記条件を満足しない。"
+    assert "×" in found["steel.joint.summary.table"]
+
+
+def test_a_filling_too_short_for_two_steps_says_two_do_not_carry_the_forces():
+    """A filling of 600 mm allows one step at most (the calc's test): the check is at 2 steps."""
+    detailing = result(steel_document())
+    steel = detailing.steel_pile
+    filling = replace(steel.joint.filling, length=Printed(600, 0, "mm"))
+    short = replace(detailing, steel_pile=replace(steel, joint=replace(steel.joint, filling=filling)))
+    found = bond_texts(with_joint_forces(short, kN(30000.00), None))
+    assert found[f"{BOND}.result"] == "以上より、ずれ止めを 2 段としてもこの検討を満足しない。"
+
+
+def test_a_bond_strength_at_its_upper_limit_says_so():
+    """D 800, t0 25, 中詰め f'ck 50: τd stops at 15 (the calc's test)."""
+    document = steel_document(鋼管厚=25.0)
+    document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["中詰めコンクリート_f'ck"] = 50.0
+    found = bond_texts(bonded(kN(5695.00), kN(6796.00), document))
+    assert found[f"{BOND}.strength.most"] == "上限値 15 N/mm2 より、τd ＝ 15.00 N/mm2"
+
+
+def test_the_steel_pile_with_its_bond_check_lays_out_on_pages(tmp_path):
+    for detailing in (bonded(kN(5695.00), kN(6796.00)), bonded(None, None), bonded(kN(30000.00), kN(6796.00))):
+        pages = build_detailing(detailing).layout()
+        assert f"0400/{BOND}.heading" in [placement["block_id"] for page in pages
+                                          for placement in page.metadata["placements"]]
+    without = result(steel_document())
+    assert not any(key.startswith(BOND) for key in bond_texts(without))
+    assert "2段以上かつ" not in bond_texts(without)["steel.joint.summary.table"]

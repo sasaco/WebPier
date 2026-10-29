@@ -311,7 +311,8 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
     (with the items it uses, which are chosen with it) and the files it publishes (``planned``), from the registry. For
     a pile foundation (decision 85) each item says whether it can be chosen yet (``supported``) and, as the direct
     foundation's, its stages, runners and files; a file that only some inputs have (SOIL-JR's two for the liquefaction)
-    is listed as ``conditional``."""
+    is listed as ``conditional``. Its items used and runners are those of each pile foundation that makes it
+    (``byFoundation``, decision 123) and, as ``requires`` and ``runners``, of any of them."""
     options = GenerationOptions(Path("input.json"), Path("output"), Path("post"), export_dir=Path("export"))
     piles = registry.for_foundation(CAST_IN_PLACE_PILE)
 
@@ -331,20 +332,32 @@ def contract(registry: Registry = STAGES) -> dict[str, Any]:
     def output(key: str, requires: tuple[str, ...]) -> dict[str, Any]:
         stages = registry.outputs.get(key, ())
         needed = [stage_id for item in (*uses(key), key) for stage_id in registry.outputs.get(item, ())]
-        pile_needed = [stage_id for item in (*uses(key, CAST_IN_PLACE_PILE), key)
-                       for stage_id in registry.outputs.get(item, ())]
+        foundations = [name for name in PILE_FOUNDATIONS if foundation_makes(name, key)]
+        by_foundation = {name: pile_foundation(key, name) for name in foundations}
         return {"key": key, "requires": list(requires), "either": [list(group) for group in item_either(key)],
                 "stages": list(stages),
                 "runners": [module.ENGINE for module in required_runners(needed, registry=registry)],
                 "files": files(planned(options, stages, registry=registry)),
                 "pileFoundation": {
                     "supported": key in PILE_OUTPUT_KEYS,
-                    "foundations": [name for name in PILE_FOUNDATIONS if foundation_makes(name, key)],
-                    # the items it uses for a 場所打ち杭 (decision 98: 0400 reads 1/β of 0500)
-                    "requires": list(item_requires(key, CAST_IN_PLACE_PILE)),
-                    "runners": [module.ENGINE for module in required_runners(pile_needed, registry=piles)],
+                    "foundations": foundations,
+                    # the items it uses and the runners choosing it calls for any pile foundation that makes it, and
+                    # for each (decision 98: a 場所打ち杭's 0400 reads 1/β of 0500; decision 123: a
+                    # 鋼管ソイルセメント杭's the axial forces of 0711 and 0721)
+                    "requires": [item for item in OUTPUT_KEYS
+                                 if any(item in found["requires"] for found in by_foundation.values())],
+                    "runners": [module.ENGINE for module in RUNNERS
+                                if any(module.ENGINE in found["runners"] for found in by_foundation.values())],
+                    "byFoundation": by_foundation,
                     "files": files(planned(options, stages, registry=piles)),
                     "conditionalFiles": conditional(stages)}}
+
+    def pile_foundation(key: str, foundation: str) -> dict[str, list[str]]:
+        """The items *key* uses and the runners choosing it calls for the pile foundation *foundation*."""
+        needed = [stage_id for item in (*uses(key, foundation), key) for stage_id in registry.outputs.get(item, ())]
+        return {"requires": list(item_requires(key, foundation)),
+                "runners": [module.ENGINE for module in required_runners(
+                    needed, registry=registry.for_foundation(foundation))]}
 
     return {"command": "contract",
             "stages": [{"id": stage.id, "stem": stage.stem, "dependsOn": list(stage.depends_on),

@@ -153,6 +153,29 @@ def test_a_load_model_has_no_frame_on_piles(tmp_path):
                                             addin=addin))
 
 
+STEEL = {"ソイルセメント径": 1.0, "鋼管外径": 0.8, "鋼管厚": 18.0, "腐食代": 1.0, "鋼管材質": "SKK490",
+         "結合部": {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0}, "中詰めコンクリート_f'ck": 27.0,
+                  "粗骨材の最大寸法": 25}}  # (the pipe and the joint of Example橋脚4, as tests/pipeline/test_generation_steel_pile_seismic.py)
+
+
+@pytest.mark.parametrize("foundation, items, changes", [
+    ("場所打ち杭", ("ground_model", "reactions", "longitudinal_seismic"), {}),
+    ("鋼管ソイルセメント杭", ("detailing", "ground_model", "reactions", "longitudinal_seismic",
+                         "longitudinal_nonlinear_analysis", "transverse_seismic", "transverse_nonlinear_analysis"),
+     {"下部構造/基礎形式": "鋼管ソイルセメント杭", "杭基礎/鋼管ソイルセメント杭": STEEL}),
+])
+def test_a_load_model_has_no_seismic_frame_on_piles(tmp_path, foundation, items, changes):
+    """0710 / 0720 of a load model build no NDU of the piles, so the generation stops before anything is published (and
+    0711 / 0721, which use 0710 / 0720, and a 鋼管ソイルセメント杭's 0400, which uses 0711 / 0721, decision 123, with it)."""
+    addin = Path(__file__).parents[1] / "fixtures" / "addin" / "minimal"
+    outputs = {key: key in items for key in PILE["outputs"]}
+    with pytest.raises(InputError, match=f"荷重モデル（--addin）の0710は、{foundation}では計算できません"):
+        generate.generate(GenerationOptions(write(tmp_path / "pre", outputs=outputs, **changes), tmp_path / "output",
+                                            tmp_path / "post", addin=addin))
+    assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")  # nothing is published
+    assert not (tmp_path / "post").exists() or not tree(tmp_path / "post")
+
+
 def test_the_stages_that_are_not_made_yet_are_not_items_of_a_pile_foundation(tmp_path):
     data = deepcopy(PILE)
     chosen = (*ITEMS, "longitudinal_seismic", "transverse_seismic", "longitudinal_nonlinear_analysis",

@@ -85,7 +85,7 @@ def test_the_pile_lines_of_a_cast_in_place_pile():
 
 
 def test_the_pile_lines_of_a_steel_soil_cement_pile():
-    body = lines(sdt({"下部構造/基礎形式": "鋼管ソイルセメント杭"}))
+    body = lines(sdt({"下部構造/基礎形式": "鋼管ソイルセメント杭", "outputs/detailing": False}))  # (decision 123)
     start = body.index("●杭条件●") + 1
     assert body[start] == "1,3,3,3,3,3,3,3,3,5,7,0,0,0,0,0"
     assert body[start + 1] == f"19,0,1.2,2.8,200,{EMPTY},1.2,1,18,{EMPTY},1,1.130973,0.006304,24.5"

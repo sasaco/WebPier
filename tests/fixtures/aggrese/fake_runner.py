@@ -32,7 +32,9 @@ direct foundation is INVALID_ARGUMENT.
 
 Of a pile foundation the pickup has, after its first line, pickup 2 (復旧性L2) of the members 1 to 99: the focus M and S at
 both ends (``seismic_forces``) and the focus N with the axial forces of ``axial_forces`` (compression negative, the bundle of a
-pile row): decision 98 reads the smallest at the head (ITAN) of the first element of each row.
+pile row): decision 98 reads the smallest at the head (ITAN) of the first element of each row, decision 123 the largest
+(tension); then pickup 1 (L1地震動) of the same members, the focus N only at both ends (``l1_axial_forces``), whose smallest at the
+head decision 123 reads (Np of a 鋼管ソイルセメント杭).
 
 ``--pile-anchor-bar-pdf true`` (decision 98, a pile foundation whose project has a cut-off) asks for ``pile-anchor-bar.pdf``
 too: the project's 段落し情報 must have its bars after the cut-off (``_D1`` and ``_n1`` not 0, as Aggre-SE refuses a blank one)
@@ -152,18 +154,24 @@ def seismic_forces(member):
 
 
 def axial_forces(member):
-    """(Md, Vd, Nd of the largest case, Md, Vd, Nd of the smallest) of the focus N at an end of *member*: compression, the
-    smallest −(3000 + 10 × member) kN."""
-    return (0.0, 0.0, -(1000.0 + member), 0.0, 0.0, -(3000.0 + 10 * member))
+    """(Md, Vd, Nd of the largest case, Md, Vd, Nd of the smallest) of the focus N at an end of *member* in pickup 2: tension,
+    the largest 500 + 10 × member kN, and compression, the smallest −(3000 + 10 × member) kN."""
+    return (0.0, 0.0, 500.0 + 10 * member, 0.0, 0.0, -(3000.0 + 10 * member))
+
+
+def l1_axial_forces(member):
+    """The same in pickup 1 (L1地震動): both compression, the smallest −(20000 + 100 × member) kN."""
+    return (0.0, 0.0, -(1000.0 + member), 0.0, 0.0, -(20000.0 + 100 * member))
 
 
 def pickup_lines():
     """The lines of pickup 2 (復旧性L2) of the members 1 to 99 (the stand-in does not read the NDU: the member numbers the
-    footing reads are the elements of its model): the focus M, S and N at both ends, in the pickup's fixed columns."""
-    forces = {"M": seismic_forces, "S": seismic_forces, "N": axial_forces}
-    return "".join(f"{2:>5}{focus:>5}{member:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
-                   + "".join(f"{value:>10.2f}" for value in forces[focus](member)) + "\r\n"
-                   for member in range(1, 100) for focus in ("M", "S", "N")
+    footing reads are the elements of its model): the focus M, S and N at both ends, in the pickup's fixed columns; then
+    those of pickup 1 (L1地震動): the focus N at both ends."""
+    forces = {(2, "M"): seismic_forces, (2, "S"): seismic_forces, (2, "N"): axial_forces, (1, "N"): l1_axial_forces}
+    return "".join(f"{pickup:>5}{focus:>5}{member:>5}{1:>5}{1:>5}{point:>5}{position:>10.3f}"
+                   + "".join(f"{value:>10.2f}" for value in forces[(pickup, focus)](member)) + "\r\n"
+                   for pickup, foci in ((2, ("M", "S", "N")), (1, ("N",))) for member in range(1, 100) for focus in foci
                    for point, position in (("ITAN", 0.0), ("JTAN", 1.0)))
 
 

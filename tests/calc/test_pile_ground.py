@@ -66,7 +66,8 @@ def test_a_strength_outside_the_table_is_an_input_error():
 
 
 def test_a_steel_soil_cement_pile_section():
-    section = ground(**{"下部構造/基礎形式": "鋼管ソイルセメント杭"}).section
+    # (its 0400 uses 0711 and 0721, decision 123: not chosen here)
+    section = ground(**{"下部構造/基礎形式": "鋼管ソイルセメント杭", "outputs/detailing": False}).section
     assert (section.kind, section.method, section.construction) == (5, 7, 0)
     assert (section.diameter.value, section.inner_diameter.value, section.thickness.value, section.corrosion.value) == (
         1.2, 1.0, 18.0, 1.0)

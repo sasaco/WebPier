@@ -8,6 +8,8 @@ its formulas and its tables) and, for what the sample has not, Example2 06_照�
 - 4.2 躯体の構造細目: (1) 線路方向, (2) 線路直角方向. The items of the whole section (1) (a) and 3) are printed in (1)
   only; the items are numbered in order in each direction.
 - 4.3 梁の構造細目 and 4.4 フーチングの構造細目 ((1) 線路方向, (2) 線路直角方向).
+- 4.5 杭の構造細目 of a pile foundation; a 鋼管ソイルセメント杭 whose ずれ止め the pile's axial forces of 0711・0721 decided
+  adds (b) ずれ止めの杭頭反力に対する検討 after the sample Example橋脚4 V-179〜181 (decision 123).
 
 The checks that use section forces (Mcrd, 0.008Ac, the maximum reinforcement, σc) print only the section of the check
 that has them (ADR-0012), whether that is made or not (``references``): 0611 / 0621 the numbers Capacita gave its
@@ -35,20 +37,28 @@ from ...calc.column_check import ColumnCheckResult
 from ...calc.detailing import DetailingResult
 from ...calc.detailing.beam import BeamDetailing, SkinBars
 from ...calc.detailing.column import ColumnDetailing, ColumnDirection
-from ...calc.detailing.common import (BarGroup, Bound, CapacityRatio, ClearSpacing, DuctilityLimit, ShearRatio,
-                                      SteelRatio, StirrupSpacing)
+from ...calc.detailing.common import (GAMMA_C, BarGroup, Bound, CapacityRatio, ClearSpacing, DuctilityLimit,
+                                      ShearRatio, SteelRatio, StirrupSpacing)
 from ...calc.detailing.footing import FootingDetailing, FootingDirection
 from ...calc.detailing.pile import SPAN_FACTOR, SPAN_LIMIT, HoopRatio, PileDetailing
+from ...calc.detailing.steel_pile import BEARING_ETA as STEEL_BEARING_ETA
+from ...calc.detailing.steel_pile import BOND_COEFFICIENT as STEEL_BOND_COEFFICIENT
+from ...calc.detailing.steel_pile import BOND_CONSTANT as STEEL_BOND_CONSTANT
+from ...calc.detailing.steel_pile import BOND_MOST as STEEL_BOND_MOST
+from ...calc.detailing.steel_pile import BOND_RATIO_MOST as STEEL_BOND_RATIO_MOST
 from ...calc.detailing.steel_pile import CLEAR_LEAST as STEEL_CLEAR_LEAST
 from ...calc.detailing.steel_pile import DIAMETER_RANGE as STEEL_DIAMETER_RANGE
 from ...calc.detailing.steel_pile import FILL_INEFFECTIVE as STEEL_FILL_INEFFECTIVE
 from ...calc.detailing.steel_pile import FOOTING_HOOP_UPPER
+from ...calc.detailing.steel_pile import GAMMA_B as STEEL_GAMMA_B
+from ...calc.detailing.steel_pile import GAMMA_I as STEEL_GAMMA_I
 from ...calc.detailing.steel_pile import Joint as SteelJoint
 from ...calc.detailing.steel_pile import PC_RANGE as STEEL_PC_RANGE
 from ...calc.detailing.steel_pile import RIB_GAP_LEAST as STEEL_RIB_GAP_LEAST
 from ...calc.detailing.steel_pile import RIB_SPACINGS as STEEL_RIB_SPACINGS
+from ...calc.detailing.steel_pile import RIB_STEPS as STEEL_RIB_STEPS
 from ...calc.detailing.steel_pile import TIP_RIBS as STEEL_TIP_RIBS
-from ...calc.detailing.steel_pile import SteelPileDetailing, SteelPipe
+from ...calc.detailing.steel_pile import JointAxial, RibBond, SteelPileDetailing, SteelPipe
 from ...core.printed import Printed
 from ...inputs.outputs import FootingParts
 from ..document import blank, heading, indent_to, is_blank, math_line, paragraph, report, spacer
@@ -1077,8 +1087,144 @@ def _steel_ribs(m: _Manuscript, key: str, n: _Numbers, joint: SteelJoint, pipe: 
     m.paragraph(f"{key}.position.result", _sat(ribs.ok, f"最上段のずれ止めの取付中心位置は、鋼管杭頭から "
                                                         f"{value(ribs.quarter)} mm、最下段のずれ止めの取付中心位置は、"
                                                         f"中詰めコンクリート下端から {value(ribs.bottom)} mm なので、"))
-    m.paragraph(f"{key}.steps.text", "・ずれ止めの段数は2段以上とする。")
-    m.paragraph(f"{key}.steps.result", f"実際に配置したずれ止めは、{ribs.steps} 段なので、上記条件を満足する。")
+    bond = joint.bond
+    if bond is None:
+        m.paragraph(f"{key}.steps.text", "・ずれ止めの段数は2段以上とする。")
+        m.paragraph(f"{key}.steps.result", f"実際に配置したずれ止めは、{ribs.steps} 段なので、上記条件を満足する。")
+        return
+    # decision 123: the least steps of two or more that satisfy (b)
+    m.paragraph(f"{key}.steps.text", "・ずれ止めの段数は2段以上とし、(b) ずれ止めの杭頭反力に対する検討を満足する最小の"
+                                     "段数とする。")
+    m.paragraph(f"{key}.steps.result", _sat(ribs.steps >= STEEL_RIB_STEPS and bond.ok,
+                                            f"実際に配置したずれ止めは、{ribs.steps} 段なので、"))
+    _steel_bond(m, f"{key}.bond", bond)
+
+
+_BOND_TEXT = ("杭頭の圧縮軸力に対しては鋼管内部のずれ止めによる付着耐力と鋼管頭面のフーチングコンクリートの支圧耐力の和に"
+              "よって抵抗するものとする。一方、引張軸力に対しては鋼管内部のずれ止めによる付着耐力のみによって抵抗するもの"
+              "とする。【杭体設計の手引き 2.4】")
+_ETA_TEXT = ("鋼管端部の過度の支圧力によるフーチングの損傷を回避するため、鋼管内面の付着耐力に対して、鋼管頭面の支圧耐力は"
+             "従たる抵抗力と考えることとし、コンクリートの支圧分布面積Aは、鋼管の断面積Aaと同一（すなわちη＝1）とする。")
+# the sample V-180 prints 設計最大引張軸力 twice: the second is the 圧縮 of its note and of V-181 (ADR-0001)
+_BOND_CASES_TEXT = ("鋼管杭の杭頭部におけるずれ止めの設計については、以下の式により照査を行う。なお、設計最大引張軸力はＬ２地震時に"
+                    "おける最大応答時の値を、設計最大圧縮軸力はＬ１地震時における最大応答時の値を用いて照査を行う。")
+_BOND_NOTE_TEXT = ("一般に、設計最大軸力は、Ｌ２地震時の最大応答時の値を用いればよい。ただし、鋼管ソイルセメント杭では、圧縮軸力に"
+                   "対して鋼管のみが抵抗するのではなく、鋼管内のソイルセメントやコンクリート自体も一体として抵抗するため、地震時に"
+                   "生じる大きな圧縮軸力に対して杭頭部のずれ止めの付着耐力（および鋼管端部の支圧耐力）のみで抵抗する必要は無いと"
+                   "考えられる。そのため、設計最大圧縮軸力はＬ１地震時の応答値を用いてよいこととする。")
+
+
+def _bond_force(symbol: Any, words: str, force: JointAxial | None, newtons: Printed | None,
+                level: str) -> tuple[Definition, ...]:
+    """The definition of Nd or Np with its value and where it comes from."""
+    if force is None or newtons is None:
+        return (Definition(symbol, f"{words}（生じない）"),)
+    return (Definition(symbol, Row(f"{words} (= ", value(newtons), " N)", gap=0)),
+            Definition("", f"（{level}地震時、{force.direction}の最大応答値）"))
+
+
+def _steel_bond(m: _Manuscript, key: str, bond: RibBond) -> None:
+    """(b) ずれ止めの杭頭反力に対する検討 (手引き 2.4, decision 123), as the sample V-179〜181 prints it."""
+    tau, fck, lz, ld = sub("τ", "d"), sub("f'", "ck"), sub("l", "z"), sub("L", "d")
+    rd, aa, nd, np_ = sub("R", "d"), sub("A", "a"), sub("N", "d"), sub("N", "p")
+    stress, mm2 = Row("N/mm", sup("", "2"), gap=0), Row("mm", sup("", "2"), gap=0)
+    # the tag closes the text: it does not fit beside the heading (Example2 6.3 (2))
+    m.heading(f"{key}.heading", "(b) ずれ止めの杭頭反力に対する検討", 4)
+    m.paragraph(f"{key}.text", _BOND_TEXT)
+    # ① τd
+    m.paragraph(f"{key}.strength.lead", "①ずれ止めの付着強度の算定", keep=True)
+    m.paragraph(f"{key}.strength.text", "ずれ止めを設けた場合の鋼管内面と中詰めコンクリートの付着強度τd (N/mm²) は、次式で"
+                                        "求める。")
+    m.line(f"{key}.strength.formula", Row(tau, f" ＝ ({value(STEEL_BOND_CONSTANT)} ＋ {value(STEEL_BOND_COEFFICIENT)}",
+                                          fck, "・t'／", lz, "・t／D)／γc ≦ ", value(STEEL_BOND_MOST), " ", stress,
+                                          gap=0))
+    m.line(f"{key}.strength.source", "【杭体設計の手引き 解(2.4-19)】")
+    m.definitions(f"{key}.strength.symbols",
+                  Definition(fck, "中詰めコンクリートの圧縮強度の特性値"),
+                  Definition("", Row("（設計基準強度）(", stress, ")", gap=0)),
+                  Definition("t'", "ずれ止めの厚さ (mm)"),
+                  Definition(lz, "ずれ止めの間隔 (mm)"),
+                  Definition("t", "鋼管の有効肉厚 (mm)"),
+                  Definition("D", "鋼管外径 (mm)"),
+                  Definition("γc", f"コンクリートの材料係数（一般に{value(GAMMA_C)}）"))
+    m.line(f"{key}.strength.fck", Row(fck, f" ＝ {value(bond.fill_fck)} ", stress, "（中詰めコンクリート）", gap=0))
+    # the substitution does not fit the term columns: one line and its result under it (the sample V-179)
+    m.line(f"{key}.strength.tau", Row(tau, f" ＝ ({value(STEEL_BOND_CONSTANT)} ＋ {value(STEEL_BOND_COEFFICIENT)} × "
+                                           f"{value(bond.fill_fck)} × {value(bond.thickness)} ／ {value(bond.spacing)} × "
+                                           f"{value(bond.effective)} ／ {value(bond.diameter)}) ／ {value(GAMMA_C)}", gap=0))
+    if bond.tau.value >= STEEL_BOND_MOST.value:  # the upper limit of 解(2.4-19)
+        m.line(f"{key}.strength.most", Row(f"上限値 {value(STEEL_BOND_MOST)} ", stress, " より、", tau, f" ＝ "
+                                           f"{value(bond.tau)} ", stress, gap=0), left=INDENT + 1)
+    else:
+        m.line(f"{key}.strength.most", Row(f"＝ {value(bond.tau)} ", stress, f" ≦ {value(STEEL_BOND_MOST)} ", stress,
+                                           gap=0), left=INDENT + 1)
+    # ② Rd
+    m.paragraph(f"{key}.bearing.lead", "②鋼管頭面の支圧耐力の算定", keep=True)
+    m.paragraph(f"{key}.bearing.text", "圧縮軸力に対する鋼管頭面の支圧耐力Rdについては、次式で求める。")
+    m.line(f"{key}.bearing.formula", Row(rd, " ＝ η・", fck, "・", aa, "／γc　　η ＝ (A／", aa, ")", sup("", "1/2"),
+                                         " ≦ 2", gap=0))
+    m.line(f"{key}.bearing.source", "【杭体設計の手引き 解(2.4-20)】")
+    m.definitions(f"{key}.bearing.symbols",
+                  Definition("A", Row("コンクリートの支圧分布面積 (", mm2, ")", gap=0)),
+                  Definition(aa, Row("鋼管の断面積 (", mm2, ")", gap=0)),
+                  Definition("γc", f"コンクリートの材料係数（一般に{value(GAMMA_C)}）"))
+    m.paragraph(f"{key}.bearing.eta", _ETA_TEXT)
+    m.line(f"{key}.bearing.inner", f"鋼管の内径（製造時の肉厚 {value(bond.made)} mm）　：　{value(bond.diameter)} － 2 × "
+                                   f"{value(bond.made)} ＝ {value(bond.inner)} mm")
+    m.equation(f"{key}.bearing.area", "", aa, terms("1", "/", "4", "×", "π", "×", "(", f"{value(bond.diameter)}²", "−",
+                                                     f"{value(bond.inner)}²", ")"), value(bond.area), mm2)
+    m.line(f"{key}.bearing.fck", Row(fck, f" ＝ {value(bond.footing_fck)} ", stress, "（フーチング）", gap=0))
+    m.equation(f"{key}.bearing.rd", "", rd, terms(value(STEEL_BEARING_ETA), "×", value(bond.footing_fck), "×",
+                                                   value(bond.area), "/", value(GAMMA_C)), value(bond.bearing), "N")
+    # ③ the check
+    m.paragraph(f"{key}.check.lead", "③ずれ止めの照査", keep=True)
+    m.paragraph(f"{key}.check.text", _BOND_CASES_TEXT)
+    m.line(f"{key}.check.tension", Row("・引張軸力　γi・", nd, "／[{π(D－2t)・", ld, "・", tau, "}／γb] ≦ ",
+                                       value(STEEL_BOND_RATIO_MOST), gap=0))
+    m.line(f"{key}.check.tension.source", "【杭体設計の手引き 解(2.4-21)】")
+    m.line(f"{key}.check.compression", Row("・圧縮軸力　γi・", np_, "／[{π(D－2t)・", ld, "・", tau, "＋", rd, "}／γb] ≦ ",
+                                           value(STEEL_BOND_RATIO_MOST), gap=0))
+    m.line(f"{key}.check.compression.source", "【杭体設計の手引き 解(2.4-22)】")
+    m.definitions(f"{key}.check.symbols",
+                  Definition("D", Row("鋼管外径 (= ", _mm(bond.diameter), ")", gap=0)),
+                  Definition("t", Row("鋼管の有効肉厚 (= ", _mm(bond.effective), ")", gap=0)),
+                  Definition(ld, "鋼管と中詰めコンクリートとの付着の有効範囲"),
+                  Definition("", Row("(= n・", lz, f" ＝ {bond.steps} × {value(bond.spacing)} ＝ ", _mm(bond.length), ")",
+                                     gap=0)),
+                  Definition("n", f"ずれ止め段数 (= {bond.steps} 段)"),
+                  Definition(lz, Row("ずれ止めの間隔 (= ", _mm(bond.spacing), ")", gap=0)),
+                  Definition(tau, "鋼管内面と中詰めコンクリートの付着強度"),
+                  Definition("", Row("(= ", value(bond.tau), " ", stress, ")", gap=0)),
+                  Definition(rd, Row("鋼管頭面の支圧耐力 (= ", value(bond.bearing), " N)", gap=0)),
+                  *_bond_force(nd, "杭1本当りの設計最大引張軸力", bond.tension, bond.tension_n, "Ｌ２"),
+                  *_bond_force(np_, "杭1本当りの設計最大圧縮軸力", bond.compression, bond.compression_n, "Ｌ１"),
+                  Definition("γb", f"部材係数 (= {value(STEEL_GAMMA_B)})"),
+                  Definition("γi", f"構造物係数 (= {value(STEEL_GAMMA_I)})"))
+    m.paragraph(f"{key}.check.note", _BOND_NOTE_TEXT)
+    bond_terms = (f"π × ({value(bond.diameter)} - 2 × {value(bond.effective)}) × {value(bond.length)} × "
+                  f"{value(bond.tau)}")
+    for name, title, words, force, ratio, ok, extra in (
+            ("tension", "・引張軸力に対しての照査（Ｌ２地震時）", "引張軸力", bond.tension_n, bond.tension_ratio,
+             bond.tension_ok, ""),
+            ("compression", "・圧縮軸力に対しての照査（Ｌ１地震時）", "圧縮軸力", bond.compression_n, bond.compression_ratio,
+             bond.compression_ok, f" + {value(bond.bearing)}")):
+        m.paragraph(f"{key}.{name}.lead", title, keep=True)
+        if force is None or ratio is None:
+            m.line(f"{key}.{name}.none", f"{words}は生じないため、照査を省略する。")
+            continue
+        # the substitution does not fit the term columns: one line with half-width operators (the sample V-181), whose
+        # end Excel keeps
+        m.line(f"{key}.{name}.value", f"{value(STEEL_GAMMA_I)} × {value(force)} / [{{{bond_terms}{extra}}} / "
+                                      f"{value(STEEL_GAMMA_B)}]")
+        m.line(f"{key}.{name}.check", f"＝ {value(ratio)} {'≦' if ok else '＞'} {value(STEEL_BOND_RATIO_MOST)} {DOTS} "
+                                      f"{_judgement(ok)}")
+    if bond.ok:
+        m.paragraph(f"{key}.result", f"以上より、ずれ止めの段数は、2段以上でこの検討を満足する最小の {bond.steps} 段とする。")
+    elif bond.most == bond.steps:
+        m.paragraph(f"{key}.result", f"以上より、最下段の取付中心位置の条件を満たす最大の段数（{bond.steps} 段）でも"
+                                     "この検討を満足しない。")
+    else:
+        m.paragraph(f"{key}.result", f"以上より、ずれ止めを {bond.steps} 段としてもこの検討を満足しない。")
 
 
 def _steel_joint_summary(m: _Manuscript, key: str, n: _Numbers, joint: SteelJoint) -> None:
@@ -1118,7 +1264,13 @@ def _steel_joint_summary(m: _Manuscript, key: str, n: _Numbers, joint: SteelJoin
             (Span("ずれ止めの取付中心位置", rowspan=2), f"杭頭から D/4 ＝ {value(ribs.quarter)} mm",
              f"{value(ribs.quarter)} mm", "○", Span(SEE, rowspan=2)),
             (f"下端から lz0 ＝ {value(ribs.bottom_least)} mm 以上", f"{value(ribs.bottom)} mm", _mark(ribs.ok)),
-            ("ずれ止めの段数", "2段以上", f"{ribs.steps} 段", "○", SEE)]
+            ("ずれ止めの段数", "2段以上" if joint.bond is None else "2段以上かつ(b)を満足", f"{ribs.steps} 段",
+             "○" if joint.bond is None else _mark(ribs.steps >= STEEL_RIB_STEPS and joint.bond.ok), SEE)]
+        if joint.bond is not None:
+            bond = joint.bond
+            rows.append(("ずれ止めの杭頭反力\nに対する検討", f"照査値 ≦ {value(STEEL_BOND_RATIO_MOST)}",
+                         "\n".join(f"{name} {'－' if ratio is None else value(ratio)}" for name, ratio in (
+                             ("引張", bond.tension_ratio), ("圧縮", bond.compression_ratio))), _mark(bond.ok), "(b)参照"))
     m.table(f"{key}.table", TableSpec(STEEL_SUMMARY_WIDTHS, tuple(rows), _heights(rows), left=1), "表．構造細目一覧表")
 
 

@@ -28,7 +28,9 @@
    Kh from its summary workbook, has JRSNAP analyze the NDU of each Case of the 応答変位法 into the same folder (the NDUs are
    published in it) and Aggre-SE check again with the project of every Case, whose files are the ones staged. The runners
    are looked up before anything is calculated, and a missing or failing runner stops the generation. The stages are
-   those of the input's 基礎形式 and the parts of its footing (``Registry.for_input``, decisions 85 and 110).
+   those of the input's 基礎形式 and the parts of its footing (``Registry.for_input``, decisions 85 and 110). The exports
+   no runner reads of a stage that finishes its result are built from the finished result (``Registry.finished``: the
+   配筋図 of a 鋼管ソイルセメント杭, decision 123).
 4. Reports, their grid Excel workbooks (export/: the pages WebPier lays out, ``StageSpec.grid_documents``, on one
    sheet, written strictly), result JSON, exports, pickup files, the JRSNAP folder and their provenance sidecars are
    written to staging beside each destination, then published as one set by ``publication.publish_outputs`` (the folder is
@@ -301,6 +303,9 @@ def export_bytes(pier: PierInput, stage_id: str, kind: str, *, registry: Registr
     if registry.get(selected).after:
         raise InputError(f"{selected}の「{kind}」は、{'・'.join(registry.get(selected).after)}の SOIL-JR の結果から作るので、"
                          "生成のときだけ作れます")
+    if item in registry.finished(selected):  # (a 鋼管ソイルセメント杭's 配筋図, decision 123)
+        raise InputError(f"{selected}の「{kind}」は、{'・'.join(registry.get(selected).depends_on)}の結果で{selected}を仕上げてから"
+                         "作るので、生成のときだけ作れます")
     results = _calculate(registry, pier, (selected,))
     return item.build(_own(registry, results, selected), pier)
 
@@ -578,6 +583,15 @@ def _seismic_facts(registry: Registry, post: _PostFile, staging: ArtifactStaging
     return {"seismic_check": facts}
 
 
+def _finish(registry: Registry, pier: PierInput, results: Mapping[str, Any], posts: Sequence[_PostFile],
+            built: dict[tuple[str, str], bytes], staging: ArtifactStaging) -> None:
+    """Build and stage the exports of the finished results (``Registry.finished``, decision 123), into *built*."""
+    for post in posts:
+        if post.export is not None and post.export in registry.finished(post.stage):
+            built[(post.stage, post.kind)] = post.export.build(_own(registry, results, post.stage), pier)
+            staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
+
+
 def _write_project(post: _PostFile, writer: Callable[[str, Sequence[str]], bytes], folder: str,
                    names: Sequence[str]) -> bytes:
     try:
@@ -804,8 +818,10 @@ def _analyze_stage(registry: Registry, analysis: NonlinearAnalysis, built: Mappi
 
 def _build(registry: Registry, pier: PierInput, results: Mapping[str, Any], posts: list[_PostFile],
            analyses: Mapping[str, FrameAnalysis | NonlinearAnalysis]) -> dict[tuple[str, str], bytes]:
-    """Each export to stage or to analyze, built once: the file a runner analyzes is the file staged."""
-    wanted = [*((post.stage, post.export) for post in posts if post.export is not None),
+    """Each export to stage or to analyze, built once: the file a runner analyzes is the file staged. An export built
+    from its stage's finished result (``Registry.finished``) is built once the stage is complete (``_finish``)."""
+    wanted = [*((post.stage, post.export) for post in posts
+                if post.export is not None and post.export not in registry.finished(post.stage)),
               *((analysis.stage, source) for analysis in analyses.values() for source in _sources(registry, analysis, pier))]
     built: dict[tuple[str, str], bytes] = {}
     for stage_id, item in wanted:
@@ -920,7 +936,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
         displaced = {stage_id: _displace(registry, stage_id, results, pier, runners[soilstructure], answers)
                      for stage_id in selected if registry.get(stage_id).ground_displacement is not None and displaces(pier)}
         for post in posts:
-            if post.export is not None:
+            if post.export is not None and post.export not in registry.finished(post.stage):  # (``_finish`` writes those)
                 staging.path_for(post.native.path).write_bytes(built[(post.stage, post.kind)])
         drawn = {post.stage: _draw(staging.path_for(post.native.path), runner) for post in posts
                  if runner is not None and post.kind == registry.get(post.stage).load_diagram}
@@ -984,6 +1000,7 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
             if registry.get(stage_id).complete is not None and stage_id not in grounded:
                 files = _completion_files(registry, stage_id, analyzed, checked)
                 results[stage_id] = _complete(registry, stage_id, results.get(stage_id), files, pier, results)
+        _finish(registry, pier, results, posts, built, staging)  # the exports of the finished results (decision 123)
         # Capacita checks the section the stage describes: the column with the PIK the stage's own frame analysis
         # returned (decision 48), or the beam with the section forces written in the WDJ (decision 59).
         given: dict[str, bytes] = {}
