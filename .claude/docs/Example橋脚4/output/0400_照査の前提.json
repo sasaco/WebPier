@@ -5,7 +5,7 @@
     "file": "input.json",
     "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
   },
-  "implementation_sha256": "a205244942e1ee46a47d59c16774cdf951b687f0038277dd92af85f7f56ce438",
+  "implementation_sha256": "cd8d81c833e10e7d3b8fc4dd76e5383563324ebc7c7868e040ae41c34e030ee8",
   "result": {
     "column": {
       "amount": {
@@ -1099,6 +1099,34 @@
           "bottom_least": 250.0,
           "steps": 2,
           "bottom": 1100.0
+        },
+        "bond": {
+          "fill_fck": 27.0,
+          "thickness": 16.0,
+          "spacing": 250.0,
+          "effective": 17.0,
+          "diameter": 800.0,
+          "tau": 8.06,
+          "footing_fck": 27.0,
+          "made": 18.0,
+          "inner": 764.0,
+          "area": 44221.0,
+          "bearing": 918436.0,
+          "steps": 2,
+          "length": 500.0,
+          "tension": {
+            "value": 6576.14,
+            "direction": "線路直角方向"
+          },
+          "compression": {
+            "value": 6910.83,
+            "direction": "線路方向"
+          },
+          "tension_n": 6576140.0,
+          "compression_n": 6910830.0,
+          "tension_ratio": 0.68,
+          "compression_ratio": 0.65,
+          "most": 5
         }
       },
       "soil_cement": {
