@@ -133,7 +133,7 @@ def test_the_sections_come_from_the_pile_reinforcement_and_the_conditions_of_the
 def test_what_the_ndu_cannot_express_is_an_input_error():
     pier, layout, longitudinal, _ = chain()
     steel = replace(pier, substructure=replace(pier.substructure, foundation="鋼管ソイルセメント杭"))
-    with pytest.raises(InputError, match="場所打ち杭だけに対応"):
+    with pytest.raises(InputError, match="結合部.軸方向鉄筋.径: 結合部の照査に必要です"):  # a steel pile needs its joint (decision 122)
         build_pile_ndu(LONGITUDINAL, steel, layout, longitudinal, SPRINGS)
     with pytest.raises(InputError, match="逆向の）組合せがありません"):
         build_pile_ndu(LONGITUDINAL, pier, layout, longitudinal, SPRINGS, reverse=True)

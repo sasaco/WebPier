@@ -59,7 +59,8 @@ class Shear:
     yield_strength: Printed
     diameter: Printed
     legs: int  # 帯鉄筋の方向別有効本数
-    pitch: Printed
+    pitch: Printed  # of the 帯鉄筋 (SectSher 4)
+    shear_pitch: Printed  # of the せん断補強鉄筋 (SectSher 10; decision 122)
 
 
 @dataclass(frozen=True)

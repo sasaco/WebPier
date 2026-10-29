@@ -97,3 +97,19 @@ def test_the_report_is_webpiers_pages_then_aggreses_report(tmp_path: Path):
 def test_only_aggreses_report_is_taken(tmp_path: Path):
     with pytest.raises(ValueError, match="Aggre-SE の帳票だけを受け取ります"):
         render_pile_seismic_check("0711", _pile(_result(0.428)), 5, tmp_path / "0711.pdf", {})
+
+
+def test_a_steel_pile_has_the_response_pages_then_aggreses_report_and_no_minimum_bars(tmp_path: Path):
+    """Decision 122: 杭頭反力の最大値から定める最小鉄筋量 is of a 場所打ち杭 (decision 98); a 鋼管ソイルセメント杭 has none."""
+    from webpier.calc.detailing.pile import PileSeismicResult
+    path = render_pile_seismic_check("0711", PileSeismicResult(None, _result(0.428)), 5, tmp_path / "0711.pdf",
+                                     {SEISMIC_CHECK: _pdf("AGGRESE")})
+    with pymupdf.open(path) as document:
+        pages = [page.get_text() for page in document]
+    assert "応答変位法による設計応答値の算定" in pages[0] and pages[-1].strip() == "AGGRESE"
+    assert not any("最小鉄筋量" in page for page in pages)
+    report = _pdf("AGGRESE")
+    alone = render_pile_seismic_check("0711", PileSeismicResult(None, None), None, tmp_path / "alone.pdf",
+                                      {SEISMIC_CHECK: report})
+    from webpier.reporting.stages.seismic_check import render_seismic_check
+    assert alone.read_bytes() == render_seismic_check(tmp_path / "as_is.pdf", {SEISMIC_CHECK: report}).read_bytes()

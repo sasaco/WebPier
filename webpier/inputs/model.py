@@ -245,6 +245,10 @@ class JrsnapConditions:
     limited_final_step: int | None  # last step of the limited incremental load (DataInfo 6)
     target_displacement: Printed | None  # magnitude (> 0) at the control node, m; the export signs it (DataInfo 19)
     max_seismic: Printed  # 最大震度 of the incremental load, 1.00 when blank (decision 112; ExOptLoad 2, DataInfo 5)
+    # the pitch (mm) of the 帯鉄筋 and of the せん断補強鉄筋 of JRSNAP's section of the column; None: the column's hoop row's
+    # (decision 122)
+    hoop_pitch: Printed | None = None
+    shear_pitch: Printed | None = None
 
 
 @dataclass(frozen=True)

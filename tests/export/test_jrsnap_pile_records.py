@@ -19,6 +19,7 @@ from webpier.core.printed import LENGTH
 from webpier.export.jrsnap.pile_build import pile_row_parts, support_values
 from webpier.export.jrsnap.pile_model import PILE, RIGID, GroundElement, PileRange, Support
 from webpier.export.jrsnap.pile_records import pile_section_records, records
+from webpier.export.jrsnap.records import UNSET
 from webpier.export.jrsnap.writer import line, write_pile_ndu
 
 KNOWN = {
@@ -68,11 +69,19 @@ def test_the_nonlinear_rows_name_the_head_the_2d_zone_and_the_rest_of_each_pile(
     assert rows["NonLinInfo22"] == "1,2,2,1,1,1,1,2,0,杭頭（２本杭）：要素番号　28"
 
 
-def test_a_circular_section_has_the_axial_force_only_when_it_is_given():
+def test_a_circular_section_has_its_inner_radius_in_the_sixth_field_and_the_axial_force_only_when_it_is_given():
+    """JRSNAP's RC 円形 (manual 表2-28; JRSNAP_Input's form): the sixth field of SectInfo is the 内周半径 RR2 (the sample's 210,
+    which its NDT does not write for a solid circle) and the eleventh the 作用軸力, blank (-3.402823E+38) when it is not
+    fixed (decision 122: the axial force was written in the sixth field before; WebPier gives neither, so its bytes are the
+    same)."""
     section = dict(pile_section_records(2, pile_section(100)))
-    assert section["SectInfo2"][5].value == 210 and section["SectConc2"][1:3] == (-3, -3)
+    assert section["SectInfo2"][5].value == 210 and section["SectInfo2"][10] == UNSET
+    assert section["SectConc2"][1:3] == (-3, -3)
     assert section["SectSher2"][2] == 2 and section["SectRein2-1"][0].value == 156
-    assert dict(pile_section_records(2, pile_section(100, None)))["SectInfo2"][5] == 0
+    solid = dict(pile_section_records(2, pile_section(100, None)))["SectInfo2"]
+    assert (solid[5], solid[10]) == (0, UNSET)
+    fixed = dict(pile_section_records(2, replace(pile_section(100, None), axial_force=printed(1234.5, 1, "kN"))))
+    assert (fixed["SectInfo2"][5], fixed["SectInfo2"][10].value) == (0, 1234.5)
     assert section["SectSafe2"] == SAFETY and len(SAFETY) == 12
 
 

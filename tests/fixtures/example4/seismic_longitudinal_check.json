@@ -1,0 +1,819 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_2of3.pdf",
+    "page_mapping": "2of3 の 0 始まりの index k が印刷頁 IV-(k-155)（IV-73〜IV-98 は index 228〜253）",
+    "method": "スキャン画像を目視で転記（pymupdf で 110 dpi の全頁と 170〜220 dpi の切り出し）。WebPier の実装・生成物は見ていない",
+    "units": "kN, kN·m, mm, mm2, N/mm2, rad, 1/m。数値は印字の桁のまま",
+    "notes": "seismic_longitudinal_check_notes.md"
+  },
+  "scope": "4 線路方向の照査（IV-73〜IV-98）。応答値の算定（3.）は範囲外",
+  "serviceability_L1": {
+    "section": "4.1 地震時の走行安全性に係る変位および使用性（損傷）の照査",
+    "design_limits_table": {
+      "printed": "IV-73",
+      "pdf": "2of3",
+      "pdf_index": 228,
+      "table": "表4.1.1 損傷に関する使用性の照査に用いる設計限界値",
+      "performance": "使用性 性能レベル1",
+      "rows": [
+        {
+          "limit_state": "損傷",
+          "member": "く体",
+          "response": "設計回転角 θd",
+          "limit": "損傷レベル1回転角 θyd"
+        },
+        {
+          "limit_state": "損傷",
+          "member": "く体",
+          "response": "設計せん断力 Vd",
+          "limit": "設計せん断耐力 Vyd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "鋼管杭",
+          "response": "設計曲率 φd",
+          "limit": "損傷レベル1曲率 φyd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "鋼管杭",
+          "response": "設計せん断力 Vd",
+          "limit": "設計せん断耐力 Vyd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "結合部",
+          "response": "設計回転角 θd",
+          "limit": "損傷レベル1回転角 θyd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "結合部",
+          "response": "設計せん断力 Vd",
+          "limit": "設計せん断耐力 Vyd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "フーチング",
+          "response": "設計曲げモーメント Md",
+          "limit": "設計降伏耐力 Myd"
+        },
+        {
+          "limit_state": "残留変位の限界／基礎部材等の破壊",
+          "member": "フーチング",
+          "response": "設計せん断力 Vd",
+          "limit": "設計せん断耐力 Vyd"
+        },
+        {
+          "limit_state": "残留鉛直変位",
+          "member": "杭頭部",
+          "response": "設計鉛直力 Vd",
+          "limit": "設計鉛直支持力 Rvd"
+        },
+        {
+          "limit_state": "残留鉛直変位",
+          "member": "杭頭部",
+          "response": "設計引抜き力 Vud",
+          "limit": "設計引抜き抵抗力 Rud"
+        },
+        {
+          "limit_state": "残留水平変位",
+          "member": "フーチング天端",
+          "response": "最大応答水平変位 δd",
+          "limit": "2%LA≦100mm"
+        },
+        {
+          "limit_state": "残留傾斜",
+          "member": "フーチング天端",
+          "response": "最大応答回転角 θd",
+          "limit": "10/1000rad"
+        }
+      ]
+    },
+    "damage_L1": {
+      "printed": "IV-74",
+      "pdf": "2of3",
+      "pdf_index": 229,
+      "table": "表4.1.2 L1地震動に対する部材の損傷レベルの照査（線路方向）",
+      "rows": [
+        {
+          "direction": "線路方向",
+          "case": "L-L1",
+          "Khy": 0.466,
+          "Teq_sec": 1.05,
+          "L1_seismic_coefficient": 0.378,
+          "damage_level": 1
+        }
+      ],
+      "conclusion": "降伏震度が応答加速度を上回るので損傷レベル1以内、使用性の性能レベル1を満足"
+    },
+    "stability_L1": {
+      "residual_vertical": {
+        "printed": "IV-75",
+        "pdf": "2of3",
+        "pdf_index": 230,
+        "pages_also": [
+          {
+            "printed": "IV-76",
+            "pdf": "2of3",
+            "pdf_index": 231
+          }
+        ],
+        "clause": "基礎標準 15.3.4.2",
+        "formula": "Rvd=fr×Rk=fr×(Rtk+Rfk)（解15.3.4.2-1）, Rud=fr×Rfk+Wp（解15.3.4.2-2）。Rud の fr は pt=0 の値",
+        "gamma_i": 1.0,
+        "Rk_kN": 9428.3,
+        "Rtk_kN": 1649.3,
+        "Rfk_push_kN": 7779.0,
+        "Rfk_pull_kN": 8262.8,
+        "Wp_kN": 16.2,
+        "pt": 0.175,
+        "pt_expr": "1649.3/9428.3",
+        "fr": 1.063,
+        "fr_figure": "図4.1.1（d）鋼管ソイルセメント杭工法 IV-76",
+        "fr_pull": 1.08,
+        "per": "杭1本分",
+        "performance_level": 1,
+        "Rvd_kN": 10022.3,
+        "Rvd_expr": "1.063×9428.3×1",
+        "Rud_kN": 8940.0,
+        "Rud_expr": "1.080×8262.8×1+16.2×1",
+        "checks": [
+          {
+            "side": "押込み側",
+            "Vd_kN": 6256.0,
+            "limit_kN": 10022.3,
+            "ratio": 0.62,
+            "case": "L1-1",
+            "result": "O.K."
+          },
+          {
+            "side": "引抜き側",
+            "Vud_kN": 1615.7,
+            "limit_kN": 8940.0,
+            "ratio": 0.18,
+            "case": "L1-1",
+            "result": "O.K."
+          }
+        ]
+      },
+      "residual_horizontal": {
+        "printed": "IV-77",
+        "pdf": "2of3",
+        "pdf_index": 232,
+        "clause": "基礎標準 15.3.4.3",
+        "delta_Ld_mm": 49.0,
+        "delta_Ld_expr": "0.02×(√6×1000)",
+        "cap_mm": 100,
+        "check": {
+          "delta_d_mm": 31.5,
+          "ratio": 0.64,
+          "case": "L1-1",
+          "result": "O.K."
+        },
+        "note": "応答変位法に対する照査は記載省略"
+      },
+      "residual_tilt": {
+        "printed": "IV-77",
+        "pdf": "2of3",
+        "pdf_index": 232,
+        "clause": "基礎標準 15.3.4.4",
+        "theta_Ld_rad": 0.01,
+        "check": {
+          "theta_d_rad": 0.004,
+          "ratio": 0.4,
+          "case": "L1-1",
+          "result": "O.K."
+        }
+      },
+      "foundation_members": {
+        "printed": "IV-78",
+        "pdf": "2of3",
+        "pdf_index": 233,
+        "footing": "第V編 2.フーチング（線路方向）で照査",
+        "piles": "4.1.1(1)(a) L1地震動に対する損傷レベル1の確保より照査を満足"
+      }
+    },
+    "serviceability_damage": {
+      "printed": "IV-79",
+      "pdf": "2of3",
+      "pdf_index": 234,
+      "text": "4.1.1 により L1地震動に対して損傷レベル1・安定レベル1を満足することを確認したため記載省略"
+    }
+  },
+  "pier_body": {
+    "failure_mode": {
+      "pages": [
+        {
+          "printed": "IV-80",
+          "pdf": "2of3",
+          "pdf_index": 235
+        },
+        {
+          "printed": "IV-81",
+          "pdf": "2of3",
+          "pdf_index": 236
+        },
+        {
+          "printed": "IV-82",
+          "pdf": "2of3",
+          "pdf_index": 237
+        },
+        {
+          "printed": "IV-83",
+          "pdf": "2of3",
+          "pdf_index": 238
+        },
+        {
+          "printed": "IV-84",
+          "pdf": "2of3",
+          "pdf_index": 239
+        },
+        {
+          "printed": "IV-85",
+          "pdf": "2of3",
+          "pdf_index": 240
+        }
+      ],
+      "premises": "全部材を曲げ破壊形態に設定してプッシュオーバー。フーチングは靭性を期待できないので ρm=1.2 の最大断面力で耐力照査。線路方向は「く体先行降伏」（3.5(3)）なので αf=1 のみで照査。破壊形態の判定は ρm=1.2 のケース。Vmu の Mu は ρm=1.2×JIS下限・γb=1.0。La/d≧2 で min(Vyd,Vwcd)、<2 で Vdd",
+      "Vud_table_1": {
+        "printed": "IV-82",
+        "pdf": "2of3",
+        "pdf_index": 237,
+        "table": "表4.2.1-1 設計せん断耐力 Vud（その1）",
+        "direction": "線路方向",
+        "position": "く体基部",
+        "case": "L1-2",
+        "H_mm": 2500,
+        "Bw_mm": 3500,
+        "d_mm": 2385.3,
+        "Ast_mm2": 38760.0,
+        "Ast_bars": "D38-34本",
+        "dast_mm": 114.7,
+        "Asc_mm2": 38760.0,
+        "Asc_bars": "D38-34本",
+        "dasc_mm": 114.7,
+        "Ase_mm2": 4010.0,
+        "Ase_bars": "D19-14本",
+        "fck_N_mm2": 40,
+        "gamma_c": 1.3,
+        "fcd_N_mm2": 30.8,
+        "fsyk_N_mm2": 490,
+        "gamma_s": 1.0,
+        "fsyd_N_mm2": 490,
+        "rho_m": 1.2,
+        "Nd_kN": 10477.2,
+        "Aw_mm2": 5067.0,
+        "fwyd_N_mm2": 390,
+        "theta_s_deg": 90,
+        "Ss_mm": 250.0
+      },
+      "Vud_table_2": {
+        "printed": "IV-83",
+        "pdf": "2of3",
+        "pdf_index": 238,
+        "table": "表4.2.1-2 設計せん断耐力 Vud（その2）",
+        "Vyd": {
+          "pw": 0.0058,
+          "fwyd_N_mm2": 390,
+          "pw_fwyd_over_fcd": 0.0733,
+          "Aw_prime_mm2": 5067.0,
+          "fvcd_N_mm2": 0.6269,
+          "beta_d": 0.8047,
+          "pc": 0.00464,
+          "beta_p": 0.7742,
+          "beta_n": 1.131,
+          "M0_kNm": 4365.5,
+          "Mu_kNm": 66450.2,
+          "gamma_bc": 1.3,
+          "Vcd_kN": 2836.7,
+          "z_mm": 2074.0,
+          "gamma_bs": 1.1,
+          "Vsd_kN": 14903.6,
+          "Vyd_kN": 17740.3
+        },
+        "Vwcd": {
+          "fwcd_N_mm2": 6.937,
+          "gamma_bc": 1.3,
+          "Vwcd_kN": 44549.1
+        },
+        "Vdd": {
+          "a_mm": 9200,
+          "fdd_N_mm2": 1.054,
+          "beta_d": 0.805,
+          "beta_n": 1.131,
+          "beta_w": 1.96,
+          "beta_p": 0.841,
+          "beta_a": 0.315,
+          "alpha_bearing_plate": 1.14,
+          "gamma_b": 1.2,
+          "Vdd_kN": 6354.1
+        },
+        "Vud_kN": 17740.3,
+        "Vud_label_printed": "Vyd"
+      },
+      "Vmu_table": {
+        "printed": "IV-85",
+        "pdf": "2of3",
+        "pdf_index": 240,
+        "table": "表4.2.2 部材が曲げ耐力に達するときのせん断力 Vmu",
+        "direction": "線路方向",
+        "position": "く体基部",
+        "H_mm": 2500,
+        "Bw_mm": 3500,
+        "d_mm": 2385.3,
+        "Ast_mm2": 38760.0,
+        "Ast_bars": "D38-34本",
+        "dast_mm": 114.7,
+        "Asc_mm2": 38760.0,
+        "Asc_bars": "D38-34本",
+        "dasc_mm": 114.7,
+        "Ase_mm2": 4010.0,
+        "Ase_bars": "D19-14本",
+        "fck_N_mm2": 40,
+        "gamma_c": 1.3,
+        "fcd_N_mm2": 30.8,
+        "fsyk_N_mm2": 490,
+        "gamma_s": 1.0,
+        "fsyd_N_mm2": 490,
+        "rho_m": 1.2,
+        "Nd_kN": 10477.2,
+        "Mu_kNm": 66450.2,
+        "gamma_b": 1.0,
+        "Mud_kNm": 66450.2,
+        "La_m": 9.2,
+        "Vmu_kN": 7222.8
+      },
+      "judgement": {
+        "printed": "IV-85",
+        "pdf": "2of3",
+        "pdf_index": 240,
+        "table": "表4.2.3 橋脚く体の破壊形態の判定結果",
+        "rows": [
+          {
+            "member": "橋脚く体",
+            "direction": "線路方向",
+            "Nd_kN": 10477.2,
+            "Vud_kN": 17740.3,
+            "Vmu_kN": 7222.8,
+            "Vmu_over_Vud": 0.41,
+            "result": "曲げ破壊形態"
+          }
+        ]
+      }
+    },
+    "safety_failure": {
+      "printed": "IV-86",
+      "pdf": "2of3",
+      "pdf_index": 241,
+      "table": "表4.2.4 安全性の照査に用いる設計限界値",
+      "rows": [
+        {
+          "member": "く体",
+          "response": "設計回転角 θd",
+          "limit": "損傷レベル3回転角 θnd"
+        },
+        {
+          "member": "く体",
+          "response": "設計せん断力 Vd",
+          "limit": "設計せん断耐力 Vud"
+        }
+      ],
+      "omitted": "復旧性で性能レベル3を確保することにより、安全性の照査を省略する"
+    },
+    "restorability_damage": {
+      "pages": [
+        {
+          "printed": "IV-87",
+          "pdf": "2of3",
+          "pdf_index": 242
+        },
+        {
+          "printed": "IV-88",
+          "pdf": "2of3",
+          "pdf_index": 243
+        },
+        {
+          "printed": "IV-89",
+          "pdf": "2of3",
+          "pdf_index": 244
+        }
+      ],
+      "levels": "復旧性（性能レベル3）: 損傷レベル3・安定レベル2（第I編 表3.2.3）",
+      "design_limits_table": {
+        "printed": "IV-87",
+        "pdf": "2of3",
+        "pdf_index": 242,
+        "table": "表4.2.5 復旧性（性能レベル3）の照査に用いる設計限界値",
+        "rows": [
+          {
+            "member": "く体",
+            "response": "設計回転角 θd",
+            "limit": "損傷レベル3回転角 θnd"
+          },
+          {
+            "member": "く体",
+            "response": "設計せん断力 Vd",
+            "limit": "設計せん断耐力 Vyd"
+          }
+        ]
+      },
+      "limit_formulas": "θyd=θy/γb（γb=1.0）; θmd=θm0d+θm1d=(δmbd+δmpd)/La+θm1d（γb=1.0）; θnd=θn0d+θn1d=(δnbd+δnpd)/La+θn1d, δnpd=δmpd+Δθpd(La−Lp/2), Δθpd=Δθp/γb（γb=1.15）",
+      "limits": {
+        "printed": "IV-89",
+        "pdf": "2of3",
+        "pdf_index": 244,
+        "table": "表4.2.6 橋脚く体の損傷レベルに対する制限値",
+        "direction": "線路方向",
+        "theta_yd_rad": 0.004709,
+        "theta_md_rad": 0.049062,
+        "theta_nd_rad": 0.05523,
+        "remark": "αf=1, ρm=1.0"
+      },
+      "response": {
+        "printed": "IV-89",
+        "pdf": "2of3",
+        "pdf_index": 244,
+        "table": "表4.2.7 橋脚く体の応答値",
+        "direction": "線路方向",
+        "theta_d_rad": 0.052116,
+        "remark": "KhL2=0.410, δL2=567.1mm"
+      },
+      "check": {
+        "printed": "IV-89",
+        "pdf": "2of3",
+        "pdf_index": 244,
+        "table": "表4.2.8 橋脚く体の損傷レベルの照査結果",
+        "member": "橋脚く体 線路方向",
+        "case": "L1-1",
+        "theta_d_rad": 0.052116,
+        "limits_rad": {
+          "L1": 0.004709,
+          "L2": 0.049062,
+          "L3": 0.05523
+        },
+        "gamma_i": 1.0,
+        "ratios": {
+          "L1": 11.07,
+          "L2": 1.06,
+          "L3": 0.94
+        },
+        "damage_level": 3,
+        "damage_level_limit": 3
+      },
+      "shear_omitted": "曲げ破壊形態のため、せん断の照査を省略する（IV-89）"
+    }
+  },
+  "foundation": {
+    "failure_mode": {
+      "printed": "IV-90",
+      "pdf": "2of3",
+      "pdf_index": 245,
+      "steel_pipe_pile": "【杭体設計の手引き 2.3】第II編 1.2(1)(b) 最小肉厚の規定を満足するため、地震時の破壊形態の確認を省略",
+      "pile_footing_joint": "【杭体設計の手引き 2.4】一般的な設計条件（基礎標準 解説表15.1.1-1）の鋼管杭なら結合部の純せん断破壊は生じない→仮想RC部材のせん断照査と破壊形態の確認は不要。本例は周面支持杭で一般条件外だが、せん断耐力への影響は少なく同等と判断し照査を省略。囲み：地震時に高軸引張状態となる場合に限りアンカー鉄筋のみで抵抗できることを別途確認"
+    },
+    "safety_failure": {
+      "printed": "IV-91",
+      "pdf": "2of3",
+      "pdf_index": 246,
+      "table": "表4.3.1 安全性の照査に用いる設計限界値（基礎標準 解説表15.3.1-3）",
+      "rows": [
+        {
+          "member": "杭体・結合部",
+          "response": "設計曲率・設計部材角",
+          "limit": "損傷レベル2"
+        },
+        {
+          "member": "フーチング",
+          "response": "設計断面力",
+          "limit": "損傷レベル1"
+        }
+      ],
+      "omitted": "復旧性で性能レベル3を確保することにより、安全性の照査を省略する"
+    },
+    "restorability_damage": {
+      "design_limits_table": {
+        "printed": "IV-92",
+        "pdf": "2of3",
+        "pdf_index": 247,
+        "table": "表4.3.2 復旧性（性能レベル3）の照査に用いる設計限界値（コンクリート構造編 解説表8.8.13 と印字）",
+        "rows": [
+          {
+            "member": "鋼管部",
+            "response": "設計曲率 φd",
+            "limit": "損傷レベル2曲率 φmd"
+          },
+          {
+            "member": "鋼管部",
+            "response": "設計せん断力 Vd",
+            "limit": "設計せん断耐力 Vyd"
+          },
+          {
+            "member": "結合部",
+            "response": "設計回転角 θd",
+            "limit": "損傷レベル3回転角 θm2（印字のまま。本文 IV-93 は損傷レベル2限界の θm2）"
+          },
+          {
+            "member": "結合部",
+            "response": "設計せん断力 Vd",
+            "limit": "設計せん断耐力 Vyd"
+          },
+          {
+            "member": "フーチング",
+            "response": "設計曲げモーメント Md",
+            "limit": "設計曲げ降伏耐力 Myd"
+          },
+          {
+            "member": "フーチング",
+            "response": "設計せん断力 Vd",
+            "limit": "設計せん断耐力 Vyd"
+          }
+        ],
+        "text": "性能レベル3: 損傷レベル3・安定レベル2。周面支持杭のため残留鉛直変位の設計限界値を安定レベル1の値とした"
+      },
+      "footing": {
+        "printed": "IV-92",
+        "pdf": "2of3",
+        "pdf_index": 247,
+        "text": "第V編 2.フーチング（線路方向）にて照査"
+      },
+      "joint": {
+        "printed": "IV-93",
+        "pdf": "2of3",
+        "pdf_index": 248,
+        "table": "表4.3.3 杭の損傷レベル（杭とフーチングの結合部）",
+        "clause": "コンクリート構造編 8.8.5.3",
+        "limit_basis": "損傷レベル2限界の θm2",
+        "columns": [
+          {
+            "section": "左杭（引抜き側）",
+            "element": 7,
+            "case": "CASE L-L2-1",
+            "theta_d_rad": 0.001913,
+            "limits_rad": {
+              "L1": 0.002236,
+              "L2": 0.051764,
+              "L3": 0.054015
+            },
+            "gamma_i": 1.0,
+            "ratios": {
+              "L1": 0.86,
+              "L2": 0.04,
+              "L3": 0.04
+            },
+            "damage_level": 1,
+            "damage_level_limit": 2,
+            "result": "O.K."
+          },
+          {
+            "section": "右杭（押込み側）",
+            "element": 45,
+            "case": "CASE L-L2-1",
+            "theta_d_rad": 0.00149,
+            "limits_rad": {
+              "L1": 0.005124,
+              "L2": 0.033797,
+              "L3": 0.035266
+            },
+            "gamma_i": 1.0,
+            "ratios": {
+              "L1": 0.29,
+              "L2": 0.04,
+              "L3": 0.04
+            },
+            "damage_level": 1,
+            "damage_level_limit": 2,
+            "result": "O.K."
+          }
+        ],
+        "shear_omitted": "4.3.1(1) より結合部での純せん断破壊は生じないと考えられるため、せん断の照査を省略"
+      },
+      "steel_pipe": {
+        "printed": "IV-93",
+        "pdf": "2of3",
+        "pdf_index": 248,
+        "table": "表4.3.4 杭の損傷レベル（鋼管部）",
+        "limit_basis": "損傷レベル2限界の φmd",
+        "columns": [
+          {
+            "section": "左杭（引抜き側）",
+            "element": 12,
+            "case": "CASE L-L2-1",
+            "phi_d_per_m": 0.001486,
+            "limits_per_m": {
+              "L1": 0.002895,
+              "L2": 0.042219,
+              "L3": 0.042219
+            },
+            "gamma_i": 1.0,
+            "ratios": {
+              "L1": 0.51,
+              "L2": 0.04,
+              "L3": 0.04
+            },
+            "damage_level": 1,
+            "damage_level_limit": 2,
+            "result": "O.K."
+          },
+          {
+            "section": "右杭（押込み側）",
+            "element": 46,
+            "case": "CASE L-L2-1",
+            "phi_d_per_m": 0.001466,
+            "limits_per_m": {
+              "L1": 0.001501,
+              "L2": 0.012208,
+              "L3": 0.012208
+            },
+            "gamma_i": 1.0,
+            "ratios": {
+              "L1": 0.98,
+              "L2": 0.12,
+              "L3": 0.12
+            },
+            "damage_level": 1,
+            "damage_level_limit": 2,
+            "result": "O.K."
+          }
+        ],
+        "shear_omitted": "鋼管杭の場合、せん断力については問題とならないため照査を省略。応答変位法に対する照査は記載省略"
+      }
+    }
+  },
+  "foundation_stability": {
+    "safety": {
+      "printed": "IV-94",
+      "pdf": "2of3",
+      "pdf_index": 249,
+      "table": "表4.4.1 安全性の照査に用いる設計限界値",
+      "rows": [
+        {
+          "limit_state": "地盤の破壊",
+          "position": "杭頭部",
+          "response": "設計鉛直力",
+          "limit": "設計鉛直支持力"
+        },
+        {
+          "limit_state": "水平安定",
+          "position": "フーチング天端",
+          "response": "最大応答水平変位",
+          "limit": "10%LA"
+        },
+        {
+          "limit_state": "回転安定",
+          "position": "フーチング天端",
+          "response": "最大応答回転角",
+          "limit": "30/1000rad"
+        }
+      ],
+      "omitted": "復旧性で性能レベル3を確保することにより、安全性の照査を省略する"
+    },
+    "restorability": {
+      "design_limits_table": {
+        "printed": "IV-95",
+        "pdf": "2of3",
+        "pdf_index": 250,
+        "table": "表4.4.2 復旧性（性能レベル3）の照査に用いる設計限界値",
+        "rows": [
+          {
+            "limit_state": "残留鉛直変位",
+            "position": "杭頭部",
+            "response": "設計鉛直力 Vd",
+            "limit": "設計鉛直支持力 Rvd（安定レベル1）"
+          },
+          {
+            "limit_state": "残留水平変位",
+            "position": "フーチング天端",
+            "response": "最大応答水平変位 δd",
+            "limit": "8%LA≦400mm"
+          },
+          {
+            "limit_state": "残留傾斜",
+            "position": "フーチング天端",
+            "response": "最大応答回転角 θd",
+            "limit": "20/1000rad"
+          }
+        ],
+        "text": "性能レベル3: 損傷レベル3・安定レベル2。周面支持杭のため残留鉛直変位は安定レベル1の値"
+      },
+      "residual_vertical": {
+        "printed": "IV-96",
+        "pdf": "2of3",
+        "pdf_index": 251,
+        "pages_also": [
+          {
+            "printed": "IV-95",
+            "pdf": "2of3",
+            "pdf_index": 250
+          }
+        ],
+        "Rk_kN": 9428.3,
+        "Rtk_kN": 1649.3,
+        "Rfk_kN": 7779.0,
+        "pt": 0.175,
+        "fr": 1.063,
+        "fr_figure": "図4.4.1",
+        "per": "杭1本分",
+        "Rvd_kN": 10022.3,
+        "Rvd_expr": "1.063×9428.3×1",
+        "check": {
+          "Vd_kN": 7513.6,
+          "ratio": 0.75,
+          "case": "L-L2-1",
+          "result": "O.K."
+        },
+        "note": "応答変位法に対する照査は記載省略"
+      },
+      "residual_horizontal": {
+        "printed": "IV-97",
+        "pdf": "2of3",
+        "pdf_index": 252,
+        "delta_Ld_mm": 196.0,
+        "delta_Ld_expr": "0.08×(√6×1000)",
+        "cap_mm": 400,
+        "check": {
+          "delta_d_mm": 43.3,
+          "ratio": 0.22,
+          "case": "L-L2-1",
+          "result": "O.K."
+        }
+      },
+      "residual_tilt": {
+        "printed": "IV-98",
+        "pdf": "2of3",
+        "pdf_index": 253,
+        "theta_Ld_rad": 0.02,
+        "check": {
+          "theta_d_rad": 0.0053,
+          "ratio": 0.27,
+          "case": "L-L2-1",
+          "result": "O.K."
+        }
+      },
+      "foundation_members": {
+        "printed": "IV-98",
+        "pdf": "2of3",
+        "pdf_index": 253,
+        "clause": "基礎標準 15.3.4.5",
+        "text": "4.3.3 により基礎構造が要求性能を満足することを確認したため照査を省略（4.3.3 は本文になく、4.3.2 の誤記と思われる）"
+      }
+    }
+  },
+  "omitted_checks_summary": [
+    {
+      "item": "使用性（損傷）4.1.2",
+      "page": "IV-79",
+      "reason": "4.1.1 で損傷L1・安定L1 を確認済み"
+    },
+    {
+      "item": "安全性（破壊）く体",
+      "page": "IV-86",
+      "reason": "復旧性で性能レベル3を確保するため"
+    },
+    {
+      "item": "く体のせん断（復旧性）",
+      "page": "IV-89",
+      "reason": "曲げ破壊形態のため"
+    },
+    {
+      "item": "鋼管杭の破壊形態の確認",
+      "page": "IV-90",
+      "reason": "最小肉厚の規定を満足"
+    },
+    {
+      "item": "結合部のせん断・破壊形態の確認",
+      "page": "IV-90, IV-93",
+      "reason": "一般的な設計条件と同等と判断（周面支持杭で厳密には一般条件外）"
+    },
+    {
+      "item": "安全性（破壊）杭体・結合部・フーチング",
+      "page": "IV-91",
+      "reason": "復旧性で性能レベル3を確保するため"
+    },
+    {
+      "item": "鋼管杭のせん断",
+      "page": "IV-93",
+      "reason": "問題とならないため"
+    },
+    {
+      "item": "基礎の安定 安全性（変位・変形の限界）",
+      "page": "IV-94",
+      "reason": "復旧性で性能レベル3を確保するため"
+    },
+    {
+      "item": "基礎部材等の損傷（復旧性）",
+      "page": "IV-98",
+      "reason": "4.3.3（4.3.2 の誤記か）で確認済み"
+    },
+    {
+      "item": "フーチングの照査",
+      "page": "IV-78, IV-92",
+      "reason": "第V編 2.フーチング（線路方向）で行う"
+    },
+    {
+      "item": "応答変位法に対する照査",
+      "page": "IV-77, IV-93, IV-96〜98",
+      "reason": "記載を省略"
+    }
+  ]
+}

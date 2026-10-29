@@ -3,9 +3,9 @@
   "stage": "0611",
   "input": {
     "file": "input.json",
-    "sha256": "e58422fae66a41727e9e0a5be7941c639c1cc7b0fad3903c774928b82f3c243a"
+    "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
   },
-  "implementation_sha256": "70891e9c8dd9c18d6e7216de20de186097c12126f87409fd2077f7a82ebf74d5",
+  "implementation_sha256": "a205244942e1ee46a47d59c16774cdf951b687f0038277dd92af85f7f56ce438",
   "result": {
     "direction": {
       "face": "線路",
@@ -256,7 +256,18 @@
       }
     ],
     "kr": 0.5,
-    "k4": 0.85
+    "k4": 0.85,
+    "headings": {
+      "section_forces": "8.5",
+      "bending_safety_destruction": "8.6",
+      "shear_safety_destruction": null,
+      "bending_durability": "8.7",
+      "shear_durability": null,
+      "bending_serviceability": "8.8",
+      "bending_restorability": "8.9",
+      "shear_restorability": null,
+      "bending_rebar_amount": "8.10"
+    }
   },
   "section_check": {
     "engine": "webdan2",
@@ -264,7 +275,7 @@
     "engineering_status": "not_evaluated",
     "wdj": {
       "file": "線路方向.wdj",
-      "sha256": "b57bda2d25e5182618b94c77f2e700e1450e3104bae718d40f7a53d0985db6e4"
+      "sha256": "cba531274fde97c0768a3b48b9946d204184200bfb009332e440adeb1ff94035"
     },
     "skipped_sections": []
   }

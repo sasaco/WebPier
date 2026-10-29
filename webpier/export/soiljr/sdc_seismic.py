@@ -7,7 +7,11 @@ pile surface and f) and g) what is at the tip. SOIL-JR 5.2 prints one table of d
 ones of 地震時); SOIL-JR 5.3 prints two (安定レベル1 and 安定レベル2・3, L1 and L2) and the model takes the last, the L2
 one. Both name the part of a layer that has the spring (⊿l).
 
-Only a layout that lists the pile rows (``N列目``, K_FLG = 1) is read: the rows of the model take their columns by number.
+A layout that lists the pile rows (``N列目``, K_FLG = 1) gives each row its column by number. A layout that does not (K_FLG 0,
+a regular grid or a staggered one, decision 122) has one column for every row (``全列``) or one for the odd rows and one for
+the even rows in b) and d)〜g), and in c) the pressures of the 1列目, the 2列目 and the rows after (``3列目以降``, or
+``3列目以降奇数列`` and ``4列目以降偶数列``) from the front of the push; it is read as a listed layout whose row *n* has the
+springs of its column and the pressures of its place, with no distances (the rows are not listed).
 
 The .sdc for the liquefaction (``<名前>(液状化時用).sdc``, decision 95) has the same tables, with 液状化時 where the
 short-term nonlinear one and 地震時 are (b) and the effective resistance earth pressure, d) and e), g)); ``liquefied``
@@ -18,7 +22,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ...calc.pile_springs import SeismicDirection, SeismicLayer, SeismicSprings, SeismicTip, SurfaceSide
+from ...calc.pile_springs import (
+    ALL, EVEN, ODD, SeismicDirection, SeismicLayer, SeismicSprings, SeismicTip, SurfaceSide,
+)
 from .sdc import (
     _DIRECTION, _ROW_COLUMN, ENCODING, SdcError, _arrangement, _columns, _header, _is_row, _numbers, _sections,
 )
@@ -94,9 +100,60 @@ def _direction(name: str, lines: list[str], tip: str) -> SeismicDirection:
             raise SdcError(f"{name}: {key}）がありません")
     rows, depth, inverse, listed = _arrangement(sections["a"])
     columns = _columns(sections["b"])
-    if not all(_ROW_COLUMN.match(column) for column in columns) or len(columns) != rows or len(listed) != rows:
-        raise SdcError(f"{name}: 杭の列を並べた配置（1列目、2列目、…）だけに対応します（{','.join(columns)}）")
+    if all(_ROW_COLUMN.match(column) for column in columns) and len(columns) == rows == len(listed):
+        return _listed(name, sections, rows, columns, inverse, listed, tip)
+    if columns not in ((ALL,), (ODD, EVEN)):
+        raise SdcError(f"{name}: 杭の列の配置（{','.join(columns)}）に対応していません")
+    places = _places(sections["c"], name)
+    direction = _listed(name, sections, rows, columns, inverse, (), tip, pressures=places)
+    by_row = [0 if columns == (ALL,) or row % 2 == 1 else 1 for row in range(1, rows + 1)]
+    place = _place_of(places, rows, name)
+
+    def spread(values: tuple[float, ...]) -> tuple[float, ...]:
+        return tuple(values[column] for column in by_row)
+
+    def side(found: SurfaceSide) -> SurfaceSide:
+        return SurfaceSide(length=found.length, first=spread(found.first), second=spread(found.second),
+                           yield_load=spread(found.yield_load), ultimate=spread(found.ultimate))
+
+    layers = tuple(SeismicLayer(number=layer.number, thickness=layer.thickness, horizontal=spread(layer.horizontal),
+                                pressure_upper=tuple(layer.pressure_upper[at] for at in place),
+                                pressure_lower=tuple(layer.pressure_lower[at] for at in place),
+                                push=side(layer.push), pull=side(layer.pull)) for layer in direction.layers)
+    t = direction.tip
+    return SeismicDirection(name=name, rows=rows, columns=tuple(f"{row}列目" for row in range(1, rows + 1)),
+                            depth_piles=tuple(depth[column] for column in by_row), inverse_beta=inverse, distances=(),
+                            layers=layers, tip=SeismicTip(first=spread(t.first), second=spread(t.second),
+                                                          yield_load=spread(t.yield_load), ultimate=spread(t.ultimate),
+                                                          horizontal=spread(t.horizontal), rotation=spread(t.rotation)))
+
+
+def _places(lines: list[str], name: str) -> tuple[str, ...]:
+    """The names of the columns of the first table of c) of a layout that does not list its rows."""
+    header = next((line for line in lines if line.startswith(",,") and "列目" in line), None)
+    if header is None:
+        raise SdcError(f"{name}: c）に列の見出しがありません")
+    return tuple(cell.strip() for cell in header.split(",") if cell.strip())
+
+
+def _place_of(places: tuple[str, ...], rows: int, name: str) -> list[int]:
+    """The column of c) of each row from the front: its own, or the one of the rows after the second (by parity when the odd
+    and the even rows have their own)."""
+    found = []
+    for row in range(1, rows + 1):
+        names = (f"{row}列目", "3列目以降", "3列目以降奇数列" if row % 2 == 1 else "4列目以降偶数列")
+        at = next((places.index(title) for title in names if title in places), None)
+        if at is None:
+            raise SdcError(f"{name}: c）に杭列 {row} の列がありません（{','.join(places)}）")
+        found.append(at)
+    return found
+
+
+def _listed(name: str, sections: dict[str, list[str]], rows: int, columns: tuple[str, ...], inverse: float,
+            listed: tuple, tip: str, pressures: tuple[str, ...] | None = None) -> SeismicDirection:
+    """The direction with the columns *columns* of b) and d)〜g); c) has the columns *pressures* (the same when None)."""
     count = len(columns)
+    pressure_count = count if pressures is None else len(pressures)
     piles = tuple(row.piles for row in listed)
     b_rows = _runs(sections["b"])
     c_rows = _runs(sections["c"])
@@ -110,7 +167,7 @@ def _direction(name: str, lines: list[str], tip: str) -> SeismicDirection:
     layers = []
     for index, h in enumerate(b_rows[0]):
         values, pressure = _numbers(h), _numbers(c_rows[0][index])
-        if len(values) != 2 + 3 * count or len(pressure) != 2 + 2 * count:
+        if len(values) != 2 + 3 * count or len(pressure) != 2 + 2 * pressure_count:
             raise SdcError(f"{name}: b）または c）の層 {h[0]} の項目数が違います")
         layers.append(SeismicLayer(
             number=int(values[0]), thickness=values[1], horizontal=values[2 + 2 * count:],

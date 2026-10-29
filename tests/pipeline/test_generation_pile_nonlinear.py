@@ -243,13 +243,16 @@ def test_0710_and_0720_of_a_layer_that_liquefies_need_no_index(tmp_path, items_)
     assert [name for name in tree(tmp_path / "post") if name.endswith("液状化.ndu") or name.endswith("液状化_逆向.ndu")]
 
 
-def test_a_steel_pile_foundation_does_not_make_0711_or_0721():
+def test_a_steel_pile_foundation_may_choose_0711_and_0721_but_not_the_footing_yet():
+    """Decision 122: P10a makes 0710〜0721 of a 鋼管ソイルセメント杭; its footing (0800〜0820) is P10c."""
     for items_ in (LONGITUDINAL, TRANSVERSE):
         data = deepcopy(PILE)
         data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
         data["outputs"] = {key: key in items_ for key in data["outputs"]}
-        with pytest.raises(InputError, match="鋼管ソイルセメント杭は未対応です"):
-            parse_input(data)
+        assert parse_input(data).outputs
+    data["outputs"]["footing"] = True
+    with pytest.raises(InputError, match="outputs.footing: 鋼管ソイルセメント杭は未対応です"):
+        parse_input(data)
 
 
 def test_the_input_chooses_the_limits_it_was_given_not_those_of_a_direct_foundation(longitudinal):

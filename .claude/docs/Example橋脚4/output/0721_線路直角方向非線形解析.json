@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "stage": "0721",
+  "input": {
+    "file": "input.json",
+    "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
+  },
+  "implementation_sha256": "a205244942e1ee46a47d59c16774cdf951b687f0038277dd92af85f7f56ce438",
+  "result": {
+    "minimum": null,
+    "response": {
+      "inertia": {
+        "case": 1,
+        "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+        "teq": 1.031,
+        "kheq": 0.575,
+        "kh_l1": 0.378,
+        "kh_l2": 0.695
+      },
+      "corrections": [
+        {
+          "level": "L1",
+          "teq": 1.031,
+          "tg": 0.5364,
+          "alpha_g": 0.7,
+          "alpha": 1.345,
+          "upper": 0.3,
+          "lower": -0.7,
+          "kh": 0.378,
+          "kheq": 0.575,
+          "yielded": false
+        },
+        {
+          "level": "L2",
+          "teq": 1.031,
+          "tg": 0.5364,
+          "alpha_g": 0.5,
+          "alpha": 0.961,
+          "upper": 0.58,
+          "lower": -0.42,
+          "kh": 0.695,
+          "kheq": 0.575,
+          "yielded": true
+        }
+      ],
+      "cases": [
+        {
+          "level": "L1",
+          "number": 1,
+          "inertia": 1.0,
+          "displacement": 0.3,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 2,
+          "inertia": 1.0,
+          "displacement": -0.7,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 3,
+          "inertia": 0.3,
+          "displacement": 1.0,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 4,
+          "inertia": -0.7,
+          "displacement": 1.0,
+          "kh": 0.378
+        },
+        {
+          "level": "L2",
+          "number": 1,
+          "inertia": 1.0,
+          "displacement": 1.0,
+          "kh": 0.695
+        },
+        {
+          "level": "L2",
+          "number": 2,
+          "inertia": 1.0,
+          "displacement": -0.42,
+          "kh": 0.695
+        },
+        {
+          "level": "L2",
+          "number": 4,
+          "inertia": -0.42,
+          "displacement": 1.0,
+          "kh": 0.695
+        }
+      ],
+      "first_case": 9
+    }
+  },
+  "seismic_check": {
+    "engine": "aggrese",
+    "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
+    "engineering_status": "not_evaluated",
+    "cases": [
+      {
+        "caseNumber": 1,
+        "name": "線路直角方向(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 2,
+        "name": "線路直角方向(Case2_ρm12_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 3,
+        "name": "線路直角方向(Case3_ρm10_αf2_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 4,
+        "name": "線路直角方向(Case4_ρm12_αf2_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 5,
+        "name": "線路直角方向_逆向(Case1_ρm10_αf1_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 6,
+        "name": "線路直角方向_逆向(Case2_ρm12_αf1_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 7,
+        "name": "線路直角方向_逆向(Case3_ρm10_αf2_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 8,
+        "name": "線路直角方向_逆向(Case4_ρm12_αf2_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 9,
+        "name": "線路直角方向_応答変位法_L1-1(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 10,
+        "name": "線路直角方向_応答変位法_L1-2(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 11,
+        "name": "線路直角方向_応答変位法_L1-3(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 12,
+        "name": "線路直角方向_応答変位法_L1-4(Case1_ρm10_αf1_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 13,
+        "name": "線路直角方向_応答変位法_L2-1(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 14,
+        "name": "線路直角方向_応答変位法_L2-2(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 15,
+        "name": "線路直角方向_応答変位法_L2-4(Case1_ρm10_αf1_逆向)",
+        "aggregated": true
+      }
+    ],
+    "project": {
+      "file": "線路直角方向.xml",
+      "sha256": "663746e1a986fb6213def483566e629a03024ba721c22aea259eea5162d32027"
+    },
+    "jrsnap": {
+      "file": "線路直角方向_JRSNAP",
+      "sha256": "b4349d99c31f1a733ec18703e05b242153160184b781c7e959ee499c7c4d27b9"
+    },
+    "limits": {
+      "stage": "0500",
+      "kind": "sdr",
+      "sha256": "671b63846788fac62a27cd2c24cfdedfccb8f190d4c8f6615fc0e9bc466a0152",
+      "direction": "transverse"
+    },
+    "files": {
+      "pik": {
+        "file": "線路直角方向_Aggre-SE.pik",
+        "sha256": "c6f46b4ef49b7dd5bd831481dbbc47bd7dd03529391cce7be4a2dc929447957a"
+      },
+      "xlsx": {
+        "file": "線路直角方向_Aggre-SE.xlsx",
+        "sha256": "c3a51c66e99ff925273de09c34b681e78a42ada46763f96ffd53b0a8652d96cb"
+      }
+    }
+  }
+}

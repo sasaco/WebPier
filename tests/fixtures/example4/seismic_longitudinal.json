@@ -1,0 +1,1892 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_2of3.pdf",
+    "page_mapping": "2of3 の 0 始まりの index k が印刷頁 IV-(k-155)",
+    "method": "スキャン画像を目視で転記（110 dpi の全頁と 200〜400 dpi の切り出し）。OCR 下書きは数値に使っていない。WebPier の実装・生成物は見ていない",
+    "units": "kN, kN·m, kN/m, mm, m, rad, 1/m, sec。数値は印字の桁のまま。符号は印字どおり",
+    "range": "第IV編 3 線路方向の応答値の算定（IV-27〜IV-72、index 182〜227）",
+    "notes": "seismic_longitudinal_notes.md"
+  },
+  "flow": {
+    "printed": "IV-27",
+    "pdf": "2of3",
+    "pdf_index": 182,
+    "figure": "図3.1 静的解析法による耐震設計フロー・図3.2 応答変位法による応答値算定フロー（IV-28）",
+    "summary": "上部構造の主要部材より基礎の降伏震度が小さい場合は地盤抵抗を割り増したモデル（αf）を追加。G0〜G2 以外の地盤の深い基礎は応答変位法で地盤変位を考慮"
+  },
+  "actions": {
+    "train_load_LE": {
+      "printed": "IV-29",
+      "pdf": "2of3",
+      "pdf_index": 184,
+      "items": [
+        {
+          "name": "WL1",
+          "expr": "35.0×8.00×1/2",
+          "kN": 140.0
+        },
+        {
+          "name": "WL2",
+          "expr": "35.0×25.00×1/2",
+          "kN": 437.5
+        }
+      ],
+      "total_kN": 577.5
+    },
+    "pier_inertia_Kh1": {
+      "printed": "IV-29",
+      "pdf": "2of3",
+      "pdf_index": 184,
+      "Kh": 1.0,
+      "items": [
+        {
+          "name": "h1",
+          "expr": "1.00×2.50×3.50×24.5",
+          "kN_per_m": 214.4
+        },
+        {
+          "name": "h2",
+          "expr": "1.00×2.50×7.70×24.5",
+          "kN_per_m": 471.6
+        },
+        {
+          "name": "H1",
+          "expr": "1.00×123.20×(24.5-17.0)",
+          "kN": 924.0
+        }
+      ]
+    },
+    "bearing_L2_damage_level2": {
+      "printed": "IV-30",
+      "pdf": "2of3",
+      "pdf_index": 185,
+      "bearing": "ゴム支承",
+      "items": [
+        {
+          "name": "H2",
+          "side": "起点側桁",
+          "expr": "1.00×1/2×(2180.0+2180.0)",
+          "kN": 2180.0
+        },
+        {
+          "name": "H3",
+          "side": "終点側桁",
+          "expr": "1.00×1.00×(5300.0+5300.0)",
+          "kN": 10600.0
+        }
+      ],
+      "EQD2_total_kN": 12780.0
+    },
+    "bearing_L1_damage_level1": {
+      "printed": "IV-31",
+      "pdf": "2of3",
+      "pdf_index": 186,
+      "mu_mi": 0.1,
+      "n_supports": 2,
+      "items": [
+        {
+          "name": "H6",
+          "side": "起点側桁（可動）",
+          "expr": "0.1×1.00×2180.0",
+          "kN": 218.0,
+          "upper_Td_n": 2180.0,
+          "lower_0.1Td_n": 218.0,
+          "adopted_kN": 218.0
+        },
+        {
+          "name": "H7",
+          "side": "終点側桁（固定）",
+          "expr": "1.00×(5300.0+5300.0) - 1/2×0.1×5300.0",
+          "kN": 10335.0,
+          "Td_n": 5300.0,
+          "adopted_kN_as_printed": 10553.0
+        }
+      ],
+      "caution": "H7 の採用値 10553.0 は 10335.0+218.0。荷重図 EQD1 も 10553.0（notes）"
+    },
+    "train_inertia": {
+      "printed": "IV-32",
+      "pdf": "2of3",
+      "pdf_index": 187,
+      "Kh": 0.2,
+      "items": [
+        {
+          "name": "H10",
+          "expr": "0.20×1/2×(140.0+140.0)",
+          "kN": 28.0
+        },
+        {
+          "name": "H11",
+          "expr": "0.20×1.00×(437.5+437.5)",
+          "kN": 175.0
+        }
+      ]
+    },
+    "load_diagram": {
+      "printed": "IV-33",
+      "pdf": "2of3",
+      "pdf_index": 188,
+      "figure": "荷重図",
+      "EQD2_kN": 12780.0,
+      "EQD1_kN": 10553.0,
+      "LE_kN": 577.5,
+      "EQL_kN": 203.0,
+      "pier_inertia_kN_per_m": [
+        471.6,
+        214.4
+      ],
+      "footing_inertia_kN": 924.0,
+      "dims_mm": [
+        1500,
+        500,
+        7200,
+        1100
+      ]
+    }
+  },
+  "combinations": {
+    "printed": "IV-34",
+    "pdf": "2of3",
+    "pdf_index": 189,
+    "section": "3.3 設計作用の組合せ【耐震標準 5.4】",
+    "items": [
+      "① D1 + D2 + WP1 + LE + EQD + EQL（破壊形態の推定・非線形スペクトル法）",
+      "② D1 + D2 + WP1 + LE + EQD + EQL + EQG（応答変位法）"
+    ],
+    "analysis": {
+      "program": "JR-SNAP ver.5.1-L09 (2021/1)",
+      "pushover": "変位増分法、上部工慣性力作用位置の水平変位 1.00mm/step を目安",
+      "response_displacement": "荷重増分法、Kh=1.0 の荷重を1000分割して最大応答震度まで"
+    }
+  },
+  "cases_table_3_4_1": {
+    "printed": "IV-35",
+    "pdf": "2of3",
+    "pdf_index": 190,
+    "table": "表3.4.1 検討ケース",
+    "rows": [
+      {
+        "ground_motion": "L1",
+        "method": "慣性力設計",
+        "bearing_damage": "損傷レベル1",
+        "alpha_f": 1,
+        "rho_m": 1.0,
+        "case": "L-L1",
+        "remark": "応答値算定用"
+      },
+      {
+        "ground_motion": "L1",
+        "method": "応答変位法",
+        "bearing_damage": "損傷レベル1",
+        "alpha_f": 1,
+        "rho_m": 1.0,
+        "case": "※（記載省略）",
+        "remark": "応答値算定用"
+      },
+      {
+        "ground_motion": "L2",
+        "method": "慣性力設計",
+        "bearing_damage": "損傷レベル2",
+        "alpha_f": 1,
+        "rho_m": 1.0,
+        "case": "L-L2-1",
+        "remark": "応答値算定用"
+      },
+      {
+        "ground_motion": "L2",
+        "method": "慣性力設計",
+        "bearing_damage": "損傷レベル2",
+        "alpha_f": 1,
+        "rho_m": 1.2,
+        "case": "L-L2-2",
+        "remark": "破壊形態確認用"
+      },
+      {
+        "ground_motion": "L2",
+        "method": "応答変位法",
+        "bearing_damage": "損傷レベル2",
+        "alpha_f": 1,
+        "rho_m": 1.0,
+        "case": "※（記載省略）",
+        "remark": "応答値算定用"
+      }
+    ],
+    "note": "上部先行降伏のため αf=1 のみ。ρm=1.0 と 1.2"
+  },
+  "pushover_events": {
+    "table_3_5_1_L-L1": {
+      "printed": "IV-36",
+      "pdf": "2of3",
+      "pdf_index": 191,
+      "table": "表3.5.1（L-L1）",
+      "displacement_node": 1,
+      "rows": [
+        {
+          "Kh": 0.465,
+          "dx_mm": 128.0,
+          "state": "2-2（く体降伏Y点）"
+        },
+        {
+          "Kh": 0.503,
+          "dx_mm": 140.0,
+          "state": "2-Yb"
+        },
+        {
+          "Kh": 0.507,
+          "dx_mm": 545.0,
+          "state": "2-3（M点）"
+        },
+        {
+          "Kh": 0.469,
+          "dx_mm": 595.0,
+          "state": "2-4（N点）"
+        }
+      ]
+    },
+    "table_3_5_1_L-L2-1": {
+      "printed": "IV-37",
+      "pdf": "2of3",
+      "pdf_index": 192,
+      "table": "表3.5.1（L-L2-1）",
+      "rows": [
+        {
+          "Kh": 0.392,
+          "dx_mm": 127.0,
+          "state": "2-2"
+        },
+        {
+          "Kh": 0.424,
+          "dx_mm": 139.0,
+          "state": "2-Yb"
+        },
+        {
+          "Kh": 0.427,
+          "dx_mm": 544.0,
+          "state": "2-3"
+        },
+        {
+          "Kh": 0.395,
+          "dx_mm": 594.0,
+          "state": "2-4"
+        }
+      ]
+    },
+    "table_3_5_2_L-L2-2": {
+      "printed": "IV-38",
+      "pdf": "2of3",
+      "pdf_index": 193,
+      "table": "表3.5.2（L-L2-2、αf=1、ρm=1.2）",
+      "rows": [
+        {
+          "Kh": 0.456,
+          "dx_mm": 153.0,
+          "state": "2-2"
+        },
+        {
+          "Kh": 0.466,
+          "dx_mm": 157.0,
+          "state": "0-2（水平変位安定レベル2）"
+        },
+        {
+          "Kh": 0.491,
+          "dx_mm": 168.0,
+          "state": "2-Yb"
+        },
+        {
+          "Kh": 0.494,
+          "dx_mm": 575.0,
+          "state": "2-3"
+        },
+        {
+          "Kh": 0.46,
+          "dx_mm": 620.0,
+          "state": "2-4"
+        }
+      ]
+    },
+    "table_3_7_2_L-L2-1": {
+      "printed": "IV-61",
+      "pdf": "2of3",
+      "pdf_index": 216,
+      "table": "表3.7.2 水平震度〜天端変位関係 発生イベント（L-L2-1）",
+      "rows": [
+        {
+          "Kh": 0.393,
+          "dx_mm": 127.2,
+          "state": "2-2（く体降伏Y点）"
+        },
+        {
+          "Kh": 0.424,
+          "dx_mm": 139.2,
+          "state": "2-Yb（く体Yb点）"
+        },
+        {
+          "Kh": 0.428,
+          "dx_mm": 543.2,
+          "state": "2-3（く体M点）"
+        },
+        {
+          "Kh": 0.412,
+          "dx_mm": 567.5,
+          "state": "μ×δeq（L2応答変位）"
+        },
+        {
+          "Kh": 0.395,
+          "dx_mm": 742.0,
+          "state": "2-4（く体N点）"
+        }
+      ],
+      "caution": "表3.5.1 の 2-4 は 594.0、表3.7.2 は 742.0（印字どおり）"
+    },
+    "table_3_7_3_L-L2-2": {
+      "printed": "IV-62",
+      "pdf": "2of3",
+      "pdf_index": 217,
+      "table": "表3.7.3 水平震度〜天端変位関係 発生イベント（L-L2-2）",
+      "rows": [
+        {
+          "Kh": 0.456,
+          "dx_mm": 152.8,
+          "state": "2-2（く体降伏Y点）"
+        },
+        {
+          "Kh": 0.468,
+          "dx_mm": 157.6,
+          "state": "0-2（水平変位安定レベル2）"
+        },
+        {
+          "Kh": 0.491,
+          "dx_mm": 167.2,
+          "state": "2-Yb"
+        },
+        {
+          "Kh": 0.495,
+          "dx_mm": 574.4,
+          "state": "2-3（く体M点）"
+        },
+        {
+          "Kh": 0.461,
+          "dx_mm": 619.2,
+          "state": "2-4（く体N点）"
+        }
+      ]
+    },
+    "figure_3_7_3_L-L2-1": {
+      "printed": "IV-61",
+      "pdf": "2of3",
+      "pdf_index": 216,
+      "figure": "図3.7.3（αf=1、ρm=1.0、支承の損傷レベル2）",
+      "Teq_sec": 1.138,
+      "mu": 4.27,
+      "region_factor": 1.0,
+      "source_area": "不明",
+      "kh_response": 0.412,
+      "kheq": 0.41,
+      "khy_initial": 0.393,
+      "khL1": 0.378,
+      "delta_y_mm": 127.2,
+      "delta_eq_mm": 132.9,
+      "delta_m_mm": 543.2,
+      "mu_delta_eq_mm": 567.5,
+      "ground": "G4",
+      "leading_yield": "上部構造(RC・SRC系)",
+      "note": "基礎降伏せず"
+    },
+    "figure_3_7_4_L-L2-2": {
+      "printed": "IV-62",
+      "pdf": "2of3",
+      "pdf_index": 217,
+      "figure": "図3.7.4（αf=1、ρm=1.2、支承の損傷レベル2）",
+      "labels": [
+        "2-2・2-Yb・□F2-1 付近 Kh≒0.46",
+        "水平変位安定レベル2",
+        "2-3（く体 M）",
+        "2-4（く体 N）"
+      ]
+    }
+  },
+  "member_checks_L-L1": {
+    "pier_table_3_5_3": {
+      "printed": "IV-39",
+      "pdf": "2of3",
+      "pdf_index": 194,
+      "table": "表3.5.3（L-L1）く体",
+      "Kh": 0.465,
+      "theta_d": 0.004729,
+      "theta_rd_level1": 0.004709,
+      "gamma_i": 1.0,
+      "ratio": 1.004,
+      "judgement": "降伏点到達",
+      "Khy": 0.465
+    },
+    "foundation_capacity": {
+      "printed": "IV-40",
+      "pdf": "2of3",
+      "pdf_index": 195,
+      "gamma_i": 1.0,
+      "Rk_kN": 9428.3,
+      "Rtk_kN": 1649.3,
+      "Rfk_push_kN": 7779.0,
+      "Rfk_pull_kN": 8262.8,
+      "Wp_kN": 16.2,
+      "pt": 0.175
+    },
+    "vertical": {
+      "printed": "IV-41",
+      "pdf": "2of3",
+      "pdf_index": 196,
+      "fr": 1.063,
+      "fr_source": "図3.5.3 鋼管ソイルセメント杭工法",
+      "Rvd_kN": 10022.3,
+      "Rvd_expr": "1.063×9428.3×1",
+      "Rud_kN": 8940.0,
+      "Rud_expr": "1.080×8262.8×1+16.2×1",
+      "Kh": 0.507,
+      "push": {
+        "Vd": 7548.1,
+        "limit": 10022.3,
+        "ratio": 0.753,
+        "judgement": "降伏せず"
+      },
+      "pull": {
+        "Vd": 2907.7,
+        "limit": 8940.0,
+        "ratio": 0.325,
+        "judgement": "降伏せず"
+      }
+    },
+    "residual": {
+      "printed": "IV-42",
+      "pdf": "2of3",
+      "pdf_index": 197,
+      "delta_Ld_mm": 49.0,
+      "delta_Ld_expr": "0.02×(√6×1000)",
+      "horizontal": {
+        "delta_d_mm": 44.2,
+        "limit_mm": 49.0,
+        "ratio": 0.903,
+        "judgement": "降伏せず"
+      },
+      "tilt": {
+        "theta_d": 0.0054,
+        "theta_Ld": 0.01,
+        "ratio": 0.535,
+        "judgement": "降伏せず"
+      }
+    },
+    "joint_table_3_5_4": {
+      "printed": "IV-43",
+      "pdf": "2of3",
+      "pdf_index": 198,
+      "table": "表3.5.4（L-L1）結合部",
+      "rows": [
+        {
+          "member": "結合部",
+          "case": "L-L1",
+          "element": 7,
+          "Kh": 0.507,
+          "response": 0.002016,
+          "limit_damage_level1": 0.002223,
+          "gamma_i": 1.0,
+          "ratio": 0.91,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "結合部",
+          "case": "L-L1",
+          "element": 45,
+          "Kh": 0.503,
+          "response": 0.001517,
+          "limit_damage_level1": 0.001514,
+          "gamma_i": 1.0,
+          "ratio": 1.0,
+          "judgement": "降伏点到達",
+          "Khy": 0.503
+        }
+      ]
+    },
+    "pile_table_3_5_5": {
+      "printed": "IV-43",
+      "pdf": "2of3",
+      "pdf_index": 198,
+      "table": "表3.5.5（L-L1）鋼管杭",
+      "response_unit": "φd (1/m)",
+      "rows": [
+        {
+          "member": "鋼管杭",
+          "case": "L-L1",
+          "element": 12,
+          "Kh": 0.507,
+          "response": 0.001523,
+          "limit_damage_level1": 0.002885,
+          "gamma_i": 1.0,
+          "ratio": 0.53,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "鋼管杭",
+          "case": "L-L1",
+          "element": 46,
+          "Kh": 0.508,
+          "response": 0.001568,
+          "limit_damage_level1": 0.005137,
+          "gamma_i": 1.0,
+          "ratio": 0.31,
+          "judgement": "降伏せず",
+          "Khy": null
+        }
+      ],
+      "caution": "gamma_i は表の行から読めた値ではなく他表と同じ 1.0 と推定（notes）"
+    }
+  },
+  "member_checks_L-L2-1": {
+    "pier_table_3_5_3": {
+      "printed": "IV-44",
+      "pdf": "2of3",
+      "pdf_index": 199,
+      "table": "表3.5.3（L-L2-1）く体 復旧性（損傷）",
+      "Kh": 0.392,
+      "theta_d": 0.00473,
+      "theta_rd_level1": 0.004709,
+      "gamma_i": 1.0,
+      "ratio": 1.005,
+      "judgement": "降伏点到達",
+      "Khy": 0.392
+    },
+    "vertical": {
+      "printed": "IV-46",
+      "pdf": "2of3",
+      "pdf_index": 201,
+      "Kh": 0.427,
+      "push": {
+        "Vd": 7513.6,
+        "limit": 10022.3,
+        "ratio": 0.75
+      },
+      "pull": {
+        "Vd": 2873.2,
+        "limit": 8940.0,
+        "ratio": 0.321
+      }
+    },
+    "residual": {
+      "printed": "IV-47",
+      "pdf": "2of3",
+      "pdf_index": 202,
+      "horizontal": {
+        "delta_d_mm": 43.3,
+        "limit_mm": 49.0,
+        "ratio": 0.884
+      },
+      "tilt": {
+        "theta_d": 0.0053,
+        "theta_Ld": 0.01,
+        "ratio": 0.532
+      }
+    },
+    "joint_table_3_5_4": {
+      "printed": "IV-48",
+      "pdf": "2of3",
+      "pdf_index": 203,
+      "rows": [
+        {
+          "member": "結合部",
+          "case": "L-L2-1",
+          "element": 7,
+          "Kh": 0.427,
+          "response": 0.001911,
+          "limit_damage_level1": 0.002236,
+          "gamma_i": 1.0,
+          "ratio": 0.85,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "結合部",
+          "case": "L-L2-1",
+          "element": 45,
+          "Kh": 0.427,
+          "response": 0.001489,
+          "limit_damage_level1": 0.005124,
+          "gamma_i": 1.0,
+          "ratio": 0.29,
+          "judgement": "降伏せず",
+          "Khy": null
+        }
+      ]
+    },
+    "pile_table_3_5_5": {
+      "printed": "IV-48",
+      "pdf": "2of3",
+      "pdf_index": 203,
+      "response_unit": "φd (1/m)",
+      "rows": [
+        {
+          "member": "鋼管杭",
+          "case": "L-L2-1",
+          "element": 12,
+          "Kh": 0.427,
+          "response": 0.001486,
+          "limit_damage_level1": 0.002895,
+          "gamma_i": 1.0,
+          "ratio": 0.51,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "鋼管杭",
+          "case": "L-L2-1",
+          "element": 46,
+          "Kh": 0.427,
+          "response": 0.001466,
+          "limit_damage_level1": 0.0015,
+          "gamma_i": 1.0,
+          "ratio": 0.98,
+          "judgement": "降伏せず",
+          "Khy": null
+        }
+      ]
+    },
+    "caution": "IV-45〜48 の Rk 等は L-L1 と同じ値が印字。L-L2-1 の結合部 45 と鋼管杭 46 の制限値は L-L1 と入れ替わったように見える（notes）"
+  },
+  "member_checks_L-L2-2": {
+    "pier_table_3_5_7": {
+      "printed": "IV-49",
+      "pdf": "2of3",
+      "pdf_index": 204,
+      "table": "表3.5.7（L-L2-2）安全性（破壊形態の確認）",
+      "Kh": 0.456,
+      "theta_d": 0.005782,
+      "theta_rd_level1": 0.00577,
+      "gamma_i": 1.0,
+      "ratio": 1.002,
+      "judgement": "降伏点到達",
+      "Khy": 0.456
+    },
+    "vertical": {
+      "printed": "IV-49",
+      "pdf": "2of3",
+      "pdf_index": 204,
+      "Kh": 0.494,
+      "push": {
+        "Vd": 8334.1,
+        "limit": 10022.3,
+        "ratio": 0.83
+      },
+      "pull": {
+        "Vd": 3693.8,
+        "limit": 8940.0,
+        "ratio": 0.41
+      }
+    },
+    "residual_horizontal": {
+      "printed": "IV-49",
+      "pdf": "2of3",
+      "pdf_index": 204,
+      "Kh": 0.469,
+      "delta_d_mm": 49.4,
+      "limit_mm": 49.0,
+      "ratio": 1.008,
+      "judgement": "降伏点超過"
+    },
+    "residual_tilt": {
+      "printed": "IV-50",
+      "pdf": "2of3",
+      "pdf_index": 205,
+      "Kh": 0.494,
+      "theta_d": 0.0062,
+      "theta_L": 0.01,
+      "ratio": 0.62,
+      "judgement": "降伏せず"
+    },
+    "joint_table_5_5_7_as_printed": {
+      "printed": "IV-50",
+      "pdf": "2of3",
+      "pdf_index": 205,
+      "table": "表5.5.7 杭とフーチングの結合部の損傷レベルの確認（L-L2-2）（表番号は印字どおり）",
+      "rows": [
+        {
+          "member": "結合部",
+          "case": "L-L2-2",
+          "element": 7,
+          "Kh": 0.494,
+          "response": 0.002711,
+          "limit_damage_level1": 0.002866,
+          "gamma_i": 1.0,
+          "ratio": 0.95,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "結合部",
+          "case": "L-L2-2",
+          "element": 45,
+          "Kh": 0.494,
+          "response": 0.002188,
+          "limit_damage_level1": 0.006709,
+          "gamma_i": 1.0,
+          "ratio": 0.33,
+          "judgement": "降伏せず",
+          "Khy": null
+        }
+      ]
+    },
+    "pile_table_5_5_8_as_printed": {
+      "printed": "IV-50",
+      "pdf": "2of3",
+      "pdf_index": 205,
+      "table": "表5.5.8 鋼管杭の損傷レベルの確認（L-L2-2）",
+      "response_unit": "φd (1/m)",
+      "rows": [
+        {
+          "member": "鋼管杭",
+          "case": "L-L2-2",
+          "element": 12,
+          "Kh": 0.494,
+          "response": 0.00185,
+          "limit_damage_level1": 0.003399,
+          "gamma_i": 1.0,
+          "ratio": 0.54,
+          "judgement": "降伏せず",
+          "Khy": null
+        },
+        {
+          "member": "鋼管杭",
+          "case": "L-L2-2",
+          "element": 46,
+          "Kh": 0.494,
+          "response": 0.001825,
+          "limit_damage_level1": 0.002005,
+          "gamma_i": 1.0,
+          "ratio": 0.91,
+          "judgement": "降伏せず",
+          "Khy": null
+        }
+      ]
+    },
+    "footnote": "※ 支承の損傷レベル2を許容する場合の水平震度〜天端変位関係における震度"
+  },
+  "leading_yield_table_3_5_9": {
+    "printed": "IV-51",
+    "pdf": "2of3",
+    "pdf_index": 206,
+    "table": "表3.5.9 降伏震度と先行降伏部位",
+    "rows": [
+      {
+        "case": "L-L1",
+        "pier_damage_Khy": 0.465,
+        "residual_vertical": "降伏せず",
+        "residual_horizontal": "降伏せず",
+        "residual_tilt": "降伏せず",
+        "foundation_member_Khy": 0.503,
+        "Khe": null,
+        "delta_eq_mm": null,
+        "leading_yield": "く体"
+      },
+      {
+        "case": "L-L2-1",
+        "pier_damage_Khy": 0.392,
+        "residual_vertical": "降伏せず",
+        "residual_horizontal": "降伏せず",
+        "residual_tilt": "降伏せず",
+        "foundation_member_Khy": "降伏せず",
+        "Khe": 0.41,
+        "Khe_parenthesized": 0.48,
+        "delta_eq_mm": 132.9,
+        "leading_yield": "く体"
+      },
+      {
+        "case": "L-L2-2",
+        "pier_damage_Khy": 0.456,
+        "residual_vertical": "降伏せず",
+        "residual_horizontal_Khy": 0.469,
+        "residual_tilt": "降伏せず",
+        "foundation_member_Khy": "降伏せず",
+        "Khe": null,
+        "delta_eq_mm": null,
+        "leading_yield": "く体"
+      }
+    ],
+    "footnotes": [
+      "※1 構造物全体の降伏震度・降伏変位は 3.6.2(4) 荷重〜変位曲線を参照",
+      "※2 フーチングの損傷は第V編 2.3 を参照"
+    ]
+  },
+  "section_forces_failure_mode_L-L2-2_M": {
+    "printed": "IV-52",
+    "pdf": "2of3",
+    "pdf_index": 207,
+    "title": "(4) 破壊形態の確認用の断面力 ① L1-2（印字どおり。L-L2-2 と推定）αf=1.0、ρm=1.2 最大震度点（M点）",
+    "Khmax": 0.495,
+    "delta_m_mm": 574.4,
+    "moment_kNm": {
+      "left_pile_top_to_bottom": [
+        -7321.08,
+        -2900.71,
+        -88.27,
+        1884.84,
+        3011.42,
+        3480.1,
+        3534.32,
+        3313.88,
+        2853.57,
+        2294.45,
+        1730.87,
+        1219.4,
+        787.96,
+        444.19,
+        182.5,
+        43.55,
+        -68.04,
+        -173.21,
+        -210.2,
+        -226.12,
+        -205.44,
+        -151.24,
+        -94.02,
+        -47.98,
+        -17.0,
+        0.49,
+        8.16,
+        9.77,
+        8.35,
+        5.9,
+        3.53,
+        1.75,
+        0.64,
+        0.1,
+        -0.03,
+        -0.05,
+        -0.02,
+        0.0
+      ],
+      "right_pile_top_to_bottom": [
+        -8074.68,
+        -3486.01,
+        -551.47,
+        1543.27,
+        2782.94,
+        3344.6,
+        3450.4,
+        3288.37,
+        2865.92,
+        2328.51,
+        1774.75,
+        1264.94,
+        830.03,
+        479.94,
+        210.69,
+        66.38,
+        -50.46,
+        -162.62,
+        -203.92,
+        -223.6,
+        -206.39,
+        -153.53,
+        -96.4,
+        -49.88,
+        -18.27,
+        -0.22,
+        7.85,
+        9.71,
+        8.41,
+        6.0,
+        3.63,
+        1.82,
+        0.69,
+        0.13,
+        -0.02,
+        -0.04,
+        -0.02,
+        0.0
+      ]
+    },
+    "shear_kN": {
+      "left_pile_top_to_bottom": [
+        4018.53,
+        4018.53,
+        3001.47,
+        1920.2,
+        948.27,
+        268.22,
+        -50.33,
+        -460.23,
+        -661.31,
+        -717.02,
+        -680.34,
+        -592.7,
+        -484.45,
+        -376.26,
+        -280.79,
+        -226.1,
+        -181.33,
+        -88.07,
+        -43.41,
+        -14.32,
+        55.22,
+        74.04,
+        66.19,
+        48.2,
+        29.64,
+        14.89,
+        5.08,
+        -0.4,
+        -2.74,
+        -3.17,
+        -2.64,
+        -1.8,
+        -0.99,
+        -0.39,
+        -0.12,
+        0.03,
+        0.06,
+        0.0
+      ],
+      "right_pile_top_to_bottom": [
+        4171.51,
+        4171.51,
+        3153.76,
+        2071.99,
+        1077.21,
+        371.88,
+        37.28,
+        -400.97,
+        -625.0,
+        -698.15,
+        -673.87,
+        -594.39,
+        -490.98,
+        -385.2,
+        -290.53,
+        -235.8,
+        -190.71,
+        -96.09,
+        -50.41,
+        -20.4,
+        52.42,
+        73.31,
+        66.54,
+        48.96,
+        30.41,
+        15.5,
+        5.48,
+        -0.18,
+        -2.65,
+        -3.15,
+        -2.66,
+        -1.83,
+        -1.03,
+        -0.41,
+        -0.14,
+        0.02,
+        0.05,
+        0.0
+      ]
+    },
+    "pier_and_footing": {
+      "pier_top_shear_kN": 6534.54,
+      "pier_shear_lower_kN": 7732.66,
+      "pier_axial_kN": -8057.5,
+      "footing_axial_label_kN": 10477.23,
+      "pile_axial_top_left_kN": 11096.88,
+      "pile_axial_top_right_kN": -25017.91,
+      "pile_axial_bottom_left_kN": 120.47,
+      "pile_axial_bottom_right_kN": -3842.78,
+      "pile_head_shear_vertical_labels_kN": [
+        -11588.88,
+        -12818.78,
+        -21296.01,
+        -26525.91
+      ],
+      "moment_labels_kNm_low_confidence": [
+        0.0,
+        7075.08,
+        -23434.49,
+        56385.28,
+        74891.2,
+        -8320.68
+      ]
+    },
+    "same_as": "IV-65 の図（L-L2-2 最大震度点）と同じ数値",
+    "caution": "杭の値は上（杭頭）から下へ 38 点。軸力の中間値は重なって読めない"
+  },
+  "L1_response": {
+    "spectrum": {
+      "printed": "IV-53",
+      "pdf": "2of3",
+      "pdf_index": 208,
+      "figure": "図3.6.1 L1地震動の弾性加速度応答スペクトル",
+      "ground": "G4",
+      "damping": 0.05,
+      "Teq_formula": "Teq = 2.0π√(Weq/g/Keq) ≒ 2.0√(δeq/kheq)",
+      "g": 9.8
+    },
+    "table_3_6_1": {
+      "printed": "IV-54",
+      "pdf": "2of3",
+      "pdf_index": 209,
+      "table": "表3.6.1 応答値の算定結果（L1地震動）",
+      "case": "L1-1",
+      "Kheq": 0.486,
+      "delta_eq_m": 0.1339,
+      "Teq_prime_sec": 1.05,
+      "L1_seismic_coefficient": 0.378,
+      "L1_expr": "370/980"
+    },
+    "section_forces_L1": {
+      "printed": "IV-54",
+      "pdf": "2of3",
+      "pdf_index": 209,
+      "title": "(3) 断面力図（震度0.378を超えるSTEP）",
+      "Khy": 0.378,
+      "delta_y_mm": 102.4,
+      "moment_kNm": {
+        "left_pile_top_to_bottom": [
+          -4638.3,
+          -1676.9,
+          94.3,
+          1200.4,
+          1797.5,
+          2028.5,
+          2039.8,
+          1892.4,
+          1616.5,
+          1290.6,
+          966.7,
+          675.5,
+          431.7,
+          238.8,
+          93.0,
+          16.1,
+          -45.3,
+          -102.4,
+          -121.8,
+          -129.4,
+          -116.4,
+          -85.1,
+          -52.5,
+          -26.5,
+          -9.2,
+          0.6,
+          4.8,
+          5.6,
+          4.7,
+          3.3,
+          2.0,
+          1.0,
+          0.4,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "right_pile_top_to_bottom": [
+          -5112.3,
+          -2034.8,
+          -180.5,
+          1001.9,
+          1664.9,
+          1950.0,
+          1991.2,
+          1877.8,
+          1623.9,
+          1310.6,
+          992.4,
+          702.1,
+          456.2,
+          259.6,
+          109.4,
+          29.4,
+          -35.1,
+          -96.3,
+          -118.2,
+          -128.0,
+          -116.9,
+          -86.4,
+          -53.9,
+          -27.7,
+          -9.9,
+          0.1,
+          4.6,
+          5.5,
+          4.8,
+          3.4,
+          2.0,
+          1.0,
+          0.4,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "shear_kN": {
+        "left_pile_top_to_bottom": [
+          2692.2,
+          2692.2,
+          1765.1,
+          1032.9,
+          489.8,
+          113.1,
+          -61.8,
+          -284.0,
+          -389.5,
+          -414.5,
+          -389.0,
+          -336.1,
+          -272.8,
+          -210.4,
+          -155.8,
+          -124.8,
+          -99.5,
+          -47.0,
+          -22.0,
+          -5.8,
+          32.4,
+          42.3,
+          37.5,
+          27.1,
+          16.6,
+          8.2,
+          2.7,
+          -0.3,
+          -1.6,
+          -1.8,
+          -1.5,
+          -1.0,
+          -0.6,
+          -0.2,
+          -0.1,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "right_pile_top_to_bottom": [
+          2797.7,
+          2797.7,
+          1865.9,
+          1122.3,
+          564.9,
+          173.4,
+          -10.9,
+          -249.5,
+          -368.4,
+          -403.6,
+          -385.3,
+          -337.1,
+          -276.6,
+          -215.6,
+          -161.5,
+          -130.4,
+          -104.9,
+          -51.7,
+          -26.1,
+          -9.4,
+          30.8,
+          41.9,
+          37.7,
+          27.5,
+          17.0,
+          8.6,
+          3.0,
+          -0.2,
+          -1.5,
+          -1.8,
+          -1.5,
+          -1.0,
+          -0.6,
+          -0.2,
+          -0.1,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "pier_and_footing": {
+        "pier_top_shear_kN": 4219.0,
+        "pier_shear_lower_kN": 5138.8,
+        "pier_axial_kN": -8057.5,
+        "footing_axial_label_kN": 10477.2,
+        "pile_axial_top_left_kN": 4847.0,
+        "pile_axial_top_right_kN": -18768.0,
+        "pile_axial_bottom_left_kN": 65.3,
+        "pile_axial_bottom_right_kN": -2702.7,
+        "moment_labels_kNm_low_confidence": [
+          0.0,
+          4392.3,
+          -10492.5,
+          43634.1,
+          49286.8,
+          -5358.3
+        ],
+        "shear_vertical_labels_kN_low_confidence": [
+          -5339.0,
+          -6568.9,
+          -17046.1,
+          18776.0
+        ]
+      }
+    },
+    "nu_coefficients": {
+      "printed": "IV-56",
+      "pdf": "2of3",
+      "pdf_index": 211,
+      "formulas": {
+        "nuU": "α≤0.75: 1.0; 0.75<α≤1.10: -2.0α+2.5; 1.10≤α: 0.3",
+        "nuL": "α≤0.75: 0.0; 0.75<α≤1.10: -2.0α+1.5; 1.10≤α: -0.7"
+      },
+      "alpha_g_L1": 0.7,
+      "Teq": 1.05,
+      "Tg": 0.5335,
+      "alpha": 1.378,
+      "table_3_6_3": {
+        "nuU": 0.3,
+        "nuL": -0.7
+      }
+    },
+    "combination_rule": {
+      "printed": "IV-57",
+      "pdf": "2of3",
+      "pdf_index": 212,
+      "items": [
+        "Rt = 1.0×Ra + ν×f(z)（慣性力中心）",
+        "Rt = ν×Ra + 1.0×f(z)（地盤変位中心）"
+      ]
+    },
+    "table_3_6_4": {
+      "printed": "IV-58",
+      "pdf": "2of3",
+      "pdf_index": 213,
+      "table": "表3.6.4 応答変位法における荷重の組合せ（L1地震動）",
+      "rows": [
+        {
+          "case": "C2",
+          "inertia": "1.0×(0.378Ra)",
+          "ground": "0.30×f(z)",
+          "basis": "1.0Ra + νU f(z)"
+        },
+        {
+          "case": "C3",
+          "inertia": "1.0×(0.378Ra)",
+          "ground": "-0.70×f(z)",
+          "basis": "1.0Ra + νL f(z)"
+        },
+        {
+          "case": "C4",
+          "inertia": "0.30×(0.378Ra)",
+          "ground": "1.0×f(z)",
+          "basis": "νU Ra + 1.0f(z)"
+        },
+        {
+          "case": "C5",
+          "inertia": "-0.70×(0.378Ra)",
+          "ground": "1.0×f(z)",
+          "basis": "νL Ra + 1.0f(z)"
+        }
+      ],
+      "note": "応答変位法の荷重〜変位曲線と断面力図は記載省略"
+    }
+  },
+  "L2_response": {
+    "bend_point": {
+      "printed": "IV-59",
+      "pdf": "2of3",
+      "pdf_index": 214,
+      "figure": "図3.7.1 構造物全体系の折れ曲がり点",
+      "rule": "直線OA（原点と初期降伏点）と直線BC（震度 (khm+khy)/2 の点と最大震度点）の交点"
+    },
+    "table_3_7_1": {
+      "printed": "IV-60",
+      "pdf": "2of3",
+      "pdf_index": 215,
+      "table": "表3.7.1 慣性力設計の応答値の算定結果",
+      "spectrum": "L2地震動 スペクトルII、上部構造物（RC・SRC）、G4",
+      "rows": [
+        {
+          "case": "L-L2-1",
+          "Kheq": 0.41,
+          "delta_eq_mm": 132.9,
+          "yield_location": "く体基部",
+          "Teq_sec": 1.139,
+          "mu_d": 4.27,
+          "delta_d_mm": 567.5,
+          "Khmax": null
+        },
+        {
+          "case": "L-L2-2",
+          "Kheq": null,
+          "delta_eq_mm": null,
+          "yield_location": "く体基部",
+          "Teq_sec": null,
+          "mu_d": null,
+          "delta_d_mm": null,
+          "Khmax": 0.495
+        }
+      ],
+      "caution": "Teq は表3.7.1 で 1.139、図3.7.3 と IV-67 で 1.138"
+    },
+    "section_forces_L-L2-1_Y": {
+      "printed": "IV-63",
+      "pdf": "2of3",
+      "pdf_index": 218,
+      "title": "L-L2-1 初期降伏点（Y点）",
+      "Khy": 0.393,
+      "delta_y_mm": 127.2,
+      "pile_head_kNm_kN": {
+        "left_M_top": -5576.4,
+        "left_M_2nd": -2046.43,
+        "right_M_top": -6141.21,
+        "right_M_2nd": -2476.4,
+        "left_S_top": 3209.06,
+        "right_S_top": 3331.64,
+        "pier_top_shear": 5226.34,
+        "pier_shear_lower": 6177.57,
+        "pile_axial_top_left": 7353.65,
+        "pile_axial_top_right": -21274.68,
+        "pier_axial": -8057.5,
+        "pile_axial_bottom_left": 63.87,
+        "pile_axial_bottom_right": -3141.8
+      },
+      "pile_moment_partial_left": [
+        -5576.4,
+        -2046.43,
+        118.45,
+        1492.26,
+        2233.81,
+        2520.56,
+        2534.39,
+        2351.11,
+        2008.27,
+        1603.34,
+        1200.9,
+        839.1,
+        536.23,
+        296.58,
+        115.45,
+        19.92,
+        -56.35,
+        -127.28,
+        -151.34,
+        -160.8,
+        -144.55,
+        -105.67,
+        -65.23,
+        -32.97,
+        -11.4,
+        0.68,
+        5.9,
+        6.93,
+        5.86,
+        4.11,
+        2.45
+      ],
+      "pile_moment_partial_right": [
+        -6141.21,
+        -2476.4,
+        -213.64,
+        1252.4,
+        2073.54,
+        2425.65,
+        2475.72,
+        2333.46,
+        2017.18,
+        1627.46,
+        1231.87,
+        871.2,
+        565.85,
+        321.73,
+        135.27,
+        35.96,
+        -44.01,
+        -119.85,
+        -146.84,
+        -159.04,
+        -145.24,
+        -107.29,
+        -66.91,
+        -34.3,
+        -12.29,
+        0.18,
+        5.69,
+        6.89,
+        5.91,
+        4.19,
+        2.52
+      ],
+      "caution": "杭頭から 31 点まで（330dpi で確認）。以下とせん断力・軸力の中間値は省略。-1.20 前後の下端は未転記。重なった -151.34/-146.84 は notes"
+    },
+    "section_forces_L-L2-1_M": {
+      "printed": "IV-63",
+      "pdf": "2of3",
+      "pdf_index": 218,
+      "title": "L-L2-1 最大震度点",
+      "Khmax": 0.428,
+      "delta_m_mm": 543.2,
+      "pile_head_kNm_kN": {
+        "left_M_top": -6154.22,
+        "left_M_2nd": -2317.59,
+        "left_M_3rd": 70.24,
+        "right_M_top": -6786.14,
+        "right_M_2nd": -2801.84,
+        "right_M_3rd": -306.83,
+        "left_S_top": 3487.84,
+        "right_S_top": 3622.1,
+        "right_S_3rd": 2604.34,
+        "pier_top_shear": 5678.52,
+        "pier_shear_lower": 6714.47,
+        "pile_axial_top_left": 8636.99,
+        "pile_axial_top_right": -22558.02,
+        "pier_axial": -8057.5
+      }
+    },
+    "section_forces_L-L2-1_L2": {
+      "printed": "IV-64",
+      "pdf": "2of3",
+      "pdf_index": 219,
+      "title": "L-L2-1 最大応答変位点（L2地震時）",
+      "KhL2": 0.412,
+      "delta_L2_mm": 567.5,
+      "moment_kNm": {
+        "left_pile_top_to_bottom": [
+          -5939.21,
+          -2242.33,
+          62.25,
+          1572.18,
+          2394.29,
+          2719.28,
+          2741.74,
+          2551.03,
+          2183.96,
+          1747.1,
+          1311.22,
+          918.33,
+          588.73,
+          327.42,
+          120.52,
+          24.93,
+          -58.7,
+          -136.77,
+          -165.64,
+          -174.36,
+          -157.21,
+          -115.15,
+          -71.22,
+          -36.09,
+          -12.57,
+          0.64,
+          6.37,
+          7.52,
+          6.38,
+          4.48,
+          2.67,
+          1.31,
+          0.48,
+          0.07,
+          -0.03,
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "right_pile_top_to_bottom": [
+          -6550.11,
+          -2710.7,
+          -302.63,
+          1308.13,
+          2217.82,
+          2614.75,
+          2677.12,
+          2531.56,
+          2193.73,
+          1773.62,
+          1345.3,
+          953.65,
+          621.33,
+          355.1,
+          151.34,
+          42.6,
+          -45.11,
+          -128.59,
+          -159.7,
+          -172.43,
+          -157.96,
+          -116.93,
+          -73.07,
+          -37.57,
+          -13.55,
+          0.09,
+          6.13,
+          7.47,
+          6.43,
+          4.56,
+          2.75,
+          1.37,
+          0.51,
+          0.09,
+          -0.02,
+          -0.03,
+          -0.01,
+          0.0
+        ]
+      },
+      "shear_kN": {
+        "left_pile_top_to_bottom": [
+          3360.8,
+          3360.8,
+          2387.96,
+          1416.08,
+          679.49,
+          167.3,
+          -71.07,
+          -374.94,
+          -520.65,
+          -556.91,
+          -524.19,
+          -453.94,
+          -369.13,
+          -285.26,
+          -211.74,
+          -169.81,
+          -135.59,
+          -64.57,
+          -30.7,
+          -8.72,
+          43.39,
+          57.06,
+          50.63,
+          36.69,
+          22.45,
+          11.2,
+          3.74,
+          -0.39,
+          -2.14,
+          -2.44,
+          -2.02,
+          -1.37,
+          -0.75,
+          -0.29,
+          -0.08,
+          0.02,
+          0.05,
+          0.0
+        ],
+        "right_pile_top_to_bottom": [
+          3490.37,
+          3490.37,
+          2517.2,
+          1534.91,
+          779.28,
+          247.48,
+          -3.32,
+          -329.14,
+          -492.62,
+          -542.37,
+          -519.23,
+          -455.3,
+          -374.21,
+          -292.2,
+          -219.3,
+          -177.37,
+          -142.86,
+          -70.78,
+          -36.12,
+          -13.43,
+          41.23,
+          56.5,
+          50.91,
+          37.27,
+          23.05,
+          11.67,
+          4.06,
+          -0.22,
+          -2.06,
+          -2.42,
+          -2.04,
+          -1.39,
+          -0.78,
+          -0.31,
+          -0.1,
+          0.02,
+          0.04,
+          0.0
+        ]
+      },
+      "pier_and_footing": {
+        "pier_top_shear_kN": 5472.27,
+        "pier_shear_lower_kN": 6470.49,
+        "pier_axial_kN": -8057.5,
+        "footing_axial_label_kN": 10477.23,
+        "pile_axial_top_left_kN": 8074.93,
+        "pile_axial_top_right_kN": -21995.95,
+        "pile_axial_bottom_right_kN": -3275.74,
+        "moment_labels_kNm_low_confidence": [
+          0.0,
+          5693.21,
+          -17261.48,
+          55670.83,
+          62697.87,
+          -5796.11
+        ],
+        "shear_vertical_labels_kN_low_confidence": [
+          -8566.93,
+          -9796.83,
+          -20274.05,
+          25503.95
+        ]
+      },
+      "caution": "杭頭付近の重なった値（2741.74/2614.75/2677.12、-165.64/-159.70、-169.81/-177.37、-30.70/-36.12、-0.03/-0.04 など）は notes 参照",
+      "damage_figure": "損傷図あり（色分け：剛域 灰・損傷レベル1 緑・2 青・3 黄・4 赤）。白黒スキャンのため部材ごとのレベルは読めない"
+    },
+    "section_forces_L-L2-2_Y": {
+      "printed": "IV-64",
+      "pdf": "2of3",
+      "pdf_index": 219,
+      "title": "L-L2-2 初期降伏点（Y点）",
+      "Khy": 0.456,
+      "delta_y_mm": 152.8,
+      "pile_head_kNm_kN": {
+        "left_M_top": -6613.96,
+        "left_M_2nd": -2532.44,
+        "left_M_3rd": 33.42,
+        "left_M_4th": 1761.85,
+        "right_M_top": -7279.2,
+        "right_M_2nd": -3045.11,
+        "right_M_3rd": -368.53,
+        "right_M_4th": 1469.43,
+        "left_S_top": 3710.47,
+        "left_S_3rd": 2693.1,
+        "left_S_4th": 1634.65,
+        "right_S_top": 3849.17,
+        "right_S_3rd": 2831.22,
+        "right_S_4th": 1766.19,
+        "pier_top_shear": 6034.57,
+        "pier_shear_lower": 7138.29,
+        "pile_axial_top_left": 9646.86,
+        "pile_axial_top_right": -23567.89,
+        "pier_axial": -8057.5
+      }
+    },
+    "section_forces_L-L2-2_M": {
+      "printed": "IV-65",
+      "pdf": "2of3",
+      "pdf_index": 220,
+      "title": "L-L2-2 最大震度点（M点）",
+      "Khmax": 0.495,
+      "delta_m_mm": 574.4,
+      "same_as": "IV-52 の図と同じ（section_forces_failure_mode_L-L2-2_M）"
+    },
+    "displacement_method_L2": {
+      "printed": "IV-66",
+      "pdf": "2of3",
+      "pdf_index": 221,
+      "alpha_g_L2": 0.5,
+      "Teq": 1.138,
+      "Tg": 0.5335,
+      "alpha": 1.067,
+      "nuU_formula_value": 0.37,
+      "nuL": -0.63,
+      "nuU_adopted": 1.0,
+      "reason": "荷重〜変位曲線が明確な変曲点を有し最大応答震度が変曲点を超えるため νU=1.0",
+      "printed_pages": "IV-66〜IV-67",
+      "table_3_7_5": {
+        "nuU": 1.0,
+        "nuL": -0.63
+      }
+    },
+    "table_3_7_6": {
+      "printed": "IV-68",
+      "pdf": "2of3",
+      "pdf_index": 223,
+      "table": "表3.7.6 応答変位法における荷重の組合せ（L2地震動）",
+      "rows": [
+        {
+          "case": "C6",
+          "inertia": "1.0×(0.428Ra)",
+          "ground": "1.0×f(z)",
+          "basis": "1.0Ra + νU f(z) と νU Ra + 1.0f(z)（νU=1.0 で同じ）"
+        },
+        {
+          "case": "C7",
+          "inertia": "1.0×(0.428Ra)",
+          "ground": "-0.63×f(z)",
+          "basis": "1.0Ra + νL f(z)"
+        },
+        {
+          "case": "C8",
+          "inertia": "-0.62×(0.428Ra)（印字どおり。νL=-0.63 と食い違う）",
+          "ground": "1.0×f(z)",
+          "basis": "νL Ra + 1.0f(z)"
+        }
+      ],
+      "note": "応答変位法の荷重〜変位曲線と断面力図は記載省略（IV-69）"
+    }
+  },
+  "restoration_and_serviceability": {
+    "printed": "IV-70",
+    "pdf": "2of3",
+    "pdf_index": 225,
+    "summary": "3.8 復旧性は地域別係数1.0 のため 3.7 の応答値を用いる。3.9 使用性（IV-71）は L1 地震動とするため 3.6 の応答値を用いる"
+  },
+  "design_responses": {
+    "table_3_10_1": {
+      "printed": "IV-72",
+      "pdf": "2of3",
+      "pdf_index": 227,
+      "table": "表3.10.1 応答値一覧表（その1）",
+      "rows": [
+        {
+          "item": "杭頭鉛直力 Vd",
+          "pile": "左杭",
+          "motion": "L1",
+          "value": -4847,
+          "unit": "kN",
+          "case": "L-L1",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "杭頭鉛直力 Vd",
+          "pile": "右杭",
+          "motion": "L1",
+          "value": 18768,
+          "unit": "kN",
+          "case": "L-L1",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "杭頭鉛直力 Vd",
+          "pile": "左杭",
+          "motion": "L2",
+          "value": -8620,
+          "unit": "kN",
+          "case": "L-L2-1",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "杭頭鉛直力 Vd",
+          "pile": "右杭",
+          "motion": "L2",
+          "value": 22541,
+          "unit": "kN",
+          "case": "L-L2-1",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "基礎天端の水平変位 δd",
+          "motion": "L1",
+          "value": 31.5,
+          "unit": "mm",
+          "case": "L-L1"
+        },
+        {
+          "item": "基礎天端の水平変位 δd",
+          "motion": "L2",
+          "value": 43.3,
+          "unit": "mm",
+          "case": "L-L2-1"
+        },
+        {
+          "item": "基礎天端の回転角 θd",
+          "motion": "L1",
+          "value": 0.004,
+          "unit": "rad",
+          "case": "L-L1"
+        },
+        {
+          "item": "基礎天端の回転角 θd",
+          "motion": "L2",
+          "value": 0.0053,
+          "unit": "rad",
+          "case": "L-L2-1"
+        }
+      ]
+    },
+    "table_3_10_2": {
+      "printed": "IV-72",
+      "pdf": "2of3",
+      "pdf_index": 227,
+      "table": "表3.10.2 応答値一覧表（その2）",
+      "rows": [
+        {
+          "item": "結合部 せん断力 Vd",
+          "pile": "左杭",
+          "element": 7,
+          "motion": "L2",
+          "value": 4014.4,
+          "unit": "kN",
+          "case": "L-L2-2",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "結合部 せん断力 Vd",
+          "pile": "右杭",
+          "element": 45,
+          "motion": "L2",
+          "value": 4167.3,
+          "unit": "kN",
+          "case": "L-L2-2",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "結合部 軸力 N'd",
+          "pile": "左杭",
+          "element": 7,
+          "motion": "L2",
+          "value": -11081.3,
+          "unit": "kN",
+          "case": "L-L2-2",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "結合部 軸力 N'd",
+          "pile": "右杭",
+          "element": 45,
+          "motion": "L2",
+          "value": 25002.3,
+          "unit": "kN",
+          "case": "L-L2-2",
+          "remark": "杭3本当り"
+        },
+        {
+          "item": "結合部 部材角 θd",
+          "pile": "左杭",
+          "element": 7,
+          "motion": "L2",
+          "value": 0.001911,
+          "unit": "rad",
+          "case": "L-L2-1"
+        },
+        {
+          "item": "結合部 部材角 θd",
+          "pile": "右杭",
+          "element": 45,
+          "motion": "L2",
+          "value": 0.001489,
+          "unit": "rad",
+          "case": "L-L2-1"
+        },
+        {
+          "item": "鋼管杭 曲率 φd",
+          "pile": "左杭",
+          "element": 12,
+          "motion": "L2",
+          "value": 0.001486,
+          "unit": "1/m",
+          "case": "L-L2-1"
+        },
+        {
+          "item": "鋼管杭 曲率 φd",
+          "pile": "右杭",
+          "element": 46,
+          "motion": "L2",
+          "value": 0.001466,
+          "unit": "1/m",
+          "case": "L-L2-1"
+        }
+      ],
+      "note": "応答変位法による断面力図は記載省略"
+    }
+  }
+}

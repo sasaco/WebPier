@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 
 from ..core.errors import InputError
@@ -133,6 +134,16 @@ def section(pier: PierInput, pipe: PileSteel) -> JointSection:
     return JointSection(pipe.diameter, pipe.thickness, steel.corrosion, joint.bar_diameter, joint.bar_count, area,
                         joint.bar_grade, STRENGTH(BAR_STRENGTH[joint.bar_grade]), pipe.fsyk, joint.bar_centroid,
                         joint.fill_fck)
+
+
+def confined_strength(joint: JointSection) -> Printed:
+    """f'cck (N/mm2) of the fill confined by the pipe, as JRSNAP's 接合部圧縮強度 of the joint takes it (decision 122; JRSNAP 5.2
+    manual 表2-55 ⑭: the strength used for the 抜け出し ΔLy of 杭体設計の手引き 解(2.4-10), with γc 1.0): 解(2.4-2) with f'ck,
+    σ'1 = 2 t fsyd / (D − 2t), fsyd = f'syk / γs (D less the corrosion, t effective; example IV-19)."""
+    fck, thickness, diameter = d(joint.fck), d(joint.thickness), d(joint.diameter)
+    stress = 2 * thickness * d(joint.pipe_strength) / d(GAMMA_S) / (diameter - 2 * thickness)
+    ratio = stress / fck
+    return put(STRENGTH, fck * (Decimal("2.254") * (1 + Decimal("7.94") * ratio).sqrt() - 2 * ratio - Decimal("1.254")))
 
 
 def select(row: int, member: int, piles: int, lines: Sequence[PointForces]) -> JointRowForces:

@@ -20704,6 +20704,7 @@
   "calc": {
     "print_calculate_checked": true,
     "print_section_force_checked": true,
+    "print_commentary_checked": true,
     "print_safety_ratio_checked": false,
     "print_summary_table_checked": false,
     "calculate_moment_checked": true,

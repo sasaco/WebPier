@@ -30,7 +30,7 @@ from ...calc.detailing.pile import head_anchorage, section
 from ...core.errors import InputError
 from ...core.printed import Printed
 from ...inputs import PierInput
-from ...inputs.choices import GROUND_CLASSES, LIQUEFACTION_INDEXES, REGIONS
+from ...inputs.choices import CAST_IN_PLACE_PILE, GROUND_CLASSES, LIQUEFACTION_INDEXES, REGIONS
 from ..jrsnap.model import NduModel
 from ..jrsnap.pile_model import COLUMN, PileNduModel
 
@@ -190,6 +190,8 @@ def build_project(model: NduModel, pier: PierInput) -> Project:
 def _rows(model: PileNduModel) -> tuple[PileRow, ...]:
     elements = {element.number: element for element in model.elements}
     members = {member.number: member for member in model.members}
+    # the joint of the row on the footing base: the i end of its first element in the ground (of a 鋼管ソイルセメント杭, of the
+    # M-θ of its joint, decision 122)
     return tuple(PileRow(elements[pile.first].i, members[pile.member].depth_piles) for pile in model.piles)
 
 
@@ -203,14 +205,18 @@ def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
     Case, decision 97) follow with one Case each, checked as a Case of its level."""
     design = pier.seismic_design
     first = models[0]
-    columns = [element for element in first.elements if element.kind == COLUMN]
-    if len(columns) != 1:  # the one M-θ member is the column base; Aggre-SE's member type 2 is it
+    # the one M-θ member outside the piles is the column base, Aggre-SE's member type 2; the M-θ of the joint of a
+    # 鋼管ソイルセメント杭 is the head of a pile row (decision 122)
+    columns = [element for element in first.elements if element.kind == COLUMN
+               and not any(pile.first <= element.number <= pile.last for pile in first.piles)]
+    if len(columns) != 1:
         raise InputError(f"JRSNAP の非線形部材（柱）が{len(columns)}個です（耐震照査の入力は1個だけに対応します）")
     rows = _rows(first)
     for other in (*models[1:], *liquefied, *(model for _, model in response)):
         if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
-    anchor = anchor_bar(first, pier)
+    # ⑧ is of a 場所打ち杭 with a cut-off (decision 98); a 鋼管ソイルセメント杭's is P10e (decision 122)
+    anchor = anchor_bar(first, pier) if pier.substructure.foundation == CAST_IN_PLACE_PILE else None
     ordinary = tuple(case for model in models for case in _checks(model, piled=True, anchored=anchor is not None))
     index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),

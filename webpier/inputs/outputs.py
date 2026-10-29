@@ -60,10 +60,9 @@ PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "
                                      "transverse", "transverse_frame_analysis", "longitudinal_seismic",
                                      "longitudinal_nonlinear_analysis", "transverse_seismic",
                                      "transverse_nonlinear_analysis", "footing")
-# The items only a 場所打ち杭 makes so far: the NDU of the piles of 0710 and 0720 is made for it only (decision 93), and so
-# are the analyses and checks of that NDU (decision 94).
-CAST_IN_PLACE_ONLY: tuple[str, ...] = ("longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
-                                       "transverse_nonlinear_analysis", "footing")
+# The items only a 場所打ち杭 makes so far: the footing (decision 96; a 鋼管ソイルセメント杭's is P10c). 0710〜0721 of a
+# 鋼管ソイルセメント杭 have its joint and its pipe in the NDU (decision 122).
+CAST_IN_PLACE_ONLY: tuple[str, ...] = ("footing",)
 # The items an item uses besides the table's for a 基礎形式: the 杭の構造細目 of a 場所打ち杭 in 0400 read 1/β of SOIL-JR's
 # ground model, 0500 (decision 98).
 FOUNDATION_REQUIRES: dict[str | None, dict[str, tuple[str, ...]]] = {CAST_IN_PLACE_PILE: {"detailing": ("ground_model",)}}

@@ -134,3 +134,35 @@ class PileSection:
     hoop_legs: int  # 1 組 is 2
     hoop_pitch: Printed
     safety: tuple[Printed | Decimal | int, ...]  # SectSafe: the factors of the manual's 表2-29, the shear ones are inputs
+    inner_radius: Printed | None = None  # mm, the 内周半径 RR2 of the manual's 表2-28 (a solid pile: None, written 0)
+
+
+@dataclass(frozen=True)
+class JointHeadSection:
+    """The joint of a 鋼管ソイルセメント杭 with the footing (shape 501, 鋼管杭頭部接合部材, manual 表2-55・2-56; decision 122): the
+    virtual RC circle the pipe confines, of the radius of the pipe, with the anchor bars in one ring."""
+
+    title: str
+    radius: Printed  # mm
+    thickness: Printed  # the effective wall thickness of the pipe, mm
+    fck: Printed  # the fill's f'ck, N/mm2
+    confined: Printed  # 接合部圧縮強度: f'cck of the fill confined by the pipe, N/mm2 (calc.pile_joint.confined_strength)
+    aggregate_max: Printed  # mm
+    bar_yield: Printed  # N/mm2
+    center: Printed  # 芯かぶり of the anchor bars from the edge, mm
+    bar_diameter: Printed
+    bar_count: int
+    pipe_yield: Printed  # f_syk of the pipe, N/mm2
+    safety: tuple[Printed | Decimal | int, ...]
+
+
+@dataclass(frozen=True)
+class PipeSection:
+    """The steel pipe of a 鋼管ソイルセメント杭 (shape 8 of the kind 鋼管杭, M-φ only, manual 表2-53・2-54; decision 122): the pipe
+    alone, less the corrosion allowance; the soil cement is not counted."""
+
+    title: str
+    diameter: Printed  # the outer diameter less the corrosion on both sides, mm
+    thickness: Printed  # the effective wall thickness, mm
+    yield_strength: Printed  # f_syk, N/mm2
+    safety: tuple[Printed | Decimal | int, ...]

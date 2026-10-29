@@ -9,7 +9,7 @@ where the file is put, and the springs it would let the screen recompute are in 
 from __future__ import annotations
 
 from collections.abc import Iterator
-from .pile_model import PileNduModel, PileSection
+from .pile_model import JointHeadSection, PileNduModel, PileSection, PipeSection
 from .profile import RIGID_AREA, RIGID_INERTIA, RIGID_MODULUS, STEEL_MODULUS
 from .records import BLANK, CONSTANT_RECORDS, RESISTANCE, UNSET, Record, head_records, loads_records, tail_records
 
@@ -19,8 +19,9 @@ YIELD_ANGLE = 45  # 着目降伏角度: the tension side at 45°
 def pile_section_records(number: int, s: PileSection) -> Iterator[Record]:
     """SectTitle … SectSafe of section *number*, a circle with one ring of main bars and hoops."""
     yield f"SectTitle{number}", (s.title,)
-    yield f"SectInfo{number}", (1, 2, 0, 1, s.radius, 0 if s.axial_force is None else s.axial_force, 0, 0, 0, 0, UNSET,
-                                0, 0, 0)
+    # 表2-28: the radius, the 内周半径, …, the 作用軸力 (blank: the axial force of the analysis)
+    yield f"SectInfo{number}", (1, 2, 0, 1, s.radius, 0 if s.inner_radius is None else s.inner_radius, 0, 0, 0, 0,
+                                UNSET if s.axial_force is None else s.axial_force, 0, 0, 0)
     yield f"TanbuShiji{number}", CONSTANT_RECORDS["TanbuShiji1"]
     yield f"SectConc{number}", (s.fck, s.construction, s.construction, 0, s.aggregate_max)
     yield f"SectJikuNum{number}", (1, 0, 0, 0, 0, 0)
@@ -28,6 +29,38 @@ def pile_section_records(number: int, s: PileSection) -> Iterator[Record]:
     yield f"SectRein{number}-1", (s.center, s.diameter, s.count)
     hoop = (s.hoop_yield, s.hoop_diameter, s.hoop_legs, s.hoop_pitch)
     yield f"SectSher{number}", (*hoop, 0, 0, *hoop)
+    yield f"SectSafe{number}", s.safety
+
+
+def joint_section_records(number: int, s: JointHeadSection) -> Iterator[Record]:
+    """SectTitle … SectSafe of the joint of a 鋼管ソイルセメント杭 (shape 501): the virtual RC circle (its radius, the pipe's
+    thickness), the fill, the anchor bars and, after them, SectCFT with the yield strength and the modulus of the pipe
+    (decision 122; JRSNAP_Input writes the NDT of shape 501 from these, not SectSher)."""
+    yield f"SectTitle{number}", (s.title,)
+    yield f"SectInfo{number}", (1, 501, 0, 1, s.radius, s.thickness, 0, 0, 0, 0, UNSET, 0, 0, 0)
+    yield f"TanbuShiji{number}", CONSTANT_RECORDS["TanbuShiji1"]
+    yield f"SectConc{number}", (s.fck, 0, 0, s.confined, s.aggregate_max)  # 表2-55: f'ck, fbck, Ec (JRSNAP's), 接合部圧縮強度
+    yield f"SectJikuNum{number}", (1, 0, 0, 0, 0, 0)
+    yield f"SectJiku{number}", (s.bar_yield, STEEL_MODULUS, 0, 0, 0, 0, YIELD_ANGLE, 0, 0)
+    yield f"SectRein{number}-1", (s.center, s.bar_diameter, s.bar_count)
+    yield f"SectCFT{number}", (0, s.pipe_yield, STEEL_MODULUS, 0, 0, 0, 0, 0)
+    yield f"SectSher{number}", (0,) * 10
+    yield f"SectSafe{number}", s.safety
+
+
+def pipe_section_records(number: int, s: PipeSection) -> Iterator[Record]:
+    """SectTitle … SectSafe of the pipe of a 鋼管ソイルセメント杭: shape 8 of the kind 鋼管杭 (SectInfo's third field 1), no bars,
+    IntSectMpile (Tri-Linear) and SectMpile (f_syk and the factor 1.0 on the yield point of a pile; the rest JRSNAP's or 0)
+    before SectSher (decision 122)."""
+    yield f"SectTitle{number}", (s.title,)
+    yield f"SectInfo{number}", (1, 8, 1, 1, s.diameter, s.thickness, 0, 0, 0, 0, UNSET, 0, 0, 0)
+    yield f"TanbuShiji{number}", CONSTANT_RECORDS["TanbuShiji1"]
+    yield f"SectConc{number}", (0,) * 5
+    yield f"SectJikuNum{number}", (0,) * 6
+    yield f"SectJiku{number}", (0,) * 9
+    yield f"IntSectMpile{number}", (0, 0)
+    yield f"SectMpile{number}", (0, 0, s.yield_strength, 0, 0, 0, 1, 0)
+    yield f"SectSher{number}", (0,) * 10
     yield f"SectSafe{number}", s.safety
 
 

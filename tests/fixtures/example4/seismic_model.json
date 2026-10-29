@@ -1,0 +1,539 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_2of3.pdf",
+    "page_mapping": "2of3 の 0 始まりの index k が印刷頁 IV-(k-155)",
+    "method": "スキャン画像を目視で転記（pymupdf で 110 dpi の全頁と 200〜400 dpi の切り出し）。OCR 下書きは数値に使っていない。WebPier の実装・生成物は見ていない",
+    "units": "kN, kN·m, mm, rad, rad/m, N/mm2。数値は印字の桁のまま",
+    "range": "第IV編 2 構造解析モデル（IV-8〜IV-26、index 163〜181）",
+    "notes": "seismic_model_notes.md"
+  },
+  "design_vibration_unit": {
+    "printed": "IV-8",
+    "pdf": "2of3",
+    "pdf_index": 163,
+    "figure": "図2.1.1",
+    "summary": "単体の構造物として、部材の非線形性・地盤ばねを含む一体の骨組みでモデル化。静的非線形解析（非線形応答スペクトル法）"
+  },
+  "frame_model": {
+    "printed": "IV-9",
+    "pdf": "2of3",
+    "pdf_index": 164,
+    "figure": "図2.2.1 骨組み図（線路方向。直角方向の図は同頁右）",
+    "rule": "せん断スパンが明らかなく体は高さを1要素。杭は杭径を基本要素長としてフーチング下端から順に割り当て、地層境を考慮",
+    "dimensions_mm": {
+      "pier_height": 9200,
+      "footing_thickness": 2200,
+      "footing_thickness_parts_as_printed": [
+        1100,
+        100,
+        0
+      ],
+      "pile_center_offsets_from_pier_axis": [
+        2500,
+        2500
+      ],
+      "pile_length": 26500,
+      "pile_diameter_label_at_bottom": 1000,
+      "label_n": 2,
+      "pile_segments_from_footing_bottom_as_printed": [
+        "790",
+        "2x800=1600",
+        "550",
+        "8x800=6400",
+        "2x550=1100",
+        "800",
+        "2x575=1150",
+        "14x800=11200",
+        "2x550=1100",
+        "2x500=1000"
+      ],
+      "caution": "寸法線の並びは低解像度で読んだもの。合計が 26500 に閉じない（notes 参照）"
+    },
+    "node_element_numbers_as_read": {
+      "pier": {
+        "element": 1,
+        "top_node": 1,
+        "base_node": 2
+      },
+      "footing_elements": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "rigid_link_to_pile_head": {
+        "left": 6,
+        "right": 44
+      },
+      "pile_head_joint_element": {
+        "left": 7,
+        "right": 45
+      },
+      "left_pile": {
+        "top_node": 7,
+        "bottom_node": 44,
+        "elements": "7〜43"
+      },
+      "right_pile": {
+        "top_node": 45,
+        "bottom_node": 82,
+        "elements": "45〜81"
+      },
+      "steel_pipe_element_checked": {
+        "left": 12,
+        "right": 46,
+        "source": "表3.10.2・表3.5.5（IV-43・IV-72）"
+      },
+      "confidence": "低（図の解像度不足。結合部 7/45・鋼管杭 12/46 は照査表の要素番号と一致）"
+    }
+  },
+  "member_nonlinear_model_table_2_2_1": {
+    "printed": "IV-10",
+    "pdf": "2of3",
+    "pdf_index": 165,
+    "table": "表2.2.1 部材の非線形特性の考え方",
+    "rows": [
+      {
+        "member": "橋脚く体",
+        "model": "棒部材",
+        "nonlinear": "M-θ（材端ばね）",
+        "shear_span": {
+          "longitudinal": "橋脚く体基部〜橋脚天端",
+          "transverse": "橋脚く体基部〜桁重心位置"
+        },
+        "axial_force_variation": "考慮しない"
+      },
+      {
+        "member": "杭とフーチングの結合部",
+        "model": "棒部材",
+        "nonlinear": "M-θ",
+        "shear_span": "1D",
+        "axial_force_variation": "考慮する"
+      },
+      {
+        "member": "鋼管杭部材",
+        "model": "棒部材",
+        "nonlinear": "M-φ",
+        "shear_span": "-",
+        "axial_force_variation": "考慮する"
+      }
+    ],
+    "footnotes": [
+      "※1 張出し部はモデル化しない",
+      "※2 上路桁"
+    ]
+  },
+  "pier_M_theta": {
+    "Y_prime": {
+      "printed": "IV-10",
+      "pdf": "2of3",
+      "pdf_index": 165,
+      "figure": "図2.2.2",
+      "formula": "My' = My + k(Mm - My)",
+      "k": 0.9
+    },
+    "theta_y": {
+      "printed": "IV-11",
+      "pdf": "2of3",
+      "pdf_index": 166,
+      "formula": "θy = θy0 + θy1, ΔLy = 7.4 α εy (6+3500εy) φ / (f'cd)^(2/3), α = 1 + 0.9 e^{0.45(1 - Cs/φ)}",
+      "gamma_c": 1.0
+    },
+    "theta_m": {
+      "printed": "IV-12",
+      "pdf": "2of3",
+      "pdf_index": 167,
+      "f_ck_N_mm2": 40,
+      "eps_cu": 0.0035,
+      "formula_theta_pm": "(0.021 kw0 pw + 0.013)/(0.79 pt + 0.153), 上限 0.04（同じ行の 0.78 の印字は notes）",
+      "kw0": 1.15,
+      "kw0_rebar": "SD390",
+      "formula_theta_m1": "{(2.7 kw1 pw + 0.22)(1 - N'/N'b) + 1} θy1, 2.7kw1pw+0.22 ≤ 3.7（kw1 = kw0）"
+    },
+    "theta_n": {
+      "printed": "IV-13",
+      "pdf": "2of3",
+      "pdf_index": 168,
+      "formula": "Mn = My, Δθp = Kp (My - Mm), Kp = -0.1/Mm"
+    }
+  },
+  "steel_pipe_M_phi": {
+    "element_length": {
+      "printed": "IV-14",
+      "pdf": "2of3",
+      "pdf_index": 169,
+      "rule": "損傷レベル2以上が想定される範囲の要素長は 1.0D"
+    },
+    "Mp": {
+      "printed": "IV-14",
+      "pdf": "2of3",
+      "pdf_index": 169,
+      "formula": "Mp = Mp0 cos(π/2 · N'/N'y), Mp0 = D^3/6 {1-(1-2t/D)^3} f'syd"
+    },
+    "f_syd": {
+      "printed": "IV-15",
+      "pdf": "2of3",
+      "pdf_index": 170,
+      "gamma_m": 1.05,
+      "note": "R/t による低減なし"
+    },
+    "phi_Mp": {
+      "printed": "IV-15",
+      "pdf": "2of3",
+      "pdf_index": 170,
+      "formula": "φMp = Mp/(EI), I = π/64 {D^4 - (D-2t)^4}"
+    },
+    "Mm": {
+      "printed": "IV-15",
+      "pdf": "2of3",
+      "pdf_index": 170,
+      "formula": "Mm = k Mp",
+      "k": 1.2,
+      "steel": "SKK400, SKK490"
+    },
+    "phi_m": {
+      "printed": "IV-15",
+      "pdf": "2of3",
+      "pdf_index": 170,
+      "Lp": "1.0D",
+      "eps_mt_percent": 2.5
+    },
+    "phi_y": {
+      "printed": "IV-16",
+      "pdf": "2of3",
+      "pdf_index": 171,
+      "D_over_t_max": 80,
+      "t_min": "1.25%D",
+      "formula": "φyd = My/EI/γb, My = My0(1-N'/N'y), My0 = π/(32D){D^4-(D-2t)^4} f'syd",
+      "gamma_b": 1.0
+    },
+    "phi_md": {
+      "printed": "IV-16",
+      "pdf": "2of3",
+      "pdf_index": 171,
+      "formula": "φmd = φm/γb",
+      "eps_mc": "0.44 t/D",
+      "gamma_b": 1.1
+    },
+    "phi_n": {
+      "printed": "IV-17",
+      "pdf": "2of3",
+      "pdf_index": 172,
+      "formula": "φnd = κ φmd; κ = 2.0(1.0 - N'/N'y) (0 ≤ N'/N'y ≤ 0.5), κ = 1.0 (0.5 ≤ N'/N'y ≤ 1.0)",
+      "tension": "引張時 My = My0(1 - N/Ny)",
+      "gamma_b": 1.1,
+      "level3": "損傷レベル3 は φnd = φmd"
+    }
+  },
+  "pile_head_joint_M_theta": {
+    "model": {
+      "printed": "IV-18",
+      "pdf": "2of3",
+      "pdf_index": 173,
+      "figure": "図2.2.5・図2.2.6",
+      "infilled_concrete_length": "lc ≥ 1.5D",
+      "rigid_zone_length": "計算上の剛域長 1.0D",
+      "node_spacing": "等価塑性ヒンジ長 Lp = 1D",
+      "skeleton": "トリリニア（Y・M1・M2 点）、損傷レベル1・2・4 に対応"
+    },
+    "theta_y": {
+      "printed": "IV-19",
+      "pdf": "2of3",
+      "pdf_index": 174,
+      "formula": "θy = 2θy1, θy1 = ΔLy/(d - xy), ΔLy = 7.4 α εy (6+3500εy) φ/(f'cck)^(2/3), f'cck = f'cd(2.254√(1+7.94σ'l/f'ck) - 2σ'l/f'ck - 1.254), σ'l = 2 t fsyd/(D-2t), α = 1 + 0.9e^{0.45(1-Cs/φ)}",
+      "gamma_c": 1.3
+    },
+    "theta_m1": {
+      "printed": "IV-20",
+      "pdf": "2of3",
+      "pdf_index": 175,
+      "formula": "θm1 = {(2.7 kw1 pw + 0.22)(1 - N'/N'b) + 1} θy, 2.7kw1pw+0.22 ≤ 3.7, 1-N'/N'b ≤ 1.0",
+      "kw1": 0.85,
+      "kw1_steel": "SKK400/490"
+    },
+    "theta_m2": {
+      "printed": "IV-20",
+      "pdf": "2of3",
+      "pdf_index": 175,
+      "formula": "θm2 = min(φmc Lp, φms Lp) ≤ 0.06",
+      "eps_s_ultimate": 0.05,
+      "Lp": "2/3 D"
+    }
+  },
+  "member_performance": {
+    "table_2_2_2": {
+      "printed": "IV-21",
+      "pdf": "2of3",
+      "pdf_index": 176,
+      "table": "表2.2.2 橋脚く体部材性能のまとめ（線路方向）",
+      "section": "幅3500×高2500（20×150=3000、6×300=1800、端 84/166）",
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "b_mm": 3500,
+          "h_mm": 2500,
+          "La_mm": 9200,
+          "d_mm": 2411,
+          "La_d": 3.82,
+          "tension_rebar": "D38-23, 11",
+          "pt_percent": 0.443,
+          "hoop": "D25-5.0組-ctc125",
+          "pw_percent": 1.158,
+          "Nd_kN": 10477.2,
+          "Mcr_kNm": 8496.0,
+          "My_kNm": 52779.8,
+          "My_prime_kNm": 57172.8,
+          "Mm_kNm": 57660.9,
+          "Mn_kNm": 52779.8,
+          "theta_c_rad": 0.000165,
+          "theta_y_rad": 0.004709,
+          "theta_y_prime_rad": 0.005159,
+          "theta_m_rad": 0.049062,
+          "theta_n_rad": 0.056181
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "b_mm": 3500,
+          "h_mm": 2500,
+          "La_mm": 9200,
+          "d_mm": 2411,
+          "La_d": 3.82,
+          "tension_rebar": "D38-23, 11",
+          "pt_percent": 0.443,
+          "hoop": "D25-5.0組-ctc125",
+          "pw_percent": 1.158,
+          "Nd_kN": 10477.2,
+          "Mcr_kNm": 8496.0,
+          "My_kNm": 61242.4,
+          "My_prime_kNm": 65898.9,
+          "Mm_kNm": 66416.3,
+          "Mn_kNm": 61242.4,
+          "theta_c_rad": 0.000165,
+          "theta_y_rad": 0.00577,
+          "theta_y_prime_rad": 0.006264,
+          "theta_m_rad": 0.050413,
+          "theta_n_rad": 0.056944
+        }
+      }
+    },
+    "table_2_2_3": {
+      "printed": "IV-22",
+      "pdf": "2of3",
+      "pdf_index": 177,
+      "table": "表2.2.3 橋脚く体部材性能のまとめ（線路直角方向）",
+      "section": "幅2500×高3500（6×300=1800、20×150=3000）",
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "b_mm": 2500,
+          "h_mm": 3500,
+          "La_mm": 11450,
+          "d_mm": 3418,
+          "La_d": 3.35,
+          "tension_rebar": "D38-2, D19-7",
+          "pt_percent": 0.049,
+          "hoop": "D25-2.0組-ctc125",
+          "pw_percent": 0.649,
+          "Nd_kN": 10477.2,
+          "Mcr_kNm": 10710.4,
+          "My_kNm": 50490.2,
+          "My_prime_kNm": 70514.9,
+          "Mm_kNm": 72739.9,
+          "Mn_kNm": 50490.2,
+          "theta_c_rad": 0.00014,
+          "theta_y_rad": 0.003554,
+          "theta_y_prime_rad": 0.005273,
+          "theta_m_rad": 0.033536,
+          "theta_n_rad": 0.058853
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "b_mm": 2500,
+          "h_mm": 3500,
+          "La_mm": 11450,
+          "d_mm": 3418,
+          "La_d": 3.35,
+          "tension_rebar": "D38-2, D19-7",
+          "pt_percent": 0.049,
+          "hoop": "D25-2.0組-ctc125",
+          "pw_percent": 0.649,
+          "Nd_kN": 10477.2,
+          "Mcr_kNm": 10710.4,
+          "My_kNm": 57825.1,
+          "My_prime_kNm": 79471.5,
+          "Mm_kNm": 81876.6,
+          "Mn_kNm": 57825.1,
+          "theta_c_rad": 0.00014,
+          "theta_y_rad": 0.004337,
+          "theta_y_prime_rad": 0.006264,
+          "theta_m_rad": 0.034089,
+          "theta_n_rad": 0.058289
+        }
+      }
+    },
+    "table_2_2_4": {
+      "printed": "IV-23",
+      "pdf": "2of3",
+      "pdf_index": 178,
+      "table": "表2.2.4 鋼管杭部材性能のまとめ（線路方向）",
+      "element": 47,
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "D_mm": 800,
+          "t_eff_mm": 17,
+          "corrosion_mm": 1,
+          "Nd_kN_initial": 6960.5,
+          "My_kNm": 5846.2,
+          "Mp_kNm": 8935.1,
+          "phi_y": 0.003062,
+          "phi_Mp": 0.005677,
+          "phi_m": 0.022389,
+          "phi_n": 0.036503
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "D_mm": 800,
+          "t_eff_mm": 17,
+          "corrosion_mm": 1,
+          "Nd_kN_initial": 6960.5,
+          "My_kNm": 7281.6,
+          "Mp_kNm": 10869.6,
+          "phi_y": 0.003814,
+          "phi_Mp": 0.006906,
+          "phi_m": 0.023217,
+          "phi_n": 0.03927
+        }
+      },
+      "units": {
+        "phi": "rad/m"
+      },
+      "footnote": "※1 初期荷重時"
+    },
+    "table_2_2_5": {
+      "printed": "IV-24",
+      "pdf": "2of3",
+      "pdf_index": 179,
+      "table": "表2.2.5 鋼管杭部材性能のまとめ（線路直角方向）",
+      "element": 49,
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "D_mm": 800,
+          "t_eff_mm": 17,
+          "corrosion_mm": 1,
+          "Nd_kN_initial": 4628.3,
+          "My_kNm": 3899.8,
+          "Mp_kNm": 5958.0,
+          "phi_y": 0.003064,
+          "phi_Mp": 0.00494,
+          "phi_m": 0.01949,
+          "phi_n": 0.031795
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "D_mm": 800,
+          "t_eff_mm": 17,
+          "corrosion_mm": 1,
+          "Nd_kN_initial": 4628.3,
+          "My_kNm": 4856.7,
+          "Mp_kNm": 7247.7,
+          "phi_y": 0.003816,
+          "phi_Mp": 0.005695,
+          "phi_m": 0.017409,
+          "phi_n": 0.029459
+        }
+      },
+      "units": {
+        "phi": "rad/m"
+      },
+      "footnote": "※1 初期荷重時"
+    },
+    "table_2_2_6": {
+      "printed": "IV-25",
+      "pdf": "2of3",
+      "pdf_index": 180,
+      "table": "表2.2.6 杭とフーチングの結合部の部材性能のまとめ（線路方向）",
+      "element": 45,
+      "section": "φ800（75/650/75）",
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "R_mm": 400,
+          "La_mm": 800,
+          "axial_rebar": "D38-16",
+          "Nd_kN_initial": 6960.5,
+          "Mcr_kNm": 946.8,
+          "My_kNm": 7822.2,
+          "Mm_kNm": 8006.3,
+          "theta_c": 0.000361,
+          "theta_y": 0.004588,
+          "theta_m1": 0.015333,
+          "theta_m2": 0.049484
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "R_mm": 400,
+          "La_mm": 800,
+          "axial_rebar": "D38-16",
+          "Nd_kN_initial": 6960.5,
+          "Mcr_kNm": 946.8,
+          "My_kNm": 8946.8,
+          "Mm_kNm": 9153.7,
+          "theta_c": 0.000361,
+          "theta_y": 0.005959,
+          "theta_m1": 0.020116,
+          "theta_m2": 0.053005
+        }
+      },
+      "footnote": "※1 初期荷重時"
+    },
+    "table_2_2_7": {
+      "printed": "IV-26",
+      "pdf": "2of3",
+      "pdf_index": 181,
+      "table": "表2.2.7 杭とフーチングの結合部の部材性能のまとめ（線路直角方向）",
+      "element": 47,
+      "section": "φ800（75/650/75）",
+      "values": {
+        "rho_m=1.0": {
+          "rho_m": 1.0,
+          "R_mm": 400,
+          "La_mm": 800,
+          "axial_rebar": "D38-16",
+          "Nd_kN_initial": 4628.3,
+          "Mcr_kNm": 629.9,
+          "My_kNm": 5212.1,
+          "Mm_kNm": 5334.8,
+          "theta_c": 0.00036,
+          "theta_y": 0.004586,
+          "theta_m1": 0.01533,
+          "theta_m2": 0.049524
+        },
+        "rho_m=1.2": {
+          "rho_m": 1.2,
+          "R_mm": 400,
+          "La_mm": 800,
+          "axial_rebar": "D38-16",
+          "Nd_kN_initial": 4628.3,
+          "Mcr_kNm": 629.9,
+          "My_kNm": 4721.1,
+          "Mm_kNm": 6099.8,
+          "theta_c": 0.00036,
+          "theta_y": 0.004655,
+          "theta_m1": 0.053045,
+          "theta_m2": 0.055351
+        }
+      },
+      "footnote": "※1 初期荷重時",
+      "caution": "ρm=1.2 の My 4721.1（ρm=1.0 より小）と θm1 0.053045 は印字どおり。誤植の疑い（notes）"
+    }
+  },
+  "bearing_and_ground": {
+    "printed": "IV-26",
+    "pdf": "2of3",
+    "pdf_index": 181,
+    "bearing": "2.3 支承部は剛体としてモデル化",
+    "ground": "2.4 地盤のモデル化は第III編 1.4 による"
+  }
+}

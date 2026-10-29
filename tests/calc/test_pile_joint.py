@@ -8,7 +8,7 @@ from dataclasses import replace
 import pytest
 
 from webpier.calc.pile_body import PileResponseError, PointForces, SectionForce, steel
-from webpier.calc.pile_joint import Side, assemble, section, select
+from webpier.calc.pile_joint import Side, assemble, confined_strength, section, select
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
 from webpier.inputs import parse_input
@@ -36,6 +36,16 @@ def test_the_section_is_what_the_example_prints_in_table_3_2_11():
     assert (found.diameter.value, found.thickness.value, found.corrosion.value) == (798.0, 17.0, 1.0)
     assert (found.bar_count, found.bar_area.value, found.bar_strength.value) == (16, 18240.0, 390.0)  # D38-16本
     assert (found.centroid.value, found.fck.value, found.pipe_strength.value) == (75.0, 27.0, 315.0)
+
+
+def test_the_confined_strength_of_the_fill_for_jrsnap_is_the_one_of_the_manual_from_f_ck():
+    """Decision 122: JRSNAP's 接合部圧縮強度 of the joint (manual 表2-55 ⑭: the strength of the fill confined by the pipe, which
+    it then takes with γc 1.0) for the 抜け出し ΔLy of 杭体設計の手引き 解(2.4-10), as 解(2.4-2) with f'ck: σ'1 = 2 t fsyd / (D − 2t)
+    = 2 × 17 × 315 / 1.05 / (798 − 34) = 13.3508, σ'1 / f'ck = 0.494474, f'cck = 27 × (2.254 √(1 + 7.94 × 0.494474)
+    − 2 × 0.494474 − 1.254) = 27 × 2.759776 = 74.51."""
+    pier = example4()
+    found = confined_strength(section(pier, steel(pier)))
+    assert (found.value, found.digits, found.unit) == (74.5, 1, "N/mm2")
 
 
 def test_the_bar_area_follows_the_diameter_and_the_count():

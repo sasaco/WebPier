@@ -13,6 +13,8 @@ post/
 # Example橋脚4 の生成物は追跡する（決定100）
 !.claude/docs/Example橋脚4/output/
 !.claude/docs/Example橋脚4/post/
+# ただし JRSNAP の解析結果のフォルダーは追跡しない（1 ファイル 100MB を超え、合計 2.8GB。.ndu・Aggre-SE の成果物・付帯JSONは追跡する）
+.claude/docs/Example橋脚4/post/*_JRSNAP/
 
 # エディタの退避ファイルとカバレッジ
 *.bak

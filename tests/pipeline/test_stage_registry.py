@@ -484,16 +484,16 @@ def test_a_stage_that_waits_is_checked(stages, message):
 def test_the_frames_of_a_pile_foundation_wait_for_the_ground_and_the_direct_foundations_do_not():
     for foundation in ("場所打ち杭", "鋼管ソイルセメント杭"):
         piles = STAGES.for_foundation(foundation)
-        # the seismic stages of a 場所打ち杭 wait too: their NDU takes the seismic tables of the .sdc (decision 93)
-        # and its 0400: the 杭の構造細目 take 1/β of the .sdc (decision 98)
+        # the seismic stages wait too: their NDU takes the seismic tables of the .sdc (decisions 93 and 122)
+        # and a 場所打ち杭's 0400: the 杭の構造細目 take 1/β of the .sdc (decision 98)
         cast = foundation == "場所打ち杭"
-        waiting = (["0400"] if cast else []) + ["0610", "0620"] + (["0710", "0720"] if cast else [])
+        waiting = (["0400"] if cast else []) + ["0610", "0620", "0710", "0720"]
         assert [stage.id for stage in piles.stages if stage.after] == waiting
         assert piles.get("0610").after == piles.get("0620").after == ("0500",) and piles.get("0610").foundations == {}
         assert piles.deferred(piles.closure(("0620",))) == ("0620",)
     assert not any(stage.after for stage in STAGES.stages)
     assert set(STAGES.get("0610").foundations) == set(STAGES.get("0620").foundations) == {"場所打ち杭", "鋼管ソイルセメント杭"}
-    assert set(STAGES.get("0710").foundations) == set(STAGES.get("0720").foundations) == {"場所打ち杭"}
+    assert set(STAGES.get("0710").foundations) == set(STAGES.get("0720").foundations) == {"場所打ち杭", "鋼管ソイルセメント杭"}
 
 
 def test_a_stage_that_reads_a_waiting_stage_waits_too():
@@ -504,10 +504,10 @@ def test_a_stage_that_reads_a_waiting_stage_waits_too():
 def test_the_frame_analyses_of_a_pile_foundation_wait_and_have_their_own_stage():
     for foundation in ("場所打ち杭", "鋼管ソイルセメント杭"):
         piles = STAGES.for_foundation(foundation)
-        seismic = ["0710", "0711", "0720", "0721"] if foundation == "場所打ち杭" else []
+        cast = foundation == "場所打ち杭"
         assert [stage_id for stage_id in piles.ids if piles.waits(stage_id)] == [
-            *(["0400"] if seismic else []), "0610", "0611", "0612", "0620", "0621", "0622", *seismic, "0800", "0810", "0820",
-            *(["0900", "0910"] if seismic else [])]
+            *(["0400"] if cast else []), "0610", "0611", "0612", "0620", "0621", "0622", "0710", "0711", "0720", "0721",
+            "0800", "0810", "0820", "0900", "0910"]
         assert piles.get("0612").depends_on == ("0500", "0610") and piles.get("0612").complete is not None
         assert piles.get("0612").frame_analysis.files == STAGES.get("0612").frame_analysis.files  # shared with 0611
         assert piles.get("0612").stem == "0612_線路方向基礎" and piles.get("0622").stem == "0622_直角方向基礎"

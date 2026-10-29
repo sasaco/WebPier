@@ -346,16 +346,17 @@ def test_the_contract_is_the_registry(capsys):
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
         "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
         "transverse_nonlinear_analysis", "footing"]
-    # decision 93: 0710 and 0720 of piles are made for the 場所打ち杭 only so far
-    assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic")] == [
-        ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭"]]
+    # decisions 93 and 122: 0710〜0721 of both piles; the footing of the 場所打ち杭 only so far
+    assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic", "footing")] == [
+        ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭", "鋼管ソイルセメント杭"], ["場所打ち杭"]]
     assert "post/線路直角方向_逆向.ndu" in [item["path"] for item in outputs["transverse_seismic"]["pileFoundation"]["files"]]
     # decision 94: their analyses and Aggre-SE's checks, without the step table of the direct foundation
     for key, stem in (("longitudinal_nonlinear_analysis", "線路方向"), ("transverse_nonlinear_analysis", "線路直角方向")):
         piles = outputs[key]["pileFoundation"]
         paths = [item["path"] for item in piles["files"]]
         # decision 97: SoilStructure for an input on G3〜G5, which the contract cannot tell
-        assert piles["foundations"] == ["場所打ち杭"] and set(piles["runners"]) == {"jrsnap", "aggrese", "soilstructure"}
+        assert piles["foundations"] == ["場所打ち杭", "鋼管ソイルセメント杭"]
+        assert set(piles["runners"]) == {"jrsnap", "aggrese", "soilstructure"}
         assert {f"post/{stem}_JRSNAP", f"post/{stem}.xml", f"post/{stem}_Aggre-SE.pik", f"post/{stem}_Aggre-SE.xlsx"} <= set(paths)
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" not in paths
         assert f"post/{stem}_Aggre-SE_直接基礎.csv" in [item["path"] for item in outputs[key]["files"]]

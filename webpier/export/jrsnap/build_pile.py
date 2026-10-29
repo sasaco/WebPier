@@ -34,6 +34,8 @@ from typing import Any
 
 from ...calc._exact import d, put
 from ...calc.column_rebar import ColumnLayout, yield_strength
+from ...calc.pile_body import steel
+from ...calc.pile_joint import confined_strength, section as joint_section
 from ...calc.frame import NodeRole
 from ...calc.ground_displacement import GroundDisplacement
 from ...calc.response_displacement import ResponseCase
@@ -46,11 +48,12 @@ from ...inputs import PierInput, choices
 from ...inputs.rebar import LENGTH_MM
 from . import build
 from .model import Combination, Joint
-from .pile_build import pile_row_parts, row_title
-from .pile_model import (COLUMN, EDSPX, M_THETA, RIGID, FrameElement, GroundLoad, Member, NonLinear, PileNduModel,
-                         PileSection)
-from .pile_records import pile_section_records
-from .profile import LOAD_DIVISIONS, NONLINEAR_TITLE, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO, SAFETY_K, Profile
+from .pile_build import SteelHead, pile_row_parts, row_title, steel_row_parts
+from .pile_model import (COLUMN, EDSPX, M_THETA, RIGID, FrameElement, GroundLoad, JointHeadSection, Member, NonLinear,
+                         PileNduModel, PileSection, PipeSection)
+from .pile_records import joint_section_records, pile_section_records, pipe_section_records
+from .profile import (JOINT_SAFETY, LOAD_DIVISIONS, NONLINEAR_TITLE, PIPE_SAFETY, SAFETY_BEFORE, SAFETY_GBS, SAFETY_GBVO,
+                      SAFETY_K, Profile)
 from .records import column_section_records
 from .section import column_section, need
 
@@ -98,6 +101,26 @@ def pile_sections(pier: PierInput, profile: Profile, diameter: Printed) -> tuple
             hoop_yield=yield_strength(transverse), hoop_diameter=hoop_diameter, hoop_legs=2 * sets, hoop_pitch=pitch,
             safety=safety))
     return tuple(sections), ends[:-1]
+
+
+JOINT = "杭基礎.鋼管ソイルセメント杭.結合部"
+
+
+def steel_sections(pier: PierInput) -> tuple[JointHeadSection, PipeSection]:
+    """The joint and the pipe of a 鋼管ソイルセメント杭 (decision 122): the pipe less the corrosion (D − 2c, t − c, example IV-14) of
+    its f_syk; the joint of the radius of the pipe, D/2 (表2.2.6), with its anchor bars and its fill."""
+    pipe = steel(pier)
+    joint = joint_section(pier, pipe)
+    found = pier.piles.steel_soil_cement
+    aggregate = need(found.joint.fill_aggregate_max, f"{JOINT}.粗骨材の最大寸法")
+    radius = put(LENGTH_MM, d(found.steel_diameter) * 500)
+    return (JointHeadSection(title=f"結合部(R{radius.value:g})", radius=radius, thickness=pipe.thickness, fck=joint.fck,
+                             confined=confined_strength(joint),
+                             aggregate_max=aggregate, bar_yield=joint.bar_strength, center=joint.centroid,
+                             bar_diameter=joint.bar_diameter, bar_count=joint.bar_count, pipe_yield=pipe.fsyk,
+                             safety=JOINT_SAFETY),
+            PipeSection(title=f"鋼管杭(φ{pipe.diameter.value:g}×t{pipe.thickness.value:g})", diameter=pipe.diameter,
+                        thickness=pipe.thickness, yield_strength=pipe.fsyk, safety=PIPE_SAFETY))
 
 
 def _front(profile: Profile, reverse: bool) -> int:
@@ -149,8 +172,7 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
     """*seismic* is a SeismicLongitudinalResult or a SeismicTransverseResult of the same input on piles; *reverse* the NDU of
     the reversed (逆向) combinations; *liquefied* the NDU for the liquefaction, whose *springs* are those of the .sdc for it;
     *combination* the one combination of the NDU in place of those of *seismic* (the 応答変位法, decision 97)."""
-    if pier.substructure.foundation != choices.CAST_IN_PLACE_PILE:
-        raise InputError("地震時の杭基礎の NDU は場所打ち杭だけに対応します（鋼管ソイルセメント杭は未対応です、決定93）")
+    cast = pier.substructure.foundation == choices.CAST_IN_PLACE_PILE
     frame = seismic.frame
     group = frame.piles
     assert group is not None  # the frame of a pile foundation
@@ -176,7 +198,13 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
     column = column_section(profile, pier, layout, frame, build._control(frame, profile))
     nonlinear = [NonLinear(section=1, model=M_THETA, failure=1, ends=(1, 1), depth_piles=1, title=NONLINEAR_TITLE)]
     diameter = group.section.diameter
-    pile_sections_, boundaries = pile_sections(pier, profile, diameter)
+    if cast:
+        pile_sections_, boundaries = pile_sections(pier, profile, diameter)
+        records = tuple(tuple(pile_section_records(number, s)) for number, s in enumerate(pile_sections_, 2))
+    else:
+        joint, pipe = steel_sections(pier)
+        boundaries = []
+        records = (tuple(joint_section_records(2, joint)), tuple(pipe_section_records(3, pipe)))
     ends = [LENGTH(float(end)) for end in boundaries]
 
     def section(depth: Printed) -> int:
@@ -192,7 +220,7 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
     for index, (row, nodes) in enumerate(zip(rows, frame.pile_nodes)):
         column_number = index + 1 if forward else len(rows) - index
         front = rows[0].x if forward else rows[-1].x
-        if abs(abs(d(row.x) - d(front)) - Decimal(repr(direction.distances[column_number - 1]))) > DISTANCE_TOLERANCE:
+        if direction.distances and abs(abs(d(row.x) - d(front)) - Decimal(repr(direction.distances[column_number - 1])))                 > DISTANCE_TOLERANCE:
             raise InputError(f".sdc の{group.direction}の杭列 {column_number} の位置（先頭の列から"
                              f"{direction.distances[column_number - 1]} m）が入力の杭の列の位置と違います")
         if direction.depth_piles[column_number - 1] != row.piles:
@@ -200,10 +228,17 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
                              f"（{direction.depth_piles[column_number - 1]}）が入力の杭の列（{row.piles}本）と違います")
         model = pile_row(direction, column_number, diameter)
         head = of_frame[nodes.head]
-        parts = pile_row_parts(model, member=len(members) + 1, head_joint=head, first_joint=next_joint, x=row.x,
-                               top=placed[head].y, rigid=None, first_element=len(frame_elements) + 1,
-                               first_nonlinear=len(nonlinear) + 1, section=section, zone=zone, title=row_title(row.piles))
-        next_joint += len(model.nodes) - 1
+        if cast:
+            parts = pile_row_parts(model, member=len(members) + 1, head_joint=head, first_joint=next_joint, x=row.x,
+                                   top=placed[head].y, rigid=None, first_element=len(frame_elements) + 1,
+                                   first_nonlinear=len(nonlinear) + 1, section=section, zone=zone,
+                                   title=row_title(row.piles))
+        else:
+            parts = steel_row_parts(model, member=len(members) + 1, head_joint=head, first_joint=next_joint, x=row.x,
+                                    top=placed[head].y, first_element=len(frame_elements) + 1,
+                                    first_nonlinear=len(nonlinear) + 1, head=SteelHead(2, 3, diameter),
+                                    title=row_title(row.piles))
+        next_joint += len(parts.joints)
         placed.update({joint.number: joint for joint in parts.joints})
         members.append(parts.member)
         frame_elements += parts.elements
@@ -216,8 +251,7 @@ def build_pile_ndu(profile: Profile, pier: PierInput, layout: ColumnLayout, seis
         case = build._case(number, action, profile, elements, regions)
         loads = sorted((replace(load, node=of_frame[load.node]) for load in case.joint_loads), key=lambda load: load.node)
         cases.append(replace(case, joint_loads=tuple(loads)))
-    sections = (tuple(column_section_records(1, column)),
-                *(tuple(pile_section_records(number, s)) for number, s in enumerate(pile_sections_, 2)))
+    sections = (tuple(column_section_records(1, column)), *records)
     return PileNduModel(
         profile=profile, analysis=build._analysis(pier, profile), control=control, origin=of_frame[top.number],
         joints=tuple(placed[number] for number in sorted(placed)), members=tuple(members), elements=tuple(frame_elements),

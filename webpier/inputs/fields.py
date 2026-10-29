@@ -311,6 +311,10 @@ def _jrsnap() -> dict[str, Field]:
         # May be absent or blank: 1.00 (decision 112).
         table[f"{direction}.max_seismic_coefficient"] = number(SEISMIC_COEFFICIENT, "positive", nullable=True,
                                                                limit=at_most(SEISMIC_COEFFICIENT_MAX))
+        # May be absent or blank: the pitch of the column's hoop row (decision 122). The 帯鉄筋 and the せん断補強鉄筋 of
+        # JRSNAP's section of the column (SectSher 1〜4 and 7〜10).
+        table[f"{direction}.hoop_pitch_mm"] = number(LENGTH_MM, "positive", nullable=True)
+        table[f"{direction}.shear_reinforcement_pitch_mm"] = number(LENGTH_MM, "positive", nullable=True)
     return table
 
 

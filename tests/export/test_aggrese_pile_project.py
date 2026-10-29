@@ -209,3 +209,18 @@ def test_a_case_for_the_liquefaction_needs_the_index():
     model = replace(sample_model(), combinations=combinations((1.0, 1.0)))
     with pytest.raises(InputError, match="液状化指数"):
         build_pile_project([model], with_index(None), liquefied=[model])
+
+
+def test_the_project_of_a_steel_pile_takes_the_column_alone_and_the_joint_and_the_pipe_as_members_of_the_pile_type():
+    """Decision 122: the M-θ micro member of the joint of each row is not the column; a row's reaction is taken at its head
+    joint (on the footing base, the i end of the joint), and the joint (501) and the pipe (62) are the two sections of the
+    piles, each a member of the 杭 type."""
+    from steel_pile_ndu_support import chain, model as steel_model
+    found = steel_model()
+    project = build_pile_project([found], chain()[0])
+    members = {member.number: member for member in found.members}
+    assert [(row.head, row.piles) for row in project.pile_rows] == [(members[p.member].i, 3) for p in found.piles]
+    column = next(e for e in found.elements if e.kind == COLUMN and e.nonlinear == 1)
+    assert project.footing_joint == column.j and project.pile_sections == 2 and project.anchor_bar is None
+    ours = tree(write_project(project, tuple(f"F/{n}.DB1" for n in range(len(project.cases)))))
+    assert items(ours, "Element/_dgLimitLevel_type") == ["2", "4", "4"]

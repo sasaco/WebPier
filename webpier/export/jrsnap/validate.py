@@ -362,9 +362,10 @@ class _Validator:
         if span < MIN_SHEAR_SPAN_RATIO * depth:
             raise _error("SectInfo1: La/d ≧ 1.25 が必要です（1.25 未満は低せん断スパン部材）")
         hoop = f.fields("SectSher1", Num(min(STEEL_GRADES), max(STEEL_GRADES), integer=True), POSITIVE,
-                        Num(1, integer=True), POSITIVE, 0, 0, *(Num(),) * 4)
-        if hoop[0] not in STEEL_GRADES or hoop[:4] != hoop[6:]:
-            raise _error("SectSher1: 帯鉄筋とせん断補強鉄筋は同じ1組の値（強度295・345・390・490）が必要です")
+                        Num(1, integer=True), POSITIVE, 0, 0, *(Num(),) * 3, POSITIVE)
+        # the 帯鉄筋 and the せん断補強鉄筋 are the hoop row's bars; their pitches may differ (decision 122)
+        if hoop[0] not in STEEL_GRADES or hoop[:3] != hoop[6:9]:
+            raise _error("SectSher1: 帯鉄筋とせん断補強鉄筋は同じ鉄筋（強度・径・有効本数）が必要です（強度は295・345・390・490）")
         f.fields("SectSafe1", *SAFETY_BEFORE, FACTOR, FACTOR, SAFETY_GBS, SAFETY_K, FACTOR, SAFETY_GBVO)
 
     def _supports(self) -> None:

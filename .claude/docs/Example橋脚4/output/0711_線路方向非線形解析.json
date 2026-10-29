@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "stage": "0711",
+  "input": {
+    "file": "input.json",
+    "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
+  },
+  "implementation_sha256": "a205244942e1ee46a47d59c16774cdf951b687f0038277dd92af85f7f56ce438",
+  "result": {
+    "minimum": null,
+    "response": {
+      "inertia": {
+        "case": 1,
+        "name": "線路方向(Case1_ρm10_αf1_正向)",
+        "teq": 1.118,
+        "kheq": 0.412,
+        "kh_l1": 0.378,
+        "kh_l2": 0.431
+      },
+      "corrections": [
+        {
+          "level": "L1",
+          "teq": 1.118,
+          "tg": 0.5364,
+          "alpha_g": 0.7,
+          "alpha": 1.459,
+          "upper": 0.3,
+          "lower": -0.7,
+          "kh": 0.378,
+          "kheq": 0.412,
+          "yielded": false
+        },
+        {
+          "level": "L2",
+          "teq": 1.118,
+          "tg": 0.5364,
+          "alpha_g": 0.5,
+          "alpha": 1.042,
+          "upper": 0.42,
+          "lower": -0.58,
+          "kh": 0.431,
+          "kheq": 0.412,
+          "yielded": true
+        }
+      ],
+      "cases": [
+        {
+          "level": "L1",
+          "number": 1,
+          "inertia": 1.0,
+          "displacement": 0.3,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 2,
+          "inertia": 1.0,
+          "displacement": -0.7,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 3,
+          "inertia": 0.3,
+          "displacement": 1.0,
+          "kh": 0.378
+        },
+        {
+          "level": "L1",
+          "number": 4,
+          "inertia": -0.7,
+          "displacement": 1.0,
+          "kh": 0.378
+        },
+        {
+          "level": "L2",
+          "number": 1,
+          "inertia": 1.0,
+          "displacement": 1.0,
+          "kh": 0.431
+        },
+        {
+          "level": "L2",
+          "number": 2,
+          "inertia": 1.0,
+          "displacement": -0.58,
+          "kh": 0.431
+        },
+        {
+          "level": "L2",
+          "number": 4,
+          "inertia": -0.58,
+          "displacement": 1.0,
+          "kh": 0.431
+        }
+      ],
+      "first_case": 5
+    }
+  },
+  "seismic_check": {
+    "engine": "aggrese",
+    "engine_version": "1.0.0+24cb82481be1b229b9b5e72e2e82df3383f6bddc",
+    "engineering_status": "not_evaluated",
+    "cases": [
+      {
+        "caseNumber": 1,
+        "name": "線路方向(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 2,
+        "name": "線路方向(Case2_ρm12_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 3,
+        "name": "線路方向(Case3_ρm10_αf2_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 4,
+        "name": "線路方向(Case4_ρm12_αf2_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 5,
+        "name": "線路方向_応答変位法_L1-1(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 6,
+        "name": "線路方向_応答変位法_L1-2(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 7,
+        "name": "線路方向_応答変位法_L1-3(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 8,
+        "name": "線路方向_応答変位法_L1-4(Case1_ρm10_αf1_逆向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 9,
+        "name": "線路方向_応答変位法_L2-1(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 10,
+        "name": "線路方向_応答変位法_L2-2(Case1_ρm10_αf1_正向)",
+        "aggregated": true
+      },
+      {
+        "caseNumber": 11,
+        "name": "線路方向_応答変位法_L2-4(Case1_ρm10_αf1_逆向)",
+        "aggregated": true
+      }
+    ],
+    "project": {
+      "file": "線路方向.xml",
+      "sha256": "e3802ca770a1b1cc0fef7f8ad833a0be0cb1e583ed4cd3ced6d7fa3103b54427"
+    },
+    "jrsnap": {
+      "file": "線路方向_JRSNAP",
+      "sha256": "47f2ad935b7e54194f1dd8f658cf6bfe7af14b1d311f64065c4ea3ba2684d911"
+    },
+    "limits": {
+      "stage": "0500",
+      "kind": "sdr",
+      "sha256": "671b63846788fac62a27cd2c24cfdedfccb8f190d4c8f6615fc0e9bc466a0152",
+      "direction": "axial"
+    },
+    "files": {
+      "pik": {
+        "file": "線路方向_Aggre-SE.pik",
+        "sha256": "b774c8ec54b272921f7764bbac4d77887ba38871fc972995bd5135cc2cd4a5d3"
+      },
+      "xlsx": {
+        "file": "線路方向_Aggre-SE.xlsx",
+        "sha256": "e5f97c0384c8ffc692d2b6a28b76afc12c2c82d54daaa01d4bd1a473022f7f3f"
+      }
+    }
+  }
+}

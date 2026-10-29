@@ -30,6 +30,15 @@ description: WebPier が JRSNAP を使う実装と決定を扱う。0710・0720 
 - 液状化する地層のある入力（決定95、P6c）：0710・0720 が液状化時用の NDU も書き（`Export.liquefied`、`stages._with_seismic_piles`、`build_pile_ndu(..., liquefied=True)`：ばねは `parse_seismic(..., liquefied=True)` で読む液状化時用の .sdc〔表は通常と同じで 液状化時 と 地震時 の見出しだけ違う〕、組合せは ρm 1.0・αf 1.0 の 1 つ）、0711・0721 の解析にそれらも入る（`NonlinearAnalysis.also` の `jrsnapliquefied`・`jrsnapliquefiedreverse`、`generate._sources` が入力で絞る）。`耐震設計条件.液状化指数` が空なら 0711・0721 は入力エラー（`stages._liquefaction_index`）。受入：`scripts/accept_pile_liquefaction.py`。
 - 地盤変位（応答変位法、決定97、P6d）：地盤区分 G3〜G5 の杭基礎。0710・0720 は SoilStructure の runner（`pipeline/soilstructure.py`）で Tg・f(z) を杭の節点の深さで求め（`stages.GroundDisplacementRun`、`generate._displace`。層は節点の深さでも切って渡す）、結果の `ground_displacement` に持つ。0711・0721 は 1 回目の Aggre-SE の後に Case ごとの NDU（`build_pile.response_ndu`：荷重増分の DataInfo〔第2欄 2、LiMiT5＝LiMiT6＝最大応答震度×1000〕、`ELoadInfo` に杭の全節点の EDSPX〔m、小数5桁、押す向きを正〕、SNAPConb の ELoad 旗、慣性力の基本ケースの係数に |ν|。④ νL Ra＋f は逆向の組合せで |νL| Ra と −f）を書いて JRSNAP で解析する（`generate._respond`、NDU も `…_JRSNAP/` に置く）。ED は JOT 連携（OT）と同じ解析になることを見本 R-7 で確かめた（決定97 最初の実験。いまの runner は work.wk3 の JOT のパスを空で書くので OT は効かない）。
 
+## 鋼管ソイルセメント杭の 0710〜0721（決定122、P10a。2026-10-29）
+
+- 鋼管杭は JRSNAP の断面形状 **8（鋼部材（円形））の適用種別 鋼管杭**（`SectInfo` 第3＝1）。9 は画面が作らない番号で解析できない。結合部は 501（鋼管杭接合部、M-θ）。行の書き方と自動算定の確かめはスキル structural-jrsnap-ndu `references/section-fields.md`。
+- `build_pile.steel_sections`（断面 2＝結合部 `JointHeadSection`、3＝鋼管 `PipeSection`）と `pile_build.steel_row_parts`（杭列の先頭に材端回転ばね 0.01 m〔`COLUMN`〕、剛域〔`RIGID`、地盤ばねあり〕を合わせて 1.0D、その下を鋼管杭〔`PILE`、M-φ、端 0,0〕。材端回転ばねも `KGInfo` の範囲に入れ、最初の要素の地盤ばねを 0.01 m で切って持たせる。JRSNAP は M-θ 要素の地盤ばねを使わない）。剛域の下端に節点がなければ入力エラー。`pile_validate` は杭列の範囲の種類を「材端回転ばね・剛域・杭」の順で検査する。
+- 結合部の `SectConc` 第4（接合部圧縮強度）に f'cck（`calc.pile_joint.confined_strength`、f'ck から）を書く。0 のままだと θy・θm が見本の約 2 倍（JRSNAP が ΔLy に f'cd を使う）。Y点上昇係数 0.9（`profile.JOINT_SAFETY`）で見本の My を再現。安全係数は `PIPE_SAFETY`・`JOINT_SAFETY`。
+- .sdc は格子・千鳥の `全列`・`奇数列`／`偶数列` の形も読む（`sdc_seismic._direction`：各杭列に列を広げ、c）は前面からの位置の列。杭列の位置がないので照合しない）。
+- 場所打ち杭の `SectInfo` 第6は内周半径、作用軸力は第11（決定122 で直した。バイトは同じ）。
+- 受入：見本 Example橋脚4 の 0710〜0721 を本物の runner で（`tests/fixtures/example4/seismic_*_notes.md`）。
+
 ## 杭基礎の 0710・0720（決定93、P6a。2026-10-25）
 
 - NDU は `webpier/export/jrsnap/build_pile.py` の `build_pile_ndu(profile, pier, layout, seismic, springs, *, reverse=False)`（部品は `pile_model.py`・`pile_build.py`・`pile_records.py`・`pile_validate.py`、書出しは `writer.write_pile_ndu`）。要素分割とばねは `calc/pile_seismic.py`（厳密な Decimal）、.sdc の読取りは `export/soiljr/sdc_seismic.py`。規則・見本との対応・欄の意味は `.claude/docs/plans/pile-ndu-fields.md`、決定93。

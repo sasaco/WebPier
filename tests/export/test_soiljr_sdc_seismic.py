@@ -73,10 +73,49 @@ def test_a_direction_the_file_does_not_have_is_an_error():
         seismic("pile_s53").direction("斜め方向")
 
 
-@pytest.mark.parametrize("name", ["pile_steel_grid", "pile_steel_staggered"])
-def test_only_a_layout_that_lists_its_rows_is_read(name):
-    with pytest.raises(SdcError, match="杭の列を並べた配置"):
-        seismic(name)
+def test_a_layout_of_equal_rows_gives_each_row_the_one_column_and_the_pressure_of_its_place_from_the_front():
+    """Decision 122: ``pile_steel_grid`` is what SOIL-JR 5.2 returned for Example橋脚4 (a regular grid, K_FLG 0): b) and d)〜g)
+    have one column (全列) and c) the 1列目, 2列目 and 3列目以降 from the front of the push; each row of the model gets its own
+    column, the springs of the one column and the pressures of its place. The rows are not listed, so there are no distances."""
+    along = seismic("pile_steel_grid").direction("橋軸方向")
+    assert (along.rows, along.columns, along.depth_piles, along.inverse_beta) == (2, ("1列目", "2列目"), (3, 3), 4.027)
+    assert along.distances == ()
+    first = along.layers[0]
+    assert (first.number, first.thickness, first.horizontal) == (1, 3.75, (56833.0, 56833.0))  # 短期(非線形解析)
+    assert (first.pressure_upper, first.pressure_lower) == ((1188.6, 1188.6), (1620.0, 1620.0))
+    assert first.push.length == 0.0 and first.push.first == (27067.0, 27067.0) and first.push.second == (943.0, 943.0)
+    second = along.layers[1]
+    assert second.push.length == 7.223 and second.push.yield_load == (580.6, 580.6) and second.push.ultimate == (686.1, 686.1)
+    assert along.layers[4].pull.length == 1.0 and along.layers[4].push.length == 0.0
+    assert along.tip.first == (1064491.0,) * 2 and along.tip.second == (33290.0,) * 2
+    assert along.tip.yield_load == (6997.9,) * 2 and along.tip.ultimate == (10108.1,) * 2
+    across = seismic("pile_steel_grid").direction("直角方向")
+    assert (across.rows, across.columns, across.depth_piles) == (3, ("1列目", "2列目", "3列目"), (2, 2, 2))
+    third = across.layers[2]
+    assert third.horizontal == (74311.0,) * 3
+    assert third.pressure_upper == (2267.1, 1813.7, 1587.0) and third.pressure_lower == (2609.9, 2087.9, 1826.9)
+
+
+def test_a_staggered_layout_gives_the_odd_and_the_even_rows_their_columns():
+    """``pile_steel_staggered`` (3 rows, 2 and 1 piles in the depth): b) and d)〜g) by 奇数列 and 偶数列, c) the 1列目, 2列目,
+    3列目以降奇数列 and 4列目以降偶数列."""
+    along = seismic("pile_steel_staggered").direction("橋軸方向")
+    assert (along.rows, along.columns, along.depth_piles) == (3, ("1列目", "2列目", "3列目"), (2, 1, 2))
+    first = along.layers[0]
+    assert first.horizontal == (85397.0, 42699.0, 85397.0)
+    assert first.pressure_upper == (1045.8, 261.5, 418.3) and first.pressure_lower == (1477.5, 369.4, 591.0)
+    assert along.tip.first == (1127356.0, 563678.0, 1127356.0) and along.tip.second == (63743.0, 31871.0, 63743.0)
+
+
+def test_a_layout_of_unequal_rows_without_its_list_or_its_places_is_an_error():
+    grid = text("pile_steel_grid")
+    with pytest.raises(SdcError, match="杭の列の配置（別列）に対応していません"):
+        parse_seismic(encoded(grid.replace(",,長期,短期(線形解析),短期(非線形解析)",
+                                           ",,長期-別列,短期(線形解析)-別列,短期(非線形解析)-別列", 1)))
+    with pytest.raises(SdcError, match="橋軸方向: c）に列の見出しがありません"):
+        parse_seismic(encoded(grid.replace(",,1列目,,2列目,,3列目以降", ",,前,,中,,後", 2)))
+    with pytest.raises(SdcError, match="直角方向: c）に杭列 3 の列がありません（1列目,2列目,後列）"):
+        parse_seismic(encoded(grid.replace(",,1列目,,2列目,,3列目以降", ",,1列目,,2列目,,後列")))
 
 
 def test_what_is_not_an_sdc_of_sdc_5_2_or_5_3_is_refused():

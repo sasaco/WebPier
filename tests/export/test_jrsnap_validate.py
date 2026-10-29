@@ -151,7 +151,7 @@ CASES = {
     "steel grade": (field("SectJiku1", 1, "300"), "SectJiku1: 主鉄筋の強度は295・345・390"),
     "unequal spacing": (field("SectJiku1", 6, "140"), "上下面の間隔は同じ値"),
     "rebar outside": (field("SectRein1-11", 1, "2690"), "SectRein1-11: 鉄筋が断面内にあることが必要です"),
-    "hoop halves": (field("SectSher1", 9, "6"), "SectSher1: 帯鉄筋とせん断補強鉄筋は同じ1組の値"),
+    "hoop halves": (field("SectSher1", 9, "6"), "SectSher1: 帯鉄筋とせん断補強鉄筋は同じ鉄筋（強度・径・有効本数）"),
     "hoop grade": (setting("SectSher1", "300,22,10,150,0,0,300,22,10,150"), "SectSher1: 帯鉄筋"),
     "safety factor": (field("SectSafe1", 7, "0"), "SectSafe1 第7欄: 範囲外です"),
     "safety constant": (field("SectSafe1", 12, "1.2"), "SectSafe1 第12欄: 1.3 が必要です"),

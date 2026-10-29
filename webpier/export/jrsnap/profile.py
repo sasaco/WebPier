@@ -38,6 +38,12 @@ STEEL_MODULUS = 200  # Es, kN/mm2
 # SectSafe without the three input factors: GC, GR, GS, GB1, GB2, GB23, (GBC), (GBV), GBS, K, (GBVD), GBVO.
 SAFETY_BEFORE = (Decimal("1.3"), 1, Decimal("1.05"), 1, 1, Decimal("1.15"))
 SAFETY_GBS, SAFETY_K, SAFETY_GBVO = 0, Decimal("0.9"), Decimal("1.3")
+# Decision 122, a 鋼管ソイルセメント杭. SectSafe of the pipe (shape 8 of the kind 鋼管杭, manual 表2-54): -, -, γs, the member
+# factors of the damage levels 1〜3 (example IV-16: 1.0 and 1.1; JRSNAP warns 1.1 is the standard of levels 2 and 3), ALF1〜3,
+# the Y point raise (its default); and of the joint (shape 501, 表2-56): γc, γr, γs, the member factors 1.0, γb of the shear of
+# the pipe (JRSNAP warns 1.1 is the standard), -, -, the Y point raise k = 0.9 (the example's My of 表2.2.6, IV-10 図2.2.2).
+PIPE_SAFETY = (0, 0, Decimal("1.05"), 1, Decimal("1.1"), Decimal("1.1"), 1, 1, 1, Decimal("0.9"), 0, 0)
+JOINT_SAFETY = (Decimal("1.3"), 1, Decimal("1.05"), 1, 1, 1, Decimal("1.1"), 0, 0, Decimal("0.9"), 0, 0)
 SOIL_TYPE = 1  # FootInfo 砂質土系: c = 0, the bearing capacity from φ
 SANDY_SOILS = ("砂質土", "砂礫")
 ROTATION_KR2, ROTATION_KR3 = 2, 20  # FootInfo: KR2 and the reciprocal of the final slope ratio

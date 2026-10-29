@@ -120,8 +120,8 @@ def column_section_records(number: int, s: SectionData) -> Iterator[Record]:
     yield f"SectJiku{number}", (s.yield_strength, STEEL_MODULUS, 0, 0, s.main_pitch, s.main_pitch, 0, 0, 0)
     for index, row in enumerate(s.rows, 1):
         yield f"SectRein{number}-{index}", (row.center, row.diameter, row.count)
-    hoop = (s.shear.yield_strength, s.shear.diameter, s.shear.legs, s.shear.pitch)
-    yield f"SectSher{number}", (*hoop, 0, 0, *hoop)
+    bars = (s.shear.yield_strength, s.shear.diameter, s.shear.legs)
+    yield f"SectSher{number}", (*bars, s.shear.pitch, 0, 0, *bars, s.shear.shear_pitch)  # 帯鉄筋, せん断補強鉄筋
     yield f"SectSafe{number}", s.safety
 
 

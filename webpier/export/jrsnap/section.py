@@ -61,8 +61,11 @@ def _shear(profile: Profile, pier: PierInput) -> Shear:
     if row.start is not None or row.end is not None:
         raise InputError(f"{here}: 区間を指定した帯鉄筋は未対応です（柱全高で一様な1行が必要です）")
     material = need(column.materials.transverse, f"{_COLUMN}.materials.transverse")
+    pitch = need(row.pitch, f"{here}.pitch_mm")
+    conditions = getattr(pier.jrsnap, profile.jrsnap)  # decision 122: JRSNAP's own pitches when they are given
     return Shear(yield_strength=yield_strength(material), diameter=need(row.diameter, f"{here}.diameter_mm"),
-                 legs=need(row.effective_legs, f"{here}.effective_legs"), pitch=need(row.pitch, f"{here}.pitch_mm"))
+                 legs=need(row.effective_legs, f"{here}.effective_legs"), pitch=conditions.hoop_pitch or pitch,
+                 shear_pitch=conditions.shear_pitch or pitch)
 
 
 def column_section(profile: Profile, pier: PierInput, layout: ColumnLayout, frame: Frame, control: Node

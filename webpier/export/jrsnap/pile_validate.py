@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from .pile_model import PILE, RIGID, PileNduModel
+from .pile_model import COLUMN, PILE, RIGID, PileNduModel
 from .profile import LOAD_DIVISIONS
 from .validate import _error, _File
 
@@ -64,8 +64,14 @@ def check_model(model: PileNduModel) -> None:
                          "頭の剛な要素を除く）と合いません")
     for e in model.elements:
         in_pile = any(p.first <= e.number <= p.last for p in model.piles)
-        if (e.kind == PILE) != in_pile or (e.ground is not None) != in_pile:
+        if (e.kind == PILE and not in_pile) or (e.ground is not None) != in_pile:
             raise _error(f"要素 {e.number} の種類と地盤ばねが杭の要素の範囲と合いません")
+    for pile in model.piles:
+        # the pile elements, after the head of a 鋼管ソイルセメント杭: its joint's micro member and the rigid zone (decision 122)
+        kinds = [e.kind for e in model.elements[pile.first - 1:pile.last]]
+        head = kinds[:kinds.index(PILE)] if PILE in kinds else kinds
+        if not (head == [] or (len(head) > 1 and head[0] == COLUMN and set(head[1:]) == {RIGID})) or                 any(kind != PILE for kind in kinds[len(head):]) or len(head) == len(kinds):
+            raise _error(f"KGInfo の要素（{pile.first}〜{pile.last}）の種類が杭（結合部の材端回転ばね・剛域・杭の順）と合いません")
     nodes = [support.node for support in model.supports]
     if nodes != sorted(set(nodes)) or not set(nodes) <= joints:
         raise _error("支点の節点は、節点の中から昇順に重複なく並べる必要があります")

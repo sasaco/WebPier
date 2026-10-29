@@ -66,12 +66,13 @@ def test_the_ndu_is_the_one_of_the_piles(made):
     assert [lines[f"MemberKUI{n}"] for n in (11, 12, 13)] == ["1", "1", "1"]
 
 
-def test_a_steel_pile_foundation_does_not_make_0710_yet():
-    data = deepcopy(PILE)
-    data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
-    data["outputs"] = {key: key in ITEMS for key in data["outputs"]}
-    with pytest.raises(InputError, match="鋼管ソイルセメント杭は未対応です"):
-        parse_input(data)
+def test_a_steel_pile_foundation_may_choose_0710_and_0720():
+    """Decision 122 (P10a): the NDU of a 鋼管ソイルセメント杭 has its joint and its pipe."""
+    for chosen in (ITEMS, ("ground_model", "reactions", "transverse_seismic")):
+        data = deepcopy(PILE)
+        data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
+        data["outputs"] = {key: key in chosen for key in data["outputs"]}
+        assert parse_input(data).outputs
 
 
 def test_0720_has_a_second_ndu_for_the_reversed_combinations(tmp_path):

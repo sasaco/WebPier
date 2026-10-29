@@ -218,7 +218,9 @@ def test_a_pile_foundation_cannot_choose_an_item_it_cannot_make_yet(calculation)
     assert "場所打ち杭で選べる項目は、対応した段階から広がります" in page.foundation_note.get()
 
 
-def test_a_checked_item_stays_enabled_so_that_it_can_be_unchecked(calculation):
+def test_a_checked_item_stays_enabled_so_that_it_can_be_unchecked(calculation, monkeypatch):
+    # an item the 鋼管ソイルセメント杭 cannot make (0710 could not before decision 122)
+    monkeypatch.setattr(outputs, "CAST_IN_PLACE_ONLY", ("longitudinal_seismic", "footing"))
     calculation.select("下部構造")
     type_in(calculation, FOUNDATION, "鋼管ソイルセメント杭")
     page, disabled = states(calculation)

@@ -110,6 +110,17 @@ def test_the_maximum_seismic_coefficient_may_stay_blank_and_is_entered_at_two_di
     assert ("jrsnap_longitudinal", "max_seismic_coefficient") not in editor.bindings.refused
 
 
+def test_the_pitches_of_the_column_for_jrsnap_may_stay_blank_and_are_entered_in_mm(editor):
+    """Decision 122: the 帯鉄筋 and the せん断補強鉄筋 of JRSNAP's column; blank, the column's hoop row's pitch."""
+    hoop = jrsnap_cell(editor, "jrsnap_transverse", "hoop_pitch_mm")
+    shear = jrsnap_cell(editor, "jrsnap_transverse", "shear_reinforcement_pitch_mm")
+    assert hoop.sheet.get_cell_data(hoop.row, 0) == "柱の帯鉄筋の間隔" and hoop.get() == "" and shear.get() == ""
+    hoop.type("125")
+    shear.type("250")
+    assert editor.document.data["jrsnap_transverse"]["hoop_pitch_mm"] == 125.0
+    assert editor.document.data["jrsnap_transverse"]["shear_reinforcement_pitch_mm"] == 250.0
+
+
 def test_calculation_saves_runs_the_pipeline_checks_and_previews(editor, runner, tmp_path):
     jrsnap_cell(editor, "jrsnap_longitudinal", "shear_factor_vcd").type("2.1")
     assert editor.select(gui.CALCULATION)
@@ -147,7 +158,7 @@ def test_there_is_no_jrsnap_checkbox_and_the_settings_are_needed_by_the_seismic_
     shown = list(texts(editor.form))
     assert not any("両方向のJRSNAP入力ファイルも出力" in text for text in shown)
     assert ("線路方向の計算（地震時）を選ぶと線路方向の、線路直角方向の計算（地震時）を選ぶと線路直角方向の全項目が必要です。"
-            "空欄は補いません（最大震度だけは空欄なら 1.00）。") in shown
+            "空欄は補いません（最大震度は空欄なら 1.00、柱の帯鉄筋とせん断補強鉄筋の間隔は空欄なら柱の帯鉄筋の間隔）。") in shown
 
 
 def test_the_page_lists_the_output_items_with_their_stages(editor):

@@ -55,16 +55,17 @@ def column_section() -> tuple:
 SAFETY = (*SAFETY_BEFORE, Decimal("1.3"), Decimal("1.1"), SAFETY_GBS, SAFETY_K, Decimal("1.2"), SAFETY_GBVO)
 
 
-def pile_section(pitch: int, axial: Decimal | None = Decimal(210)) -> PileSection:
+def pile_section(pitch: int, inner: Decimal | None = Decimal(210)) -> PileSection:
+    """A pile section of the sample; its SectInfo has the 内周半径 210 (*inner*), which is not an axial force (decision 122)."""
     return PileSection(
-        title=f"杭(φ1000)：帯鉄筋ctc{pitch}", radius=printed(500, 0, "mm"),
-        axial_force=None if axial is None else printed(float(axial), 0, "kN"), fck=printed(30, 0, "N/mm2"),
+        title=f"杭(φ1000)：帯鉄筋ctc{pitch}", radius=printed(500, 0, "mm"), axial_force=None,
+        inner_radius=None if inner is None else printed(float(inner), 0, "mm"), fck=printed(30, 0, "N/mm2"),
         construction=-3, aggregate_max=printed(25, 0, "mm"), yield_strength=printed(345, 0, "N/mm2"),
         center=printed(156, 0, "mm"), diameter=printed(32, 0, "mm"), count=20, hoop_yield=printed(345, 0, "N/mm2"),
         hoop_diameter=printed(19, 0, "mm"), hoop_legs=2, hoop_pitch=printed(pitch, 0, "mm"), safety=SAFETY)
 
 
-def sample_model(axial: Decimal | None = Decimal(210)) -> PileNduModel:
+def sample_model(inner: Decimal | None = Decimal(210)) -> PileNduModel:
     direction = parse_seismic(SDC.read_bytes()).direction("橋軸方向")
     diameter = LENGTH(1.0)
     joints = [Joint(1, printed(0), printed(-9.493)), Joint(2, printed(0), printed(-1.493)),
@@ -90,7 +91,7 @@ def sample_model(axial: Decimal | None = Decimal(210)) -> PileNduModel:
         nonlinear += parts.nonlinear
         piles.append(parts.pile)
         supports += parts.supports
-    sections = tuple(tuple(pile_section_records(n, pile_section(pitch, axial))) for n, pitch in ((2, 100), (3, 200)))
+    sections = tuple(tuple(pile_section_records(n, pile_section(pitch, inner))) for n, pitch in ((2, 100), (3, 200)))
     load = JointLoad(node=1, h=printed(0), n=printed(5762.4, 1), m=printed(0), label="上部工反力")
     case = LoadCase(1, "固定死荷重", 0, (), (load,))
     combination = Combination(rho_m=printed(1, 1), alpha_f=printed(1, 1), coefficients=(1,))

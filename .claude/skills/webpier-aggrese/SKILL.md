@@ -26,6 +26,11 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 - 制限値は runner が `--sdr <.sdr> --sdr-direction axial|transverse` で読む（`pipeline/aggrese.py: Limits`、`check_seismic(..., limits=)`）。`.sdr` は 0500 の結果（`PileGroundModel.sdr_source`）を一時ファイル `foundation.sdr` で渡す。杭基礎の runner の成果物は 4 つ（ステップ表なし）。
 - 受入：`scripts/accept_pile_nonlinear.py`（`pile_seismic.json` の 0711・0721 を本物の runner で生成、計算書の制限値が `.sdr` と同じことと、見本 RC橋脚L の結果に見本のプロジェクトと WebPier のプロジェクトを当てて安定レベル1が同じことを確かめる。記録 `tests/fixtures/acceptance/pile_nonlinear/`、テスト `tests/acceptance/test_pile_nonlinear_acceptance.py`）。
 
+## 鋼管ソイルセメント杭の 0711・0721（決定122、P10a。2026-10-29）
+
+- `build_pile_project`：柱は杭列の範囲（`KGInfo`）の外の M-θ 要素 1 つ（結合部の材端回転ばねは柱に数えない）。杭の断面は結合部（501）と鋼管（62）の 2 つで、どちらも部材照査タイプ 杭。杭頭反力の節点は杭列の最初の要素（材端回転ばね）の i 端＝杭頭。⑧ 杭の段落しは場所打ち杭だけ（`anchor_bar` を呼ばない）。
+- 段階（`stages._with_nonlinear_piles`）：鋼管ソイルセメント杭は `complete` が `PileSeismicResult(None, response)`（杭頭反力の最大値から定める最小鉄筋量を作らない）。計算書は応答変位法の頁（G3〜G5）と Aggre-SE の report.pdf だけ（`render_pile_seismic_check` の `minimum is None`）。
+
 ## 杭基礎の液状化時の Case（決定95、P6c。2026-10-25）
 
 - プロジェクトの Case は、通常の Case のあとに液状化時の NDU ごとに 1 Case（`build_pile_project(models, pier, liquefied=[...])`、`Project.liquefaction_cases`・`liquefaction_index`）。その Case は `dgEkijoCase21`・`dgEkijoCase2`（L2 のスペクトルⅠ・Ⅱ。`_rbSpec` が両方なので両方の旗。片方だけだと、その Case の応答値は片方のスペクトルだけで求まる）に -1、照査項目は `LIQUEFACTION_CHECKS`（②③⑤⑦⑨）、`_rbEkijo` は入力の液状化指数。`dgEkijoCase1`（L1 の液状化）は使わない。

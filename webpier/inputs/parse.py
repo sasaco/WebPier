@@ -347,16 +347,20 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
 JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "analysis_steps",
                "limited_final_step", "target_displacement_m")
 DEFAULT_MAX_SEISMIC = SEISMIC_COEFFICIENT(1.0)
+JRSNAP_PITCH_KEYS = ("hoop_pitch_mm", "shear_reinforcement_pitch_mm")
 
 
 def _jrsnap_conditions(root: Reader, key: str) -> JrsnapConditions:
-    node = root.at(key).only(*JRSNAP_KEYS, "max_seismic_coefficient")
+    node = root.at(key).only(*JRSNAP_KEYS, "max_seismic_coefficient", *JRSNAP_PITCH_KEYS)
     vcd, vsd, vdd, steps, limited, target = (read(node.at(name)) for name in JRSNAP_KEYS)
     if steps is not None and limited is not None and limited > steps:
         raise node.at("limited_final_step").error(f"analysis_steps（{steps}）以下が必要です")
     seismic = node.optional("max_seismic_coefficient")  # absent or blank is 1.00 (decision 112)
+    # absent or blank: the pitch of the column's hoop row (decision 122)
+    hoop, shear = (None if found is None else read(found) for found in map(node.optional, JRSNAP_PITCH_KEYS))
     return JrsnapConditions(vcd, vsd, vdd, steps=steps, limited_final_step=limited, target_displacement=target,
-                            max_seismic=DEFAULT_MAX_SEISMIC if seismic is None else read(seismic))
+                            max_seismic=DEFAULT_MAX_SEISMIC if seismic is None else read(seismic), hoop_pitch=hoop,
+                            shear_pitch=shear)
 
 
 def _seismic_design(root: Reader) -> SeismicDesign:

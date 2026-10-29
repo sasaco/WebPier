@@ -1039,8 +1039,8 @@ def _pile_ndu_model(stage_id: str, profile: NduProfile, results: Results, pier: 
 
 def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any], profile: NduProfile,
                         file_name: str, reverse_file_name: str | None = None) -> StageSpec:
-    """*stage* (0710 or 0720) with its stage for a 場所打ち杭: the frame on the piles, the NDU of the piles (decision 93) and the
-    figures JRSNAP draws of it. A stage with reversed combinations (0720) has a second NDU for them, *reverse_file_name*, and
+    """*stage* (0710 or 0720) with its stage for each pile foundation: the frame on the piles, the NDU of the piles (decision 93;
+    of a 鋼管ソイルセメント杭 with its joint and its pipe, decision 122) and the figures JRSNAP draws of it. A stage with reversed combinations (0720) has a second NDU for them, *reverse_file_name*, and
     the cases of the reversed push only are drawn from that one."""
     split = reverse_file_name is not None
 
@@ -1066,7 +1066,7 @@ def _with_seismic_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFo
                     jrsnap_figures=JrsnapFigures("jrsnap", figures(False), also), precheck=_ground_inputs,
                     ground_displacement=GroundDisplacementRun(lambda results, pier: _ground_depths(stage.id, profile,
                                                                                                    results, pier)))
-    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piles})
+    return replace(stage, foundations={foundation: piles for foundation in choices.PILE_FOUNDATIONS})
 
 
 def _ground_depths(stage_id: str, profile: NduProfile, results: Results, pier: PierInput) -> tuple[Decimal, ...]:
@@ -1154,9 +1154,10 @@ def _response(stage_id: str, profile: NduProfile, file_names: Sequence[str]) -> 
 
 def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, file_names: Sequence[str],
                           direction: str) -> StageSpec:
-    """*stage* (0711 or 0721) with its stage for a 場所打ち杭 (decision 94): JRSNAP analyzes each NDU of *source* (the one
-    of the reversed push too, when *file_names* has it) into the one folder, Aggre-SE checks the piles with the project of
-    all their Cases and the limits of SOIL-JR's .sdr in *direction*, and the direct foundation's step table is not made."""
+    """*stage* (0711 or 0721) with its stage for each pile foundation (decision 94): JRSNAP analyzes each NDU of *source* (the
+    one of the reversed push too, when *file_names* has it) into the one folder, Aggre-SE checks the piles with the project
+    of all their Cases and the limits of SOIL-JR's .sdr in *direction*, and the direct foundation's step table is not made.
+    A 場所打ち杭 has 杭頭反力の最大値から定める最小鉄筋量 (decision 98), a 鋼管ソイルセメント杭 not (decision 122)."""
     analysis, seismic = stage.nonlinear_analysis, stage.seismic_check
     assert analysis is not None and analysis.project is not None and seismic is not None
     analysis = replace(analysis, project=replace(analysis.project, build=_pile_aggrese(source, profile, file_names)),
@@ -1166,7 +1167,8 @@ def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, fi
     piled = replace(stage, nonlinear_analysis=analysis, precheck=_liquefaction_index(stage.id),
                     seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction),
                     complete=_pile_minimum(stage.id, source, profile, direction))
-    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
+    steel = replace(piled, complete=lambda result, files, pier, results: PileSeismicResult(None, result))
+    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled, choices.STEEL_SOIL_CEMENT_PILE: steel})
 
 
 def _on_piles(stage: StageSpec, calculate: Callable[[PierInput, PileFoundation, Any], Any]) -> StageSpec:

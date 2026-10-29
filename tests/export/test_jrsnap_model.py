@@ -450,3 +450,22 @@ def test_a_hand_made_table_still_needs_the_main_bars_of_its_direction():
                                         {"center_mm": 2592, "diameter_mm": 32, "count": 29}]}
     with pytest.raises(InputError, match=re.escape("鉄筋.柱.main_bars: 線路の主鉄筋が必要です")):
         model("longitudinal", **{TABLE: table, f"{RAIL}/per_face_count": 0})
+
+
+@pytest.mark.parametrize("direction", ["longitudinal", "transverse"])
+def test_the_hoops_and_the_shear_reinforcement_of_jrsnap_may_have_their_own_pitches(direction):
+    """Decision 122 (the owner): JRSNAP's section of the column takes the pitch of the 帯鉄筋 (the confinement of the M-θ,
+    SectSher 1〜4) and of the せん断補強鉄筋 (the shear capacity, 7〜10) from jrsnap_*; blank or absent, the pitch of the
+    column's hoop row (the NDU is as before). The steel, the size and the legs are the hoop row's."""
+    before = write_ndu(model(direction))
+    sher = dict(line.split("=", 1) for line in before.decode("cp932").split("\r\n") if "=" in line)["SectSher1"].split(",")
+    assert sher[3] == sher[9]
+    blank = write_ndu(model(direction, **{f"jrsnap_{direction}/hoop_pitch_mm": None,
+                                          f"jrsnap_{direction}/shear_reinforcement_pitch_mm": None}))
+    assert blank == before
+    built = model(direction, **{f"jrsnap_{direction}/hoop_pitch_mm": 125.0,
+                                f"jrsnap_{direction}/shear_reinforcement_pitch_mm": 250.0})
+    written = dict(line.split("=", 1) for line in write_ndu(built).decode("cp932").split("\r\n") if "=" in line)
+    found = written["SectSher1"].split(",")
+    assert found[:3] == found[6:9] == sher[:3] and (found[3], found[9]) == ("125", "250")
+    assert found[4:6] == ["0", "0"]

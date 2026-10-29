@@ -338,8 +338,9 @@ def pile_head_reaction(rows: Sequence[tuple[Sequence[PointForces], int]]) -> Dec
 
 @dataclass(frozen=True)
 class PileSeismicResult:
-    """The result of 0711 / 0721 of a 場所打ち杭 (decision 98): (1) 杭頭反力の最大値から定める最小鉄筋量 of its direction,
-    and the 応答変位法 (calc.response_displacement, decision 97) of an input that considers the 地盤変位."""
+    """The result of 0711 / 0721 of a pile foundation: of a 場所打ち杭 (decision 98), (1) 杭頭反力の最大値から定める最小鉄筋量 of
+    its direction (None of a 鋼管ソイルセメント杭, decision 122), and the 応答変位法 (calc.response_displacement, decision 97) of
+    an input that considers the 地盤変位."""
 
-    minimum: MinimumBars
+    minimum: MinimumBars | None
     response: ResponseDisplacementResult | None

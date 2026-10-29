@@ -1,0 +1,1356 @@
+{
+  "schema_version": 1,
+  "stage": "0710",
+  "input": {
+    "file": "input.json",
+    "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
+  },
+  "implementation_sha256": "a205244942e1ee46a47d59c16774cdf951b687f0038277dd92af85f7f56ce438",
+  "result": {
+    "frame": {
+      "direction": "longitudinal",
+      "nodes": [
+        {
+          "number": 1,
+          "x": 0.0,
+          "y": 11.4,
+          "roles": [
+            "cap_top"
+          ]
+        },
+        {
+          "number": 2,
+          "x": 0.0,
+          "y": 9.9,
+          "roles": [
+            "beam_bottom"
+          ]
+        },
+        {
+          "number": 3,
+          "x": 0.0,
+          "y": 9.4,
+          "roles": [
+            "column_top"
+          ]
+        },
+        {
+          "number": 4,
+          "x": 0.0,
+          "y": 2.21,
+          "roles": [
+            "micro_top"
+          ]
+        },
+        {
+          "number": 5,
+          "x": 0.0,
+          "y": 2.2,
+          "roles": [
+            "footing_top"
+          ]
+        },
+        {
+          "number": 6,
+          "x": 0.0,
+          "y": 1.1,
+          "roles": [
+            "footing_centroid"
+          ]
+        },
+        {
+          "number": 7,
+          "x": -2.5,
+          "y": 0.0,
+          "roles": [
+            "pile_head"
+          ]
+        },
+        {
+          "number": 8,
+          "x": -1.25,
+          "y": 0.0,
+          "roles": [
+            "column_face"
+          ]
+        },
+        {
+          "number": 9,
+          "x": 0.0,
+          "y": 0.0,
+          "roles": [
+            "footing_bottom"
+          ]
+        },
+        {
+          "number": 10,
+          "x": 1.25,
+          "y": 0.0,
+          "roles": [
+            "column_face"
+          ]
+        },
+        {
+          "number": 11,
+          "x": 2.5,
+          "y": 0.0,
+          "roles": [
+            "pile_head"
+          ]
+        },
+        {
+          "number": 12,
+          "x": -2.5,
+          "y": -26.5,
+          "roles": [
+            "pile_tip"
+          ]
+        },
+        {
+          "number": 13,
+          "x": 2.5,
+          "y": -26.5,
+          "roles": [
+            "pile_tip"
+          ]
+        }
+      ],
+      "members": [
+        {
+          "number": 1,
+          "start": 1,
+          "end": 2,
+          "region": "beam",
+          "height": 1.5,
+          "offset": 0.0,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 2,
+          "start": 2,
+          "end": 3,
+          "region": "haunch",
+          "height": 0.5,
+          "offset": 0.0,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 3,
+          "start": 3,
+          "end": 4,
+          "region": "column",
+          "height": 7.19,
+          "offset": 0.0,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 4,
+          "start": 4,
+          "end": 5,
+          "region": "column_base",
+          "height": 0.01,
+          "offset": 0.0,
+          "section": {
+            "width": 3.5,
+            "depth": 2.5,
+            "area": 8.75,
+            "inertia": 4.55729
+          },
+          "material": {
+            "strength": 40.0,
+            "lower": {
+              "strength": 30.0,
+              "modulus": 28.0
+            },
+            "upper": {
+              "strength": 40.0,
+              "modulus": 31.0
+            },
+            "modulus": 3.1
+          },
+          "modulus": null
+        },
+        {
+          "number": 5,
+          "start": 5,
+          "end": 6,
+          "region": "footing_upper",
+          "height": 1.1,
+          "offset": 0.0,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 6,
+          "start": 6,
+          "end": 9,
+          "region": "footing_lower",
+          "height": 1.1,
+          "offset": 0.0,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 7,
+          "start": 7,
+          "end": 8,
+          "region": "footing_base",
+          "height": 0.0,
+          "offset": 1.25,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 8,
+          "start": 7,
+          "end": 12,
+          "region": "pile",
+          "height": 26.5,
+          "offset": 0.0,
+          "section": {
+            "width": 0.8,
+            "depth": 0.8,
+            "area": 0.12513,
+            "inertia": 0.00954
+          },
+          "material": null,
+          "modulus": 200000000.0
+        },
+        {
+          "number": 9,
+          "start": 8,
+          "end": 9,
+          "region": "footing_base",
+          "height": 0.0,
+          "offset": 1.25,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 10,
+          "start": 9,
+          "end": 10,
+          "region": "footing_base",
+          "height": 0.0,
+          "offset": 1.25,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 11,
+          "start": 10,
+          "end": 11,
+          "region": "footing_base",
+          "height": 0.0,
+          "offset": 1.25,
+          "section": null,
+          "material": null,
+          "modulus": null
+        },
+        {
+          "number": 12,
+          "start": 11,
+          "end": 13,
+          "region": "pile",
+          "height": 26.5,
+          "offset": 0.0,
+          "section": {
+            "width": 0.8,
+            "depth": 0.8,
+            "area": 0.12513,
+            "inertia": 0.00954
+          },
+          "material": null,
+          "modulus": 200000000.0
+        }
+      ],
+      "column_section": {
+        "width": 3.5,
+        "depth": 2.5,
+        "area": 8.75,
+        "inertia": 4.55729
+      },
+      "pedestal_section": null,
+      "materials": {
+        "beam": {
+          "strength": 40.0,
+          "lower": {
+            "strength": 30.0,
+            "modulus": 28.0
+          },
+          "upper": {
+            "strength": 40.0,
+            "modulus": 31.0
+          },
+          "modulus": 3.1
+        },
+        "column": {
+          "strength": 40.0,
+          "lower": {
+            "strength": 30.0,
+            "modulus": 28.0
+          },
+          "upper": {
+            "strength": 40.0,
+            "modulus": 31.0
+          },
+          "modulus": 3.1
+        },
+        "footing": {
+          "strength": 27.0,
+          "lower": {
+            "strength": 24.0,
+            "modulus": 25.0
+          },
+          "upper": {
+            "strength": 30.0,
+            "modulus": 28.0
+          },
+          "modulus": 2.65
+        }
+      },
+      "support": null,
+      "pier_height": 9.2,
+      "seats": [
+        "cap_top",
+        "cap_top"
+      ],
+      "piles": {
+        "direction": "橋軸方向",
+        "length": 26.5,
+        "section": {
+          "kind": "鋼管",
+          "modulus": 200000000.0,
+          "area": 0.04171,
+          "inertia": 0.00318,
+          "diameter": 0.8
+        },
+        "inverse_beta": 4.027,
+        "rows": [
+          {
+            "number": 1,
+            "x": -2.5,
+            "piles": 3,
+            "column": "全列",
+            "area": 0.12513,
+            "inertia": 0.00954,
+            "long_term": [
+              {
+                "length": 3.75,
+                "horizontal": 14208.0,
+                "shear": 13534.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 19186.0,
+                "shear": 18275.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 37482.0,
+                "shear": 35702.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              }
+            ],
+            "short_term": [
+              {
+                "length": 3.75,
+                "horizontal": 28417.0,
+                "shear": 27067.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 38373.0,
+                "shear": 36550.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 74964.0,
+                "shear": 71404.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              }
+            ],
+            "long_tip": {
+              "vertical": 532245.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            },
+            "short_tip": {
+              "vertical": 1064491.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            }
+          },
+          {
+            "number": 2,
+            "x": 2.5,
+            "piles": 3,
+            "column": "全列",
+            "area": 0.12513,
+            "inertia": 0.00954,
+            "long_term": [
+              {
+                "length": 3.75,
+                "horizontal": 14208.0,
+                "shear": 13534.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 19186.0,
+                "shear": 18275.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 37482.0,
+                "shear": 35702.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              }
+            ],
+            "short_term": [
+              {
+                "length": 3.75,
+                "horizontal": 28417.0,
+                "shear": 27067.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 38373.0,
+                "shear": 36550.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 74964.0,
+                "shear": 71404.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              }
+            ],
+            "long_tip": {
+              "vertical": 532245.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            },
+            "short_tip": {
+              "vertical": 1064491.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            }
+          }
+        ]
+      },
+      "pile_nodes": [
+        {
+          "row": {
+            "number": 1,
+            "x": -2.5,
+            "piles": 3,
+            "column": "全列",
+            "area": 0.12513,
+            "inertia": 0.00954,
+            "long_term": [
+              {
+                "length": 3.75,
+                "horizontal": 14208.0,
+                "shear": 13534.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 19186.0,
+                "shear": 18275.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 37482.0,
+                "shear": 35702.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              }
+            ],
+            "short_term": [
+              {
+                "length": 3.75,
+                "horizontal": 28417.0,
+                "shear": 27067.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 38373.0,
+                "shear": 36550.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 74964.0,
+                "shear": 71404.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              }
+            ],
+            "long_tip": {
+              "vertical": 532245.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            },
+            "short_tip": {
+              "vertical": 1064491.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            }
+          },
+          "head": 7,
+          "tip": 12,
+          "member": 8
+        },
+        {
+          "row": {
+            "number": 2,
+            "x": 2.5,
+            "piles": 3,
+            "column": "全列",
+            "area": 0.12513,
+            "inertia": 0.00954,
+            "long_term": [
+              {
+                "length": 3.75,
+                "horizontal": 14208.0,
+                "shear": 13534.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 19186.0,
+                "shear": 18275.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 37482.0,
+                "shear": 35702.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 125727.0,
+                "shear": 119755.0
+              }
+            ],
+            "short_term": [
+              {
+                "length": 3.75,
+                "horizontal": 28417.0,
+                "shear": 27067.0
+              },
+              {
+                "length": 7.5,
+                "horizontal": 38373.0,
+                "shear": 36550.0
+              },
+              {
+                "length": 1.95,
+                "horizontal": 74964.0,
+                "shear": 71404.0
+              },
+              {
+                "length": 12.3,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              },
+              {
+                "length": 1.0,
+                "horizontal": 251453.0,
+                "shear": 239510.0
+              }
+            ],
+            "long_tip": {
+              "vertical": 532245.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            },
+            "short_tip": {
+              "vertical": 1064491.0,
+              "horizontal": 0.0,
+              "rotation": 0.0
+            }
+          },
+          "head": 11,
+          "tip": 13,
+          "member": 12
+        }
+      ]
+    },
+    "fixed": {
+      "table": {
+        "rows": [
+          {
+            "item": "origin",
+            "n": 1710.0,
+            "arm": -0.7,
+            "m": -1197.0
+          },
+          {
+            "item": "end",
+            "n": 4250.0,
+            "arm": 0.2,
+            "m": 850.0
+          },
+          {
+            "item": "beam",
+            "n": 878.94,
+            "arm": 0.0,
+            "m": 0.0
+          }
+        ],
+        "n": 6838.94,
+        "m": -347.0
+      },
+      "pedestal": null,
+      "pedestal_q": null,
+      "column_q": 214.38,
+      "overlap": 2.0,
+      "n": 6410.18,
+      "m": -347.0,
+      "footing": {
+        "item": "footing",
+        "n": 3018.4,
+        "arm": 0.0,
+        "m": 0.0
+      }
+    },
+    "additional": {
+      "table": {
+        "rows": [
+          {
+            "item": "origin",
+            "n": 470.0,
+            "arm": -0.7,
+            "m": -329.0
+          },
+          {
+            "item": "end",
+            "n": 1050.0,
+            "arm": 0.2,
+            "m": 210.0
+          }
+        ],
+        "n": 1520.0,
+        "m": -119.0
+      },
+      "pedestal": null,
+      "soil": {
+        "item": "overburden",
+        "n": 425.25,
+        "arm": 0.0,
+        "m": 0.0
+      }
+    },
+    "buoyancy": {
+      "item": "water",
+      "n": 0.0,
+      "arm": 0.0,
+      "m": 0.0
+    },
+    "snow": null,
+    "train": {
+      "rows": [
+        {
+          "item": "origin",
+          "n": 140.0,
+          "arm": -0.7,
+          "m": -98.0
+        },
+        {
+          "item": "end",
+          "n": 437.5,
+          "arm": 0.2,
+          "m": 87.5
+        }
+      ],
+      "n": 577.5,
+      "m": -10.5
+    },
+    "girder_inertia": {
+      "kh": 1.0,
+      "forces": {
+        "origin": {
+          "bearing": "movable",
+          "applied": 4360.0,
+          "force": 2180.0
+        },
+        "end": {
+          "bearing": "fixed",
+          "applied": 10600.0,
+          "force": 10600.0
+        },
+        "total": 12780.0
+      }
+    },
+    "train_inertia": {
+      "kh": 0.2,
+      "forces": {
+        "origin": {
+          "bearing": "movable",
+          "applied": 56.0,
+          "force": 28.0
+        },
+        "end": {
+          "bearing": "fixed",
+          "applied": 175.0,
+          "force": 175.0
+        },
+        "total": 203.0
+      }
+    },
+    "self_weight": {
+      "kh": 1.0,
+      "beam_top": {
+        "along": 2.5,
+        "across": 7.7,
+        "unit_weight": 24.5,
+        "kh": 1.0,
+        "value": 471.63
+      },
+      "beam_bottom": {
+        "along": 2.5,
+        "across": 3.5,
+        "unit_weight": 24.5,
+        "kh": 1.0,
+        "value": 214.38
+      },
+      "column": {
+        "along": 2.5,
+        "across": 3.5,
+        "unit_weight": 24.5,
+        "kh": 1.0,
+        "value": 214.38
+      },
+      "pedestal": null,
+      "footing": {
+        "volume": 123.2,
+        "unit_weight": 24.5,
+        "displaced": 18.0,
+        "soil": {
+          "height": 2.2,
+          "parts": [
+            [
+              {
+                "index": 0,
+                "name": "表層",
+                "bottom": 0.0,
+                "thickness": 2.7,
+                "unit_weight_wet": 18.0,
+                "unit_weight_submerged": 9.0
+              },
+              2.2
+            ]
+          ],
+          "unit_weight": 18.0
+        },
+        "kh": 1.0,
+        "force": 800.8
+      }
+    },
+    "basic_cases": [
+      {
+        "number": 1,
+        "case": 1,
+        "direction": "downward",
+        "increment": "fixed",
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node": 1,
+            "n": 6410.18,
+            "h": 0.0,
+            "m": -347.0
+          },
+          {
+            "anchor": "footing_centroid",
+            "node": 6,
+            "n": 3018.4,
+            "h": 0.0,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [
+          {
+            "members": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "n": 214.38,
+            "h": 0.0
+          }
+        ],
+        "member_loads": []
+      },
+      {
+        "number": 2,
+        "case": 2,
+        "direction": "downward",
+        "increment": "fixed",
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node": 1,
+            "n": 1520.0,
+            "h": 0.0,
+            "m": -119.0
+          },
+          {
+            "anchor": "footing_centroid",
+            "node": 6,
+            "n": 425.25,
+            "h": 0.0,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [],
+        "member_loads": []
+      },
+      {
+        "number": 3,
+        "case": 3,
+        "direction": "upward",
+        "increment": "fixed",
+        "points": [
+          {
+            "anchor": "footing_centroid",
+            "node": 6,
+            "n": 0.0,
+            "h": 0.0,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [],
+        "member_loads": []
+      },
+      {
+        "number": 4,
+        "case": 5,
+        "direction": "downward",
+        "increment": "fixed",
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node": 1,
+            "n": 577.5,
+            "h": 0.0,
+            "m": -10.5
+          }
+        ],
+        "line_loads": [],
+        "member_loads": []
+      },
+      {
+        "number": 5,
+        "case": 6,
+        "direction": "toward_origin",
+        "increment": "incremental",
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node": 1,
+            "n": 0.0,
+            "h": -12780.0,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [],
+        "member_loads": []
+      },
+      {
+        "number": 6,
+        "case": 7,
+        "direction": "toward_origin",
+        "increment": "limited_incremental",
+        "points": [
+          {
+            "anchor": "cap_top",
+            "node": 1,
+            "n": 0.0,
+            "h": -203.0,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [],
+        "member_loads": []
+      },
+      {
+        "number": 7,
+        "case": 8,
+        "direction": "toward_origin",
+        "increment": "incremental",
+        "points": [
+          {
+            "anchor": "footing_centroid",
+            "node": 6,
+            "n": 0.0,
+            "h": -800.8,
+            "m": 0.0
+          }
+        ],
+        "line_loads": [],
+        "member_loads": [
+          {
+            "member": 1,
+            "start": -471.63,
+            "end": -471.63
+          },
+          {
+            "member": 2,
+            "start": -471.63,
+            "end": -214.38
+          },
+          {
+            "member": 3,
+            "start": -214.38,
+            "end": -214.38
+          },
+          {
+            "member": 4,
+            "start": -214.38,
+            "end": -214.38
+          }
+        ]
+      }
+    ],
+    "combinations": [
+      {
+        "number": 1,
+        "alpha_f": 1.0,
+        "rho_m": 1.0,
+        "direction": "toward_origin",
+        "cases": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ground_resistance_type": 1,
+        "reverse": false
+      },
+      {
+        "number": 2,
+        "alpha_f": 1.0,
+        "rho_m": 1.2,
+        "direction": "toward_origin",
+        "cases": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ground_resistance_type": 1,
+        "reverse": false
+      },
+      {
+        "number": 3,
+        "alpha_f": 2.0,
+        "rho_m": 1.0,
+        "direction": "toward_origin",
+        "cases": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ground_resistance_type": 1,
+        "reverse": false
+      },
+      {
+        "number": 4,
+        "alpha_f": 2.0,
+        "rho_m": 1.2,
+        "direction": "toward_origin",
+        "cases": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8
+        ],
+        "ground_resistance_type": 1,
+        "reverse": false
+      }
+    ],
+    "ground_displacement": {
+      "layers": [
+        {
+          "index": 0,
+          "name": "表層",
+          "top": 0.0,
+          "thickness": 2.7,
+          "unit_weight": 18.0,
+          "velocity": 170.0
+        },
+        {
+          "index": 1,
+          "name": "第1層",
+          "top": 2.7,
+          "thickness": 3.75,
+          "unit_weight": 16.0,
+          "velocity": 120.0
+        },
+        {
+          "index": 2,
+          "name": "第2層",
+          "top": 6.45,
+          "thickness": 7.5,
+          "unit_weight": 16.0,
+          "velocity": 140.0
+        },
+        {
+          "index": 3,
+          "name": "第3層",
+          "top": 13.95,
+          "thickness": 1.95,
+          "unit_weight": 19.0,
+          "velocity": 180.0
+        },
+        {
+          "index": 4,
+          "name": "第4-1層",
+          "top": 15.9,
+          "thickness": 12.3,
+          "unit_weight": 19.0,
+          "velocity": 330.0
+        },
+        {
+          "index": 5,
+          "name": "第4-2層",
+          "top": 28.2,
+          "thickness": 1.0,
+          "unit_weight": 19.0,
+          "velocity": 330.0
+        },
+        {
+          "index": 6,
+          "name": "第4-3層",
+          "top": 29.2,
+          "thickness": 5.0,
+          "unit_weight": 19.0,
+          "velocity": 330.0
+        }
+      ],
+      "region_coefficient": 1.0,
+      "period": 0.5364,
+      "profile": [
+        {
+          "depth": 0.0,
+          "l1": 17.3,
+          "l2": 221.51
+        },
+        {
+          "depth": 2.7,
+          "l1": 17.0,
+          "l2": 217.69
+        },
+        {
+          "depth": 6.45,
+          "l1": 14.05,
+          "l2": 179.89
+        },
+        {
+          "depth": 13.95,
+          "l1": 5.91,
+          "l2": 75.7
+        },
+        {
+          "depth": 15.9,
+          "l1": 4.56,
+          "l2": 58.35
+        },
+        {
+          "depth": 28.2,
+          "l1": 1.59,
+          "l2": 20.39
+        },
+        {
+          "depth": 29.2,
+          "l1": 1.33,
+          "l2": 17.03
+        },
+        {
+          "depth": 34.2,
+          "l1": 0.0,
+          "l2": 0.0
+        }
+      ],
+      "nodes": [
+        {
+          "depth": 2.7,
+          "l1": 17.0,
+          "l2": 217.69
+        },
+        {
+          "depth": 2.71,
+          "l1": 17.0,
+          "l2": 217.63
+        },
+        {
+          "depth": 3.5,
+          "l1": 16.55,
+          "l2": 211.93
+        },
+        {
+          "depth": 4.3,
+          "l1": 16.0,
+          "l2": 204.88
+        },
+        {
+          "depth": 5.1,
+          "l1": 15.35,
+          "l2": 196.58
+        },
+        {
+          "depth": 5.9,
+          "l1": 14.61,
+          "l2": 187.08
+        },
+        {
+          "depth": 6.45,
+          "l1": 14.05,
+          "l2": 179.89
+        },
+        {
+          "depth": 7.25,
+          "l1": 13.4,
+          "l2": 171.52
+        },
+        {
+          "depth": 8.05,
+          "l1": 12.68,
+          "l2": 162.39
+        },
+        {
+          "depth": 8.85,
+          "l1": 11.91,
+          "l2": 152.52
+        },
+        {
+          "depth": 9.65,
+          "l1": 11.09,
+          "l2": 141.98
+        },
+        {
+          "depth": 10.45,
+          "l1": 10.21,
+          "l2": 130.8
+        },
+        {
+          "depth": 11.25,
+          "l1": 9.3,
+          "l2": 119.03
+        },
+        {
+          "depth": 12.05,
+          "l1": 8.33,
+          "l2": 106.73
+        },
+        {
+          "depth": 12.85,
+          "l1": 7.34,
+          "l2": 93.95
+        },
+        {
+          "depth": 13.4,
+          "l1": 6.63,
+          "l2": 84.92
+        },
+        {
+          "depth": 13.95,
+          "l1": 5.91,
+          "l2": 75.7
+        },
+        {
+          "depth": 14.75,
+          "l1": 5.37,
+          "l2": 68.71
+        },
+        {
+          "depth": 15.325,
+          "l1": 4.96,
+          "l2": 63.58
+        },
+        {
+          "depth": 15.9,
+          "l1": 4.56,
+          "l2": 58.35
+        },
+        {
+          "depth": 16.7,
+          "l1": 4.38,
+          "l2": 56.14
+        },
+        {
+          "depth": 17.5,
+          "l1": 4.21,
+          "l2": 53.89
+        },
+        {
+          "depth": 18.3,
+          "l1": 4.03,
+          "l2": 51.6
+        },
+        {
+          "depth": 19.1,
+          "l1": 3.85,
+          "l2": 49.27
+        },
+        {
+          "depth": 19.9,
+          "l1": 3.66,
+          "l2": 46.89
+        },
+        {
+          "depth": 20.7,
+          "l1": 3.47,
+          "l2": 44.48
+        },
+        {
+          "depth": 21.5,
+          "l1": 3.28,
+          "l2": 42.03
+        },
+        {
+          "depth": 22.3,
+          "l1": 3.09,
+          "l2": 39.55
+        },
+        {
+          "depth": 23.1,
+          "l1": 2.89,
+          "l2": 37.03
+        },
+        {
+          "depth": 23.9,
+          "l1": 2.69,
+          "l2": 34.49
+        },
+        {
+          "depth": 24.7,
+          "l1": 2.49,
+          "l2": 31.92
+        },
+        {
+          "depth": 25.5,
+          "l1": 2.29,
+          "l2": 29.32
+        },
+        {
+          "depth": 26.3,
+          "l1": 2.09,
+          "l2": 26.7
+        },
+        {
+          "depth": 27.1,
+          "l1": 1.88,
+          "l2": 24.06
+        },
+        {
+          "depth": 27.65,
+          "l1": 1.74,
+          "l2": 22.23
+        },
+        {
+          "depth": 28.2,
+          "l1": 1.59,
+          "l2": 20.39
+        },
+        {
+          "depth": 28.7,
+          "l1": 1.46,
+          "l2": 18.71
+        },
+        {
+          "depth": 29.2,
+          "l1": 1.33,
+          "l2": 17.03
+        }
+      ]
+    }
+  },
+  "ground_displacement": {
+    "engine": "soilstructure",
+    "engine_version": "1.3.0",
+    "engineering_status": "not_evaluated",
+    "document_sha256": "451c92dceaa8f15986b78cb772ce379cc52c0da0813be9fc679095be35c748a5",
+    "result_sha256": "b03d3403585c8e57886aa81bf02fe2d7e2f178083a3ca780666b276cef64b75d"
+  }
+}
