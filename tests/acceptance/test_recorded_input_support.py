@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from recorded_input_support import (
-    before_custom_tables, before_joint, before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles,
-    with_blank_rebar)
+    BEARING_DEVICES, before_bearing_devices, before_custom_tables, before_joint, before_piles, before_rebar,
+    input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -90,3 +90,17 @@ def test_an_input_recorded_before_the_custom_tables_is_rebar_version_3_with_empt
     text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
     assert before_custom_tables(text) is None
     assert BEFORE["tests/fixtures/inputs/current.json"] not in input_sha256s(text)
+
+
+def test_an_input_recorded_before_decision_125_had_the_bearing_devices_of_decision_59_last_in_each_support():
+    """Decision 125 removed 上部構造.支承データ.*.{ゴム支承の箇所数, ストッパーの箇所数, 片持ち梁上のゴム支承,
+    片持ち梁上のストッパー}; every recorded input had Example2's counts."""
+    data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
+    older = before_bearing_devices(data)
+    support = json.loads(older.decode("utf-8"))["上部構造"]["支承データ"]
+    assert support["起点側"] == {"支承名": "可動", "摩擦係数_μ": 0.1, **BEARING_DEVICES["起点側"]}
+    assert support["終点側"] == {"支承名": "固定", "摩擦係数_μ": 0.1, "復旧性制動係数": 1.0, **BEARING_DEVICES["終点側"]}
+    assert [*BEARING_DEVICES["起点側"].values(), *BEARING_DEVICES["終点側"].values()] == [4, 3, 1, 1, 2, 7, 1, 0]
+    assert b"\r\n" in older and sha256(older) in input_sha256s(data)
+    assert before_bearing_devices(older) is None  # it has them already
+    assert before_bearing_devices(b'{"schema_version": 2}\n') is None and before_bearing_devices(b"[]\n") is None

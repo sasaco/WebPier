@@ -8,7 +8,8 @@ from decimal import Decimal
 
 import pytest
 
-from cantilever_support import KH, SAMPLE, D, pier, q, reaction_of, value
+from cantilever_support import (KH, ORIGIN_MAX_LEVERS, ORIGIN_MAX_RA, ORIGIN_MAX_RB, SAMPLE, D, origin_max_bearing,
+                                pier, q, reaction_of, value)
 from webpier.calc.cantilever import calculate_cantilever
 from webpier.calc.cantilever.geometry import numbered
 from webpier.calc.cantilever.loads import (Loading, Wind, lateral_torques, seismic_girder_torques, seismic_train,
@@ -32,8 +33,12 @@ def test_the_three_loadings_maximise_rb_rc_and_their_sum(current):
     pier_input, _, basis = current
     expected = SAMPLE["loadings"]
     assert [item.loading for item in basis.loadings] == [Loading.ORIGIN_MAX, Loading.END_MAX, Loading.BOTH_MAX]
+    assert ORIGIN_MAX_RB == Decimal("532.41") and ORIGIN_MAX_RA == Decimal("267.59")
+    assert expected["B支点最大"]["rb"] == 517.77  # the sample: the axle at the joint not counted (decision 125)
     for item in basis.loadings:
-        values = expected[item.loading.value]
+        values = dict(expected[item.loading.value])
+        if item.loading is Loading.ORIGIN_MAX:
+            values.update(ra=float(ORIGIN_MAX_RA), rb=float(ORIGIN_MAX_RB), rb_levers=[float(x) for x in ORIGIN_MAX_LEVERS])
         result = item.result
         assert (result.ra.value, result.rb.value, result.rc.value, result.rd.value) == (
             values["ra"], values["rb"], values["rc"], values["rd"])
@@ -60,7 +65,10 @@ def test_the_train_on_each_bearing_by_one_and_both_tracks(current):
     expected = SAMPLE["train_per_bearing"]
     shares = expected["shares"]
     for item in basis.loadings:
-        values = expected[item.loading.value]
+        values = dict(expected[item.loading.value])
+        if item.loading is Loading.ORIGIN_MAX:  # RB 532.41, not the sample's 517.77 (decision 125)
+            values.update(origin_single=[float(origin_max_bearing(x)) for x in ("0.471", "0.373", "0.373", "0.471")],
+                          origin_double=[float(origin_max_bearing(x)) for x in ("0.451", "0.549", "0.549", "0.451")])
         origin, end = item.girders[Girder.ORIGIN], item.girders[Girder.END]
         assert origin.reaction == item.result.rb and end.reaction == item.result.rc
         assert [bearing.single.share.value for bearing in origin.bearings] == shares["origin_single"]
@@ -87,10 +95,12 @@ def test_the_impact_of_each_track_count_and_group(current):
     assert reaction.train.ultimate.origin_impact.single.value == coefficients["origin"]["ultimate_single"]
     assert reaction.train.service.end_impact.double.value == coefficients["end"]["service_double"]
     b = _loading(basis, Loading.ORIGIN_MAX).girders[Girder.ORIGIN].bearing(1)
-    assert b.single.impact_ultimate.value == expected["B支点最大"]["origin_g1_impact_ultimate_single"]  # 243.87 × 0.245
-    assert b.double.impact_ultimate.value == expected["B支点最大"]["origin_g1_impact_ultimate_double"]  # 233.52 × 0.222
-    assert b.single.impact_service.value == expected["B支点最大"]["origin_g1_impact_service_single"]  # 243.87 × 0.184
-    assert value(b.single.impact_service) == q(D(243.87) * D(0.184), 2)
+    # B支点最大 with RB 532.41 (decision 125; the sample's 243.87 × 0.245 = 59.75 etc. come from RB 517.77)
+    assert origin_max_bearing("0.471") == Decimal("250.77") and origin_max_bearing("0.451") == Decimal("240.12")
+    assert value(b.single.impact_ultimate) == q(Decimal("250.77") * Decimal("0.245"), 2) == Decimal("61.44")
+    assert value(b.double.impact_ultimate) == q(Decimal("240.12") * Decimal("0.222"), 2) == Decimal("53.31")
+    assert value(b.single.impact_service) == q(Decimal("250.77") * Decimal("0.184"), 2) == Decimal("46.14")
+    assert expected["B支点最大"]["origin_g1_impact_ultimate_single"] == 59.75
     c = _loading(basis, Loading.END_MAX)
     assert c.girders[Girder.END].bearing(1).double.impact_ultimate.value == expected["C支点最大"]["end_g1_impact_ultimate_double"]
     assert c.girders[Girder.END].bearing(1).single.impact_ultimate.value == expected["C支点最大"]["end_g1_impact_ultimate_single"]
@@ -111,8 +121,8 @@ def test_the_impact_of_each_track_count_and_group(current):
 def test_the_cantilever_carries_the_larger_of_one_and_both_tracks(current):
     _, _, basis = current
     b = _loading(basis, Loading.ORIGIN_MAX).girders[Girder.ORIGIN]
-    assert not b.bearing(1).adopted_double and b.bearing(1).adopted.load.value == 243.87  # 単線 243.87 > 複線 233.52
-    assert b.bearing(2).adopted_double and b.bearing(2).adopted.load.value == 284.26  # 複線 284.26 > 単線 193.13
+    assert not b.bearing(1).adopted_double and b.bearing(1).adopted.load.value == 250.77  # 単線 250.77 > 複線 240.12
+    assert b.bearing(2).adopted_double and b.bearing(2).adopted.load.value == 292.29  # 複線 292.29 > 単線 198.59
     c = _loading(basis, Loading.END_MAX).girders[Girder.END]
     assert c.bearing(1).adopted_double and c.bearing(1).adopted.load.value == 416.86  # 複線 416.86 > 単線 357.25
     zero = _loading(basis, Loading.ORIGIN_MAX).girders[Girder.END].bearing(1)
@@ -151,6 +161,12 @@ def test_the_vehicle_lateral_torque_of_each_loading(current):
     for loading, girders in basis.lateral.items():
         for girder, found in girders.items():
             values = expected[loading.value]["origin" if girder is Girder.ORIGIN else "end"]
+            if loading is Loading.ORIGIN_MAX and girder is Girder.ORIGIN:  # 0.2 × 532.41 (decision 125)
+                force = q(Decimal("0.2") * ORIGIN_MAX_RB, 2)
+                moment = q(force * Decimal("3.85"), 2)
+                values = {"force": float(force), "moment": float(moment),
+                          "verticals": [float(q(moment * Decimal(x) / Decimal("33.38"), 2)) for x in ("3.8", "1.5", "1.5", "3.8")]}
+                assert (force, moment) == (Decimal("106.48"), Decimal("409.95"))
             assert found.force.value == values["force"]
             assert found.height.value == SAMPLE["torques"]["rail_height"]
             if values["force"]:
@@ -159,7 +175,7 @@ def test_the_vehicle_lateral_torque_of_each_loading(current):
             else:
                 assert found.moment.value == 0.0 and {item.force.value for item in found.verticals} == {0.0}
     # 0.2 × R of the maximised girder, 0600's junction loading for B+C支点最大
-    assert value(basis.lateral[Loading.ORIGIN_MAX][Girder.ORIGIN].force) == q(D("0.2") * D(517.77), 2)
+    assert value(basis.lateral[Loading.ORIGIN_MAX][Girder.ORIGIN].force) == q(D("0.2") * ORIGIN_MAX_RB, 2)
     assert value(basis.lateral[Loading.END_MAX][Girder.END].force) == q(D("0.2") * D(416.86), 2)
     assert basis.lateral[Loading.BOTH_MAX][Girder.ORIGIN].force == reaction.transverse.lateral_loading.rb
     assert basis.lateral[Loading.BOTH_MAX][Girder.END].force == reaction.transverse.lateral_loading.rc

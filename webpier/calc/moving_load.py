@@ -9,8 +9,11 @@ optional line load following its last axle (E-17's 50 kN/m). The search keeps
 the source semantics: every axle in turn is aligned with each of the seven
 support/joint points (from the far end backwards), then the head of the line
 load; axles off the bridge are skipped and the line load is cut at the bridge
-ends; an axle exactly at the joint goes to the girder where it gives the larger
-pier reaction (ties to the end girder); the candidate with the largest
+ends; an axle exactly at the joint goes to the girder whose reaction the
+objective counts: for RB + RC the one where it gives the larger pier reaction
+(ties to the end girder), for RB alone the origin girder and for RC alone the
+end girder (decision 125: the C支点最大 of Example橋脚4 counts the axle at the
+joint on the end girder, R_C 913.75); the candidate with the largest
 objective (RB + RC for 0600 and 0620; RB alone or RC alone for the B支点最大
 and C支点最大 loadings of 0900, decision 59) is adopted, and an equal value
 keeps the earlier candidate. The train runs towards D first, then towards A,
@@ -137,10 +140,10 @@ def car_offsets(cars: int, car_length: Decimal, a1: Decimal, a2: Decimal) -> tup
 
 class _Bridge:
     """The two girders in a row: x from the origin girder's far end; *loaded* the only girder the train is on (列車の配置,
-    decision 102), else both."""
+    decision 102), else both; *objective* decides the girder of an axle at the joint."""
 
-    def __init__(self, origin: Span, end: Span, loaded: Girder | None) -> None:
-        self.origin, self.end, self.loaded = origin, end, loaded
+    def __init__(self, origin: Span, end: Span, loaded: Girder | None, objective: Objective = Objective.PIER) -> None:
+        self.origin, self.end, self.loaded, self.objective = origin, end, loaded, objective
         points = [Decimal(0)]
         for length in (origin.l1, origin.span, origin.l2, end.l1, end.span, end.l2):
             points.append(points[-1] + d(length))
@@ -166,6 +169,8 @@ class _Bridge:
             return self.loaded is Girder.ORIGIN
         if x != self.joint:
             return x < self.joint
+        if self.objective is not Objective.PIER:  # the girder whose reaction is maximised
+            return self.objective is Objective.ORIGIN
         return self.origin_lever(x) / d(self.origin.span) > self.end_lever(x) / d(self.end.span)
 
     def tail_parts(self, head: Decimal, sign: int) -> list[tuple[Girder, Decimal, Decimal]]:
@@ -212,7 +217,7 @@ def _score(bridge: _Bridge, candidate: _Candidate, objective: Objective) -> Deci
 def search_reactions(origin: Span, end: Span, trains: Sequence[AxleTrain],
                      objective: Objective = Objective.PIER, loaded: Girder | None = None) -> MovingLoadResult:
     """The adopted loading of *trains*; with *loaded*, the train is on that girder only (the other carries nothing)."""
-    bridge = _Bridge(origin, end, loaded)
+    bridge = _Bridge(origin, end, loaded, objective)
     best: _Candidate | None = None
     best_score = Decimal(0)
     for train in trains:

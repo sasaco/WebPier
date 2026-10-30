@@ -196,6 +196,18 @@ def states(editor):
     return page, {key: "disabled" in page.output_boxes[key].state() for key in OUTPUT_KEYS}
 
 
+def test_a_pile_foundation_can_choose_every_item_and_has_no_note(calculation):
+    """Decision 125: with the cantilever (0900, 0910) a pile foundation makes every item; each is selectable once the items
+    it uses are chosen."""
+    calculation.select("下部構造")
+    type_in(calculation, FOUNDATION, "場所打ち杭")
+    page, disabled = states(calculation)
+    picked = {key for key, value in calculation.document.data["outputs"].items() if value}
+    assert page.foundation_note.get() == ""
+    assert all(disabled[key] == (not outputs.available(key, picked, "場所打ち杭")) for key in OUTPUT_KEYS)
+    assert not disabled["longitudinal_frame_analysis"] and disabled["cantilever"]  # 0711 and 0721 are not chosen
+
+
 def test_a_direct_foundation_has_every_item_selectable_and_no_note(calculation):
     page, disabled = states(calculation)
     assert page.foundation_note.get() == ""
@@ -205,7 +217,9 @@ def test_a_direct_foundation_has_every_item_selectable_and_no_note(calculation):
     assert not disabled["longitudinal_frame_analysis"] and disabled["footing"]
 
 
-def test_a_pile_foundation_cannot_choose_an_item_it_cannot_make_yet(calculation):
+def test_a_pile_foundation_cannot_choose_an_item_it_cannot_make_yet(calculation, monkeypatch):
+    # since decision 125 a pile foundation makes every item: one it could not (0900 before it) is taken out of the table
+    monkeypatch.setattr(outputs, "PILE_OUTPUT_KEYS", tuple(key for key in outputs.PILE_OUTPUT_KEYS if key != "cantilever"))
     calculation.select("下部構造")
     type_in(calculation, FOUNDATION, "場所打ち杭")
     page, disabled = states(calculation)

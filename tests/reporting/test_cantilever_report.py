@@ -73,8 +73,11 @@ def test_the_dead_load_table_prints_every_bearing_and_the_pier_totals(texts):
 
 def test_the_three_loadings_print_their_reactions(texts):
     assert texts["0900/train.loading.origin_max.heading"] == "a) B支点最大"
-    assert texts["0900/train.loading.origin_max.b"] == "RB=160.00×(18.850 + 16.650 + 13.850 + 11.650)/18.850=517.77kN"
-    assert texts["0900/train.loading.origin_max.a"] == "RA=160.00×4−517.77=122.23kN"
+    # the axle at the joint (19.425 from A) counts on the origin girder for the RB maximum (decision 125; the sample's
+    # 13-1 a) 18.850 + 16.650 + 13.850 + 11.650 → 517.77): 160 × 62.725 / 18.85 = 532.41
+    assert texts["0900/train.loading.origin_max.b"] == (
+        "RB=160.00×(19.425 + 17.225 + 14.425 + 12.225 + (-0.575))/18.850=532.41kN")
+    assert texts["0900/train.loading.origin_max.a"] == "RA=160.00×5−532.41=267.59kN"
     assert texts["0900/train.loading.origin_max.c"] == "RC=0.00 kN"
     assert texts["0900/train.loading.end_max.c"] == "RC=160.00×(2.425 + 4.625 + 7.425 + 9.625)/9.250=416.86kN"
     assert texts["0900/train.loading.both_max.b"].endswith("/18.850=272.47kN")
@@ -84,24 +87,24 @@ def test_the_three_loadings_print_their_reactions(texts):
 
 def test_the_shoe_lines_multiply_the_reaction_by_the_share(texts):
     assert texts["0900/shoe.train.origin_max.single.label"] == "・単線"
-    assert texts["0900/shoe.train.origin_max.single.origin.1"] == "Ｇ1桁=517.77×0.471=243.87kN"
-    assert texts["0900/shoe.train.origin_max.double.origin.1"] == "Ｇ1桁=517.77×0.451=233.51kN"
+    assert texts["0900/shoe.train.origin_max.single.origin.1"] == "Ｇ1桁=532.41×0.471=250.77kN"
+    assert texts["0900/shoe.train.origin_max.double.origin.1"] == "Ｇ1桁=532.41×0.451=240.12kN"
     assert texts["0900/shoe.train.end_max.double.end.1"] == "Ｇ1桁=416.86×1.000=416.86kN"
     # the impact of 安全性 and of 使用性 (0.75 of it; the sample copied the 安全性 values, ADR-0001)
-    assert texts["0900/shoe.impact.ultimate.origin_max.single.origin.1"] == "Ｇ1桁=243.87×0.245=59.75kN"
-    assert texts["0900/shoe.impact.service.origin_max.single.origin.1"] == "Ｇ1桁=243.87×0.184=44.87kN"
+    assert texts["0900/shoe.impact.ultimate.origin_max.single.origin.1"] == "Ｇ1桁=250.77×0.245=61.44kN"
+    assert texts["0900/shoe.impact.service.origin_max.single.origin.1"] == "Ｇ1桁=250.77×0.184=46.14kN"
     assert texts["0900/shoe.seismic.origin.1"] == "Ｇ1桁=320.00×0.471=150.72kN"
     assert texts["0900/shoe.seismic.end.1"] == "Ｇ1桁=160.00×0.857=137.12kN"
 
 
 def test_the_lateral_torque_of_the_origin_loading(texts):
     assert texts["0900/lateral.origin_max.heading"] == "(a) B支点最大の場合"
-    assert texts["0900/lateral.origin_max.origin.force"] == "水平力=HB=0.2×517.77=103.55kN"
+    assert texts["0900/lateral.origin_max.origin.force"] == "水平力=HB=0.2×532.41=106.48kN"
     assert texts["0900/lateral.origin_max.origin.height"] == "作用位置=yB=3.850m"
-    assert texts["0900/lateral.origin_max.origin.moment"] == "モーメント=MB=103.55×3.850=398.67kN・m"
+    assert texts["0900/lateral.origin_max.origin.moment"] == "モーメント=MB=106.48×3.850=409.95kN・m"
     assert texts["0900/lateral.origin_max.origin.squares"] == "ΣXi²=3.800^2+1.500^2+1.500^2+3.800^2=33.3800m^2"
-    assert texts["0900/lateral.origin_max.origin.vertical.1"] == "Ｇ1桁=398.67×3.800/33.3800=45.38kN"
-    assert texts["0900/lateral.origin_max.origin.vertical.2"] == "Ｇ2桁=398.67×1.500/33.3800=17.92kN"
+    assert texts["0900/lateral.origin_max.origin.vertical.1"] == "Ｇ1桁=409.95×3.800/33.3800=46.67kN"
+    assert texts["0900/lateral.origin_max.origin.vertical.2"] == "Ｇ2桁=409.95×1.500/33.3800=18.42kN"
     # the end girder carries no lateral load in the B支点最大 loading: no lines for it
     assert "0900/lateral.origin_max.end.force" not in texts
     # the B+C loading takes 0600's junction loading at both girders
@@ -133,35 +136,40 @@ def test_the_girder_forces_along_the_track(texts):
     assert texts["0900/girder.train.origin"] == "起点側=T=128.00kN"
 
 
-def test_the_bearing_derivations_follow_the_sample(texts):
-    assert texts["0900/bearing.safety_lr10_b10.label"] == "・1.0 LR + 1.23B[1.1D1 + 1.2D2 + 1.35(L+I) + 1.0LR + 1.23B + S10 の組合せ]"
-    assert texts["0900/bearing.safety_lr10_b10.origin.label"] == "※ 起点側（可動支承）"
-    assert texts["0900/bearing.safety_lr10_b10.origin.rubber"] == "Hbd=μ・Rm=0.10×8576.99=857.70kN"
-    assert texts["0900/bearing.safety_lr10_b10.origin.stopper"] == "Hsd=0.00 kN"
-    assert texts["0900/bearing.safety_lr10_b10.end.applied"] == "T2=318.08 kN"
-    assert texts["0900/bearing.safety_lr10_b10.end.vertical"] == "Rm=2861.00 kN"
-    assert texts["0900/bearing.safety_lr10_b10.end.candidate"] == "T − 1/2μ・Rm=318.08−0.5×0.10×2861.00=175.03kN"
-    assert texts["0900/bearing.safety_lr10_b10.end.share"] == "T / n=318.08/2=159.04kN"
-    assert texts["0900/bearing.safety_lr10_b10.end.stopper"] == "∴ Hsd=175.03 kN"
-    assert texts["0900/bearing.safety_lr10.label"].startswith("・1.0 LR[1.1D1 + 1.2D2 + 1.0LR + S30 の組合せ]")
-    assert texts["0900/bearing.seismic.heading"] == "(b) 地震時慣性力"
-    assert texts["0900/bearing.seismic.origin.applied"] == "T1=5369.88 kN"
-    assert texts["0900/bearing.seismic.origin.stopper"] == "Hsd=T / n=5369.88/2=2684.94kN"
-    assert texts["0900/bearing.seismic.end.stopper"] == "Hsd=T=1893.64kN"
-    assert "0900/bearing.seismic.origin.vertical" not in texts  # no Rm in the seismic case
-
-
-def test_the_device_summaries(texts):
-    assert texts["0900/summary.rubber.origin.heading"] == "a) 起点桁　　4 箇所"
-    rubber = texts["0900/summary.rubber.origin.table"]
-    assert "1シュー当り" in rubber and "|1.0 LR + 1.23B|857.70|214.43|" in rubber and "|1.0 LR|775.80|193.95|" in rubber
-    assert rubber.endswith("|地震時|1.0 EQ（桁荷重）|0.00|0.00")
-    assert texts["0900/summary.stopper.origin.heading"] == "a) 起点桁　　3 箇所"
-    stopper = texts["0900/summary.stopper.origin.table"]
-    assert "1ストッパー当り" in stopper and "|1.0 LR + 1.23B|0.00|0.00|" in stopper
-    assert stopper.endswith("|地震時|1.0 EQ（桁荷重）|2684.94|894.98")
-    assert texts["0900/summary.stopper.end.heading"] == "b) 終点桁　　7 箇所"
-    assert "|1.0 LR + 1.23B|175.03|25.00|" in texts["0900/summary.stopper.end.table"]
+def test_the_bearing_forces_of_each_case_are_written_as_the_example4_sample(texts):
+    """Decision 125, as Example橋脚4 V-13〜V-25 writes them (test_cantilever_bearings has the hand calculations): each
+    case with bearing forces under its limit state, its loading and combination, then for each girder T with its terms
+    (γB × B + LR factor × LR; Kh × the girder's dead load + the seismic train) and T / n; at the movable origin end each
+    bearing on a cantilever (Ｇ1 on the left, Ｇ4 on the right) takes min(Ts, μ・Ni), at the fixed end H = T / n."""
+    assert texts["0900/bearing.heading"] == "2) シューに働く水平荷重"
+    assert texts["0900/bearing.safety.heading"] == "(a) 安全性（破壊）"
+    assert texts["0900/bearing.serviceability_damage.heading"] == "(b) 使用性（損傷）"
+    assert texts["0900/bearing.restorability_eq.heading"] == "(c) 復旧性（地震時）"
+    assert texts["0900/bearing.9.label"] == "・Case 9　B支点最大"
+    assert texts["0900/bearing.9.combination"] == "[1.1D1 + 1.2D2 + 1.35(L+I) + 1.0LR + 1.23B + S10 の組合せ]"
+    assert texts["0900/bearing.9.origin.label"] == "＜起点側（可動支承）＞"
+    assert texts["0900/bearing.9.origin.applied"] == "T=1.23×160.00+1.0×400.00=596.80kN"
+    assert texts["0900/bearing.9.origin.share"] == "Ts=596.80/4=149.20kN"
+    assert texts["0900/bearing.9.origin.1.cap"] == "μ・NＧ1=0.10×2616.48=261.65kN"
+    assert texts["0900/bearing.9.origin.1.adopted"] == "∴ HＧ1=min(149.20, 261.65)=149.20kN"
+    assert texts["0900/bearing.9.origin.4.adopted"] == "∴ HＧ4=min(149.20, 261.65)=149.20kN"  # the right cantilever
+    assert texts["0900/bearing.9.end.label"] == "＜終点側（固定支承）＞"
+    assert texts["0900/bearing.9.end.applied"] == "T=1.0×200.00=200.00kN"  # ② has no train on the end girder
+    assert texts["0900/bearing.9.end.share"] == "H=200.00/2=100.00kN"
+    assert "0900/bearing.9.end.1.cap" not in texts
+    assert texts["0900/bearing.12.combination"] == "[1.1D1 + 1.2D2 + 1.23L + 1.0LR + 1.35B + S10 の組合せ]"
+    assert (texts["0900/bearing.18.label"], texts["0900/bearing.18.combination"]) == (
+        "・Case 18", "[1.1D1 + 1.2D2 + 1.0LR + S30 の組合せ]")
+    # 使用性（損傷）: the T of 9〜11, the vertical forces with the factors 1.0 (decision 125)
+    assert texts["0900/bearing.24.combination"] == "[1.0D1 + 1.0D2 + 1.23(L+I) + 1.0LR + 1.23B + S10 の組合せ]"
+    assert texts["0900/bearing.24.origin.applied"] == texts["0900/bearing.9.origin.applied"]
+    assert texts["0900/bearing.24.origin.1.cap"] == "μ・NＧ1=0.10×2394.02=239.40kN"
+    # the seismic case: the cap governs at the movable end, none at the fixed end
+    assert texts["0900/bearing.28.combination"] == "[1.0D1 + 1.0D2 + 1.00L + 1.0EQ + S2 の組合せ]"
+    assert texts["0900/bearing.28.origin.applied"] == "T=0.386×13580.00+128.00=5369.88kN"
+    assert texts["0900/bearing.28.origin.1.adopted"] == "∴ HＧ1=min(1342.47, 204.07)=204.07kN"
+    assert texts["0900/bearing.28.end.share"] == "H=1893.64/2=946.82kN"
+    assert not any(".right." in key or ".left." in key for key in texts if key.startswith("0900/bearing."))
 
 
 def test_the_self_weight_and_the_dead_action_of_the_left_cantilever(texts):
@@ -190,31 +198,44 @@ def test_the_action_tables_are_headed_as_the_sample(texts):
     assert texts["0900/left.actions.LF.END_MAX.heading"] == "(b) C支点最大の場合"
     assert texts["0900/left.actions.W.WITHOUT_TRAIN.heading"] == "(b) 列車荷重がない場合"
     assert texts["0900/left.actions.EQ.線路直角方向.item"] == "8) 地震時直角方向EQ"
-    assert texts["0900/left.actions.LRB.SAFETY_LR10_B10.heading"] == (
-        "9) 1.0 LR + 1.23B[1.1D1 + 1.2D2 + 1.35(L+I) + 1.0LR + 1.23B + S10 の組合せ]")
-    assert texts["0900/left.actions.LRB.地震時.heading"] == "13) 地震時線路方向"
-    bearing = texts["0900/left.actions.LRB.SAFETY_LR10_B10.table"]
-    assert "|Y\n(m)|" in bearing and "|起点側|ゴム支承|||0.00|214.43|1.350|289.48|" in bearing
-    assert "||ストッパー|||0.00|0.00|1.350|0.00|" in bearing
-    assert bearing.endswith("|合計|－|－|－|214.43|－|289.48")
-    assert texts["0900/left.actions.LRB.地震時.table"].endswith("|合計|－|－|－|894.98|－|1208.22")
+    assert texts["0900/left.actions.LRB.9.heading"] == "9) Case 9 1.0 LR + 1.23B B支点最大の支承に働く水平荷重"
+    assert texts["0900/left.actions.LRB.9.combination"] == texts["0900/bearing.9.combination"]
+    assert texts["0900/left.actions.LRB.24.combination"] == (
+        "[1.0D1 + 1.0D2 + 1.23(L+I) + 1.0LR + 1.23B + S10 の組合せ]")  # 使用性（損傷）: D and L by 1.0 (× ρ)
+    assert texts["0900/left.actions.LRB.18.heading"] == "18) Case 18 1.0 LRの支承に働く水平荷重"
+    assert texts["0900/left.actions.LRB.28.heading"] == "22) Case 28 地震時線路方向"
+    bearing = texts["0900/left.actions.LRB.9.table"]
+    assert "|Y\n(m)|" in bearing and "|起点側|Ｇ1桁|||0.00|149.20|1.350|201.42|" in bearing
+    assert "|終点側|Ｇ1桁|||0.00|100.00|1.350|135.00|" in bearing
+    assert bearing.endswith("|合計|－|－|－|249.20|－|336.42")
+    assert texts["0900/left.actions.LRB.28.table"].endswith("|合計|－|－|－|1150.89|－|1553.70")
 
 
 def test_the_combination_tables_of_each_side(texts, manuscript):
     assert texts["0900/left.combinations.heading"] == "13.2 設計作用の組合せ（左側）"
     rotated = [unit for unit in manuscript if unit.kind == "rotated"]
     assert [unit.key for unit in rotated][:9] == [
-        f"left.combinations.{quantity}.{first}" for quantity in ("bending", "shear", "torsion") for first in (1, 10, 19)]
-    assert len(rotated) == 18
+        f"left.combinations.{quantity}.{first}" for quantity in ("bending", "shear", "torsion")
+        for first in (1, 10, 19, 29)][:9]
+    assert len(rotated) == 24
+    # broken at the limit states: 使用性（損傷） 19〜26 with 復旧性（地震時） 27〜28, 耐久性 29〜32 with 安全性（疲労） 33〜35
+    for first, last in ((1, 9), (10, 18), (19, 28), (29, 35)):
+        unit = next(unit for unit in rotated if unit.key == f"left.combinations.shear.{first}")
+        numbers = [int(row[0].content) for row in unit.value.rows[2:]]
+        assert numbers == list(range(first, last + 1))
     torsion = texts["0900/left.combinations.torsion.10"]
     assert torsion.startswith("Case\nNo.|組合せ|Mt\n(kN・m)|性能項目|備考|摘要|D1|D2|S|L|I|LF|W|LR+B|EQ|10|")
-    assert "|1.0LR+1.23B\n289.48||1058.28|安全性\n(破壊)|列車最大|C支点最大|" in torsion
+    assert "|1.0LR+1.23B\n349.70||1118.50|安全性\n(破壊)|列車最大|C支点最大|" in torsion
     bending = texts["0900/left.combinations.bending.1"]
-    assert "|1|1.1\n3736.11|1.2\n406.80|1.0S10\n636.00|1.35\n510.30|1.35\n125.02|1.23\n86.52|1.0\n" in bending
+    assert "|1|1.1\n3736.11|1.2\n406.80|1.0S10\n636.00|1.35\n524.73|1.35\n128.56|1.23\n88.98|1.0\n" in bending
     summary = texts["0900/left.combinations.summary"]
     assert summary.count("|安全性\n(破壊)|") == 18 and summary.count("|耐久性|") == 4 and summary.count("|安全性\n(疲労)|") == 3
-    assert "|24|" in summary and "|31|" in summary and "|復旧性\n地震時|〃|線路方向|" in summary
+    assert summary.count("|使用性\n(損傷)|") == 8 and "|使用性\n(損傷)|風最大||" in summary
+    assert "|28|" in summary and "|35|" in summary and "|復旧性\n地震時|〃|線路方向|" in summary
     assert texts["0900/left.combinations.summary.title"] == "設計作用のまとめ"
+    # decision 125: the torsion of the bearing forces along the track is added on the side of the rest of the case
+    assert texts["0900/left.combinations.torsion_sign"].startswith("線路方向の水平荷重（LR+B，地震時の線路方向 EQ）")
+    assert "同じ向き（不利側）に加える．" in texts["0900/right.combinations.torsion_sign"]
 
 
 def test_the_left_side_comes_before_the_right_and_both_have_their_parts(manuscript):
@@ -229,11 +250,11 @@ def test_the_left_side_comes_before_the_right_and_both_have_their_parts(manuscri
 def test_the_adopted_table_names_the_governing_case_of_each_check(texts):
     assert texts["0900/adopted.heading"] == "(3) 照査に用いる設計作用"
     table = texts["0900/adopted.table"]
-    assert table.startswith("照査|項目|側|Case|Md\n(kN・m)|Vd\n(kN)|Mt\n(kN・m)|耐久性 縁応力度検討用|曲げ|左側|27|")
+    assert table.startswith("照査|項目|側|Case|Md\n(kN・m)|Vd\n(kN)|Mt\n(kN・m)|耐久性 縁応力度検討用|曲げ|左側|31|")
     assert "|安全性（破壊）|曲げ|左側|3|5942.86|5142.22|621.53|" in table
     assert "||せん断|左側|2|5879.52|5249.37|856.68|" in table
-    assert "||ねじり|左側|10|5504.12|4896.01|1058.28|" in table
-    assert "|復旧性（損傷）地震時|曲げ|左側|23|" in table and "||ねじり|左側|24|" in table
+    assert "||ねじり|左側|10|5504.12|4896.01|1118.50|" in table
+    assert "|復旧性（損傷）地震時|曲げ|左側|27|" in table and "||ねじり|左側|28|" in table
 
 
 def test_an_input_without_a_right_cantilever_prints_the_left_side_only():
@@ -244,6 +265,14 @@ def test_an_input_without_a_right_cantilever_prints_the_left_side_only():
     assert not any(key.startswith("0900/right.") for key in texts)
     assert "右側" not in "".join(texts.values())
     assert all(cell == "左側" for cell in texts["0900/adopted.table"].split("|") if cell in ("左側", "右側"))
+    build_cantilever(result, reaction, pier)
+
+
+def test_a_girder_without_a_bearing_on_a_cantilever_has_no_lines_in_the_bearing_forces():
+    pier, reaction, result = result_of(**{"上部工反力/終点側/C支点/0/支承位置": -0.5, "上部工反力/終点側/C支点/1/支承位置": 0.5})
+    texts = records(pier, reaction, result)
+    assert "0900/bearing.9.origin.applied" in texts
+    assert not any(key.startswith("0900/bearing.9.end") for key in texts)
     build_cantilever(result, reaction, pier)
 
 
@@ -259,8 +288,8 @@ def test_without_snow_there_is_no_snow_table_and_the_items_after_it_move_up(tmp_
     assert not any(".actions.S." in key for key in texts)
     assert texts["0900/left.actions.L.ORIGIN_MAX.item"] == "3) 列車荷重L"
     assert texts["0900/left.actions.EQ.線路直角方向.item"] == "7) 地震時直角方向EQ"
-    assert texts["0900/left.actions.LRB.SAFETY_LR10_B10.heading"].startswith("8) 1.0 LR + 1.23B[")
-    assert texts["0900/left.actions.LRB.地震時.heading"] == "12) 地震時線路方向"
+    assert texts["0900/left.actions.LRB.9.heading"].startswith("8) Case 9 1.0 LR + 1.23B")
+    assert texts["0900/left.actions.LRB.28.heading"] == "21) Case 28 地震時線路方向"
     assert "1.0S" not in texts["0900/left.combinations.bending.1"]
     path = render_cantilever(result, reaction, pier, tmp_path / "0900_片持ち梁.pdf")
     assert [check for check in formula_checks(path) if not check.ok] == []
@@ -312,7 +341,7 @@ def test_every_page_stands_on_the_common_grid_and_the_combination_tables_turn_wi
                 assert len(up) == len(lines), page.number + 1  # nothing else on the page of a turned table
             widths = {round(drawing.get("width") or 0, 2) for drawing in page.get_drawings() if drawing["type"] == "s"}
             assert widths <= {.25, 1.0, .24, .96}, page.number + 1  # the tables' and the loading figures' lines
-    assert turned == 2 * 3 * 3  # each side: Md, Vd and Mt of the cases 1〜9, 10〜18 and 19〜31
+    assert turned == 2 * 3 * 4  # each side: Md, Vd and Mt of the cases 1〜9, 10〜18, 19〜28 and 29〜35
 
 
 def test_the_same_input_gives_the_same_bytes(tmp_path: Path, current, rendered: Path):

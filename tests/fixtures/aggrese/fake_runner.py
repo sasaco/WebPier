@@ -14,7 +14,9 @@ It reads the XML as Aggre-SE does (Shift-JIS, though it declares utf-16). Instea
   the 応答値一覧表 has the real layout decision 59 reads (row No with the Case numbers from column D, row 名称, rows αf
   and ρm from the DB1 name, the blocks 復旧性 and 安全性 with a row 最大応答震度 of text values: Case n gives
   0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1); the rows 全体系折曲点震度 0.408, 等価固有周期 0.982 + 0.01(n − 1) and
-  L1地震動 0.321 that decision 97 reads), and
+  L1地震動 0.321 that decision 97 reads). As the real one it wraps every 12 Cases into a band of 19 rows with its own
+  headings (decision 125), and a Case of the 応答変位法 (its DB1 named ``<data>_応答変位法_<level>-<n>``, decision 97) has
+  ``-----`` for both 最大応答震度 (the real one has them for L1 and copies an inertia Case's for L2), and
   設計総括表 A1 says ``FAKE XLSX <SHA256 of the XML, 16 hex>``; its properties are dated 1980-01-01 so the bytes are the
   same each run (the real workbook's are not);
 - ``foundation-steps.csv``: the step table of the direct foundation (decision 60), UTF-8 and CRLF, with the real
@@ -105,31 +107,40 @@ def report(lines):
 
 
 def workbook(text, names):
-    """The summary workbook with the 応答値一覧表 of one Case per DB1 name (decision 59 reads its 最大応答震度)."""
+    """The summary workbook with the 応答値一覧表 of one Case per DB1 name (decision 59 reads its 最大応答震度), 12 Cases
+    a band of 19 rows (decision 125)."""
     book = Workbook()
     sheet = book.active
     sheet.title = "応答値一覧表"
-    sheet["A1"], sheet["A3"], sheet["A4"], sheet["B4"], sheet["B5"] = "地盤区分", "応答値一覧表", "解析ケース", "No", "名称"
-    sheet["B6"], sheet["B7"], sheet["A8"], sheet["B8"], sheet["C8"] = "αf", "ρm", "降伏点", "初期降伏震度", "Khy"
-    sheet["B9"], sheet["C9"], sheet["B12"], sheet["C12"] = "全体系折曲点震度", "Kheq", "等価固有周期", "Teq(sec)"
-    sheet["B16"], sheet["C16"] = "L1地震動", "KhL1"
-    sheet["A13"], sheet["B13"], sheet["C13"] = "復旧性", "応答塑性率", "μ"
-    sheet["B15"], sheet["C15"] = "最大応答震度", "Khmax"
-    sheet["A17"], sheet["B17"], sheet["C17"] = "安全性", "応答塑性率", "μ"
-    sheet["B19"], sheet["C19"] = "最大応答震度", "Khmax"
+    sheet["A1"] = "地盤区分"
+    labels = ((3, "応答値一覧表", None, None), (4, "解析ケース", "No", None), (5, None, "名称", None), (6, None, "αf", None),
+              (7, None, "ρm", None), (8, "降伏点", "初期降伏震度", "Khy"), (9, None, "全体系折曲点震度", "Kheq"),
+              (12, None, "等価固有周期", "Teq(sec)"), (13, "復旧性", "応答塑性率", "μ"), (15, None, "最大応答震度", "Khmax"),
+              (16, None, "L1地震動", "KhL1"), (17, "安全性", "応答塑性率", "μ"), (19, None, "最大応答震度", "Khmax"))
+    for band in range((len(names) + 11) // 12 or 1):
+        for row, *cells in labels:
+            for column, value in enumerate(cells, 1):
+                if value is not None:
+                    sheet.cell(row=19 * band + row, column=column, value=value)
     for index, name in enumerate(names):
-        column = 4 + index
-        sheet.cell(row=4, column=column, value=index + 1)
-        sheet.cell(row=5, column=column, value=name)
+        band, offset = divmod(index, 12)
+        column = 4 + offset
+
+        def put(row, value):
+            sheet.cell(row=19 * band + row, column=column, value=value)
+
+        put(4, index + 1)
+        put(5, name)
         found = re.search(r"_ρm(\d)(\d)_αf(\d)_", name)  # JRSNAP's name of the Case (decision 76)
         rho, alpha = (f"{found[1]}.{found[2]}", f"{found[3]}.0") if found else ("1.0", "1.0")
-        sheet.cell(row=6, column=column, value=alpha)
-        sheet.cell(row=7, column=column, value=rho)
-        sheet.cell(row=9, column=column, value="0.408")
-        sheet.cell(row=12, column=column, value=f"{0.982 + 0.01 * index:.3f}")
-        sheet.cell(row=16, column=column, value="0.321")
-        sheet.cell(row=15, column=column, value=f"{0.385 + 0.01 * index:.3f}")
-        sheet.cell(row=19, column=column, value=f"{0.386 + 0.01 * index:.3f}")
+        put(6, alpha)
+        put(7, rho)
+        put(9, "0.408")
+        put(12, f"{0.982 + 0.01 * index:.3f}")
+        put(16, "0.321")
+        response = "_応答変位法_" in name
+        put(15, "-----" if response else f"{0.385 + 0.01 * index:.3f}")
+        put(19, "-----" if response else f"{0.386 + 0.01 * index:.3f}")
     for title in ("設計総括表", "安全率一覧表", "直接基礎"):
         book.create_sheet(title)
     book["設計総括表"]["A1"] = text

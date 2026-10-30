@@ -1,0 +1,784 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_3of3.pdf",
+    "page_mapping": "3of3 の 0 始まりの index k が印刷頁 V-(k-56)。V-26（index 82）、V-39（index 95）、V-40〜V-102（index 96〜158）の全65頁を各画像の下端の頁番号で確認",
+    "method": "スキャン画像（150 dpi の頁と 250〜300 dpi の切り出し）を目視で転記。WebPier の実装・生成物・テストの *.py は見ていない",
+    "member": "第V編 1. 桁受梁（片持ち梁）。照査位置はすべて「く体前面」",
+    "units": "kN, kN·m, mm, mm2, mm3, N/mm2, N/mm。数値は印字の桁のまま（末尾の 0 は JSON の文字として残すが、数値として読むと落ちる）。印字が式・記号・単位で誤っていても値は印字のまま転記し、notes に記した"
+  },
+  "pages": [
+    {"printed": "V-26", "pdf_index": 82, "headings": ["(3) 桁受梁の自重", "図 1.1.7 桁受梁の形状寸法"]},
+    {"printed": "V-39", "pdf_index": 95, "headings": ["(6) 設計断面力総括表", "表 1.1.8 設計断面力総括表"]},
+    {"printed": "V-40", "pdf_index": 96, "headings": ["1.2 地震時以外の照査および検討", "1.2.1 適用の要件【コンクリート構造編 2章】", "(a) かぶり【コンクリート構造編 2.3.2】", "(b) 最小鉄筋量【コンクリート構造編 2.3.3.1】", "① コンクリートの収縮や温度によるひび割れを有害でない程度に抑える", "② 曲げひび割れ発生と同時に部材が脆性的に破壊することを防止"]},
+    {"printed": "V-41", "pdf_index": 97, "headings": ["② の続き（k0b、lch、GF、f'ck、Ec、ftk、k1b、σcrd、Mcrd、Myd）"]},
+    {"printed": "V-42", "pdf_index": 98, "headings": ["(c) 最大鉄筋量【コンクリート構造編 2.3.3.2】", "・釣合い鉄筋比pb の算出【コンクリート構造編 式2.3.2)】"]},
+    {"printed": "V-43", "pdf_index": 99, "headings": ["・引張鉄筋比pt の算出", "(d) 応力度の制限値【コンクリート構造編 7.3】"]},
+    {"printed": "V-44", "pdf_index": 100, "headings": ["(e) 鋼材のあき【コンクリート構造編 2.3.4】", "① 上側", "② 下側", "表 1.2.1 鉄筋のあき", "(f) せん断補強鉄筋の配置【コンクリート構造編 2.3.5.3】"]},
+    {"printed": "V-45", "pdf_index": 101, "headings": ["(g) ねじり補強鉄筋の配置【コンクリート構造編 2.3.5.5】", "(h) 鉄筋の定着【コンクリート構造編 2.3.7.3】", "① マッシブなコンクリートとみなせない鉄筋の基本定着長の算定【コンクリート構造編 2.3.7.（右端で切れて印字）"]},
+    {"printed": "V-46", "pdf_index": 102, "headings": ["① の続き（At、Kc、αb、ld02）", "② 引張鉄筋の基本定着長の低減【コンクリート構造編 2.3.7.3(4)】", "③ 低減定着長の算定【コンクリート構造編 2.3.7.3(7)】"]},
+    {"printed": "V-47", "pdf_index": 103, "headings": ["(i) 軸方向鉄筋の定着【コンクリート構造編 2.3.7.5】", "(j) せん断補強鉄筋の標準フック【コンクリート構造編 2.3.7.2】", "(k) 桁受梁の用心鉄筋の配置【コンクリート構造編 8.3.2 解説(3)】"]},
+    {"printed": "V-48", "pdf_index": 104, "headings": ["(l) コンクリートの疲労破壊の照査について【コンクリート構造編 6.4】"]},
+    {"printed": "V-49", "pdf_index": 105, "headings": ["(m) 前提条件一覧", "表 1.2.2 前提条件一覧表"]},
+    {"printed": "V-50", "pdf_index": 106, "headings": ["1.2.2 耐久性に関する検討【コンクリート構造編 3.3.2】", "(1) 曲げひび割れに対する検討【コンクリート構造編 3.3.2.3】", "(a) 設計断面力", "表 1.2.3 設計断面力", "(b) 検討断面", "図 1.2.1 照査断面図"]},
+    {"printed": "V-51", "pdf_index": 107, "headings": ["表 1.2.4 照査断面の鉄筋配置", "(c) 検討結果", "① 永久作用と変動作用が組み合わされた場合の全断面を有効としたコンクリートの縁引張応力度σb"]},
+    {"printed": "V-52", "pdf_index": 108, "headings": ["② 曲げひび割れの検討を省略する場合のコンクリートの縁引張応力度の制限値σbl", "③ 永久作用による引張鉄筋の応力度σs"]},
+    {"printed": "V-53", "pdf_index": 109, "headings": ["表 1.2.5 曲げひび割れ幅の照査を省略できる部材における永久作用による引張鉄筋応力度の制限値σsl1"]},
+    {"printed": "V-54", "pdf_index": 110, "headings": ["④ 検討結果のまとめ", "表 1.2.6 検討結果"]},
+    {"printed": "V-55", "pdf_index": 111, "headings": ["(2) せん断ひび割れおよびねじりひび割れの検討【コンクリート構造編 3.3.2.4, 3.3.2.5】"]},
+    {"printed": "V-56", "pdf_index": 112, "headings": ["1.2.3 安全性【橋りょう編 8.2】", "(1) 破壊に対する安全性の照査", "(a) 曲げモーメント", "① 設計断面力", "表 1.2.7 設計断面力", "② 照査断面", "③ 照査結果"]},
+    {"printed": "V-57", "pdf_index": 113, "headings": ["表 1.2.8 照査結果"]},
+    {"printed": "V-58", "pdf_index": 114, "headings": ["(b) せん断力", "① 設計断面力", "表 1.2.9 設計断面力", "② 照査断面", "③ 照査結果"]},
+    {"printed": "V-59", "pdf_index": 115, "headings": ["③ の続き（βn、Vsd、Vwcd の式と記号）"]},
+    {"printed": "V-60", "pdf_index": 116, "headings": ["設計せん断圧縮破壊耐力Vdd（式と記号）"]},
+    {"printed": "V-61", "pdf_index": 117, "headings": ["表 1.2.10-1 照査結果（その1）"]},
+    {"printed": "V-62", "pdf_index": 118, "headings": ["表 1.2.10-2 照査結果（その2）"]},
+    {"printed": "V-63", "pdf_index": 119, "headings": ["(c) ねじり【コンクリート構造編 7.7.6】", "① 設計断面力", "表 1.2.11 設計断面力", "② 照査断面", "③ 照査結果", "1) ねじり補強鉄筋のない場合の設計ねじり耐力"]},
+    {"printed": "V-64", "pdf_index": 120, "headings": ["表 1.2.12 照査結果", "2) 設計曲げモーメントが同時に作用した場合の設計ねじり耐力", "表 1.2.13 照査結果", "3) 設計せん断力が同時に作用した場合の設計ねじり耐力", "表 1.2.14 照査結果"]},
+    {"printed": "V-65", "pdf_index": 121, "headings": ["4) ねじり補強鉄筋のある場合の設計ねじり耐力【コンクリート構造編 8.3.2】", "a) 腹部コンクリートの設計斜め圧縮破壊耐力の算定", "b) 長方形，円形および円環断面の部材がねじりモーメントのみを受ける場合の設計ねじり耐力"]},
+    {"printed": "V-66", "pdf_index": 122, "headings": ["b) の続き（ql、Mtyd）", "図 1.2.2 横方向鉄筋の短辺および長辺"]},
+    {"printed": "V-67", "pdf_index": 123, "headings": ["c) 長方形，円形および円環断面の部材において，設計曲げモーメントを同時に受ける場合の設計ねじり耐力"]},
+    {"printed": "V-68", "pdf_index": 124, "headings": ["・Case 4-1（両スパン載荷）", "表 1.2.15 照査結果", "・Case 4-1（終片スパン載荷）", "表 1.2.16 照査結果"]},
+    {"printed": "V-69", "pdf_index": 125, "headings": ["d) 長方形，円形および円環断面の部材において，設計せん断力を同時に受ける場合の設計ねじり耐力", "・Case 4-1（両スパン載荷）", "表 1.2.17 照査結果", "・Case 4-1（終片スパン載荷）", "表 1.2.18 照査結果"]},
+    {"printed": "V-70", "pdf_index": 126, "headings": ["表 1.2.19-1 照査結果（その1）"]},
+    {"printed": "V-71", "pdf_index": 127, "headings": ["表 1.2.19-2 照査結果（その2）"]},
+    {"printed": "V-72", "pdf_index": 128, "headings": ["(2) 疲労破壊に対する安全性の照査", "(a) 曲げモーメント", "① 設計断面力", "表 1.2.20 設計断面力", "② 照査断面", "③ 照査結果", "1) 設計変動応力度σsrd の算定"]},
+    {"printed": "V-73", "pdf_index": 129, "headings": ["2) 鉄筋の最小応力度σmin の算定", "3) 鉄筋の200万回疲労強度fsr200 の算定", "4) 総等価繰返し回数N の算定"]},
+    {"printed": "V-74", "pdf_index": 130, "headings": ["4) の続き（NA、NB、ΣN）", "表 1.2.21 照査結果"]},
+    {"printed": "V-75", "pdf_index": 131, "headings": ["1.2.4 使用性", "(1) 外観"]},
+    {"printed": "V-76", "pdf_index": 132, "headings": ["(2) 損傷", "(a) 曲げモーメント", "① 設計断面力", "表 1.2.22 設計断面力", "② 照査断面", "③ 照査結果"]},
+    {"printed": "V-77", "pdf_index": 133, "headings": ["表 1.2.23 照査結果"]},
+    {"printed": "V-78", "pdf_index": 134, "headings": ["(b) せん断力", "① 設計断面力", "表 1.2.24 設計断面力", "② 照査断面", "③ 照査結果"]},
+    {"printed": "V-79", "pdf_index": 135, "headings": ["表 1.2.25-1 照査結果（その1）"]},
+    {"printed": "V-80", "pdf_index": 136, "headings": ["表 1.2.25-2 照査結果（その1）（タイトルの「その1」は印字のまま）"]},
+    {"printed": "V-81", "pdf_index": 137, "headings": ["(c) ねじり【コンクリート構造編 7.7.6】", "① 設計断面力", "表 1.2.26 設計断面力", "② 照査断面", "③ 照査結果", "1) ねじり補強鉄筋のない場合の設計ねじり耐力"]},
+    {"printed": "V-82", "pdf_index": 138, "headings": ["表 1.2.27 照査結果", "2) 設計曲げモーメントが同時に作用した場合の設計ねじり耐力", "表 1.2.28 照査結果", "3) 設計せん断力が同時に作用した場合の設計ねじり耐力", "表 1.2.29 照査結果"]},
+    {"printed": "V-83", "pdf_index": 139, "headings": ["4) ねじり補強鉄筋のある場合の設計ねじり耐力【コンクリート構造編 8.3.2】", "a) 腹部コンクリートの設計斜め圧縮破壊耐力の算定", "b) 長方形，円形および円環断面の部材がねじりモーメントのみを受ける場合の設計ねじり耐力"]},
+    {"printed": "V-84", "pdf_index": 140, "headings": ["b) の続き（qw、ql、Mtyd）"]},
+    {"printed": "V-85", "pdf_index": 141, "headings": ["c) 長方形，円形および円環断面の部材において，設計曲げモーメントを同時に受ける場合の設計ねじり耐力", "・Case 7（両スパン載荷）"]},
+    {"printed": "V-86", "pdf_index": 142, "headings": ["表 1.2.30 照査結果", "・Case 7（片スパン載荷）", "表 1.2.31 照査結果", "d) 長方形，円形および円環断面の部材において，設計せん断力を同時に受ける場合の設計ねじり耐力", "・Case 7（両スパン載荷）"]},
+    {"printed": "V-87", "pdf_index": 143, "headings": ["表 1.2.32 照査結果", "・Case 7（片スパン載荷）", "表 1.2.33 照査結果"]},
+    {"printed": "V-88", "pdf_index": 144, "headings": ["表 1.2.34-1 照査結果（その1）"]},
+    {"printed": "V-89", "pdf_index": 145, "headings": ["表 1.2.34-2 照査結果（その2）"]},
+    {"printed": "V-90", "pdf_index": 146, "headings": ["1.3 地震時の照査", "1.3.1 安全性", "(1) 破壊形態の確認", "(2) 破壊", "(3) 地震時の走行安全性に係る変位", "1.3.2 復旧性", "(a) 曲げモーメント", "① 設計断面力", "表 1.3.1 設計断面力", "② 照査断面", "③ 照査結果", "表 1.3.2 性能レベルと損傷レベル"]},
+    {"printed": "V-91", "pdf_index": 147, "headings": ["表 1.3.3 照査結果"]},
+    {"printed": "V-92", "pdf_index": 148, "headings": ["(b) せん断力", "① 設計断面力", "表 1.3.4 設計断面力", "② 照査断面", "③ 照査結果"]},
+    {"printed": "V-93", "pdf_index": 149, "headings": ["表 1.3.5-1 照査結果（その1）"]},
+    {"printed": "V-94", "pdf_index": 150, "headings": ["表 1.3.5-2 照査結果（その2）"]},
+    {"printed": "V-95", "pdf_index": 151, "headings": ["(c) ねじり【コンクリート構造編 7.7.6】", "① 設計断面力", "表 1.3.6 設計断面力", "② 照査断面", "③ 照査結果", "1) ねじり補強鉄筋のない場合の設計ねじり耐力"]},
+    {"printed": "V-96", "pdf_index": 152, "headings": ["表 1.3.7 照査結果", "2) 設計曲げモーメントが同時に作用した場合の設計ねじり耐力", "表 1.3.8 照査結果", "3) 設計せん断力が同時に作用した場合の設計ねじり耐力", "表 1.3.9 照査結果"]},
+    {"printed": "V-97", "pdf_index": 153, "headings": ["4) ねじり補強鉄筋のある場合の設計ねじり耐力【コンクリート構造編 8.3.2】", "a) 腹部コンクリートの設計斜め圧縮破壊耐力の算定", "b) 長方形，円形および円環断面の部材がねじりモーメントのみを受ける場合の設計ねじり耐力"]},
+    {"printed": "V-98", "pdf_index": 154, "headings": ["b) の続き（qw、ql、Mtyd）"]},
+    {"printed": "V-99", "pdf_index": 155, "headings": ["c) 長方形，円形および円環断面の部材において，設計曲げモーメントを同時に受ける場合の設計ねじり耐力", "表 1.3.10 照査結果"]},
+    {"printed": "V-100", "pdf_index": 156, "headings": ["d) 長方形，円形および円環断面の部材において，設計せん断力を同時に受ける場合の設計ねじり耐力", "表 1.3.11 照査結果"]},
+    {"printed": "V-101", "pdf_index": 157, "headings": ["表 1.3.12-1 照査結果（その1）"]},
+    {"printed": "V-102", "pdf_index": 158, "headings": ["表 1.3.12-2 照査結果（その2）"]}
+  ],
+
+  "shape": {
+    "printed": "V-26",
+    "figure": "図 1.1.7 桁受梁の形状寸法",
+    "width_mm": 2500,
+    "tip_height_mm": 1500,
+    "haunch_mm": 500,
+    "height_at_body_face_mm": 2000,
+    "height_at_body_face_note": "図は 1500 と 500 の寸法を重ねて示す（く体前面で 1500+500）",
+    "cantilever_length_mm": 2100,
+    "self_weight": {
+      "W1_tip": {"operands_as_printed": "24.5 × 1.50 × 2.50", "value_kN_per_m": 91.9},
+      "W2_body_face": {"operands_as_printed": "24.5 × 2.50 × 0.50 + 91.9", "value_kN_per_m": 122.5},
+      "W": {"operands_as_printed": "(91.9 + 122.5) / 2 × 2.10", "value_kN": 225.1}
+    }
+  },
+
+  "design_force_summary_table_1_1_8": {
+    "printed": "V-39",
+    "title": "表 1.1.8 設計断面力総括表",
+    "columns": ["requirement", "force", "case", "loading", "Md_kNm", "Vd_kN", "Mtd_kNm"],
+    "note": "Mtd の「—」は null。loading は Case の右の小欄（両・起片・終片）",
+    "rows": [
+      {"requirement": "安全性（破壊）", "force": "曲げ・せん断", "case": "1", "loading": null, "Md_kNm": 4357.8, "Vd_kN": 4784.3, "Mtd_kNm": null},
+      {"requirement": "安全性（破壊）", "force": "曲げ・せん断", "case": "2", "loading": null, "Md_kNm": 4206.3, "Vd_kN": 4627.2, "Mtd_kNm": null},
+      {"requirement": "安全性（破壊）", "force": "曲げ・せん断", "case": "3", "loading": null, "Md_kNm": 2689.9, "Vd_kN": 3030.4, "Mtd_kNm": null},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "4-1", "loading": "両", "Md_kNm": 4320.0, "Vd_kN": 4732.9, "Mtd_kNm": 1215.9},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "4-2", "loading": "起片", "Md_kNm": 2876.9, "Vd_kN": 3534.9, "Mtd_kNm": 1296.2},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "4-3", "loading": "終片", "Md_kNm": 4421.7, "Vd_kN": 4428.4, "Mtd_kNm": 631.9},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "5-1", "loading": "両", "Md_kNm": 3635.8, "Vd_kN": 4019.8, "Mtd_kNm": 1166.9},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "5-2", "loading": "起片", "Md_kNm": 2772.6, "Vd_kN": 3303.2, "Mtd_kNm": 1149.0},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "5-3", "loading": "終片", "Md_kNm": 3695.7, "Vd_kN": 3835.7, "Mtd_kNm": 698.7},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "6-1", "loading": "両", "Md_kNm": 4165.1, "Vd_kN": 4571.2, "Mtd_kNm": 1216.2},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "6-2", "loading": "起片", "Md_kNm": 2853.1, "Vd_kN": 3482.1, "Mtd_kNm": 1163.6},
+      {"requirement": "安全性（破壊）", "force": "ねじり", "case": "6-3", "loading": "終片", "Md_kNm": 4257.5, "Vd_kN": 4294.3, "Mtd_kNm": 676.8},
+      {"requirement": "使用性（外観）・耐久性", "force": "曲げ・せん断", "case": "7", "loading": null, "Md_kNm": 2338.8, "Vd_kN": 2640.0, "Mtd_kNm": null},
+      {"requirement": "使用性（外観）・耐久性", "force": "曲げ・せん断", "case": "8", "loading": null, "Md_kNm": 3756.1, "Vd_kN": 4119.5, "Mtd_kNm": null},
+      {"requirement": "使用性（損傷）（地震時以外）", "force": "曲げ・せん断", "case": "9-1", "loading": null, "Md_kNm": 3926.3, "Vd_kN": 4308.8, "Mtd_kNm": null},
+      {"requirement": "使用性（損傷）（地震時以外）", "force": "曲げ・せん断", "case": "9-2", "loading": null, "Md_kNm": 2400.9, "Vd_kN": 2703.8, "Mtd_kNm": null},
+      {"requirement": "使用性（損傷）（地震時以外）", "force": "ねじり", "case": "10-1", "loading": "両", "Md_kNm": 3888.5, "Vd_kN": 4257.4, "Mtd_kNm": 1137.2},
+      {"requirement": "使用性（損傷）（地震時以外）", "force": "ねじり", "case": "10-2", "loading": "起片", "Md_kNm": 2576.5, "Vd_kN": 3168.3, "Mtd_kNm": 1198.2},
+      {"requirement": "使用性（損傷）（地震時以外）", "force": "ねじり", "case": "10-3", "loading": "終片", "Md_kNm": 3980.9, "Vd_kN": 3980.5, "Mtd_kNm": 597.7},
+      {"requirement": "復旧性（損傷）", "force": "曲げ・せん断", "case": "11", "loading": null, "Md_kNm": 6775.7, "Vd_kN": 7537.3, "Mtd_kNm": null},
+      {"requirement": "復旧性（損傷）", "force": "ねじり", "case": "12", "loading": null, "Md_kNm": 2674.6, "Vd_kN": 2996.7, "Mtd_kNm": 1942.0},
+      {"requirement": "安全性（疲労破壊）", "force": "曲げ", "case": "13", "loading": null, "Md_kNm": 1417.3, "Vd_kN": 1479.5, "Mtd_kNm": null}
+    ]
+  },
+
+  "section_and_materials": {
+    "source": "表 1.2.4（V-51）、図 1.2.1（V-50）、図 1.2.2（V-66）と本文",
+    "b_mm": 2500,
+    "h_mm": 2000,
+    "d_mm": 1920,
+    "d_note": "引張側（上側）の有効高さ。d = 2000 − 80.0。表 1.2.10-1 などでは 1920.0",
+    "design_cover_mm": 45,
+    "design_cover_source": "（表 5.2.1）",
+    "tension_rebar_upper": {"bar": "D32", "count": 14, "layers": 1, "As_mm2": 11118.8, "position_operands_as_printed": "45 + 19 + 32 / 2", "d_ast_mm": 80.0, "pitch_mm": 125},
+    "compression_rebar_lower": {"bar": "D16", "count": 10, "layers": 1, "As_mm2": 1986.0, "position_operands_as_printed": "45 + 19 + 16 / 2", "d_asc_mm": 72.0, "pitch_mm": 250},
+    "side_rebar": {"bar": "D19", "count": 28, "As_mm2": 8022.0, "symbol_table_1_2_4": "ΣAscc", "symbol_other_tables": "Ase", "per_face_text": "片面で D19 − 14 本（4011.0 mm2）（V-58）"},
+    "axial_total_for_pc": {"As_mm2": 21126.8, "composition": "D32 − 14 本，D19 − 28 本，D16 − 10 本"},
+    "tension_bar_center_spacing_cs_mm": 125,
+    "stirrups": {"bar": "D19", "sets": 3, "Aw_mm2": 1719.0, "Ss_mm": 125, "theta_deg": 90, "note": "1719.0 = 286.5 × 6（3組 × 2脚）"},
+    "torsion_transverse": {
+      "b0_mm": 1891, "d0_mm": 2353,
+      "figure_1_2_2_as_printed": "幅 2500 = 73.5 + 2353 + 73.5、高さ 2000（1500 + 500）= 54.5 + 1891 + 54.5、D19",
+      "Atw_safety_mm2": 286.5, "Atw_serviceability_and_seismic_mm2": 859.5, "s_mm": 125,
+      "u_mm": 8488, "SumAtl_operands_as_printed": "794.2 (D32) × 14 + 286.5 (D19) × 28 + 198.6 (D16) × 10", "SumAtl_mm2_text": "2.11 × 10^4", "SumAtl_mm2_table": 21100.0
+    },
+    "figure_1_2_1_as_printed": {
+      "top": "99 | 17×125=2125 | 99、両端の内側に 88.5 / 88.5、「主鉄筋にカウントしない」の引出し線（上側の4本を指す）",
+      "left": "2000 = 1500 + 500；80、1848、72；200、13×125 1625、175；D19（側方鉄筋）",
+      "bottom": "125 | 3×250 =750 | 250 | 287.5 | 125；187.5 | 288 | 213 | 275；2500"
+    },
+    "materials": {
+      "fck_N_mm2": 40.0, "fsyk_N_mm2": 390, "fwyk_N_mm2": 390, "fsuk_N_mm2": 560, "rebar_grade": "SD390",
+      "Es_kN_mm2": 200, "Ec_kN_mm2_used_in_n": 31, "Ec_kN_mm2_used_in_lch": 33.4, "n": 6.45,
+      "dmax_mm": 25
+    },
+    "gammas_by_check": [
+      {"check": "最小鉄筋量 Mcrd（電算 Myd）", "gamma_b": 1.1, "fck_N_mm2": 40.0, "note": "Mcrd の算定は f'ck = 40.0 × 1.3 = 52.0"},
+      {"check": "最大鉄筋量・定着", "gamma_c": 1.3, "fcd_N_mm2": 30.8},
+      {"check": "耐久性（表 1.2.6）", "gamma_c": 1.0, "gamma_s": 1.0, "fcd_N_mm2": 40.0, "fsyd_N_mm2": 390.0},
+      {"check": "安全性（破壊）曲げ", "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.1, "gamma_i": 1.2},
+      {"check": "安全性（破壊）せん断", "gamma_c": 1.3, "gamma_s": 1.0, "gamma_bc": 1.3, "gamma_bs": 1.1, "gamma_b_Vdd": 1.2, "gamma_i": 1.2},
+      {"check": "安全性（破壊）ねじり", "gamma_c": 1.3, "gamma_b": 1.3, "gamma_i": 1.2},
+      {"check": "安全性（疲労破壊）", "gamma_c": 1.3, "gamma_s": 1.05, "fsyd_N_mm2": 371.4, "gamma_i": 1.1, "gamma_b": "表に行なし（比から 1.1 と読める。notes）"},
+      {"check": "使用性（損傷）曲げ", "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.2},
+      {"check": "使用性（損傷）せん断", "gamma_bc": 1.3, "gamma_bs": 1.1, "gamma_b_Vdd": 1.2, "gamma_i": 1.2},
+      {"check": "使用性（損傷）ねじり", "gamma_b": 1.0, "gamma_i": 1.2, "ftd_note": "ftd = 2.1（γc = 1.3）"},
+      {"check": "復旧性 曲げ", "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.0},
+      {"check": "復旧性 せん断", "gamma_bc": 1.3, "gamma_bs": 1.1, "gamma_b_Vdd": 1.2, "gamma_i": 1.0},
+      {"check": "復旧性 ねじり", "gamma_b": 1.0, "gamma_i": 1.0, "ftd_note": "ftd = 2.1（γc = 1.3）"}
+    ]
+  },
+
+  "applicability": {
+    "cover": {
+      "printed": "V-40",
+      "text": "一般に，かぶりは鋼材の直径以上とする．設計かぶりは，桁受梁 : 45 mm である．（表 5.2.1） 主鉄筋は，桁受梁 : 最大 D32 であるため，上記条件を満足する．",
+      "c_mm": 45, "max_bar": "D32"
+    },
+    "min_rebar_pc": {
+      "printed": "V-40",
+      "formula": "pc = As/(b·h)",
+      "As_mm2": 21126.8, "As_composition": "D32 − 14 本，D19 − 28 本，D16 − 10 本",
+      "b_mm": 2500, "h_mm": 2000,
+      "operands_as_printed": "21126.8 / ( 2500 × 2000 ) × 100",
+      "pc_percent": 0.42, "limit_percent": 0.15, "comparison": ">"
+    },
+    "min_rebar_mcrd": {
+      "printed": "V-40〜V-41",
+      "formula": "Mcrd = I/y(σcrd)",
+      "I_operands_as_printed": "1/12 × 2500 × 2000^3", "I_mm4_text": "1.667 × 10^12",
+      "y_operands_as_printed": "h / 2 = 2000 / 2", "y_mm": 1000, "h_mm": 2000,
+      "sigma_crd_formula": "σcrd = fbck = k0b·k1b·ftk【コンクリート構造編 4.2.4)】",
+      "k0b_formula": "k0b = 1+1/{0.85+4.5(h/lch)}【コンクリート構造編 式(4.2.5)】",
+      "k0b_operands_as_printed": "1 + 1 / { 0.85 + 4.5 × ( 2000 / 356 )}", "k0b": 1.04,
+      "lch_formula": "lch = 1000GF·Ec/ftk^2",
+      "lch_operands_as_printed": "1000 × 0.1091 × 33.4 / 3.20^2", "lch_mm": 356,
+      "GF_formula": "GF = 1/100 dmax^(1/3) f'ck^(1/3)【コンクリート構造編 式(4.2.8)】",
+      "GF_operands_as_printed": "1/100 × 25^(1/3) × 52.0^(1/3)", "GF_N_mm": 0.1091,
+      "dmax_mm": 25,
+      "fck_operands_as_printed": "40.0 × 1.3", "fck_N_mm2": 52.0,
+      "Ec_kN_mm2": 33.4,
+      "ftk_formula": "ftk = 0.23 f'ck^(2/3)【コンクリート構造編 式(4.2.1)】",
+      "ftk_operands_as_printed": "0.23 × 52.0^(2/3)", "ftk_N_mm2": 3.20,
+      "k1b": 1.0,
+      "sigma_crd_operands_as_printed": "1.04 × 1.0 × 3.20", "sigma_crd_N_mm2": 3.33,
+      "Mcrd_operands_as_printed": "1.667 × 10^12 / 1000 × 3.33", "Mcrd_Nmm_text": "0.555 × 10^10", "Mcrd_kNm": 5550,
+      "Myd_kNm": 8668.41, "Myd_source": "電算結果より（γb = 1.1，f'ck = 40.0 N/mm2）",
+      "result_text": "よって，Myd > Mcrd となるので，上記条件を満足する．"
+    },
+    "max_rebar": {
+      "printed": "V-42〜V-43",
+      "formula": "pb = {( α·ε'cu/(ε'cu+εsy) − N'd/(b·d·f'cd) )·f'cd/fsyd + Asc/(b·d)·σ's/fsyd} × 100",
+      "alpha_operands_as_printed": "0.88 − 0.004 × 40.0 = 0.720 > 0.68", "alpha": 0.680,
+      "fck_N_mm2": 40.0,
+      "eps_cu_operands_as_printed": "( 155 − 40.0 ) / 30000 = 0.00383 > 0.0035", "eps_cu": 0.00350,
+      "eps_sy_operands_as_printed": "390 / 200000", "eps_sy": 0.00195,
+      "fsyd_N_mm2": 390, "Es_kN_mm2": 200, "Nd_N": 0, "b_mm": 2500, "d_mm": 1920,
+      "fcd_operands_as_printed": "40.0 / 1.3", "fcd_N_mm2": 30.8, "gamma_c": 1.3,
+      "Asc_mm2": 1986.0, "Asc_composition": "D16 − 10 本",
+      "sigma_s_prime_N_mm2": 0, "sigma_s_prime_text": "圧縮鉄筋の応力を考慮しない方が，設計上安全側であるため，σ's = 0 N/mm2とする．",
+      "pb_operands_as_printed": "{( 0.680 × 0.00350/(0.00350 + 0.00195) − 0 × 10^3/(2500 × 1920 × 30.8) ) × 30.8/390 + 1986.0/(2500 × 1920) × 0.0/390} × 100",
+      "pb_percent": 3.45,
+      "pt_operands_as_printed": "7942.0 / ( 2500 × 1920 ) × 100", "pt_percent": 0.17,
+      "pt_Ast_as_printed_mm2": 7942.0,
+      "limit_operands_as_printed": "0.75 × 3.45", "limit_percent": 2.59,
+      "result_text": "0.75pb = 2.59 % > pt = 0.17 % となるので，上記条件を満足する．"
+    },
+    "stress_limit": {
+      "printed": "V-43",
+      "formula": "σc = N'd / A + 2 Md / (k·j·b·d^2)",
+      "Nd_N": 0,
+      "A_operands_as_printed": "2500 × 2000", "A_mm2_text": "5.00 × 10^6",
+      "Md_Nmm_text": "2338.8 × 10^6", "Md_reference_as_printed": "（表 1.2.1参照）", "Md_case": "7",
+      "k_operands_as_printed": "{ 2 × 6.45 × 0.00232 + ( 6.45 × 0.00232 )^2 }^(1/2) − 6.45 × 0.00232", "k": 0.159,
+      "n_operands_as_printed": "200 / 31", "n": 6.45,
+      "Es_N_mm2_text": "200 × 10^3", "Ec_N_mm2_text": "31 × 10^3",
+      "pt_operands_as_printed": "11118.8 / ( 2500 × 1920 )", "pt": 0.00232,
+      "Ast_mm2": 11118.8, "Ast_composition": "D32 − 14 本", "b_mm": 2500, "d_mm": 1920,
+      "j_operands_as_printed": "1 − 0.159 / 3", "j": 0.947,
+      "sigma_c_operands_as_printed": "0 × 10^3 / ( 5.00 × 10^6 ) + 2 × 2338.8 × 10^6 / ( 0.159 × 0.947 × 2500 × 1920^2 )",
+      "sigma_c_N_mm2": 3.37,
+      "limit_operands_as_printed": "0.4f'cd = 0.4 × 40.0", "limit_N_mm2": 16.0, "comparison": "≦",
+      "result_text": "よって，上記条件を満足する．"
+    },
+    "spacing": {
+      "printed": "V-44",
+      "upper": {"pitch_mm": 125, "bar_dia_mm": 32, "operands_as_printed": "125 mm − 32 mm", "clear_mm": 93},
+      "lower": {"pitch_mm": 250, "bar_dia_mm": 16, "operands_as_printed": "250 mm − 16 mm", "clear_mm": 234},
+      "table_1_2_1": {
+        "title": "表 1.2.1 鉄筋のあき",
+        "rows": [
+          {"member": "桁受梁", "side": "上側（水平あき）", "clear_mm": 93, "limits_as_printed": ["≧ 20 mm", "≧ 32 × 1 = 32.0 mm", "≧ 25 × 4/3 = 33.3 mm"]},
+          {"member": "桁受梁", "side": "下側（水平あき）", "clear_mm": 234, "limits_as_printed": ["≧ 20 mm", "≧ 16 × 1 = 16.0 mm", "≧ 25 × 4/3 = 33.3 mm"]}
+        ],
+        "result_text": "よって，上記条件を満足する．"
+      }
+    },
+    "shear_rebar_arrangement": {
+      "printed": "V-44",
+      "text": "一般に，有効高さの3/4以下かつ400mm以下で配置することとする．",
+      "three_quarter_d_operands_as_printed": "1920 × 3/4", "three_quarter_d_mm": 1440,
+      "limit_mm": 400, "stirrup_spacing_mm": 125,
+      "result_text": "スターラップの配置間隔は，125 mm なので，上記条件を満足する．"
+    },
+    "torsion_rebar_arrangement": {
+      "printed": "V-45",
+      "axial": {"rule": "長方形断面の場合，軸方向鉄筋は横方向鉄筋の各隅部に少なくとも1本配置し，その間隔は300mm以下とする．", "tension_mm": 125, "compression_mm": 250, "text": "引張鉄筋 : 125 mm 以下 / 圧縮鉄筋 : 250 mm 以下 / よって，上記条件を満足する．"},
+      "transverse": {"rule": "横方向鉄筋の間隔は，部材断面の長辺寸法の0.4倍以下かつ300mm以下とする．", "long_side_operands_as_printed": "2500 × 0.4", "long_side_limit_mm": 1000, "limit_mm": 300, "spacing_mm": 125, "result_text": "横方向鉄筋の配置間隔は，125 mm なので，上記条件を満足する．"}
+    },
+    "anchorage": {
+      "printed": "V-45〜V-46",
+      "formula": "ld02 = αb · fsyd / ( 4 fbod ) · φ ≧ 20 φ",
+      "fsyd_N_mm2": 390,
+      "fbod_formula": "fbod = 0.28 f'ck^(2/3) / γc",
+      "fbod_operands_as_printed": "0.28 × 40.0^(2/3) / 1.3", "fbod_N_mm2": 2.52,
+      "fck_N_mm2": 40.0, "gamma_c": 1.3,
+      "alpha_b_formula": "αb = ( 0.75 / Kc ) + 0.2　ただし，0.5 ≦ αb ≦ 1.0",
+      "Kc_formula": "Kc = ( cb / φ ) + { 15 At / ( s · φ ) }",
+      "cb1_operands_as_printed": "80 − 32 / 2", "cb1_mm": 64.0,
+      "cb2_operands_as_printed": "( 125 − 32 ) / 2", "cb2_mm": 46.5,
+      "cb_mm": 46.5, "phi_mm": 32,
+      "At_case_cb2_lt_cb1_operands_as_printed": "A0 · n1 / n2 = 286.5 × 2 / 14", "At_case_cb2_lt_cb1_mm2": 40.9,
+      "At_case_cb2_gt_cb1_mm2": 286.5,
+      "At_mm2": 40.9, "At_reason": "cb2 < cb1 より",
+      "A0_mm2": 286.5, "A0_bar": "D19", "n1": 2, "n2": 14, "s_mm": 125,
+      "Kc_operands_as_printed": "( 46.5 / 32 ) + { 15 × 40.9 / ( 125 × 32 )}", "Kc": 1.61,
+      "alpha_b_operands_as_printed": "( 0.75 / 1.61 ) + 0.2", "alpha_b": 0.67,
+      "ld02_operands_as_printed": "0.67 × 390 / ( 4 × 2.52 ) × 32", "ld02_mm": 830,
+      "hook_reduction_text": "引張鉄筋に標準フック（半円形フック，鋭角フック，直角フック）を設けた場合，基本定着長 ld は10φだけ低減してよい．標準フックは用いない形式とするため，標準フックを用いることによる基本定着長 ld の低減は行わない．圧縮鉄筋は，標準フックを設ける場合でも基本定着長の低減を行わない．",
+      "reduced_formula": "ld0 = ld02 · ( Asc / As ) ≧ ld /3 かつ ≧ 10 φ",
+      "reduced_text": "配置する鉄筋は，照査結果から求まる鉄筋量であるためAs =Asc となる．",
+      "ld0_mm": 830
+    },
+    "axial_anchorage": {
+      "printed": "V-47",
+      "text": "桁受梁の引張鉄筋は，上下から拘束されていないので，有効高さ ls だけ定着部内に入った位置を起点として，低減定着長 l0 以上の定着長 l をとる．",
+      "operands_as_printed": "l ≧ l0 + ls = 830 + 1920", "l_mm": 2750
+    },
+    "stirrup_hook": {
+      "printed": "V-47",
+      "source": "【コンクリート構造編 表2.3.1】",
+      "material": "SD390", "bar": "D19",
+      "r_operands_as_printed": "2.5 φ = 2.5 × 19", "r_min_mm": 48, "r_design_mm": 65,
+      "result_text": "設計値は，r = 65 mm なので，上記条件を満足する．"
+    },
+    "side_bars": {
+      "printed": "V-47",
+      "vertical": {"rule": "ディープビームの側面には，片面でコンクリート断面積の0.08%以上の鉛直の用心鉄筋を腹部幅の2倍以下かつ300mm以下の間隔で配置する．", "operands_as_printed": "( 2500 × 2000 ) × 0.0008", "Ass_mm2": 4000, "option_D25": {"count_min": 8, "As1_mm2": 4053.6}, "option_D19": {"count_min": 14, "As1_mm2": 4011.0}, "result_text": "鉛直および水平方向に配置すればよいため，上記条件を満足する．"},
+      "horizontal": {"rule": "コーベル部材でもあるため，一般に梁の両側あわせて引張鉄筋の40%以上の水平の用心鉄筋を，300mm以下の間隔で配置する．", "operands_as_printed": "0.4 × As = 0.4 × 11118.8", "Ass_mm2": 4447.5, "As_composition": "D32 − 14 本", "provided": {"bar": "D19", "count": 28, "As2_mm2": 8022.0}, "result_text": "D19 を 28 本 ( As2 = 8022.0 mm2 ) 配置するので上記条件を満足する．"}
+    },
+    "concrete_fatigue_note": {
+      "printed": "V-48",
+      "rule": "曲げモーメントによるコンクリートの疲労破壊の照査は，変動作用時のコンクリートの圧縮応力度σcd が 0.5f'cd 以下かつ19 N/mm2 以下であれば照査を行わなくてよい．",
+      "formula": "σcd = N'd / A + 2 Md / k·j·b·d^2",
+      "sigma_cd_label_as_printed": "永久作用によるコンクリートの曲げ圧縮応力度 (N/mm2)",
+      "Nd_N": 0, "A_operands_as_printed": "2500 × 2000", "A_mm2": 5000000,
+      "Md_Nmm_text": "1417.3 × 10^6", "Md_label": "変動作用時の設計曲げモーメント", "Md_case": "13",
+      "k": 0.159, "n_operands_as_printed": "200 / 31", "n": 6.45, "pt": 0.00232, "Ast_mm2": 11118.8, "b_mm": 2500, "d_mm": 1920, "j": 0.947,
+      "sigma_cd_operands_as_printed": "0 × 10^3 / 5000000 + 2 × 1417.3 × 10^6 / ( 0.159 × 0.947 × 2500 × 1920^2 )",
+      "sigma_cd_N_mm2": 2.04,
+      "limit1_operands_as_printed": "0.5f'cd = 0.5 × 40.0 / 1.3", "limit1_N_mm2": 15.4,
+      "limit2_N_mm2": 19.0,
+      "result_text": "よって，上記条件を満足するので，コンクリートの疲労破壊の照査は省略できる．ただし，本設計計算例においては省略しないものとする．"
+    },
+    "table_1_2_2": {
+      "printed": "V-49",
+      "title": "表 1.2.2 前提条件一覧表",
+      "columns": ["item", "sub", "premise", "design_value", "judgement", "remark"],
+      "rows": [
+        {"item": "かぶり", "sub": null, "premise": "c = 32 mm 以上", "design_value": "c = 45 mm", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "最小鉄筋量", "sub": "全断面", "premise": "pc = 0.15 % 以上", "design_value": "pc = 0.42 %", "judgement": "○", "remark": null},
+        {"item": "最小鉄筋量", "sub": "引張鉄筋", "premise": "Mcrd < Myd", "design_value": "Mcrd = 5550 kN·m / Myd = 8668 kN·m", "judgement": "○", "remark": null},
+        {"item": "最大鉄筋量", "sub": null, "premise": "pt < 0.75pb", "design_value": "pt = 0.17 % / 0.75pb = 2.59 %", "judgement": "○", "remark": null},
+        {"item": "応力度の制限", "sub": null, "premise": "σc < 0.4f'cd", "design_value": "σc = 3.37 N/mm2 / 0.4f'cd = 16.0 N/mm2", "judgement": "○", "remark": null},
+        {"item": "鉄筋のあき", "sub": "上側", "premise": "33.3 mm 以上", "design_value": "93 mm", "judgement": "○", "remark": "粗骨材の4/3"},
+        {"item": "鉄筋のあき", "sub": "下側", "premise": "33.3 mm 以上", "design_value": "234 mm", "judgement": "○", "remark": "粗骨材の4/3"},
+        {"item": "せん断補強鉄筋の配置", "sub": null, "premise": "400 mm 以下", "design_value": "125 mm", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "ねじり補強鉄筋の配置", "sub": "軸方向", "premise": "300 mm 以下", "design_value": "引張鉄筋 : 125 mm / 圧縮鉄筋 : 250 mm", "judgement": "○ / ○", "remark": "配筋図参照"},
+        {"item": "ねじり補強鉄筋の配置", "sub": "横方向", "premise": "300 mm 以下", "design_value": "横方向鉄筋 : 125 mm", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "鉄筋の定着", "sub": null, "premise": "引張鉄筋 830 mm 以上 / 圧縮鉄筋 634 mm 以上", "design_value": "引張鉄筋 : 900 mm以上 / 圧縮鉄筋 : 700 mm以上", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "軸方向鉄筋の定着", "sub": null, "premise": "引張鉄筋 2750 mm 以上", "design_value": "引張鉄筋 : 2800 mm以上", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "せん断補強鉄筋の標準フック", "sub": null, "premise": "曲げ内半径 48 mm 以上", "design_value": "65 mm", "judgement": "○", "remark": "配筋図参照"},
+        {"item": "用心鉄筋の配置", "sub": null, "premise": "鉛直 : 4000 mm2 以上 / 水平 : 4448 mm2 以上", "design_value": "鉛直 : 4054 mm / 水平 : 8022 mm（単位は mm と印字）", "judgement": "○ / ○", "remark": "配筋図参照"},
+        {"item": "コンクリートの疲労破壊の照査", "sub": null, "premise": "σcd ≦ 0.5f'cd / σcd ≦ 19 N/mm2", "design_value": "σcd = 2.04 N/mm2 / 0.5f'cd = 15.4 N/mm2", "judgement": "○", "remark": null}
+      ]
+    }
+  },
+
+  "durability": {
+    "printed": "V-50〜V-55",
+    "table_1_2_3": {
+      "title": "表 1.2.3 設計断面力",
+      "rows": [
+        {"position": "く体前面", "case": "8", "case_text": "両スパン載荷 永久＋変動作用時", "Md_kNm": 3756.1, "Vd_kN": 4119.5, "Mtd_kNm": null, "remark": "縁応力検討用"},
+        {"position": "く体前面", "case": "7", "case_text": "永久作用時", "Md_kNm": 2338.8, "Vd_kN": 2640.0, "Mtd_kNm": null, "remark": "ひび割れ検討用"}
+      ]
+    },
+    "table_1_2_4": {
+      "title": "表 1.2.4 照査断面の鉄筋配置",
+      "B_mm": 2500, "H_mm": 2000, "fck_N_mm2": 40.0, "fsyk_N_mm2": 390, "fwyk_N_mm2": 390,
+      "Ast1": "D32 − 14 本 = 11118.8 mm2", "dast1_operands_as_printed": "45 + 19 + 32 / 2", "dast1_mm": 80.0,
+      "SumAst": "D32 − 14 本 = 11118.8 mm2", "dast_mm": 80.0,
+      "Asc1": "D16 − 10 本 = 1986.0 mm2", "dasc1_operands_as_printed": "45 + 19 + 16 / 2", "dasc1_mm": 72.0,
+      "SumAsc": "D16 − 10 本 = 1986.0 mm2", "dasc_mm": 72.0,
+      "SumAscc": "D19 − 28 本 = 8022.0 mm2",
+      "cs_mm": 125,
+      "Aw": "D19 − 3 組 = 1719.0 mm2", "Ss_mm": 125
+    },
+    "sigma_b": {
+      "formula": "σb = Md / I · yL",
+      "Md_Nmm_text": "3756.1 × 10^6", "Md_case": "8",
+      "I_operands_as_printed": "b·h^3/12 = 2500 × 2000^3 / 12", "I_mm4": 1666666666667,
+      "yL_operands_as_printed": "y = h / 2 = 2000 / 2", "yL_mm": 1000,
+      "operands_as_printed": "3756.1 × 10^6 / 1666666666667 × 1000",
+      "sigma_b_N_mm2": 2.25
+    },
+    "sigma_bl": {
+      "fck_N_mm2": 40.0, "h_mm": 2000, "source": "【コンクリート構造編 解説表3.3.1】より",
+      "sigma_bl_N_mm2": 2.50,
+      "comparison_as_printed": "σb = 2.25 N/mm2 < σbl = 2.50 N/mm2",
+      "text": "よって，永久作用と変動作用が組み合わされた場合の，全断面を有効としたコンクリートの縁引張応力度σbが，曲げひび割れの検討を省略する場合のRC構造に対するコンクリートの縁引張応力度の制限値σbl以下となるため，永久作用による引張鉄筋の応力度σsの算定を行う．"
+    },
+    "sigma_s": {
+      "formula": "σs = Md/(As·j·d)",
+      "Md_kNm": 2338.8, "Md_case": "7",
+      "As_mm2": 11118.8, "As_composition": "D32 − 14 本", "d_mm": 1920,
+      "j_operands_as_printed": "1 − 0.159 / 3", "j": 0.947,
+      "k_operands_as_printed": "{ 2 × 6.45 × 0.00232 + ( 6.45 × 0.00232 )^2 }^(1/2) − 6.45 × 0.00232", "k": 0.159,
+      "n_operands_as_printed": "200 / 31.0", "n": 6.45,
+      "pt_operands_as_printed": "11118.8 / ( 2500 × 1920 )", "pt": 0.00232, "b_mm": 2500,
+      "operands_as_printed": "2338.8 × 10^6 / ( 11118.8 × 0.947 × 1920 )",
+      "sigma_s_N_mm2": 115.69
+    },
+    "table_1_2_5": {
+      "title": "表 1.2.5 曲げひび割れ幅の照査を省略できる部材における永久作用による引張鉄筋応力度の制限値 σsl1 (N/mm2)",
+      "header": "水掛かりの程度に応じた区分",
+      "values": {"常時乾燥": 140, "乾湿繰返し": 120, "常時湿潤": 140},
+      "footnote": "※ 鉄筋は異形鉄筋とする．",
+      "adopted_sigma_sl1_N_mm2": 120,
+      "adopted_text": "表 1.2.5 曲げひび割れ幅の検討を省略できる部材における永久作用による引張鉄筋応力度の制限値 σsl1 より σsl1 = 120 N/mm2",
+      "result_text": "よって，永久作用による引張鉄筋の応力度σs が，曲げひび割れ幅の検討を省略できる部材における永久作用による引張鉄筋応力度の制限値 σsl1 以下となるため，曲げひび割れの検討を省略する．"
+    },
+    "table_1_2_6": {
+      "title": "表 1.2.6 検討結果",
+      "member": "桁受梁", "position": "く体前面",
+      "H_mm": 2000, "Bw_mm": 2500,
+      "Ast_mm2": 11118.8, "Ast_bars": "D32 − 14 本", "dast_mm": 80,
+      "Asc_mm2": 1986.0, "Asc_bars": "D16 − 10 本", "dasc_mm": 72,
+      "Ascc_mm2": 8022.0, "Ascc_bars": "D19 − 28 本",
+      "fck_N_mm2": 40.0, "gamma_c": 1.0, "fcd_N_mm2": 40.0,
+      "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390.0,
+      "environment": "乾湿繰返し",
+      "Mhd_kNm": 3756.1, "Nhd_kN": 0.0,
+      "sigma_b_N_mm2": 2.25, "sigma_bl_N_mm2": 2.50, "check_b_as_printed": "2.25 < 2.50",
+      "Mpd_kNm": 2338.8, "Npd_kN": 0.0, "n": 6.45,
+      "sigma_s_N_mm2": 115.7, "sigma_sl1_N_mm2": 120, "check_s_as_printed": "115.7 < 120",
+      "sigma_se": null, "c_mm": null, "cs_mm": null, "phi_mm": null, "eps_csd": null,
+      "k1": null, "k2": null, "n1": null, "k3": null, "k4": null, "wd_mm": null, "wlim_mm": null,
+      "dash_note": "σse 〜 wlim はすべて「-」",
+      "result": "OK"
+    },
+    "shear_torsion_crack_omission": {
+      "printed": "V-55",
+      "heading": "(2) せん断ひび割れおよびねじりひび割れの検討【コンクリート構造編 3.3.2.4, 3.3.2.5】",
+      "text": "本部材の桁受梁は，ディープビーム的な耐荷機構を有する部材であり，スレンダーな棒部材とひび割れ性状やせん断補強鋼材の効果は異なる．また，本部材のような諸元および荷重・支持条件であれば，これまでの実績から，せん断力あるいはねじりモーメントによって発生するひび割れによる問題が生じることは少ないと考え，本設計計算例では検討を省略する．",
+      "boxed_note": "コンクリート構造編3.3.2.4，3.3.2.5では，設計せん断力および設計ねじりモーメントが，せん断補強鋼材を用いない棒部材の設計せん断耐力や設計ねじり耐力の70%未満であることを確認することで，せん断ひび割れおよびねじりひび割れの検討を省略してよいこととしている．ここで用いているそれぞれの耐力は，スレンダーな梁を対象に，安全側に定められたものである．また，コンクリート構造編7.5.1に示される鉄筋の設計応力度においても，スレンダーな梁における耐荷機構に基づくものであるため，ディープビーム的な耐荷機構の場合，同一断面のスレンダーな梁と比較して，断面力に対するひび割れ幅は小さくなると考えられる．したがって，ディープビーム的な部材に対しては，せん断ひび割れおよびねじりひび割れの検討を，非線形有限要素解析あるいは実験によるのがよい．ただし，実績のある諸元および荷重・支持条件であれば，せん断ひび割れおよびねじりひび割れの検討を省略してもよい．"
+    }
+  },
+
+  "safety_failure": {
+    "bending": {
+      "printed": "V-56〜V-57",
+      "table_1_2_7": {"position": "く体前面", "case": "1-1", "Md_kNm": 4357.8, "remark": "Md最大"},
+      "text": "安全性（破壊）に対する照査は，設計曲げモーメントMd を設計応答値IRd，設計曲げ耐力Mud を設計限界値ILd として照査を行う．",
+      "table_1_2_8": {
+        "member": "桁受梁", "position": "く体前面",
+        "H_mm": 2000, "Bw_mm": 2500,
+        "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0,
+        "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0,
+        "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 4357.8, "Nd_kN": 0.0,
+        "eps_cu": 0.0035, "eps_s": 0.0487, "x_mm": 128.9,
+        "Mu_kNm": 10995.0, "gamma_b": 1.1, "Mud_kNm": 9995.5, "gamma_i": 1.2,
+        "ratio": 0.53, "result": "OK"
+      }
+    },
+    "shear": {
+      "printed": "V-58〜V-62",
+      "table_1_2_9": {"position": "く体前面", "case": "1-1", "Md_kNm": 4357.8, "Vd_kN": 4784.3, "remark": "Vd最大"},
+      "check_formula": "γi·Vd/Vud ≦ 1.0、Vud = max (Vdd, min(Vyd, Vwcd))",
+      "gamma_i": 1.2,
+      "side_bars_text": {"rule": "側面には，軸方向引張鉄筋の40%以上の用心鉄筋を配置する．", "operands_as_printed": "11118.8 × 0.4 / 2", "Ass_mm2": 2223.8, "provided": "片面で D19 − 14 本 ( 4011.0 mm2 )"},
+      "formulas_as_printed": {
+        "Vyd": "Vyd = Vcd + Vsd",
+        "Vcd": "Vcd = βd·βp·βn·fvcd·bw·d/γb（ただし，pw·fwyd/f'cd ≦ 0.1 とする）",
+        "fvcd": "fvcd = 0.2 ∛f'cd (N/mm2)、fvcd > 0.72 N/mm2 となる場合は fvcd = 0.72 N/mm2",
+        "beta_d": "βd = ⁴√(1000/d)、βd > 1.5 となる場合は 1.5",
+        "beta_p": "βp = ∛(100pc)、βp > 1.5 となる場合は 1.5",
+        "beta_n": "βn = 1+2M0/Mud（N'd ≧ 0、βn > 2 は 2）、= 1+4M0/Mud（N'd < 0、βn < 0 は 0）",
+        "fcd": "f'cd = f'ck/γc, γc = 1.3",
+        "gamma_b_Vcd": "1.3",
+        "Vsd": "Vsd = Aw·fwyd·(sinθs+cosθs)/ss·z/γb",
+        "fwyd": "25f'cd(N/mm2) と 1275N/mm2 のいずれか小さい値を上限",
+        "theta_s": "90°",
+        "z": "d/1.15",
+        "pw": "pw = Aw/(bw·ss)",
+        "gamma_b_Vsd": "1.1",
+        "Vwcd": "Vwcd = fwcd·bw·d/γb、fwcd = 1.25√f'cd (N/mm2)、fwcd > 9.8 N/mm2 となる場合は 9.8、γb = 1.3",
+        "Vdd": "Vdd = (βd·βn+βw)·βp·βa·α·fdd·bw·d/γb",
+        "fdd": "fdd = 0.19√f'cd",
+        "beta_d_Vdd": "βd = ⁴√(1000/d)",
+        "beta_w": "βw = 4.2 ∛(100pw) · (a/d − 0.75) /√f'cd",
+        "beta_p_Vdd": "βp = (1 + √(100pc)) / 2",
+        "beta_a": "βa = 5 / (1+(a/d)^2)",
+        "beta_n_Vdd": "βn = 1+2M0/Mu（N'd ≧ 0 の場合）、M0 = Nd·h/6",
+        "alpha": "支圧板の部材軸方向長さの影響を考慮する係数 (=1.14)",
+        "pw_Vdd": "pw = Aw/(bw·Ss)、pw < 0.002 となる場合は pw = 0"
+      },
+      "table_1_2_10_1": {
+        "member": "桁受梁", "position": "く体前面",
+        "H_mm": 2000, "Bw_mm": 2500, "d_mm": 1920.0,
+        "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0,
+        "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0,
+        "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 4357.8, "Nd_kN": 0.0, "Vd_kN": 4784.3,
+        "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125.0
+      },
+      "table_1_2_10_2": {
+        "Vyd": {"pw": 0.0055, "fwyd_N_mm2": 390, "pw_fwyd_over_fcd": 0.0697, "Aw_prime_mm2": 1719.0, "fvcd_N_mm2": 0.6269, "beta_d": 0.8495, "pc": 0.00232, "beta_p": 0.6145, "beta_n": 1.000, "M0": 0.00, "gamma_bc": 1.3, "Vcd_kN": 1208.3, "z_mm": 1670.0, "gamma_bs": 1.1, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7},
+        "Vwcd": {"fwcd_N_mm2": 6.937, "gamma_bc": 1.3, "Vwcd_kN": 25613.5},
+        "Vdd": {"a_mm": 875, "fdd_N_mm2": 1.054, "fdd_label_as_printed": "fdd=0.19(f'cd)^(1/3)", "beta_d": 0.850, "beta_n": 1.000, "beta_w": 0.000, "beta_p": 0.741, "beta_p_label_as_printed": "βp=(1+pc^(1/2))/2", "beta_a": 4.140, "alpha": 1.14, "gamma_b": 1.2, "Vdd_kN": 12521.9},
+        "Vud_max_kN": 12521.9, "Vud_symbol_as_printed": "Vdd",
+        "gamma_i": 1.2, "ratio": 0.46, "ratio_label_as_printed": "γi・Vd / Vdd", "result": "OK"
+      }
+    },
+    "torsion": {
+      "printed": "V-63〜V-71",
+      "table_1_2_11": {
+        "rows": [
+          {"position": "く体前面", "case": "4-1", "loading": "両スパン載荷", "Md_kNm": 4421.7, "Vd_kN": 4732.9, "Mtd_kNm": 631.9, "remark": "Md最大"},
+          {"position": "く体前面", "case": "4-2", "loading": "起片スパン載荷", "Md_kNm": 2876.9, "Vd_kN": 3534.9, "Mtd_kNm": 1296.2, "remark": "Mtd最大"}
+        ]
+      },
+      "text": "安全性（破壊）に対する照査は，設計ねじりモーメントMtd を設計応答値IRd，設計ねじり耐力Mtcd，Mtud，Mtcud を設計限界値ILd として照査を行う．",
+      "Mtcd": {
+        "formula": "Mtcd = βnt·Kt·ftd/γb",
+        "beta_nt_formula": "βnt = √(1+σ'nd/(1.5ftd))", "beta_nt": 1.0, "sigma_nd": 0,
+        "ftd_text": "f'ck = 40.0 N/mm2 より，ftd = 2.1 N/mm2（γc = 1.3）", "ftd_N_mm2": 2.1,
+        "Kt_formula": "Kt = b^2·d/ (3.1 + 1.8/(d/b))",
+        "Kt_operands_as_printed": "2500^2 × 2000 / ( 3.1 + 1.8/(2000 / 2500) )", "Kt_mm3": 2336448598.10,
+        "gamma_b": 1.3,
+        "operands_as_printed": "1.0 × 2336448598.1 × 2.1 / 1.3", "Mtcd_Nmm": 3774263120.0, "Mtcd_kNm": 3774.3
+      },
+      "column_labels_as_printed": ["4-1（両スパン載荷）", "4-1（終片スパン載荷）"],
+      "table_1_2_12": {"columns": [
+        {"Mtd_kNm": 631.9, "Mtcd_kNm": 3774.3, "gamma_i": 1.2, "ratio": 0.21, "limit": 0.2, "comparison": ">", "result": "省略不可"},
+        {"Mtd_kNm": 1296.2, "Mtcd_kNm": 3774.3, "gamma_i": 1.2, "ratio": 0.42, "limit": 0.2, "comparison": ">", "result": "省略不可"}
+      ]},
+      "table_1_2_13": {"formula": "Mtud-1 = Mtcd·(0.2+0.8 √(1−γi·Md/Mud))", "columns": [
+        {"Mtd_kNm": 631.9, "Md_kNm": 4421.7, "Mud_kNm": 9995.5, "Mtud1_kNm": 2823.0, "gamma_i": 1.2, "ratio": 0.27, "limit": 0.5, "comparison": "<", "result": "省略可能"},
+        {"Mtd_kNm": 1296.2, "Md_kNm": 2876.9, "Mud_kNm": 9995.5, "Mtud1_kNm": 3197.8, "gamma_i": 1.2, "ratio": 0.49, "limit": 0.5, "comparison": "<", "result": "省略可能"}
+      ]},
+      "table_1_2_14": {"formula": "Mtud-2 = Mtcd·(1−0.8γi·Vd/Vyd)", "columns": [
+        {"Mtd_kNm": 631.9, "Vd_kN": 4732.9, "Vyd_kN": 9350.7, "Mtud2_kNm": 1940.3, "gamma_i": 1.2, "ratio": 0.40, "limit": 0.5, "comparison": "<", "result": "省略可能"},
+        {"Mtd_kNm": 1296.2, "Vd_kN": 3534.9, "Vyd_kN": 9350.7, "Mtud2_kNm": 2404.6, "gamma_i": 1.2, "ratio": 0.65, "limit": 0.5, "comparison": ">", "result": "省略不可"}
+      ]},
+      "with_torsion_rebar": {
+        "printed": "V-65〜V-69",
+        "side_bar_text": "ディープビームの側面には，片面でコンクリート断面積の0.08%以上の鉛直の用心鉄筋を配置することから",
+        "Ass_unit_width_operands_as_printed": "(2500 × 2000) × 0.0008", "Ass_mm2": 4000,
+        "as_stirrups_text": "D19 − 3 組 125 mm間隔 = 6876.0 mm2",
+        "Mtcud": {"formula": "Mtcud = Kt·fwcd/γb", "fwcd_operands_as_printed": "1.25 × √30.8", "fwcd_N_mm2": 6.94, "fwcd_limit_as_printed": "≦ 7.8 N/mm2", "gamma_b": 1.3, "Kt_mm3": 2336448598.1, "operands_as_printed": "2336448598.1 × 6.94 / 1.3", "Mtcud_Nmm": 12473040977.5, "Mtcud_kNm": 12473.0},
+        "Mtyd": {
+          "formula": "Mtyd = 2Am √(qw·ql) /γb",
+          "Am_operands_as_printed": "1891 × 2353", "Am_mm2": 4449523.0, "b0_mm": 1891, "d0_mm": 2353,
+          "qw_formula": "qw = Atw·fwyd /s ≦ 1.25ql", "Atw_mm2": 286.5, "fwyd_N_mm2": 390, "s_mm": 125,
+          "qw_operands_as_printed": "286.5 × 390 / 125", "qw_N_mm": 893.9, "qw_limit_as_printed": "< 1.25ql = 1211.9 N/mm",
+          "ql_formula": "ql = ΣAtl·flyd /u ≦ 1.25qw", "SumAtl_operands_as_printed": "794.2 (D32) × 14 + 286.5 (D19) × 28 + 198.6 (D16) × 10 = 2.11 × 10^4", "flyd_N_mm2": 390,
+          "u_operands_as_printed": "2 × ( 1891 + 2353 )", "u_mm": 8488,
+          "ql_operands_as_printed": "2.11 × 10^4 × 390 / 8488", "ql_N_mm": 969.5, "ql_limit_as_printed": "< 1.25qw = 1117.4 N/mm",
+          "gamma_b": 1.3,
+          "operands_as_printed": "2 × 4449523 × √(893.9 × 969.5) / 1.3", "Mtyd_Nmm": 6372626639.7, "Mtyd_kNm": 6372.6
+        },
+        "Mtud1_rule_as_printed": [
+          "Mud ≧ M'ud かつ γi·|Md| ≦ Mud − M'ud の場合: Mtud-1 = Mtumin",
+          "Mud ≧ M'ud かつ Mud − M'ud ≦ γi·|Md| ≦ Mud の場合: Mtud-1 = (Mtumin − 0.2Mtcd)·√((Mud − γi·|Md|)/M'ud) + 0.2Mtcd",
+          "Mud < M'ud かつ γi·|Md| ≦ Mud の場合: Mtud-1 = (Mtumin − 0.2Mtcd)·√(1 − γi·|Md|/Mud) + 0.2Mtcd"
+        ],
+        "Mud_upper_tension_kNm": 9995.5, "Mud_prime_lower_tension_kNm": 4132.3, "Mud_prime_source": "※電算結果より",
+        "Mtumin_kNm": 6372.6,
+        "cases": [
+          {"label_as_printed": "Case 4-1（両スパン載荷）", "Mud_minus_Mud_prime_operands_as_printed": "9995.5 − 4132.3", "Mud_minus_Mud_prime_kNm": 5863.2, "gamma_i_Md_operands_as_printed": "1.2 × 4421.7", "gamma_i_Md_kNm": 5306.0, "Md_kNm": 4421.7, "Mtud1_kNm": 6372.6,
+           "table_1_2_15": {"Mtd_kNm": 631.9, "Mtud1_kNm": 6372.6, "gamma_i": 1.2, "ratio": 0.12},
+           "Mtud2_operands_as_printed": "6372.6 × ( 1 − 1.2 × 4732.9 / 9350.7 ) + 0.2 × 3774.3 × 1.2 × 4732.9 / 9350.7", "Mtud2_kNm": 2960.5,
+           "table_1_2_17": {"Mtd_kNm": 631.9, "Mtud2_kNm": 2960.5, "gamma_i": 1.2, "ratio": 0.26}},
+          {"label_as_printed": "Case 4-1（終片スパン載荷）", "Mud_minus_Mud_prime_operands_as_printed": "9995.5 − 4132.32", "Mud_minus_Mud_prime_kNm": 5863.2, "gamma_i_Md_operands_as_printed": "1.2 × 2876.9", "gamma_i_Md_kNm": 3452.3, "Md_kNm": 2876.9, "Mtud1_kNm": 6372.6,
+           "table_1_2_16": {"Mtd_kNm": 1296.2, "Mtud1_kNm": 6372.6, "gamma_i": 1.2, "ratio": 0.25},
+           "Mtud2_symbol_as_printed": "Mtud", "Mtud2_operands_as_printed": "6372.6 × ( 1 − 1.2 × 3534.9 / 9350.7 ) + 0.2 × 3774.3 × 1.2 × 3534.9 / 9350.7", "Mtud2_kNm": 3824.2,
+           "table_1_2_18": {"Mtd_kNm": 1296.2, "Mtud2_kNm": 3824.2, "gamma_i": 1.2, "ratio": 0.41}}
+        ],
+        "Mtud2_formula": "Mtud-2 = Mtumin·(1−γi·Vd/Vyd)+0.2Mtcd·γi·Vd/Vyd"
+      },
+      "table_1_2_19_1": {
+        "case_labels_as_printed": ["4-1(両スパン)", "4-1(終片スパン)"],
+        "common": {"H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本", "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390, "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125, "Vcd_kN": 1208.3, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7, "Kt_mm3": 2336448598, "beta_nt": 1.000, "ftd_N_mm2": 2.1, "sigma_nd_N_mm2": 0.00, "gamma_b": 1.3, "Mtcd_kNm": 3774.3, "gamma_i": 1.2},
+        "columns": [
+          {"Md_kNm": 4421.7, "Vd_kN": 4732.9, "Mtd_kNm": 631.9, "ratio_Mtcd": 0.21, "result": "省略不可"},
+          {"Md_kNm": 2876.9, "Vd_kN": 3534.9, "Mtd_kNm": 1296.2, "ratio_Mtcd": 0.42, "result": "省略不可"}
+        ]
+      },
+      "table_1_2_19_2": {
+        "columns": [
+          {"Mud_kNm": 9995.5, "gamma_i": 1.2, "Mtud1_kNm": 2823.0, "ratio_Mtud1_no_rebar": 0.27, "result_Mtud1_no_rebar": "省略可能", "Mtud2_kNm": 1940.3, "ratio_Mtud2_no_rebar": 0.40, "result_Mtud2_no_rebar": "省略可能",
+           "with_rebar": null, "ratio_Mtud1_with_rebar": null, "result_Mtud1_with_rebar": "OK", "ratio_Mtud2_with_rebar": null, "result_Mtud2_with_rebar": "OK"},
+          {"Mud_kNm": 9995.5, "gamma_i": 1.2, "Mtud1_kNm": 3197.8, "ratio_Mtud1_no_rebar": 0.49, "result_Mtud1_no_rebar": "省略可能", "Mtud2_kNm": 2404.6, "ratio_Mtud2_no_rebar": 0.65, "result_Mtud2_no_rebar": "省略不可",
+           "with_rebar": {"fwcd_N_mm2": 6.94, "Kt_mm3": 2336448598, "gamma_b": 1.3, "Mtcud_kNm": 12473.0, "b0_mm": 1891, "d0_mm": 2353, "Am_mm2": 4449523, "Atw_mm2": 286.5, "SumAtl_mm2": 21100.0, "s_mm": 125.0, "u_mm": 8488.0, "gamma_b_Mtyd": 1.3, "Mtyd_kNm": 6372.6, "Mud_kNm": 9995.5, "Mud_prime_kNm": 4132.3, "Mtcd_kNm": 3774.3, "gamma_i": 1.2, "Mtud1_kNm": 6372.6, "Mtud2_kNm": 3824.2},
+           "ratio_Mtud1_with_rebar": 0.25, "result_Mtud1_with_rebar": "OK", "ratio_Mtud2_with_rebar": 0.41, "result_Mtud2_with_rebar": "OK"}
+        ],
+        "check_labels_as_printed": ["γi・Mtd/Mtud-1 ≦ 0.5（補強鉄筋無：Md + Mtd-1）", "γi・Mtd/Mtud-2 ≦ 0.5（補強鉄筋無：Vd + Mtd-2）", "γi・Mtd/Mtud-1 ≦ 1.0（補強鉄筋有：Md + Mtd-1）", "γi・Mtd/Mtud-2 ≦ 1.0（補強鉄筋有：Vd + Mtd-2）"],
+        "note": "1列目の補強鉄筋有の行はすべて「-」で、照査結果だけ OK"
+      }
+    }
+  },
+
+  "safety_fatigue": {
+    "printed": "V-72〜V-74",
+    "table_1_2_20": {"position": "く体前面", "case": "13", "Md_kNm": 1417.3},
+    "text": "安全性疲労破壊に対する照査は，設計変動応力度σsrd を設計応答値IRd，設計疲労強度を部材係数で除したfrd/γb を設計限界値ILd として照査を行う．",
+    "sigma_srd": {"formula": "σsrd = Md/(As·j·d)", "Md_kNm": 1417.3, "As_mm2": 11118.8, "d_mm": 1920, "j": 0.947, "k": 0.159, "n_operands_as_printed": "200 / 31.0", "n": 6.45, "pt_operands_as_printed": "11118.8 / (2500 × 1920)", "pt": 0.00232, "sigma_srd_N_mm2": 70.11},
+    "sigma_min": {"formula": "σmin = Md/(As·j·d)", "Md_kNm": 2338.8, "Md_label": "永久作用による設計曲げモーメント", "sigma_min_N_mm2": 115.7},
+    "fsr200": {"formula": "fsr200 = r1 · 10^αr/(2×10^6)^k · (1 − σmin/fsuk) /γs", "alpha_r_operands_as_printed": "3.09 − 0.003φ", "alpha_r": 2.994, "k": 0.12, "fsuk_N_mm2": 560, "r1": 1.0, "gamma_s": 1.05, "fsr200_N_mm2": 130.7},
+    "sn_curve": {"text": "以上より，S−N線は，αr = 2.71 − 0.003φ = 2.61 , k = 0.06 を用いる．", "alpha_r": 2.61, "k": 0.06},
+    "N": {"formula": "ΣN = 365T·jA·NA·(SA/SC)^(1/k) + 365T·jB·NB·(SB/SC)^(1/k)", "T_years": 100, "jA": 80, "jB": 75, "SA_SC": 0.744, "SB_SC": 0.982, "SA_SC_source": "【コンクリート構造編 付属資料】", "k": 0.06, "NA": 19.51, "NB": 21.57, "N_printed": "44,036,637", "N": 44036637},
+    "table_1_2_21": {
+      "member": "桁受梁", "position": "く体前面",
+      "H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0,
+      "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.05, "fsyd_N_mm2": 371.4, "fsuk_N_mm2": 560,
+      "Md_permanent_kNm": 2338.8, "sigma_min_N_mm2": 115.7, "Md_train_kNm": 1417.3, "sigma_srd_N_mm2": 70.11,
+      "N_printed": "44,036,637", "fsr200_N_mm2": 130.7, "phi_mm": 32, "alpha_r": 2.61, "k": 0.06, "NA": 19.51, "NB": 21.57, "SA_SC": 0.744, "SB_SC": 0.982,
+      "r1": 1.0, "r2": 1.00, "gamma_s_fatigue": 1.05, "frd_N_mm2": 107.1, "gamma_i": 1.1,
+      "ratio_fsr200": 0.65, "ratio_fsr200_label": "γi・σsrd/(fsr200/γb)",
+      "ratio_frd": 0.79, "ratio_frd_label": "γi・σsrd/(frd/γb)",
+      "result": "照査省略",
+      "gamma_b_row": "なし"
+    }
+  },
+
+  "serviceability": {
+    "appearance": {"printed": "V-75", "text": "桁受梁の下側が引張となる曲げモーメントは発生しないため，外観ひび割れの照査は省略する．"},
+    "bending": {
+      "printed": "V-76〜V-77",
+      "table_1_2_22": {"position": "く体前面", "case": "9", "Md_kNm": 3926.3},
+      "check_formula": "γi·Md/Myd ≦ 1.0（γi = 1.2，γb = 1.0）",
+      "table_1_2_23": {
+        "H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40.0, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 3926.3, "Nd_kN": 0.0, "eps_cu_row_value": 0.00048, "eps_cu_row_label": "コンクリートの終局圧縮ひずみ ε'cu", "eps_s": 0.00195, "x_mm": 378.2,
+        "My_kNm": 9352.3, "gamma_b": 1.0, "Myd_kNm": 9352.3, "gamma_i": 1.2, "ratio": 0.50, "result": "OK"
+      }
+    },
+    "shear": {
+      "printed": "V-78〜V-80",
+      "table_1_2_24": {"position": "く体前面", "case": "9", "Vd_kN": 4308.8},
+      "text": "Vdd の算出は，安全性の照査と同様に行う．",
+      "table_1_2_25_1": {
+        "H_mm": 2000, "Bw_mm": 2500, "d_mm": 1920.0, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 3926.3, "Nd_kN": 0.0, "Vd_kN": 4308.8, "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125.0
+      },
+      "table_1_2_25_2": {
+        "title_as_printed": "表 1.2.25-2 照査結果（その1）",
+        "Vyd": {"pw": 0.0055, "fwyd_N_mm2": 390, "pw_fwyd_over_fcd": 0.0697, "Aw_prime_mm2": 1719.0, "fvcd_N_mm2": 0.6269, "beta_d": 0.8495, "pc": 0.00232, "beta_p": 0.6145, "beta_n": 1.000, "M0": 0.00, "gamma_bc": 1.3, "Vcd_kN": 1208.3, "z_mm": 1670.0, "gamma_bs": 1.1, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7},
+        "Vwcd": {"fwcd_N_mm2": 6.937, "gamma_bc": 1.3, "Vwcd_kN": 25613.5},
+        "Vdd": {"a_mm": 875, "fdd_N_mm2": 1.054, "beta_d": 0.850, "beta_n": 1.000, "beta_w": 0.000, "beta_p": 0.741, "beta_a": 4.140, "alpha": 1.14, "gamma_b": 1.2, "Vdd_kN": 12521.9},
+        "Vud_max_kN": 12521.9, "gamma_i": 1.2, "ratio": 0.42, "result": "OK"
+      }
+    },
+    "torsion": {
+      "printed": "V-81〜V-89",
+      "table_1_2_26": {"rows": [
+        {"position": "く体前面", "case": "10", "loading": "両スパン載荷", "Md_kNm": 3888.5, "Vd_kN": 4257.4, "Mtd_kNm": 1137.2},
+        {"position": "く体前面", "case": "10", "loading": "片スパン載荷", "Md_kNm": 2576.5, "Vd_kN": 3168.3, "Mtd_kNm": 1198.2}
+      ]},
+      "Mtcd": {"beta_nt": 1.0, "sigma_nd": 0, "ftd_N_mm2": 2.1, "ftd_gamma_c": 1.3, "Kt_operands_as_printed": "2000^2 × 2500 / ( 3.1 + 1.8/(2500 / 2000) )", "Kt_mm3_text": "22.0 × 10^8", "gamma_b": 1.0, "operands_as_printed": "1.0 × 22.0 × 10^8 × 2.1 / 1.0", "Mtcd_Nmm_text": "46.2 × 10^8", "Mtcd_kNm": 4620.0},
+      "evaluated_case_note": "1)〜3) は片スパン載荷（Mtd = 1198.2）の1ケースだけを印字（Case 表記なし）",
+      "table_1_2_27": {"Mtd_kNm": 1198.2, "Mtcd_kNm": 4620.0, "gamma_i": 1.2, "ratio": 0.31, "limit": 0.2, "comparison": ">", "result": "省略不可"},
+      "table_1_2_28": {"formula": "Mtud = Mtcd·(0.2+0.8 √(1−γi·Md/Mud))", "Mtd_kNm": 1198.2, "Md_kNm": 2576.5, "Mud_kNm": 9995.5, "Mtud_kNm": 3995.6, "gamma_i": 1.2, "ratio": 0.36, "limit": 0.5, "comparison": "<", "result": "省略可能"},
+      "table_1_2_29": {"formula": "Mtud = Mtcd·(1−0.8γi·Vd/Vyd)", "Mtd_kNm": 1198.2, "Vd_kN": 3168.3, "Vyd_kN": 9350.7, "Mtud_kNm": 3117.2, "gamma_i": 1.2, "ratio": 0.46, "limit": 0.5, "comparison": "<", "result": "省略可能"},
+      "with_torsion_rebar": {
+        "printed": "V-83〜V-87",
+        "Ass_mm2": 4000, "as_stirrups_text": "D19 − 3 組 125 mm間隔 = 6876.0 mm2",
+        "Mtcud": {"fwcd_operands_as_printed": "1.25 × √30.8", "fwcd_N_mm2": 6.94, "fwcd_limit_as_printed": "≦ 9.8 N/mm2", "gamma_b": 1.0, "Kt_mm3_text": "22.0 × 10^8", "operands_as_printed": "22.0 × 10^8 × 6.94 / 1.0", "Mtcud_Nmm_text": "15268.0 × 10^6", "Mtcud_kNm": 15268.0},
+        "Mtyd": {"Am_operands_as_printed": "1891 × 2353", "Am_mm2_text": "4.45 × 10^6", "b0_mm": 1891, "d0_mm": 2353, "Atw_mm2": 859.5, "fwyd_N_mm2": 390, "s_mm": 125, "s_unit_as_printed": "mn", "SumAtl_mm2_text": "2.11 × 10^4", "flyd_N_mm2": 390, "u_mm": 8488,
+          "qw_operands_as_printed": "859.5 × 390 / 125", "qw_N_mm": 2681.6, "qw_comparison_as_printed": "> 1.25ql = 1211.9 N/mm",
+          "ql_operands_as_printed": "2.11 × 10^4 × 390 / 8488", "ql_N_mm": 969.5, "ql_comparison_as_printed": "< 1.25qw = 3352.0 N/mm",
+          "gamma_b": 1.0, "operands_as_printed": "2 × 4.45 × 10^6 × √(2681.6 × 969.5) / 1.0", "Mtyd_Nmm_text": "14350.3 × 10^6", "Mtyd_kNm": 14350.3},
+        "Mud_upper_tension_kNm": 9995.5, "Mud_prime_lower_tension_kNm": 4132.3, "Mtumin_kNm": 14350.3,
+        "cases": [
+          {"label_as_printed": "Case 7（両スパン載荷）", "Mud_minus_Mud_prime_operands_as_printed": "9995.5 − 4132.3", "Mud_minus_Mud_prime_kNm": 5863.2, "gamma_i_Md_operands_as_printed": "1.2 × 3888.5", "gamma_i_Md_kNm": 4666.2, "Md_kNm": 3888.5, "Mtud1_kNm": 14350.3,
+           "table_1_2_30": {"Mtd_kNm": 1137.2, "Mtud_kNm": 14350.3, "gamma_i": 1.2, "ratio": 0.10},
+           "Mtud2_operands_as_printed": "14350.3 × ( 1 − 1.2 × 4257.4 / 9350.7 ) + 0.2 × 4620.0 × 1.2 × 4257.4 / 9350.7", "Mtud2_kNm": 7014.7,
+           "table_1_2_32": {"Mtd_kNm": 1137.2, "Mtud_kNm": 7014.7, "gamma_i": 1.2, "ratio": 0.19}},
+          {"label_as_printed": "Case 7（片スパン載荷）", "Mud_minus_Mud_prime_operands_as_printed": "9995.5 − 4132.32", "Mud_minus_Mud_prime_kNm": 5863.2, "gamma_i_Md_operands_as_printed": "1.2 × 2576.5", "gamma_i_Md_kNm": 3091.8, "Md_kNm": 2576.5, "Mtud1_kNm": 14350.3,
+           "table_1_2_31": {"Mtd_kNm": 1198.2, "Mtud_kNm": 14350.3, "gamma_i": 1.2, "ratio": 0.10},
+           "Mtud2_operands_as_printed": "14350.3 × ( 1 − 1.2 × 3168.3 / 9350.7 ) + 0.2 × 4620.0 × 1.2 × 3168.3 / 9350.7", "Mtud2_kNm": 8891.2,
+           "table_1_2_33": {"Mtd_kNm": 1198.2, "Mtud_kNm": 8891.2, "gamma_i": 1.2, "ratio": 0.16}}
+        ]
+      },
+      "table_1_2_34_1": {
+        "H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 2576.5, "Vd_kN": 3168.3, "Mtd_as_printed": "1198.2（片ｽﾊﾟﾝ載荷） / 1137.2（両ｽﾊﾟﾝ載荷）",
+        "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125,
+        "Vcd_kN": 1208.3, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7,
+        "Kt_mm3": 2200000000, "beta_nt": 1.000, "ftd_N_mm2": 2.1, "sigma_nd_N_mm2": 0.00, "gamma_b": 1.0, "Mtcd_kNm": 4620.0, "gamma_i": 1.2,
+        "ratio_Mtcd": 0.31, "result": "省略不可"
+      },
+      "table_1_2_34_2": {
+        "Mud_kNm": 9995.5, "gamma_i": 1.2,
+        "Mtud_bending_kNm": 3995.6, "ratio_bending_no_rebar": 0.36, "result_bending_no_rebar": "省略可能",
+        "Mtud_shear_kNm": 3117.2, "ratio_shear_no_rebar": 0.46, "result_shear_no_rebar": "省略可能",
+        "with_rebar_rows": "fwcd〜Mtud（せん断同時）まですべて「-」",
+        "ratio_bending_with_rebar_as_printed": "- -", "result_bending_with_rebar": "OK",
+        "ratio_shear_with_rebar_as_printed": "- -", "result_shear_with_rebar": "OK"
+      }
+    }
+  },
+
+  "seismic": {
+    "omissions": {
+      "printed": "V-90",
+      "failure_mode": "せん断破壊形態に準じて照査を行うものとして，破壊形態の確認は省略する．",
+      "safety_failure": "復旧性で性能レベル1を確保することにより，破壊の照査を省略する．",
+      "running_safety_displacement": "復旧性で性能レベル1を確保することにより，地震時の走行安全性に係る変位の照査は満足するのでここでの照査は省略する．"
+    },
+    "restorability_bending": {
+      "printed": "V-90〜V-91",
+      "table_1_3_1": {"position": "く体前面", "case": "11", "Md_kNm": 6775.7},
+      "text": "桁受梁（低せん断スパンを有する部材）は，変形性能を期待できない部材であるため，設計応答値Md に対して設計限界値Myd とする．",
+      "table_1_3_2": {"performance_level": "レベル1", "damage_level": "レベル1"},
+      "table_1_3_3": {
+        "H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40.0, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 6775.7, "Nd_kN": 0.0, "eps_cu_row_value": 0.00048, "eps_s": 0.00195, "x_mm": 378.2,
+        "My_kNm": 9352.3, "gamma_b": 1.0, "Myd_kNm": 9352.3, "gamma_i": 1.0, "ratio": 0.72, "result": "OK"
+      }
+    },
+    "restorability_shear": {
+      "printed": "V-92〜V-94",
+      "table_1_3_4": {"position": "く体前面", "case": "11", "Vd_kN": 7537.3},
+      "text": "Vdd の算出は，安全性の照査と同様に行う．",
+      "table_1_3_5_1": {
+        "H_mm": 2000, "Bw_mm": 2500, "d_mm": 1920.0, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 6775.7, "Nd_kN": 0.0, "Vd_kN": 7537.3, "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125.0
+      },
+      "table_1_3_5_2": {
+        "Vyd": {"pw": 0.0055, "fwyd_N_mm2": 390, "pw_fwyd_over_fcd": 0.0697, "Aw_prime_mm2": 1719.0, "fvcd_N_mm2": 0.6269, "beta_d": 0.8495, "pc": 0.00232, "beta_p": 0.6145, "beta_n": 1.000, "M0": 0.00, "gamma_bc": 1.3, "Vcd_kN": 1208.3, "z_mm": 1670.0, "gamma_bs": 1.1, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7},
+        "Vwcd": {"fwcd_N_mm2": 6.937, "gamma_bc": 1.3, "Vwcd_kN": 25613.5},
+        "Vdd": {"a_mm": 875, "fdd_N_mm2": 1.054, "beta_d": 0.850, "beta_n": 1.000, "beta_w": 0.000, "beta_p": 0.741, "beta_a": 4.140, "alpha": 1.14, "gamma_b": 1.2, "Vdd_kN": 12521.9},
+        "Vud_max_kN": 12521.9, "gamma_i": 1.0, "ratio": 0.61, "result": "OK"
+      }
+    },
+    "restorability_torsion": {
+      "printed": "V-95〜V-102",
+      "table_1_3_6": {"position": "く体前面", "case": "12", "loading": "両スパン載荷", "Md_kNm": 2674.6, "Vd_kN": 2996.7, "Mtd_kNm": 1942.0},
+      "Mtcd": {"beta_nt": 1.0, "sigma_nd": 0, "ftd_N_mm2": 2.1, "ftd_gamma_c": 1.3, "Kt_operands_as_printed": "2000^2 × 2500 / ( 3.1 + 1.8/(2500 / 2000) )", "Kt_mm3_text": "22.0 × 10^8", "gamma_b": 1.0, "operands_as_printed": "1.0 × 22.0 × 10^8 × 2.1 / 1.0", "Mtcd_Nmm_text": "46.2 × 10^8", "Mtcd_kNm": 4620.0},
+      "table_1_3_7": {"Mtd_kNm": 1942.0, "Mtcd_kNm": 4620.0, "gamma_i": 1.0, "ratio": 0.42, "limit": 0.2, "comparison": ">", "result": "省略不可"},
+      "table_1_3_8": {"formula": "Mtud = Mtcd·(0.2+0.8 √(1−γi·Md/Mud))", "Mtd_kNm": 1942.0, "Md_kNm": 2674.6, "Mud_kNm": 9995.5, "Mtud_kNm": 1718.0, "gamma_i": 1.0, "ratio": 1.13, "limit": 0.5, "comparison": ">", "result": "省略不可"},
+      "table_1_3_9": {"formula": "Mtud = Mtcd·(1−0.8γi·Vd/Vyd)", "Mtd_kNm": 1942.0, "Vd_kN": 2996.7, "Vyd_kN": 9350.7, "Mtud_kNm": 1444.1, "gamma_i": 1.0, "ratio": 1.34, "limit": 0.5, "comparison": ">", "result": "省略不可"},
+      "after_text": "よって、ねじり補強筋のある場合の耐力の検討を行う．",
+      "with_torsion_rebar": {
+        "Ass_mm2": 4000, "as_stirrups_text": "D19 − 3 組 125 mm間隔 = 6876.0 mm2",
+        "Mtcud": {"fwcd_operands_as_printed": "1.25 × √30.8", "fwcd_N_mm2": 6.94, "fwcd_limit_as_printed": "≦ 7.8 N/mm2", "gamma_b": 1.0, "Kt_mm3_text": "22.0 × 10^8", "operands_as_printed": "22.0 × 10^8 × 6.94 / 1.0", "Mtcud_Nmm_text": "15268.0 × 10^6", "Mtcud_kNm": 15268.0},
+        "Mtyd": {"Am_operands_as_printed": "1891 × 2353", "Am_mm2_text": "4.45 × 10^6", "b0_mm": 1891, "d0_mm": 2353, "Atw_mm2": 859.5, "fwyd_N_mm2": 390, "s_mm": 125, "SumAtl_mm2_text": "2.11 × 10^4", "flyd_N_mm2": 390, "u_mm": 8488,
+          "qw_operands_as_printed": "859.5 × 390 / 125", "qw_N_mm": 2681.6, "qw_comparison_as_printed": "> 1.25ql = 1211.9 N/mm",
+          "ql_operands_as_printed": "2.11 × 10^4 × 390 / 8488", "ql_N_mm": 969.5, "ql_comparison_as_printed": "< 1.25qw = 3352.0 N/mm",
+          "gamma_b": 1.0, "operands_as_printed": "2 × 4.45 × 10^6 × √(2681.6 × 969.5) / 1.0", "Mtyd_Nmm_text": "14350.3 × 10^6", "Mtyd_kNm": 14350.3},
+        "gamma_i": 1.0, "Mud_upper_tension_kNm": 9995.5, "Mud_prime_lower_tension_kNm": 4132.3,
+        "Mud_minus_Mud_prime_operands_as_printed": "9995.5 − 4132.3", "Mud_minus_Mud_prime_kNm": 5863.2,
+        "gamma_i_Md_operands_as_printed": "1.0 × 2674.6", "gamma_i_Md_kNm": 2674.6, "Md_kNm": 2674.6,
+        "Mtumin_kNm": 14350.3, "Mtud1_kNm": 14350.3,
+        "table_1_3_10": {"Mtd_kNm": 1942.0, "Mtud_kNm": 14350.3, "gamma_i": 1.0, "ratio": 0.14},
+        "Mtud2_operands_as_printed": "14350.3 × ( 1 − 1.0 × 2996.7 / 9350.7 ) + 0.2 × 0.0 × 1.0 × 2996.7 / 9350.7", "Mtud2_kNm": 9751.3,
+        "table_1_3_11": {"Mtd_kNm": 1942.0, "Mtud_kNm": 9751.3, "gamma_i": 1.0, "ratio": 0.20}
+      },
+      "table_1_3_12_1": {
+        "H_mm": 2000, "Bw_mm": 2500, "Ast_mm2": 11118.8, "Ast_bars": "D32-14本", "dast_mm": 80.0, "Asc_mm2": 1986.0, "Asc_bars": "D16-10本", "dasc_mm": 72.0, "Ase_mm2": 8022.0, "Ase_bars": "D19-28本",
+        "fck_N_mm2": 40, "gamma_c": 1.3, "fcd_N_mm2": 30.8, "fsyk_N_mm2": 390, "gamma_s": 1.0, "fsyd_N_mm2": 390,
+        "Md_kNm": 2674.6, "Vd_kN": 2996.7, "Mtd_kNm": 1942.0, "Aw_mm2": 1719.0, "Aw_bars": "D19-3組", "fwyd_N_mm2": 390, "theta_s_deg": 90, "Ss_mm": 125,
+        "Vcd_kN": 1208.3, "Vsd_kN": 8142.4, "Vyd_kN": 9350.7, "Kt_mm3": 2200000000, "beta_nt": 1.000, "ftd_N_mm2": 2.1, "sigma_nd_N_mm2": 0.00, "gamma_b": 1.0, "Mtcd_kNm": 4620.0, "gamma_i": 1.0,
+        "ratio_Mtcd": 0.42, "result": "省略不可"
+      },
+      "table_1_3_12_2": {
+        "Mud_kNm": 9995.5, "gamma_i": 1.0,
+        "Mtud_bending_kNm": 1718.0, "ratio_bending_no_rebar": 1.13, "result_bending_no_rebar": "省略不可",
+        "Mtud_shear_kNm": 1444.1, "ratio_shear_no_rebar": 1.34, "result_shear_no_rebar": "省略不可",
+        "fwcd_N_mm2": 6.94, "Kt_mm3": 2200000000, "gamma_b": 1.0, "Mtcud_kNm": 15268.0, "b0_mm": 1891, "d0_mm": 2353, "Am_mm2": 4450000, "Atw_mm2": 859.5, "SumAtl_mm2": 21100.0, "s_mm": 125.0, "u_mm": 8488.0, "gamma_b_Mtyd": 1.0, "Mtyd_kNm": 14350.3,
+        "Mud_kNm_2": 9995.5, "Mud_prime_kNm": 4132.3, "Mtcd_kNm": 4620.0, "gamma_i_2": 1.0,
+        "Mtud_bending_with_rebar_kNm": 14350.3, "ratio_bending_with_rebar": 0.14, "result_bending_with_rebar": "OK",
+        "Mtud_shear_with_rebar_kNm": 9751.3, "ratio_shear_with_rebar": 0.20, "result_shear_with_rebar": "OK"
+      }
+    }
+  },
+
+  "design_force_usage": [
+    {"check": "応力度の制限値 σc（V-43）", "force": "M'd = 2338.8", "case_in_section": "（表 1.2.1参照）と印字", "matches_table_1_1_8": "Case 7"},
+    {"check": "コンクリートの疲労（V-48）", "force": "M'd = 1417.3", "case_in_section": null, "matches_table_1_1_8": "Case 13"},
+    {"check": "耐久性 σb（表 1.2.3）", "force": "Md = 3756.1", "case_in_section": "8", "matches_table_1_1_8": "Case 8"},
+    {"check": "耐久性 σs（表 1.2.3）", "force": "Md = 2338.8", "case_in_section": "7", "matches_table_1_1_8": "Case 7"},
+    {"check": "安全性（破壊）曲げ（表 1.2.7）", "force": "Md = 4357.8", "case_in_section": "1-1", "matches_table_1_1_8": "Case 1"},
+    {"check": "安全性（破壊）せん断（表 1.2.9）", "force": "Md = 4357.8, Vd = 4784.3", "case_in_section": "1-1", "matches_table_1_1_8": "Case 1"},
+    {"check": "安全性（破壊）ねじり 1列目（表 1.2.11）", "force": "Md = 4421.7, Vd = 4732.9, Mtd = 631.9", "case_in_section": "4-1 両スパン載荷（表 1.2.12〜1.2.19 では「4-1（両スパン載荷）」）", "matches_table_1_1_8": "Md・Mtd は Case 4-3 終片（4421.7, 631.9）、Vd は Case 4-1 両（4732.9）。Case 4-3 の Vd は 4428.4"},
+    {"check": "安全性（破壊）ねじり 2列目（表 1.2.11）", "force": "Md = 2876.9, Vd = 3534.9, Mtd = 1296.2", "case_in_section": "4-2 起片スパン載荷（表 1.2.12〜1.2.19 では「4-1（終片スパン載荷）」）", "matches_table_1_1_8": "Case 4-2 起片"},
+    {"check": "安全性（疲労破壊）（表 1.2.20）", "force": "Md = 1417.3（σmin は Md = 2338.8）", "case_in_section": "13", "matches_table_1_1_8": "Case 13（σmin は Case 7）"},
+    {"check": "使用性（損傷）曲げ（表 1.2.22）", "force": "Md = 3926.3", "case_in_section": "9", "matches_table_1_1_8": "Case 9-1"},
+    {"check": "使用性（損傷）せん断（表 1.2.24）", "force": "Vd = 4308.8（表 1.2.25-1 の Md = 3926.3）", "case_in_section": "9", "matches_table_1_1_8": "Case 9-1"},
+    {"check": "使用性（損傷）ねじり 両スパン（表 1.2.26）", "force": "Md = 3888.5, Vd = 4257.4, Mtd = 1137.2", "case_in_section": "10 両スパン載荷（4) では「Case 7（両スパン載荷）」）", "matches_table_1_1_8": "Case 10-1 両"},
+    {"check": "使用性（損傷）ねじり 片スパン（表 1.2.26）", "force": "Md = 2576.5, Vd = 3168.3, Mtd = 1198.2", "case_in_section": "10 片スパン載荷（4) では「Case 7（片スパン載荷）」）", "matches_table_1_1_8": "Case 10-2 起片"},
+    {"check": "復旧性 曲げ（表 1.3.1）", "force": "Md = 6775.7", "case_in_section": "11", "matches_table_1_1_8": "Case 11"},
+    {"check": "復旧性 せん断（表 1.3.4）", "force": "Vd = 7537.3（表 1.3.5-1 の Md = 6775.7）", "case_in_section": "11", "matches_table_1_1_8": "Case 11"},
+    {"check": "復旧性 ねじり（表 1.3.6）", "force": "Md = 2674.6, Vd = 2996.7, Mtd = 1942.0", "case_in_section": "12 両スパン載荷", "matches_table_1_1_8": "Case 12"}
+  ]
+}

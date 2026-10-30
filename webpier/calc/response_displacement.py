@@ -10,24 +10,20 @@ the correction factor ν (解7.10.6・7.10.7, Example橋脚4 IV-55〜58):
   bend of the whole structure (Aggre-SE's 全体系折曲点震度 Kheq), νU is 1.0 (耐震標準 解10.2.9);
 - Ra is the inertia force up to the 最大応答震度: KhL1 for L1, the larger Khmax of 復旧性 and 安全性 for L2.
 
-Teq, Kheq and the Kh come from Aggre-SE's summary workbook of the inertia Cases (its sheet 応答値一覧表), from the Case of
-ρm 1.0 and αf 1.0 pushed forward, the only one Aggre-SE gives the response values of. Aggre-SE gives one Teq a Case, so L1
-and L2 share it (Example橋脚4 has 1.05 and 1.138 along the track, without saying where they come from).
+Teq, Kheq and the Kh come from Aggre-SE's summary workbook of the inertia Cases (its sheet 応答値一覧表, 12 Cases a band,
+calc.aggrese_summary), from the Case of ρm 1.0 and αf 1.0 pushed forward, the only one Aggre-SE gives the response values
+of. Aggre-SE gives one Teq a Case, so L1 and L2 share it (Example橋脚4 has 1.05 and 1.138 along the track, without saying where they come from).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from io import BytesIO
-import zipfile
-
-from openpyxl import load_workbook
 
 from ..core.printed import Precision, Printed
 from ._exact import d, put
+from .aggrese_summary import SHEET, summary_bands
 
-SHEET = "応答値一覧表"
 ALPHA = Precision(3, "")
 FACTOR = Precision(2, "")
 PERIOD = Precision(3, "s")  # Teq as Aggre-SE prints it
@@ -36,7 +32,8 @@ STIFFNESS_REDUCTION = {"L1": Decimal("0.7"), "L2": Decimal("0.5")}  # αg
 LEVELS = ("L1", "L2")
 LOWER_BEND, UPPER_BEND = Decimal("0.75"), Decimal("1.10")
 ONE = Decimal("1.0")
-# the rows read, by (block, heading): the block is column A's label of the rows from it on, the heading column B
+# the rows read, by (block, heading) in the band of the Case: the block is column A's label of the rows from it on, the
+# heading column B
 _ROWS = (("降伏点", "全体系折曲点震度"), ("降伏点", "等価固有周期"), ("復旧性", "最大応答震度"), ("復旧性", "L1地震動"),
          ("安全性", "最大応答震度"))
 
@@ -57,35 +54,19 @@ class InertiaResponse:
     kh_l2: Printed  # the larger 最大応答震度 of 復旧性 and 安全性
 
 
-def _text(cell) -> str:
-    return "" if cell.value is None else str(cell.value).strip()
-
-
 def read_inertia(xlsx: bytes, file: str, case: int) -> InertiaResponse:
     """The response of Case *case* of the summary workbook bytes *xlsx* (published as *file*), which must be of ρm 1.0
     and αf 1.0."""
-    if not zipfile.is_zipfile(BytesIO(xlsx)):
-        raise ResponseError(f"{file} が xlsx（zip）ではありません")
-    workbook = load_workbook(BytesIO(xlsx), read_only=True, data_only=True)
-    if SHEET not in workbook.sheetnames:
-        raise ResponseError(f"{file} にシート「{SHEET}」がありません")
-    rows = list(workbook[SHEET].iter_rows(min_col=1, max_col=workbook[SHEET].max_column))
-    workbook.close()
-    by_heading: dict[tuple[str, str], tuple] = {}
-    block = ""
-    for row in rows:
-        block = _text(row[0]) or block
-        by_heading.setdefault((block, _text(row[1])), row)
-    numbers = by_heading.get(("解析ケース", "No"), ())
-    column = next((index for index, cell in enumerate(numbers) if index >= 3 and _text(cell) == str(case)), None)
-    if column is None:
+    band, column = next(((band, index) for band in summary_bands(xlsx, file, ResponseError)
+                         for index, number in band.cases if number == case), (None, None))
+    if band is None:
         raise ResponseError(f"{file} の「{SHEET}」に Case{case} がありません")
 
     def text(block: str, heading: str) -> str:
-        row = by_heading.get((block, heading))
+        row = band.row(heading, block)
         if row is None:
             raise ResponseError(f"{file} の「{SHEET}」に{block}の「{heading}」の行がありません")
-        return _text(row[column]) if column < len(row) else ""
+        return row[column]
 
     if (text("解析ケース", "ρm"), text("解析ケース", "αf")) != ("1.0", "1.0"):
         raise ResponseError(f"{file} の Case{case} は ρm 1.0・αf 1.0 の Case ではありません")

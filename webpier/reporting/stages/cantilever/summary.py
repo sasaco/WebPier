@@ -8,9 +8,9 @@ from ....calc.reaction import ReactionResult
 from ....calc.reaction.longitudinal import Snow
 from ....core.printed import Printed
 from ...numbers import printed
-from ..reaction.manuscript import DETAIL, ITEM, PAIR_SECOND, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
+from ..reaction.manuscript import DETAIL, INDENTED, ITEM, SUBSECTION, CellSpec, Manuscript, TableSpec, cells
 from ..reaction.tables import header
-from .horizontal import combination_text
+from .horizontal import combination
 
 DASH = "－"
 SNOW_TITLES = {Snow.S2: "(a) 2年確率", Snow.S10: "(b) 10年確率", Snow.S30: "(c) 30年確率"}
@@ -107,14 +107,10 @@ def section(m: Manuscript, side: Side, side_name: str, result: SideResult, whole
     for action in result.actions:
         title, subtitle = _title(action, snow)
         action_key = f"{key}.actions.{action.key.kind}.{action.key.variant}".rstrip(".")
-        if action.key.kind == "LRB":
-            case = next(case for case in whole.bearing_cases
-                        if (case.case.name if case.case is not None else "地震時") == action.key.variant)
-            if case.case is None:
-                m.heading(f"{action_key}.heading", f"{bearing_number}) 地震時線路方向", ITEM)
-            else:
-                m.pair(f"{action_key}.heading", f"{bearing_number}) {case.label}", combination_text(case.case, reaction),
-                       ITEM, PAIR_SECOND, gap=True)
+        if action.key.kind == "LRB":  # one table per case with bearing forces (decision 125), with its combination
+            m.heading(f"{action_key}.heading", f"{bearing_number}) Case {action.key.variant} {action.title}", ITEM)
+            case = next(item for item in result.cases if str(item.number) == action.key.variant)
+            m.paragraph(f"{action_key}.combination", combination(case), INDENTED)
             bearing_number += 1
         else:
             if title != previous_title:

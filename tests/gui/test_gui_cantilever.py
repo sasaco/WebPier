@@ -1,6 +1,6 @@
-"""The inputs of the 片持ち梁の照査 (decision 59) in the editor: the bearing devices of each girder on the 上部構造
-page, the beam's Dmax and the 梁「断面照査の条件」 group on the 鉄筋 page, and the calculation page naming 0900・0910
-under the nonlinear switch only."""
+"""The inputs of the 片持ち梁の照査 (decision 59) in the editor: the support table of the 上部構造 page without the
+bearing devices (decision 125), the beam's Dmax and the 梁「断面照査の条件」 group on the 鉄筋 page, and the calculation
+page naming 0900・0910 under the nonlinear switch only."""
 
 import tkinter as tk
 
@@ -9,7 +9,6 @@ import pytest
 from webpier.core.integrity import load_json
 from webpier.gui import app as gui
 from webpier.gui import rebar_page
-from webpier.gui.pages import BEARING_DEVICES
 
 SUPPORT = ("上部構造", "支承データ")
 CHECK = "片持ち梁の照査"
@@ -33,22 +32,16 @@ def texts(widget):
         yield from texts(child)
 
 
-def test_the_bearing_devices_are_integer_columns_of_the_support_table(editor):
+def test_the_support_table_has_no_bearing_devices(editor):
+    """Decision 125: the number of bearings and those on the cantilever follow from 上部工反力 and the geometry."""
     assert editor.select("上部構造")
-    assert BEARING_DEVICES == ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")
-    assert [cell(editor, *SUPPORT, "起点側", key).get() for key in BEARING_DEVICES] == ["4", "3", "1", "1"]
-    assert [cell(editor, *SUPPORT, "終点側", key).get() for key in BEARING_DEVICES] == ["2", "7", "1", "0"]
-    target = (*SUPPORT, "終点側", "ストッパーの箇所数")
-    cell(editor, *target).type("1.5")
-    assert target in editor.bindings.refused
-    cell(editor, *target).type("8")
-    assert not editor.bindings.refused
-    assert editor.document.data["上部構造"]["支承データ"]["終点側"]["ストッパーの箇所数"] == 8
-    cell(editor, *SUPPORT, "起点側", "片持ち梁上のゴム支承").type("")
+    support = [path for path in editor.bindings.items if path[:2] == SUPPORT]
+    assert sorted({path[3] for path in support}) == sorted({"支承名", "摩擦係数_μ", "復旧性制動係数"})
+    assert cell(editor, *SUPPORT, "起点側", "支承名").get() == "可動"
+    assert not any("ゴム支承" in text or "ストッパー" in text for text in texts(editor.form))
     assert editor.save()
     saved = load_json(editor.document.path.read_bytes())["上部構造"]["支承データ"]
-    assert saved["終点側"]["ストッパーの箇所数"] == 8 and saved["起点側"]["片持ち梁上のゴム支承"] is None
-    assert any("片持ち梁の照査（0900、決定59）" in text for text in texts(editor.form))
+    assert set(saved["終点側"]) == {"支承名", "摩擦係数_μ", "復旧性制動係数"}
 
 
 def test_the_beam_has_its_own_aggregate_size(editor):

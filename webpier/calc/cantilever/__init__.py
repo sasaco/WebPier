@@ -4,9 +4,10 @@
 bearing (geometry), the three train loadings and the train on every bearing (loads), the torques of the vehicle
 lateral load, the wind and the seismic train, and the cracking moment of the beam section (crack). It fails on an
 input the check cannot use before any runner is called. ``complete_cantilever`` adds what needs the 最大応答震度 of
-0711 and 0721 (response): the seismic inertia of the girders across the track, the bearing forces along it
-(bearings), then the action tables of each cantilever (actions), the 31 combinations (combinations), the governing
-case of either side for each check and ε'csd (crack). The 0910 check is ``check.calculate_cantilever_section``.
+0711 and 0721 (response): the seismic inertia of the girders across the track, then for each cantilever its vertical
+action tables (actions), the bearing forces along the track of each case that has them (bearings, capped by the
+case's vertical forces at a movable girder end, decision 125) and their tables, the 35 combinations (combinations),
+and the governing case of either side for each check and ε'csd (crack). The 0910 check is ``check.calculate_cantilever_section``.
 """
 
 from __future__ import annotations
@@ -20,9 +21,9 @@ from ..moving_load import Girder
 from ..materials import concrete
 from ..reaction import ReactionResult
 from ..vehicles import vehicle
-from .actions import Action, actions
-from .bearings import BearingCase, bearing_cases, label
-from .combinations import (COLUMNS, DEFINITIONS, CaseResult, LimitState, Quantity, Selection, adopt,
+from .actions import Action, bearing_actions, vertical_actions
+from .bearings import BearingCase, label
+from .combinations import (COLUMNS, DEFINITIONS, CaseResult, LimitState, Quantity, Selection, adopt, bearing_cases,
                            evaluate_all)
 from .crack import Cracking, CrackingMoment, cracking, cracking_moment
 from .geometry import Geometry, GirderBearings, Side, geometry, numbered
@@ -54,6 +55,7 @@ class SideResult:
     geometry: Geometry
     actions: tuple[Action, ...]
     cases: tuple[CaseResult, ...]
+    bearings: tuple[BearingCase, ...]  # the bearing forces along the track of each case that has them, in case order
 
 
 @dataclass(frozen=True)
@@ -62,7 +64,6 @@ class CantileverResult:
     longitudinal: MaxResponse  # the 最大応答震度 along the track (0711)
     transverse: MaxResponse  # across it (0721)
     seismic_girder: dict[Girder, Torque]  # the girder inertia across the track at the transverse Kh
-    bearing_cases: tuple[BearingCase, ...]  # the four LR + B combinations and the seismic case along the track
     sides: dict[Side, SideResult]
     selections: tuple[Selection, ...]  # the governing case of each check, both sides pooled
     cracking: Cracking
@@ -102,20 +103,21 @@ def calculate_cantilever(pier: PierInput, reaction: ReactionResult) -> Cantileve
 
 def complete_cantilever(pier: PierInput, reaction: ReactionResult, basis: CantileverBasis,
                         longitudinal: MaxResponse, transverse: MaxResponse) -> CantileverResult:
-    any_side = next(iter(basis.sides.values()))
     seismic_girder = seismic_girder_torques(reaction.transverse, transverse.kh, basis.girders)
-    cases = bearing_cases(pier, reaction.longitudinal, longitudinal.kh, any_side.torsion_arm)
-    labels = {case.case: case.label for case in cases if case.case is not None}
+    labels = {item.bearing: label(item.bearing, reaction.longitudinal) for item in DEFINITIONS
+              if item.bearing is not None}
     sides = {}
     for side, item in basis.sides.items():
-        tables = actions(item, basis.loadings, basis.seismic_train, basis.lateral, basis.wind, seismic_girder,
-                         basis.seismic_train_torque, cases, snow=reaction.dead.snow)
-        sides[side] = SideResult(item, tables, evaluate_all(pier, tables, labels))
+        vertical = vertical_actions(item, basis.loadings, basis.seismic_train, basis.lateral, basis.wind,
+                                    seismic_girder, basis.seismic_train_torque, snow=reaction.dead.snow)
+        cases = bearing_cases(pier, reaction.longitudinal, basis.girders, longitudinal.kh, item, vertical)
+        tables = (*vertical, *bearing_actions(cases))
+        sides[side] = SideResult(item, tables, evaluate_all(pier, tables, labels), cases)
     selections = adopt({side: result.cases for side, result in sides.items()})
     permanent = next(item for item in selections if item.row == 1 and item.quantity is Quantity.BENDING)
     failure = next(item for item in selections if item.row == 5 and item.quantity is Quantity.BENDING)
     self_weight = max((result.geometry.self_weight.moment for result in sides.values()), key=lambda m: m.value)
-    return CantileverResult(basis, longitudinal, transverse, seismic_girder, cases, sides, selections,
+    return CantileverResult(basis, longitudinal, transverse, seismic_girder, sides, selections,
                             cracking(basis.cracking_moment, self_weight, permanent.md, failure.md))
 
 

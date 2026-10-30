@@ -45,27 +45,35 @@ def response(kh: float, *, case: int = 1, block: str = "安全性", file: str = 
 
 
 def workbook(cases: dict[int, tuple[str, str]], *, sheet: str = "応答値一覧表", with_blocks: bool = True,
-             with_cases: bool = True) -> bytes:
+             with_cases: bool = True, band: int = 12) -> bytes:
     """A summary workbook with the layout of Aggre-SE's: *cases* maps the Case number to its (復旧性, 安全性) Khmax
-    texts; the No / 名称 rows and the block labels can be left out for the error tests."""
+    texts, *band* Cases a band of 19 rows (Aggre-SE wraps every 12 Cases: each band has its title, No / 名称 rows and
+    blocks); the No / 名称 rows and the block labels can be left out for the error tests."""
     book = Workbook()
     ws = book.active
     ws.title = sheet
-    ws["A1"], ws["A3"] = "地盤区分", "応答値一覧表"
-    columns = {number: 4 + index for index, number in enumerate(sorted(cases))}
-    if with_cases:
-        ws["A4"], ws["B4"], ws["B5"] = "解析ケース", "No", "名称"
-        for number, column in columns.items():
-            ws.cell(row=4, column=column, value=number)
-            ws.cell(row=5, column=column, value=f"線路方向(Case{number}_ρm10_αf1_正向)")
-    ws["A8"], ws["B8"], ws["C8"] = "降伏点", "初期降伏震度", "Khy"
-    if with_blocks:
-        ws["A13"], ws["A17"] = "復旧性", "安全性"
-    ws["B13"], ws["C13"] = "応答塑性率", "μ"
-    ws["B15"], ws["C15"], ws["B19"], ws["C19"] = "最大応答震度", "Khmax", "最大応答震度", "Khmax"
+    ws["A1"] = "地盤区分"
+    placed = {number: divmod(index, band) for index, number in enumerate(sorted(cases))}  # (band, column - 4)
+    for start in sorted({19 * part for part, _ in placed.values()} or {0}):
+        ws.cell(row=start + 3, column=1, value="応答値一覧表")
+        if with_cases:
+            ws.cell(row=start + 4, column=1, value="解析ケース")
+            ws.cell(row=start + 4, column=2, value="No")
+            ws.cell(row=start + 5, column=2, value="名称")
+        for row, a, b, c in ((8, "降伏点", "初期降伏震度", "Khy"), (13, "復旧性", "応答塑性率", "μ"), (15, None, "最大応答震度", "Khmax"),
+                             (17, "安全性", "応答塑性率", "μ"), (19, None, "最大応答震度", "Khmax")):
+            if a is not None and (with_blocks or a == "降伏点"):
+                ws.cell(row=start + row, column=1, value=a)
+            ws.cell(row=start + row, column=2, value=b)
+            ws.cell(row=start + row, column=3, value=c)
     for number, (restorability, safety) in cases.items():
-        ws.cell(row=15, column=columns[number], value=restorability)
-        ws.cell(row=19, column=columns[number], value=safety)
+        part, offset = placed[number]
+        start, column = 19 * part, 4 + offset
+        if with_cases:
+            ws.cell(row=start + 4, column=column, value=number)
+            ws.cell(row=start + 5, column=column, value=f"線路方向(Case{number}_ρm10_αf1_正向)")
+        ws.cell(row=start + 15, column=column, value=restorability)
+        ws.cell(row=start + 19, column=column, value=safety)
     stream = BytesIO()
     book.save(stream)
     return stream.getvalue()
@@ -97,3 +105,17 @@ def q(value, digits: int) -> Decimal:
 
 def value(printed) -> Decimal:
     return Decimal(repr(printed.value))
+
+
+# 13-1 a) B支点最大 (a known difference, decision 125): the sample puts P-16's four axles from the bearing B (levers
+# 18.850, 16.650, 13.850, 11.650: RB 517.77). The axle at the joint (the origin girder's end, 18.850 + 0.575 = 19.425
+# from A) is counted on the origin girder when RB alone is maximised, and the car of P-16 (axles 2.2, 2.8, 2.2 apart and
+# 20 - 2.8 - 2 x 2.2 = 12.8 to the next car's) gives five axles on it, one on the far overhang:
+ORIGIN_MAX_LEVERS = [Decimal("19.425"), Decimal("17.225"), Decimal("14.425"), Decimal("12.225"), Decimal("-0.575")]
+ORIGIN_MAX_RB = q(160 * sum(ORIGIN_MAX_LEVERS) / Decimal("18.85"), 2)  # 160 x 62.725 / 18.85 = 532.4085
+ORIGIN_MAX_RA = 160 * 5 - ORIGIN_MAX_RB  # 267.59
+
+
+def origin_max_bearing(share: str) -> Decimal:
+    """The train on an origin bearing in B支点最大: RB x its share."""
+    return q(ORIGIN_MAX_RB * Decimal(share), 2)

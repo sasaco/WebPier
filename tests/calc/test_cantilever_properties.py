@@ -1,7 +1,8 @@
 """Identities of the cantilever calculation that follow from its equations (decision 15, ADR-0003): a row's
 moments are its printed N times its printed arms, a table's totals are the sums of its printed rows, a case sums the
-printed products of its factors, a device's share times its count returns the girder's force within the rounding,
-and the governing case has the maximal measure of its pool."""
+printed products of its factors, a bearing's share times the girder's bearings returns the girder's force within
+the rounding and its force is the smaller of the share and its cap (decision 125), and the governing case has the
+maximal measure of its pool."""
 
 from __future__ import annotations
 
@@ -9,9 +10,9 @@ from decimal import Decimal
 
 from hypothesis import given, settings, strategies as st
 
-from cantilever_support import KH, D, pier, q, reaction_of, result_of, value
+from cantilever_support import KH, D, pier, q, result_of, value
 from webpier.calc.cantilever import Quantity, Side, calculate_cantilever, complete_cantilever
-from webpier.calc.cantilever.bearings import bearing_cases
+from webpier.calc.reaction.longitudinal import BearingType
 from webpier.calc.cantilever.combinations import FORCE_ROWS
 from webpier.calc.cantilever.loads import torque
 from webpier.calc.cantilever.response import MaxResponse, ResponseValue
@@ -56,28 +57,30 @@ def test_every_case_sums_the_printed_products_and_the_governing_case_is_maximal(
         assert measure(selection.case) == max(measure(case) for case in pool)
 
 
-@given(st.integers(min_value=1, max_value=12), st.integers(min_value=0, max_value=12),
-       st.integers(min_value=1, max_value=12), st.integers(min_value=0, max_value=12),
+@given(st.integers(min_value=1, max_value=30), st.integers(min_value=1, max_value=30),
        st.integers(min_value=200, max_value=800))
 @settings(max_examples=25, deadline=None)
-def test_a_devices_share_times_its_count_returns_the_force_within_the_rounding(rubber, on_rubber, stopper, on_stopper,
-                                                                              kh_thousandths):
-    changes = {"上部構造/支承データ/起点側/ゴム支承の箇所数": rubber, "上部構造/支承データ/起点側/片持ち梁上のゴム支承": min(on_rubber, rubber),
-               "上部構造/支承データ/終点側/ストッパーの箇所数": stopper, "上部構造/支承データ/終点側/片持ち梁上のストッパー": min(on_stopper, stopper)}
-    pier_input = pier(**changes)
-    reaction = reaction_of(pier_input)
-    for case in bearing_cases(pier_input, reaction.longitudinal, KH(kh_thousandths / 1000), LENGTH(1.35)):
-        for devices in (case.origin, case.end):
-            for device in (devices.rubber, devices.stopper):
-                if device.count:
-                    assert abs(value(device.each) * device.count - value(device.total)) <= Decimal(device.count) / 200
+def test_a_bearings_share_times_n_returns_the_force_and_its_force_is_the_share_or_its_cap(origin_mu, end_mu,
+                                                                                         kh_thousandths):
+    changes = {"上部構造/支承データ/起点側/摩擦係数_μ": origin_mu / 100, "上部構造/支承データ/終点側/摩擦係数_μ": end_mu / 100}
+    _, _, result = result_of(longitudinal=kh_thousandths / 1000, **changes)
+    for side in result.sides.values():
+        for case in side.bearings:
+            for girder in (case.origin, case.end):
+                assert abs(value(girder.share) * girder.count - value(girder.applied)) <= Decimal(girder.count) / 200
+            for item in case.bearings:
+                force = case.origin if item.bearing.girder is Girder.ORIGIN else case.end
+                assert item.share == force.share
+                if force.bearing is BearingType.MOVABLE:
+                    mu = D(changes["上部構造/支承データ/起点側/摩擦係数_μ" if item.bearing.girder is Girder.ORIGIN
+                                   else "上部構造/支承データ/終点側/摩擦係数_μ"])
+                    assert value(item.cap) == q(mu * value(item.vertical), 2)
+                    assert item.force.value == min(item.share.value, item.cap.value)
                 else:
-                    assert device.total.value == 0 and device.each.value == 0
-                assert value(device.force) == q(value(device.each) * device.on_cantilever, 2)
-                assert value(device.moment) == q(value(device.force) * value(device.arm), 2)
-                assert device.on_cantilever <= device.count
-        assert value(case.force) == sum(value(device.force) for devices in (case.origin, case.end)
-                                        for device in (devices.rubber, devices.stopper))
+                    assert item.cap is None and item.force == item.share
+                assert value(item.moment) == q(value(item.force) * value(item.arm), 2)
+            assert value(case.force) == sum(value(item.force) for item in case.bearings)
+            assert value(case.moment) == sum(value(item.moment) for item in case.bearings)
 
 
 @given(st.integers(min_value=0, max_value=500000), st.integers(min_value=1, max_value=12000))
@@ -107,7 +110,8 @@ def test_only_the_seismic_terms_depend_on_the_kh(longitudinal, transverse):
     for girder in Girder:
         base = REACTION.transverse.origin if girder is Girder.ORIGIN else REACTION.transverse.end
         assert value(completed.seismic_girder[girder].force) == q(value(base.seismic_girder.force) * D(transverse / 1000), 2)
-    assert completed.bearing_cases[:4] == RESULT.bearing_cases[:4]
+    for side in Side:
+        assert completed.sides[side].bearings[:-1] == RESULT.sides[side].bearings[:-1]  # all but the seismic case
 
 
 def _pier():

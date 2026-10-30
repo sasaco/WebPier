@@ -175,11 +175,7 @@ def _superstructure() -> dict[str, Field]:
         }
         support = f"上部構造.支承データ.{side}"
         table |= {f"{support}.支承名": choice(choices.BEARING_TYPES), f"{support}.摩擦係数_μ": number(FRICTION),
-                  f"{support}.復旧性制動係数": number(RATIO, nullable=True),
-                  # decision 59: the rubber bearings and the stoppers of the girder, and those on the cantilever beam;
-                  # needed only by 0900
-                  **{f"{support}.{key}": integer(0, MAX_COUNT, nullable=True)
-                     for key in ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")}}
+                  f"{support}.復旧性制動係数": number(RATIO, nullable=True)}
     train = "上部構造.列車"
     table |= {
         # decision 101: the vehicle's loads are the program's; 編成数 only for a vehicle of repeated cars

@@ -248,3 +248,25 @@ def test_a_response_analysis_that_cannot_join_the_folder_stops_the_generation(tm
     with pytest.raises(GenerationError, match="解析実行Err.log"):
         generate.generate(GenerationOptions(write(tmp_path / "pre", data(ITEMS_0711)), tmp_path / "output",
                                             tmp_path / "post"))
+
+
+ITEMS_CANTILEVER = ("ground_model", "reactions", "longitudinal_seismic", "longitudinal_nonlinear_analysis",
+                    "transverse_seismic", "transverse_nonlinear_analysis", "cantilever")
+
+
+def test_a_pile_foundation_takes_the_maximum_response_of_the_cantilever_from_the_inertia_cases(tmp_path):
+    """Decision 125: 0900 / 0910 of a pile foundation with the 応答変位法. The stand-in's Khmax of Case n is
+    0.385 + 0.01(n − 1) and 0.386 + 0.01(n − 1) and '-----' for the Cases of the 応答変位法, which 0900 does not read
+    (from first_case on); across the track they wrap into a second band of the summary (more than 12 Cases)."""
+    options = GenerationOptions(write(tmp_path / "pre", data(ITEMS_CANTILEVER)), tmp_path / "output", tmp_path / "post",
+                                export_dir=tmp_path / "export")
+    generation = generate.generate(options)
+    along, across = generation.results["0711"].response, generation.results["0721"].response
+    cantilever = generation.results["0900"]
+    for found, first in ((cantilever.longitudinal, along.first_case), (cantilever.transverse, across.first_case)):
+        assert [value.case for value in found.values] == [*range(1, first)] * 2  # 復旧性, then 安全性
+        assert (found.adopted.case, found.adopted.block) == (first - 1, "安全性")
+        assert found.kh.value == round(0.386 + 0.01 * (first - 2), 3)
+    assert across.first_case - 1 + len(across.cases) > 12  # the transverse summary has two bands
+    assert (tmp_path / "output" / "0900_片持ち梁.pdf").is_file() and (tmp_path / "output" / "0910_片持ち梁照査.pdf").is_file()
+    assert (tmp_path / "post" / "片持ち梁.wdj").is_file()

@@ -6,8 +6,9 @@ along the track (Md = N·X, Mt = N·e), the self weight (N and Md), or a horizon
 (Mt = H·Y). The totals are the sums of the printed rows (ADR-0003). The actions are, in report order: D1 (with the
 self weight), D2, S2, S10, S30; the train L of each loading and the seismic train; the impact I of each loading for
 安全性 and for 使用性; the vehicle lateral load LF of each loading; the wind W with and without the train; the seismic
-inertia EQ across the track (girder and train); the bearing forces of each LR + B combination; the bearing forces
-along the track in the seismic case.
+inertia EQ across the track (girder and train); then the bearing forces along the track of each case that has them
+(bearings, decision 125: one table per case, as the cap of a movable bearing depends on the case's vertical forces),
+in case order.
 """
 
 from __future__ import annotations
@@ -18,9 +19,8 @@ from enum import Enum
 from ...core.printed import FORCE, MOMENT, Printed
 from .._exact import d, put, total
 from ..moving_load import Girder
-from ..reaction.longitudinal import LongitudinalCase
 from ..reaction.longitudinal import Snow
-from .bearings import BearingCase, GirderDevices
+from .bearings import BearingCase
 from .geometry import GIRDER_SIDES, CantileverBearing, Geometry
 from .loads import Loading, LoadingResult, SeismicTrainLoad, Torque, Wind
 
@@ -28,7 +28,6 @@ SELF_WEIGHT = "片持梁自重"
 REACTION = "上部工反力"
 GIRDER_INERTIA = "上部工慣性力"
 TRAIN_INERTIA = "列車慣性力"
-RUBBER, STOPPER = "ゴム支承", "ストッパー"
 TRANSVERSE, LONGITUDINAL = "線路直角方向", "線路方向"
 
 
@@ -43,7 +42,7 @@ class Group(Enum):
 class ActionKey:
     kind: str  # D1, D2, S, L, I, LF, W, EQ, LRB
     variant: str = ""  # S: S2/S10/S30; L/LF: the loading or 地震時; I: group:loading; W: the wind; EQ: 直角/線路;
-    # LRB: the LongitudinalCase name
+    # LRB: the case number
 
     @staticmethod
     def snow(snow: Snow) -> ActionKey:
@@ -66,8 +65,8 @@ class ActionKey:
         return ActionKey("W", wind.name)
 
     @staticmethod
-    def bearing(case: LongitudinalCase | None) -> ActionKey:
-        return ActionKey("LRB", "地震時" if case is None else case.name)
+    def bearing(number: int) -> ActionKey:
+        return ActionKey("LRB", str(number))
 
 
 EQ_TRANSVERSE = ActionKey("EQ", TRANSVERSE)
@@ -79,7 +78,7 @@ class Row:
     """One line of an action table: a vertical load (n, x, e) or a horizontal force (h, y)."""
 
     label: str
-    sublabel: str  # 起点側 / 終点側 / ゴム支承 …, or ""
+    sublabel: str  # the bearing (起点側 Ｇ1桁 of a vertical load, Ｇ1桁 of a horizontal force), or ""
     n: Printed | None
     x: Printed | None
     md: Printed
@@ -173,30 +172,29 @@ def _seismic_transverse(geometry: Geometry, girder: dict[Girder, Torque], train:
     return _action(EQ_TRANSVERSE, "地震時直角方向EQ", rows)
 
 
-def _horizontal_rows(devices: GirderDevices) -> list[Row]:
-    side = GIRDER_SIDES[devices.girder]
-    return [Row(side, name, None, None, MOMENT(0), device.force, device.arm, device.moment)
-            for name, device in ((RUBBER, devices.rubber), (STOPPER, devices.stopper))]
-
-
-def _bearing_actions(cases: tuple[BearingCase, ...]) -> list[Action]:
+def bearing_actions(cases: tuple[BearingCase, ...]) -> tuple[Action, ...]:
+    """The bearing forces along the track of each case on one cantilever (one row per bearing on it)."""
     found = []
     for case in cases:
-        title = f"{case.label}の支承に働く水平荷重" if case.case is not None else "地震時線路方向"
-        found.append(_action(ActionKey.bearing(case.case), title,
-                             [*_horizontal_rows(case.origin), *_horizontal_rows(case.end)]))
-    return found
+        title = "地震時線路方向" if case.combination is None else (
+            f"{case.label}の支承に働く水平荷重" if case.loading is None else
+            f"{case.label} {case.loading.value}の支承に働く水平荷重")
+        rows = [Row(GIRDER_SIDES[item.bearing.girder], item.bearing.bearing.label, None, None, MOMENT(0), item.force,
+                    item.arm, item.moment) for item in case.bearings]
+        found.append(_action(ActionKey.bearing(case.number), title, rows))
+    return tuple(found)
 
 
-def actions(geometry: Geometry, loadings: tuple[LoadingResult, ...], seismic_train: dict[Girder, tuple[SeismicTrainLoad, ...]],
-            lateral: dict[Loading, dict[Girder, Torque]], wind: dict[Wind, dict[Girder, Torque]],
-            seismic_girder: dict[Girder, Torque], seismic_train_torque: dict[Girder, Torque],
-            bearing_cases: tuple[BearingCase, ...], *, snow: bool = True) -> tuple[Action, ...]:
-    """Every action table of the cantilever, in report order; the snow loads only with snow on the pier."""
+def vertical_actions(geometry: Geometry, loadings: tuple[LoadingResult, ...],
+                     seismic_train: dict[Girder, tuple[SeismicTrainLoad, ...]],
+                     lateral: dict[Loading, dict[Girder, Torque]], wind: dict[Wind, dict[Girder, Torque]],
+                     seismic_girder: dict[Girder, Torque], seismic_train_torque: dict[Girder, Torque], *,
+                     snow: bool = True) -> tuple[Action, ...]:
+    """Every action table of the cantilever but the bearing forces, in report order; the snow loads only with snow on
+    the pier."""
     return (*_dead(geometry, snow), *_train(geometry, loadings, seismic_train), *_impact(geometry, loadings),
             *(_torque_action(ActionKey.lateral(loading), f"車両横荷重LF {loading.value}の場合", geometry, REACTION,
                              lateral[loading]) for loading in Loading),
             *(_torque_action(ActionKey.wind(kind), f"風荷重W {kind.value}", geometry, REACTION, wind[kind])
               for kind in Wind),
-            _seismic_transverse(geometry, seismic_girder, seismic_train_torque),
-            *_bearing_actions(bearing_cases))
+            _seismic_transverse(geometry, seismic_girder, seismic_train_torque))

@@ -56,13 +56,14 @@ _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
 # The items a pile foundation can make so far (roadmap pile-foundation-roadmap.md; widened a stage at a time): 0400,
 # 0500 (SOIL-JR's ground model, decision 85), 0600 (which does not read the foundation), 0610, 0620 (the frame on the
 # piles, decision 88), the frame analyses 0611, 0612, 0621, 0622 (decision 89), the seismic loads 0710, 0720 (decision 93) and
-# the static nonlinear analyses with their seismic checks 0711, 0721 (decision 94) and the footing 0800, 0810, 0820 (decision 96).
-# Both pile foundations make them all: 0710〜0721 of a 鋼管ソイルセメント杭 have its joint and its pipe in the NDU (decision 122),
-# its footing takes the ソイルセメント径 as D (decision 124).
+# the static nonlinear analyses with their seismic checks 0711, 0721 (decision 94), the footing 0800, 0810, 0820 (decision 96)
+# and the cantilever beam 0900, 0910 (decision 125: it reads no foundation, and its 最大応答震度 leaves out the Cases of the
+# 応答変位法). Both pile foundations make them all, so every item: 0710〜0721 of a 鋼管ソイルセメント杭 have its joint and its
+# pipe in the NDU (decision 122), its footing takes the ソイルセメント径 as D (decision 124).
 PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis",
                                      "transverse", "transverse_frame_analysis", "longitudinal_seismic",
                                      "longitudinal_nonlinear_analysis", "transverse_seismic",
-                                     "transverse_nonlinear_analysis", "footing")
+                                     "transverse_nonlinear_analysis", "footing", "cantilever")
 # The items an item uses besides the table's for a 基礎形式: the 杭の構造細目 of a 場所打ち杭 in 0400 read 1/β of SOIL-JR's
 # ground model, 0500 (decision 98); those of a 鋼管ソイルセメント杭 decide the steps of the ずれ止め by the pile's largest axial
 # forces of the seismic checks of both directions, 0711 and 0721 (decision 123).

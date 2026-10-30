@@ -54,6 +54,8 @@ def test_the_cases_are_the_four_ways_and_one_of_two_alike_is_dropped():
 
 
 def _workbook(columns, *, drop=None):
+    """The summary of Aggre-SE with *columns* (name, αf, ρm, Khy, Kheq, Teq, 復旧性 Khmax, KhL1, 安全性 Khmax) for Cases 1, 2,
+    ...; as Aggre-SE's, 12 Cases a band of 19 rows, each with its own headings (decision 125)."""
     book = Workbook()
     sheet = book.active
     sheet.title = "応答値一覧表"
@@ -61,15 +63,16 @@ def _workbook(columns, *, drop=None):
             (None, "ρm"), ("降伏点", "初期降伏震度"), (None, "全体系折曲点震度"), (None, "降伏変位"), (None, "降伏個所"),
             (None, "等価固有周期"), ("復旧性", "応答塑性率"), (None, "最大応答変位"), (None, "最大応答震度"),
             (None, "L1地震動"), ("安全性", "応答塑性率"), (None, "最大応答変位"), (None, "最大応答震度")]
-    for number, (a, b) in enumerate(rows, 1):
-        if b == drop:
-            continue
-        sheet.cell(row=number, column=1, value=a)
-        sheet.cell(row=number, column=2, value=b)
+    for band in range((len(columns) + 11) // 12 or 1):
+        for number, (a, b) in enumerate(rows[2:] if band else rows, 3 if band else 1):
+            if b == drop:
+                continue
+            sheet.cell(row=19 * band + number, column=1, value=a)
+            sheet.cell(row=19 * band + number, column=2, value=b)
     for index, values in enumerate(columns):
-        column = 4 + index
+        band, column = divmod(index, 12)
         for row, value in zip((4, 5, 6, 7, 8, 9, 12, 15, 16, 19), (index + 1, *values)):
-            sheet.cell(row=row, column=column, value=value)
+            sheet.cell(row=19 * band + row, column=4 + column, value=value)
     stream = BytesIO()
     book.save(stream)
     return stream.getvalue()
@@ -83,6 +86,13 @@ CASE3 = ("P_逆向(Case1_ρm10_αf1_逆向)", "1.0", "1.0", "0.386", "0.408", "0
 def test_the_inertia_response_is_read_from_the_case_of_the_summary():
     found = read_inertia(_workbook([CASE1, CASE2]), "線路方向_Aggre-SE.xlsx", 1)
     assert found == InertiaResponse(1, CASE1[0], TEQ(0.982), KH(0.408), KH(0.321), KH(0.440))
+
+
+def test_a_case_of_the_second_band_is_read_with_its_own_rows():
+    """Decision 125: Aggre-SE wraps the sheet every 12 Cases; a Case of the second band has its values there."""
+    later = ("P(Case13_ρm10_αf1_正向)", "1.0", "1.0", "0.390", "0.410", "0.990", "0.431", "0.322", "0.441")
+    found = read_inertia(_workbook([CASE2] * 12 + [later]), "線路方向_Aggre-SE.xlsx", 13)
+    assert found == InertiaResponse(13, later[0], TEQ(0.990), KH(0.410), KH(0.322), KH(0.441))
 
 
 @pytest.mark.parametrize("change,message", [

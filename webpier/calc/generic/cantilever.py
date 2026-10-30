@@ -16,7 +16,7 @@ Aggre-SE (``complete_generic_cantilever``), and sums the printed products (ADR-0
 for each check, the governing combination of either cantilever among those the load model assigns to it (as
 ``adopt``); a row without one is the zero case 該当する組合せなし（断面力0）, which Capacita skips. The row 8 最小鉄筋量
 (decision 73) has no CantileverRow of its own: it takes the combinations of 耐久性（永久荷重） (the row 1), the
-permanent action as the train path's case 28.
+permanent action as the train path's case 32.
 """
 
 from __future__ import annotations

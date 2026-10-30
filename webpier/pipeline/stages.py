@@ -1032,9 +1032,16 @@ def _with_pile_footing(stage: StageSpec, direction: str | None = None) -> StageS
     return replace(stage, foundations={foundation: piled for foundation in choices.PILE_FOUNDATIONS})
 
 
-def _max_responses(files: Mapping[str, bytes], *stages: str) -> list[Any]:
-    """The 最大応答震度 of the summary workbook of each seismic check of *stages* (decision 59)."""
-    return [read_max_response(files[seismic_file(stage_id, "xlsx")], dict(_aggrese_files(stage_id).files)["xlsx"])
+def _max_responses(files: Mapping[str, bytes], results: Results, *stages: str) -> list[Any]:
+    """The 最大応答震度 of the summary workbook of each seismic check of *stages* (decision 59), of the Cases before the
+    応答変位法 of the stage's finished result (decision 125: a pile foundation that considers the 地盤変位, decision 97);
+    of every Case of the others (a direct foundation, a pile foundation on G0〜G2)."""
+    def first(result: Any) -> int | None:
+        piled = isinstance(result, PileSeismicResult) and result.response is not None
+        return result.response.first_case if piled else None
+
+    return [read_max_response(files[seismic_file(stage_id, "xlsx")], dict(_aggrese_files(stage_id).files)["xlsx"],
+                              first(results.get(stage_id)))
             for stage_id in stages]
 
 
@@ -1042,7 +1049,8 @@ def _cantilever(stem: str, longitudinal: str, transverse: str) -> StageSpec:
     """0900: the 応答値 of the cantilever beam from 0600, finished with the 最大応答震度 of the seismic checks of
     *longitudinal* (0711) and *transverse* (0721) (decision 59)."""
     def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
-        return complete_cantilever(pier, results["0600"], basis, *_max_responses(files, longitudinal, transverse))
+        return complete_cantilever(pier, results["0600"], basis,
+                                   *_max_responses(files, results, longitudinal, transverse))
 
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_cantilever(pier, results["0600"]),
@@ -1378,7 +1386,7 @@ def _generic_nonlinear(stage: StageSpec, source_stage: str, base: NduProfile) ->
 def _generic_cantilever(stem: str, longitudinal: str, transverse: str, source: LoadModelSource) -> StageSpec:
     def complete(basis: Any, files: Mapping[str, bytes], pier: PierInput, results: Results) -> Any:
         return complete_generic_cantilever(pier, results["0600"], basis,
-                                           *_max_responses(files, longitudinal, transverse))
+                                           *_max_responses(files, results, longitudinal, transverse))
 
     return StageSpec("0900", stem, ("0600", longitudinal, transverse),
                      lambda pier, results: calculate_generic_cantilever(pier, results["0600"], source.result(pier)),

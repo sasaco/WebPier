@@ -351,17 +351,19 @@ def test_the_contract_is_the_registry(capsys):
     assert (detailing["pileFoundation"]["requires"], detailing["pileFoundation"]["runners"]) == (
         ["ground_model", "longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"],
         ["jrsnap", "aggrese", "soilstructure"])
-    # both pile foundations make the footing (decision 124); one no pile foundation makes has none (0900: cantilever)
+    # both pile foundations make the footing (decision 124) and the cantilever (decision 125), whose seismic checks call
+    # SoilStructure for an input on G3〜G5 (the 応答変位法, decision 97)
     assert outputs["footing"]["pileFoundation"]["byFoundation"] == {
         name: {"requires": [], "runners": ["fempython", "jrsnap", "webdan2", "aggrese", "soilstructure"]}
         for name in ("場所打ち杭", "鋼管ソイルセメント杭")}
-    assert outputs["cantilever"]["pileFoundation"]["byFoundation"] == {}
-    assert (outputs["cantilever"]["pileFoundation"]["requires"], outputs["cantilever"]["pileFoundation"]["runners"]) == (
-        [], [])
+    assert outputs["cantilever"]["pileFoundation"]["byFoundation"] == {
+        name: {"requires": ["longitudinal_nonlinear_analysis", "transverse_nonlinear_analysis"],
+               "runners": ["jrsnap", "webdan2", "aggrese", "soilstructure"]}
+        for name in ("場所打ち杭", "鋼管ソイルセメント杭")}
     assert [key for key, item in outputs.items() if item["pileFoundation"]["supported"]] == [
         "detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis", "transverse",
         "transverse_frame_analysis", "longitudinal_seismic", "longitudinal_nonlinear_analysis", "transverse_seismic",
-        "transverse_nonlinear_analysis", "footing"]
+        "transverse_nonlinear_analysis", "footing", "cantilever"]
     # decisions 93, 122 and 124: 0710〜0721 and the footing of both piles
     assert [outputs[key]["pileFoundation"]["foundations"] for key in ("reactions", "longitudinal_seismic", "footing")] == [
         ["場所打ち杭", "鋼管ソイルセメント杭"]] * 3

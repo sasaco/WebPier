@@ -1,10 +1,12 @@
 """13.2 設計作用の組合せ of one cantilever (Example2 13-30 to 13-37), and the governing cases of both (decision 59).
 
-The combination tables are turned on the page as the sample prints them (one rotated table per page): the cases
-1〜9 and 10〜18 of 安全性（破壊） and the cases 19〜31, for Md, Vd and Mt. Each case cell holds the factor over the
-factored value; the last columns are the total, the performance item, the remark and the loading. The summary of the
-three (the sample's last tables) lists each case's Md, Vd and Mt without the factors, upright, and comes first (a
-rotated table takes a page of its own). The table of the governing cases lists, for each row of Capacita's force
+The combination tables are turned on the page as the sample prints them (one rotated table per page): for Md, Vd
+and Mt, the cases 1〜9 and 10〜18 of 安全性（破壊）, 19〜28 of 使用性（損傷） and 復旧性（地震時）, and 29〜35 of 耐久性
+and 安全性（疲労） (decision 125's 35 cases: a page holds 14 cases, so four pages a quantity, each broken at a limit
+state). Each case cell holds the factor over the factored value; the last columns are the total, the performance
+item, the remark and the loading; the LR+B and the seismic EQ along the track are the signed torsion the case
+adds (on the side of its other torsion, decision 125, said in a sentence under the heading). The summary of the three (the sample's last tables) lists each case's Md, Vd and
+Mt without the factors, upright, and comes first (a rotated table takes a page of its own). The table of the governing cases lists, for each row of Capacita's force
 table and each check, the side, the case and its Md, Vd and Mt.
 """
 
@@ -26,12 +28,12 @@ QUANTITIES = {Quantity.BENDING: ("曲げモーメント", "Md", "kN・m"), Quant
               Quantity.TORSION: ("ねじりモーメント", "Mt", "kN・m")}
 # The column widths of a rotated table in grid columns of its turned grid (15.48 pt each; 46 of them make its height
 # on the page, of the page's 47 rows): the case, the nine action columns, the result, the performance item, the
-# remark and the loading. Each case takes two grid rows (16.08 pt each on the page), so that the 13 cases of 19〜31
-# and the header take 28 of the page's 30 columns.
+# remark and the loading. Each case takes two grid rows (16.08 pt each on the page), so that the 10 cases of 19〜28
+# and the header take 22 of the page's 30 columns (14 cases at most).
 CASE_WIDTH, ACTION_WIDTH, RESULT_WIDTH, STATE_WIDTH, REMARK_WIDTH, NOTE_WIDTH = 2, 3, 3, 4, 4, 5
 WIDE_ACTIONS = {"LR+B": 4}
 SUMMARY_RESULT_WIDTH = 4  # the upright summary (grid columns of the page)
-GROUPS = ((1, 9), (10, 18), (19, 31))
+GROUPS = ((1, 9), (10, 18), (19, 28), (29, 35))
 
 
 def _value_of(case: CaseResult, quantity: Quantity) -> Printed:
@@ -83,8 +85,12 @@ def _summary(cases: Sequence[CaseResult]) -> TableSpec:
 def section(m: Manuscript, side: Side, side_name: str, result: SideResult, pier: PierInput) -> None:
     key = side.name.lower()
     m.heading(f"{key}.combinations.heading", f"13.2 設計作用の組合せ（{side_name}）", SECTION)
+    # decision 125: the bearing forces along the track act either way (the tables of 13.1 (4) print Hi・Y)
+    m.paragraph(f"{key}.combinations.torsion_sign",
+                "線路方向の水平荷重（LR+B，地震時の線路方向 EQ）によるねじりモーメントは，どちら向きにも働くので，"
+                "そのケースの他のねじりモーメントと同じ向き（不利側）に加える．", SUBSECTION)
     # The summary first: a rotated table fills a page of its own, which the heading could not share.
-    m.paragraph(f"{key}.combinations.summary.title", "設計作用のまとめ", SUBSECTION)
+    m.paragraph(f"{key}.combinations.summary.title", "設計作用のまとめ", SUBSECTION, gap=True)
     m.table(f"{key}.combinations.summary", _summary(result.cases), SUBSECTION)
     for quantity in Quantity:
         for first, last in GROUPS:

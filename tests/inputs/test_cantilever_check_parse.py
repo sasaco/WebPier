@@ -1,11 +1,13 @@
-"""The 片持ち梁の照査 section and the bearing devices of each girder (decision 59, CONTEXT.md 片持ち梁の照査).
+"""The 片持ち梁の照査 section (decision 59, CONTEXT.md 片持ち梁の照査), and the bearing devices it no longer has
+(decision 125).
 
 The conditions of the cantilever beam check are one set for both overhangs: the corrosion environment of each face
 (上面・下面・側面: the beam's faces differ, unlike the column's one environment), whether the appearance is checked,
 and the trains of the fatigue check (列車本数, 設計耐用年数, the equivalent repetition count per train for each S-N
-slope, which an external program gives). Each girder's 支承データ also count its rubber bearings and stoppers and
-those on the cantilever beam. Every value may stay blank until 0900 asks for it, but the section and its keys are
-required.
+slope, which an external program gives). Every value may stay blank until 0900 asks for it, but the section and its
+keys are required. The counts of rubber bearings and stoppers of each girder and those on the cantilever beam were
+inputs of decision 59; decision 125 derives what the cantilever needs (the bearing slots and the geometry), so they
+are unknown keys now.
 """
 
 import json
@@ -45,30 +47,27 @@ def test_the_cantilever_check_conditions_of_the_current_input():
                                    for train in ("A列車", "B列車") for slope in ("k=0.06", "k=0.12")}
 
 
-def test_the_bearing_devices_of_each_girder():
-    """Example2 13-21, 13-22: 起点桁 4 ゴム支承 and 3 ストッパー, 終点桁 2 and 7; one of each on the cantilever at
-    the origin, one rubber bearing and no stopper at the end."""
-    spans = parse_input(data()).spans
-    origin, end = spans.origin, spans.end
-    assert (origin.rubber_count, origin.stopper_count, origin.rubber_on_cantilever, origin.stopper_on_cantilever) == (
-        4, 3, 1, 1)
-    assert (end.rubber_count, end.stopper_count, end.rubber_on_cantilever, end.stopper_on_cantilever) == (2, 7, 1, 0)
+@pytest.mark.parametrize("side", ["起点側", "終点側"])
+@pytest.mark.parametrize("key", DEVICES)
+def test_the_bearing_device_counts_of_decision_59_are_unknown_keys(side, key):
+    """Decision 125: no backward compatibility; an input that still has them is an input error."""
+    assert set(CURRENT["上部構造"]["支承データ"][side]) <= {"支承名", "摩擦係数_μ", "復旧性制動係数"}
+    document = data()
+    document["上部構造"]["支承データ"][side][key] = None
+    fails(document, f"上部構造.支承データ.{side}.{key}: 未知の入力項目です")
 
 
-def test_the_conditions_and_the_devices_may_be_blank_until_the_beam_is_checked():
+def test_the_conditions_may_be_blank_until_the_beam_is_checked():
     document = data()
     document[SECTION] = {"水掛かりの程度": dict.fromkeys(("上面", "下面", "側面")), "外観の照査": None,
                          "疲労": {"旅客列車本数": None, "貨物列車本数": None, "設計耐用年数": None,
                                 "等価繰返し回数": {"A列車": {"k=0.06": None, "k=0.12": None},
                                              "B列車": {"k=0.06": None, "k=0.12": None}}}}
-    for side in ("起点側", "終点側"):
-        document["上部構造"]["支承データ"][side] |= dict.fromkeys(DEVICES)
     pier = parse_input(document)
     check = pier.cantilever_check
     assert set(check.environments.values()) == {None} and check.appearance is None
     assert (check.fatigue.passenger_trains, check.fatigue.service_life) == (None, None)
     assert set(check.fatigue.repetitions.values()) == {None}
-    assert pier.spans.origin.rubber_count is None and pier.spans.end.stopper_on_cantilever is None
 
 
 @pytest.mark.parametrize("path,value,message", [
@@ -87,18 +86,6 @@ def test_the_conditions_are_choices_integers_and_printed_numbers(path, value, me
         node = node[part]
     node[path[-1]] = value
     with pytest.raises(InputError, match=re.escape(f"{SECTION}.{'.'.join(path)}: ") + ".*" + re.escape(message)):
-        parse_input(document)
-
-
-@pytest.mark.parametrize("key,value,message", [
-    ("ゴム支承の箇所数", 1.5, "整数が必要です"),
-    ("ストッパーの箇所数", -1, "0～10000の整数が必要です"),
-    ("片持ち梁上のストッパー", "1", "整数が必要です"),
-])
-def test_the_devices_are_counts(key, value, message):
-    document = data()
-    document["上部構造"]["支承データ"]["終点側"][key] = value
-    with pytest.raises(InputError, match=re.escape(f"上部構造.支承データ.終点側.{key}: ") + ".*" + re.escape(message)):
         parse_input(document)
 
 

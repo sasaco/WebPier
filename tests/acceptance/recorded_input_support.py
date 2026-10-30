@@ -17,6 +17,9 @@ P-16, with the car, the axles and the seismic train load after 車両名 (an acc
 made them the program's: the recorded inputs had P-16's own values, so the calculation is the same), and, with blank
 ``custom_tables`` of the column, as rebar version 3 with the empty ``table_overrides`` (an acceptance recorded before
 decision 111, which replaced them; an empty change of the table is the table made from the bars, as a blank one is).
+All of them are also tried with the bearing devices of decision 59 last in ``上部構造.支承データ.起点側`` and ``.終点側``
+(after ``摩擦係数_μ`` and ``復旧性制動係数``; an acceptance recorded before decision 125, which removed them: only 0900
+read them, and every recorded input had Example2's counts, 起点側 4, 3, 1, 1 and 終点側 2, 7, 1, 0).
 """
 
 import json
@@ -52,6 +55,11 @@ BLANK_PILE_REBAR = {  # 鉄筋.杭 with nothing entered (decisions 92 and 98)
 _ANCHORAGE_KEYS = ("head_anchorage_mm", "anchorage_stirrup")  # in 鉄筋.杭.cutoff before decision 98
 
 
+# decision 59's bearing devices of each girder, as every input recorded before decision 125 had them
+BEARING_DEVICES = {"起点側": {"ゴム支承の箇所数": 4, "ストッパーの箇所数": 3, "片持ち梁上のゴム支承": 1, "片持ち梁上のストッパー": 1},
+                   "終点側": {"ゴム支承の箇所数": 2, "ストッパーの箇所数": 7, "片持ち梁上のゴム支承": 1, "片持ち梁上のストッパー": 0}}
+
+
 def _text(document: dict, data: bytes) -> bytes:
     text = json.dumps(document, indent=2, ensure_ascii=False) + ("\n" if data.endswith(b"\n") else "")
     return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
@@ -67,6 +75,19 @@ def _old_train(train: dict) -> dict:
         if key == "車両名":
             old |= json.loads(json.dumps(P16_TRAIN))
     return old
+
+
+def before_bearing_devices(data: bytes) -> bytes | None:
+    """The input as it was before decision 125 (decision 59's bearing devices last in the 支承データ of each girder), or
+    None when it already has them."""
+    document = json.loads(data.decode("utf-8"))
+    support = document.get("上部構造", {}).get("支承データ") if isinstance(document, dict) else None
+    if not isinstance(support, dict) or any(key in support.get(side, {}) for side, devices in BEARING_DEVICES.items()
+                                            for key in devices):
+        return None
+    for side, devices in BEARING_DEVICES.items():
+        support[side] |= devices  # last, after 摩擦係数_μ (and 復旧性制動係数 where it is entered)
+    return _text(document, data)
 
 
 BLANK_CUSTOM_TABLES = {"線路": None, "直角": None}  # 鉄筋.柱.custom_tables with nothing entered (decision 111)
@@ -234,18 +255,21 @@ def _before_outputs(data: bytes) -> set[str]:
 def input_sha256s(data: bytes) -> set[str]:
     """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, as it was with
     the bars of the cast-in-place pile in the 杭基礎, before them, before the joint and before the pile foundation (each
-    with and without the 出力項目), each also as it was before decision 98, all also as before decision 101, and all
-    also as before decision 111."""
+    with and without the 出力項目), each also as it was before decision 98, all also as before decision 101, all also as
+    before decision 111, and all also as before decision 125."""
     found: set[str] = set()
-    for latest in (data, before_custom_tables(data)):
-        if latest is None:
+    for current in (data, before_bearing_devices(data)):
+        if current is None:
             continue
-        for form in (latest, before_vehicles(latest)):
-            if form is None:
+        for latest in (current, before_custom_tables(current)):
+            if latest is None:
                 continue
-            found |= _chain(form)
-            if (older := before_anchorage(form)) is not None:
-                found |= _chain(older)
+            for form in (latest, before_vehicles(latest)):
+                if form is None:
+                    continue
+                found |= _chain(form)
+                if (older := before_anchorage(form)) is not None:
+                    found |= _chain(older)
     return found
 
 

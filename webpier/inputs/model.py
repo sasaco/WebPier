@@ -57,12 +57,6 @@ class Span:
     bearing: str
     mu: Printed
     recovery_brake_coefficient: Printed | None
-    # decision 59 (0900): the rubber bearings and the stoppers of the girder on this pier, and those on the cantilever
-    # beam; None is blank
-    rubber_count: int | None = None  # ゴム支承の箇所数
-    stopper_count: int | None = None  # ストッパーの箇所数
-    rubber_on_cantilever: int | None = None  # 片持ち梁上のゴム支承
-    stopper_on_cantilever: int | None = None  # 片持ち梁上のストッパー
 
 
 @dataclass(frozen=True)

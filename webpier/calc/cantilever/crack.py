@@ -9,7 +9,7 @@ significant figures in scientific notation (kept as the rounded values), the oth
 ε'csd is the value of the RC標準 table for the age at which the beam first cracks: 450 when the self weight alone
 cracks it (30日), 350 when the permanent actions do (100日), 300 when only the permanent and variable actions do or
 nothing does (200日以上). The moments compared are the self weight of the cantilever, the permanent actions (case
-28) and the largest 安全性（破壊） moment (13-55).
+32) and the largest 安全性（破壊） moment (13-55).
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ class Cracking:
 
     cracking_moment: CrackingMoment
     self_weight: Printed  # Md of the self weight, kN m
-    permanent: Printed  # Md of the permanent actions (case 28)
+    permanent: Printed  # Md of the permanent actions (case 32)
     permanent_variable: Printed  # the largest 安全性（破壊） Md
     ecsd: Printed  # ×10⁻⁶
     age: str  # the note of the row chosen (30日 …), or 200日以上 when nothing cracks

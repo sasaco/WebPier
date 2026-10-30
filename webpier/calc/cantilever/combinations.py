@@ -1,23 +1,30 @@
-"""The design action combinations of the cantilever beam (0900 13.2, decision 59; Example2 13-30 to 13-37) and the
-section forces each check of 0910 is given (the WDJ force table, decision 59).
+"""The design action combinations of the cantilever beam (0900 13.2, decisions 59, 125; Example2 13-30 to 13-37,
+Example橋脚4 表1.1.7) and the section forces each check of 0910 is given (the WDJ force table, decision 59).
 
-The 31 cases are a program table, as Example2 13-30 to 13-37 have them: 1〜18 安全性（破壊）, 19〜22 使用性（損傷）,
-23〜24 復旧性（地震時）, 25〜28 耐久性 and 29〜31 安全性（疲労）. A case multiplies the totals of each action
-(actions.Action: N, Md, Mt) by its factor and sums the printed products (ADR-0003); the design shear force Vd is N.
+The 35 cases are a program table: 1〜18 安全性（破壊）, 19〜26 使用性（損傷）, 27〜28 復旧性（地震時）, 29〜32 耐久性
+and 33〜35 安全性（疲労）. 1〜22 and 27〜35 are Example2's 31; 23 (風最大, the wind without the train) and 24〜26 (the
+train of each loading with the bearing forces of 1.0LR + B) are Example橋脚4's 9-2 and 10-1〜10-3, which R5 adds to
+使用性（損傷） (decision 125). A case multiplies the totals of each action (actions.Action: N, Md, Mt) by its factor
+and sums the printed products (ADR-0003); the design shear force Vd is N. The bearing forces along the track (B, LR, the
+seismic case) act either way, so their torsion is added with the sign of the rest of the case's Mt on that cantilever
+(decision 125; positive when the rest is 0): the action table prints Hi·Y, the combination the signed product. The same factors give the vertical force Ni
+of a bearing on the cantilever, which caps its horizontal force at a movable girder end (bearings, decision 125):
+the bearing's rows of the D1, D2, snow, train and impact actions times their factors, summed and printed once.
 The factor of the train and its impact is ρ × γ at the printed digits of 0600 (FACTOR: 1.231 × 1.1 → 1.35,
 1.231 × 1.0 → 1.23; 使用性 ρ = 1.0), that of the vehicle lateral load ρu × γ; the others are written as the table
 prints them. Not reproduced from the reference: its 使用性 impact copied from the 安全性 impact (13-26 (b),
 ADR-0001).
 
 Both cantilevers are combined, and for each row of Capacita's force table (its limit state) the governing case of
-either side is adopted per check: the largest |Md| for bending, the largest Vd for shear and the largest Mt for
-torsion, each with the Md, Vd and Mt of that case; equal values keep the left side and the earlier case (decision 59).
-Md is written negative to Capacita (tension at the top of the beam).
+either side is adopted per check: the largest |Md| for bending, the largest Vd for shear and the largest |Mt| for
+torsion (decision 125: the torsion of Example橋脚4 is negative), each with the Md, Vd and signed Mt of that case; equal
+values keep the left side and the earlier case (decision 59). Md is written negative to Capacita (tension at the top of
+the beam).
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
@@ -25,12 +32,13 @@ from enum import Enum
 from ...core.printed import FORCE, MOMENT, Printed
 from ...inputs import PierInput
 from .._exact import d, put, total
-from ..reaction.longitudinal import FACTOR, LongitudinalCase, Snow
+from ..moving_load import Girder
+from ..reaction.longitudinal import FACTOR, LongitudinalCase, LongitudinalResult, Snow
 from .actions import D1, D2, EQ_TRANSVERSE, Action, ActionKey, Group
-from .bearings import COMBINATIONS
-from .geometry import Side
+from .bearings import SEISMIC, BearingCase, GirderForce, bearing_case, girder_force, seismic_force
+from .bearings import label as bearing_label
+from .geometry import CantileverBearing, Geometry, GirderBearings, Side
 from .loads import Loading, Wind
-
 
 
 def factor(text: str) -> Printed:
@@ -116,13 +124,16 @@ def _definitions() -> tuple[CaseDefinition, ...]:
     for loading in Loading:  # 19〜21
         add(R, "列車最大", ONE, ONE, Snow.S10, _train(loading, ONE), ONE, (Wind.WITH_TRAIN, ONE))
     add(R, "雪最大", ONE, ONE, Snow.S30)  # 22
+    add(R, "風最大", ONE, ONE, Snow.S2, wind=(Wind.WITHOUT_TRAIN, ONE))  # 23 (Example橋脚4 9-2, decision 125)
+    for loading in Loading:  # 24〜26: 1.0LR + B (Example橋脚4 10-1〜10-3, decision 125)
+        add(R, "列車最大", ONE, ONE, Snow.S10, _train(loading, ONE), bearing=LongitudinalCase.SAFETY_LR10_B10)
     seismic = TrainTerm(None, Group.ULTIMATE, ONE, False)
-    add(LimitState.RESTORABILITY_EQ, "〃", ONE, ONE, Snow.S2, seismic, eq="直角")  # 23
-    add(LimitState.RESTORABILITY_EQ, "〃", ONE, ONE, Snow.S2, seismic, eq="線路")  # 24
-    for loading in Loading:  # 25〜27
+    add(LimitState.RESTORABILITY_EQ, "〃", ONE, ONE, Snow.S2, seismic, eq="直角")  # 27
+    add(LimitState.RESTORABILITY_EQ, "〃", ONE, ONE, Snow.S2, seismic, eq="線路")  # 28
+    for loading in Loading:  # 29〜31
         add(LimitState.DURABILITY, "縁応力度", ONE, ONE, Snow.S2, _train(loading, ONE, Group.SERVICE))
-    add(LimitState.DURABILITY, "縁応力度", ONE, ONE, Snow.S2)  # 28: 永久作用
-    for loading in Loading:  # 29〜31: the variable actions alone
+    add(LimitState.DURABILITY, "縁応力度", ONE, ONE, Snow.S2)  # 32: 永久作用
+    for loading in Loading:  # 33〜35: the variable actions alone
         add(LimitState.FATIGUE, "〃", None, None, None, _train(loading, ONE, Group.SERVICE))
     return tuple(found)
 
@@ -172,44 +183,97 @@ def train_factor(pier: PierInput, term: TrainTerm) -> Printed:
     return put(FACTOR, d(rho) * d(term.gamma))
 
 
-def evaluate(pier: PierInput, actions: Mapping[ActionKey, Action], definition: CaseDefinition,
-             bearing_labels: Mapping[LongitudinalCase, str]) -> CaseResult:
-    """One case from the action totals."""
-    parts: list[Contribution] = []
+def _terms(pier: PierInput, actions: Mapping[ActionKey, Action], definition: CaseDefinition,
+           bearing_labels: Mapping[LongitudinalCase, str]) -> Iterator[tuple[str, str, Printed, ActionKey]]:
+    """The column, the printed factor, the factor and the action of each term of a case, in column order."""
     if definition.d1 is not None:
-        parts.append(_scaled("D1", _factor_text(definition.d1), definition.d1, actions[D1]))
+        yield "D1", _factor_text(definition.d1), definition.d1, D1
     if definition.d2 is not None:
-        parts.append(_scaled("D2", _factor_text(definition.d2), definition.d2, actions[D2]))
+        yield "D2", _factor_text(definition.d2), definition.d2, D2
     if definition.snow is not None and ActionKey.snow(definition.snow) in actions:  # no snow action: decision 69
-        parts.append(_scaled("S", f"1.0{definition.snow.name}", ONE, actions[ActionKey.snow(definition.snow)]))
+        yield "S", f"1.0{definition.snow.name}", ONE, ActionKey.snow(definition.snow)
     if (term := definition.train) is not None:
         factor = train_factor(pier, term)
-        parts.append(_scaled("L", _factor_text(factor), factor, actions[ActionKey.train(term.loading)]))
+        yield "L", _factor_text(factor), factor, ActionKey.train(term.loading)
         if term.impact:
             assert term.loading is not None
-            parts.append(_scaled("I", _factor_text(factor), factor, actions[ActionKey.impact(term.group, term.loading)]))
+            yield "I", _factor_text(factor), factor, ActionKey.impact(term.group, term.loading)
     if definition.lateral is not None:
         assert definition.train is not None and definition.train.loading is not None
         factor = put(FACTOR, d(pier.train.factor_ultimate) * d(definition.lateral))
-        parts.append(_scaled("LF", _factor_text(factor), factor, actions[ActionKey.lateral(definition.train.loading)]))
+        yield "LF", _factor_text(factor), factor, ActionKey.lateral(definition.train.loading)
     if definition.wind is not None:
         kind, gamma = definition.wind
-        parts.append(_scaled("W", _factor_text(gamma), gamma, actions[ActionKey.wind(kind)]))
+        yield "W", _factor_text(gamma), gamma, ActionKey.wind(kind)
     if definition.bearing is not None:
-        parts.append(_scaled("LR+B", bearing_labels[definition.bearing].replace(" ", ""), ONE,
-                             actions[ActionKey.bearing(definition.bearing)]))
+        text = bearing_labels[definition.bearing].replace(" ", "") if bearing_labels else ""
+        yield "LR+B", text, ONE, ActionKey.bearing(definition.number)
     if definition.eq == "直角":
-        parts.append(_scaled("EQ", "1.0", ONE, actions[EQ_TRANSVERSE]))
+        yield "EQ", "1.0", ONE, EQ_TRANSVERSE
     elif definition.eq == "線路":
-        parts.append(_scaled("EQ", "1.0", ONE, actions[ActionKey.bearing(None)]))
+        yield "EQ", "1.0", ONE, ActionKey.bearing(definition.number)
+
+
+VERTICAL_COLUMNS = ("D1", "D2", "S", "L", "I")  # the terms of Ni (no case with a bearing force has LF or W)
+
+
+def _unfavourable(part: Contribution, rest: Decimal) -> Contribution:
+    """The bearing forces along the track act either way: their torsion on the side of the rest of the case, so that
+    |Mt| grows (positive when the rest is 0; decision 125, Example橋脚4 V-33〜38)."""
+    return part if rest >= 0 else Contribution(part.column, part.factor, part.n, part.md, put(MOMENT, -d(part.mt)))
+
+
+def evaluate(pier: PierInput, actions: Mapping[ActionKey, Action], definition: CaseDefinition,
+             bearing_labels: Mapping[LongitudinalCase, str]) -> CaseResult:
+    """One case from the action totals; the torsion of the bearing forces along the track (the action of the case
+    number) is added on the side of the others'."""
+    terms = list(_terms(pier, actions, definition, bearing_labels))
+    parts = [_scaled(column, text, by, actions[key]) for column, text, by, key in terms]
+    along = ActionKey.bearing(definition.number)
+    rest = total(part.mt for part, (*_, key) in zip(parts, terms) if key != along)
+    parts = [_unfavourable(part, rest) if key == along else part for part, (*_, key) in zip(parts, terms)]
     return CaseResult(definition, tuple(parts), put(FORCE, total(part.n for part in parts)),
                       put(MOMENT, total(part.md for part in parts)), put(MOMENT, total(part.mt for part in parts)))
+
+
+def bearing_vertical(pier: PierInput, actions: Mapping[ActionKey, Action], definition: CaseDefinition,
+                     bearing: CantileverBearing) -> Printed:
+    """Ni: the vertical force of *bearing* in the case, its rows of the vertical terms times their factors."""
+    found = []
+    for column, _, by, key in _terms(pier, actions, definition, {}):
+        if column in VERTICAL_COLUMNS:
+            n = next(row.n for row in actions[key].rows if row.sublabel == bearing.label and row.n is not None)
+            found.append(d(n) * d(by))
+    return put(FORCE, total(found))
+
+
+def bearing_cases(pier: PierInput, longitudinal: LongitudinalResult, girders: dict[Girder, GirderBearings],
+                  kh: Printed, geometry: Geometry, actions: Sequence[Action]) -> tuple[BearingCase, ...]:
+    """The bearing forces of every case that has them on the cantilever of *geometry*, in case order; *actions* are
+    its vertical actions (for Ni), *kh* the 最大応答震度 along the track."""
+    by_key = {action.key: action for action in actions}
+    found = []
+    for definition in DEFINITIONS:
+        if definition.bearing is None and definition.eq != "線路":
+            continue
+        loading = None if definition.train is None else definition.train.loading
+        forces: dict[Girder, GirderForce]
+        if definition.bearing is None:
+            forces = {girder: seismic_force(pier, longitudinal, girders, girder, kh) for girder in Girder}
+            text = SEISMIC
+        else:
+            forces = {girder: girder_force(pier, longitudinal, girders, girder, definition.bearing, loading)
+                      for girder in Girder}
+            text = bearing_label(definition.bearing, longitudinal)
+        found.append(bearing_case(pier, definition.number, definition.bearing, loading, text, forces, geometry,
+                                  lambda bearing, definition=definition: bearing_vertical(pier, by_key, definition,
+                                                                                          bearing)))
+    return tuple(found)
 
 
 def evaluate_all(pier: PierInput, actions: Sequence[Action],
                  bearing_labels: Mapping[LongitudinalCase, str]) -> tuple[CaseResult, ...]:
     by_key = {action.key: action for action in actions}
-    assert set(COMBINATIONS) <= set(bearing_labels)
     return tuple(evaluate(pier, by_key, definition, bearing_labels) for definition in DEFINITIONS)
 
 
@@ -254,7 +318,7 @@ FORCE_ROWS = (
     ForceRow(5, "安全性（破壊）", ALL, _state(LimitState.SAFETY)),
     ForceRow(6, "使用性（損傷）", ALL, _state(LimitState.SERVICEABILITY_DAMAGE)),
     ForceRow(7, "復旧性（損傷）地震時", ALL, _state(LimitState.RESTORABILITY_EQ)),
-    ForceRow(8, "最小鉄筋量", (Quantity.BENDING,), _permanent),  # the permanent action, case 28 (decision 73)
+    ForceRow(8, "最小鉄筋量", (Quantity.BENDING,), _permanent),  # the permanent action, case 32 (decision 73)
 )
 
 
@@ -282,7 +346,7 @@ class Selection:
 def _measure(quantity: Quantity, case: CaseResult) -> float:
     if quantity is Quantity.BENDING:
         return abs(case.md.value)
-    return case.n.value if quantity is Quantity.SHEAR else case.mt.value
+    return case.n.value if quantity is Quantity.SHEAR else abs(case.mt.value)
 
 
 def adopt(cases: Mapping[Side, Sequence[CaseResult]]) -> tuple[Selection, ...]:

@@ -14,7 +14,7 @@ import pytest
 from pipeline_support import FIXTURES, tree
 from webpier.core.errors import InputError
 from webpier.core.integrity import load_json
-from webpier.inputs import parse_input
+from webpier.inputs import outputs, parse, parse_input
 from webpier.pipeline import generate
 from webpier.pipeline.generate import GenerationOptions, export_bytes, planned, validate
 from webpier.pipeline.stages import STAGES, Registry, StageSpec
@@ -176,10 +176,14 @@ def test_a_load_model_has_no_seismic_frame_on_piles(tmp_path, foundation, items,
     assert not (tmp_path / "post").exists() or not tree(tmp_path / "post")
 
 
-def test_the_stages_that_are_not_made_yet_are_not_items_of_a_pile_foundation(tmp_path):
+def test_the_stages_that_are_not_made_yet_are_not_items_of_a_pile_foundation(tmp_path, monkeypatch):
+    # since decision 125 a pile foundation makes every item: one it could not (0900 before it) is taken out of the table
+    made = tuple(key for key in outputs.PILE_OUTPUT_KEYS if key != "cantilever")
+    monkeypatch.setattr(outputs, "PILE_OUTPUT_KEYS", made)
+    monkeypatch.setattr(parse, "PILE_OUTPUT_KEYS", made)
     data = deepcopy(PILE)
     chosen = (*ITEMS, "longitudinal_seismic", "transverse_seismic", "longitudinal_nonlinear_analysis",
-              "transverse_nonlinear_analysis", "cantilever")  # (0900 is not made for piles yet)
+              "transverse_nonlinear_analysis", "cantilever")
     data["outputs"] = {key: key in chosen for key in data["outputs"]}
     with pytest.raises(InputError, match="場所打ち杭は未対応です"):
         parse_input(data)

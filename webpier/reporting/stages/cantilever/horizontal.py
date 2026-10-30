@@ -1,41 +1,50 @@
-"""13.1 (2) 水平荷重: the forces on the girders and at their bearings, and what the rubber bearings and the
-stoppers take (Example2 13-15 to 13-22)."""
+"""13.1 (2) 水平荷重: the forces on the girders (Example2 13-15) and what each bearing on a cantilever takes along
+the track in each case (decision 125), written as Example橋脚4 V-13 to V-25 writes them: for each case with bearing
+forces (grouped by limit state) its loading and combination, then for each girder T (1橋梁当り, its terms γB × B and
+the LR factor × LR, or Kh × the girder's dead load + the seismic train) and T / n (1支承当り); at a movable end each
+bearing of the girder on a cantilever compares T / n with μ·Ni and takes the smaller (∴ H), at a fixed end H = T / n.
+Mt = H × Y of each bearing and their sums are the bearing tables of 13.1 (4), so they are not repeated here.
+
+``combination`` writes the combination of a case of 13.2 from its factors (the bearing tables of (4) use it too)."""
 
 from __future__ import annotations
 
 from gridlayoutpdf import Row
 
 from ....calc.cantilever import CantileverResult
-from ....calc.cantilever.bearings import BearingCase, Device, GirderDevices
+from ....calc.cantilever.bearings import BearingCase, BearingShare, GirderForce
+from ....calc.cantilever.combinations import CaseResult, LimitState
 from ....calc.cantilever.geometry import GIRDER_SIDES
 from ....calc.moving_load import Girder
 from ....calc.reaction import ReactionResult
-from ....calc.reaction.longitudinal import (ADHESION, BEARING_LINES, DEFINITIONS, FRICTION_SHARE, LONG_RAIL,
-                                            LONG_RAIL_SERVICE, BearingType, LongitudinalCase)
+from ....calc.reaction.longitudinal import ADHESION, LONG_RAIL, LONG_RAIL_SERVICE, BearingType
 from ....core.printed import Printed
 from ....inputs import PierInput
-from ...numbers import decimal_constant, printed
-from ..reaction.manuscript import (DETAIL, INDENTED, ITEM, PAIR_LEFT, PAIR_SECOND, SUBSECTION, CellSpec, Manuscript,
-                                   TableSpec, cells, sub)
-from ..reaction.tables import header
+from ...numbers import decimal_constant
+from ..reaction.manuscript import BODY, DETAIL, INDENTED, ITEM, SUBSECTION, Manuscript, call, sub
 
-SNOW = {"snow2": "S2", "snow10": "S10", "snow30": "S30"}
-MARKS = {Girder.ORIGIN: "T1", Girder.END: "T2"}
 BEARINGS = {BearingType.FIXED: "固定", BearingType.MOVABLE: "可動"}
-EQ_LABEL = "1.0 EQ（桁荷重）"
-DEVICE_EQUAL = 10  # the "=" of the lines of a girder end (13-16), after its widest symbol T − 1/2μ・Rm
+STATES = {LimitState.SAFETY: "(a) 安全性（破壊）", LimitState.SERVICEABILITY_DAMAGE: "(b) 使用性（損傷）",
+          LimitState.RESTORABILITY_EQ: "(c) 復旧性（地震時）"}
+CASE_EQUAL = 8  # the "=" of a case's lines: "∴ H" right-aligned before it, the terms of T before the result
 
 
-def combination_text(case: LongitudinalCase, result: ReactionResult) -> str:
-    """[1.1D1 + 1.2D2 + 1.35(L+I) + 1.0LR + 1.23B + S10 の組合せ], from 0600's factors (07 7-7)."""
-    definition, forces = DEFINITIONS[case], result.longitudinal.case(case).origin
-    parts = [f"{definition.d1}D1", f"{definition.d2}D2"]
-    if forces.live_factor is not None:
-        parts.append(f"{printed(forces.live_factor)}(L+I)")
-    parts.append(f"{definition.lr_factor}LR")
-    if forces.brake_factor is not None:
-        parts.append(f"{printed(forces.brake_factor)}B")
-    parts.append(SNOW[definition.snow.value])
+def combination(case: CaseResult) -> str:
+    """[1.1D1 + 1.2D2 + 1.35(L+I) + 1.0LR + 1.23B + S10 の組合せ], from the factors the case prints in 13.2."""
+    factors = {part.column: part.factor for part in case.contributions}
+    parts = [f"{factors[column]}{column}" for column in ("D1", "D2") if column in factors]
+    if "L" in factors and factors.get("I") == factors["L"]:
+        parts.append(f"{factors['L']}(L+I)")
+    else:
+        parts += [f"{factors[column]}{column}" for column in ("L", "I") if column in factors]
+    parts += [f"{factors[column]}{column}" for column in ("LF", "W") if column in factors]
+    if "LR+B" in factors:
+        parts.append(factors["LR+B"].replace("+", " + "))
+    if "EQ" in factors:
+        parts.append(f"{factors['EQ']}EQ")
+    if "S" in factors:
+        assert case.definition.snow is not None
+        parts.append(case.definition.snow.name)
     return "[" + " + ".join(parts) + " の組合せ]"
 
 
@@ -63,7 +72,7 @@ def _girder_forces(m: Manuscript, result: CantileverResult, reaction: ReactionRe
     m.heading("girder.seismic.heading", "(c) 地震時死荷重", DETAIL)
     m.value("girder.seismic.kh", "最大応答震度", response.kh, symbolic="Kh", wide=True)
     m.paragraph("girder.seismic.kh.source", f"（線路方向 Case{response.adopted.case} {response.adopted.block}）")
-    seismic = result.bearing_cases[-1]
+    seismic = next(case for case in next(iter(result.sides.values())).bearings if case.combination is None)
     for girder, forces, devices in ((Girder.ORIGIN, longitudinal.origin, seismic.origin),
                                     (Girder.END, longitudinal.end, seismic.end)):
         assert devices.inertia is not None
@@ -76,87 +85,65 @@ def _girder_forces(m: Manuscript, result: CantileverResult, reaction: ReactionRe
                 wide=True)
 
 
-def _devices(m: Manuscript, key: str, devices: GirderDevices, mu: Printed, seismic: bool) -> None:
-    """One girder end of a bearing case (13-16, 13-20): T, Rm, Hbd and Hsd as the sample derives them."""
-    girder = devices.girder
-    mark = sub("T", MARKS[girder][1])
+def _terms(force: GirderForce) -> list:
+    found: list = []
+    for by, value in force.terms:
+        found += (["+"] if found else []) + ([value] if by is None else [by, "×", value])
+    return found
+
+
+def _movable(m: Manuscript, key: str, item: BearingShare, mu: Printed) -> None:
+    """μ・Ni of a bearing and ∴ H = min(Ts, μ・Ni) (Example橋脚4 V-13: Ts = 415.0 / 2 = 207.5 < 3057.6 × 0.1 = 305.8,
+    ∴ T1 = 207.5 kN)."""
+    assert item.vertical is not None and item.cap is not None
+    mark = f"Ｇ{item.bearing.bearing.number}"  # the bearing (Ｇ1桁) of the girder headed above
+    m.formula(f"{key}.cap", Row("μ・", sub("N", mark), gap=0), None, (mu, "×", item.vertical), item.cap,
+              equal=CASE_EQUAL)
+    m.formula(f"{key}.adopted", Row("∴ ", sub("H", mark), gap=0), None, (call("min", item.share, item.cap),),
+              item.force, equal=CASE_EQUAL)
+
+
+def _case(m: Manuscript, key: str, number: int, cases: list[tuple[BearingCase, CaseResult]], pier: PierInput) -> None:
+    bearing, combined = cases[0]
     m.start(key)
-    m.paragraph(f"{key}.label", f"※ {GIRDER_SIDES[girder]}（{BEARINGS[devices.bearing]}支承）", INDENTED, gap=True)
-    m.value(f"{key}.applied", mark, devices.applied, equal=DEVICE_EQUAL)
-    if not seismic:
-        m.paragraph(f"{key}.vertical.label", f"{BEARINGS[devices.bearing]}支承に働く鉛直荷重", INDENTED)
-        assert devices.vertical is not None
-        m.value(f"{key}.vertical", "Rm", devices.vertical, equal=DEVICE_EQUAL)
-    m.paragraph(f"{key}.rubber.label", "ゴム支承に働く水平荷重", INDENTED)
-    if devices.friction is not None and not seismic:
-        m.formula(f"{key}.rubber", sub("H", "bd"), "μ・Rm", (mu, "×", devices.vertical), devices.rubber.total,
-                  equal=DEVICE_EQUAL)
-    else:
-        m.value(f"{key}.rubber", sub("H", "bd"), devices.rubber.total, equal=DEVICE_EQUAL)
-    m.paragraph(f"{key}.stopper.label", "ストッパーに働く水平荷重", INDENTED)
-    if seismic:
-        if devices.bearing is BearingType.MOVABLE:
-            m.formula(f"{key}.stopper", sub("H", "sd"), "T / n", (devices.applied, "/", BEARING_LINES),
-                      devices.stopper.total, equal=DEVICE_EQUAL)
-        else:
-            m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, symbolic="T", equal=DEVICE_EQUAL)
-    elif devices.candidate is not None:
-        m.formula(f"{key}.candidate", "T − 1/2μ・Rm", None,
-                  (devices.applied, "−", FRICTION_SHARE, "×", mu, "×", devices.vertical), devices.candidate,
-                  equal=DEVICE_EQUAL)
-        m.formula(f"{key}.share", "T / n", None, (devices.applied, "/", BEARING_LINES), devices.share,
-                  equal=DEVICE_EQUAL)
-        m.value(f"{key}.stopper", Row("∴ ", sub("H", "sd"), gap=0), devices.stopper.total, equal=DEVICE_EQUAL)
-    else:
-        m.value(f"{key}.stopper", sub("H", "sd"), devices.stopper.total, equal=DEVICE_EQUAL)
+    loading = "" if bearing.loading is None else f"　{bearing.loading.value}"
+    m.paragraph(f"{key}.label", f"・Case {number}{loading}", BODY, gap=True)
+    m.paragraph(f"{key}.combination", combination(combined), INDENTED)
+    for girder in Girder:
+        force = bearing.origin if girder is Girder.ORIGIN else bearing.end
+        shares = [item for case, _ in cases for item in case.bearings if item.bearing.girder is girder]
+        if not shares:
+            continue  # no bearing of this girder on a cantilever
+        assert force.share is not None
+        name = girder.name.lower()
+        m.paragraph(f"{key}.{name}.label", f"＜{GIRDER_SIDES[girder]}（{BEARINGS[force.bearing]}支承）＞", INDENTED)
+        m.formula(f"{key}.{name}.applied", "T", None, _terms(force), force.applied, equal=CASE_EQUAL)
+        movable = force.bearing is BearingType.MOVABLE  # a fixed end: H = T / n, no cap (the sample's R = T / 4)
+        m.formula(f"{key}.{name}.share", sub("T", "s") if movable else "H", None, (force.applied, "/", force.count),
+                  force.share, equal=CASE_EQUAL)
+        if movable:
+            span = pier.spans.origin if girder is Girder.ORIGIN else pier.spans.end
+            for item in shares:
+                _movable(m, f"{key}.{name}.{item.bearing.bearing.number}", item, span.mu)
     m.end()
 
 
-def _bearing_forces(m: Manuscript, result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> None:
+def _bearing_forces(m: Manuscript, result: CantileverResult, pier: PierInput) -> None:
     m.heading("bearing.heading", "2) シューに働く水平荷重", ITEM)
-    m.heading("bearing.safety.heading", "(a) 安全性（破壊）", DETAIL)
-    for case in result.bearing_cases:
-        key = f"bearing.{'seismic' if case.case is None else case.case.name.lower()}"
-        if case.case is None:
-            m.heading("bearing.seismic.heading", "(b) 地震時慣性力", DETAIL)
-        else:
-            m.pair(f"{key}.label", f"・{case.label}", combination_text(case.case, reaction), PAIR_LEFT, PAIR_SECOND,
-                   gap=True)
-        for devices, span in ((case.origin, pier.spans.origin), (case.end, pier.spans.end)):
-            _devices(m, f"{key}.{devices.girder.name.lower()}", devices, span.mu, case.case is None)
-
-
-def _summary_table(cases: tuple[BearingCase, ...], girder: Girder, pick, each_label: str) -> TableSpec:  # noqa: ANN001
-    rows = [header("荷 重 種 別", "", "桁全体\n(kN)", f"{each_label}\n(kN)")]
-    rows[0] = (CellSpec("荷 重 種 別", colspan=2, align="center"), *rows[0][2:])
-    safety = [case for case in cases if case.case is not None]
-    for index, case in enumerate(safety):
-        device: Device = pick(case.origin if girder is Girder.ORIGIN else case.end)
-        first = (CellSpec("安全性\n（破壊）", rowspan=len(safety), align="center"),) if index == 0 else ()
-        rows.append((*first, CellSpec(case.label, align="left"), *cells(device.total, device.each)))
-    seismic = next(case for case in cases if case.case is None)
-    device = pick(seismic.origin if girder is Girder.ORIGIN else seismic.end)
-    rows.append((CellSpec("地震時", align="center"), CellSpec(EQ_LABEL, align="left"), *cells(device.total, device.each)))
-    return TableSpec((4, 10, 6, 6), tuple(rows), header_rows=1, numeric_columns=(2, 3))
-
-
-def _summaries(m: Manuscript, result: CantileverResult) -> None:
-    for key, title, name, each_label in (("rubber", "(c) ゴム支承に働く水平荷重のまとめ", "rubber", "1シュー当り"),
-                                          ("stopper", "(d) ストッパーに働く水平荷重のまとめ", "stopper", "1ストッパー当り")):
-        m.heading(f"summary.{key}.heading", title, DETAIL)
-        for letter, girder in zip("ab", (Girder.ORIGIN, Girder.END)):
-            devices: GirderDevices = getattr(result.bearing_cases[0], "origin" if girder is Girder.ORIGIN else "end")
-            count: Device = getattr(devices, name)
-            m.heading(f"summary.{key}.{girder.name.lower()}.heading",
-                      f"{letter}) {GIRDER_SIDES[girder][:2]}桁　　{count.count} 箇所", INDENTED)
-            m.table(f"summary.{key}.{girder.name.lower()}.table",
-                    _summary_table(result.bearing_cases, girder, lambda d, name=name: getattr(d, name), each_label),
-                    SUBSECTION)
+    m.paragraph("bearing.text", "桁の水平荷重 T を桁端の支承の数 n で等分し，可動の桁端は支承ごとに μ・Ni を上限とする．")
+    sides = list(result.sides.values())
+    previous = None
+    for number in [case.number for case in sides[0].bearings]:
+        cases = [(next(case for case in side.bearings if case.number == number),
+                  next(case for case in side.cases if case.number == number)) for side in sides]
+        state = cases[0][1].definition.state
+        if state is not previous:
+            m.heading(f"bearing.{state.name.lower()}.heading", STATES[state], DETAIL)
+            previous = state
+        _case(m, f"bearing.{number}", number, cases, pier)
 
 
 def section(m: Manuscript, result: CantileverResult, reaction: ReactionResult, pier: PierInput) -> None:
     m.heading("horizontal.heading", "(2) 水平荷重", SUBSECTION)
     _girder_forces(m, result, reaction, pier)
-    _bearing_forces(m, result, reaction, pier)
-    _summaries(m, result)
-
+    _bearing_forces(m, result, pier)

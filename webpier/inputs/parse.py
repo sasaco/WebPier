@@ -63,16 +63,12 @@ def _substructure(root: Reader) -> Substructure:
     )
 
 
-# decision 59: the rubber bearings and the stoppers of each girder (0900); every value may stay blank
-BEARING_DEVICE_KEYS = ("ゴム支承の箇所数", "ストッパーの箇所数", "片持ち梁上のゴム支承", "片持ち梁上のストッパー")
-
-
 def _span(root: Reader, side: str, load_model: bool) -> Span:
     span = root.at("上部構造", side).only("桁長", "衝撃係数_単線終局", "曲線半径", "列車速度", "遠心作用方向",
                                         "高さ", "重心高_hs", "支承位置_f")
     lengths = span.at("桁長").only("L1", "スパン長", "L2")
     heights = span.at("高さ").only("h1", "h2", "h3", "h4")
-    support = root.at("上部構造", "支承データ", side).only("支承名", "摩擦係数_μ", "復旧性制動係数", *BEARING_DEVICE_KEYS)
+    support = root.at("上部構造", "支承データ", side).only("支承名", "摩擦係数_μ", "復旧性制動係数")
     brake = support.optional("復旧性制動係数")
     return Span(
         l1=read(lengths.at("L1")), span=read(lengths.at("スパン長")), l2=read(lengths.at("L2")),
@@ -83,9 +79,6 @@ def _span(root: Reader, side: str, load_model: bool) -> Span:
         hs=read(span.at("重心高_hs")), f=read(span.at("支承位置_f")),
         bearing=read(support.at("支承名")), mu=read(support.at("摩擦係数_μ")),
         recovery_brake_coefficient=None if brake is None else read(brake),
-        rubber_count=read(support.at(BEARING_DEVICE_KEYS[0])), stopper_count=read(support.at(BEARING_DEVICE_KEYS[1])),
-        rubber_on_cantilever=read(support.at(BEARING_DEVICE_KEYS[2])),
-        stopper_on_cantilever=read(support.at(BEARING_DEVICE_KEYS[3])),
     )
 
 

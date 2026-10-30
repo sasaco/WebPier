@@ -8,6 +8,7 @@ import pytest
 
 from pipeline_support import PILE_BARS
 from webpier.core.integrity import sha256
+from webpier.inputs import outputs, parse
 from webpier.pipeline import generate, headless, jrsnap
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "inputs" / "pile.json"
@@ -72,11 +73,15 @@ def test_a_missing_runner_is_reported_before_anything_is_calculated(tmp_path, ca
     assert "jrsnap（STRUCTURAL_MCP_JRSNAP_RUNNER）" in error["message"]
 
 
-def test_a_pile_input_for_an_item_it_cannot_make_is_an_input_error_at_the_item(tmp_path, capsys):
+def test_a_pile_input_for_an_item_it_cannot_make_is_an_input_error_at_the_item(tmp_path, capsys, monkeypatch):
+    # since decision 125 a pile foundation makes every item: one it could not (0900 before it) is taken out of the table
+    made = tuple(key for key in outputs.PILE_OUTPUT_KEYS if key != "cantilever")
+    monkeypatch.setattr(outputs, "PILE_OUTPUT_KEYS", made)
+    monkeypatch.setattr(parse, "PILE_OUTPUT_KEYS", made)
     data = json.loads(FIXTURE.read_text(encoding="utf-8"))
     for key in ("longitudinal_seismic", "transverse_seismic", "longitudinal_nonlinear_analysis",
                 "transverse_nonlinear_analysis", "cantilever"):
-        data["outputs"][key] = True  # 0900 is not made for piles yet
+        data["outputs"][key] = True
     path = tmp_path / "input.json"
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     code, envelope = call(capsys, "validate", "--input", path)
