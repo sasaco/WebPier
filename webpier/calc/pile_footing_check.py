@@ -1,17 +1,18 @@
 """0810 / 0820 フーチングの断面照査 of a pile foundation (decision 96, ADR-0008): what Capacita is given to check the footing.
 
 Capacita (RcDan) calculates and prints the checks; WebPier decides only the conditions, from the input and the section
-forces of 0800 (``calc.pile_footing``). The footing is checked at five points of the WDJ (``export.capacita.pile_footing_wdj``),
+forces of 0800 (``calc.pile_footing``). The footing is checked at six points of the WDJ (``export.capacita.pile_footing_wdj``),
 each a member of its own because the effective width, the section's width, differs:
 
 - the face (く体前面) and the pile position (杭位置), each for the lower and for the upper tension: the bending checks of
   安全性（破壊）, 耐久性, 復旧性（地震時） and the minimum and maximum rebar amount, with the bars of the face that is in
   tension, per the width of the member (the bars of ``鉄筋.フーチング`` are per 1 m of width);
-- the shear: the deep beam checks of 安全性（破壊）, the design shear compression failure capacity Vfdd at the face for the
-  lower tension and the design pull-out shear capacity Vsd at the pile position for the upper tension. Capacita asks
-  for the width of the shear at the face (the piles across, centre to centre, plus D), so that point is a member of its
-  own with the shear check alone. No shear of 耐久性 and 復旧性（地震時）is asked: 耐久性 is omitted as in the direct footing
-  (面部材), the shear of 復旧性 is not checked in the sample.
+- the shear: the deep beam checks of 安全性（破壊） and of 復旧性（地震時） (decision 124; the sample V-130, V-131 and
+  V-139, V-140), the design shear compression failure capacity Vfdd at the face for the lower tension and the design
+  pull-out shear capacity Vsd at the pile position for the upper tension. The widths of the shear (at the face the
+  shares of the piles of the nearest row, at the pile position the footing's whole width B, calc.pile_footing) differ
+  from the bending's, so each is a point and member of its own with the shear check alone (its bars those of its width).
+  No shear of 耐久性 is asked: it is omitted as in the direct footing (面部材).
 
 Only the sections of the parts 0800 made are asked for (decision 110): 復旧性（地震時） with the nonlinear analyses, the
 others with the frame analysis.
@@ -34,8 +35,10 @@ from .footing_rebar import COUNT, MainBars, Stirrups
 from .pile_footing import Case, FootingDirection, Point, SectionForces
 
 REPORT_SECTIONS = ("bending_safety_destruction", "shear_deep_beam_safety_destruction", "bending_durability",
-                   "bending_restorability_eq", "bending_rebar_amount")
-SEISMIC_SECTIONS = frozenset(("bending_restorability_eq",))  # the section of the nonlinear analyses (decision 110)
+                   "bending_restorability_eq", "shear_deep_beam_restorability_eq", "bending_rebar_amount")
+# the sections of the nonlinear analyses (decision 110), the deep beam shear of 復旧性（地震時） with them (decision 124)
+SEISMIC_SECTIONS = frozenset(("bending_restorability_eq", "shear_deep_beam_restorability_eq"))
+DEEP_BEAM_SECTIONS = frozenset(("shear_deep_beam_safety_destruction", "shear_deep_beam_restorability_eq"))
 
 
 @dataclass(frozen=True)
@@ -73,10 +76,20 @@ class PileFootingCheckResult:
 
     @property
     def sections(self) -> tuple[str, ...]:
-        """The sections of Capacita's report this check asks for, in report order: those of the parts it has."""
+        """The sections of Capacita's report this check asks for, in report order: those of the parts it has; a section of
+        the deep beam shear (shared by the points of Vfdd and Vsd) when a point has a Vd of its case (decision 124: a case
+        without a shear of the point's sense gives Capacita none, and Capacita checks nothing of it)."""
         cases = {force.case for item in self.points for force in item.forces.forces}
+        sheared = {force.case for item in self.points for force in item.forces.forces if force.vd is not None}
         return tuple(section for section in REPORT_SECTIONS
-                     if (Case.SEISMIC if section in SEISMIC_SECTIONS else Case.SAFETY) in cases)
+                     if (Case.SEISMIC if section in SEISMIC_SECTIONS else Case.SAFETY)
+                     in (sheared if section in DEEP_BEAM_SECTIONS else cases))
+
+    def sheared(self, case: Case, deep_beam: str) -> bool:
+        """Whether a point of the deep beam shear *deep_beam* ("lower_tension" Vfdd / "upper_tension" Vsd) has a Vd of
+        *case* (decision 124: without one Capacita checks nothing of it, and the report says it is omitted)."""
+        return any(force.vd is not None for item in self.points if item.point.deep_beam == deep_beam
+                   for force in item.forces.forces if force.case is case)
 
 
 def scaled(bars: MainBars, width: Printed) -> MainBars:

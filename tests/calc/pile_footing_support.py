@@ -48,11 +48,13 @@ def made_up(basis):
     return found
 
 
-def direction(basis):
+def direction(basis, frames=True):
+    """The forces of both parts (decision 110), or of the earthquake alone when *frames* is false."""
     forces = made_up(basis)
     shared = {(pickup, member): lines for pickup in basis.pickups.values() for member, lines in forces.items()}
     elements = {member: member + 100 for member in basis.members}
-    return pf.complete(basis, shared, {elements[member]: lines for member, lines in forces.items()}, elements)
+    return pf.complete(basis, shared if frames else None, {elements[member]: lines for member, lines in forces.items()},
+                       elements)
 
 
 def result(found=None) -> FootingResult:

@@ -8,17 +8,19 @@ analyses, 0710, 0720, 0711, 0721) and 0800, 0810, 0820. The acceptance
 2. reads the section forces again from the files the runners returned, with a reading of its own (the PIK of the frame analysis,
    the pickup of Aggre-SE and the NDU, ``read_pik`` and ``elements_of`` here, not WebPier's), and finds the same numbers in 0800
    (those of 安全性（破壊） times the 応答値係数 γR 1.2 of the linear frame, decision 104)
-   for every point and check;
+   for every point and check, the deep beam shear of the sense that pushes the pile (Vfdd) or pulls it (Vsd, decision 124);
 3. checks the forces against statics: at the section of a member end, the bending moment at the face less that at the pile is
    the shear force times the length of the member (``M(j) = M(i) − V·L``, wherever the two ends of the case are the same
    combination), and the largest shear force at the pile position is the largest force at the head of the pile (the axial force
    of the pile's member, the first element of the pile row in the NDU for the earthquake);
 4. finds in the reports of 0810 and 0820 the pages of every section Capacita was asked for (bending of 安全性（破壊）, the two deep
-   beam shear checks, 耐久性, 復旧性（地震時）, the minimum and the maximum rebar amount), each deep beam page with the shear force
-   of 0800.
+   beam shear checks, 耐久性, 復旧性（地震時） with its two deep beam shear checks (decision 124), the minimum and the maximum rebar
+   amount), each deep beam page with the shear force of 0800 (a deep beam page only for a case whose Vd 0800 has: the shear of
+   the sense of the tension side, decision 124).
 
 The record (tests/fixtures/acceptance/pile_footing/record.json) holds the input, the runners' versions, the points of each direction
-with their widths and forces, the largest differences of the checks, the pages found and the SHA256 of each WDJ; the files the
+with their widths and forces (six points: the Vsd at the pile position is a point of its own, of the footing's whole width B,
+with its count of stirrups, decision 124), the largest differences of the checks, the pages found and the SHA256 of each WDJ; the files the
 sections are read from (the PIK, the pickup, the FrameWeb input and the .sdc) are kept beside it so that tests/acceptance can read
 them again and rebuild 0800 with no runner. Capacita's judgement is not recorded (ADR-0008).
 
@@ -54,8 +56,13 @@ ITEMS = ("ground_model", "reactions", "longitudinal", "longitudinal_frame_analys
          "footing")
 DIRECTIONS = (("longitudinal", "線路方向", "0810_線路方向フーチング照査"), ("transverse", "線路直角方向", "0820_直角方向フーチング照査"))
 CASES = {"安全性（破壊）": "SAFETY", "耐久性 永久＋変動": "SHORT_TERM", "耐久性 永久": "LONG_TERM", "復旧性（地震時）": "SEISMIC"}
-PAGES = ("安全性（破壊）曲げモーメントの照査結果", "ディープビーム・下側引張", "ディープビーム・上側引張", "耐久性 曲げひび割れの照査結果",
-         "復旧性（損傷）曲げモーメントの照査結果", "最小鉄筋量の照査結果", "最大鉄筋量の照査結果")
+PAGES = ("安全性（破壊）曲げモーメントの照査結果", "安全性（破壊）せん断力の照査結果（ディープビーム・下側引張",
+         "安全性（破壊）せん断力の照査結果（ディープビーム・上側引張", "耐久性 曲げひび割れの照査結果",
+         "復旧性（損傷）曲げモーメントの照査結果", "復旧性（損傷）せん断力の照査結果（ディープビーム・下側引張",
+         "復旧性（損傷）せん断力の照査結果（ディープビーム・上側引張", "最小鉄筋量の照査結果", "最大鉄筋量の照査結果")
+# the deep beam pages: (the point, the case) whose Vd they check
+DEEP_BEAM_PAGES = {PAGES[1]: ("face_shear", "安全性（破壊）"), PAGES[2]: ("pile_shear", "安全性（破壊）"),
+                   PAGES[5]: ("face_shear", "復旧性（地震時）"), PAGES[6]: ("pile_shear", "復旧性（地震時）")}
 TOLERANCE = 0.06  # kN, kN m: the files print two decimals, 0800 one
 SEISMIC_PICKUP = 2
 GAMMA_R = 1.2  # 応答値係数 of the 安全性 of the linear frame (decision 104; Example橋脚4 III-111)
@@ -92,18 +99,37 @@ def shear(lines: Lines, pickup: int, member: int, point: str) -> tuple[float, fl
     return abs(best[0][1]), best[0][0], best[1]
 
 
-def expected(lines: Lines, pickup: int, members: dict[str, tuple[int, str]], lower: bool, deep: bool
+# the sign of S that pushes the left side's pile up (decision 124): the pickup of Aggre-SE has S = dM/dx along i → j, the PIK of
+# FEMPython S = −dM/dx (the statics check below, M(j) − M(i) = −V·L); the right side's is the opposite
+SEISMIC_PUSH, FRAME_PUSH = 1, -1
+
+
+def directed_shear(lines: Lines, pickup: int, members: dict[str, tuple[int, str]], push: bool, left_push: int
+                   ) -> tuple[float, float] | None:
+    """The largest shear over the sides of the sense that pushes (*push*) or pulls the pile of its side, with the Md of its
+    case: (|Vd|, Md), None when no side has one."""
+    best: tuple[float, float] | None = None
+    for side, (member, point) in members.items():
+        row = lines[(pickup, "S", member, point)]
+        sense = left_push * (1 if side == "左" else -1) * (1 if push else -1)
+        for values in (row[0], row[1]):
+            if values[1] * sense > 0 and (best is None or abs(values[1]) > best[0]):
+                best = (abs(values[1]), values[0])
+    return best
+
+
+def expected(lines: Lines, pickup: int, members: dict[str, tuple[int, str]], lower: bool, deep: bool, left_push: int
              ) -> tuple[float, int, float | None, float | None]:
-    """The design values of a point from its end on each side: (Md, case, Vd, Md of the case of Vd)."""
+    """The design values of a point from its end on each side: (Md, case, Vd, Md of the case of Vd); the Vd of the lower
+    tension (Vfdd) is that of the push, of the upper tension (Vsd) that of the pull (decision 124)."""
     ends = list(members.values())
     candidates = [sagging(lines, pickup, member, point, lower) for member, point in ends]
     moment, case = max(candidates, key=lambda item: item[0]) if lower else min(candidates, key=lambda item: item[0])
     moment = moment if (moment >= 0 if lower else moment <= 0) else 0.0
-    if not deep:
+    found = directed_shear(lines, pickup, members, lower, left_push) if deep else None
+    if found is None:
         return moment, case, None, None
-    shears = [shear(lines, pickup, member, point) for member, point in ends]
-    best = max(shears, key=lambda item: item[0])
-    return moment, case, best[0], best[1]
+    return moment, case, found[0], found[1]
 
 
 def frame_geometry(document: dict[str, Any]) -> tuple[dict[int, tuple[float, float]], dict[int, tuple[int, int]]]:
@@ -158,12 +184,12 @@ def check_direction(direction: str, stem: str, post: Path, output: Path, evidenc
         recorded = []
         for force in point["forces"]:
             if CASES[force["case"]] == "SEISMIC":
-                found, pickup = seismic, SEISMIC_PICKUP
+                found, pickup, left_push = seismic, SEISMIC_PICKUP, SEISMIC_PUSH
                 ends = {item["side"]: seismic_end(joints, elements, base_y, item) for item in info["ends"]}
             else:
-                found, pickup = frame, pickups[force["case"]]
+                found, pickup, left_push = frame, pickups[force["case"]], FRAME_PUSH
                 ends = {item["side"]: (item["member"], item["point"]) for item in info["ends"]}
-            values = expected(found, pickup, ends, lower, deep)
+            values = expected(found, pickup, ends, lower, deep and CASES[force["case"]] in ("SAFETY", "SEISMIC"), left_push)
             if CASES[force["case"]] == "SAFETY":  # the 応答値係数 γR of the linear frame's 安全性 (decision 104)
                 values = tuple(value if value is None or index == 1 else GAMMA_R * value  # 1: the combination
                                for index, value in enumerate(values))
@@ -172,13 +198,19 @@ def check_direction(direction: str, stem: str, post: Path, output: Path, evidenc
             if abs(values[0] - force["md"]) > TOLERANCE or values[1] != force["md_combination"]:
                 failures.append(f"{info['name']} {force['case']}: Md {force['md']}（{force['md_combination']}）が"
                                 f"ファイルの値 {values[0]}（{values[1]}）と違います")
-            if deep:
+            # the deep beam shear of 安全性（破壊） and 復旧性（地震時）, of the sense of the tension side (decision 124)
+            if (force["vd"] is None) != (values[2] is None):
+                failures.append(f"{info['name']} {force['case']}: Vd {force['vd']} がファイルの値 {values[2]} と違います")
+            elif force["vd"] is not None:
                 worst["reading"] = max(worst["reading"], abs(values[2] - force["vd"]))
-                if abs(values[2] - force["vd"]) > TOLERANCE:
-                    failures.append(f"{info['name']} {force['case']}: Vd {force['vd']} がファイルの値 {values[2]} と違います")
+                if abs(values[2] - force["vd"]) > TOLERANCE or abs(values[3] - force["vd_md"]) > TOLERANCE:
+                    failures.append(f"{info['name']} {force['case']}: Vd {force['vd']}（Md {force['vd_md']}）がファイルの値 "
+                                    f"{values[2]}（Md {values[3]}）と違います")
             recorded.append({"case": force["case"], "pickup": force["pickup"], "md": force["md"],
                              "md_combination": force["md_combination"], "vd": force["vd"]})
-        points.append({"name": info["name"], "key": info["key"], "be": info["width"]["be"], "forces": recorded})
+        points.append({"name": info["name"], "key": info["key"], "be": info["width"]["be"],
+                       "pieces": info["width"]["pieces"], "shares": info["width"]["shares"],
+                       "stirrup_count": info["stirrup_count"], "forces": recorded})
     # statics: the two ends of a member in one combination, and the head of the pile
     face_ends = {item["side"]: item for item in result["points"][0]["point"]["ends"]}
     pile_ends = {item["side"]: item for item in result["points"][2]["point"]["ends"]}
@@ -249,7 +281,13 @@ def accept(input_path: Path, evidence: Path, overwrite: bool) -> dict[str, Any]:
             found = check_direction(direction, stem, post, output, evidence)
             failures += found.pop("failures")
             found["report"] = {"file": f"{report}.pdf", "pages": pages_of(output / f"{report}.pdf")}
+            # a deep beam page only where a point has a Vd of its case (decision 124: no Vd of a case without a shear of the
+            # point's sense, and Capacita checks nothing of it)
+            sheared = {(point["key"], force["case"]) for point in found["points"] for force in point["forces"]
+                       if force["vd"] is not None}
             for title, count in found["report"]["pages"].items():
+                if title in DEEP_BEAM_PAGES and DEEP_BEAM_PAGES[title] not in sheared:
+                    continue
                 if count < 1:
                     failures.append(f"{report}: 「{title}」のページがありません")
             wdj_name = f"{stem}フーチング.wdj"

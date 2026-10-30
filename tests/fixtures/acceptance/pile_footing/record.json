@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "pile_footing_acceptance",
-  "date": "2026-10-28T22:54:06+09:00",
+  "date": "2026-10-30T17:10:43+09:00",
   "method": "本物の SOIL-JR・JRSNAP・FEMPython・Aggre-SE・Capacita の runner で杭基礎の 0800・0810・0820 を生成し、フーチングの断面力を runner が返したファイルから別の読み方で読み直して 0800 と照合し、PIK の断面力が杭頭の力と静力学でつり合うことと、Capacita のページが各節にそろうことを確かめた。判定は扱わない。",
   "capacita_judged": false,
   "input": {
@@ -10,10 +10,10 @@
   },
   "runner": {
     "capacita": "C:\\Users\\sasai\\Documents\\structural-mcp\\Capacita\\WebDanforCS\\Headless\\bin\\Release\\net8.0\\WebDanforCS.Headless.exe",
-    "capacita_sha256": "44f8672d24961c99c1475deafe618720c342f67ce99fd442b8ecacb2fe71661d"
+    "capacita_sha256": "79f919030225f6047c7196992e227707ba0ba5f6ba7b0f21c2fab3e9d4b019ed"
   },
   "helpers": {
-    "scripts/accept_pile_footing.py": "7f6d0c9e80545578b021317ec8c318977ace65de206a4b07659a5931f97fb73d"
+    "scripts/accept_pile_footing.py": "b193d3392bad44d2a29f96b667049df681663681e22078ad18c66737222a6fa0"
   },
   "directions": {
     "longitudinal": {
@@ -22,6 +22,9 @@
           "name": "く体前面（下側引張）",
           "key": "face_lower",
           "be": 9000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -57,6 +60,9 @@
           "name": "く体前面（上側引張）",
           "key": "face_upper",
           "be": 6921.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -92,6 +98,9 @@
           "name": "杭位置（下側引張）",
           "key": "pile_lower",
           "be": 9000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -127,34 +136,37 @@
           "name": "杭位置（上側引張）",
           "key": "pile_upper",
           "be": 9000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
               "pickup": 1,
               "md": -150.9,
               "md_combination": 2,
-              "vd": 10189.4
+              "vd": null
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": -125.7,
               "md_combination": 35,
-              "vd": 7188.7
+              "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": -91.8,
               "md_combination": 40,
-              "vd": 6585.7
+              "vd": null
             },
             {
               "case": "復旧性（地震時）",
               "pickup": 2,
               "md": -745.2,
               "md_combination": 1,
-              "vd": 15093.3
+              "vd": null
             }
           ]
         },
@@ -162,6 +174,25 @@
           "name": "く体前面（下側引張）",
           "key": "face_shear",
           "be": 7000.0,
+          "pieces": [],
+          "shares": [
+            {
+              "a1": 1812.0,
+              "be": 3060.0,
+              "corner": true
+            },
+            {
+              "a1": 1650.0,
+              "be": 3002.0,
+              "corner": false
+            },
+            {
+              "a1": 1812.0,
+              "be": 3060.0,
+              "corner": true
+            }
+          ],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -175,14 +206,14 @@
               "pickup": 2,
               "md": 11983.5,
               "md_combination": 35,
-              "vd": 7188.7
+              "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": 10954.9,
               "md_combination": 40,
-              "vd": 6585.7
+              "vd": null
             },
             {
               "case": "復旧性（地震時）",
@@ -192,10 +223,48 @@
               "vd": 15093.3
             }
           ]
+        },
+        {
+          "name": "杭位置（上側引張）",
+          "key": "pile_shear",
+          "be": 9000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": 180,
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "md": -150.9,
+              "md_combination": 2,
+              "vd": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "md": -125.7,
+              "md_combination": 35,
+              "vd": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "md": -91.8,
+              "md_combination": 40,
+              "vd": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "md": -745.2,
+              "md_combination": 1,
+              "vd": 4742.5
+            }
+          ]
         }
       ],
       "checked": {
-        "reading": 20,
+        "reading": 24,
         "moment_shear": 0,
         "head": 8
       },
@@ -208,17 +277,19 @@
         "file": "0810_線路方向フーチング照査.pdf",
         "pages": {
           "安全性（破壊）曲げモーメントの照査結果": 1,
-          "ディープビーム・下側引張": 1,
-          "ディープビーム・上側引張": 1,
+          "安全性（破壊）せん断力の照査結果（ディープビーム・下側引張": 1,
+          "安全性（破壊）せん断力の照査結果（ディープビーム・上側引張": 0,
           "耐久性 曲げひび割れの照査結果": 2,
           "復旧性（損傷）曲げモーメントの照査結果": 1,
+          "復旧性（損傷）せん断力の照査結果（ディープビーム・下側引張": 1,
+          "復旧性（損傷）せん断力の照査結果（ディープビーム・上側引張": 1,
           "最小鉄筋量の照査結果": 2,
           "最大鉄筋量の照査結果": 1
         }
       },
       "wdj": {
         "file": "線路方向フーチング.wdj",
-        "sha256": "542d586ad9931a9c7e845bb815783280c1cf640cb02618414337f1a844ff26a8"
+        "sha256": "251bef873e2b5c8fcd4742badb6a4f77a0721db7e079004d9dc1e84bfabe38a5"
       }
     },
     "transverse": {
@@ -227,6 +298,9 @@
           "name": "く体前面（下側引張）",
           "key": "face_lower",
           "be": 7000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -262,6 +336,9 @@
           "name": "く体前面（上側引張）",
           "key": "face_upper",
           "be": 5096.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -297,6 +374,9 @@
           "name": "杭位置（下側引張）",
           "key": "pile_lower",
           "be": 7000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -332,34 +412,37 @@
           "name": "杭位置（上側引張）",
           "key": "pile_upper",
           "be": 7000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
               "pickup": 1,
               "md": -303.7,
               "md_combination": 2,
-              "vd": 10959.7
+              "vd": null
             },
             {
               "case": "耐久性 永久＋変動",
               "pickup": 2,
               "md": -94.0,
               "md_combination": 8,
-              "vd": 6633.8
+              "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": -1.6,
               "md_combination": 9,
-              "vd": 6116.4
+              "vd": null
             },
             {
               "case": "復旧性（地震時）",
               "pickup": 2,
               "md": -1492.1,
               "md_combination": 2,
-              "vd": 15565.5
+              "vd": null
             }
           ]
         },
@@ -367,6 +450,25 @@
           "name": "く体前面（下側引張）",
           "key": "face_shear",
           "be": 7000.0,
+          "pieces": [],
+          "shares": [
+            {
+              "a1": 1812.0,
+              "be": 3046.0,
+              "corner": true
+            },
+            {
+              "a1": 750.0,
+              "be": 2742.0,
+              "corner": false
+            },
+            {
+              "a1": 1812.0,
+              "be": 3046.0,
+              "corner": true
+            }
+          ],
+          "stirrup_count": null,
           "forces": [
             {
               "case": "安全性（破壊）",
@@ -380,14 +482,14 @@
               "pickup": 2,
               "md": 5028.2,
               "md_combination": 8,
-              "vd": 6633.8
+              "vd": null
             },
             {
               "case": "耐久性 永久",
               "pickup": 3,
               "md": 4585.7,
               "md_combination": 9,
-              "vd": 6116.4
+              "vd": null
             },
             {
               "case": "復旧性（地震時）",
@@ -397,10 +499,48 @@
               "vd": 15565.5
             }
           ]
+        },
+        {
+          "name": "杭位置（上側引張）",
+          "key": "pile_shear",
+          "be": 7000.0,
+          "pieces": [],
+          "shares": [],
+          "stirrup_count": 140,
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "md": -303.7,
+              "md_combination": 2,
+              "vd": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "md": -94.0,
+              "md_combination": 8,
+              "vd": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "md": -1.6,
+              "md_combination": 9,
+              "vd": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "md": -1492.1,
+              "md_combination": 2,
+              "vd": 5191.3
+            }
+          ]
         }
       ],
       "checked": {
-        "reading": 20,
+        "reading": 24,
         "moment_shear": 8,
         "head": 8
       },
@@ -413,17 +553,19 @@
         "file": "0820_直角方向フーチング照査.pdf",
         "pages": {
           "安全性（破壊）曲げモーメントの照査結果": 1,
-          "ディープビーム・下側引張": 1,
-          "ディープビーム・上側引張": 1,
+          "安全性（破壊）せん断力の照査結果（ディープビーム・下側引張": 1,
+          "安全性（破壊）せん断力の照査結果（ディープビーム・上側引張": 0,
           "耐久性 曲げひび割れの照査結果": 2,
           "復旧性（損傷）曲げモーメントの照査結果": 1,
+          "復旧性（損傷）せん断力の照査結果（ディープビーム・下側引張": 1,
+          "復旧性（損傷）せん断力の照査結果（ディープビーム・上側引張": 1,
           "最小鉄筋量の照査結果": 2,
           "最大鉄筋量の照査結果": 1
         }
       },
       "wdj": {
         "file": "線路直角方向フーチング.wdj",
-        "sha256": "faa34bebe949d70e18ec15fb7398f6847612f0fd37076dae9a1a8053a9c2bec8"
+        "sha256": "1d8e947626f036ee46f0b4760be30ceb227e7886b4056bcd4fb543cc6607dad1"
       }
     }
   },

@@ -28,6 +28,11 @@ FIXTURES = Path(__file__).parents[1] / "fixtures"
 EVIDENCE = FIXTURES / "acceptance" / "pile_footing"
 RECORD = json.loads((EVIDENCE / "record.json").read_text(encoding="utf-8"))
 STEMS = {"longitudinal": "線路方向", "transverse": "線路直角方向"}
+# the deep beam pages and the (point, case) whose Vd they check, as scripts/accept_pile_footing.py finds them
+DEEP_BEAM_PAGES = {"安全性（破壊）せん断力の照査結果（ディープビーム・下側引張": ("face_shear", "安全性（破壊）"),
+                   "安全性（破壊）せん断力の照査結果（ディープビーム・上側引張": ("pile_shear", "安全性（破壊）"),
+                   "復旧性（損傷）せん断力の照査結果（ディープビーム・下側引張": ("face_shear", "復旧性（地震時）"),
+                   "復旧性（損傷）せん断力の照査結果（ディープビーム・上側引張": ("pile_shear", "復旧性（地震時）")}
 
 
 def test_the_record_is_of_the_input_and_was_accepted():
@@ -35,7 +40,12 @@ def test_the_record_is_of_the_input_and_was_accepted():
     assert RECORD["input"]["sha256"] in input_sha256s((FIXTURES / "inputs" / "pile_seismic.json").read_bytes())
     for name, item in RECORD["directions"].items():
         assert item["worst"]["reading"] <= 0.06 and item["worst"]["head"] <= 0.06 and item["worst"]["moment_shear"] <= 0.2, name
-        assert all(count >= 1 for count in item["report"]["pages"].values()), name
+        # a deep beam page only where a point has a Vd of its case (decision 124): the Vsd of 安全性（破壊） of this input has none
+        sheared = {(point["key"], force["case"]) for point in item["points"] for force in point["forces"] if force["vd"] is not None}
+        expected = {title for title in item["report"]["pages"]
+                    if title not in DEEP_BEAM_PAGES or DEEP_BEAM_PAGES[title] in sheared}
+        assert expected and all(item["report"]["pages"][title] >= 1 for title in expected), name
+        assert all(item["report"]["pages"][title] == 0 for title in set(item["report"]["pages"]) - expected), name
 
 
 @pytest.fixture(scope="module")

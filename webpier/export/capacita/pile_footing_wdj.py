@@ -1,7 +1,9 @@
 """The WDJ WebPier gives Capacita for the 0810 / 0820 フーチングの断面照査 of a pile foundation (decision 96, ADR-0008), in its
 section force input mode as the direct footing's (``footing_wdj``): no pickup, the forces of each check in ``force`` by
 Capacita's case id (Md0 耐久性 応力度 = 永久＋変動, Md1 耐久性 永久荷重, Md5 安全性 破壊, Md7 復旧性 地震時, Md8 最小鉄筋量 the
-long-term Md as Md1; Vd5 with its Md; N'd 0), and a ``deep_beam`` block of Capacita's R5 deep beam shear in the ``shear``
+long-term Md as Md1; Vd5 and Vd7 with their Md, the deep beam shear of 安全性 and of 復旧性（地震時）, decision 124, none for a
+case without a shear of the point's sense, so that Capacita does not check it; N'd 0),
+and a ``deep_beam`` block of Capacita's R5 deep beam shear in the ``shear``
 row of the points that have it (Capacita README, shear[].deep_beam).
 
 One member フーチング per point, because the section's width (the effective width) differs by point: the width is the
@@ -79,9 +81,9 @@ def _force(item: CheckPoint) -> dict[str, Any]:
             if (force := forces.force(case)) is not None:
                 row.update(_moment(id_, force.md))
     if item.point.deep_beam is not None:
-        safety = forces.force(Case.SAFETY)
-        assert safety is not None  # a point keeps its shear only with the frame analysis (calc.pile_footing.complete)
-        row.update({f"Vd{SAFETY}_Vd": _number(safety.vd), f"Vd{SAFETY}_Md": _number(safety.vd_md), f"Vd{SAFETY}_Nd": 0})
+        for id_, case in ((SAFETY, Case.SAFETY), (SEISMIC, Case.SEISMIC)):
+            if (force := forces.force(case)) is not None and force.vd is not None:  # no Vd of 0 (decision 124)
+                row.update({f"Vd{id_}_Vd": _number(force.vd), f"Vd{id_}_Md": _number(force.vd_md), f"Vd{id_}_Nd": 0})
     return row
 
 

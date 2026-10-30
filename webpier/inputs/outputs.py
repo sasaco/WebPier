@@ -57,13 +57,12 @@ _BY_KEY = {item.key: item for item in OUTPUT_ITEMS}
 # 0500 (SOIL-JR's ground model, decision 85), 0600 (which does not read the foundation), 0610, 0620 (the frame on the
 # piles, decision 88), the frame analyses 0611, 0612, 0621, 0622 (decision 89), the seismic loads 0710, 0720 (decision 93) and
 # the static nonlinear analyses with their seismic checks 0711, 0721 (decision 94) and the footing 0800, 0810, 0820 (decision 96).
+# Both pile foundations make them all: 0710〜0721 of a 鋼管ソイルセメント杭 have its joint and its pipe in the NDU (decision 122),
+# its footing takes the ソイルセメント径 as D (decision 124).
 PILE_OUTPUT_KEYS: tuple[str, ...] = ("detailing", "ground_model", "reactions", "longitudinal", "longitudinal_frame_analysis",
                                      "transverse", "transverse_frame_analysis", "longitudinal_seismic",
                                      "longitudinal_nonlinear_analysis", "transverse_seismic",
                                      "transverse_nonlinear_analysis", "footing")
-# The items only a 場所打ち杭 makes so far: the footing (decision 96; a 鋼管ソイルセメント杭's is P10c). 0710〜0721 of a
-# 鋼管ソイルセメント杭 have its joint and its pipe in the NDU (decision 122).
-CAST_IN_PLACE_ONLY: tuple[str, ...] = ("footing",)
 # The items an item uses besides the table's for a 基礎形式: the 杭の構造細目 of a 場所打ち杭 in 0400 read 1/β of SOIL-JR's
 # ground model, 0500 (decision 98); those of a 鋼管ソイルセメント杭 decide the steps of the ずれ止め by the pile's largest axial
 # forces of the seismic checks of both directions, 0711 and 0721 (decision 123).
@@ -75,8 +74,6 @@ FOUNDATION_REQUIRES: dict[str | None, dict[str, tuple[str, ...]]] = {
 
 def foundation_makes(foundation: str | None, key: str) -> bool:
     """Whether a generation can make the item *key* for the 基礎形式 (a direct foundation makes every item)."""
-    if foundation == STEEL_SOIL_CEMENT_PILE and key in CAST_IN_PLACE_ONLY:
-        return False
     return foundation not in PILE_FOUNDATIONS or key in PILE_OUTPUT_KEYS
 
 

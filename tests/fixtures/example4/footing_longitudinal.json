@@ -1,0 +1,683 @@
+{
+  "source": {
+    "pdf": ".claude/docs/Example橋脚4/鉄道構造物等設計標準・同解説 設計計算例 鉄筋コンクリート橋脚（鋼管ソイルセメント杭）_R5年_3of3.pdf",
+    "page_mapping": "3of3 の 0 始まりの index 159〜196 が印刷頁 V-103〜V-140（index k が V-(k-56)。各画像の下端の頁番号で全38頁を確認）",
+    "method": "スキャン画像（1488×2105 の切り出し）を目視で転記。WebPier の実装・生成物・テストの *.py は見ていない",
+    "units": "kN, kN·m, m（表 2.1.x の算出点）, mm, mm2, N/mm2。数値は印字の桁のまま（末尾の 0 は JSON の文字としては残すが、数値として読むと落ちる。notes 参照）"
+  },
+  "pages": [
+    {"printed": "V-103", "pdf": "3of3", "pdf_index": 159, "headings": ["2. フーチング（線路方向）", "2.1 応答値の算定", "2.1.1 作用の計算", "2.1.2 設計断面力の計算", "(1) 安全性 (a) 破壊", "表 2.1.1 安全性（破壊） 応答値一覧表（フーチング 断面力）", "(2) 耐久性", "表 2.1.2 耐久性（永久＋変動作用） 応答値一覧表（フーチング 断面力）"]},
+    {"printed": "V-104", "pdf": "3of3", "pdf_index": 160, "headings": ["表 2.1.3 耐久性（永久作用） 応答値一覧表（フーチング 断面力）", "表 2.1.4 耐久性（変動作用） 応答値一覧表（フーチング 断面力）"]},
+    {"printed": "V-105", "pdf": "3of3", "pdf_index": 161, "headings": ["2.2 適用の要件", "(1) かぶり 【コンクリート構造編 2.3.2】", "(2) 最小鉄筋量 【コンクリート構造編 2.3.3.1】", "(i) コンクリートの収縮や温度によるひび割れを有害でない程度に抑える", "① 線路方向", "② 線路方向（見出しの重複。notes）"]},
+    {"printed": "V-106", "pdf": "3of3", "pdf_index": 162, "headings": ["(ii) 曲げひび割れ発生と同時に部材が脆性的に破壊することを防止", "① 線路方向（Mcrd の算定）"]},
+    {"printed": "V-107", "pdf": "3of3", "pdf_index": 163, "headings": ["(ii) の続き（N'd、A、σcrd、Mcrd、Myd）"]},
+    {"printed": "V-108", "pdf": "3of3", "pdf_index": 164, "headings": ["(3) 最大鉄筋量 【コンクリート構造編 2.3.3.2】", "(i) 線路方向", "・釣合い鉄筋比 pb の算出 【コンクリート構造編 式2.3.2】"]},
+    {"printed": "V-109", "pdf": "3of3", "pdf_index": 165, "headings": ["pb の続き（Asc、σ's、上側・下側引張時の pb）", "・引張鉄筋比 pt の算出"]},
+    {"printed": "V-110", "pdf": "3of3", "pdf_index": 166, "headings": ["(4) 鋼材のあき 【コンクリート構造編 2.3.4】", "表 2.2.1 鉄筋のあき", "(5) 配力鉄筋", "(i) 線路方向"]},
+    {"printed": "V-111", "pdf": "3of3", "pdf_index": 167, "headings": ["(6) せん断補強鉄筋の標準フック 【コンクリート構造編 2.3.7.2】", "(7) 構造細目一覧", "表 2.2.2 前提条件一覧表"]},
+    {"printed": "V-112", "pdf": "3of3", "pdf_index": 168, "headings": ["2.3 地震時以外の照査および検討", "2.3.1 耐久性", "表 2.3.1 基礎部材の耐久性に関する検討に用いる設計限界値", "(1) 鋼材の腐食に関する検討【コンクリート構造編 3.3】", "(a) 曲げひび割れ【コンクリート構造編 3.3.2.3】", "a) 設計断面力", "表 2.3.2 線路方向設計断面力"]},
+    {"printed": "V-113", "pdf": "3of3", "pdf_index": 169, "headings": ["b) 検討断面", "① 曲げモーメントに対する有効幅【コンクリート構造編 8.8.5.2】", "・く体前面位置における下側引張時の有効幅（く体から決まる有効幅）", "図 2.3.1"]},
+    {"printed": "V-114", "pdf": "3of3", "pdf_index": 170, "headings": ["・く体前面位置における下側引張時の有効幅（杭から決まる有効幅）", "図 2.3.2"]},
+    {"printed": "V-115", "pdf": "3of3", "pdf_index": 171, "headings": ["・く体前面位置における上側引張時の有効幅（く体から決まる有効幅）", "図 2.3.3"]},
+    {"printed": "V-116", "pdf": "3of3", "pdf_index": 172, "headings": ["・く体前面位置における上側引張時の有効幅（杭から決まる有効幅）", "図 2.3.4"]},
+    {"printed": "V-117", "pdf": "3of3", "pdf_index": 173, "headings": ["・杭位置における下側引張時の有効幅（杭から決まる有効幅）", "図 2.3.5 杭位置における下側引張時の有効幅"]},
+    {"printed": "V-118", "pdf": "3of3", "pdf_index": 174, "headings": ["・杭位置における上側引張時の有効幅（杭から決まる有効幅）", "図 2.3.6 杭位置における上側引張時の有効幅"]},
+    {"printed": "V-119", "pdf": "3of3", "pdf_index": 175, "headings": ["② 照査断面", "図 2.3.7 照査断面および平面配置"]},
+    {"printed": "V-120", "pdf": "3of3", "pdf_index": 176, "headings": ["表 2.3.3 線路方向 照査断面の鉄筋配置（有効幅当り）"]},
+    {"printed": "V-121", "pdf": "3of3", "pdf_index": 177, "headings": ["表 2.3.4 線路方向 照査断面の鉄筋配置（有効幅当り）"]},
+    {"printed": "V-122", "pdf": "3of3", "pdf_index": 178, "headings": ["c) 曲げひび割れに関する検討【コンクリート構造編 3.3.2.3】", "表 2.3.5 鋼材の腐食に対するコンクリートのひび割れ幅の制限値 wlim", "表 2.3.6 曲げひび割れ幅の照査を省略する場合のRC構造に対するコンクリートの縁引張応力度の制限値 σbl", "表 2.3.7 曲げひび割れ幅の照査を省略できる部材における永久作用による引張鉄筋応力度の制限値 σsl1"]},
+    {"printed": "V-123", "pdf": "3of3", "pdf_index": 179, "headings": ["d) 検討結果（σb と σs の算定）"]},
+    {"printed": "V-124", "pdf": "3of3", "pdf_index": 180, "headings": ["σsl1 と検討の省略", "表 2.3.8 検討結果"]},
+    {"printed": "V-125", "pdf": "3of3", "pdf_index": 181, "headings": ["(b) せん断ひび割れの検討（省略の理由と囲みの注記）"]},
+    {"printed": "V-126", "pdf": "3of3", "pdf_index": 182, "headings": ["2.3.2 安全性", "(1) 破壊", "(a) 曲げモーメント", "a) 照査断面", "b) 照査結果", "表 2.3.9 設計曲げ耐力に対する照査結果"]},
+    {"printed": "V-127", "pdf": "3of3", "pdf_index": 183, "headings": ["(2) せん断力", "a) 照査断面", "① せん断に対する有効幅【コンクリート構造編 8.8.5.2】", "図 2.3.8 せん断に対する有効幅"]},
+    {"printed": "V-128", "pdf": "3of3", "pdf_index": 184, "headings": ["② 検討断面", "b) 照査結果【コンクリート構造編 8.8.5.2】（Vfdd の式と記号）"]},
+    {"printed": "V-129", "pdf": "3of3", "pdf_index": 185, "headings": ["b) の続き（γb、Vsd の式と記号）"]},
+    {"printed": "V-130", "pdf": "3of3", "pdf_index": 186, "headings": ["表 2.3.10 下側引張に対しての照査結果"]},
+    {"printed": "V-131", "pdf": "3of3", "pdf_index": 187, "headings": ["表 2.3.11 上側引張に対しての照査結果"]},
+    {"printed": "V-132", "pdf": "3of3", "pdf_index": 188, "headings": ["2.3.3 使用性", "(1) 損傷（照査の省略）"]},
+    {"printed": "V-133", "pdf": "3of3", "pdf_index": 189, "headings": ["2.4 地震時の照査", "2.4.1 使用性", "2.4.2 安全性", "(1) 破壊形態の確認", "(2) 破壊", "(3) 地震時の走行安全性に係る変位"]},
+    {"printed": "V-134", "pdf": "3of3", "pdf_index": 190, "headings": ["2.4.3 復旧性", "(1) 損傷（方針と囲みの注記）"]},
+    {"printed": "V-135", "pdf": "3of3", "pdf_index": 191, "headings": ["(a) 曲げモーメント", "① 曲げモーメントに対する有効幅", "② 照査断面", "③ 設計断面力", "図 2.4.1 フーチングの曲げモーメント分布(L-L2-2 慣性力設計)"]},
+    {"printed": "V-136", "pdf": "3of3", "pdf_index": 192, "headings": ["④ 照査結果", "表 2.4.1 設計曲げ降伏耐力に対する照査結果"]},
+    {"printed": "V-137", "pdf": "3of3", "pdf_index": 193, "headings": ["(b) 設計せん断力に対する照査", "① せん断に対する有効幅", "② 検討断面", "③ 設計断面力", "図 2.4.2 フーチングのせん断力分布（L-L2-2 ρm=1.2 最大震度時）"]},
+    {"printed": "V-138", "pdf": "3of3", "pdf_index": 194, "headings": ["④ 照査結果（式と記号）"]},
+    {"printed": "V-139", "pdf": "3of3", "pdf_index": 195, "headings": ["表 2.4.2 下側引張に対しての照査結果"]},
+    {"printed": "V-140", "pdf": "3of3", "pdf_index": 196, "headings": ["表 2.4.3 上側引張に対しての照査結果", "応答変位法の照査の省略"]}
+  ],
+  "response_tables": {
+    "columns": ["member", "x_m", "point", "upper_Md_kNm", "upper_case", "lower_Md_kNm", "lower_case", "Vd_kN", "V_case"],
+    "note": "\"-\" は null。上側・下側は曲げモーメントの引張側、com.case は組合せの番号",
+    "表2.1.1": {
+      "printed": "V-103",
+      "title": "安全性（破壊） 応答値一覧表（フーチング 断面力）",
+      "gamma_R": 1.2,
+      "rows": [
+        {"member": 3, "x_m": 0.000, "point": "i端", "upper_Md_kNm": -1902.0, "upper_case": 10, "lower_Md_kNm": 1428.9, "lower_case": 15, "Vd_kN": 13013.3, "V_case": 22},
+        {"member": 3, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 13991.0, "lower_case": 4, "Vd_kN": 12192.4, "V_case": 22},
+        {"member": 3, "x_m": 2.500, "point": "j端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 28699.9, "lower_case": 4, "Vd_kN": 11371.4, "V_case": 22},
+        {"member": 4, "x_m": 0.000, "point": "i端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 29767.3, "lower_case": 4, "Vd_kN": 11757.9, "V_case": 4},
+        {"member": 4, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 14556.9, "lower_case": 4, "Vd_kN": 12578.8, "V_case": 4},
+        {"member": 4, "x_m": 2.500, "point": "j端", "upper_Md_kNm": -1849.72, "upper_case": 18, "lower_Md_kNm": 1435.4, "lower_case": 15, "Vd_kN": 13399.7, "V_case": 4}
+      ]
+    },
+    "表2.1.2": {
+      "printed": "V-103",
+      "title": "耐久性（永久＋変動作用） 応答値一覧表（フーチング 断面力）",
+      "gamma_R": 1.0,
+      "rows": [
+        {"member": 3, "x_m": 0.000, "point": "i端", "upper_Md_kNm": -696.8, "upper_case": 36, "lower_Md_kNm": 256.7, "lower_case": 34, "Vd_kN": 8320.4, "V_case": 35},
+        {"member": 3, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 9328.4, "lower_case": 35, "Vd_kN": 7705.4, "V_case": 35},
+        {"member": 3, "x_m": 2.500, "point": "j端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 18575.8, "lower_case": 35, "Vd_kN": 7090.4, "V_case": 35},
+        {"member": 4, "x_m": 0.000, "point": "i端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 19349.5, "lower_case": 35, "Vd_kN": 7381.2, "V_case": 35},
+        {"member": 4, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 9738.6, "lower_case": 35, "Vd_kN": 7996.2, "V_case": 35},
+        {"member": 4, "x_m": 2.500, "point": "j端", "upper_Md_kNm": -662.9, "upper_case": 37, "lower_Md_kNm": 290.9, "lower_case": 33, "Vd_kN": 8611.2, "V_case": 35}
+      ]
+    },
+    "表2.1.3": {
+      "printed": "V-104",
+      "title": "耐久性（永久作用） 応答値一覧表（フーチング 断面力）",
+      "gamma_R": 1.0,
+      "rows": [
+        {"member": 3, "x_m": 0.000, "point": "i端", "upper_Md_kNm": -678.7, "upper_case": 39, "lower_Md_kNm": 160.3, "lower_case": 38, "Vd_kN": 6981.7, "V_case": 39},
+        {"member": 3, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 7664.1, "lower_case": 39, "Vd_kN": 6366.7, "V_case": 39},
+        {"member": 3, "x_m": 2.500, "point": "j端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 15238.0, "lower_case": 39, "Vd_kN": 5751.7, "V_case": 39},
+        {"member": 4, "x_m": 0.000, "point": "i端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 15704.0, "lower_case": 39, "Vd_kN": 5926.4, "V_case": 39},
+        {"member": 4, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 7911.6, "lower_case": 39, "Vd_kN": 6541.4, "V_case": 39},
+        {"member": 4, "x_m": 2.500, "point": "j端", "upper_Md_kNm": -649.5, "upper_case": 39, "lower_Md_kNm": 189.5, "lower_case": 38, "Vd_kN": 7156.4, "V_case": 39}
+      ]
+    },
+    "表2.1.4": {
+      "printed": "V-104",
+      "title": "耐久性（変動作用） 応答値一覧表（フーチング 断面力）",
+      "gamma_R": 1.0,
+      "rows": [
+        {"member": 3, "x_m": 0.000, "point": "i端", "upper_Md_kNm": -18.2, "upper_case": 44, "lower_Md_kNm": 12.9, "lower_case": 45, "Vd_kN": 1338.7, "V_case": 43},
+        {"member": 3, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 1664.3, "lower_case": 43, "Vd_kN": 1338.7, "V_case": 43},
+        {"member": 3, "x_m": 2.500, "point": "j端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 3337.7, "lower_case": 43, "Vd_kN": 1338.7, "V_case": 43},
+        {"member": 4, "x_m": 0.000, "point": "i端", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 3645.4, "lower_case": 43, "Vd_kN": 1454.8, "V_case": 43},
+        {"member": 4, "x_m": 1.250, "point": "く体前面", "upper_Md_kNm": null, "upper_case": null, "lower_Md_kNm": 1827.0, "lower_case": 43, "Vd_kN": 1454.8, "V_case": 43},
+        {"member": 4, "x_m": 2.500, "point": "j端", "upper_Md_kNm": -13.4, "upper_case": 45, "lower_Md_kNm": 18.0, "lower_case": 44, "Vd_kN": 1454.8, "V_case": 43}
+      ]
+    }
+  },
+  "effective_widths": {
+    "bending": {
+      "source": "【コンクリート構造編 8.8.5.2】、2.3.1 (1) (a) b) ①（V-113〜V-118）",
+      "front_lower_from_body": {
+        "printed": "V-113",
+        "heading": "く体前面位置における下側引張時の有効幅（く体から決まる有効幅）",
+        "formula": "be = b + 2d ≦ B",
+        "b_mm": 3500, "b_name": "く体幅",
+        "d_operands_as_printed": "2200 − 125", "d_mm": 2075, "d_name": "検討断面の有効高さ",
+        "B_mm": 8000, "B_name": "フーチングの幅",
+        "operands_as_printed": "3500 + 2 × 2075",
+        "computed_mm": 7650, "comparison": "<", "limit_mm": 8000,
+        "be_mm": 7650,
+        "figure": "図 2.3.1（3500、2200、2075、125、45°、8000、杭3本）"
+      },
+      "front_lower_from_piles": {
+        "printed": "V-114",
+        "heading": "く体前面位置における下側引張時の有効幅（杭から決まる有効幅）",
+        "formula": "be = D + 2 ( h + a ) ≦ B",
+        "D_mm": 1000, "D_name": "杭径",
+        "h_operands_as_printed": "2075 / 2", "h_mm": 1037.5, "h_name": "有効高さの1/2",
+        "a_mm": 1250, "a_name": "杭中心〜く体前面までの距離",
+        "B_mm": 3000, "B_name": "杭間隔",
+        "operands_as_printed": "1000 + 2 ( 1038 + 1250 )",
+        "computed_mm": 5575, "comparison": ">", "limit_mm": 3000,
+        "reason": "各杭の有効幅が重なるため，",
+        "be_mm": 8000,
+        "figure": "図 2.3.2（2250、2200、2075、125、a=1250、1000）"
+      },
+      "front_lower_adopted_mm": 7650,
+      "front_lower_adopted_text": "よって，く体前面位置における下側引張時の有効幅は，be = 7650 mm となる．",
+      "front_upper_from_body": {
+        "printed": "V-115",
+        "heading": "く体前面位置における上側引張時の有効幅（く体から決まる有効幅）",
+        "formula": "be = b + d ≦ B",
+        "b_mm": 3500,
+        "d_operands_as_printed": "2200 − 86", "d_mm": 2114,
+        "B_mm": 8000,
+        "operands_as_printed": "3500 + 2114",
+        "computed_mm": 5614, "comparison": "<", "limit_mm": 8000,
+        "be_mm": 5614,
+        "figure": "図 2.3.3（3500、86、2114、d/2、d/2、2200、45°、8000）"
+      },
+      "front_upper_from_piles": {
+        "printed": "V-116",
+        "heading": "く体前面位置における上側引張時の有効幅（杭から決まる有効幅）",
+        "formula": "be = D + 2 ( h + a ) ≦ B",
+        "D_mm": 1000,
+        "h_operands_as_printed": "2114 / 2", "h_mm": 1057,
+        "a_mm": 1250,
+        "B_mm": 3000,
+        "operands_as_printed": "1000 + 2 ( 1057 + 1250 )",
+        "computed_mm": 5614, "comparison": ">", "limit_mm": 3000,
+        "reason": "各杭の有効幅が重なるため，",
+        "be_mm": 8000,
+        "figure": "図 2.3.4（2250、86、2114、2200、a=1250、1000）"
+      },
+      "front_upper_adopted_mm": 5614,
+      "front_upper_adopted_text": "よって，く体前面位置における上側引張時の有効幅は，be = 5614 mm となる．",
+      "pile_lower": {
+        "printed": "V-117",
+        "heading": "杭位置における下側引張時の有効幅（杭から決まる有効幅）",
+        "formula": "be = D + d ≦ B",
+        "D_mm": 1000, "d_mm": 2075, "B_mm": 3000,
+        "operands_as_printed": "1000 + 2075",
+        "computed_mm": 3075, "comparison": ">", "limit_mm": 3000,
+        "end_pile_be_mm": 2538,
+        "middle_pile_be_mm": 3075,
+        "reason": "各杭の有効幅が重なるため，",
+        "be_mm": 8000, "be_note": "（全杭当り）",
+        "figure": "図 2.3.5（3500、2200、2075、d/2、d/2、125、45°、500、1000、8000）"
+      },
+      "pile_upper": {
+        "printed": "V-118",
+        "heading": "杭位置における上側引張時の有効幅（杭から決まる有効幅）",
+        "formula": "be = D + d ≦ B",
+        "D_mm": 1000, "d_mm": 2114, "B_mm": 3000,
+        "operands_as_printed": "1000 + 2114",
+        "computed_mm": 3114, "comparison": ">", "limit_mm": 3000,
+        "end_pile_be_mm": 2557,
+        "middle_pile_be_mm": 3114,
+        "reason": "各杭の有効幅が重なるため，",
+        "be_mm": 8000, "be_note": "（全杭当り）",
+        "symbol_as_printed": "計算行の記号は b_c と読める（notes）",
+        "figure": "図 2.3.6（3500、86、2114、d/2、d/2、2200、45°、500、1000、8000）"
+      },
+      "seismic_reuse": {
+        "printed": "V-135",
+        "text": "有効幅は，「2.3.1 (1) (b) 検討断面」において求めた値を用いる．",
+        "front_lower_mm": 7650, "front_upper_mm": 5614, "pile_lower_mm": 8000, "pile_upper_mm": 8000
+      }
+    },
+    "shear": {
+      "printed": "V-127",
+      "source": "2.3.2 (2) a) ① せん断に対する有効幅【コンクリート構造編 8.8.5.2】",
+      "end_pile": {
+        "formula": "be = 0.65 √( a1b^2 + d1^2 ) + R",
+        "a1b_mm": 1768, "a1b_name": "杭中心〜く体前面までの距離",
+        "R_mm": 1000, "R_name": "杭径",
+        "d1_mm": 2075, "d1_name": "柱または壁前面における有効高さ",
+        "be_mm": 2772
+      },
+      "middle_pile": {
+        "formula": "be = 0.65 √( a1a^2 + d1^2 ) + R",
+        "a1a_mm": 1250,
+        "R_mm": 1000,
+        "d1_mm": 2075,
+        "be_mm": 2575
+      },
+      "both_end_pile_spacing_be_mm": 7000,
+      "adopted_text": "よって、各杭の有効幅が重なるため、杭3本分の有効幅は以下のようになる",
+      "be_mm": 7000,
+      "figure": "図 2.3.8 せん断に対する有効幅（6000、2772、1768、1250、1250、2575、7000、8000、1000・3000・3000・1000、1000・5000・1000、7000）",
+      "seismic_reuse": {"printed": "V-137", "text": "有効幅は，「2.2.2 (2) (a) 検討断面」において求めた値を用いる．", "be_mm": 7000}
+    }
+  },
+  "sections": {
+    "図2.3.7": {
+      "printed": "V-119",
+      "title": "照査断面および平面配置",
+      "intro": "照査する断面形状を図 2.3.7，表 2.3.3，表 2.3.4に示す．",
+      "top_cover_to_centroid_mm": 86,
+      "between_layers_mm": 1989,
+      "bottom_cover_to_centroid_mm": 125,
+      "H_mm": 2200,
+      "width_mm": 8000,
+      "top_rebar": "D32 ctc150mm",
+      "bottom_rebar": "D32 ctc150mm",
+      "plan_main_bar_pitch": "主鉄筋ピッチ@150mm（両方向）",
+      "stirrup": "スターラップ D25",
+      "stirrup_arrangement": "450mm当り1本 ctc300mm"
+    },
+    "表2.3.3": {
+      "printed": "V-120",
+      "title": "線路方向 照査断面の鉄筋配置（有効幅当り）",
+      "effective_width": {"upper_tension_mm": 5614, "upper_tension_pile_mm": 8000, "lower_tension_mm": 7650, "lower_tension_pile_mm": 8000, "shear_mm": 7000},
+      "H_mm": 2200, "H_pile_mm": 2200,
+      "fck_N_mm2": 27.0, "fsyk_N_mm2": 390, "fwyk_N_mm2": 390,
+      "pile_position": {
+        "lower": {"be_mm": 8000, "layer1": {"bar": "D32", "count": 54, "As_mm2": 42886.8, "d_mm": 125}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 42886.8, "centroid_mm": 125, "cs_mm": 150},
+        "upper": {"be_mm": 8000, "layer1": {"bar": "D32", "count": 54, "As_mm2": 42886.8, "d_mm": 86}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 42886.8, "centroid_mm": 86, "cs_mm": 150}
+      },
+      "body_front": {
+        "lower": {"be_mm": 7650, "layer1": {"bar": "D32", "count": 51, "As_mm2": 40504.2, "d_mm": 125}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 40504.2, "centroid_mm": 125, "cs_mm": 150},
+        "upper": {"be_mm": 5614, "layer1": {"bar": "D32", "count": 37, "As_mm2": 29385.4, "d_mm": 86}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 29385.4, "centroid_mm": 86, "cs_mm": 150}
+      }
+    },
+    "表2.3.4": {
+      "printed": "V-121",
+      "title": "線路方向 照査断面の鉄筋配置（有効幅当り）",
+      "effective_width": {"upper_tension_mm": 5614, "upper_tension_pile_mm": 8000, "lower_tension_mm": 7650, "lower_tension_pile_mm": 8000, "shear_mm": 7000},
+      "H_mm": 2200, "H_pile_mm": 2200,
+      "fck_N_mm2": 27.0, "fsyk_N_mm2": 390, "fwyk_N_mm2": 390,
+      "shear": {
+        "lower": {"be_mm": 7000, "layer1": {"bar": "D32", "count": 47, "As_mm2": 37327.4, "d_mm": 125}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 37327.4, "centroid_mm": 125, "cs_mm": 150},
+        "upper": {"be_mm": 8000, "layer1": {"bar": "D32", "count": 54, "As_mm2": 42886.8, "d_mm": 86}, "layer2": {"bar": null, "count": null, "As_mm2": 0.0, "d_mm": null}, "sum_As_mm2": 42886.8, "centroid_mm": 86, "cs_mm": 150}
+      }
+    }
+  },
+  "checks": {
+    "2.2(1)_cover": {
+      "printed": "V-105",
+      "source": "【コンクリート構造編 2.3.2】",
+      "required_mm": 40, "design_mm": 40,
+      "text": "フーチングのかぶりは 40 mm 以上とする．設計かぶりは，フーチング 40 mm であるため，上記条件を満足する．"
+    },
+    "2.2(2)(i)_min_rebar_pc": {
+      "printed": "V-105",
+      "source": "【コンクリート構造編 2.3.3.1(1)】",
+      "formula": "pc = As/(b·h)",
+      "cases": {
+        "①線路方向": {"As_mm2": 85773.6, "upper": {"As_mm2": 42886.8, "bar": "D32", "count": 54}, "lower": {"As_mm2": 42886.8, "bar": "D32", "count": 54}, "b_mm": 8000, "h_mm": 2200, "operands_as_printed": "85773.6 / ( 8000 × 2200 ) × 100", "pc_percent": 0.49, "comparison": ">", "limit_percent": 0.15},
+        "②線路方向（見出しの重複）": {"As_mm2": 85773.6, "upper": {"As_mm2": 42886.8, "bar": "D32", "count": 54}, "lower": {"As_mm2": 42886.8, "bar": "D32", "count": 54}, "b_mm": 8000, "h_mm": 2200, "operands_as_printed": "85773.6 / ( 8000 × 2200 ) × 100", "pc_percent": 0.49, "comparison": ">", "limit_percent": 0.15}
+      }
+    },
+    "2.2(2)(ii)_min_rebar_Mcrd": {
+      "printed": "V-106〜V-107",
+      "source": "【コンクリート構造編 2.3.3.1(2)】",
+      "formula": "Mcrd = I / y (σcrd + N'd/A)",
+      "I": {"operands_as_printed": "1/12 × 8000 × 2200 ^3", "mantissa": 7.099, "exponent": 12, "unit": "mm4"},
+      "y_operands_as_printed": "h / 2 = 2200 / 2", "y_mm": 1100,
+      "h_mm": 2200,
+      "sigma_crd_formula": "σcrd = fbck = k0b·k1b·ftk 【コンクリート構造編 式4.2.4】",
+      "k0b_formula": "k0b = 1+1/{0.85+4.5(h/lch)} 【コンクリート構造編 式4.2.5】",
+      "k0b_operands_as_printed": "1 + 1 / { 0.85 + 4.5 × ( 2200 / 542 )}",
+      "k0b": 1.05,
+      "lch_formula": "lch = 1000 GF Ec/ftk^2",
+      "lch_operands_as_printed": "1000 × 0.1120 × 29.5 / 2.47 ^2",
+      "lch_mm": 542,
+      "GF_formula": "GF = 1/100 dmax^(1/3) f'ck^(1/3) 【コンクリート構造編 式4.2.8】",
+      "GF_operands_as_printed": "1/100 × 40 ^1/3 × 35.1 ^1/3",
+      "GF_N_mm": 0.1120,
+      "dmax_mm": 40,
+      "fck_for_crack_operands_as_printed": "27.0 × 1.3",
+      "fck_for_crack_N_mm2": 35.1,
+      "Ec_kN_mm2": 29.5,
+      "ftk_formula": "ftk = 0.23 f'ck^(2/3) 【コンクリート構造編 式4.2.1】",
+      "ftk_operands_as_printed": "0.23 × 35.1 ^2/3",
+      "ftk_N_mm2": 2.47,
+      "k1b": 1.0,
+      "Nd_prime": {"mantissa": 0, "exponent": 3, "unit": "N"},
+      "A": {"operands_as_printed": "8000 × 2200", "mantissa": 1.76, "exponent": 7, "unit": "mm2"},
+      "sigma_crd_operands_as_printed": "1.05 × 1.0 × 2.47",
+      "sigma_crd_N_mm2": 2.59,
+      "Mcrd_operands_as_printed": "7.099 × 10^12 / 1100 × { 2.59 + 0 / ( 1.76 × 10^7 )}",
+      "Mcrd_Nmm": {"mantissa": 1.671, "exponent": 10},
+      "Mcrd_kNm": 16710,
+      "Myd_lower_tension_kNm": 35803.5,
+      "Myd_gamma_b": 1.1,
+      "Myd_fck_N_mm2": 27.0,
+      "Myd_source": "また，電算結果より，",
+      "verdict": "Myd > Mcrd となるので，上記条件を満足する．"
+    },
+    "2.2(3)_max_rebar": {
+      "printed": "V-108〜V-109",
+      "source": "【コンクリート構造編 2.3.3.2】、【コンクリート構造編 式2.3.2】",
+      "pb_formula": "pb = {( α ε'cu/(ε'cu+εsy) − N'd/(b·d·f'cd) )·f'cd/fsyd + Asc/(b·d)·σ's/fsyd } × 100",
+      "alpha_formula": "α = 0.88 − 0.004 f'ck ただし， α ≦ 0.68",
+      "alpha_operands_as_printed": "0.88 − 0.004 × 27.0",
+      "alpha_computed": 0.772, "alpha_comparison": ">", "alpha_limit": 0.68,
+      "alpha": 0.680,
+      "fck_N_mm2": 27.0,
+      "eps_cu_formula": "ε'cu = ( 155 − f'ck ) / 30000 ≦ 0.0035 【コンクリート構造編 解説図4.2.3】",
+      "eps_cu_operands_as_printed": "( 155 − 27.0 ) / 30000",
+      "eps_cu_computed": 0.00427, "eps_cu_comparison": ">", "eps_cu_limit": 0.0035,
+      "eps_cu": 0.00350,
+      "eps_sy_operands_as_printed": "fsyd / Es = 390 / 200000",
+      "eps_sy": 0.00195,
+      "fsyd_N_mm2": 390,
+      "Es_kN_mm2": 200,
+      "Nd_prime": {"mantissa": 0, "exponent": 3, "unit": "N"},
+      "b_mm": 8000,
+      "d_upper_tension_mm": 2114,
+      "d_lower_tension_mm": 2075,
+      "fcd_operands_as_printed": "f'ck / γc = 27.0 / 1.3",
+      "fcd_N_mm2": 20.8,
+      "gamma_c": 1.3,
+      "Asc": {"upper_tension": {"As_mm2": 42886.8, "bar": "D32", "count": 54}, "lower_tension": {"As_mm2": 42886.8, "bar": "D32", "count": 54}},
+      "sigma_s_prime_N_mm2": 0,
+      "sigma_s_prime_reason": "圧縮鉄筋の応力を考慮しない方が，設計上安全側であるため，σ's＝0 N/mm2とする．",
+      "pb_upper_operands_as_printed": "{( 0.680 × 0.00350/(0.00350 + 0.00195) − 0/(8000 × 2114 × 20.8) ) × 20.8/390 + 42886.8/(8000 × 2114) × 0.0/390 } × 100",
+      "pb_upper_percent": 2.33,
+      "pb_lower_operands_as_printed": "{( 0.680 × 0.00350/(0.00350 + 0.00195) − 0/(8000 × 2075 × 20.8) ) × 20.8/390 + 42886.8/(8000 × 2075) × 0.0/390 } × 100",
+      "pb_lower_percent": 2.33,
+      "pt_formula": "pt = Ast / ( b · d ) × 100",
+      "pt_upper_operands_as_printed": "42886.8 / ( 8000 × 2114 ) × 100",
+      "pt_upper_percent": 0.25,
+      "pt_lower_operands_as_printed": "42886.8 / ( 8000 × 2075 ) × 100",
+      "pt_lower_percent": 0.26,
+      "check_upper": {"operands_as_printed": "0.75 × 2.33", "limit_percent": 1.75, "comparison": ">", "pt_percent": 0.25},
+      "check_lower": {"operands_as_printed": "0.75 × 2.33", "limit_percent": 1.75, "comparison": ">", "pt_percent": 0.26}
+    },
+    "表2.2.1": {
+      "printed": "V-110",
+      "title": "鉄筋のあき",
+      "source": "【コンクリート構造編 2.3.4】",
+      "member": "フーチング（線路方向）",
+      "upper": {"operands_as_printed": "150 − 32", "clear_mm": 118, "req_min_mm": 20, "req_aggregate": {"operands_as_printed": "40 × 4/3", "mm": 53.3}, "req_bar": {"operands_as_printed": "32 × 1.0", "mm": 32}},
+      "lower": {"operands_as_printed": "150 − 32", "clear_mm": 118, "req_min_mm": 20, "req_aggregate": {"operands_as_printed": "40 × 4/3", "mm": 53.3}, "req_bar": {"operands_as_printed": "32 × 1.0", "mm": 32}}
+    },
+    "2.2(5)_distribution_rebar": {
+      "printed": "V-110",
+      "formula": "As1 ≧ 1/6 · As / bw",
+      "As_upper_mm2_per_m": 5294.7, "As_upper_bar": "D32 ctc 150 mm",
+      "As_lower_mm2_per_m": 5294.7, "As_lower_bar": "D32 ctc 150 mm",
+      "required_upper_operands_as_printed": "1/6 × 5294.7", "required_upper_mm2_per_m": 882.5,
+      "required_lower_operands_as_printed": "1/6 × 5294.7", "required_lower_mm2_per_m": 882.5,
+      "provided_upper_mm2_per_m": 5294.7, "provided_upper_bar": "D32 ctc 150 mm",
+      "provided_lower_mm2_per_m": 5294.7, "provided_lower_bar": "D32 ctc 150 mm",
+      "provided_label": "線路方向配置鉄筋量"
+    },
+    "2.2(6)_hook": {
+      "printed": "V-111",
+      "source": "【コンクリート構造編 2.3.7.2】、【コンクリート構造編 表2.3.1】",
+      "material": "SD390", "bar": "D25",
+      "operands_as_printed": "r = 2.5 φ = 2.5 × 25",
+      "required_r_mm": 63,
+      "design_r_mm": 65
+    },
+    "表2.2.2": {
+      "printed": "V-111",
+      "title": "前提条件一覧表",
+      "rows": [
+        {"item": "かぶり", "condition": "c = 40 mm 以上", "design": "c = 40 mm", "verdict": "○", "note": "配筋図参照"},
+        {"item": "最小鉄筋量 線路方向", "condition": "pc = 0.15 % 以上", "design": "pc = 0.49 %", "verdict": "○"},
+        {"item": "最小鉄筋量 線路方向 下側引張", "condition": "Mcrd<Myd", "Mcrd_kNm": 16710, "Myd_kNm": 35804, "verdict": "○"},
+        {"item": "最大鉄筋量 線路方向 上側引張", "condition": "pt<0.75pb", "pt_percent": 0.25, "limit_percent": 1.75, "verdict": "○"},
+        {"item": "最大鉄筋量 線路方向 下側引張", "condition": "pt<0.75pb", "pt_percent": 0.26, "limit_percent": 1.75, "verdict": "○"},
+        {"item": "鉄筋のあき 線路上側", "condition_mm": 53.3, "design_mm": 118, "verdict": "○", "note": "粗骨材の4/3以上"},
+        {"item": "鉄筋のあき 線路下側", "condition_mm": 53.3, "design_mm": 118, "verdict": "○", "note": "粗骨材の4/3以上"},
+        {"item": "配力鉄筋 線路上側", "condition_mm2_per_m": 882.5, "design_mm2_per_m": 5294.7, "verdict": "○", "note": "引張鉄筋の1/6以上"},
+        {"item": "配力鉄筋 線路下側", "condition_mm2_per_m": 882.5, "design_mm2_per_m": 5294.7, "verdict": "○", "note": "引張鉄筋の1/6以上"},
+        {"item": "せん断補強鉄筋の標準フック", "condition": "曲げ内半径 63 mm 以上", "design_mm": 65, "verdict": "○", "note": "配筋図参照"}
+      ]
+    },
+    "表2.3.1": {
+      "printed": "V-112",
+      "title": "基礎部材の耐久性に関する検討に用いる設計限界値",
+      "row": {"requirement": "耐久性", "item": "ひび割れ", "IRD": "ひび割れ幅 wd", "ILD": "ひび割れ幅 wlim"}
+    },
+    "表2.3.2": {
+      "printed": "V-112",
+      "title": "線路方向設計断面力",
+      "rows": [
+        {"member": "フーチング", "Md_kNm": 7911.6, "case": null, "summary": "永久作用時"},
+        {"member": "フーチング", "Md_kNm": 9738.6, "case": null, "summary": "縁応力検討時"}
+      ]
+    },
+    "表2.3.5": {
+      "printed": "V-122",
+      "title": "鋼材の腐食に対するコンクリートのひび割れ幅の制限値 wlim",
+      "rebar": {"常時乾燥": "0.005c", "乾湿繰返し": "0.004c"},
+      "note": "※ c：引張鋼材のかぶり，100mm以下を標準とする．",
+      "water_exposure_text": "なお，水掛かりの程度は常時乾燥とする．"
+    },
+    "表2.3.6": {
+      "printed": "V-122",
+      "title": "曲げひび割れ幅の照査を省略する場合のRC構造に対するコンクリートの縁引張応力度の制限値 σbl (N/mm2)",
+      "combination": "永久作用 + 変動作用",
+      "fck_columns": [24, 27, 30, 40, 50, 60, 80],
+      "rows": [
+        {"height_m": "0.25", "values": [3.9, 4.1, 4.4, 5.2, 5.8, 6.5, 7.6]},
+        {"height_m": "0.5", "values": [2.9, 3.1, 3.3, 3.9, 4.5, 5.0, 5.9]},
+        {"height_m": "1.0", "values": [2.2, 2.4, 2.6, 3.1, 3.5, 4.0, 4.7]},
+        {"height_m": "2.0 以上", "values": [1.8, 1.9, 2.1, 2.5, 2.9, 3.2, 3.9]}
+      ]
+    },
+    "表2.3.7": {
+      "printed": "V-122",
+      "title": "曲げひび割れ幅の照査を省略できる部材における永久作用による引張鉄筋応力度の制限値 σsl1 (N/mm2)",
+      "values": {"常時乾燥": 140, "乾湿繰返し": 120, "常時湿潤": 140},
+      "note": "※ 鉄筋は異形鉄筋とする．"
+    },
+    "2.3.1_d_results": {
+      "printed": "V-123〜V-124",
+      "sigma_b": {
+        "formula": "σb = Md / I · yL",
+        "Md_kNm": 9738.6,
+        "I_m4": 6.7881,
+        "yL_m": 1.10,
+        "sigma_b_N_mm2": 1.58,
+        "sigma_bl_N_mm2": 1.90,
+        "sigma_bl_source": "表 2.3.6より"
+      },
+      "sigma_s": {
+        "formula": "σs = Md / ( As·j·d )",
+        "Md_kNm": 7911.6,
+        "As_mm2": 40504.2,
+        "j_operands_as_printed": "1-k/3 = 1 − 0.178 / 3",
+        "j": 0.941,
+        "k_formula": "k = √(2n·pt+(n·pt)^2) − n·pt",
+        "k_operands_as_printed": "√( 2 × 7.55 × 0.00255 +( 7.55 × 0.00255) ^2 ) − 7.55 × 0.00255",
+        "k": 0.178,
+        "n_operands_as_printed": "Es/Ec = 200 / 26.5",
+        "n": 7.55,
+        "Es_kN_mm2": 200,
+        "Ec_kN_mm2": 26.5,
+        "pt_operands_as_printed": "As / ( be·d ) = 40504.2 /( 7650 × 2075 )",
+        "pt": 0.00255,
+        "be_mm": 7650,
+        "be_name": "腹部の幅",
+        "d_operands_as_printed": "2200 − 125",
+        "d_mm": 2075,
+        "sigma_s_N_mm2": 100.04,
+        "sigma_sl1_N_mm2": 140,
+        "sigma_sl1_source": "表 2.3.7より"
+      }
+    },
+    "表2.3.8": {
+      "printed": "V-124",
+      "title": "検討結果",
+      "direction": "線路方向",
+      "position": "く体前面",
+      "H_mm": 2200,
+      "Bw_mm": 7650,
+      "Ast": {"As_mm2": 40504.2, "bar": "D32", "count": 51},
+      "dast_mm": 125,
+      "Asc": {"As_mm2": 29385.4, "bar": "D32", "count": 37},
+      "dasc_mm": 86,
+      "fck_N_mm2": 27.0,
+      "gamma_c": 1.0,
+      "fcd_N_mm2": 27.0,
+      "fsyk_N_mm2": 390,
+      "gamma_s": 1.0,
+      "fsyd_N_mm2": 390,
+      "environment": "常時湿潤",
+      "Mhd_kNm": 9738.6,
+      "sigma_b_N_mm2": 1.58,
+      "sigma_bl_N_mm2": 1.90,
+      "sigma_b_check": "1.58 < 1.90",
+      "Mpd_kNm": 7911.6,
+      "n": 7.55,
+      "sigma_s_N_mm2": 100.0,
+      "sigma_sl1_N_mm2": 140,
+      "sigma_s_check": "100.0 < 140",
+      "sigma_se": null, "c_mm": null, "cs_mm": null, "phi_mm": null, "eps_csd": null, "k1": null, "k2": null, "n_layers": null, "k3": null, "k4": null, "wd_mm": null,
+      "wlim_mm": null,
+      "wd_check": null,
+      "result": "Ok",
+      "dash_note": "σse〜wd と wd≦wlim は「—」、wlim の欄は空欄"
+    },
+    "表2.3.9": {
+      "printed": "V-126",
+      "title": "設計曲げ耐力に対する照査結果",
+      "formula": "γi·Md/Mud ≦ 1.0",
+      "columns": {
+        "く体前面位置 下側引張": {"Md_kNm": 14556.9, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.1, "gamma_i": 1.2, "b_mm": 7650, "h_mm": 2200, "d_mm": 2075, "fck_N_mm2": 27.0, "fsyk_N_mm2": 390, "As_mm2": 40504.2, "bar": "D32", "count": 51, "Mud_kNm": 34712.9, "ratio": 0.50, "verdict": "O.K"},
+        "杭位置 上側引張": {"Md_kNm": 1902.0, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.1, "gamma_i": 1.2, "b_mm": 8000, "h_mm": 2200, "d_mm": 2114, "fck_N_mm2": 27.0, "fsyk_N_mm2": 390, "As_mm2": 42886.8, "bar": "D32", "count": 54, "Mud_kNm": 36748.6, "ratio": 0.06, "verdict": "O.K"}
+      }
+    },
+    "2.3.2(2)_shear_formulas": {
+      "printed": "V-128〜V-129",
+      "lower": {
+        "check": "γi·Vd/Vfdd ≦ 1.0 （下側引張に対して）",
+        "gamma_i": 1.2,
+        "Vfdd": "Vfdd = (βd+βw) βp·βa·ffdd·be·d1/γb",
+        "ffdd": "ffdd = 0.19√f'cd (N/mm2)",
+        "beta_d": "βd = ⁴√(1000/d1) ただし，βd > 1.5 となる場合は 1.5 とする．",
+        "beta_p": "βp = (1+√(100pc))/2 ただし，βp > 1.5 となる場合は 1.5 とする．",
+        "beta_a_as_printed": "βa = 5/[1+ {1.1 (a1−R/2) d1} ^2]",
+        "beta_w": "βw = 4.2[∛(100pw)· {1.1 (a1+R/2)/d1−0.75} /√f'cd] ただし，βw < 0.002 となる場合はβw= 0 とする．",
+        "be": "be = 0.65 √( a1a^2 + d1^2 ) + R",
+        "pc": "pc=As/(be·d1)",
+        "pw": "pw=Aw/(b1·s1)",
+        "gamma_b": 1.2,
+        "gamma_b_text": "γb ：部材係数で，1.2 とする．"
+      },
+      "upper": {
+        "check": "γi·Vd/Vsd ≦ 1.0 （上側引張に対して）",
+        "gamma_i": 1.2,
+        "Vsd": "Vsd = pw·fwyd·d·cotθ·be/γb",
+        "limit": "ただし，pw·fwyd ≦ 3.0",
+        "pw": "pw=As/(d·cotθ·be)",
+        "theta": "斜めひび割れの角度で，一般に45° とする．",
+        "be": "有効幅(mm)．一般に全幅として算定する．"
+      }
+    },
+    "表2.3.10": {
+      "printed": "V-130",
+      "title": "下側引張に対しての照査結果",
+      "direction": "線路方向",
+      "position": "く体前面（下側引張）",
+      "H_mm": 2200, "be_mm": 7000, "d1_mm": 2075, "a1_mm": 1768, "a1_d1": 0.85, "a1_d1_condition": "a1/d1 <2",
+      "D_mm": 1768,
+      "As_mm2": 37327.4, "bar": "D32", "count": 47,
+      "dast_mm": 125, "fck_N_mm2": 27.0, "gamma_c": 1.3, "fcd_N_mm2": 20.8,
+      "Vd_kN": 12578.8,
+      "Aw_mm2": 506.7, "Aw_bar": "D25", "Aw_count": 1,
+      "b1_mm": 450, "s1_mm": 300,
+      "ffdd_N_mm2": 0.8665, "beta_d": 0.8332, "pc": 0.00257, "pw": 0.00375, "pw_note": "(pw<0.002となる場合は0)",
+      "beta_p": 0.7535, "beta_a": 4.0997, "beta_w": 0.4356,
+      "beta_a_formula_in_table": "βa=5/[1+{1.1(a1−D/2)/d1}^2]",
+      "beta_w_formula_in_table": "βw=4.2[(100pw)^1/3{1.1(a1+D/2)/d1−0.75}/(f'cd)^1/2] ≧0",
+      "gamma_b": 1.2, "Vfdd_kN": 41108.5, "gamma_i": 1.2,
+      "ratio": 0.37, "comparison": "<", "limit": 1.0, "verdict": "O.K."
+    },
+    "表2.3.11": {
+      "printed": "V-131",
+      "title": "上側引張に対しての照査結果",
+      "direction": "線路方向",
+      "position": "杭位置（上側引張）",
+      "H_mm": 2200, "be_mm": 8000, "d_mm": 2114,
+      "As_mm2": 42886.8, "bar": "D32", "count": 54,
+      "dast_mm": 86, "fck_N_mm2": 27.0, "gamma_c": 1.3, "fcd_N_mm2": 20.8,
+      "Vd_kN": 13399.7,
+      "Aw_dcot_mm2": 60804.0, "Aw_bar": "D25", "Aw_count": 120,
+      "ss_mm": 300, "theta_deg": 45, "fwyd_N_mm2": 390,
+      "pw": 0.0036,
+      "pw_fwyd": 1.40217, "pw_fwyd_limit": 3.0, "pw_fwyd_verdict": "O.K.",
+      "gamma_bs": 1.1,
+      "Vsd_kN": 21557.0,
+      "gamma_i": 1.2,
+      "ratio_label_as_printed": "γi·Vd/Vyd",
+      "ratio": 0.75, "comparison": "<", "limit": 1.0, "verdict": "O.K."
+    },
+    "図2.4.1": {
+      "printed": "V-135",
+      "title": "フーチングの曲げモーメント分布(L-L2-2 慣性力設計)",
+      "case_label": "αf=1 ρm=1.2 (L-L2-2 慣性力設計)",
+      "spans_mm": [1250, 1250, 1250, 1250],
+      "values_kNm_left_to_right": [
+        {"x": "左端（杭位置）", "M": 7069.6},
+        {"x": "左 1250（く体前面）", "M": -8165.7},
+        {"x": "中央の左（2500）", "M": -23401.0},
+        {"x": "中央の右（2500）", "M": 51423.6},
+        {"x": "右 1250（く体前面）", "M": 21554.4},
+        {"x": "右端（杭位置）", "M": -8314.8}
+      ],
+      "Mdmax": {
+        "upper_tension_front_kNm": -8165.7,
+        "upper_tension_pile_kNm": -8314.8,
+        "lower_tension_front_kNm": 21554.4,
+        "lower_tension_pile_kNm": 7069.6
+      }
+    },
+    "表2.4.1": {
+      "printed": "V-136",
+      "title": "設計曲げ降伏耐力に対する照査結果",
+      "formula": "γi·Md/Myd ≦ 1.0",
+      "gamma_i_text": 1.0,
+      "columns": {
+        "く体前面位置 上側引張": {"case": "L1-2", "Md_kNm": 8165.7, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.0, "b_mm": 5614, "h_mm": 2200, "d_mm": 2114, "fck_N_mm2": 27.0, "fsyk_N_mm2": 468, "fsyk_note": "ρm=1.2", "As_mm2": 29385.4, "bar": "D32", "count": 37, "Myd_kNm": 27098.3, "ratio": 0.30, "verdict": "O.K"},
+        "く体前面位置 下側引張": {"case": "L1-2", "Md_kNm": 21554.4, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.0, "b_mm": 7650, "h_mm": 2200, "d_mm": 2075, "fck_N_mm2": 27.0, "fsyk_N_mm2": 468, "fsyk_note": "ρm=1.2", "As_mm2": 40504.2, "bar": "D32", "count": 51, "Myd_kNm": 36797.6, "ratio": 0.59, "verdict": "O.K"},
+        "杭位置 上側引張": {"case": "L1-2", "Md_kNm": 8314.8, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.0, "b_mm": 8000, "h_mm": 2200, "d_mm": 2114, "fck_N_mm2": 27.0, "fsyk_N_mm2": 468, "fsyk_note": "ρm=1.2", "As_mm2": 42886.8, "bar": "D32", "count": 54, "Myd_kNm": 39525.3, "ratio": 0.21, "verdict": "O.K"},
+        "杭位置 下側引張": {"case": "L1-2", "Md_kNm": 7069.6, "gamma_c": 1.3, "gamma_s": 1.0, "gamma_b": 1.0, "gamma_i": 1.0, "b_mm": 8000, "h_mm": 2200, "d_mm": 2075, "fck_N_mm2": 27.0, "fsyk_N_mm2": 468, "fsyk_note": "ρm=1.2", "As_mm2": 42886.8, "bar": "D32", "count": 54, "Myd_kNm": 38951.6, "ratio": 0.18, "verdict": "O.K"}
+      },
+      "conclusion": "よって，フーチングは，損傷レベル１となることを確認した．"
+    },
+    "図2.4.2": {
+      "printed": "V-137",
+      "title": "フーチングのせん断力分布（L-L2-2 ρm=1.2 最大震度時）",
+      "case_label": "αf=1 ρm=1.2 (L-L2-2 慣性力設計)",
+      "spans_mm": [1250, 1250, 1250, 1250],
+      "values_kN_left_to_right": [11573.3, 12188.3, 12803.2, 23280.4, 23895.4, 24510.3],
+      "Vdmax": {"upper_tension_front_kN": 12188.3, "lower_tension_front_kN": 23895.4},
+      "check_section": "く体前面とする．"
+    },
+    "表2.4.2": {
+      "printed": "V-139",
+      "title": "下側引張に対しての照査結果",
+      "direction": "線路方向",
+      "position": "く体前面（下側引張）",
+      "H_mm": 2200, "be_mm": 7000, "d1_mm": 2075, "a1_mm": 1768, "a1_d1": 0.85, "a1_d1_condition": "a1/d1 <2",
+      "D_mm": 1000,
+      "As_mm2": 37327.4, "bar": "D32", "count": 47,
+      "dast_mm": 125, "fck_N_mm2": 27.0, "gamma_c": 1.3, "fcd_N_mm2": 20.8,
+      "Vd_kN": 23895.4,
+      "Aw_mm2": 506.7, "Aw_bar": "D25", "Aw_count": 1,
+      "b1_mm": 450, "s1_mm": 300,
+      "ffdd_N_mm2": 0.8665, "beta_d": 0.8332, "pc": 0.00257, "pw": 0.00375,
+      "beta_p": 0.7535, "beta_a": 3.4439, "beta_w": 0.3004,
+      "gamma_b": 1.2, "Vfdd_kN": 30853.0, "gamma_i": 1.0,
+      "ratio": 0.77, "comparison": "<", "limit": 1.0, "verdict": "O.K."
+    },
+    "表2.4.3": {
+      "printed": "V-140",
+      "title": "上側引張に対しての照査結果",
+      "direction": "線路方向",
+      "position": "杭位置（上側引張）",
+      "H_mm": 2200, "be_mm": 8000, "d_mm": 2114,
+      "As_mm2": 42886.8, "bar": "D32", "count": 54,
+      "dast_mm": 86, "fck_N_mm2": 27.0, "gamma_c": 1.3, "fcd_N_mm2": 20.8,
+      "Vd_kN": 12188.3,
+      "Aw_dcot_mm2": 60804.0, "Aw_bar": "D25", "Aw_count": 120,
+      "ss_mm": 300, "theta_deg": 45, "fwyd_N_mm2": 390,
+      "pw": 0.0036,
+      "pw_fwyd": 1.40217, "pw_fwyd_limit": 3.0, "pw_fwyd_verdict": "O.K.",
+      "gamma_bs": 1.1,
+      "Vsd_kN": 21557.0,
+      "gamma_i": 1.0,
+      "ratio_label_as_printed": "γi·Vd/Vyd",
+      "ratio": 0.57, "comparison": "<", "limit": 1.0, "verdict": "O.K."
+    }
+  },
+  "text_facts": {
+    "2.1.1": "「第Ⅲ編 2.1 作用の計算」を参照する．",
+    "2.1.2": "「第Ⅲ編 2.5 設計応答値一覧」を参照する．",
+    "water_exposure": "wdは「第Ⅲ編 3.1.2 耐久性に関する検討」と同様に算定し，曲げひび割れの検討手順も同様である．また，wlimは，表 2.3.5 に従う．なお，水掛かりの程度は常時乾燥とする．",
+    "sigma_b_ok": "よって，永久作用と変動作用が組み合わされた場合の，全断面を有効としたコンクリートの縁引張応力度σbが，曲げひび割れの検討を省略する場合のRC構造に対するコンクリートの縁引張応力度σbl以下となるため，永久作用による引張鉄筋の応力度σsの算定を行う．",
+    "crack_check_omitted": "よって，永久作用による引張鉄筋の応力度σsが，曲げひび割れ幅の検討を省略できる部材における永久作用による引張鉄筋応力度の制限値σsl1以下となるため，曲げひび割れの検討を省略する．",
+    "shear_crack_omitted": "本部材のフーチングは，ディープビーム的な耐荷機構を有する部材であり，スレンダーな棒部材とひび割れ性状やせん断補強鋼材の効果は異なる．また，本部材のような諸元および荷重・支持条件であれば，これまでの実績から，せん断力あるいはねじりモーメントによって発生するひび割れによる問題が生じることは少ないと考え，本設計計算例では検討を省略する．",
+    "shear_crack_boxed_note": "したがって，ディープビーム的な部材に対しては，せん断ひび割れおよびねじりひび割れの検討を，非線形有限要素解析あるいは実験によるのがよい．ただし，実績のある諸元および荷重・支持条件であれば，せん断ひび割れおよびねじりひび割れの検討を省略してもよい．",
+    "deep_beam_safety": "本橋脚のフーチングは，低せん断スパン比の部材であり，変形性能を期待できない部材となる．したがって，ディープビームとして取り扱うこととなる．破壊に対する安全性の照査は，断面力を照査指標として行う．",
+    "safety_limits": "設計限界値として，曲げモーメントに対して設計曲げ耐力Mud，せん断力に対して設計せん断圧縮破壊耐力Vfdd（下側引張），もしくは，せん断補強鉄筋により受け持たれる設計引抜きせん断耐力Vsd（上側引張）で照査を行う．",
+    "safety_bending_section_ref": "検討断面は，図 2.2.7，表 2.2.3 による．",
+    "shear_uniform": "フーチングの発生せん断力が奥行き方向に均等に発生すると仮定し，設計せん断耐力に関すを行う．",
+    "shear_check_section": "く体前面とする．",
+    "shear_safety_ok": "よって，せん断耐力に対する安全性を満足することを確認した．",
+    "serviceability_damage_omitted": "損傷の照査については、性能レベル1となることを確認する．なお，安全性（破壊）の照査において,性能レベル1であることを確認しており，安全性（破壊）よりも作用の小さい復旧性（損傷）では，照査を満足するため，本設計計算例では照査を省略する．",
+    "seismic_serviceability_omitted": "使用性の照査は損傷に対して行い，L1地震動に対して損傷レベル1を満足することを確認する ただし，本構造物は後述する復旧性で損傷レベル１を確保しているため，「第Ｉ編 表3.6.1 構造物の要求性能と損傷レベル,安定レベルの設定」より，L1地震動に対して損傷レベル1を満足することは明らかであるため，本設計計算例では照査結果の記載を省略する．",
+    "failure_mode_omitted": "ρm=1.2で損傷レベル１の照査を行うものとして，破壊形態の確認は省略する．",
+    "seismic_failure_omitted": "本構造物は後述する復旧性で性能レベル１を確保しているため，「第Ｉ編 表3.6.1 構造物の要求性能と損傷レベル,安定レベルの設定」より，破壊の照査を満足することは明らかであるため，本設計計算例では照査結果の記載を省略する．",
+    "running_safety_omitted": "本構造物では，地震時の走行安全性に係る変位の照査にSI値を用いる前提条件として，検討方向によらずＬ１地震動に対してフーチングが損傷レベル１を満足することを確認する．ただし，本構造物は後述する復旧性で性能レベル１を確保しているため，「第Ｉ編 表3.6.1 構造物の要求性能と損傷レベル,安定レベルの設定」より，地震時の走行安全性に係る変位の照査にSI値を用いる前提条件を満足することは明らかであるため，本設計計算例では照査結果の記載を省略する．",
+    "restorability_method": "フーチングの損傷の照査は，設計応答値をフーチングの断面力とし，設計限界値を【基礎標準 解説表15.3.4.5-1】として照査を行う．具体的な設計限界値は【基礎標準15.5】のほか,【RC標準】により算定する．",
+    "restorability_deep_beam": "また，本橋脚のフーチングは，低せん断スパン比の部材であり，ディープビームとして取り扱うこととなる．",
+    "damage_level_1_reason": "よって，本橋脚では，フーチングの破壊形態を安全側にせん断破壊形態であると仮定し，設計限界値を損傷レベル１と設定し，耐力を照査指標として，検討ケースにおける最大断面力を用いて照査を行うものとする．",
+    "damage_level_1_boxed_note": "杭基礎のフーチングは靱性の期待できない部材であり，フーチングの損傷はレールレベルでの直接的な変形の増大につながることから，地震時のフーチングの損傷の設計限界値は，地震時においても損傷レベル１にとどめるのがよい．",
+    "response_displacement_omitted": "ρm＝1.2の全ステップでVd/Vyd≦1.0，Md/Myd≦1.0であることから，応答変位法の応答値に対する照査を省略してよいこととする．"
+  }
+}

@@ -17,7 +17,10 @@ The explanations keep the structure of 12_フーチング.pdf 254, 256, 257, 259
 flexural crack method and flowchart of check_text): the values WebPier writes to the WDJ (γi, γb, k4, ε'csd) and the
 水掛かりの程度 of the input are printed from the same result; the values and formulas of RC標準 that only Capacita
 evaluates (σsl1 and Wlim by 水掛かりの程度, fvcd, fwcd, βd, βp, βn, z) are not: the inserted result pages show the
-values used. The seismic restorability prints the factors of 復旧性（損傷）地震時 (γi 1.0, γb 1.0; the sample 263). Not
+values used. The seismic restorability prints the factors of 復旧性（損傷）地震時 (γi 1.0, γb 1.0; the sample 263). The
+footing of a pile foundation (decision 96) has the deep beam shear in place of the ordinary one, of 安全性 and of
+復旧性（地震時） (decision 124: the sample Example橋脚4 V-128〜V-129 and V-138), each with its γi; a check of the two
+whose case has no shear of its sense has, in place of its formula, the sentence that it is omitted. Not
 reproduced from the sample: its truncated flowchart texts, and the safety factors it copies into the seismic shear
 check (265: γi 1.2; ADR-0001).
 """
@@ -32,6 +35,8 @@ from gridlayoutpdf import Document
 
 from ...calc.column_check import SafetyFactors
 from ...calc.footing_check import FootingCheckResult
+from ...calc.pile_footing import Case
+from ...calc.pile_footing_check import PileFootingCheckResult
 from ..equations import Definition
 from . import insertion
 from .check_text import COLON, CRACK_METHOD, CRACK_STRESS, SIGMA_SE, _blocks, ecsd_text, flowchart
@@ -131,19 +136,48 @@ def _safety_shear(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
     _shear(m, "safety.shear", _factors(check, SAFETY))
 
 
-def _safety_deep_beam(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
+# the sentences of a deep beam check whose case has no shear of its sense (decision 124: Capacita checks nothing of it)
+FACE_OMITTED = "杭が押し込まれる向きの設計せん断力が生じないため，照査を省略する．"
+PILE_OMITTED = "杭が引き抜かれる向きの設計せん断力が生じないため，照査を省略する．"
+
+
+def _deep_beam(m: Manuscript, key: str, check: PileFootingCheckResult, case: Case, limit_state: int,
+               text: str | None = None) -> None:
     """2) せん断力に対する照査 of the footing of a pile foundation (decision 96): the deep beam checks of the face (Vfdd, lower
-    tension) and of the pile position (Vsd, upper tension), whose pages are Capacita's."""
-    gamma_i = value(_factors(check, SAFETY).ri)
-    m.heading("safety.deep.heading", "2) せん断力に対する照査", 2)
-    m.heading("safety.deep.face.heading", "(a) く体前面（下側引張）", 3)
-    m.line("safety.deep.face.check", "γi・Vd / Vfdd ≦ 1.0")
-    _definitions(m, "safety.deep.face.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
-                 Definition("Vd", "設計せん断力"), Definition("Vfdd", "設計せん断圧縮破壊耐力"))
-    m.heading("safety.deep.pile.heading", "(b) 杭位置（上側引張）", 3)
-    m.line("safety.deep.pile.check", "γi・Vd / Vsd ≦ 1.0")
-    _definitions(m, "safety.deep.pile.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
-                 Definition("Vd", "設計せん断力"), Definition("Vsd", "設計引抜きせん断耐力"))
+    tension) and of the pile position (Vsd, upper tension), whose pages are Capacita's; *text* the sentence before them.
+    A check without a Vd of *case* (decision 124) has the sentence that it is omitted in place of its formula."""
+    gamma_i = value(_factors(check, limit_state).ri)
+    m.heading(f"{key}.heading", "2) せん断力に対する照査", 2)
+    if text is not None:
+        m.paragraph(f"{key}.text", text)
+    m.heading(f"{key}.face.heading", "(a) く体前面（下側引張）", 3)
+    if check.sheared(case, "lower_tension"):
+        m.line(f"{key}.face.check", "γi・Vd / Vfdd ≦ 1.0")
+        _definitions(m, f"{key}.face.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
+                     Definition("Vd", "設計せん断力"), Definition("Vfdd", "設計せん断圧縮破壊耐力"))
+    else:
+        m.paragraph(f"{key}.face.omitted", FACE_OMITTED)
+    m.heading(f"{key}.pile.heading", "(b) 杭位置（上側引張）", 3)
+    if check.sheared(case, "upper_tension"):
+        m.line(f"{key}.pile.check", "γi・Vd / Vsd ≦ 1.0")
+        _definitions(m, f"{key}.pile.symbols", Definition("γi", f"構造物係数(= {gamma_i})"),
+                     Definition("Vd", "設計せん断力"), Definition("Vsd", "設計引抜きせん断耐力"))
+    else:
+        m.paragraph(f"{key}.pile.omitted", PILE_OMITTED)
+
+
+def _safety_deep_beam(m: Manuscript, check: PileFootingCheckResult, chapter: Chapter) -> None:
+    _deep_beam(m, "safety.deep", check, Case.SAFETY, SAFETY)
+
+
+# the sentence of the sample V-138 before the checks of 復旧性（地震時） (decision 124)
+DEEP_BEAM_RESTORABILITY = ("せん断力を受ける部材の照査は，設計せん断力Vdを設計応答値，下側引張に対しては，設計せん断圧縮破壊耐力"
+                           "Vfdd，上側引張に対しては，せん断補強鉄筋により受け持たれる設計引抜せん断耐力Vsdを設計限界値として，"
+                           "以下に述べる式により照査する．")
+
+
+def _restorability_deep_beam(m: Manuscript, check: PileFootingCheckResult, chapter: Chapter) -> None:
+    _deep_beam(m, "restorability.deep", check, Case.SEISMIC, SEISMIC_RESTORABILITY, DEEP_BEAM_RESTORABILITY)
 
 
 def _durability(m: Manuscript, check: FootingCheckResult, chapter: Chapter) -> None:
@@ -210,7 +244,8 @@ def _rebar_amount(m: Manuscript, check: FootingCheckResult, chapter: Chapter) ->
 _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destruction": _safety_shear,
           "shear_deep_beam_safety_destruction": _safety_deep_beam,
           "bending_durability": _durability, "bending_restorability_eq": _restorability_moment,
-          "shear_restorability_eq": _restorability_shear, "bending_rebar_amount": _rebar_amount}
+          "shear_restorability_eq": _restorability_shear,
+          "shear_deep_beam_restorability_eq": _restorability_deep_beam, "bending_rebar_amount": _rebar_amount}
 
 
 def parts(check: FootingCheckResult, chapter: Chapter) -> tuple[tuple[tuple[Unit, ...], str], ...]:

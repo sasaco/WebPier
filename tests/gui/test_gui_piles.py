@@ -219,8 +219,10 @@ def test_a_pile_foundation_cannot_choose_an_item_it_cannot_make_yet(calculation)
 
 
 def test_a_checked_item_stays_enabled_so_that_it_can_be_unchecked(calculation, monkeypatch):
-    # an item the 鋼管ソイルセメント杭 cannot make (0710 could not before decision 122)
-    monkeypatch.setattr(outputs, "CAST_IN_PLACE_ONLY", ("longitudinal_seismic", "footing"))
+    # an item a pile foundation cannot make (0710 could not before decision 93; since decision 124 a 鋼管ソイルセメント杭
+    # makes every item a 場所打ち杭 does)
+    monkeypatch.setattr(outputs, "PILE_OUTPUT_KEYS",
+                        tuple(key for key in outputs.PILE_OUTPUT_KEYS if key != "longitudinal_seismic"))
     calculation.select("下部構造")
     type_in(calculation, FOUNDATION, "鋼管ソイルセメント杭")
     page, disabled = states(calculation)

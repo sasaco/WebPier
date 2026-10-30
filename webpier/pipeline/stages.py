@@ -1000,7 +1000,7 @@ def _pile_footing(stem: str, frames: bool = True, seismic: bool = True) -> Stage
 
 def _pile_footing_check(stage: StageSpec, direction: str,
                         parts: FootingParts = FootingParts(frames=True, seismic=True)) -> StageSpec:
-    """0810 / 0820 of a pile foundation (decision 96): the WDJ of the five points of the footing, the sections of the
+    """0810 / 0820 of a pile foundation (decision 96): the WDJ of the six points of the footing, the sections of the
     footing *parts* (decision 110; with both, the stage has the stage of each part alone)."""
     stage_id = stage.id
     chapter = footing_chapters(parts.frames, parts.seismic)[0 if direction == "longitudinal" else 1]
@@ -1026,10 +1026,10 @@ def _pile_footing_check_stage(stage: StageSpec, direction: str, chapter: Footing
 
 
 def _with_pile_footing(stage: StageSpec, direction: str | None = None) -> StageSpec:
-    """The direct footing's *stage* with its stage for a 場所打ち杭 (decision 96); each part of the footing has its own
-    (decision 110)."""
+    """The direct footing's *stage* with its stage for each pile foundation (decision 96; a 鋼管ソイルセメント杭's the same,
+    decision 124); each part of the footing has its own (decision 110)."""
     piled = _pile_footing(stage.stem) if direction is None else _pile_footing_check(stage, direction)
-    return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled})
+    return replace(stage, foundations={foundation: piled for foundation in choices.PILE_FOUNDATIONS})
 
 
 def _max_responses(files: Mapping[str, bytes], *stages: str) -> list[Any]:

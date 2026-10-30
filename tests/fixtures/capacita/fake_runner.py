@@ -21,7 +21,8 @@ does: a row of the table (Md<id>_Md, Vd<id>_Vd, Mt<id>_Mt, by limit state id) gi
 appearance check only with ``vis_u``, with the real runner's page counts (FORCE_SECTIONS, R5 of 2026-10-21; the footing
 WDJ of 0810 and 0820 gives bending_safety_destruction, shear_safety_destruction, bending_durability,
 bending_restorability_eq, shear_restorability_eq and bending_rebar_amount, the beam WDJ of 0910 every section but the
-appearance), with the warnings WD-408 / WD-409 the real runner gives for the bending / shear rows without forces (the
+appearance; a point with ``shear[].deep_beam`` has its shear of Vd5 / Vd7 in shear_deep_beam_safety_destruction /
+shear_deep_beam_restorability_eq instead, a page a point, decision 124), with the warnings WD-408 / WD-409 the real runner gives for the bending / shear rows without forces (the
 beam's table has them all: none); no ``model.wdj`` comes back.
 
 A circular WDJ (``shape`` 3: the pile body of a cast-in-place pile of 0612 and 0622, decision 91) is answered as the real runner of
@@ -71,7 +72,8 @@ FORCE_SECTIONS = (("bending_safety_destruction", 1), ("shear_safety_destruction"
                   ("bending_safety_fatigue", 1), ("shear_safety_fatigue", 2), ("bending_durability", 2),
                   ("shear_durability", 2), ("torsion_durability", 2), ("bending_serviceability", 1),
                   ("bending_restorability", 1), ("shear_restorability", 2), ("torsion_restorability", 3),
-                  ("bending_restorability_eq", 1), ("shear_restorability_eq", 2), ("torsion_restorability_eq", 3),
+                  ("bending_restorability_eq", 1), ("shear_restorability_eq", 2),
+                  ("shear_deep_beam_restorability_eq", 1), ("torsion_restorability_eq", 3),
                   ("bending_rebar_amount", 3))
 # The commentary groups, in report order (Capacita RcDan/Printers/Commentary/CommentaryGroups.cs): the first printed
 # section of a group carries its heading.
@@ -81,7 +83,8 @@ COMMENTARY_GROUPS = (("section_forces",),
                      ("bending_safety_fatigue", "shear_safety_fatigue"),
                      ("bending_durability", "shear_durability", "torsion_durability"), ("bending_serviceability",),
                      ("bending_restorability", "shear_restorability", "torsion_restorability"),
-                     ("bending_restorability_eq", "shear_restorability_eq", "torsion_restorability_eq"),
+                     ("bending_restorability_eq", "shear_restorability_eq", "shear_deep_beam_restorability_eq",
+                      "torsion_restorability_eq"),
                      ("bending_rebar_amount",))
 # The section each row of the force table asks for, by the row's prefix and limit state id.
 SECTION_OF_ROW = {("Md", 0): "bending_durability", ("Md", 1): "bending_durability", ("Md", 3): "bending_safety_fatigue",
@@ -107,18 +110,23 @@ def force_sections(document):
     if crack.get("vis_u") and "bending_durability" in asked:
         asked.add("bending_serviceability")
     # the points with a shear[].deep_beam (the footing of a pile foundation, decision 96) have the deep beam check in a section of
-    # its own, a page each, and are not in the ordinary shear's
-    deep = [row for row in document.get("shear") or () if row.get("deep_beam")]
-    if deep:
-        asked.discard("shear_safety_destruction")
-        asked.add("shear_deep_beam_safety_destruction")
-    else:
-        asked.discard("shear_deep_beam_safety_destruction")
+    # its own, a page each that has the forces of its row (Vd5 安全性（破壊）, Vd7 復旧性（地震時）, decision 124), and are not in
+    # the ordinary shear's
+    deep = {row["index"] for row in document.get("shear") or () if row.get("deep_beam")}
+    forces = {row.get("index"): row for row in document.get("force") or ()}
+    counts = {}
+    for number, ordinary, section in ((5, "shear_safety_destruction", "shear_deep_beam_safety_destruction"),
+                                      (7, "shear_restorability_eq", "shear_deep_beam_restorability_eq")):
+        counts[section] = sum(1 for index in deep if forces.get(index, {}).get(f"Vd{number}_Vd") is not None)
+        others = [row for index, row in forces.items() if index not in deep and row.get(f"Vd{number}_Vd") is not None]
+        if not others:
+            asked.discard(ordinary)
+        if counts[section]:
+            asked.add(section)
     if any(member.get("shape") == 3 for member in document.get("members") or ()) and not all(
             point.get("isUpperCalc") and point.get("isLowerCalc") for point in document.get("points") or ()):
         asked.clear()
-    return [(name, len(deep) if name == "shear_deep_beam_safety_destruction" else pages)
-            for name, pages in FORCE_SECTIONS if name in asked]
+    return [(name, counts.get(name, pages)) for name, pages in FORCE_SECTIONS if name in asked]
 
 
 def circle_error(document):

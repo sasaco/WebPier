@@ -2,10 +2,13 @@
 the sections of the footing and the design section forces of each, for each direction.
 
 WebPier lays out every page from ``calc.pile_footing``'s result: for the direction, 1) the effective width of each point
-(the rule, the quantities it takes, and the result with the footing width it is limited to), and 2) the design section
-forces of each point by check (安全性（破壊）, 耐久性の 永久＋変動 and 永久, 復旧性（地震時）): where on the footing they are read
-(the side of the column, the member and its end), the combination, the bending moment (a lower tension positive, an upper
-tension negative) and, at the points of the deep beam shear, the shear force; those of 安全性（破壊） are the frame's times
+(the rule, the quantities it takes — of the shear at the face each pile's a1 and width, of a pile position whose piles'
+widths are apart the width of each piece, decision 124 — and the result with the footing width it is limited to; that of
+Vsd is the footing width B itself, decision 124), and
+2) the design section forces of each point by check (安全性（破壊）, 耐久性の 永久＋変動 and 永久, 復旧性（地震時）): where on the
+footing they are read (the side of the column, the member and its end), the combination, the bending moment (a lower
+tension positive, an upper tension negative) and, at the points of the deep beam shear, the shear force of 安全性（破壊） and
+復旧性（地震時） (decision 124); those of 安全性（破壊） are the frame's times
 the 応答値係数 γR, which the section says (decision 104). Every number is a ``Printed`` value (ADR-0003); nothing is
 calculated here. The report begins with the chapter heading §12 and 12.1, as the direct footing's (decision 117).
 """
@@ -19,7 +22,7 @@ from typing import Any
 from gridlayoutpdf import Document
 
 from ...calc.pile_body import GAMMA_R
-from ...calc.pile_footing import CASES, Case, End, FootingDirection, FootingResult, Force, SectionForces
+from ...calc.pile_footing import CASES, FULL_WIDTH, Case, End, FootingDirection, FootingResult, Force, SectionForces
 from ..document import report
 from .footing import CHAPTER_TITLE, SECTION_TITLE
 from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, value
@@ -49,7 +52,8 @@ def _width_table(direction: FootingDirection) -> TableSpec:
         terms = "\n".join(f"{name} = {value(amount)}" for name, amount in width.terms)
         heights.append(len(width.terms))
         rows.append((Span(item.point.name if item.point.bending else f"{item.point.position}（せん断）", align="left"),
-                     Span(f"{width.rule} ≦ B", align="left"), Span(terms, align="left"),
+                     Span(width.rule if width.rule == FULL_WIDTH else f"{width.rule} ≦ B", align="left"),
+                     Span(terms, align="left"),
                      Span(value(width.be), align="right")))
     return TableSpec(WIDTH_COLUMNS, tuple(rows), tuple(heights), header_rows=1, left=TABLE_LEFT)
 
@@ -68,15 +72,15 @@ def _forces_table(forces: SectionForces) -> TableSpec:
             continue
         rows.append((Span(label, align="left"), Span(symbol, align="left"),
                      *(Span(cell(found[case]), align="right") for case in cases)))
-    if point.deep_beam is not None:
-        safety = found[Case.SAFETY]
-        rows.append((Span("設計せん断力", align="left"), Span("Vd (kN)", align="left"),
-                     *(Span(value(safety.vd) if case is Case.SAFETY else DASH, align="right") for case in cases)))
-        rows.append((Span("組合せ", align="left"), Span("No", align="left"),
-                     *(Span(str(safety.vd_combination) if case is Case.SAFETY else DASH, align="right")
-                       for case in cases)))
-        rows.append((Span("着目端", align="left"), Span("", align="left"),
-                     *(Span(_where(safety.vd_end) if case is Case.SAFETY else DASH, align="right") for case in cases)))
+    if point.deep_beam is not None:  # the shear of 安全性（破壊） and 復旧性（地震時） (decision 124)
+        shear: list[tuple[str, str, Callable[[Force], str]]] = [
+            ("設計せん断力", "Vd (kN)", lambda force: value(force.vd)),
+            ("組合せ", "No", lambda force: str(force.vd_combination)),
+            ("着目端", "", lambda force: _where(force.vd_end))]
+        for label, symbol, cell in shear:
+            rows.append((Span(label, align="left"), Span(symbol, align="left"),
+                         *(Span(DASH if found[case].vd is None else cell(found[case]), align="right")
+                           for case in cases)))
     return TableSpec((*FORCE_COLUMNS, *(CASE_WIDTH,) * len(cases)), tuple(rows), (2,) + (1,) * (len(rows) - 1),
                      header_rows=1, left=TABLE_LEFT)
 
