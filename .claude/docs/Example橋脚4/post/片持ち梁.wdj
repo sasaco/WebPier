@@ -1,0 +1,595 @@
+{
+  "$schema": "urn:webdan:wdj:1.0.0",
+  "format": "wdj",
+  "schema_version": "1.0.0",
+  "ver": "1.0.0",
+  "lang": "ja",
+  "pickup_filename": "",
+  "pickup_data": null,
+  "basic": {
+    "specification1_list": [
+      {
+        "id": 0,
+        "title": "Rail",
+        "selected": true
+      },
+      {
+        "id": 3,
+        "title": "Bangladesh",
+        "selected": false
+      }
+    ],
+    "specification2_list": [
+      {
+        "id": 0,
+        "title": "H16_Rail",
+        "selected": false
+      },
+      {
+        "id": 1,
+        "title": "H16_Shinkansen",
+        "selected": false
+      },
+      {
+        "id": 2,
+        "title": "H16_JREast",
+        "selected": false
+      },
+      {
+        "id": 3,
+        "title": "R5_Rail",
+        "selected": true
+      },
+      {
+        "id": 4,
+        "title": "R5_Shinkansen",
+        "selected": false
+      },
+      {
+        "id": 8,
+        "title": "R5_JREast",
+        "selected": false
+      }
+    ],
+    "pickup_moment": [
+      {
+        "id": 0,
+        "title": "耐久性 応力度",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 2,
+        "title": "安全性 疲労限",
+        "no": null
+      },
+      {
+        "id": 3,
+        "title": "安全性 永久作用",
+        "no": null
+      },
+      {
+        "id": 4,
+        "title": "安全性 永久＋変動",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      },
+      {
+        "id": 8,
+        "title": "最小鉄筋量",
+        "no": null
+      }
+    ],
+    "pickup_shear_force": [
+      {
+        "id": 0,
+        "title": "耐久性 ひび割れ判定",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 2,
+        "title": "耐久性 変動荷重",
+        "no": null
+      },
+      {
+        "id": 3,
+        "title": "安全性 永久作用",
+        "no": null
+      },
+      {
+        "id": 4,
+        "title": "安全性 永久＋変動",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      }
+    ],
+    "pickup_torsional_moment": [
+      {
+        "id": 0,
+        "title": "耐久性 ひび割れ判定",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      }
+    ],
+    "conditions_list": [
+      {
+        "id": "JR-001",
+        "title": "ひび割れ幅制限値に用いるかぶりは 100mm を上限とする",
+        "selected": true
+      },
+      {
+        "id": "JR-004",
+        "title": "せん断耐力におけるβn算定時の Mud は軸力を考慮しない",
+        "selected": true
+      }
+    ]
+  },
+  "members": [
+    {
+      "m_no": 1,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "片持ち梁",
+      "shape": 1,
+      "B": 2500,
+      "H": 2000,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    }
+  ],
+  "crack": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "p_name": null,
+      "con_u": 2,
+      "con_l": 2,
+      "con_s": 2,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    }
+  ],
+  "points": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "position": null,
+      "p_name": "柱前面",
+      "p_id": null,
+      "isMyCalc": false,
+      "isVyCalc": true,
+      "isMzCalc": true,
+      "isVzCalc": false,
+      "isMtCalc": true,
+      "axis_type": 2,
+      "isUpperCalc": true,
+      "isLowerCalc": true
+    }
+  ],
+  "bar": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 14,
+        "rebar_cover": 80,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 177.1,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 16,
+        "rebar_n": 10,
+        "rebar_cover": 72,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 257.6,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": 19,
+        "side_n": 14,
+        "side_cover": 200,
+        "side_ss": 125
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 19,
+        "stirrup_n": 6,
+        "stirrup_ss": 125
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "柱前面",
+      "b": 2500,
+      "h": 2000
+    }
+  ],
+  "shear": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "p_name": "柱前面",
+      "La": 1225,
+      "fixed_end": null,
+      "L": null,
+      "concrete": null,
+      "bar": null,
+      "g_name": null
+    }
+  ],
+  "fatigues": {
+    "fatigue_list": [
+      {
+        "m_no": null,
+        "index": 1,
+        "g_name": null,
+        "p_name": null,
+        "b": null,
+        "h": null,
+        "M1": {
+          "SA": 0.744,
+          "SB": 0.982,
+          "NA06": 19.51,
+          "NB06": 21.57,
+          "NA12": null,
+          "NB12": null,
+          "A": 1,
+          "B": 1,
+          "r1_1": 1,
+          "r1_3": null,
+          "Class": null,
+          "weld": null
+        },
+        "V1": {
+          "SA": 0.744,
+          "SB": 0.982,
+          "NA06": 19.51,
+          "NB06": 21.57,
+          "NA12": null,
+          "NB12": null,
+          "A": 1,
+          "B": 1,
+          "r1_2": 0.65,
+          "r1_3": 1
+        },
+        "M2": {
+          "SA": null,
+          "SB": null,
+          "NA06": null,
+          "NB06": null,
+          "NA12": null,
+          "NB12": null,
+          "A": null,
+          "B": null,
+          "r1_1": null,
+          "r1_3": null,
+          "Class": null,
+          "weld": null
+        },
+        "V2": {
+          "SA": null,
+          "SB": null,
+          "NA06": null,
+          "NB06": null,
+          "NA12": null,
+          "NB12": null,
+          "A": null,
+          "B": null,
+          "r1_2": null,
+          "r1_3": null
+        }
+      }
+    ],
+    "train_A_count": "80",
+    "train_B_count": "75",
+    "service_life": "100"
+  },
+  "safety": {
+    "safety_factor": {
+      "1": [
+        {
+          "id": 0,
+          "title": "耐久性, 使用性",
+          "M_rc": 1,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1,
+          "V_rs": 1,
+          "V_rbc": 1,
+          "V_rbs": 1,
+          "V_rbv": null,
+          "T_rbt": 1,
+          "ri": 1,
+          "range": 1
+        },
+        {
+          "id": 2,
+          "title": "安全性（疲労破壊）",
+          "M_rc": 1.3,
+          "M_rs": 1.05,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1.05,
+          "V_rbc": 1.3,
+          "V_rbs": 1,
+          "V_rbv": null,
+          "T_rbt": null,
+          "ri": 1.1,
+          "range": 2
+        },
+        {
+          "id": 5,
+          "title": "安全性（破壊）",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1.1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1.2,
+          "range": 3
+        },
+        {
+          "id": 6,
+          "title": "使用性（損傷）",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1.2,
+          "range": 3
+        },
+        {
+          "id": 7,
+          "title": "復旧性（損傷）地震時",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1,
+          "range": 3
+        },
+        {
+          "id": 8,
+          "title": "最小鉄筋量",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": null,
+          "V_rs": null,
+          "V_rbc": null,
+          "V_rbs": null,
+          "V_rbv": null,
+          "T_rbt": null,
+          "ri": 1,
+          "range": 3
+        }
+      ]
+    },
+    "material_bar": {
+      "1": [
+        {
+          "separate": 25,
+          "tensionBar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "sidebar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "stirrup": {
+            "fsy": 390,
+            "fsu": 560
+          }
+        },
+        {
+          "separate": 29,
+          "tensionBar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "sidebar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "stirrup": {
+            "fsy": 390,
+            "fsu": 560
+          }
+        }
+      ]
+    },
+    "material_concrete": {
+      "1": {
+        "fck": 40,
+        "dmax": 25
+      }
+    },
+    "pile_factor": {
+      "1": [
+        {
+          "id": "pile-000",
+          "title": "使用しない",
+          "rfck": 1.0,
+          "rfbok": 1.0,
+          "rEc": 1.0,
+          "rVcd": 1.0,
+          "selected": true
+        }
+      ]
+    }
+  },
+  "force": [
+    {
+      "index": 1,
+      "Md0_Md": -3259.88,
+      "Md0_Nd": null,
+      "Md1_Md": -2338.72,
+      "Md1_Nd": null,
+      "Md2_Md": null,
+      "Md2_Nd": null,
+      "Md3_Md": -2338.72,
+      "Md3_Nd": null,
+      "Md4_Md": -3259.88,
+      "Md4_Nd": null,
+      "Md5_Md": -3882.88,
+      "Md5_Nd": null,
+      "Md6_Md": -3504.79,
+      "Md6_Nd": null,
+      "Md7_Md": -4767.45,
+      "Md7_Nd": null,
+      "Md8_Md": -2338.72,
+      "Md8_Nd": null,
+      "Vd0_Vd": 3687.79,
+      "Vd0_Md": -3212.8,
+      "Vd0_Nd": null,
+      "Vd1_Vd": 2640.1,
+      "Vd1_Md": -2338.72,
+      "Vd1_Nd": null,
+      "Vd2_Vd": 1047.69,
+      "Vd2_Md": -874.08,
+      "Vd2_Nd": null,
+      "Vd3_Vd": null,
+      "Vd3_Md": null,
+      "Vd3_Nd": null,
+      "Vd4_Vd": null,
+      "Vd4_Md": null,
+      "Vd4_Nd": null,
+      "Vd5_Vd": 4345.68,
+      "Vd5_Md": -3792.14,
+      "Vd5_Nd": null,
+      "Vd6_Vd": 3916.89,
+      "Vd6_Md": -3419.38,
+      "Vd6_Nd": null,
+      "Vd7_Vd": 5278.03,
+      "Vd7_Md": -4767.45,
+      "Vd7_Nd": null,
+      "Mt0_Mt": -902.51,
+      "Mt0_Md": -2598.76,
+      "Mt0_Vd": 3217.97,
+      "Mt0_Nd": null,
+      "Mt1_Mt": -498,
+      "Mt1_Md": -2338.72,
+      "Mt1_Vd": 2640.1,
+      "Mt1_Nd": null,
+      "Mt5_Mt": -1314.27,
+      "Mt5_Md": -2928.08,
+      "Mt5_Vd": 3648.88,
+      "Mt5_Nd": null,
+      "Mt6_Mt": -1209.04,
+      "Mt6_Md": -2623.05,
+      "Mt6_Vd": 3271.94,
+      "Mt6_Nd": null,
+      "Mt7_Mt": -2027.04,
+      "Mt7_Md": -2673.98,
+      "Mt7_Vd": 2996.33,
+      "Mt7_Nd": null
+    }
+  ],
+  "calc": {
+    "print_calculate_checked": true,
+    "print_section_force_checked": false,
+    "print_safety_ratio_checked": false,
+    "print_summary_table_checked": false,
+    "calculate_moment_checked": true,
+    "calculate_shear_force": true,
+    "calculate_torsional_moment": true,
+    "member_group_selection": []
+  }
+}

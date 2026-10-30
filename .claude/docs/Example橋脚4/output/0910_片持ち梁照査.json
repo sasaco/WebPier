@@ -1,0 +1,1412 @@
+{
+  "schema_version": 1,
+  "stage": "0910",
+  "input": {
+    "file": "input.json",
+    "sha256": "6707a39e9b1951d84bcc98befeb5896a721099cf263d6cc64c6c38a982c5c04e"
+  },
+  "implementation_sha256": "0b4ed55b7c3a0425c4bd337a99f7e6190cceae208513f7562c561ceceeadb44d",
+  "result": {
+    "width": 2500.0,
+    "depth": 2000.0,
+    "shear_span": 1.225,
+    "upper": {
+      "diameter": 32.0,
+      "per_layer": 14.0,
+      "layers": 1,
+      "count": 14.0,
+      "cover": 80.0,
+      "layer_spacing": null,
+      "spacing": 177.1
+    },
+    "lower": {
+      "diameter": 16.0,
+      "per_layer": 10.0,
+      "layers": 1,
+      "count": 10.0,
+      "cover": 72.0,
+      "layer_spacing": null,
+      "spacing": 257.6
+    },
+    "side": {
+      "diameter": 19.0,
+      "count": 14.0,
+      "first": 200.0,
+      "spacing": 125.0
+    },
+    "stirrups": {
+      "diameter": 19.0,
+      "legs": 6,
+      "pitch": 125.0
+    },
+    "main_steel": {
+      "grade": "SD390",
+      "fsy": 390.0,
+      "fsu": 560.0
+    },
+    "side_steel": {
+      "grade": "SD390",
+      "fsy": 390.0,
+      "fsu": 560.0
+    },
+    "stirrup_steel": {
+      "grade": "SD390",
+      "fsy": 390.0,
+      "fsu": 560.0
+    },
+    "fck": 40.0,
+    "aggregate_max": 25.0,
+    "environments": {
+      "上面": "乾湿繰返し",
+      "下面": "乾湿繰返し",
+      "側面": "乾湿繰返し"
+    },
+    "environment_numbers": {
+      "上面": 2,
+      "下面": 2,
+      "側面": 2
+    },
+    "appearance": false,
+    "ecsd": 300.0,
+    "body": "JR各社",
+    "jr001": true,
+    "jr004": true,
+    "fatigue": {
+      "passenger_trains": 80,
+      "freight_trains": 75,
+      "service_life": 100,
+      "na06": 19.51,
+      "na12": null,
+      "nb06": 21.57,
+      "nb12": null,
+      "sa_ratio": 0.744,
+      "sb_ratio": 0.982,
+      "gamma1_main": 1.0,
+      "gamma1_stirrup": 0.65
+    },
+    "safety": [
+      {
+        "id": 0,
+        "title": "耐久性, 使用性",
+        "m_rc": 1.0,
+        "m_rs": 1.0,
+        "m_rbs": 1.0,
+        "v_rc": 1.0,
+        "v_rs": 1.0,
+        "v_rbc": 1.0,
+        "v_rbs": 1.0,
+        "v_rbv": null,
+        "t_rbt": 1.0,
+        "ri": 1.0,
+        "range": 1
+      },
+      {
+        "id": 2,
+        "title": "安全性（疲労破壊）",
+        "m_rc": 1.3,
+        "m_rs": 1.05,
+        "m_rbs": 1.0,
+        "v_rc": 1.3,
+        "v_rs": 1.05,
+        "v_rbc": 1.3,
+        "v_rbs": 1.0,
+        "v_rbv": null,
+        "t_rbt": null,
+        "ri": 1.1,
+        "range": 2
+      },
+      {
+        "id": 5,
+        "title": "安全性（破壊）",
+        "m_rc": 1.3,
+        "m_rs": 1.0,
+        "m_rbs": 1.1,
+        "v_rc": 1.3,
+        "v_rs": 1.0,
+        "v_rbc": 1.3,
+        "v_rbs": 1.1,
+        "v_rbv": 1.2,
+        "t_rbt": 1.3,
+        "ri": 1.2,
+        "range": 3
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "m_rc": 1.3,
+        "m_rs": 1.0,
+        "m_rbs": 1.0,
+        "v_rc": 1.3,
+        "v_rs": 1.0,
+        "v_rbc": 1.3,
+        "v_rbs": 1.1,
+        "v_rbv": 1.2,
+        "t_rbt": 1.3,
+        "ri": 1.2,
+        "range": 3
+      },
+      {
+        "id": 7,
+        "title": "復旧性（損傷）地震時",
+        "m_rc": 1.3,
+        "m_rs": 1.0,
+        "m_rbs": 1.0,
+        "v_rc": 1.3,
+        "v_rs": 1.0,
+        "v_rbc": 1.3,
+        "v_rbs": 1.1,
+        "v_rbv": 1.2,
+        "t_rbt": 1.3,
+        "ri": 1.0,
+        "range": 3
+      },
+      {
+        "id": 8,
+        "title": "最小鉄筋量",
+        "m_rc": 1.3,
+        "m_rs": 1.0,
+        "m_rbs": 1.0,
+        "v_rc": null,
+        "v_rs": null,
+        "v_rbc": null,
+        "v_rbs": null,
+        "v_rbv": null,
+        "t_rbt": null,
+        "ri": 1.0,
+        "range": 3
+      }
+    ],
+    "kr": 0.5,
+    "k4": 0.85,
+    "selections": [
+      {
+        "row": 0,
+        "title": "耐久性 縁応力度検討用",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 30,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": "C支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 611.5,
+              "md": 640.59,
+              "mt": -3.7
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 263.75,
+              "md": 280.57,
+              "mt": 3.35
+            }
+          ],
+          "n": 3515.35,
+          "md": 3259.88,
+          "mt": -498.35
+        }
+      },
+      {
+        "row": 0,
+        "title": "耐久性 縁応力度検討用",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 31,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": "B+C支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 739.46,
+              "md": 611.77,
+              "mt": -193.61
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 308.23,
+              "md": 262.31,
+              "mt": -72.22
+            }
+          ],
+          "n": 3687.79,
+          "md": 3212.8,
+          "mt": -763.83
+        }
+      },
+      {
+        "row": 0,
+        "title": "耐久性 縁応力度検討用",
+        "quantity": "ねじり",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 29,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": "B支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 415.14,
+              "md": 186.81,
+              "mt": -290.6
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 162.73,
+              "md": 73.23,
+              "mt": -113.91
+            }
+          ],
+          "n": 3217.97,
+          "md": 2598.76,
+          "mt": -902.51
+        }
+      },
+      {
+        "row": 1,
+        "title": "耐久性（永久荷重）",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      },
+      {
+        "row": 1,
+        "title": "耐久性（永久荷重）",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      },
+      {
+        "row": 1,
+        "title": "耐久性（永久荷重）",
+        "quantity": "ねじり",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      },
+      {
+        "row": 2,
+        "title": "耐久性（変動荷重）",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 35,
+            "state": "安全性(疲労)",
+            "remark": "〃",
+            "d1": null,
+            "d2": null,
+            "snow": null,
+            "train": {
+              "loading": "B+C支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 739.46,
+              "md": 611.77,
+              "mt": -193.61
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 308.23,
+              "md": 262.31,
+              "mt": -72.22
+            }
+          ],
+          "n": 1047.69,
+          "md": 874.08,
+          "mt": -265.83
+        }
+      },
+      {
+        "row": 3,
+        "title": "安全性（疲労破壊）永久作用",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      },
+      {
+        "row": 3,
+        "title": "安全性（疲労破壊）永久作用",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      },
+      {
+        "row": 4,
+        "title": "安全性（疲労破壊）永久＋変動",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 30,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": "C支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 611.5,
+              "md": 640.59,
+              "mt": -3.7
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 263.75,
+              "md": 280.57,
+              "mt": 3.35
+            }
+          ],
+          "n": 3515.35,
+          "md": 3259.88,
+          "mt": -498.35
+        }
+      },
+      {
+        "row": 4,
+        "title": "安全性（疲労破壊）永久＋変動",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 31,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": "B+C支点最大",
+              "group": "使用性",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 739.46,
+              "md": 611.77,
+              "mt": -193.61
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 308.23,
+              "md": 262.31,
+              "mt": -72.22
+            }
+          ],
+          "n": 3687.79,
+          "md": 3212.8,
+          "mt": -763.83
+        }
+      },
+      {
+        "row": 5,
+        "title": "安全性（破壊）",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 2,
+            "state": "安全性(破壊)",
+            "remark": "列車最大",
+            "d1": 1.1,
+            "d2": 1.2,
+            "snow": "snow10",
+            "train": {
+              "loading": "C支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.1,
+              "impact": true
+            },
+            "lateral": 1.0,
+            "wind": [
+              "列車荷重がある場合",
+              1.0
+            ],
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.1",
+              "n": 2356.86,
+              "md": 2102.55,
+              "mt": -424.6
+            },
+            {
+              "column": "D2",
+              "factor": "1.2",
+              "n": 597.0,
+              "md": 512.77,
+              "mt": -134.4
+            },
+            {
+              "column": "L",
+              "factor": "1.10",
+              "n": 672.65,
+              "md": 704.65,
+              "mt": -4.07
+            },
+            {
+              "column": "I",
+              "factor": "1.10",
+              "n": 386.91,
+              "md": 411.68,
+              "mt": 5.03
+            },
+            {
+              "column": "LF",
+              "factor": "1.00",
+              "n": 56.71,
+              "md": 69.47,
+              "mt": 11.34
+            },
+            {
+              "column": "W",
+              "factor": "1.0",
+              "n": 84.57,
+              "md": 81.76,
+              "mt": -8.45
+            }
+          ],
+          "n": 4154.7,
+          "md": 3882.88,
+          "mt": -555.15
+        }
+      },
+      {
+        "row": 5,
+        "title": "安全性（破壊）",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 3,
+            "state": "安全性(破壊)",
+            "remark": "列車最大",
+            "d1": 1.1,
+            "d2": 1.2,
+            "snow": "snow10",
+            "train": {
+              "loading": "B+C支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.1,
+              "impact": true
+            },
+            "lateral": 1.0,
+            "wind": [
+              "列車荷重がある場合",
+              1.0
+            ],
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.1",
+              "n": 2356.86,
+              "md": 2102.55,
+              "mt": -424.6
+            },
+            {
+              "column": "D2",
+              "factor": "1.2",
+              "n": 597.0,
+              "md": 512.77,
+              "mt": -134.4
+            },
+            {
+              "column": "L",
+              "factor": "1.10",
+              "n": 813.41,
+              "md": 672.95,
+              "mt": -212.97
+            },
+            {
+              "column": "I",
+              "factor": "1.10",
+              "n": 451.92,
+              "md": 384.75,
+              "mt": -105.71
+            },
+            {
+              "column": "LF",
+              "factor": "1.00",
+              "n": 41.92,
+              "md": 37.36,
+              "mt": -7.87
+            },
+            {
+              "column": "W",
+              "factor": "1.0",
+              "n": 84.57,
+              "md": 81.76,
+              "mt": -8.45
+            }
+          ],
+          "n": 4345.68,
+          "md": 3792.14,
+          "mt": -894.0
+        }
+      },
+      {
+        "row": 5,
+        "title": "安全性（破壊）",
+        "quantity": "ねじり",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 9,
+            "state": "安全性(破壊)",
+            "remark": "列車最大",
+            "d1": 1.1,
+            "d2": 1.2,
+            "snow": "snow10",
+            "train": {
+              "loading": "B支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.1,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": "safety 1.0 LR + 1.0 B",
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.1",
+              "n": 2356.86,
+              "md": 2102.55,
+              "mt": -424.6
+            },
+            {
+              "column": "D2",
+              "factor": "1.2",
+              "n": 597.0,
+              "md": 512.77,
+              "mt": -134.4
+            },
+            {
+              "column": "L",
+              "factor": "1.10",
+              "n": 456.65,
+              "md": 205.49,
+              "mt": -319.66
+            },
+            {
+              "column": "I",
+              "factor": "1.10",
+              "n": 238.37,
+              "md": 107.27,
+              "mt": -166.86
+            },
+            {
+              "column": "LR+B",
+              "factor": "1.0LR+1.00B",
+              "n": 0.0,
+              "md": 0.0,
+              "mt": -268.75
+            }
+          ],
+          "n": 3648.88,
+          "md": 2928.08,
+          "mt": -1314.27
+        }
+      },
+      {
+        "row": 6,
+        "title": "使用性（損傷）",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 20,
+            "state": "使用性(損傷)",
+            "remark": "列車最大",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow10",
+            "train": {
+              "loading": "C支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": 1.0,
+            "wind": [
+              "列車荷重がある場合",
+              1.0
+            ],
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 611.5,
+              "md": 640.59,
+              "mt": -3.7
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 351.74,
+              "md": 374.25,
+              "mt": 4.57
+            },
+            {
+              "column": "LF",
+              "factor": "1.00",
+              "n": 56.71,
+              "md": 69.47,
+              "mt": 11.34
+            },
+            {
+              "column": "W",
+              "factor": "1.0",
+              "n": 84.57,
+              "md": 81.76,
+              "mt": -8.45
+            }
+          ],
+          "n": 3744.62,
+          "md": 3504.79,
+          "mt": -494.24
+        }
+      },
+      {
+        "row": 6,
+        "title": "使用性（損傷）",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 21,
+            "state": "使用性(損傷)",
+            "remark": "列車最大",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow10",
+            "train": {
+              "loading": "B+C支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": 1.0,
+            "wind": [
+              "列車荷重がある場合",
+              1.0
+            ],
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 739.46,
+              "md": 611.77,
+              "mt": -193.61
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 410.84,
+              "md": 349.77,
+              "mt": -96.1
+            },
+            {
+              "column": "LF",
+              "factor": "1.00",
+              "n": 41.92,
+              "md": 37.36,
+              "mt": -7.87
+            },
+            {
+              "column": "W",
+              "factor": "1.0",
+              "n": 84.57,
+              "md": 81.76,
+              "mt": -8.45
+            }
+          ],
+          "n": 3916.89,
+          "md": 3419.38,
+          "mt": -804.03
+        }
+      },
+      {
+        "row": 6,
+        "title": "使用性（損傷）",
+        "quantity": "ねじり",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 24,
+            "state": "使用性(損傷)",
+            "remark": "列車最大",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow10",
+            "train": {
+              "loading": "B支点最大",
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": true
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": "safety 1.0 LR + 1.0 B",
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 415.14,
+              "md": 186.81,
+              "mt": -290.6
+            },
+            {
+              "column": "I",
+              "factor": "1.00",
+              "n": 216.7,
+              "md": 97.52,
+              "mt": -151.69
+            },
+            {
+              "column": "LR+B",
+              "factor": "1.0LR+1.00B",
+              "n": 0.0,
+              "md": 0.0,
+              "mt": -268.75
+            }
+          ],
+          "n": 3271.94,
+          "md": 2623.05,
+          "mt": -1209.04
+        }
+      },
+      {
+        "row": 7,
+        "title": "復旧性（損傷）地震時",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 27,
+            "state": "復旧性(地震時)",
+            "remark": "〃",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": null,
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": false
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": "直角"
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 356.23,
+              "md": 335.26,
+              "mt": -46.19
+            },
+            {
+              "column": "EQ",
+              "factor": "1.0",
+              "n": 2281.7,
+              "md": 2093.47,
+              "mt": -358.44
+            }
+          ],
+          "n": 5278.03,
+          "md": 4767.45,
+          "mt": -902.63
+        }
+      },
+      {
+        "row": 7,
+        "title": "復旧性（損傷）地震時",
+        "quantity": "せん断",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 27,
+            "state": "復旧性(地震時)",
+            "remark": "〃",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": null,
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": false
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": "直角"
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 356.23,
+              "md": 335.26,
+              "mt": -46.19
+            },
+            {
+              "column": "EQ",
+              "factor": "1.0",
+              "n": 2281.7,
+              "md": 2093.47,
+              "mt": -358.44
+            }
+          ],
+          "n": 5278.03,
+          "md": 4767.45,
+          "mt": -902.63
+        }
+      },
+      {
+        "row": 7,
+        "title": "復旧性（損傷）地震時",
+        "quantity": "ねじり",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 28,
+            "state": "復旧性(地震時)",
+            "remark": "〃",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": {
+              "loading": null,
+              "group": "安全性(破壊)",
+              "gamma": 1.0,
+              "impact": false
+            },
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": "線路"
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            },
+            {
+              "column": "L",
+              "factor": "1.00",
+              "n": 356.23,
+              "md": 335.26,
+              "mt": -46.19
+            },
+            {
+              "column": "EQ",
+              "factor": "1.0",
+              "n": 0.0,
+              "md": 0.0,
+              "mt": -1482.85
+            }
+          ],
+          "n": 2996.33,
+          "md": 2673.98,
+          "mt": -2027.04
+        }
+      },
+      {
+        "row": 8,
+        "title": "最小鉄筋量",
+        "quantity": "曲げ",
+        "side": "左側",
+        "case": {
+          "definition": {
+            "number": 32,
+            "state": "耐久性",
+            "remark": "縁応力度",
+            "d1": 1.0,
+            "d2": 1.0,
+            "snow": "snow2",
+            "train": null,
+            "lateral": null,
+            "wind": null,
+            "bearing": null,
+            "eq": null
+          },
+          "contributions": [
+            {
+              "column": "D1",
+              "factor": "1.0",
+              "n": 2142.6,
+              "md": 1911.41,
+              "mt": -386.0
+            },
+            {
+              "column": "D2",
+              "factor": "1.0",
+              "n": 497.5,
+              "md": 427.31,
+              "mt": -112.0
+            }
+          ],
+          "n": 2640.1,
+          "md": 2338.72,
+          "mt": -498.0
+        }
+      }
+    ],
+    "cracking": {
+      "cracking_moment": {
+        "width": 2500.0,
+        "depth": 2000.0,
+        "inertia": 1670000000000.0,
+        "neutral_axis": 1000.0,
+        "area": 5000000.0,
+        "strength": 40.0,
+        "aggregate_max": 25.0,
+        "tensile_strength": 2.69,
+        "fracture_energy": 0.1,
+        "modulus": 31.0,
+        "characteristic_length": 428.0,
+        "kob": 1.05,
+        "k1b": 1.0,
+        "crack_stress": 2.82,
+        "axial": 0.0,
+        "moment": 4709.4
+      },
+      "self_weight": 225.1,
+      "permanent": 2338.72,
+      "permanent_variable": 3882.88,
+      "ecsd": 300.0,
+      "age": "200日以上"
+    }
+  },
+  "section_check": {
+    "engine": "webdan2",
+    "engine_version": "1.0.0",
+    "engineering_status": "not_evaluated",
+    "wdj": {
+      "file": "片持ち梁.wdj",
+      "sha256": "1e147d69cef347b28fb000ae7d172380a3a6c752f447745f8bdd7c5098246d4d"
+    },
+    "skipped_sections": []
+  }
+}

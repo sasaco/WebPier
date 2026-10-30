@@ -3,9 +3,9 @@
   "stage": "0400",
   "input": {
     "file": "input.json",
-    "sha256": "f7a432884b0c6e6c2322188552873cf2a456fc0b91dcea1b422a9a58c86054a1"
+    "sha256": "6707a39e9b1951d84bcc98befeb5896a721099cf263d6cc64c6c38a982c5c04e"
   },
-  "implementation_sha256": "cc343c6a6237383df70cdd6f0d803df50668a10595ecbd11e8f7d9677b864098",
+  "implementation_sha256": "0b4ed55b7c3a0425c4bd337a99f7e6190cceae208513f7562c561ceceeadb44d",
   "result": {
     "column": {
       "amount": {
@@ -496,12 +496,12 @@
       },
       "spacings": [
         {
-          "pitch": 183.9,
+          "pitch": 177.0,
           "layer": null,
           "diameter": 32.0,
-          "pitch_clear": 151.9,
+          "pitch_clear": 145.0,
           "layer_clear": null,
-          "clear": 151.9,
+          "clear": 145.0,
           "minimum": 20.0,
           "bar_factor": 1.0,
           "bar_limit": 32.0,
@@ -510,12 +510,12 @@
           "ok": true
         },
         {
-          "pitch": 265.6,
+          "pitch": 257.5,
           "layer": null,
           "diameter": 16.0,
-          "pitch_clear": 249.6,
+          "pitch_clear": 241.5,
           "layer_clear": null,
-          "clear": 249.6,
+          "clear": 241.5,
           "minimum": 20.0,
           "bar_factor": 1.0,
           "bar_limit": 16.0,
