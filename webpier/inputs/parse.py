@@ -18,7 +18,8 @@ from typing import Any
 from ..core.printed import Printed
 from ..core.reader import AbsentAsBlank, Reader
 from . import choices
-from .fields import BEAM_SURFACES, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES, SEISMIC_COEFFICIENT, SNOW_KEYS, read
+from .fields import (BEAM_SURFACES, FORCE_RATIO_TRAINS, FORCE_RATIOS, LOAD, MAX_PILE_COLUMNS, REPETITION_SLOPES,
+                     SEISMIC_COEFFICIENT, SNOW_KEYS, read)
 from .model import (
     Bearing, BrakingRule, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
     Materials, PierInput, PileFoundation, PileJoint, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
@@ -374,7 +375,13 @@ def _column_check(root: Reader) -> ColumnCheck:
 
 
 CANTILEVER_CHECK = "片持ち梁の照査"
-FATIGUE_KEYS = ("旅客列車本数", "貨物列車本数", "設計耐用年数", "等価繰返し回数")
+FATIGUE_KEYS = ("旅客列車本数", "貨物列車本数", "設計耐用年数", "等価繰返し回数", FORCE_RATIOS)
+
+
+def _force_ratios(fatigue: Reader) -> dict[str, Printed | None]:
+    """SA/SC and SB/SC (最大変動断面力比): the group and both trains are required, a value may be blank."""
+    group = fatigue.at(FORCE_RATIOS).only(*FORCE_RATIO_TRAINS)
+    return {train: read(group.at(train)) for train in FORCE_RATIO_TRAINS}
 
 
 def _cantilever_check(root: Reader) -> CantileverCheck:
@@ -391,7 +398,8 @@ def _cantilever_check(root: Reader) -> CantileverCheck:
         appearance=read(node.at("外観の照査")),
         fatigue=FatigueTrains(passenger_trains=read(fatigue.at("旅客列車本数")),
                               freight_trains=read(fatigue.at("貨物列車本数")),
-                              service_life=read(fatigue.at("設計耐用年数")), repetitions=counts))
+                              service_life=read(fatigue.at("設計耐用年数")), repetitions=counts,
+                              force_ratios=_force_ratios(fatigue)))
 
 
 def _outputs(root: Reader, foundation: str) -> tuple[str, ...]:

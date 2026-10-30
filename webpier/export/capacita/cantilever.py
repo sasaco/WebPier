@@ -10,6 +10,11 @@ in mm: a length in m would be taken for a few mm, a deep beam with βa at its ca
 水掛かりの程度 (``con_u``, ``con_l``, ``con_s``), the crack row ε'csd of 0900's cracking moment, and the fatigue
 conditions the trains of the input (the counts as text, as Capacita writes them). The side bars' centre from the side
 face (``sidebar2.side_cover``) is the one the main bars' spacing is measured from.
+
+Without the k = 0.12 repetitions (decision 125) NA12 / NB12 are blank and so are the shear forces of the fatigue rows
+(3 永久作用, 4 永久＋変動): Capacita then has no shear forces for the fatigue check of the stirrups and leaves it out of
+its report (warn WD-409, no ``shear_safety_fatigue``; the real runner, 2026-10-31), the main bars' check unchanged.
+An input with them writes the bytes it did before.
 """
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ MOMENT_ROWS = tuple(range(9))  # Md0 … Md8
 SHEAR_ROWS = tuple(range(8))  # Vd0 … Vd7
 TORSION_ROWS = (0, 1, 5, 6, 7)  # Mt0, Mt1, Mt5, Mt6, Mt7
 MILLIMETRES = Precision(0, "mm")  # the shear span a (m to 3 decimals) is a whole number of mm
+FATIGUE_ROWS = (3, 4)  # 安全性（疲労破壊） 永久作用, 永久＋変動 (calc.cantilever.combinations.FORCE_ROWS)
 
 
 def _millimetres(length: Printed) -> int | float | None:
@@ -58,6 +64,8 @@ def _force(check: CantileverSectionResult) -> dict[str, Any]:
         row[f"Md{id_}_Nd"] = None
     for id_ in SHEAR_ROWS:
         selected = check.selection(id_, Quantity.SHEAR)
+        if id_ in FATIGUE_ROWS and not check.fatigue.shear_checked:
+            selected = None  # no fatigue check of the stirrups (decision 125)
         row[f"Vd{id_}_Vd"] = None if selected is None else _number(selected.vd)
         row[f"Vd{id_}_Md"] = None if selected is None else -_number(selected.md)
         row[f"Vd{id_}_Nd"] = None

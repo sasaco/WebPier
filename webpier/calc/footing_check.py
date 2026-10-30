@@ -110,23 +110,45 @@ def _forces(column: FootingColumn | None, with_shear: bool) -> Forces | None:
     return Forces(column.key, forces.md, forces.vd, put(LENGTH_MM, d(forces.la) * 1000))
 
 
+@dataclass(frozen=True)
+class Conditions:
+    """What the input gives the footing's check (of a direct and of a pile foundation): 柱の断面照査 and the footing's
+    Dmax; a blank is an input error naming its path."""
+
+    environment: str
+    ecsd: Printed
+    body: str
+    jr001: str
+    jr004: str
+    aggregate_max: Printed
+
+
+def conditions_of(pier: PierInput) -> Conditions:
+    """The conditions of the footing's check; also its precheck, before any runner is called (decision 125)."""
+    conditions = pier.column_check
+    return Conditions(environment=_need(conditions.environment, f"{_CHECK}.水掛かりの程度"),
+                      ecsd=_need(conditions.ecsd, f"{_CHECK}.ε'csd"), body=_need(conditions.body, f"{_CHECK}.適用基準の機関"),
+                      jr001=_need(conditions.jr001, f"{_CHECK}.JR-001"), jr004=_need(conditions.jr004, f"{_CHECK}.JR-004"),
+                      aggregate_max=_need(pier.rebar.footing.aggregate_max, "鉄筋.フーチング.aggregate_max_mm"))
+
+
+def check_footing_check_inputs(pier: PierInput) -> None:
+    """The inputs of 0810 / 0820, which their completion reads after the runners, read before any (decision 125)."""
+    conditions_of(pier)
+
+
 def calculate_footing_check(pier: PierInput, footing: FootingDirection) -> FootingCheckResult:
     """The check of the overhang of the direction of *footing* (0800's result of that direction), of the parts it has."""
     rebar = footing.basis.rebar
     candidates = [column for column in (footing.column("safety_moment"), footing.column("safety_shear")) if column]
     safety = max(candidates, key=lambda column: column.forces.md.value) if candidates else None
-    conditions = pier.column_check
-    environment = _need(conditions.environment, f"{_CHECK}.水掛かりの程度")
-    ecsd = _need(conditions.ecsd, f"{_CHECK}.ε'csd")
-    body = _need(conditions.body, f"{_CHECK}.適用基準の機関")
-    jr001 = _need(conditions.jr001, f"{_CHECK}.JR-001")
-    jr004 = _need(conditions.jr004, f"{_CHECK}.JR-004")
+    found = conditions_of(pier)
+    environment, ecsd, body, jr001, jr004 = found.environment, found.ecsd, found.body, found.jr001, found.jr004
     return FootingCheckResult(
         direction=footing.basis.direction, name=NAMES[footing.basis.direction], member=MEMBER, width=WIDTH,
         depth=put(LENGTH_MM, d(pier.substructure.h[6]) * 1000), bars=rebar.main, stirrups=rebar.stirrups,
         main_steel=_steel(rebar.main.grade), stirrup_steel=_steel(rebar.stirrups.grade), fck=rebar.fck,
-        aggregate_max=_need(pier.rebar.footing.aggregate_max, "鉄筋.フーチング.aggregate_max_mm"),
-        environment=environment, environment_number=choices.WATER_EXPOSURES.index(environment) + 1, ecsd=ecsd,
+        aggregate_max=found.aggregate_max, environment=environment, environment_number=choices.WATER_EXPOSURES.index(environment) + 1, ecsd=ecsd,
         body=body, jr001=jr001 == choices.ADOPTED, jr004=jr004 == choices.ADOPTED,
         safety=_forces(safety, True), durability_short=_forces(footing.column("short_term"), False),
         durability_long=_forces(footing.column("long_term"), False), seismic=_forces(footing.column("seismic"), True),

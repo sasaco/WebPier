@@ -6,6 +6,7 @@ deliberate differences: the number shape, the filled force rows, the shear span,
 
 from __future__ import annotations
 
+import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -215,3 +216,72 @@ def test_the_bytes_are_utf8_json_without_a_bom(built):
     data = write_wdj(document)
     assert data == dump_json(document) and not data.startswith(b"\xef\xbb\xbf")
     assert json.loads(data.decode("utf-8")) == document
+
+
+# SHA-256 of write_wdj(build_cantilever_wdj(...)) for current.json (Kh 0.386 / 0.552, as result_of), computed with the
+# code of HEAD 545b406 before the k = 0.12 pair could be blank (decision 125; 12098 bytes): an input with the values
+# writes the same bytes. pre/input.json (Example2) gives the same document.
+CURRENT_WDJ_SHA256 = "a82c04c6f246facb639803a97317ef5d6dba6b993881acb0fe5935f3abf1a944"
+
+
+def test_an_input_with_the_k012_repetitions_writes_the_bytes_it_wrote_before(built):
+    _, _, document = built
+    data = write_wdj(document)
+    assert (hashlib.sha256(data).hexdigest(), len(data)) == (CURRENT_WDJ_SHA256, 12098)
+
+
+BLANK_K12 = {"片持ち梁の照査/疲労/等価繰返し回数/A列車/k=0.12": None, "片持ち梁の照査/疲労/等価繰返し回数/B列車/k=0.12": None}
+
+
+def test_without_the_k012_repetitions_the_shear_fatigue_rows_are_blank(built):
+    """Decision 125: Capacita skips the fatigue check of the stirrups when the shear rows of 疲労 (3, 4) are blank (warn
+    WD-409, no section; the real runner, 2026-10-31), and keeps that of the main bars (Md3, Md4). NA12 / NB12 are
+    blank as the input."""
+    _, _, given = built
+    pier, _, result = result_of(**BLANK_K12)
+    document = build_cantilever_wdj(calculate_cantilever_section(pier, result))
+    (force,), (before,) = document["force"], given["force"]
+    for row in (3, 4):
+        assert (force[f"Vd{row}_Vd"], force[f"Vd{row}_Md"], force[f"Vd{row}_Nd"]) == (None, None, None)
+        assert force[f"Md{row}_Md"] == before[f"Md{row}_Md"] is not None
+    assert {key: value for key, value in force.items() if not key.startswith(("Vd3_", "Vd4_"))} == {
+        key: value for key, value in before.items() if not key.startswith(("Vd3_", "Vd4_"))}
+    (row,) = document["fatigues"]["fatigue_list"]
+    for part in ("M1", "V1"):
+        assert (row[part]["NA12"], row[part]["NB12"]) == (None, None)
+        assert (row[part]["NA06"], row[part]["NB06"]) == (10.39, 10.39)
+    assert {key: value for key, value in document.items() if key not in ("force", "fatigues")} == {
+        key: value for key, value in given.items() if key not in ("force", "fatigues")}
+
+
+EXAMPLE4 = Path(__file__).parents[2] / ".claude" / "docs" / "Example橋脚4" / "pre" / "input.json"
+
+
+def test_the_force_ratios_of_the_input_are_written_for_both_trains():
+    """SA/SC and SB/SC are the input's 片持ち梁の照査.疲労.最大変動断面力比 (once program constants 1.0)."""
+    pier, _, result = result_of(**{"片持ち梁の照査/疲労/最大変動断面力比": {"A列車": 0.744, "B列車": 0.982}})
+    (row,) = build_cantilever_wdj(calculate_cantilever_section(pier, result))["fatigues"]["fatigue_list"]
+    for part in ("M1", "V1"):
+        assert (row[part]["SA"], row[part]["SB"]) == (0.744, 0.982)
+
+
+def test_the_example4_fatigue_values_give_the_samples_total_repetitions_by_hand():
+    """Example橋脚4 V-73〜74: T 100, jA 80, jB 75, NA 19.51, NB 21.57, k 0.06 and SA/SC 0.744, SB/SC 0.982 (from the
+    sample's 付属資料). Capacita calculates ΣN from the WDJ (no runner here): the values WebPier writes give, by
+    ΣN = 365·T·{jA·NA·(SA/SC)^(1/k) + jB·NB·(SB/SC)^(1/k)}, the sample's 44,036,637 回."""
+    pier = parse_input(json.loads(EXAMPLE4.read_text(encoding="utf-8")))
+    reaction = calculate_reaction(pier)
+    result = complete_cantilever(pier, reaction, calculate_cantilever(pier, reaction), _response(0.495),
+                                 _response(0.786))
+    section = calculate_cantilever_section(pier, result)
+    assert (section.fatigue.sa_ratio.value, section.fatigue.sb_ratio.value) == (0.744, 0.982)
+    fatigues = build_cantilever_wdj(section)["fatigues"]
+    (row,) = fatigues["fatigue_list"]
+    moment = row["M1"]
+    assert (moment["SA"], moment["SB"], moment["NA06"], moment["NB06"]) == (0.744, 0.982, 19.51, 21.57)
+    assert (moment["NA12"], moment["NB12"]) == (None, None)  # the sample has no k = 0.12 (decision 125)
+    t, ja, jb = (int(fatigues[key]) for key in ("service_life", "train_A_count", "train_B_count"))
+    assert (t, ja, jb) == (100, 80, 75)
+    k = 0.06
+    total = 365 * t * (ja * moment["NA06"] * moment["SA"] ** (1 / k) + jb * moment["NB06"] * moment["SB"] ** (1 / k))
+    assert round(total) == 44_036_637

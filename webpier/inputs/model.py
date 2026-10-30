@@ -281,6 +281,8 @@ class FatigueTrains:
     service_life: int | None  # 設計耐用年数, years
     # 1編成当りの等価繰返し回数 by (train, S-N slope): ("A列車", "k=0.06") …, as fields.REPETITION_SLOPES name them
     repetitions: dict[tuple[str, str], Printed | None]
+    # 最大変動断面力比 by train: SA/SC ("A列車"), SB/SC ("B列車"), as fields.FORCE_RATIO_TRAINS name them
+    force_ratios: dict[str, Printed | None]
 
 
 @dataclass(frozen=True)

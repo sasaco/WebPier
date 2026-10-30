@@ -7,8 +7,10 @@ down from the upper face.
   cover + the stirrup + half the bar (自動). Each layer inside lies one bar and its clear gap further in, the gaps
   equal: c_k = c_1 + (k − 1)·(bar + gap). The counts are as Capacita splits them by layer 1's: every layer but the
   last as many as layer 1, the last at most as many; layer 1 has two bars or more.
-- Along a face layer 1's spacing is s = (b − 2e)/(n − 1), with e the side bars' centre from the side face when there
-  are side bars, else the cover c_1 (Capacita has one spacing per face, rebar_ss). Layer 1 runs from e to b − e at s:
+- Along a face layer 1's spacing is s = (b − 2e)/(n − 1), with e the centre of its end bars from the side face
+  (Capacita has one spacing per face, rebar_ss): without side bars the cover c_1; with side bars inside the stirrups
+  their centre c_s; with side bars outside the stirrups the main bars lie inside both, e = c_s + φ_side/2 + φ_stirrup
+  + φ_main/2 (φ_main of layer 1), whether c_s is given or automatic. e is kept exact. Layer 1 runs from e to b − e at s:
   x_j = b/2 + (j − (n − 1)/2)·s for j = 0 … n − 1, s kept exact and each position rounded to the printed mm
   (LENGTH_MM). A layer inside takes the middle m of layer 1's positions (when the rest is odd, the one left over is at
   the far end, as the column's: calc.column_rebar), so its bars lie under layer 1's. The upper face's layers lie at
@@ -21,8 +23,8 @@ down from the upper face.
   error.
 
 A blank is an input error naming its path when the layout uses it (decision 5): the stirrup's size only for an
-automatic cover that needs it. What Capacita cannot be given (unequal gaps, layer counts it would split otherwise) is
-an input error naming its path.
+automatic cover that needs it or for side bars outside the stirrups. What Capacita cannot be given (unequal gaps,
+layer counts it would split otherwise) is an input error naming its path.
 """
 
 from __future__ import annotations
@@ -78,25 +80,36 @@ def _stirrup(beam: BeamBars) -> Printed:
     return _need(beam.stirrups.diameter, f"{_BEAM}.stirrups.diameter_mm")
 
 
-def _side(beam: BeamBars) -> tuple[SideBars, Printed] | None:
-    """The side bars and their centre from the side faces: given (指定), or the pure cover, the stirrup when the bars
-    are inside it, and half the bar (自動)."""
+def _side(beam: BeamBars) -> tuple[SideBars, Printed, bool] | None:
+    """The side bars, their centre from the side faces and whether they are inside the stirrups. The centre is given
+    (指定), or the pure cover, the stirrup when the bars are inside it, and half the bar (自動)."""
     side, path = beam.side, f"{_BEAM}.side_bars"
     if side is None:
         return None
     diameter = _need(side.diameter, f"{path}.diameter_mm")
     count = _need(side.per_face_count, f"{path}.per_face_count")
+    inside = _need(side.stirrup_position, f"{path}.stirrup_position") == choices.STIRRUP_POSITIONS[0]
     if _need(side.cover_mode, f"{path}.cover_mode") == choices.COVER_SPECIFIED:
         centre = _need(side.center, f"{path}.center_mm")
     else:
         pure = _need(beam.pure_cover, f"{_BEAM}.pure_cover_mm")
-        inside = _need(side.stirrup_position, f"{path}.stirrup_position") == choices.STIRRUP_POSITIONS[0]
         centre = put(LENGTH_MM, d(pure) + (d(_stirrup(beam)) if inside else 0) + d(diameter) / 2)
     return SideBars(diameter=diameter, count=COUNT.exact(count), first=_need(side.start, f"{path}.start_mm"),
-                    spacing=_need(side.pitch, f"{path}.pitch_mm") if count > 1 else None), centre
+                    spacing=_need(side.pitch, f"{path}.pitch_mm") if count > 1 else None), centre, inside
 
 
-def _face(beam: BeamBars, face: str, width: Printed, side_center: Printed | None
+def _edge(beam: BeamBars, side: tuple[SideBars, Printed, bool] | None, cover: Printed, diameter: Printed) -> Decimal:
+    """e, the centre of a face's end bars from the side face, exact: the cover c_1 without side bars, the side bars'
+    centre c_s when they are inside the stirrups, else c_s + φ_side/2 + φ_stirrup + φ_main/2."""
+    if side is None:
+        return d(cover)
+    bars, centre, inside = side
+    if inside:
+        return d(centre)
+    return d(centre) + d(bars.diameter) / 2 + d(_stirrup(beam)) + d(diameter) / 2
+
+
+def _face(beam: BeamBars, face: str, width: Printed, side: tuple[SideBars, Printed, bool] | None
           ) -> tuple[MainBars, tuple[Printed, ...], tuple[int, ...], Decimal]:
     """The main bars of *face*, the centres of its layers, their counts and the exact spacing along the face."""
     bars, path = beam.faces[face], f"{_BEAM}.faces.{face}"
@@ -119,8 +132,7 @@ def _face(beam: BeamBars, face: str, width: Printed, side_center: Printed | None
     if any(other != count for other in counts[1:-1]) or counts[-1] > count:
         raise InputError(f"{path}.inner_layers: 段の本数は、最後の段を除いて1段目と同じ、最後の段は1段目以下が必要です"
                          "（Capacita は1段目の本数で段に分けます）")
-    edge = side_center if side_center is not None else cover
-    spacing = (d(width) - 2 * d(edge)) / (count - 1)
+    spacing = (d(width) - 2 * _edge(beam, side, cover, diameter)) / (count - 1)
     pitch = d(diameter) + d(gaps.pop()) if gaps else Decimal(0)
     centers = tuple(put(LENGTH_MM, d(cover) + k * pitch) for k in range(len(counts)))
     main = MainBars(diameter=diameter, per_layer=COUNT.exact(count), layers=len(counts),
@@ -153,7 +165,7 @@ def beam_layout(beam: BeamBars, width: Printed, depth: Printed) -> BeamLayout:
     side_center = None if side is None else side[1]
     faces, centers, bars = {}, {}, []
     for face in choices.BEAM_FACES:
-        main, layers, counts, spacing = _face(beam, face, width, side_center)
+        main, layers, counts, spacing = _face(beam, face, width, side)
         faces[face], centers[face] = main, layers
         positions = _along(width, spacing, counts[0])
         for layer, (center, count) in enumerate(zip(layers, counts), 1):
@@ -161,7 +173,7 @@ def beam_layout(beam: BeamBars, width: Printed, depth: Printed) -> BeamLayout:
             start = (counts[0] - count) // 2  # the middle of layer 1's positions
             bars += [BeamBar(x, y, main.diameter, face, layer) for x in positions[start:start + count]]
     if side is not None:
-        bars_of_side, centre = side
+        bars_of_side, centre, _ = side
         right = put(LENGTH_MM, d(width) - d(centre))
         for j in range(int(bars_of_side.count.value)):
             y = bars_of_side.first if j == 0 else put(LENGTH_MM, d(bars_of_side.first) + j * d(bars_of_side.spacing))

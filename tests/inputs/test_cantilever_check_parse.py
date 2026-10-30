@@ -45,6 +45,31 @@ def test_the_cantilever_check_conditions_of_the_current_input():
     assert (fatigue.passenger_trains, fatigue.freight_trains, fatigue.service_life) == (60, 0, 100)
     assert fatigue.repetitions == {(train, slope): Printed(10.39, 2, "")
                                    for train in ("A列車", "B列車") for slope in ("k=0.06", "k=0.12")}
+    assert fatigue.force_ratios == {"A列車": Printed(1.0, 3, ""), "B列車": Printed(1.0, 3, "")}  # Example2 SA 1, SB 1
+
+
+def test_the_force_ratios_are_printed_at_three_decimals():
+    """SA/SC and SB/SC (片持ち梁の照査.疲労.最大変動断面力比; Example橋脚4 V-73 0.744, 0.982)."""
+    document = data()
+    document[SECTION]["疲労"]["最大変動断面力比"] = {"A列車": 0.744, "B列車": 0.982}
+    assert parse_input(document).cantilever_check.fatigue.force_ratios == {
+        "A列車": Printed(0.744, 3, ""), "B列車": Printed(0.982, 3, "")}
+
+
+def test_the_force_ratios_may_be_blank():
+    """null until 0910 asks for them (calc); the group and both keys are required (below)."""
+    document = data()
+    document[SECTION]["疲労"]["最大変動断面力比"] = {"A列車": None, "B列車": None}
+    assert parse_input(document).cantilever_check.fatigue.force_ratios == {"A列車": None, "B列車": None}
+
+
+def test_the_force_ratios_are_an_object_of_the_two_trains():
+    document = data()
+    document[SECTION]["疲労"]["最大変動断面力比"]["C列車"] = 1.0
+    fails(document, f"{SECTION}.疲労.最大変動断面力比.C列車: 未知の入力項目です")
+    document = data()
+    document[SECTION]["疲労"]["最大変動断面力比"] = None
+    fails(document, f"{SECTION}.疲労.最大変動断面力比: オブジェクトが必要です")
 
 
 @pytest.mark.parametrize("side", ["起点側", "終点側"])
@@ -62,7 +87,8 @@ def test_the_conditions_may_be_blank_until_the_beam_is_checked():
     document[SECTION] = {"水掛かりの程度": dict.fromkeys(("上面", "下面", "側面")), "外観の照査": None,
                          "疲労": {"旅客列車本数": None, "貨物列車本数": None, "設計耐用年数": None,
                                 "等価繰返し回数": {"A列車": {"k=0.06": None, "k=0.12": None},
-                                             "B列車": {"k=0.06": None, "k=0.12": None}}}}
+                                             "B列車": {"k=0.06": None, "k=0.12": None}},
+                                "最大変動断面力比": {"A列車": None, "B列車": None}}}
     pier = parse_input(document)
     check = pier.cantilever_check
     assert set(check.environments.values()) == {None} and check.appearance is None
@@ -78,6 +104,10 @@ def test_the_conditions_may_be_blank_until_the_beam_is_checked():
     (("疲労", "設計耐用年数"), 0, "1～1000の整数が必要です"),
     (("疲労", "等価繰返し回数", "A列車", "k=0.06"), 10.391, "小数2桁までで入力してください"),
     (("疲労", "等価繰返し回数", "B列車", "k=0.12"), -1, "0以上の数値が必要です"),
+    (("疲労", "最大変動断面力比", "A列車"), 0.7441, "小数3桁までで入力してください"),
+    (("疲労", "最大変動断面力比", "A列車"), 0, "正の数値が必要です"),
+    (("疲労", "最大変動断面力比", "B列車"), -0.5, "正の数値が必要です"),
+    (("疲労", "最大変動断面力比", "B列車"), "1", "数値が必要です"),
 ])
 def test_the_conditions_are_choices_integers_and_printed_numbers(path, value, message):
     document = data()
@@ -89,7 +119,9 @@ def test_the_conditions_are_choices_integers_and_printed_numbers(path, value, me
         parse_input(document)
 
 
-@pytest.mark.parametrize("path", [(), ("疲労",), ("疲労", "等価繰返し回数", "A列車"), ("水掛かりの程度", "側面")])
+@pytest.mark.parametrize("path", [(), ("疲労",), ("疲労", "等価繰返し回数", "A列車"), ("水掛かりの程度", "側面"),
+                                  ("疲労", "最大変動断面力比"), ("疲労", "最大変動断面力比", "A列車"),
+                                  ("疲労", "最大変動断面力比", "B列車")])
 def test_the_section_and_its_keys_are_required(path):
     document = data()
     node = document[SECTION]

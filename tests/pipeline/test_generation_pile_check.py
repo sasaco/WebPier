@@ -7,6 +7,7 @@ from __future__ import annotations
 from decimal import ROUND_HALF_UP, Decimal
 
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -221,9 +222,13 @@ def test_the_report_has_capacitas_pages_after_the_headings_of_the_two_checks(mad
     assert "杭とフーチングの結合部" not in report and "(1) 杭体の照査（鋼管杭）" not in report
 
 
-def test_the_cast_in_place_pile_needs_its_bars_before_any_runner_is_asked(tmp_path):
+def test_the_cast_in_place_pile_needs_its_bars_before_any_runner_is_asked(tmp_path, monkeypatch):
+    """Decisions 91, 125: before SOIL-JR too (the stage is calculated once 0500 is complete; its precheck is not)."""
+    import subprocess
+
     from webpier.core.errors import InputError
 
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: pytest.fail("a runner was called"))
     with pytest.raises(InputError, match="鉄筋.杭.hoops.zone_2d.pitch_mm: 杭体の照査に必要です"):
         generate.generate(GenerationOptions(write(tmp_path / "pre", **CAST, **{"鉄筋/杭/hoops/zone_2d/pitch_mm": None}),
                                             tmp_path / "output", tmp_path / "post"))
@@ -259,11 +264,22 @@ def test_a_pipe_too_thin_for_its_forces_fails_the_body_and_the_status(tmp_path):
     assert generation.stages[-1] == "0622"
 
 
-def test_the_pile_body_needs_the_grade_of_the_pipe(tmp_path):
+@pytest.mark.parametrize("path,message", [
+    ("杭基礎/鋼管ソイルセメント杭/鋼管材質", "杭基礎.鋼管ソイルセメント杭.鋼管材質: 杭体の照査に必要です"),
+    ("杭基礎/鋼管ソイルセメント杭/結合部/中詰めコンクリート_f'ck",
+     "杭基礎.鋼管ソイルセメント杭.結合部.中詰めコンクリート_f'ck: 結合部の照査に必要です"),
+])
+def test_the_pile_body_and_the_joint_need_their_inputs_before_any_runner(tmp_path, monkeypatch, path, message):
+    """Decision 125: complete reads them after FEMPython; the stage reads them before any runner is called."""
+    import subprocess
+
     from webpier.core.errors import InputError
 
-    with pytest.raises(InputError, match="杭基礎.鋼管ソイルセメント杭.鋼管材質: 杭体の照査に必要です"):
-        generate.generate(steel_options(tmp_path, **{"杭基礎/鋼管ソイルセメント杭/鋼管材質": None}))
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: calls.append(args) or pytest.fail("a runner was called"))
+    with pytest.raises(InputError, match=re.escape(message)):
+        generate.generate(steel_options(tmp_path, **{path: None}))
+    assert not calls
     assert not (tmp_path / "output").exists() or not tree(tmp_path / "output")
 
 

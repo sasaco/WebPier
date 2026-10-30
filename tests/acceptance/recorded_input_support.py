@@ -19,7 +19,9 @@ made them the program's: the recorded inputs had P-16's own values, so the calcu
 decision 111, which replaced them; an empty change of the table is the table made from the bars, as a blank one is).
 All of them are also tried with the bearing devices of decision 59 last in ``上部構造.支承データ.起点側`` and ``.終点側``
 (after ``摩擦係数_μ`` and ``復旧性制動係数``; an acceptance recorded before decision 125, which removed them: only 0900
-read them, and every recorded input had Example2's counts, 起点側 4, 3, 1, 1 and 終点側 2, 7, 1, 0).
+read them, and every recorded input had Example2's counts, 起点側 4, 3, 1, 1 and 終点側 2, 7, 1, 0), and without
+``片持ち梁の照査.疲労.最大変動断面力比`` (SA/SC and SB/SC, entered since; only 0910 reads them). The input without them
+alone is tried too (an acceptance recorded under decision 125, before they were entered).
 """
 
 import json
@@ -77,10 +79,26 @@ def _old_train(train: dict) -> dict:
     return old
 
 
-def before_bearing_devices(data: bytes) -> bytes | None:
-    """The input as it was before decision 125 (decision 59's bearing devices last in the 支承データ of each girder), or
-    None when it already has them."""
+FORCE_RATIOS = "最大変動断面力比"  # 片持ち梁の照査.疲労: SA/SC and SB/SC, entered after decision 125
+
+
+def _without_force_ratios(document: object) -> bool:
+    """Remove 片持ち梁の照査.疲労.最大変動断面力比 from *document*; whether it had them."""
+    fatigue = document.get("片持ち梁の照査", {}).get("疲労") if isinstance(document, dict) else None
+    return isinstance(fatigue, dict) and fatigue.pop(FORCE_RATIOS, None) is not None
+
+
+def before_force_ratios(data: bytes) -> bytes | None:
+    """The input as it was before SA/SC and SB/SC were entered, or None when it has none."""
     document = json.loads(data.decode("utf-8"))
+    return _text(document, data) if _without_force_ratios(document) else None
+
+
+def before_bearing_devices(data: bytes) -> bytes | None:
+    """The input as it was before decision 125 (decision 59's bearing devices last in the 支承データ of each girder, and
+    no 最大変動断面力比), or None when it already has them."""
+    document = json.loads(data.decode("utf-8"))
+    _without_force_ratios(document)
     support = document.get("上部構造", {}).get("支承データ") if isinstance(document, dict) else None
     if not isinstance(support, dict) or any(key in support.get(side, {}) for side, devices in BEARING_DEVICES.items()
                                             for key in devices):
@@ -258,7 +276,7 @@ def input_sha256s(data: bytes) -> set[str]:
     with and without the 出力項目), each also as it was before decision 98, all also as before decision 101, all also as
     before decision 111, and all also as before decision 125."""
     found: set[str] = set()
-    for current in (data, before_bearing_devices(data)):
+    for current in (data, before_force_ratios(data), before_bearing_devices(data)):
         if current is None:
             continue
         for latest in (current, before_custom_tables(current)):

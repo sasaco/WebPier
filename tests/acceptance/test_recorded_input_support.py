@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from recorded_input_support import (
-    BEARING_DEVICES, before_bearing_devices, before_custom_tables, before_joint, before_piles, before_rebar,
-    input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
+    BEARING_DEVICES, FORCE_RATIOS, before_bearing_devices, before_custom_tables, before_force_ratios, before_joint,
+    before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -104,3 +104,17 @@ def test_an_input_recorded_before_decision_125_had_the_bearing_devices_of_decisi
     assert b"\r\n" in older and sha256(older) in input_sha256s(data)
     assert before_bearing_devices(older) is None  # it has them already
     assert before_bearing_devices(b'{"schema_version": 2}\n') is None and before_bearing_devices(b"[]\n") is None
+
+
+def test_an_input_recorded_before_the_force_ratios_were_entered_has_none():
+    """片持ち梁の照査.疲労.最大変動断面力比 (SA/SC, SB/SC) was entered after decision 125: an acceptance recorded before it
+    (under decision 125, or before it with the bearing devices) has the input without them, the rest unchanged."""
+    data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
+    assert json.loads(data.decode("utf-8"))["片持ち梁の照査"]["疲労"][FORCE_RATIOS] == {"A列車": 1.0, "B列車": 1.0}
+    without = before_force_ratios(data)
+    fatigue = json.loads(without.decode("utf-8"))["片持ち梁の照査"]["疲労"]
+    assert list(fatigue) == ["旅客列車本数", "貨物列車本数", "設計耐用年数", "等価繰返し回数"]
+    assert b"\r\n" in without and sha256(without) in input_sha256s(data) and before_force_ratios(without) is None
+    older = json.loads(before_bearing_devices(data).decode("utf-8"))
+    assert FORCE_RATIOS not in older["片持ち梁の照査"]["疲労"]
+    assert before_bearing_devices(data) == before_bearing_devices(without)  # the same bytes before decision 125

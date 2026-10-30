@@ -30,7 +30,7 @@ from ..core.printed import Printed
 from ..inputs import PierInput, choices
 from ._exact import d, put
 from .column_check import K4, KR, SAFETY_FACTORS_OF_BODY, SafetyFactors, Steel
-from .footing_check import MEMBER, NAMES, _need, _steel
+from .footing_check import MEMBER, NAMES, _steel, conditions_of
 from .footing_rebar import COUNT, MainBars, Stirrups
 from .pile_footing import Case, FootingDirection, Point, SectionForces
 
@@ -101,12 +101,8 @@ def scaled(bars: MainBars, width: Printed) -> MainBars:
 def calculate_pile_footing_check(pier: PierInput, footing: FootingDirection) -> PileFootingCheckResult:
     """The check of the footing in the direction of *footing* (0800's result of that direction)."""
     basis = footing.basis
-    conditions = pier.column_check
-    environment = _need(conditions.environment, "柱の断面照査.水掛かりの程度")
-    ecsd = _need(conditions.ecsd, "柱の断面照査.ε'csd")
-    body = _need(conditions.body, "柱の断面照査.適用基準の機関")
-    jr001 = _need(conditions.jr001, "柱の断面照査.JR-001")
-    jr004 = _need(conditions.jr004, "柱の断面照査.JR-004")
+    found = conditions_of(pier)  # also the precheck of 0810 / 0820 (footing_check.check_footing_check_inputs)
+    environment, ecsd, body, jr001, jr004 = found.environment, found.ecsd, found.body, found.jr001, found.jr004
     lower, upper = basis.bars
     points = tuple(CheckPoint(index, found.point, scaled(lower, found.point.width.be), scaled(upper, found.point.width.be),
                               found)
@@ -114,7 +110,7 @@ def calculate_pile_footing_check(pier: PierInput, footing: FootingDirection) -> 
     return PileFootingCheckResult(
         direction=basis.direction, name=NAMES[basis.direction], member=MEMBER, points=points, stirrups=basis.stirrups,
         stirrup_spacing=basis.stirrup_spacing, main_steel=_steel(lower.grade), stirrup_steel=_steel(basis.stirrups.grade),
-        fck=basis.fck, aggregate_max=_need(pier.rebar.footing.aggregate_max, "鉄筋.フーチング.aggregate_max_mm"),
+        fck=basis.fck, aggregate_max=found.aggregate_max,
         environment=environment, environment_number=choices.WATER_EXPOSURES.index(environment) + 1, ecsd=ecsd, body=body,
         jr001=jr001 == choices.ADOPTED, jr004=jr004 == choices.ADOPTED, safety_factors=SAFETY_FACTORS_OF_BODY[body],
         kr=KR, k4=K4)

@@ -83,7 +83,8 @@ def test_two_legs_have_no_line_inside(editor):
 def test_the_side_of_the_stirrup_without_side_bars_inside_it(editor):
     data = copy.deepcopy(editor.document.data)
     data["鉄筋"]["梁"]["side_bars"]["stirrup_position"] = "外側"
-    assert drawn_stirrup(data)[0][0] == (157, 81)  # the upper face's first bar 184 − 16 − 11
+    # the upper face's first bar 184 + 11 + 22 + 16 = 233 (inside the side bars and the stirrup), 233 − 16 − 11
+    assert drawn_stirrup(data)[0][0] == (206, 81)
     data["鉄筋"]["梁"]["side_bars"] = None
     assert drawn_stirrup(data)[0][0] == (81, 81)  # its first bar at the cover 108 − 16 − 11
 

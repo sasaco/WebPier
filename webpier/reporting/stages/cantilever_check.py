@@ -11,7 +11,9 @@ as the sample), then 使用性（損傷） (the row 6: bending, shear, torsion) 
 torsion) in sections of their own, as RC標準 R5 names them (decision 73; the sample's one 復旧性 section with 地震時以外
 and 地震時 is H16's), and 最小鉄筋量及び最大鉄筋量 (the row 8 of the permanent case 32; the heading only). The chapter heading (§13) is not printed. A check Capacita skipped for zero section forces
 (pipeline.capacita.SKIPPED) keeps its heading and explanation, followed by the reason it is omitted instead of
-Capacita's pages.
+Capacita's pages. Without the k = 0.12 repetitions Capacita is not asked for the fatigue check of the stirrups
+(decision 125): its place, 13.4 (2), has its heading and one sentence saying so (NOT_CHECKED), and the repetitions
+table the k = 0.06 column alone.
 
 The explanations keep the structure of Example2 13 pp.13-38 .. 13-65 (the texts the column check also has use its
 wording), written for RC標準 R5 as Capacita checks it (decision 73: no clause numbers in the headings, the R5 flexural
@@ -31,7 +33,7 @@ from pathlib import Path
 
 from gridlayoutpdf import Document
 
-from ...calc.cantilever.check import CantileverSectionResult
+from ...calc.cantilever.check import SECTIONS, CantileverSectionResult
 from ...calc.cantilever.crack import AGES, CrackingMoment
 from ...calc.column_check import SafetyFactors
 from ...core.printed import Printed
@@ -59,6 +61,8 @@ OMITTED = {
     "shear_restorability_eq": "せん断力が生じないため，せん断に対する照査を省略する．",
     "torsion_restorability_eq": "ねじりモーメントが生じないため，ねじりに対する照査を省略する．",
 }
+# The place of the fatigue check of the stirrups when the k = 0.12 repetitions are blank (decision 125).
+NOT_CHECKED = "k = 0.12 の等価繰返し回数が与えられていないため，せん断補強鉄筋の疲労に対する照査は行わない．"
 _SURFACES = {"上面": "上面", "下面": "下面", "側面": "側面"}
 MTU_MIN = wrap("設計斜め圧縮破壊耐力（Mtcud）と", "設計ねじり耐力（Mtyd）の小さいほう")
 
@@ -240,9 +244,13 @@ def _repetitions(m: Manuscript, key: str, title: str, result: CantileverSectionR
                  Definition("NB", "B 列車 1 編成当りの等価繰返し回数（下表）"),
                  Definition("SA / SC", f"A 列車荷重と標準列車荷重の最大変動断面力比(= {value(f.sa_ratio)})"),
                  Definition("SB / SC", f"B 列車荷重と標準列車荷重の最大変動断面力比(= {value(f.sb_ratio)})"))
-    rows = (("1 編成当りの等価繰返し回数", "k = 0.06", "k = 0.12"),
-            ("A 列車（NA）", value(f.na06), value(f.na12)), ("B 列車（NB）", value(f.nb06), value(f.nb12)))
-    m.table(f"{key}.table", TableSpec((11, 7, 7), rows, (1,) * 3, numeric=frozenset({1, 2})))
+    if f.shear_checked:
+        rows = (("1 編成当りの等価繰返し回数", "k = 0.06", "k = 0.12"),
+                ("A 列車（NA）", value(f.na06), value(f.na12)), ("B 列車（NB）", value(f.nb06), value(f.nb12)))
+        m.table(f"{key}.table", TableSpec((11, 7, 7), rows, (1,) * 3, numeric=frozenset({1, 2})))
+    else:  # k = 0.12 blank (decision 125)
+        rows = (("1 編成当りの等価繰返し回数", "k = 0.06"), ("A 列車（NA）", value(f.na06)), ("B 列車（NB）", value(f.nb06)))
+        m.table(f"{key}.table", TableSpec((11, 7), rows, (1,) * 3, numeric=frozenset({1})))
 
 
 def _frd(m: Manuscript, key: str, title: str, result: CantileverSectionResult) -> None:
@@ -285,6 +293,9 @@ def _fatigue_moment(m: Manuscript, result: CantileverSectionResult, n: Numbering
 def _fatigue_shear(m: Manuscript, result: CantileverSectionResult, n: Numbering) -> None:
     factors = _factors(result, 2)
     m.heading("fatigue.shear.heading", "(2) せん断に対する照査", 2)
+    if not result.fatigue.shear_checked:  # Capacita is not asked for it (decision 125)
+        m.paragraph("fatigue.shear.not_checked", NOT_CHECKED)
+        return
     m.heading("fatigue.shear.check.heading", "1) 部材の照査", 3)
     m.paragraph("fatigue.shear.check.text", "せん断力を受け，せん断補強鉄筋を用いる部材の疲労に関する照査は，設計変動"
                                             "応力度σwrdを設計応答値，設計疲労強度frdを部材係数で除した値を設計限界値とし，"
@@ -501,12 +512,19 @@ _PARTS = {"bending_safety_destruction": _safety_moment, "shear_safety_destructio
           "torsion_restorability_eq": _restorability_eq_torsion, "bending_rebar_amount": _rebar_amount}
 
 
+def _report_sections(result: CantileverSectionResult) -> tuple[str, ...]:
+    """The sections of the report in order: those Capacita is asked for, and the place of the fatigue check of the
+    stirrups when it is not (decision 125)."""
+    return tuple(section for section in SECTIONS
+                 if section in result.sections or (section == "shear_safety_fatigue" and not result.fatigue.shear_checked))
+
+
 def parts(result: CantileverSectionResult, skipped: Sequence[str] = ()) -> tuple[tuple[tuple[Unit, ...], str], ...]:
     """WebPier's manuscript before each of Capacita's sections, with that section's id, in report order. A section in
     *skipped* (Capacita skipped the check for zero forces) ends with the reason it is omitted, its own group."""
     numbering = Numbering.of(result)
     found = []
-    for section in result.sections:
+    for section in _report_sections(result):
         m = Manuscript(PREFIX)
         _PARTS[section](m, result, numbering)
         if section in skipped:

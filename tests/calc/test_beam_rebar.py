@@ -4,8 +4,10 @@ Expected values are hand calculations from the current input (Example2 13_片持
 上側 D32 × 17 at 108 and × 8 at 172, 下側 D19 × 18 at 121, side bars D22 at 184 from 350 at 125.
 """
 
+import json
 import re
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -114,19 +116,29 @@ def test_an_automatic_cover_needs_the_stirrup_only_then():
     assert len(layout(**{f"{BEAM}/stirrups/diameter_mm": None}).bars) == 77  # every cover given
 
 
-@pytest.mark.parametrize("position,centre", [("内側", 103.0), ("外側", 81.0)])  # 70 (+ 22) + 22 / 2
-def test_an_automatic_side_centre(position, centre):
+# 内側: c_s = 70 + 22 + 22/2 = 103 and the main bars' end at c_s; 外側: c_s = 70 + 22/2 = 81 and the main bars inside
+# the side bars and the stirrup, 81 + 22/2 + 22 + 32/2 = 130 (upper) and 81 + 11 + 22 + 19/2 = 123.5 (lower, D19)
+@pytest.mark.parametrize("position,centre,upper,lower", [("内側", 103.0, 103.0, 103.0), ("外側", 81.0, 130.0, 123.5)])
+def test_an_automatic_side_centre(position, centre, upper, lower):
     result = layout(**{f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動",
                        f"{BEAM}/side_bars/center_mm": None, f"{BEAM}/side_bars/stirrup_position": position})
     assert result.side_center.value == centre
-    assert xs(of(result, "上", 1))[0] == centre
+    assert (xs(of(result, "上", 1))[0], xs(of(result, "下", 1))[0]) == (upper, lower)
+    assert value(result.faces["上"].spacing) == q((D(2700) - 2 * D(str(upper))) / 16, 1)
 
 
-def test_an_outside_side_bar_needs_no_stirrup():
-    result = layout(**{f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動",
-                       f"{BEAM}/side_bars/center_mm": None, f"{BEAM}/side_bars/stirrup_position": "外側",
-                       f"{BEAM}/stirrups/diameter_mm": None})
-    assert result.side_center.value == 81.0
+def test_a_given_side_centre_outside_the_stirrups_moves_the_main_bars_in():
+    result = layout(**{f"{BEAM}/side_bars/stirrup_position": "外側"})  # c_s 184 given
+    assert result.side_center.value == 184.0
+    assert xs(of(result, "上", 1))[0] == 233.0  # 184 + 22/2 + 22 + 32/2
+    assert xs(of(result, "下", 1))[0] == 226.5  # 184 + 11 + 22 + 19/2
+
+
+def test_an_outside_side_bar_needs_the_stirrup_for_the_main_bars():
+    """The side bars' centre outside the stirrups does not use the stirrup, but the main bars' end inside it does."""
+    fails("鉄筋.梁.stirrups.diameter_mm: 値が必要です",
+          **{f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動", f"{BEAM}/side_bars/center_mm": None,
+             f"{BEAM}/side_bars/stirrup_position": "外側", f"{BEAM}/stirrups/diameter_mm": None})
 
 
 @pytest.mark.parametrize("changes,message", [
@@ -151,3 +163,19 @@ def test_three_layers_lie_one_bar_and_gap_apart():
 def test_the_section_is_b1_by_h2_and_h3_in_mm():
     b, h = beam_section(Printed(2.7, 3, "m"), Printed(2.0, 3, "m"), Printed(0.7, 3, "m"))
     assert (b, h) == (SIZE, SIZE)  # 2.700 m; 2.000 + 0.700 m
+
+
+def test_example4_the_main_bars_lie_inside_the_side_bars_and_the_stirrup():
+    """Example橋脚4 第V編 図1.2.1・1.2.2: b = 2500, pure cover 45, side bars D19 outside the stirrups (自動), stirrup
+    D19. c_s = 45 + 19/2 = 54.5; the upper face (D32) ends at 54.5 + 19/2 + 19 + 32/2 = 99 (the figure's 99 =
+    45 + 19 + 19 + 32/2), the lower face (D16) at 54.5 + 9.5 + 19 + 16/2 = 91."""
+    path = Path(__file__).parents[2] / ".claude" / "docs" / "Example橋脚4" / "pre" / "input.json"
+    pier = parse_input(json.loads(path.read_text(encoding="utf-8")))
+    s = pier.substructure
+    result = beam_layout(pier.rebar.beam, *beam_section(s.b[1], s.h[2], s.h[3]))
+    assert result.width.value == 2500.0 and result.side_center.value == 54.5
+    upper, lower = xs(of(result, "上", 1)), xs(of(result, "下", 1))
+    assert (len(upper), upper[0], upper[-1]) == (14, 99.0, 2401.0)
+    assert value(result.faces["上"].spacing) == q((D(2500) - 2 * D(99)) / 13, 1) == D("177.1")
+    assert (len(lower), lower[0], lower[-1]) == (10, 91.0, 2409.0)
+    assert value(result.faces["下"].spacing) == q((D(2500) - 2 * D(91)) / 9, 1) == D("257.6")

@@ -7,10 +7,10 @@ import re
 
 import pytest
 
-from cantilever_support import SAMPLE, D, q, result_of, value
+from cantilever_support import SAMPLE, D, pier, q, result_of, value
 from webpier.calc.cantilever import Quantity
-from webpier.calc.cantilever.check import (GAMMA1_MAIN, GAMMA1_STIRRUP, SA_RATIO, SB_RATIO, SECTIONS,
-                                           calculate_cantilever_section)
+from webpier.calc.cantilever.check import (GAMMA1_MAIN, GAMMA1_STIRRUP, SECTIONS, calculate_cantilever_section,
+                                           check_cantilever_section_inputs)
 from webpier.calc.column_check import SAFETY_FACTORS, JR_EAST_SAFETY_FACTORS
 from webpier.core.errors import InputError
 
@@ -80,18 +80,42 @@ def test_the_fatigue_trains(current):
     fatigue = section.fatigue
     assert (fatigue.passenger_trains, fatigue.freight_trains, fatigue.service_life) == (60, 0, 100)
     assert [item.value for item in (fatigue.na06, fatigue.na12, fatigue.nb06, fatigue.nb12)] == [10.39] * 4
-    assert (fatigue.sa_ratio, fatigue.sb_ratio, fatigue.gamma1_main, fatigue.gamma1_stirrup) == (
-        SA_RATIO, SB_RATIO, GAMMA1_MAIN, GAMMA1_STIRRUP)
-    assert (SA_RATIO.value, SB_RATIO.value, GAMMA1_MAIN.value, GAMMA1_STIRRUP.value) == (1.0, 1.0, 1.0, 0.65)
+    # SA/SC and SB/SC are the input's (Example2 1・1, its WDJ's fatigues.SA / SB), at 3 decimals
+    assert [(item.value, item.digits, item.unit) for item in (fatigue.sa_ratio, fatigue.sb_ratio)] == [(1.0, 3, "")] * 2
+    assert [item.value for item in (fatigue.sa_ratio, fatigue.sb_ratio)] == [SAMPLE["wdj"]["fatigues"][key]
+                                                                           for key in ("SA", "SB")]
+    assert (fatigue.gamma1_main, fatigue.gamma1_stirrup) == (GAMMA1_MAIN, GAMMA1_STIRRUP)
+    assert (GAMMA1_MAIN.value, GAMMA1_STIRRUP.value) == (1.0, 0.65)
+
+
+def test_the_force_ratios_are_the_inputs():
+    section = section_of(**{f"{CHECK}/疲労/最大変動断面力比": {"A列車": 0.744, "B列車": 0.982}})
+    assert (section.fatigue.sa_ratio.value, section.fatigue.sb_ratio.value) == (0.744, 0.982)
 
 
 def test_the_sections_capacita_is_asked_for(current):
     _, _, section = current
+    assert section.fatigue.shear_checked
     assert section.sections == tuple(name for name in SECTIONS if name != "bending_serviceability")
     assert len(section.sections) == 15 and section.sections[-1] == "bending_rebar_amount"
     with_appearance = section_of(**{f"{CHECK}/外観の照査": "行う"})
     assert with_appearance.sections == SECTIONS and with_appearance.appearance is True
     assert SECTIONS.index("bending_serviceability") == 8  # Capacita's report order
+
+
+BLANK_K12 = {f"{CHECK}/疲労/等価繰返し回数/A列車/k=0.12": None, f"{CHECK}/疲労/等価繰返し回数/B列車/k=0.12": None}
+
+
+def test_without_the_k012_repetitions_the_stirrups_are_not_checked_for_fatigue():
+    """Decision 125: the pair of k = 0.12 may be blank (the sample checks the main bars alone, V-72〜74); then Capacita
+    is not asked for the fatigue check of the shear reinforcement, and the main bars' is kept."""
+    section = section_of(**BLANK_K12)
+    fatigue = section.fatigue
+    assert (fatigue.na12, fatigue.nb12) == (None, None) and not fatigue.shear_checked
+    assert [item.value for item in (fatigue.na06, fatigue.nb06)] == [10.39] * 2
+    assert section.sections == tuple(name for name in SECTIONS
+                                     if name not in ("bending_serviceability", "shear_safety_fatigue"))
+    assert "bending_safety_fatigue" in section.sections
 
 
 def test_jr_east_takes_its_own_safety_factors():
@@ -113,8 +137,9 @@ def test_the_side_bars_set_the_edge_of_the_main_bars():
     automatic = {f"{BEAM}/pure_cover_mm": 70, f"{BEAM}/side_bars/cover_mode": "自動", f"{BEAM}/side_bars/center_mm": None}
     inside = section_of(**automatic)  # 70 + the stirrup 22 + 22/2 = 103 (decision 68)
     assert value(inside.upper.spacing) == q((D(2700) - 2 * D(103)) / 16, 1)
-    outside = section_of(**automatic, **{f"{BEAM}/side_bars/stirrup_position": "外側"})  # 70 + 22/2 = 81
-    assert value(outside.upper.spacing) == q((D(2700) - 2 * D(81)) / 16, 1)
+    # c_s = 70 + 22/2 = 81, the main bars inside the side bars and the stirrup: 81 + 22/2 + 22 + 32/2 = 130
+    outside = section_of(**automatic, **{f"{BEAM}/side_bars/stirrup_position": "外側"})
+    assert value(outside.upper.spacing) == q((D(2700) - 2 * D(130)) / 16, 1)
     one = section_of(**{f"{BEAM}/side_bars/per_face_count": 1})
     assert one.side.count.value == 1 and one.side.spacing is None
 
@@ -152,11 +177,26 @@ def test_the_steels_are_the_members():
     ({"柱の断面照査/JR-001": None}, "柱の断面照査.JR-001: 値が必要です"),
     ({"柱の断面照査/JR-004": None}, "柱の断面照査.JR-004: 値が必要です"),
     ({f"{CHECK}/疲労/旅客列車本数": None}, "片持ち梁の照査.疲労.旅客列車本数: 値が必要です"),
-    ({f"{CHECK}/疲労/等価繰返し回数/B列車/k=0.12": None}, "片持ち梁の照査.疲労.等価繰返し回数.B列車.k=0.12: 値が必要です"),
+    ({f"{CHECK}/疲労/等価繰返し回数/B列車/k=0.06": None}, "片持ち梁の照査.疲労.等価繰返し回数.B列車.k=0.06: 値が必要です"),
+    ({f"{CHECK}/疲労/等価繰返し回数/A列車/k=0.06": None, **BLANK_K12},
+     "片持ち梁の照査.疲労.等価繰返し回数.A列車.k=0.06: 値が必要です"),
+    ({f"{CHECK}/疲労/等価繰返し回数/B列車/k=0.12": None},
+     "片持ち梁の照査.疲労.等価繰返し回数.B列車.k=0.12: 値が必要です（k=0.12 は A列車・B列車の両方とも空欄か、両方とも値が必要です）"),
+    ({f"{CHECK}/疲労/等価繰返し回数/A列車/k=0.12": None},
+     "片持ち梁の照査.疲労.等価繰返し回数.A列車.k=0.12: 値が必要です（k=0.12 は A列車・B列車の両方とも空欄か、両方とも値が必要です）"),
+    ({f"{CHECK}/疲労/最大変動断面力比/A列車": None}, "片持ち梁の照査.疲労.最大変動断面力比.A列車: 値が必要です"),
+    ({f"{CHECK}/疲労/最大変動断面力比/B列車": None}, "片持ち梁の照査.疲労.最大変動断面力比.B列車: 値が必要です"),
 ])
 def test_what_the_wdj_cannot_hold_is_an_input_error(changes, message):
     with pytest.raises(InputError, match=re.escape(message)):
         section_of(**changes)
+    with pytest.raises(InputError, match=re.escape(message)):  # and before any runner, without 0900's result
+        check_cantilever_section_inputs(pier(**changes))
+
+
+def test_the_inputs_check_before_any_runner_passes_a_valid_input():
+    assert check_cantilever_section_inputs(pier()) is None
+    assert check_cantilever_section_inputs(pier(**BLANK_K12)) is None
 
 
 def test_the_beam_aggregate_size_is_the_beam_concretes(current):

@@ -140,6 +140,18 @@ def _envelope(stdout: bytes) -> dict[str, Any]:
     return envelope
 
 
+def _reasons(envelope: dict[str, Any], returncode: int) -> str:
+    """Why the runner failed: its errors and then the error messages of RcDan that say why (the error of run-rc is only
+    calculation_failed; the reason is in messages, e.g. WD-3301 for the k = 0.12 equivalent cycles left blank)."""
+    errors = [f"{error.get('code')}: {error.get('message')}" for error in envelope.get("errors") or ()
+              if isinstance(error, dict)]
+    messages = envelope.get("messages")
+    listed = messages if isinstance(messages, list) else []
+    errors += [f"{message.get('code')}: {message.get('text')}" for message in listed
+               if isinstance(message, dict) and message.get("level") in ("error", "fatal")]
+    return "; ".join(errors) or f"終了コード {returncode}"
+
+
 def _skipped(messages: Any) -> set[str]:
     """The sections Capacita says it skipped for zero section forces."""
     codes = {item.get("code") for item in messages if isinstance(item, dict) and item.get("level") == "info"} \
@@ -205,9 +217,7 @@ def _run(wdj: bytes, pickup: tuple[str, bytes] | None, runner: Path, expected: S
             raise _Failure(f"runner を起動できません（{exc}）") from exc
         envelope = _envelope(done.stdout)
         if done.returncode or envelope.get("ok") is not True or envelope.get("executionStatus") != "success":
-            errors = "; ".join(f"{error.get('code')}: {error.get('message')}" for error in envelope.get("errors") or ()
-                               if isinstance(error, dict)) or f"終了コード {done.returncode}"
-            raise _Failure(errors)
+            raise _Failure(_reasons(envelope, done.returncode))
         version, artifacts = envelope.get("engineVersion"), envelope.get("artifacts")
         if not isinstance(version, str) or not version:
             raise _Failure("runner の版（engineVersion）がありません")

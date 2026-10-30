@@ -100,3 +100,20 @@ def test_0720_has_a_second_ndu_for_the_reversed_combinations(tmp_path):
     assert any(forward_lines[key] != reverse_lines[key] for key in forward_lines if key.startswith("JibanShogenInfo"))  # the columns of the .sdc go the other way
     provenance = json.loads((tmp_path / "post" / "線路直角方向.ndu.provenance.json").read_text(encoding="utf-8"))
     assert provenance["jrsnap_figures"]["also"][0]["export"] == "jrsnapreverse"
+
+
+def test_the_minimum_bars_of_0711_read_the_pile_section_before_any_runner(tmp_path, monkeypatch):
+    """Decision 125: 0711 of a 場所打ち杭 reads its section for the 最小鉄筋量 after JRSNAP and Aggre-SE (decision 98); a
+    cover the pile cannot hold, which the NDU does not check, is an input error before any runner."""
+    import subprocess
+
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: calls.append(args) or pytest.fail("a runner was called"))
+    data = deepcopy(PILE)
+    path = write(tmp_path / "pre", **{**CAST, "鉄筋/杭/pure_cover_mm": 470.0})
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["outputs"]["longitudinal_nonlinear_analysis"] = True
+    path.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(InputError, match="鉄筋.杭.pure_cover_mm: 杭径に対して大きすぎます"):
+        generate.generate(GenerationOptions(path, tmp_path / "output", tmp_path / "post"))
+    assert not calls and data == PILE

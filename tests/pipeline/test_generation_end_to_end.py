@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 
 import pymupdf
 import pytest
@@ -20,8 +21,9 @@ from webpier.core.integrity import content_sha256, load_json, sha256
 from webpier.export.jrsnap import LONGITUDINAL, TRANSVERSE, validate_ndu
 from webpier.inputs.outputs import OUTPUT_KEYS, uses
 from webpier.pipeline import jrsnap
-from webpier.pipeline.generate import GenerationOptions, generate
+from webpier.pipeline.generate import GenerationOptions, generate, validate
 from webpier.pipeline.stages import STAGES
+from webpier.reporting.stages.cantilever_check import NOT_CHECKED
 
 # The 出力項目 current.json chooses (decision 72): every item but the analyses, the footing and the cantilever.
 DEFAULT = ("ground_model", "reactions", "longitudinal", "transverse", "longitudinal_seismic", "transverse_seismic")
@@ -381,3 +383,80 @@ def test_the_frame_analysis_of_one_direction_runs_one_shared_analysis(analysis_g
     assert (sidecar["stage"], sidecar["frame_analysis"]["stages"]) == (column, [column, stage])
     result = load_json(output[f"{STAGES.get(stage).stem}.json"])["result"]
     assert result["engineering_status"] in ("ok", "not_ok") and len(result["columns"]) == 4
+
+
+K012 = ("片持ち梁の照査", "疲労", "等価繰返し回数")
+
+
+def _with_repetitions(source, a12, b12):
+    document = load_json(source.read_bytes())
+    node = document
+    for key in K012:
+        node = node[key]
+    node["A列車"]["k=0.12"], node["B列車"]["k=0.12"] = a12, b12
+    source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    return source
+
+
+@pytest.mark.parametrize("changes,message", [
+    ({"repetitions": (10.39, None)}, "片持ち梁の照査.疲労.等価繰返し回数.B列車.k=0.12: 値が必要です"),
+    ({"stirrups": None}, "鉄筋.梁.stirrups.effective_legs: 値が必要です"),
+    ({"exposure": None}, "片持ち梁の照査.水掛かりの程度.上面: 値が必要です"),
+    ({"ratios": None}, "片持ち梁の照査.疲労.最大変動断面力比.A列車: 値が必要です"),
+])
+def test_an_input_error_of_0910_stops_the_generation_before_any_runner(tmp_path, monkeypatch, changes, message):
+    """Decision 125: 0910 reads its inputs after the four runners (complete); its precheck reads them before any."""
+    source = _with_repetitions(copy_input(tmp_path / "pre", *items_for("0910")), *changes.get("repetitions", (10.39, 10.39)))
+    document = load_json(source.read_bytes())
+    if "stirrups" in changes:
+        document["鉄筋"]["梁"]["stirrups"]["effective_legs"] = None
+    if "exposure" in changes:
+        document["片持ち梁の照査"]["水掛かりの程度"]["上面"] = None
+    if "ratios" in changes:
+        document["片持ち梁の照査"]["疲労"]["最大変動断面力比"] = {"A列車": None, "B列車": None}
+    source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: calls.append(args) or pytest.fail("a runner was called"))
+    with pytest.raises(InputError, match=re.escape(message)):
+        generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    assert not calls and not (tmp_path / "output").exists() and not (tmp_path / "post").exists()
+    with pytest.raises(InputError, match=re.escape(message)):  # validate (webpier_validate) says the same
+        validate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+
+
+def test_without_the_k012_repetitions_0910_checks_the_main_bars_fatigue_alone(tmp_path):
+    """Decision 125: both k = 0.12 blank: the WDJ leaves the shear rows of 疲労 blank, the stand-in (as the real runner)
+    returns no shear_safety_fatigue, and the report says so in one sentence."""
+    source = _with_repetitions(copy_input(tmp_path / "pre", *items_for("0910")), None, None)
+    generation = generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    result = generation.results["0910"]
+    assert "shear_safety_fatigue" not in result.sections and "bending_safety_fatigue" in result.sections
+    wdj = load_json(tree(tmp_path / "post")["片持ち梁.wdj"])
+    assert wdj["force"][0]["Vd3_Vd"] is None and wdj["force"][0]["Md3_Md"] is not None
+    with pymupdf.open(stream=tree(tmp_path / "output")[f"{STAGES.get('0910').stem}.pdf"], filetype="pdf") as pdf:
+        text = "".join(page.get_text() for page in pdf).replace("\n", "")
+    assert NOT_CHECKED in text and "FAKE CAPACITA shear_safety_fatigue" not in text
+    assert "FAKE CAPACITA bending_safety_fatigue" in text
+
+
+@pytest.mark.parametrize("path,message", [
+    (("鉄筋", "フーチング", "aggregate_max_mm"), "鉄筋.フーチング.aggregate_max_mm: 値が必要です"),
+    (("柱の断面照査", "ε'csd"), "柱の断面照査.ε'csd: 値が必要です"),
+])
+def test_an_input_error_of_0810_stops_the_generation_before_any_runner(tmp_path, monkeypatch, path, message):
+    """Decision 125: the footing of the seismic part alone (no column check reads 柱の断面照査 first) reads its inputs in
+    complete, after JRSNAP and Aggre-SE; its precheck reads them before any runner."""
+    source = copy_input(tmp_path / "pre", "ground_model", "reactions", "longitudinal_seismic", "transverse_seismic",
+                        *NONLINEAR, "footing")
+    document = load_json(source.read_bytes())
+    *parents, key = path
+    node = document
+    for part in parents:
+        node = node[part]
+    node[key] = None
+    source.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: calls.append(args) or pytest.fail("a runner was called"))
+    with pytest.raises(InputError, match=re.escape(message)):
+        generate(GenerationOptions(source, tmp_path / "output", tmp_path / "post"))
+    assert not calls and not (tmp_path / "output").exists()

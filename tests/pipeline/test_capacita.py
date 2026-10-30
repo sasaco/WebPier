@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 
 import pymupdf
 import pytest
@@ -29,6 +30,10 @@ WDJ = json.dumps({"crack": [{"vis_u": True}], "points": []}).encode("utf-8")
 COMMENTED = json.dumps({"crack": [{"vis_u": True}], "points": [],
                         "calc": {"print_commentary_checked": True}}).encode("utf-8")
 PIK = b"PickUpNo\n    1    M    1\n"
+# A failed run-rc names the reason RcDan gives in its error messages (WD-3301: a bar took k = 0.12 with NA12 / NB12 blank).
+K012 = re.escape("calculation_failed: RcDanが計算を完了できませんでした。; WD-3301: [安全性（疲労破壊）曲げ]軸方向鉄筋が k=0.12"
+                 "（γi･σsrd/(fsr200/γb) ＞ 1.0）となりましたが、k=0.12 の1編成当りの等価繰返し回数（A列車のNA12・B列車のNB12）が入力"
+                 "されていないため計算を止めました。")
 FOOTING_SECTIONS = ("bending_safety_destruction", "shear_safety_destruction", "bending_durability",
                     "bending_restorability_eq", "shear_restorability_eq", "bending_rebar_amount")
 # The force table asks for the footing's sections (the stand-in derives them from the rows, as the real runner does).
@@ -185,7 +190,7 @@ def test_the_sections_follow_the_checks_asked_for(fake_capacita_runner: Path):
 
 
 @pytest.mark.parametrize("mode,message", [
-    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"), ("pickup", "pickup_import_failed"),
+    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"), ("k012", K012), ("pickup", "pickup_import_failed"),
     ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
     ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
     ("artifacts", "成果物が計算結果・計算書・WDJ の3つではありません"),
@@ -241,7 +246,7 @@ def test_the_stand_in_checks_a_footing_wdj_without_a_pickup(fake_capacita_runner
 
 
 @pytest.mark.parametrize("mode,message", [
-    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"),
+    ("fail", "calculation_failed: RcDanが計算を完了できませんでした。"), ("k012", K012),
     ("exit", "JSON ではありません"), ("text", "JSON ではありません"), ("list", "オブジェクトではありません"),
     ("protocol", "やり取りの版が違います"), ("engine", "やり取りの版が違います"), ("version", "engineVersion"),
     ("artifacts", "成果物が計算結果・計算書の2つではありません"),

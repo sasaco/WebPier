@@ -56,6 +56,10 @@ MAX_TRAINS = 10_000  # 列車本数, per track per day
 MAX_YEARS = 1_000  # 設計耐用年数
 BEAM_SURFACES = ("上面", "下面", "側面")  # the faces of the 片持ち梁 with their own 水掛かりの程度 (decision 59)
 REPETITION_SLOPES = ("k=0.06", "k=0.12")  # the S-N slopes an equivalent repetition count is given for
+# SA/SC and SB/SC of the fatigue check: the ratio of the largest change of the section force by the A / B train to that
+# by the standard train load (片持ち梁の照査.疲労.最大変動断面力比; from the real trains, as the repetitions are)
+FORCE_RATIOS = "最大変動断面力比"
+FORCE_RATIO_TRAINS = ("A列車", "B列車")
 
 Kind = Literal["number", "integer", "choice", "text", "boolean", "blank"]
 
@@ -291,6 +295,8 @@ def _cantilever_check() -> dict[str, Field]:
     for train in ("A列車", "B列車"):
         for slope in REPETITION_SLOPES:
             table[f"{fatigue}.等価繰返し回数.{train}.{slope}"] = number(REPETITIONS, nullable=True)
+    for train in FORCE_RATIO_TRAINS:  # needed only by 0910 (Example2 1・1, Example4 0.744・0.982)
+        table[f"{fatigue}.{FORCE_RATIOS}.{train}"] = number(RATIO, "positive", nullable=True)
     return table
 
 

@@ -19,6 +19,7 @@ from tksheet import Sheet
 
 from ..calc.beam_rebar import BeamLayout
 from ..calc.column_rebar import ColumnLayout, count_mismatch
+from ..inputs.fields import FORCE_RATIOS
 from . import beam_cards, column_cards, footing_cards, pile_cards, rebar_edit
 from .beam_window import BeamWindow
 from .column_window import ColumnWindow
@@ -53,9 +54,12 @@ CANTILEVER_LABELS = (
     (("疲労", "等価繰返し回数", "A列車", "k=0.12"), "等価繰返し回数 A列車 k=0.12"),
     (("疲労", "等価繰返し回数", "B列車", "k=0.06"), "等価繰返し回数 B列車 k=0.06"),
     (("疲労", "等価繰返し回数", "B列車", "k=0.12"), "等価繰返し回数 B列車 k=0.12"),
+    (("疲労", FORCE_RATIOS, "A列車"), "最大変動断面力比 SA/SC（A列車）"),
+    (("疲労", FORCE_RATIOS, "B列車"), "最大変動断面力比 SB/SC（B列車）"),
 )
 CANTILEVER_NOTE = ("片持ち梁の照査（0900・0910）の条件です。左右の張出しで共通です。"
-                   "等価繰返し回数は外部プログラム（N-EQUIVALENT）の値を入力します。")
+                   "等価繰返し回数は外部プログラム（N-EQUIVALENT）の値を、最大変動断面力比は A列車・B列車と標準列車荷重の"
+                   "最大変動断面力の比を入力します。")
 
 
 class RebarPage:

@@ -65,7 +65,7 @@ def test_the_beam_check_group_holds_the_cantilever_conditions(editor):
     page = editor.view
     paths = [(CHECK, *tail) for tail, _ in rebar_page.CANTILEVER_LABELS]
     assert all(path in editor.bindings.items for path in paths)
-    assert len(paths) == 11
+    assert len(paths) == 13
     upper = cell(editor, CHECK, "水掛かりの程度", "上面")
     assert upper.get() == "乾湿繰返し"
     assert upper.sheet.get_dropdown_values(upper.row, upper.column) == ["", "常時乾燥", "乾湿繰返し", "常時湿潤"]
@@ -97,3 +97,39 @@ def test_the_calculation_page_lists_the_cantilever_as_an_item_of_its_own(editor)
     assert "片持ち梁の計算（0900・0910）" in shown and "　両方向の静的非線形解析が必要です" in shown
     assert [text for text in shown if text.startswith("静的非線形解析も行う")] == [
         "静的非線形解析も行う（0711）", "静的非線形解析も行う（0721）"]
+
+
+def test_the_k012_repetitions_may_be_left_blank(editor):
+    """Decision 125: the pair of k = 0.12 may be blank (the sample has no stirrup fatigue check); the editor saves them
+    as null and refuses neither."""
+    assert editor.select("鉄筋")
+    assert editor.view.select_member("梁") and editor.view.select_group("check")
+    for train in ("A列車", "B列車"):
+        cell(editor, CHECK, "疲労", "等価繰返し回数", train, "k=0.12").type("")
+    assert not editor.bindings.refused
+    assert editor.save()
+    saved = load_json(editor.document.path.read_bytes())[CHECK]["疲労"]["等価繰返し回数"]
+    assert saved == {"A列車": {"k=0.06": 10.39, "k=0.12": None}, "B列車": {"k=0.06": 10.39, "k=0.12": None}}
+
+
+RATIOS = (CHECK, "疲労", "最大変動断面力比")
+
+
+def test_the_force_ratios_follow_the_repetitions(editor):
+    """SA/SC and SB/SC (最大変動断面力比) are entered after the repetitions, at 3 decimals, greater than 0."""
+    assert editor.select("鉄筋")
+    assert editor.view.select_member("梁") and editor.view.select_group("check")
+    labels = [tail for tail, _ in rebar_page.CANTILEVER_LABELS]
+    assert labels[-3:] == [("疲労", "等価繰返し回数", "B列車", "k=0.12"), ("疲労", "最大変動断面力比", "A列車"),
+                           ("疲労", "最大変動断面力比", "B列車")]
+    assert cell(editor, *RATIOS, "A列車").get() == cell(editor, *RATIOS, "B列車").get() == "1.000"
+    cell(editor, *RATIOS, "A列車").type("0.7441")
+    assert cell(editor, *RATIOS, "A列車").get() == "0.744"
+    cell(editor, *RATIOS, "B列車").type("0")
+    assert (*RATIOS, "B列車") in editor.bindings.refused
+    cell(editor, *RATIOS, "B列車").type("")  # blank until 0910 asks for it
+    assert not editor.bindings.refused
+    assert editor.save()
+    assert load_json(editor.document.path.read_bytes())[CHECK]["疲労"]["最大変動断面力比"] == {"A列車": 0.744,
+                                                                                    "B列車": None}
+

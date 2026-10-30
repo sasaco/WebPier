@@ -45,7 +45,8 @@ printed groups, else null (the key is always there, as the real runner of 2026-1
 writes a heading of another chapter on the first section, ``headingtype`` a number in place of one.
 
 When the real runner's protocol changes, change this too (the real-runner test is the signal). ``FAKE_CAPACITA`` makes
-it misbehave, for the error tests: fail, pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
+it misbehave, for the error tests: fail, k012 (fails as the real runner does when a bar takes k = 0.12 with NA12 / NB12
+blank: calculation_failed with the reason in the error message WD-3301), pickup, exit, text, list, protocol, engine, version, artifacts (one artifact
 listed twice), missing (model.wdj not written), sha (model.wdj's SHA256 wrong), extra (an unlisted file), sections
 (no reportSections), order (the sections reversed), gap (the last section ends past the PDF), hole (the second
 section starts a page late), broken (report.pdf is not a PDF). Two modes stand for Capacita skipping checks for zero
@@ -97,6 +98,12 @@ SECTION_OF_ROW = {("Md", 0): "bending_durability", ("Md", 1): "bending_durabilit
                   ("Vd", 7): "shear_restorability_eq",
                   ("Mt", 0): "torsion_durability", ("Mt", 1): "torsion_durability", ("Mt", 5): "torsion_safety_destruction",
                   ("Mt", 6): "torsion_restorability", ("Mt", 7): "torsion_restorability_eq"}
+
+
+# The real runner's text of WD-3301 (Capacita, 2026-10-31) for the axial bars of point 1.
+K012_TEXT = ("[安全性（疲労破壊）曲げ]軸方向鉄筋が k=0.12（γi･σsrd/(fsr200/γb) ＞ 1.0）となりましたが、k=0.12 の1編成当りの"
+             "等価繰返し回数（A列車のNA12・B列車のNB12）が入力されていないため計算を止めました。値を入力してください（0 とするときは 0 を"
+             "入力）。（算出点:1、部材要素番号:1、グループID:1）（引張側:上側）")
 
 
 def force_sections(document):
@@ -338,6 +345,11 @@ def main(argv):
         return failure("output_not_empty", str(output), 5)
     if mode == "fail":
         return failure("calculation_failed", "RcDanが計算を完了できませんでした。", 4)
+    if mode == "k012":
+        print(json.dumps(envelope(False, errors=[{"code": "calculation_failed", "message": "RcDanが計算を完了できませんでした。"}],
+                                  messages=[{"level": "error", "code": "WD-3301", "text": K012_TEXT, "path": None}]),
+                         ensure_ascii=False))
+        return 4
     if mode == "pickup":
         return failure("pickup_import_failed", "IMPORT-EXISTING-POINT-IDENTITY /points/0/position: 一致しません", 2)
     wdj = source.read_bytes()

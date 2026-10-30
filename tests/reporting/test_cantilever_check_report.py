@@ -26,7 +26,8 @@ from webpier.calc.reaction import calculate_reaction
 from webpier.core.printed import Precision
 from webpier.inputs import parse_input
 from webpier.reporting.assembly import document_bytes, page_range
-from webpier.reporting.stages.cantilever_check import OMITTED, build_cantilever_check, parts, render_cantilever_check
+from webpier.reporting.stages.cantilever_check import (NOT_CHECKED, OMITTED, build_cantilever_check, parts,
+                                                       render_cantilever_check)
 
 CURRENT = json.loads((Path(__file__).parents[1] / "fixtures" / "inputs" / "current.json").read_text(encoding="utf-8"))
 MARK = "FAKE CAPACITA"
@@ -46,9 +47,13 @@ def response(file: str, kh: float) -> MaxResponse:
     return MaxResponse(file, (ResponseValue(1, "Case1", "復旧性", KH(kh - 0.001)), adopted), adopted)
 
 
-def check(**conditions):
+def check(*, repetitions=None, ratios=None, **conditions):
     data = deepcopy(CURRENT)
     data["片持ち梁の照査"] |= conditions
+    if repetitions is not None:
+        data["片持ち梁の照査"]["疲労"]["等価繰返し回数"] = repetitions
+    if ratios is not None:
+        data["片持ち梁の照査"]["疲労"]["最大変動断面力比"] = ratios
     pier = parse_input(data)
     reaction = calculate_reaction(pier)
     basis = calculate_cantilever(pier, reaction)
@@ -73,8 +78,8 @@ def capacita(sections, skipped=()) -> dict[str, bytes]:
     return {section: page_range(pdf, *found) for section, found in ranges.items()}
 
 
-def render(tmp_path: Path, *, skipped=(), **conditions) -> list[str]:
-    pier, result = check(**conditions)
+def render(tmp_path: Path, *, skipped=(), repetitions=None, ratios=None, **conditions) -> list[str]:
+    pier, result = check(repetitions=repetitions, ratios=ratios, **conditions)
     tmp_path.mkdir(parents=True, exist_ok=True)
     path = render_cantilever_check(result, pier, tmp_path / "report.pdf", capacita(result.sections, skipped))
     with pymupdf.open(path) as document:
@@ -89,6 +94,16 @@ def pages(tmp_path_factory) -> list[str]:
 @pytest.fixture(scope="module")
 def with_appearance(tmp_path_factory) -> list[str]:
     return render(tmp_path_factory.mktemp("cantilever-check-appearance"), skipped=("torsion_durability",), 外観の照査="行う")
+
+
+# the sample's (V-72〜74): the main bars alone, k = 0.12 blank (decision 125)
+WITHOUT_K012 = {"A列車": {"k=0.06": 19.51, "k=0.12": None}, "B列車": {"k=0.06": 21.57, "k=0.12": None}}
+EXAMPLE4_RATIOS = {"A列車": 0.744, "B列車": 0.982}  # SA/SC, SB/SC of Example橋脚4 V-73
+
+
+@pytest.fixture(scope="module")
+def without_k012(tmp_path_factory) -> list[str]:
+    return render(tmp_path_factory.mktemp("cantilever-check-k012"), repetitions=WITHOUT_K012, ratios=EXAMPLE4_RATIOS)
 
 
 def webpier_pages(pages: list[str]) -> str:
@@ -127,7 +142,7 @@ def test_the_values_written_to_the_wdj_are_printed(pages):
 def test_the_fatigue_conditions_of_the_input_are_printed_without_the_external_programs_work(pages):
     text = flat(pages)
     for printed in ("旅客列車→60本/日", "貨物列車→0本/日", "設計耐用年数(=100年)", "10.39", "k=0.06", "k=0.12",
-                    "(=1.00)", "ΣN=365・T・{jA・NA・(SA/SC)^(1/k)+jB・NB・(SB/SC)^(1/k)}"):
+                    "(=1.000)", "ΣN=365・T・{jA・NA・(SA/SC)^(1/k)+jB・NB・(SB/SC)^(1/k)}"):
         assert printed in text, printed
     assert "22754" not in text and "22.754" not in text  # ΣN is Capacita's (decision 59)
     assert text.count("列車本数") == 2  # 1) of the bending check, 2) of the shear check
@@ -190,3 +205,29 @@ def test_the_tables_and_the_flowchart_stand_on_the_grid_within_the_body():
         assert spec.left + sum(spec.widths) <= 30 and set(spec.row_heights) == {1}
     for spec in figures:
         assert spec.left + spec.block.col_span <= 30
+
+
+def test_without_the_k012_repetitions_the_stirrups_fatigue_check_is_one_sentence(pages, without_k012):
+    """Decision 125: Capacita checks the main bars' fatigue alone; the place of the shear check says, in one sentence,
+    that the stirrups are not checked for fatigue for want of the k = 0.12 repetitions (no explanation, no pages)."""
+    assert sections_of(without_k012) == [section for section in SECTIONS
+                                         if section not in ("bending_serviceability", "shear_safety_fatigue")]
+    text = webpier_pages(without_k012)
+    shear = text.split("13.4 安全性（疲労破壊）の照査")[1].split("13.5 耐久性の照査")[0].split("(2) せん断に対する照査")[1]
+    assert shear.replace(chr(10), "").strip() == NOT_CHECKED
+    assert NOT_CHECKED == "k = 0.12 の等価繰返し回数が与えられていないため，せん断補強鉄筋の疲労に対する照査は行わない．"
+    flattened, given = flat(without_k012), flat(pages)
+    assert "せん断補強鉄筋を用いる部材の疲労に関する照査" in given and "せん断補強鉄筋を用いる部材の疲労に関する照査" not in flattened
+    assert flattened.count("列車本数") == 1 and NOT_CHECKED.replace(" ", "") not in given
+    # the repetitions table has the k = 0.06 column alone
+    assert "1編成当りの等価繰返し回数k=0.06k=0.12A列車（NA）10.3910.39" in given
+    assert "1編成当りの等価繰返し回数k=0.06A列車（NA）19.51B列車（NB）21.57" in flattened
+    # SA/SC and SB/SC are the input's, at its 3 decimals (Example2 1・1 in the other)
+    assert "最大変動断面力比(=0.744)" in flattened and "最大変動断面力比(=0.982)" in flattened
+    assert given.count("最大変動断面力比(=1.000)") == 2 and "(=1.000)" not in flattened
+    assert "13.5 耐久性の照査" in text and "13.6 使用性（損傷）の照査" in text  # the numbers do not move
+    _, result = check(repetitions=WITHOUT_K012)
+    found = parts(result)
+    assert [section for _, section in found] == [section for section in SECTIONS if section != "bending_serviceability"]
+    assert found[4][0][-1].key == "0910/fatigue.shear.not_checked"
+    assert len(build_cantilever_check(result)) == len(found)

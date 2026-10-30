@@ -67,16 +67,16 @@ from types import MappingProxyType
 from typing import Any, Protocol
 
 from ..calc.cantilever import calculate_cantilever, complete_cantilever, read_max_response
-from ..calc.cantilever.check import calculate_cantilever_section
+from ..calc.cantilever.check import calculate_cantilever_section, check_cantilever_section_inputs
 from ..calc.column_check import LONGITUDINAL as COLUMN_LONGITUDINAL, TRANSVERSE as COLUMN_TRANSVERSE
 from ..calc.column_check import Direction, calculate_column_check
 from ..calc.column_rebar import column_layout
 from ..calc.detailing import calculate_detailing, with_joint_forces
-from ..calc.detailing.pile import PileSeismicResult, minimum_bars, pile_head_reaction
+from ..calc.detailing.pile import PileSeismicResult, minimum_bars, pile_head_reaction, section as pile_section
 from ..calc.detailing.steel_pile import joint_axial
 from ..calc.embedment import applicable_embedment, calculate_embedment
 from ..calc.footing import calculate_footing, complete_footing
-from ..calc.footing_check import calculate_footing_check
+from ..calc.footing_check import calculate_footing_check, check_footing_check_inputs
 from ..calc.pile_footing import SEISMIC_PICKUP, calculate_footing as calculate_pile_footing, complete_footing as complete_pile_footing
 from ..calc.pile_footing_check import calculate_pile_footing_check
 from ..calc.foundation import calculate_foundation
@@ -867,18 +867,23 @@ def _pile_check(stage_id: str, stem: str, source: str, name: str, direction: Fou
         return with_joint(found, assemble_pile_joint(joint, forces, {row.row: moments[row_id(row.row)] for row in forces},
                                                      joint_version, sha256(content)))
 
-    def prepare(pier: PierInput, results: Results) -> Any:
-        if pier.substructure.foundation == choices.CAST_IN_PLACE_PILE:
-            pile_cast_section(pier)  # a blank item of the pile body is an input error before any runner is called
-        return prepare_pile_check(pier, results[source], direction)
-
-    return StageSpec(stage_id, stem, ("0500", source), prepare,
+    return StageSpec(stage_id, stem, ("0500", source),
+                     lambda pier, results: prepare_pile_check(pier, results[source], direction),
                      lambda results, pier, path, pages: render_pile_check(
                          results[stage_id], path, _after_column(chapter, stage_id, results)),
                      frame_analysis=FrameAnalysis(source, "frameweb", _pickups(name)), complete=complete,
                      grid_documents=lambda results, pier, pages: pile_check_report.grid_documents(
                          results[stage_id], _after_column(chapter, stage_id, results)),
-                     reads=(_COLUMN_OF[stage_id],))
+                     reads=(_COLUMN_OF[stage_id],), precheck=_pile_body_inputs)
+
+
+def _pile_body_inputs(pier: PierInput) -> None:
+    """The inputs of the pile body (and of a 鋼管ソイルセメント杭's joint with the footing), which complete reads after
+    SOIL-JR and FEMPython, read before any runner is called (decisions 91, 125)."""
+    if pier.substructure.foundation == choices.CAST_IN_PLACE_PILE:
+        pile_cast_section(pier)
+    else:
+        pile_joint_section(pier, pile_steel(pier))
 
 
 def _with_pile_check(stage: StageSpec, source: str, name: str, direction: FoundationDirection,
@@ -942,7 +947,8 @@ def _footing_check_stage(stage_id: str, stem: str, name: str, direction: str, ch
                      complete=lambda result, files, pier, results: calculate_footing_check(
                          pier, getattr(results["0800"], direction)),
                      grid_documents=lambda results, pier, pages: footing_check_report.grid_documents(
-                         results[stage_id], chapter))
+                         results[stage_id], chapter),
+                     precheck=check_footing_check_inputs)  # what complete reads, before any runner (decision 125)
 
 
 def member_frame_forces(basis: Any, frame_pik: bytes) -> dict[tuple[int, int], Any]:
@@ -1022,7 +1028,8 @@ def _pile_footing_check_stage(stage: StageSpec, direction: str, chapter: Footing
                      complete=lambda result, files, pier, results: calculate_pile_footing_check(
                          pier, getattr(results["0800"], direction)),
                      grid_documents=lambda results, pier, pages: footing_check_report.grid_documents(
-                         results[stage_id], chapter))
+                         results[stage_id], chapter),
+                     precheck=check_footing_check_inputs)  # what complete reads, before any runner (decision 125)
 
 
 def _with_pile_footing(stage: StageSpec, direction: str | None = None) -> StageSpec:
@@ -1069,7 +1076,9 @@ def _cantilever_check(stem: str, name: str) -> StageSpec:
                                                 lambda results: results["0910"].sections),
                      complete=lambda result, files, pier, results: calculate_cantilever_section(pier, results["0900"]),
                      grid_documents=lambda results, pier, pages: cantilever_check_report.grid_documents(
-                         results["0910"], pier, pages))
+                         results["0910"], pier, pages),
+                     # its inputs, which complete reads after the four runners, read before any (decision 125)
+                     precheck=check_cantilever_section_inputs)
 
 
 def _pile_ground() -> StageSpec:
@@ -1160,6 +1169,17 @@ def _liquefaction_index(stage_id: str) -> Callable[[PierInput], None]:
     return check
 
 
+def _cast_seismic_inputs(stage_id: str) -> Callable[[PierInput], None]:
+    """The precheck of 0711 / 0721 of a 場所打ち杭: the 液状化指数 (``_liquefaction_index``) and the pile section its
+    最小鉄筋量 reads after Aggre-SE (decision 98), read before any runner (decision 125)."""
+    liquefaction = _liquefaction_index(stage_id)
+
+    def check(pier: PierInput) -> None:
+        liquefaction(pier)
+        pile_section(pier)
+    return check
+
+
 def _pile_aggrese(stage_id: str, profile: NduProfile, file_names: Sequence[str]
                   ) -> Callable[[Results, PierInput], Callable[[str, Sequence[str]], bytes]]:
     """The project of the piles of the NDUs *file_names* of *stage_id* (the NDU of the forward push, then the one of the
@@ -1232,10 +1252,11 @@ def _with_nonlinear_piles(stage: StageSpec, source: str, profile: NduProfile, fi
                        also=(*(("jrsnapreverse",) if len(file_names) > 1 else ()), "jrsnapliquefied",
                              *(("jrsnapliquefiedreverse",) if len(file_names) > 1 else ())),
                        response=_response(source, profile, file_names))
-    piled = replace(stage, nonlinear_analysis=analysis, precheck=_liquefaction_index(stage.id),
+    piled = replace(stage, nonlinear_analysis=analysis, precheck=_cast_seismic_inputs(stage.id),
                     seismic_check=SeismicCheck(tuple(file for file in seismic.files if file[0] != "steps"), direction),
                     complete=_pile_minimum(stage.id, source, profile, direction))
-    steel = replace(piled, complete=lambda result, files, pier, results: PileSeismicResult(None, result))
+    steel = replace(piled, precheck=_liquefaction_index(stage.id),
+                    complete=lambda result, files, pier, results: PileSeismicResult(None, result))
     return replace(stage, foundations={choices.CAST_IN_PLACE_PILE: piled, choices.STEEL_SOIL_CEMENT_PILE: steel})
 
 
