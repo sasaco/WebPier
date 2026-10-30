@@ -1,0 +1,2243 @@
+{
+  "schema_version": 1,
+  "stage": "0800",
+  "input": {
+    "file": "input.json",
+    "sha256": "f7a432884b0c6e6c2322188552873cf2a456fc0b91dcea1b422a9a58c86054a1"
+  },
+  "implementation_sha256": "cc343c6a6237383df70cdd6f0d803df50668a10595ecbd11e8f7d9677b864098",
+  "result": {
+    "longitudinal": {
+      "basis": {
+        "direction": "線路",
+        "points": [
+          {
+            "key": "face_lower",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "b + 2d",
+              "be": 7650.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "b",
+                  3500.0
+                ],
+                [
+                  "d",
+                  2075.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "face_upper",
+            "name": "く体前面（上側引張）",
+            "position": "く体前面",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "D + 2(d/2 + a)",
+              "be": 5614.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2114.0
+                ],
+                [
+                  "a",
+                  1250.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_lower",
+            "name": "杭位置（下側引張）",
+            "position": "杭位置",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2075.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_upper",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2114.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "face_shear",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "Σ{0.65√(a1² + d1²) + D}\n≦ Lp + D",
+              "be": 7000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "d1",
+                  2075.0
+                ],
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "a1(1)",
+                  1768.0
+                ],
+                [
+                  "a1(2)",
+                  1250.0
+                ],
+                [
+                  "a1(3)",
+                  1768.0
+                ],
+                [
+                  "be(1)",
+                  2772.0
+                ],
+                [
+                  "be(2)",
+                  2575.0
+                ],
+                [
+                  "be(3)",
+                  2772.0
+                ],
+                [
+                  "Lp",
+                  6000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": [
+                {
+                  "a1": 1768.0,
+                  "be": 2772.0,
+                  "corner": true
+                },
+                {
+                  "a1": 1250.0,
+                  "be": 2575.0,
+                  "corner": false
+                },
+                {
+                  "a1": 1768.0,
+                  "be": 2772.0,
+                  "corner": true
+                }
+              ]
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": false,
+            "deep_beam": "lower_tension",
+            "a1": 1768.0,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_shear",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "B",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "B",
+                  8000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": false,
+            "deep_beam": "upper_tension",
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": 119
+          }
+        ],
+        "bars": [
+          {
+            "diameter": 32.0,
+            "counts": [
+              6.67
+            ],
+            "pitch": 150.0,
+            "cover": 125.0,
+            "layer_spacing": null,
+            "centroid": 125.0,
+            "grade": "SD390"
+          },
+          {
+            "diameter": 32.0,
+            "counts": [
+              6.67
+            ],
+            "pitch": 150.0,
+            "cover": 86.0,
+            "layer_spacing": null,
+            "centroid": 86.0,
+            "grade": "SD390"
+          }
+        ],
+        "stirrups": {
+          "diameter": 25.0,
+          "legs": 2.22,
+          "pitch": 300.0,
+          "grade": "SD390"
+        },
+        "stirrup_spacing": 450.5,
+        "fck": 27.0,
+        "pickups": {
+          "安全性（破壊）": 1,
+          "耐久性 永久＋変動": 2,
+          "耐久性 永久": 3
+        },
+        "members": [
+          6,
+          10
+        ],
+        "chain": {
+          "6": [
+            -2.5,
+            -1.25
+          ],
+          "8": [
+            -1.25,
+            0.0
+          ],
+          "9": [
+            0.0,
+            1.25
+          ],
+          "10": [
+            1.25,
+            2.5
+          ]
+        }
+      },
+      "points": [
+        {
+          "point": {
+            "key": "face_lower",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "b + 2d",
+              "be": 7650.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "b",
+                  3500.0
+                ],
+                [
+                  "d",
+                  2075.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 15776.2,
+              "md_combination": 1,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 11129.7,
+              "md_combination": 34,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 9113.2,
+              "md_combination": 40,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 27491.6,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "face_upper",
+            "name": "く体前面（上側引張）",
+            "position": "く体前面",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "D + 2(d/2 + a)",
+              "be": 5614.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2114.0
+                ],
+                [
+                  "a",
+                  1250.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              },
+              "md": 0.0,
+              "md_combination": 17,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              },
+              "md": 0.0,
+              "md_combination": 38,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              },
+              "md": 0.0,
+              "md_combination": 41,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              },
+              "md": -10908.0,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_lower",
+            "name": "杭位置（下側引張）",
+            "position": "杭位置",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2075.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              "md": 614.4,
+              "md_combination": 16,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              "md": 294.5,
+              "md_combination": 38,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              "md": 221.4,
+              "md_combination": 41,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": 4996.8,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_upper",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2114.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -616.0,
+              "md_combination": 13,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -295.9,
+              "md_combination": 35,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -222.6,
+              "md_combination": 40,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              "md": -8124.0,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "face_shear",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "ITAN",
+                "x": 1.25
+              }
+            ],
+            "width": {
+              "rule": "Σ{0.65√(a1² + d1²) + D}\n≦ Lp + D",
+              "be": 7000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "d1",
+                  2075.0
+                ],
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "a1(1)",
+                  1768.0
+                ],
+                [
+                  "a1(2)",
+                  1250.0
+                ],
+                [
+                  "a1(3)",
+                  1768.0
+                ],
+                [
+                  "be(1)",
+                  2772.0
+                ],
+                [
+                  "be(2)",
+                  2575.0
+                ],
+                [
+                  "be(3)",
+                  2772.0
+                ],
+                [
+                  "Lp",
+                  6000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": [
+                {
+                  "a1": 1768.0,
+                  "be": 2772.0,
+                  "corner": true
+                },
+                {
+                  "a1": 1250.0,
+                  "be": 2575.0,
+                  "corner": false
+                },
+                {
+                  "a1": 1768.0,
+                  "be": 2772.0,
+                  "corner": true
+                }
+              ]
+            },
+            "height": 2200.0,
+            "depth": 2075.0,
+            "bending": false,
+            "deep_beam": "lower_tension",
+            "a1": 1768.0,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 15776.2,
+              "md_combination": 1,
+              "vd": 12990.4,
+              "vd_end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "vd_combination": 19,
+              "vd_md": 15750.4
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 11129.7,
+              "md_combination": 34,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 9113.2,
+              "md_combination": 40,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "md": 27491.6,
+              "md_combination": 2,
+              "vd": 25087.9,
+              "vd_end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.25
+              },
+              "vd_combination": 2,
+              "vd_md": 27491.6
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_shear",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              }
+            ],
+            "width": {
+              "rule": "B",
+              "be": 8000.0,
+              "full": 8000.0,
+              "terms": [
+                [
+                  "B",
+                  8000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2114.0,
+            "bending": false,
+            "deep_beam": "upper_tension",
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": 119
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -616.0,
+              "md_combination": 13,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -295.9,
+              "md_combination": 35,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "md": -222.6,
+              "md_combination": 40,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -2.5
+              },
+              "md": -8124.0,
+              "md_combination": 9,
+              "vd": 11166.4,
+              "vd_end": {
+                "side": "右",
+                "member": 10,
+                "point": "JTAN",
+                "x": 2.5
+              },
+              "vd_combination": 2,
+              "vd_md": 3050.0
+            }
+          ]
+        }
+      ]
+    },
+    "transverse": {
+      "basis": {
+        "direction": "直角",
+        "points": [
+          {
+            "key": "face_lower",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "b + 2d",
+              "be": 6586.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "b",
+                  2500.0
+                ],
+                [
+                  "d",
+                  2043.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "face_upper",
+            "name": "く体前面（上側引張）",
+            "position": "く体前面",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "D + 2(d/2 + a)",
+              "be": 5582.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2082.0
+                ],
+                [
+                  "a",
+                  1250.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_lower",
+            "name": "杭位置（下側引張）",
+            "position": "杭位置",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 5044.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2043.0
+                ],
+                [
+                  "be(1)",
+                  2522.0
+                ],
+                [
+                  "be(2)",
+                  2522.0
+                ]
+              ],
+              "pieces": [
+                2522.0,
+                2522.0
+              ],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_upper",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 5082.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2082.0
+                ],
+                [
+                  "be(1)",
+                  2541.0
+                ],
+                [
+                  "be(2)",
+                  2541.0
+                ]
+              ],
+              "pieces": [
+                2541.0,
+                2541.0
+              ],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "face_shear",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "Σ{0.65√(a1² + d1²) + D}\n≦ Lp + D",
+              "be": 5512.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "d1",
+                  2043.0
+                ],
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "a1(1)",
+                  1768.0
+                ],
+                [
+                  "a1(2)",
+                  1768.0
+                ],
+                [
+                  "be(1)",
+                  2756.0
+                ],
+                [
+                  "be(2)",
+                  2756.0
+                ],
+                [
+                  "Lp",
+                  5000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": [
+                {
+                  "a1": 1768.0,
+                  "be": 2756.0,
+                  "corner": true
+                },
+                {
+                  "a1": 1768.0,
+                  "be": 2756.0,
+                  "corner": true
+                }
+              ]
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": false,
+            "deep_beam": "lower_tension",
+            "a1": 1768.0,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          {
+            "key": "pile_shear",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "B",
+              "be": 7000.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "B",
+                  7000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": false,
+            "deep_beam": "upper_tension",
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": 90
+          }
+        ],
+        "bars": [
+          {
+            "diameter": 32.0,
+            "counts": [
+              6.67
+            ],
+            "pitch": 150.0,
+            "cover": 157.0,
+            "layer_spacing": null,
+            "centroid": 157.0,
+            "grade": "SD390"
+          },
+          {
+            "diameter": 32.0,
+            "counts": [
+              6.67
+            ],
+            "pitch": 150.0,
+            "cover": 118.0,
+            "layer_spacing": null,
+            "centroid": 118.0,
+            "grade": "SD390"
+          }
+        ],
+        "stirrups": {
+          "diameter": 25.0,
+          "legs": 2.22,
+          "pitch": 300.0,
+          "grade": "SD390"
+        },
+        "stirrup_spacing": 450.5,
+        "fck": 27.0,
+        "pickups": {
+          "安全性（破壊）": 1,
+          "耐久性 永久＋変動": 2,
+          "耐久性 永久": 3
+        },
+        "members": [
+          6,
+          11
+        ],
+        "chain": {
+          "6": [
+            -3.0,
+            -1.75
+          ],
+          "8": [
+            -1.75,
+            0.0
+          ],
+          "9": [
+            0.0,
+            1.75
+          ],
+          "11": [
+            1.75,
+            3.0
+          ]
+        }
+      },
+      "points": [
+        {
+          "point": {
+            "key": "face_lower",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "b + 2d",
+              "be": 6586.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "b",
+                  2500.0
+                ],
+                [
+                  "d",
+                  2043.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 10272.0,
+              "md_combination": 1,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 6746.8,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 5560.1,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 24302.1,
+              "md_combination": 6,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "face_upper",
+            "name": "く体前面（上側引張）",
+            "position": "く体前面",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "D + 2(d/2 + a)",
+              "be": 5582.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2082.0
+                ],
+                [
+                  "a",
+                  1250.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 0.0,
+              "md_combination": 4,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 0.0,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 0.0,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": -15124.1,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_lower",
+            "name": "杭位置（下側引張）",
+            "position": "杭位置",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 5044.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2043.0
+                ],
+                [
+                  "be(1)",
+                  2522.0
+                ],
+                [
+                  "be(2)",
+                  2522.0
+                ]
+              ],
+              "pieces": [
+                2522.0,
+                2522.0
+              ],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": 214.3,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": 49.4,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": 0.0,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": 2809.4,
+              "md_combination": 15,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_upper",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "Σ(D + d)",
+              "be": 5082.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "d",
+                  2082.0
+                ],
+                [
+                  "be(1)",
+                  2541.0
+                ],
+                [
+                  "be(2)",
+                  2541.0
+                ]
+              ],
+              "pieces": [
+                2541.0,
+                2541.0
+              ],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": true,
+            "deep_beam": null,
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -215.5,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -50.2,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -0.4,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              },
+              "md": -4344.7,
+              "md_combination": 13,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "face_shear",
+            "name": "く体前面（下側引張）",
+            "position": "く体前面",
+            "tension": "下側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "ITAN",
+                "x": 1.75
+              }
+            ],
+            "width": {
+              "rule": "Σ{0.65√(a1² + d1²) + D}\n≦ Lp + D",
+              "be": 5512.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "d1",
+                  2043.0
+                ],
+                [
+                  "D",
+                  1000.0
+                ],
+                [
+                  "a1(1)",
+                  1768.0
+                ],
+                [
+                  "a1(2)",
+                  1768.0
+                ],
+                [
+                  "be(1)",
+                  2756.0
+                ],
+                [
+                  "be(2)",
+                  2756.0
+                ],
+                [
+                  "Lp",
+                  5000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": [
+                {
+                  "a1": 1768.0,
+                  "be": 2756.0,
+                  "corner": true
+                },
+                {
+                  "a1": 1768.0,
+                  "be": 2756.0,
+                  "corner": true
+                }
+              ]
+            },
+            "height": 2200.0,
+            "depth": 2043.0,
+            "bending": false,
+            "deep_beam": "lower_tension",
+            "a1": 1768.0,
+            "pile_diameter": 1000.0,
+            "stirrup_count": null
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 10272.0,
+              "md_combination": 1,
+              "vd": 8368.3,
+              "vd_end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "vd_combination": 1,
+              "vd_md": 10272.0
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 6746.8,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 5560.1,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "md": 24302.1,
+              "md_combination": 6,
+              "vd": 21630.6,
+              "vd_end": {
+                "side": "左",
+                "member": 6,
+                "point": "JTAN",
+                "x": -1.75
+              },
+              "vd_combination": 6,
+              "vd_md": 24302.1
+            }
+          ]
+        },
+        {
+          "point": {
+            "key": "pile_shear",
+            "name": "杭位置（上側引張）",
+            "position": "杭位置",
+            "tension": "上側引張",
+            "ends": [
+              {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              }
+            ],
+            "width": {
+              "rule": "B",
+              "be": 7000.0,
+              "full": 7000.0,
+              "terms": [
+                [
+                  "B",
+                  7000.0
+                ]
+              ],
+              "pieces": [],
+              "shares": []
+            },
+            "height": 2200.0,
+            "depth": 2082.0,
+            "bending": false,
+            "deep_beam": "upper_tension",
+            "a1": null,
+            "pile_diameter": 1000.0,
+            "stirrup_count": 90
+          },
+          "forces": [
+            {
+              "case": "安全性（破壊）",
+              "pickup": 1,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -215.5,
+              "md_combination": 2,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久＋変動",
+              "pickup": 2,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -50.2,
+              "md_combination": 8,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "耐久性 永久",
+              "pickup": 3,
+              "end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "md": -0.4,
+              "md_combination": 9,
+              "vd": null,
+              "vd_end": null,
+              "vd_combination": null,
+              "vd_md": null
+            },
+            {
+              "case": "復旧性（地震時）",
+              "pickup": 2,
+              "end": {
+                "side": "右",
+                "member": 11,
+                "point": "JTAN",
+                "x": 3.0
+              },
+              "md": -4344.7,
+              "md_combination": 13,
+              "vd": 13152.3,
+              "vd_end": {
+                "side": "左",
+                "member": 6,
+                "point": "ITAN",
+                "x": -3.0
+              },
+              "vd_combination": 2,
+              "vd_md": 1316.3
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

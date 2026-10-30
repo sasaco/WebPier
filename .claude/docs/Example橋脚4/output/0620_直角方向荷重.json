@@ -3,9 +3,9 @@
   "stage": "0620",
   "input": {
     "file": "input.json",
-    "sha256": "29e5027d90975d3fd94e1c36d11aa68163fd0916d30c2481d245c63cd9d6c2e1"
+    "sha256": "f7a432884b0c6e6c2322188552873cf2a456fc0b91dcea1b422a9a58c86054a1"
   },
-  "implementation_sha256": "cd8d81c833e10e7d3b8fc4dd76e5383563324ebc7c7868e040ae41c34e030ee8",
+  "implementation_sha256": "cc343c6a6237383df70cdd6f0d803df50668a10595ecbd11e8f7d9677b864098",
   "result": {
     "frame": {
       "direction": "transverse",

@@ -719,7 +719,7 @@
     "longitudinal_nonlinear_analysis": true,
     "transverse_seismic": true,
     "transverse_nonlinear_analysis": true,
-    "footing": false,
+    "footing": true,
     "cantilever": false
   }
 }

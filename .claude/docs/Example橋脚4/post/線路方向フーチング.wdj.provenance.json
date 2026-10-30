@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "stage": "0810",
+  "export": "wdj",
+  "file": "線路方向フーチング.wdj",
+  "sha256": "a234a7abd6c29c93b318979666db27eb5e38fe9085aa325e1454da6355ebfa35",
+  "section_check": {
+    "engine": "webdan2",
+    "engine_version": "1.0.0",
+    "engineering_status": "not_evaluated",
+    "wdj_given": {
+      "sha256": "a234a7abd6c29c93b318979666db27eb5e38fe9085aa325e1454da6355ebfa35"
+    }
+  },
+  "input": {
+    "file": "input.json",
+    "sha256": "f7a432884b0c6e6c2322188552873cf2a456fc0b91dcea1b422a9a58c86054a1"
+  },
+  "implementation_sha256": "cc343c6a6237383df70cdd6f0d803df50668a10595ecbd11e8f7d9677b864098",
+  "selected_stages": [
+    "0500",
+    "0600",
+    "0610",
+    "0611",
+    "0612",
+    "0620",
+    "0621",
+    "0622",
+    "0710",
+    "0711",
+    "0720",
+    "0721",
+    "0400",
+    "0800",
+    "0810",
+    "0820"
+  ],
+  "artifacts": [
+    {
+      "role": "0500.pdf",
+      "directory": "output",
+      "file": "0500_杭基礎.pdf",
+      "sha256": "a6f786706679e8a94e54da0a52e4477bf2308048da7229106694c6af1fdf6687"
+    },
+    {
+      "role": "0500.json",
+      "directory": "output",
+      "file": "0500_杭基礎.json",
+      "sha256": "1e851db373b0877198b28e55c59979901c9ca1817f72fc36d333c5b7d363f543"
+    },
+    {
+      "role": "0600.pdf",
+      "directory": "output",
+      "file": "0600_上部工反力.pdf",
+      "sha256": "59cf7b92a8cbdf9d3c1809121e1e680ff2a3122efe2dcd9aedde5e5947ae460a"
+    },
+    {
+      "role": "0600.json",
+      "directory": "output",
+      "file": "0600_上部工反力.json",
+      "sha256": "797ae18e0bfddc56ec42a7406335ca250e32fe8114adc92c71e30324792f7cc9"
+    },
+    {
+      "role": "0600.xlsx",
+      "directory": "export",
+      "file": "0600_上部工反力.xlsx",
+      "sha256": "6cae9f8acaf6f86748ecb4969597210bc52d902d37e14136badf17119030d238"
+    },
+    {
+      "role": "0610.pdf",
+      "directory": "output",
+      "file": "0610_線路方向荷重.pdf",
+      "sha256": "a2c88e6ed7c64a667950da989d5dbddd788d5886dddde58b8a33d20be669e6e4"
+    },
+    {
+      "role": "0610.json",
+      "directory": "output",
+      "file": "0610_線路方向荷重.json",
+      "sha256": "64034995a67d91ff8af3470657eac402b2cc31264ff525ab46875459a619558b"
+    },
+    {
+      "role": "0610.xlsx",
+      "directory": "export",
+      "file": "0610_線路方向荷重.xlsx",
+      "sha256": "2260bf0a8663956df20d29ef5ba0b0e3e33150a4179f4aa52412105222ac8475"
+    },
+    {
+      "role": "0611.pdf",
+      "directory": "output",
+      "file": "0611_線路方向照査.pdf",
+      "sha256": "86aa5d65263902c036b8ce97c291e58f01541c3cfc4fd046568ffa761d023a9a"
+    },
+    {
+      "role": "0611.json",
+      "directory": "output",
+      "file": "0611_線路方向照査.json",
+      "sha256": "f0ff95ee4086be09855ad5074a98f334fe80e4e7d4fbc80f542640e793448e66"
+    },
+    {
+      "role": "0612.pdf",
+      "directory": "output",
+      "file": "0612_線路方向基礎.pdf",
+      "sha256": "8b08dc163fcf0b3ea2150bba5081b2c8b23b699ae42d08f604c2ce21b28a9a26"
+    },
+    {
+      "role": "0612.json",
+      "directory": "output",
+      "file": "0612_線路方向基礎.json",
+      "sha256": "b974fed3ef17e2f74921f706c233d56997060c9b1fefd3bbea072d11b1be9e9f"
+    },
+    {
+      "role": "0612.xlsx",
+      "directory": "export",
+      "file": "0612_線路方向基礎.xlsx",
+      "sha256": "bcd7a5016a8acd064d4d54e95e0ea91bcf1db8a68cbcd6af0439d15036d90995"
+    },
+    {
+      "role": "0620.pdf",
+      "directory": "output",
+      "file": "0620_直角方向荷重.pdf",
+      "sha256": "8efe8b2d0a09ebeaea2f1497fdc0e1616be74987bfd0f67ec04e7f3a984d0d4b"
+    },
+    {
+      "role": "0620.json",
+      "directory": "output",
+      "file": "0620_直角方向荷重.json",
+      "sha256": "bf840e703486e8891db0e24c946df37e4d7f7bd62ebdc1d498cfd7a08d7028a5"
+    },
+    {
+      "role": "0620.xlsx",
+      "directory": "export",
+      "file": "0620_直角方向荷重.xlsx",
+      "sha256": "faed44760647727800f0626f5db8e0a7b8946851a6357aabef05f56651355669"
+    },
+    {
+      "role": "0621.pdf",
+      "directory": "output",
+      "file": "0621_直角方向照査.pdf",
+      "sha256": "8f311f71b542977af689254e756b075c3911d42726f6ca23f9450038f5f5e559"
+    },
+    {
+      "role": "0621.json",
+      "directory": "output",
+      "file": "0621_直角方向照査.json",
+      "sha256": "6398a1f640339aad142fe2607bbc949c8973b8aff75746d9ccd581be4e8d6d4d"
+    },
+    {
+      "role": "0622.pdf",
+      "directory": "output",
+      "file": "0622_直角方向基礎.pdf",
+      "sha256": "6af1f921a5ea8dc9ad832ff10c9170b5e52deed28f7187f3bf53921a325471d4"
+    },
+    {
+      "role": "0622.json",
+      "directory": "output",
+      "file": "0622_直角方向基礎.json",
+      "sha256": "aae1a14f0657155fd7e65d3edbfbf92fcb161c6dcf786ad9a8ba599f38e763cf"
+    },
+    {
+      "role": "0622.xlsx",
+      "directory": "export",
+      "file": "0622_直角方向基礎.xlsx",
+      "sha256": "1a948a7399f797c858a1bb33ed70a7f1c36b34da30750f75d66f7501ec0e302b"
+    },
+    {
+      "role": "0710.pdf",
+      "directory": "output",
+      "file": "0710_線路方向荷重.pdf",
+      "sha256": "5376ef066ae6ec15f4ca54878d857cd20ebc374e7293f50664b970381532e383"
+    },
+    {
+      "role": "0710.json",
+      "directory": "output",
+      "file": "0710_線路方向荷重.json",
+      "sha256": "a80b770d102b2a8710e2c9e9decdb92e9d3698175cdf05425e016dbf1febbc40"
+    },
+    {
+      "role": "0710.xlsx",
+      "directory": "export",
+      "file": "0710_線路方向荷重.xlsx",
+      "sha256": "afae3b71c9f2e9716a4fdeb04a5af528e43ad0fbc100c111741c84c27e543544"
+    },
+    {
+      "role": "0711.pdf",
+      "directory": "output",
+      "file": "0711_線路方向非線形解析.pdf",
+      "sha256": "4bbf04066fbd4d09a621b8a01a8984396065c05b83b301acba56d34092088f8c"
+    },
+    {
+      "role": "0711.json",
+      "directory": "output",
+      "file": "0711_線路方向非線形解析.json",
+      "sha256": "7834d38d95e1e1c17fecd5e67ed470ba9402c75e745c4faee8d7c16084d9ee8b"
+    },
+    {
+      "role": "0720.pdf",
+      "directory": "output",
+      "file": "0720_線路直角方向荷重.pdf",
+      "sha256": "7da1bc773b4dbd003dffaadf29e1609ab32e5b1634484aa039c8e0b78f478474"
+    },
+    {
+      "role": "0720.json",
+      "directory": "output",
+      "file": "0720_線路直角方向荷重.json",
+      "sha256": "648cf2928b61cd6ee940d9a2dadc3be38fe016692ed2ea50d5f95ee6ce1647a9"
+    },
+    {
+      "role": "0720.xlsx",
+      "directory": "export",
+      "file": "0720_線路直角方向荷重.xlsx",
+      "sha256": "fcf524fd2f7f4c5e86cc3048050c3fc281811c7a7a09d976c9b0056dd5de607a"
+    },
+    {
+      "role": "0721.pdf",
+      "directory": "output",
+      "file": "0721_線路直角方向非線形解析.pdf",
+      "sha256": "56ea4027ad63bd9837d761f4c1465c96ee3ea669066e05926f12906c55acfd74"
+    },
+    {
+      "role": "0721.json",
+      "directory": "output",
+      "file": "0721_線路直角方向非線形解析.json",
+      "sha256": "4043a66c374daa5305b63a0250a16f0363607975559fcfe56e2c0faff29aad6e"
+    },
+    {
+      "role": "0400.pdf",
+      "directory": "output",
+      "file": "0400_照査の前提.pdf",
+      "sha256": "84b0a8f242980ce9392e7a73abe7f6aff5ead1b86f2691b6f94e3ea5260b9cf1"
+    },
+    {
+      "role": "0400.json",
+      "directory": "output",
+      "file": "0400_照査の前提.json",
+      "sha256": "4a443faa7a5aeac32198befc14cd3687a58d9b748600c90d3f23d8c825796bb6"
+    },
+    {
+      "role": "0400.xlsx",
+      "directory": "export",
+      "file": "0400_照査の前提.xlsx",
+      "sha256": "deb750b5f25b169a1f12020cb26dc636c837ad73e5f0fde91095b14a749836b8"
+    },
+    {
+      "role": "0800.pdf",
+      "directory": "output",
+      "file": "0800_フーチング.pdf",
+      "sha256": "680bf6ad40fbff6e47b5b03e6dc92900d7d4aa34abde52f8146eb0de508a2a24"
+    },
+    {
+      "role": "0800.json",
+      "directory": "output",
+      "file": "0800_フーチング.json",
+      "sha256": "2de2fbc297670f060adeda7948081e8c7ce1ed676ecb4beb3234940b1c0aea91"
+    },
+    {
+      "role": "0800.xlsx",
+      "directory": "export",
+      "file": "0800_フーチング.xlsx",
+      "sha256": "0ea511a732544423648098ac964dafb0222447e61c8649fbcd8d165708c1a8af"
+    },
+    {
+      "role": "0810.pdf",
+      "directory": "output",
+      "file": "0810_線路方向フーチング照査.pdf",
+      "sha256": "23f65d6f52c3899974c1ba790f8b8904ff0a0d1adeef1116eca49383bba5783c"
+    },
+    {
+      "role": "0810.json",
+      "directory": "output",
+      "file": "0810_線路方向フーチング照査.json",
+      "sha256": "897bb8bc07315f91254261a9e1bd6cc102da4f2d511b096a6a594872457925da"
+    },
+    {
+      "role": "0810.xlsx",
+      "directory": "export",
+      "file": "0810_線路方向フーチング照査.xlsx",
+      "sha256": "027d8b8b612ba95d25028f734d0c863459d7c6405ae2c33e9a11670d857d8f28"
+    },
+    {
+      "role": "0820.pdf",
+      "directory": "output",
+      "file": "0820_直角方向フーチング照査.pdf",
+      "sha256": "6a444723e49cc86f43210f93339268cddbf0ddc20731c3d891351609e9425e2d"
+    },
+    {
+      "role": "0820.json",
+      "directory": "output",
+      "file": "0820_直角方向フーチング照査.json",
+      "sha256": "e762d22a281f8c2209b9f3a2c174be0152914eddc078c39befe59aa87aeea56d"
+    },
+    {
+      "role": "0820.xlsx",
+      "directory": "export",
+      "file": "0820_直角方向フーチング照査.xlsx",
+      "sha256": "10ff628b588067e8300fc71d836954545752fe2765f708c86116e600cff2e4c2"
+    },
+    {
+      "role": "0500.sdt",
+      "directory": "post",
+      "file": "杭基礎.sdt",
+      "sha256": "24cee3d028cbcf63fe04cfa2426878305b43a9f4f77409f03aa7df8784ee55cb"
+    },
+    {
+      "role": "0500.sdr",
+      "directory": "post",
+      "file": "杭基礎.sdr",
+      "sha256": "671b63846788fac62a27cd2c24cfdedfccb8f190d4c8f6615fc0e9bc466a0152"
+    },
+    {
+      "role": "0500.sdc",
+      "directory": "post",
+      "file": "杭基礎.sdc",
+      "sha256": "0f12ad9439d51eea0d5731643a8f9aa97f7db01043a8eb55bc2805320d43750c"
+    },
+    {
+      "role": "0610.frameweb",
+      "directory": "post",
+      "file": "線路方向.json",
+      "sha256": "8b2adf160b6d97ffc830345b1475f85e4e4811886b7c94cf196cf62de83f8d66"
+    },
+    {
+      "role": "0611.pik",
+      "directory": "post",
+      "file": "線路方向.pik",
+      "sha256": "a9cddae743c92426b5441d8534297291be864d30696e09dacf057284eaae8eed"
+    },
+    {
+      "role": "0611.displacement",
+      "directory": "post",
+      "file": "線路方向_ピックアップ変位量.csv",
+      "sha256": "8a9de17ee8afca0ba27cc281795cf95fc10dca1ec4eeafad0c84744af6b0b296"
+    },
+    {
+      "role": "0611.reaction",
+      "directory": "post",
+      "file": "線路方向_ピックアップ反力.csv",
+      "sha256": "136211a668c8c084bf55ea500cd580faf36cb7a4fc06af78a10406a6e1f55d47"
+    },
+    {
+      "role": "0611.wdj",
+      "directory": "post",
+      "file": "線路方向.wdj",
+      "sha256": "cba531274fde97c0768a3b48b9946d204184200bfb009332e440adeb1ff94035"
+    },
+    {
+      "role": "0620.frameweb",
+      "directory": "post",
+      "file": "線路直角方向.json",
+      "sha256": "6bfd4e5b8bebda99b04cf075bec2bf7cec24a339d04b1fe0b4240b84852a8360"
+    },
+    {
+      "role": "0621.pik",
+      "directory": "post",
+      "file": "線路直角方向.pik",
+      "sha256": "8343cec06c98014f4d8d4ba601803365cb5427efb5ce5965bfe9812ff2d0d7c1"
+    },
+    {
+      "role": "0621.displacement",
+      "directory": "post",
+      "file": "線路直角方向_ピックアップ変位量.csv",
+      "sha256": "df0478fb923781c25b1f28701ad7dce0f481bc57237eb9018bb4e6a441cfe583"
+    },
+    {
+      "role": "0621.reaction",
+      "directory": "post",
+      "file": "線路直角方向_ピックアップ反力.csv",
+      "sha256": "47ef6603ecc547d31f768bb9f17f1a80cf0d055128909d9d18aef2a87025da02"
+    },
+    {
+      "role": "0621.wdj",
+      "directory": "post",
+      "file": "線路直角方向.wdj",
+      "sha256": "527c58a4021985c02fcac3795c5c12c199c5447d031fdc23bd5dcf19ad4009ec"
+    },
+    {
+      "role": "0710.jrsnap",
+      "directory": "post",
+      "file": "線路方向.ndu",
+      "sha256": "fc09f4a5e5ee469a1b44bcf411647f628282312dc94d2a50abec58e096b98da0"
+    },
+    {
+      "role": "0711.jrsnap",
+      "directory": "post",
+      "file": "線路方向_JRSNAP",
+      "sha256": "d47bd0e900a9bd9cdd2ea599b5511d32e1db88f0dbe844f77223824d328a39dd"
+    },
+    {
+      "role": "0711.aggrese",
+      "directory": "post",
+      "file": "線路方向.xml",
+      "sha256": "e3802ca770a1b1cc0fef7f8ad833a0be0cb1e583ed4cd3ced6d7fa3103b54427"
+    },
+    {
+      "role": "0711.pik",
+      "directory": "post",
+      "file": "線路方向_Aggre-SE.pik",
+      "sha256": "b774c8ec54b272921f7764bbac4d77887ba38871fc972995bd5135cc2cd4a5d3"
+    },
+    {
+      "role": "0711.xlsx",
+      "directory": "post",
+      "file": "線路方向_Aggre-SE.xlsx",
+      "sha256": "1c755f1f05d7df96d002d815640399fd48da0664e1e87846d2a5628ea3e4a809"
+    },
+    {
+      "role": "0720.jrsnap",
+      "directory": "post",
+      "file": "線路直角方向.ndu",
+      "sha256": "cd5a44b668520505a2e98a113ae00a07bca53b54ede06d782c5c8e0bf78b5c05"
+    },
+    {
+      "role": "0720.jrsnapreverse",
+      "directory": "post",
+      "file": "線路直角方向_逆向.ndu",
+      "sha256": "03a2a8c679491af03e2bd4c075d01a8ca5d3a77b3c268f422caba681ab5d109e"
+    },
+    {
+      "role": "0721.jrsnap",
+      "directory": "post",
+      "file": "線路直角方向_JRSNAP",
+      "sha256": "24b24db6f6ba51ca96a3018322d69c14c2ad2866a91168c314b1e3bdb8702904"
+    },
+    {
+      "role": "0721.aggrese",
+      "directory": "post",
+      "file": "線路直角方向.xml",
+      "sha256": "663746e1a986fb6213def483566e629a03024ba721c22aea259eea5162d32027"
+    },
+    {
+      "role": "0721.pik",
+      "directory": "post",
+      "file": "線路直角方向_Aggre-SE.pik",
+      "sha256": "c6f46b4ef49b7dd5bd831481dbbc47bd7dd03529391cce7be4a2dc929447957a"
+    },
+    {
+      "role": "0721.xlsx",
+      "directory": "post",
+      "file": "線路直角方向_Aggre-SE.xlsx",
+      "sha256": "653f406886a1f525091229082c6e2738e12ecff8d33dc5a4b71992bb52f705ce"
+    },
+    {
+      "role": "0400.dxf",
+      "directory": "post",
+      "file": "配筋図.dxf",
+      "sha256": "a4518526687679ef57a91931b08e6f6e429b46fb3648133799602d78561bafe8"
+    },
+    {
+      "role": "0810.wdj",
+      "directory": "post",
+      "file": "線路方向フーチング.wdj",
+      "sha256": "a234a7abd6c29c93b318979666db27eb5e38fe9085aa325e1454da6355ebfa35"
+    },
+    {
+      "role": "0820.wdj",
+      "directory": "post",
+      "file": "線路直角方向フーチング.wdj",
+      "sha256": "2f2f535b87ec5deb7e2d1df9b958b33bf7e6333bd514ca242d9694551ac201cb"
+    }
+  ]
+}

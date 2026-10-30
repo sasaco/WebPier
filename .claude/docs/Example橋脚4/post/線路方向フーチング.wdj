@@ -1,0 +1,1080 @@
+{
+  "$schema": "urn:webdan:wdj:1.0.0",
+  "format": "wdj",
+  "schema_version": "1.0.0",
+  "ver": "1.0.0",
+  "lang": "ja",
+  "pickup_filename": "",
+  "pickup_data": null,
+  "basic": {
+    "specification1_list": [
+      {
+        "id": 0,
+        "title": "Rail",
+        "selected": true
+      },
+      {
+        "id": 3,
+        "title": "Bangladesh",
+        "selected": false
+      }
+    ],
+    "specification2_list": [
+      {
+        "id": 0,
+        "title": "H16_Rail",
+        "selected": false
+      },
+      {
+        "id": 1,
+        "title": "H16_Shinkansen",
+        "selected": false
+      },
+      {
+        "id": 2,
+        "title": "H16_JREast",
+        "selected": false
+      },
+      {
+        "id": 3,
+        "title": "R5_Rail",
+        "selected": true
+      },
+      {
+        "id": 4,
+        "title": "R5_Shinkansen",
+        "selected": false
+      },
+      {
+        "id": 8,
+        "title": "R5_JREast",
+        "selected": false
+      }
+    ],
+    "pickup_moment": [
+      {
+        "id": 0,
+        "title": "耐久性 応力度",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 2,
+        "title": "安全性 疲労限",
+        "no": null
+      },
+      {
+        "id": 3,
+        "title": "安全性 永久作用",
+        "no": null
+      },
+      {
+        "id": 4,
+        "title": "安全性 永久＋変動",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      },
+      {
+        "id": 8,
+        "title": "最小鉄筋量",
+        "no": null
+      }
+    ],
+    "pickup_shear_force": [
+      {
+        "id": 0,
+        "title": "耐久性 ひび割れ判定",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 2,
+        "title": "耐久性 変動荷重",
+        "no": null
+      },
+      {
+        "id": 3,
+        "title": "安全性 永久作用",
+        "no": null
+      },
+      {
+        "id": 4,
+        "title": "安全性 永久＋変動",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      }
+    ],
+    "pickup_torsional_moment": [
+      {
+        "id": 0,
+        "title": "耐久性 ひび割れ判定",
+        "no": null
+      },
+      {
+        "id": 1,
+        "title": "耐久性 永久荷重",
+        "no": null
+      },
+      {
+        "id": 5,
+        "title": "安全性 破壊",
+        "no": null
+      },
+      {
+        "id": 6,
+        "title": "使用性（損傷）",
+        "no": null
+      },
+      {
+        "id": 7,
+        "title": "復旧性 地震時",
+        "no": null
+      }
+    ],
+    "conditions_list": [
+      {
+        "id": "JR-001",
+        "title": "ひび割れ幅制限値に用いるかぶりは 100mm を上限とする",
+        "selected": true
+      },
+      {
+        "id": "JR-004",
+        "title": "せん断耐力におけるβn算定時の Mud は軸力を考慮しない",
+        "selected": true
+      }
+    ]
+  },
+  "members": [
+    {
+      "m_no": 1,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 7650,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    },
+    {
+      "m_no": 2,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 5614,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    },
+    {
+      "m_no": 3,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 8000,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    },
+    {
+      "m_no": 4,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 8000,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    },
+    {
+      "m_no": 5,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 7000,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    },
+    {
+      "m_no": 6,
+      "m_len": null,
+      "g_no": 1,
+      "g_id": "1",
+      "g_name": "フーチング",
+      "shape": 1,
+      "B": 8000,
+      "H": 2200,
+      "Bt": null,
+      "t": null,
+      "n": 1
+    }
+  ],
+  "crack": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "p_name": "く体前面（下側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    },
+    {
+      "index": 2,
+      "m_no": 1,
+      "p_name": "く体前面（上側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    },
+    {
+      "index": 3,
+      "m_no": 1,
+      "p_name": "杭位置（下側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    },
+    {
+      "index": 4,
+      "m_no": 1,
+      "p_name": "杭位置（上側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    },
+    {
+      "index": 5,
+      "m_no": 1,
+      "p_name": "く体前面（下側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    },
+    {
+      "index": 6,
+      "m_no": 1,
+      "p_name": "杭位置（上側引張）",
+      "con_u": 1,
+      "con_l": 1,
+      "con_s": 1,
+      "vis_u": false,
+      "vis_l": false,
+      "ecsd_u": 300,
+      "ecsd_l": 300,
+      "kr": 0.5,
+      "k4": 0.85
+    }
+  ],
+  "points": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "position": 0,
+      "p_name": "く体前面（下側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": false,
+      "isMzCalc": true,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": false,
+      "isLowerCalc": true
+    },
+    {
+      "index": 2,
+      "m_no": 2,
+      "position": 0,
+      "p_name": "く体前面（上側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": false,
+      "isMzCalc": true,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": true,
+      "isLowerCalc": false
+    },
+    {
+      "index": 3,
+      "m_no": 3,
+      "position": 0,
+      "p_name": "杭位置（下側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": false,
+      "isMzCalc": true,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": false,
+      "isLowerCalc": true
+    },
+    {
+      "index": 4,
+      "m_no": 4,
+      "position": 0,
+      "p_name": "杭位置（上側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": false,
+      "isMzCalc": true,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": true,
+      "isLowerCalc": false
+    },
+    {
+      "index": 5,
+      "m_no": 5,
+      "position": 0,
+      "p_name": "く体前面（下側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": true,
+      "isMzCalc": false,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": false,
+      "isLowerCalc": true
+    },
+    {
+      "index": 6,
+      "m_no": 6,
+      "position": 0,
+      "p_name": "杭位置（上側引張）",
+      "p_id": "ITAN",
+      "isMyCalc": false,
+      "isVyCalc": true,
+      "isMzCalc": false,
+      "isVzCalc": false,
+      "isMtCalc": false,
+      "axis_type": 2,
+      "isUpperCalc": true,
+      "isLowerCalc": false
+    }
+  ],
+  "bar": [
+    {
+      "index": 1,
+      "m_no": 1,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 51.03,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 51.03,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "く体前面（下側引張）",
+      "b": 7650,
+      "h": 2200
+    },
+    {
+      "index": 2,
+      "m_no": 2,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 37.45,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 37.45,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "く体前面（上側引張）",
+      "b": 5614,
+      "h": 2200
+    },
+    {
+      "index": 3,
+      "m_no": 3,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "杭位置（下側引張）",
+      "b": 8000,
+      "h": 2200
+    },
+    {
+      "index": 4,
+      "m_no": 4,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "杭位置（上側引張）",
+      "b": 8000,
+      "h": 2200
+    },
+    {
+      "index": 5,
+      "m_no": 5,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 46.69,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 46.69,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "く体前面（下側引張）",
+      "b": 7000,
+      "h": 2200
+    },
+    {
+      "index": 6,
+      "m_no": 6,
+      "haunch_M": null,
+      "haunch_V": null,
+      "rebar1": {
+        "title": "上側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 86,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "rebar2": {
+        "title": "下側",
+        "rebar_dia": 32,
+        "rebar_n": 53.36,
+        "rebar_cover": 125,
+        "rebar_lines": null,
+        "rebar_space": null,
+        "rebar_ss": 150,
+        "cos": null,
+        "enable": true
+      },
+      "sidebar1": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "sidebar2": {
+        "side_dia": null,
+        "side_n": null,
+        "side_cover": null,
+        "side_ss": null
+      },
+      "stirrup": {
+        "stirrup_dia": 25,
+        "stirrup_n": 1,
+        "stirrup_ss": 300
+      },
+      "bend": {
+        "bending_dia": null,
+        "bending_n": null,
+        "bending_ss": null,
+        "bending_angle": null
+      },
+      "tan": null,
+      "g_name": null,
+      "p_name": "杭位置（上側引張）",
+      "b": 8000,
+      "h": 2200
+    }
+  ],
+  "shear": [
+    {
+      "index": 1,
+      "p_name": "く体前面（下側引張）",
+      "m_no": 1,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null
+    },
+    {
+      "index": 2,
+      "p_name": "く体前面（上側引張）",
+      "m_no": 2,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null
+    },
+    {
+      "index": 3,
+      "p_name": "杭位置（下側引張）",
+      "m_no": 3,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null
+    },
+    {
+      "index": 4,
+      "p_name": "杭位置（上側引張）",
+      "m_no": 4,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null
+    },
+    {
+      "index": 5,
+      "p_name": "く体前面（下側引張）",
+      "m_no": 5,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null,
+      "deep_beam": {
+        "mode": "lower_tension",
+        "a1_mm": 1768,
+        "pile_diameter_mm": 1000,
+        "stirrup_b1_mm": 450.5
+      }
+    },
+    {
+      "index": 6,
+      "p_name": "杭位置（上側引張）",
+      "m_no": 6,
+      "g_name": "フーチング",
+      "La": null,
+      "fixed_end": false,
+      "L": null,
+      "deep_beam": {
+        "mode": "upper_tension",
+        "stirrup_count_in_range": 119,
+        "theta_deg": 45
+      }
+    }
+  ],
+  "fatigues": {
+    "fatigue_list": [],
+    "train_A_count": null,
+    "train_B_count": null,
+    "service_life": null
+  },
+  "safety": {
+    "safety_factor": {
+      "1": [
+        {
+          "id": 0,
+          "title": "耐久性, 使用性",
+          "M_rc": 1,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1,
+          "V_rs": 1,
+          "V_rbc": 1,
+          "V_rbs": 1,
+          "V_rbv": null,
+          "T_rbt": 1,
+          "ri": 1,
+          "range": 1
+        },
+        {
+          "id": 2,
+          "title": "安全性（疲労破壊）",
+          "M_rc": 1.3,
+          "M_rs": 1.05,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1.05,
+          "V_rbc": 1.3,
+          "V_rbs": 1,
+          "V_rbv": null,
+          "T_rbt": null,
+          "ri": 1.1,
+          "range": 2
+        },
+        {
+          "id": 5,
+          "title": "安全性（破壊）",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1.1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1.2,
+          "range": 3
+        },
+        {
+          "id": 6,
+          "title": "使用性（損傷）",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1.2,
+          "range": 3
+        },
+        {
+          "id": 7,
+          "title": "復旧性（損傷）地震時",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": 1.3,
+          "V_rs": 1,
+          "V_rbc": 1.3,
+          "V_rbs": 1.1,
+          "V_rbv": 1.2,
+          "T_rbt": 1.3,
+          "ri": 1,
+          "range": 3
+        },
+        {
+          "id": 8,
+          "title": "最小鉄筋量",
+          "M_rc": 1.3,
+          "M_rs": 1,
+          "M_rbs": 1,
+          "V_rc": null,
+          "V_rs": null,
+          "V_rbc": null,
+          "V_rbs": null,
+          "V_rbv": null,
+          "T_rbt": null,
+          "ri": 1,
+          "range": 3
+        }
+      ]
+    },
+    "material_bar": {
+      "1": [
+        {
+          "separate": 25,
+          "tensionBar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "sidebar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "stirrup": {
+            "fsy": 390,
+            "fsu": 560
+          }
+        },
+        {
+          "separate": 29,
+          "tensionBar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "sidebar": {
+            "fsy": 390,
+            "fsu": 560
+          },
+          "stirrup": {
+            "fsy": 390,
+            "fsu": 560
+          }
+        }
+      ]
+    },
+    "material_concrete": {
+      "1": {
+        "fck": 27,
+        "dmax": 40
+      }
+    },
+    "pile_factor": {
+      "1": [
+        {
+          "id": "pile-000",
+          "title": "使用しない",
+          "rfck": 1.0,
+          "rfbok": 1.0,
+          "rEc": 1.0,
+          "rVcd": 1.0,
+          "selected": true
+        }
+      ]
+    }
+  },
+  "force": [
+    {
+      "index": 1,
+      "Md0_Md": 11129.7,
+      "Md0_Nd": 0,
+      "Md1_Md": 9113.2,
+      "Md1_Nd": 0,
+      "Md5_Md": 15776.2,
+      "Md5_Nd": 0,
+      "Md7_Md": 27491.6,
+      "Md7_Nd": 0,
+      "Md8_Md": 9113.2,
+      "Md8_Nd": 0
+    },
+    {
+      "index": 2,
+      "Md0_Md": 0,
+      "Md0_Nd": 0,
+      "Md1_Md": 0,
+      "Md1_Nd": 0,
+      "Md5_Md": 0,
+      "Md5_Nd": 0,
+      "Md7_Md": -10908,
+      "Md7_Nd": 0,
+      "Md8_Md": 0,
+      "Md8_Nd": 0
+    },
+    {
+      "index": 3,
+      "Md0_Md": 294.5,
+      "Md0_Nd": 0,
+      "Md1_Md": 221.4,
+      "Md1_Nd": 0,
+      "Md5_Md": 614.4,
+      "Md5_Nd": 0,
+      "Md7_Md": 4996.8,
+      "Md7_Nd": 0,
+      "Md8_Md": 221.4,
+      "Md8_Nd": 0
+    },
+    {
+      "index": 4,
+      "Md0_Md": -295.9,
+      "Md0_Nd": 0,
+      "Md1_Md": -222.6,
+      "Md1_Nd": 0,
+      "Md5_Md": -616,
+      "Md5_Nd": 0,
+      "Md7_Md": -8124,
+      "Md7_Nd": 0,
+      "Md8_Md": -222.6,
+      "Md8_Nd": 0
+    },
+    {
+      "index": 5,
+      "Vd5_Vd": 12990.4,
+      "Vd5_Md": 15750.4,
+      "Vd5_Nd": 0,
+      "Vd7_Vd": 25087.9,
+      "Vd7_Md": 27491.6,
+      "Vd7_Nd": 0
+    },
+    {
+      "index": 6,
+      "Vd7_Vd": 11166.4,
+      "Vd7_Md": 3050,
+      "Vd7_Nd": 0
+    }
+  ],
+  "calc": {
+    "print_calculate_checked": true,
+    "print_section_force_checked": false,
+    "print_safety_ratio_checked": false,
+    "print_summary_table_checked": false,
+    "calculate_moment_checked": true,
+    "calculate_shear_force": true,
+    "calculate_torsional_moment": false,
+    "member_group_selection": []
+  }
+}
