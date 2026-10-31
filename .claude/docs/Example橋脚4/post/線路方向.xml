@@ -368,8 +368,8 @@
       <int>0</int>
     </dgCaseList_7>
     <dgCaseList_8>
-      <int>0</int>
-      <int>0</int>
+      <int>-1</int>
+      <int>-1</int>
       <int>0</int>
       <int>0</int>
       <int>0</int>
@@ -1048,18 +1048,27 @@
   <PileAnchorBar>
     <’i—Ž‚µî•ñ>
       <clsPileAnchorBar>
-        <_D1>0</_D1>
-        <_n1>0</_n1>
-        <_D2>0</_D2>
+        <_D1>798</_D1>
+        <_n1>13</_n1>
+        <_D2>315</_D2>
         <_Aw>0</_Aw>
         <_Ss>0</_Ss>
-        <dgMemberFirst />
-        <dgMemberLast />
-        <dgMemberNumber />
-        <_PileHeadLength>0</_PileHeadLength>
+        <dgMemberFirst>
+          <int>11</int>
+          <int>48</int>
+        </dgMemberFirst>
+        <dgMemberLast>
+          <int>47</int>
+          <int>84</int>
+        </dgMemberLast>
+        <dgMemberNumber>
+          <float>3</float>
+          <float>3</float>
+        </dgMemberNumber>
+        <_PileHeadLength>50</_PileHeadLength>
         <_ParagraphLength>0</_ParagraphLength>
         <_ConcreteStrength>0</_ConcreteStrength>
-        <_ReductionCoefficient>0</_ReductionCoefficient>
+        <_ReductionCoefficient>0.9</_ReductionCoefficient>
         <_PileMidLength>0</_PileMidLength>
         <_DesignMarginLength>0</_DesignMarginLength>
         <_DisabledFromPileHead>0</_DisabledFromPileHead>
@@ -1067,20 +1076,20 @@
         <_DisabledDownwardFromCutOffPoint>0</_DisabledDownwardFromCutOffPoint>
         <MudCoefficient>1.5</MudCoefficient>
         <VudCoefficient>1.5</VudCoefficient>
-        <D1 />
-        <n1 />
-        <D2 />
+        <D1>798</D1>
+        <n1>13</n1>
+        <D2>315</D2>
         <Aw />
         <Ss />
-        <PileHeadLength />
+        <PileHeadLength>50</PileHeadLength>
         <ParagraphLength />
         <ConcreteStrength />
-        <ReductionCoefficient />
+        <ReductionCoefficient>0.9</ReductionCoefficient>
         <PileMidLength />
         <DesignMarginLength />
-        <DisabledFromPileHead />
-        <DisabledUpwardFromCutOffPoint />
-        <DisabledDownwardFromCutOffPoint />
+        <DisabledFromPileHead>0</DisabledFromPileHead>
+        <DisabledUpwardFromCutOffPoint>0</DisabledUpwardFromCutOffPoint>
+        <DisabledDownwardFromCutOffPoint>0</DisabledDownwardFromCutOffPoint>
       </clsPileAnchorBar>
     </’i—Ž‚µî•ñ>
   </PileAnchorBar>
