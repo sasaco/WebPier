@@ -316,6 +316,21 @@ def test_many_long_names_sidebar_scrolls_without_pdf_or_global_wheel(root, repor
     assert dialog.pdf_list.item(dialog.pdf_list.get_children()[-1], "text").startswith(paths[-1].name)
 
 
+def test_sidebar_button_wheel_directions_do_not_depend_on_the_event_number(root, reports):
+    # Decision 127: Tk 9.0.4 on Windows delivers <Button-5> with num 9 and delta 0; the binding carries the direction.
+    paths = (reports[0],) + tuple(Path(f"{i:03d}_帳票.pdf") for i in range(50))
+    dialog = FakeHost(root, catalog(paths, reports[0])).create()
+    finish_render(dialog)
+    top = dialog.pdf_list.yview()
+    dialog.pdf_list.event_generate("<Button-5>")
+    dialog.update()
+    down = dialog.pdf_list.yview()
+    assert down[0] > top[0]
+    dialog.pdf_list.event_generate("<Button-4>")
+    dialog.update()
+    assert dialog.pdf_list.yview()[0] < down[0]
+
+
 def test_real_wheel_visits_all_pages_then_next_pdf_and_stops(root, tmp_path, monkeypatch):
     paths = (make_pdf(tmp_path / "a.pdf", 2, size=(600, 1200)), make_pdf(tmp_path / "b.pdf", size=(1200, 100)))
     clock = [100.0]

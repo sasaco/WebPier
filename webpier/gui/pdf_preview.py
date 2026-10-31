@@ -113,9 +113,9 @@ def render_pdf_page(
         )
 
 
-def _wheel_steps(event: tk.Event) -> int:
-    if getattr(event, "num", None) in (4, 5):
-        return -1 if event.num == 4 else 1
+def wheel_steps(event: tk.Event) -> int:
+    """The steps of a <MouseWheel> event (<Button-4> and <Button-5> are bound with their own direction, as Tk 9 on
+    Windows delivers them with num 9 and delta 0: decision 127)."""
     delta = getattr(event, "delta", 0)
     if abs(delta) >= 120:
         return -int(delta / 120)
@@ -201,8 +201,8 @@ class PdfPreview(ttk.Frame):
         for target in (self.canvas, self.vertical_scrollbar, self.horizontal_scrollbar):
             target.bind("<MouseWheel>", self._mousewheel)
             target.bind("<Shift-MouseWheel>", lambda event: self._mousewheel(event, horizontal=True))
-            target.bind("<Button-4>", self._mousewheel)
-            target.bind("<Button-5>", self._mousewheel)
+            target.bind("<Button-4>", lambda event: self._mousewheel(event, steps=-1))
+            target.bind("<Button-5>", lambda event: self._mousewheel(event, steps=1))
 
     def show_pdf(self, path: Path | str | None) -> None:
         """Select a PDF, reset its page, and queue rendering of the first page."""
@@ -388,9 +388,9 @@ class PdfPreview(ttk.Frame):
             self._last_width = event.width
             self._schedule_render()
 
-    def _mousewheel(self, event: tk.Event, *, horizontal: bool = False) -> str:
+    def _mousewheel(self, event: tk.Event, *, horizontal: bool = False, steps: int | None = None) -> str:
         horizontal = horizontal or bool(getattr(event, "state", 0) & 0x1)
-        steps = _wheel_steps(event)
+        steps = wheel_steps(event) if steps is None else steps
         if not steps:
             return "break"
         if horizontal:

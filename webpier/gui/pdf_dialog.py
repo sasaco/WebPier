@@ -9,7 +9,7 @@ from tkinter import ttk
 
 from .lifecycle import cancel_timers
 from .pdf_catalog import PdfCatalog, PdfEntry
-from .pdf_preview import PdfPreview
+from .pdf_preview import PdfPreview, wheel_steps
 
 __all__ = ["PdfCatalog", "PdfEntry", "PdfPreviewDialog"]
 
@@ -95,8 +95,8 @@ class PdfPreviewDialog(tk.Toplevel):
         for widget in (self.pdf_list, vertical, horizontal):
             widget.bind("<MouseWheel>", self._sidebar_mousewheel)
             widget.bind("<Shift-MouseWheel>", lambda event: self._sidebar_mousewheel(event, horizontal=True))
-            widget.bind("<Button-4>", self._sidebar_mousewheel)
-            widget.bind("<Button-5>", self._sidebar_mousewheel)
+            widget.bind("<Button-4>", lambda event: self._sidebar_mousewheel(event, steps=-1))
+            widget.bind("<Button-5>", lambda event: self._sidebar_mousewheel(event, steps=1))
         self.catalog_message = tk.StringVar(master=self)
         ttk.Label(self.sidebar, textvariable=self.catalog_message, wraplength=230, justify="left").grid(
             row=4, column=0, columnspan=2, sticky="ew", pady=(7, 0),
@@ -236,13 +236,8 @@ class PdfPreviewDialog(tk.Toplevel):
         self._select_path(path)
         return path
 
-    def _sidebar_mousewheel(self, event: tk.Event, *, horizontal: bool = False) -> str:
-        number = getattr(event, "num", None)
-        if number in (4, 5):
-            steps = -1 if number == 4 else 1
-        else:
-            delta = getattr(event, "delta", 0)
-            steps = -int(delta / 120) if abs(delta) >= 120 else (-1 if delta > 0 else 1 if delta < 0 else 0)
+    def _sidebar_mousewheel(self, event: tk.Event, *, horizontal: bool = False, steps: int | None = None) -> str:
+        steps = wheel_steps(event) if steps is None else steps
         if steps:
             scroll = self.pdf_list.xview_scroll if horizontal else self.pdf_list.yview_scroll
             scroll(steps, "units")

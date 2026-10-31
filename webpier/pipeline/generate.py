@@ -852,11 +852,16 @@ def with_addin(options: GenerationOptions, registry: Registry = STAGES) -> Regis
     return stages_for(load_addin(options.addin).bind(options.input_path))
 
 
-def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[str, ...],
-            posts: list[_PostFile]) -> _Inputs:
+def _precheck(pier: PierInput, registry: Registry, selected: tuple[str, ...]) -> None:
+    """The checks of the input the selected stages make before any runner is looked for or anything is calculated."""
     for stage_id in selected:
         if (check := registry.get(stage_id).precheck) is not None:
             check(pier)
+
+
+def _inputs(data: bytes, pier: PierInput, registry: Registry, selected: tuple[str, ...],
+            posts: list[_PostFile]) -> _Inputs:
+    """The selected stages calculated and their files built, after ``_precheck``."""
     results = _calculate(registry, pier, selected)
     analyses = {stage_id: analysis for stage_id in selected
                 if (analysis := registry.get(stage_id).frame_analysis) is not None}
@@ -882,6 +887,7 @@ def validate(options: GenerationOptions, *, registry: Registry = STAGES) -> tupl
     data, pier = _read(options, registry)
     registry = registry.for_input(pier)
     selected = registry.selected(pier.outputs)
+    _precheck(pier, registry, selected)
     _inputs(data, pier, registry, selected, _plan(options, registry, selected, pier)[1])
     return selected
 
@@ -902,6 +908,9 @@ def prepare(options: GenerationOptions, *, registry: Registry = STAGES) -> Itera
     validate_destinations(stale_paths, overwrite=True, input_path=Path(options.input_path), folders=_folders(stale))
     baseline = {path: _state(path) for path in [*destinations, *stale_paths]}
     identity = _identity()
+    # The stages' checks of the input come before the runners are looked for (an input error first, whatever runners are
+    # set, decision 127); the runners are looked for before anything is calculated.
+    _precheck(pier, registry, selected)
     runners = _runner_paths(registry, selected, pier)
     runner, jrsnap_runner = runners.get(fempython), runners.get(jrsnap)
     capacita_runner, aggrese_runner = runners.get(capacita), runners.get(aggrese)
