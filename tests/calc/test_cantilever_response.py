@@ -134,3 +134,15 @@ def test_the_maximum_response_of_example4_is_of_the_inertia_cases(file, first, k
         *((number, "復旧性") for number in cases), *((number, "安全性") for number in cases)]
     assert [str(value.kh.value) for value in found.values] == [*khmax, *khmax]  # 復旧性 = 安全性 in both workbooks
     assert (found.adopted.case, found.adopted.name, found.kh.value) == adopted and found.adopted.block == "復旧性"
+
+
+@pytest.mark.parametrize("text", ["備考", "1.5"])
+def test_a_no_row_with_a_cell_that_is_not_a_case_number(text):
+    from io import BytesIO
+    from openpyxl import load_workbook
+    book = load_workbook(BytesIO(workbook({1: ("0.3", "0.4")})))
+    book[SHEET].cell(row=4, column=5, value=text)
+    stream = BytesIO()
+    book.save(stream)
+    with pytest.raises(ResponseError, match=re.escape(f"x.xlsx の「{SHEET}」の No の行に Case の番号でない値があります（{text}）")):
+        read_max_response(stream.getvalue(), "x.xlsx")

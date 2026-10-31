@@ -11,7 +11,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable, Mapping
 from tkinter import ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..inputs.fields import field
 from .binding import Bound
@@ -147,6 +147,12 @@ def readout_label(parent: tk.Misc, readouts: dict, key: tuple, label: str = "芯
     frame = labelled(parent, label)
     variable = readouts.setdefault(key, tk.StringVar(master=parent, value=NO_VALUE))
     ttk.Label(frame, textvariable=variable, style="Symbol.TLabel").pack(anchor="w")
+
+
+def shown(parent: tk.Misc, label: str, number: Any) -> None:
+    """*number* read only under *label* (an item another page enters), or no value while it is blank."""
+    frame = labelled(parent, label)
+    ttk.Label(frame, text=NO_VALUE if number is None else f"{number:g}", style="Symbol.TLabel").pack(anchor="w")
 
 
 def card(parent: tk.Misc, title: str) -> ttk.LabelFrame:

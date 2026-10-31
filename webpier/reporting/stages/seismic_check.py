@@ -51,7 +51,7 @@ def minimum_bars(m: Manuscript, result: PileSeismicResult) -> None:
                                    f"{value(found.fsyd)})", gap=0))
     m.line("minimum.result", Row(f"　　＝ {value(found.required)} mm", sup("", "2"), gap=0))
     section = found.section
-    relation = "＞" if found.section.bar_area.value > found.required.value else "≦" if found.ok else "＜"
+    relation = "＞" if section.bar_area.value > found.required.value else "≦" if found.ok else "＜"
     m.line("minimum.check", Row(f"As ＝ D{value(section.bar_diameter)} － {section.bar_count} 本 ＝ "
                                 f"{value(section.bar_area)} mm", sup("", "2"), f"　{relation}　{value(found.required)} mm",
                                 sup("", "2"), gap=0))
@@ -74,9 +74,10 @@ def render_pile_seismic_check(stage_id: str, result: PileSeismicResult, first_ca
         # the 杭の段落とし計算書 (decision 126)
         report = {SEISMIC_CHECK: pages[SEISMIC_CHECK]}
         if not m.units:
-            written = render_seismic_check(path, report)
-        else:
-            written = render_with_pages(tuple(m.units), (Insertion(SEISMIC_CHECK, m.units[-1].key),), report, path)
+            if PILE_ANCHOR_BAR not in pages:
+                return render_seismic_check(path, report)
+            return join((pages[SEISMIC_CHECK], pages[PILE_ANCHOR_BAR]), path)  # the report as render_seismic_check writes it
+        written = render_with_pages(tuple(m.units), (Insertion(SEISMIC_CHECK, m.units[-1].key),), report, path)
         return written if PILE_ANCHOR_BAR not in pages else join((written.read_bytes(), pages[PILE_ANCHOR_BAR]), path)
     minimum_bars(m, result)
     units = tuple(m.units)

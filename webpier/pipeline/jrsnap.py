@@ -30,7 +30,6 @@ from dataclasses import dataclass
 import hashlib
 from io import BytesIO
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -40,7 +39,7 @@ from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PyPdfError
 
 from ..reporting.stages.insertion import DATA_CHECK, LOAD_DIAGRAM
-from .fempython import ENV_FILE, RunnerError, read_env
+from .fempython import ENV_FILE, RunnerError, find_runner
 
 RUNNER_KEY = "STRUCTURAL_MCP_JRSNAP_RUNNER"
 PROTOCOL_VERSION = 1
@@ -88,23 +87,8 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
                 ) -> Path:
     """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
     decision 61) the ``.env`` setting; both as they are now."""
-    environ = os.environ if environ is None else environ
-    env_file = ENV_FILE if env_file is None else env_file
-    value = environ.get(RUNNER_KEY, "")
-    where = f"環境変数 {RUNNER_KEY}"
-    if not value and dotenv:
-        value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
-        where = f"{env_file} の {RUNNER_KEY}"
-    if not value:
-        raise RunnerError(f"データ確認図と静的非線形解析に使う JRSNAP の runner が設定されていません。" + (
-            f"リポジトリのルートの .env に {RUNNER_KEY}='<JRSNAP.Headless.exe の絶対パス>' を書いてください" if dotenv
-            else f"環境変数 {RUNNER_KEY} に JRSNAP.Headless.exe の絶対パスを設定してください"))
-    path = Path(value)
-    if not path.is_absolute():
-        raise RunnerError(f"{where} は絶対パスにしてください: {value}")
-    if not path.is_file():
-        raise RunnerError(f"{where} の runner がありません: {value}")
-    return path
+    return find_runner(RUNNER_KEY, "データ確認図と静的非線形解析に使う JRSNAP ", "JRSNAP.Headless.exe", environ, ENV_FILE if env_file is None else env_file,
+                       dotenv=dotenv)
 
 
 def _fail(name: str, message: str, action: str = _ANALYZE) -> RunnerError:

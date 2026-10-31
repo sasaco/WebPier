@@ -27,12 +27,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-import hashlib
 from io import BytesIO
-import json
-import os
 from pathlib import Path
-import subprocess
 import tempfile
 from typing import Any
 
@@ -40,10 +36,10 @@ from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
 from ..reporting.assembly import page_range
-from .fempython import ENV_FILE, RunnerError, read_env
+from .fempython import ENV_FILE, RunnerError, find_runner
+from .runner_protocol import RunFailure as _Failure, reasons, run
 
 RUNNER_KEY = "STRUCTURAL_MCP_WEBDAN_RUNNER"
-PROTOCOL_VERSION = 1
 ENGINE = "webdan2"
 TIMEOUT = 600  # seconds
 _WITH_WDJ = {("result", "result.json"), ("report", "report.pdf"), ("wdj", "model.wdj")}
@@ -61,10 +57,6 @@ SKIPPED = {"bending_serviceability": "WD-1914", "bending_safety_destruction": "W
            "shear_restorability_eq": "WD-1922", "torsion_durability": "WD-1923",
            "torsion_safety_destruction": "WD-1924", "torsion_restorability": "WD-1925",
            "torsion_restorability_eq": "WD-1926"}
-
-
-class _Failure(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -108,48 +100,8 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
                 ) -> Path:
     """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
     decision 61) the ``.env`` setting; both as they are now."""
-    environ = os.environ if environ is None else environ
-    env_file = ENV_FILE if env_file is None else env_file
-    value = environ.get(RUNNER_KEY, "")
-    where = f"環境変数 {RUNNER_KEY}"
-    if not value and dotenv:
-        value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
-        where = f"{env_file} の {RUNNER_KEY}"
-    if not value:
-        raise RunnerError(f"柱の断面照査に使う Capacita の runner が設定されていません。" + (
-            f"リポジトリのルートの .env に {RUNNER_KEY}='<WebDanforCS.Headless.exe の絶対パス>' を書いてください" if dotenv
-            else f"環境変数 {RUNNER_KEY} に WebDanforCS.Headless.exe の絶対パスを設定してください"))
-    path = Path(value)
-    if not path.is_absolute():
-        raise RunnerError(f"{where} は絶対パスにしてください: {value}")
-    if not path.is_file():
-        raise RunnerError(f"{where} の runner がありません: {value}")
-    return path
-
-
-def _envelope(stdout: bytes) -> dict[str, Any]:
-    try:
-        envelope = json.loads(stdout.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise _Failure(f"runner の応答が JSON ではありません（{exc}）") from exc
-    if not isinstance(envelope, dict):
-        raise _Failure("runner の応答が JSON のオブジェクトではありません")
-    if envelope.get("protocolVersion") != PROTOCOL_VERSION or envelope.get("engine") != ENGINE:
-        raise _Failure(f"runner のやり取りの版が違います（protocolVersion {envelope.get('protocolVersion')!r}、"
-                       f"engine {envelope.get('engine')!r}）")
-    return envelope
-
-
-def _reasons(envelope: dict[str, Any], returncode: int) -> str:
-    """Why the runner failed: its errors and then the error messages of RcDan that say why (the error of run-rc is only
-    calculation_failed; the reason is in messages, e.g. WD-3301 for the k = 0.12 equivalent cycles left blank)."""
-    errors = [f"{error.get('code')}: {error.get('message')}" for error in envelope.get("errors") or ()
-              if isinstance(error, dict)]
-    messages = envelope.get("messages")
-    listed = messages if isinstance(messages, list) else []
-    errors += [f"{message.get('code')}: {message.get('text')}" for message in listed
-               if isinstance(message, dict) and message.get("level") in ("error", "fatal")]
-    return "; ".join(errors) or f"終了コード {returncode}"
+    return find_runner(RUNNER_KEY, "柱の断面照査に使う Capacita ", "WebDanforCS.Headless.exe", environ, ENV_FILE if env_file is None else env_file,
+                       dotenv=dotenv)
 
 
 def _skipped(messages: Any) -> set[str]:
@@ -209,35 +161,9 @@ def _run(wdj: bytes, pickup: tuple[str, bytes] | None, runner: Path, expected: S
             arguments += ["--pickup", str(Path(work) / pickup[0])]
         if commentary is not None:
             arguments += ["--commentary-chapter", str(commentary[0]), "--commentary-first-section", str(commentary[1])]
-        try:
-            done = subprocess.run(arguments, capture_output=True, timeout=timeout, check=False)
-        except subprocess.TimeoutExpired as exc:
-            raise _Failure(f"{timeout} 秒で終わりませんでした") from exc
-        except OSError as exc:
-            raise _Failure(f"runner を起動できません（{exc}）") from exc
-        envelope = _envelope(done.stdout)
-        if done.returncode or envelope.get("ok") is not True or envelope.get("executionStatus") != "success":
-            raise _Failure(_reasons(envelope, done.returncode))
-        version, artifacts = envelope.get("engineVersion"), envelope.get("artifacts")
-        if not isinstance(version, str) or not version:
-            raise _Failure("runner の版（engineVersion）がありません")
-        if (not isinstance(artifacts, list) or len(artifacts) != len(files_expected)
-                or not all(isinstance(item, dict) for item in artifacts)
-                or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != files_expected):
-            what = "計算結果・計算書・WDJ の3つ" if pickup is not None else "計算結果・計算書の2つ"
-            raise _Failure(f"runner の成果物が{what}ではありません（{artifacts!r}）")
-        files: dict[str, bytes] = {}
-        for item in artifacts:
-            path = output / item["relativePath"]
-            if not path.is_file():
-                raise _Failure(f"runner の成果物 {item['relativePath']} がありません")
-            content = path.read_bytes()
-            if hashlib.sha256(content).hexdigest() != item.get("sha256") or len(content) != item.get("bytes"):
-                raise _Failure(f"{item['relativePath']} が runner の応答の SHA256・バイト数と一致しません")
-            files[item["relativePath"]] = content
-        present = sorted(path.name for path in output.iterdir())
-        if present != sorted(files):
-            raise _Failure(f"runner の出力先のファイルが成果物の一覧と一致しません（{present!r}）")
+        what = "計算結果・計算書・WDJ の3つ" if pickup is not None else "計算結果・計算書の2つ"
+        envelope, version, files = run(arguments, output, ENGINE, files_expected, what, timeout,
+                                       reasons_of=lambda found, code: reasons(found, code, levels=("error", "fatal")))
     pdf = files["report.pdf"]
     try:
         pages = len(PdfReader(BytesIO(pdf), strict=True).pages)

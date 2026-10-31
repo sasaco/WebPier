@@ -16,19 +16,16 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-import hashlib
 import json
-import os
 from pathlib import Path
-import subprocess
 import tempfile
 from typing import Any
 
 from ..calc.ground_displacement import STANDARD_COEFFICIENT, RunnerRow
-from .fempython import ENV_FILE, RunnerError, read_env
+from .fempython import ENV_FILE, RunnerError, find_runner
+from .runner_protocol import RunFailure as _Failure, run
 
 RUNNER_KEY = "STRUCTURAL_MCP_SOILSTRUCTURE_RUNNER"
-PROTOCOL_VERSION = 1
 ENGINE = "soilstructure"
 TIMEOUT = 600  # seconds
 _RESULT = ("result", "result.json")
@@ -42,10 +39,6 @@ _PILE = {"pileType": 6, "constructionMethod": "naturalSlurry",
          "soilRows": []}
 # the JOT the runner is not asked to write still needs these
 _JOT = {"jotEquivalentPeriodSeconds": 1, "jotVersion": "Ver.5.1.2", "l2Spectrum": 2}
-
-
-class _Failure(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -63,23 +56,8 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
                 ) -> Path:
     """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
     decision 61) the ``.env`` setting; both as they are now."""
-    environ = os.environ if environ is None else environ
-    env_file = ENV_FILE if env_file is None else env_file
-    value = environ.get(RUNNER_KEY, "")
-    where = f"環境変数 {RUNNER_KEY}"
-    if not value and dotenv:
-        value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
-        where = f"{env_file} の {RUNNER_KEY}"
-    if not value:
-        raise RunnerError(f"地盤変位の算定に使う SoilStructure の runner が設定されていません。" + (
-            f"リポジトリのルートの .env に {RUNNER_KEY}='<SoilStructure.Headless.exe の絶対パス>' を書いてください" if dotenv
-            else f"環境変数 {RUNNER_KEY} に SoilStructure.Headless.exe の絶対パスを設定してください"))
-    path = Path(value)
-    if not path.is_absolute():
-        raise RunnerError(f"{where} は絶対パスにしてください: {value}")
-    if not path.is_file():
-        raise RunnerError(f"{where} の runner がありません: {value}")
-    return path
+    return find_runner(RUNNER_KEY, "地盤変位の算定に使う SoilStructure ", "SoilStructure.Headless.exe", environ, ENV_FILE if env_file is None else env_file,
+                       dotenv=dotenv)
 
 
 def document(rows: Sequence[RunnerRow], region_coefficient: Any) -> bytes:
@@ -92,19 +70,6 @@ def document(rows: Sequence[RunnerRow], region_coefficient: Any) -> bytes:
                        for row in rows]}
     content = {"schemaVersion": 1, **_PILE, "groundDisplacement": ground}
     return json.dumps(content, ensure_ascii=False, indent=2).encode("utf-8")
-
-
-def _envelope(stdout: bytes) -> dict[str, Any]:
-    try:
-        envelope = json.loads(stdout.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise _Failure(f"runner の応答が JSON ではありません（{exc}）") from exc
-    if not isinstance(envelope, dict):
-        raise _Failure("runner の応答が JSON のオブジェクトではありません")
-    if envelope.get("protocolVersion") != PROTOCOL_VERSION or envelope.get("engine") != ENGINE:
-        raise _Failure(f"runner のやり取りの版が違います（protocolVersion {envelope.get('protocolVersion')!r}、"
-                       f"engine {envelope.get('engine')!r}）")
-    return envelope
 
 
 def _answer(result: bytes) -> tuple[float, tuple[Mapping[str, Any], ...]]:
@@ -133,32 +98,9 @@ def calculate(rows: Sequence[RunnerRow], region_coefficient: Any, runner: Path, 
             source.write_bytes(given)
             arguments = [str(runner), "run-ground-displacement", "--input", str(source), "--output-dir", str(output),
                          "--generate-pdf", "false", "--generate-jot", "false"]
-            try:
-                done = subprocess.run(arguments, capture_output=True, timeout=timeout, check=False)
-            except subprocess.TimeoutExpired as exc:
-                raise _Failure(f"{timeout} 秒で終わりませんでした") from exc
-            except OSError as exc:
-                raise _Failure(f"runner を起動できません（{exc}）") from exc
-            envelope = _envelope(done.stdout)
-            if done.returncode or envelope.get("ok") is not True or envelope.get("executionStatus") != "success":
-                errors = "; ".join(f"{error.get('code')}: {error.get('message')}"
-                                   for error in envelope.get("errors") or () if isinstance(error, dict)
-                                   ) or f"終了コード {done.returncode}"
-                raise _Failure(errors)
-            version, artifacts = envelope.get("engineVersion"), envelope.get("artifacts")
-            if not isinstance(version, str) or not version:
-                raise _Failure("runner の版（engineVersion）がありません")
-            if (not isinstance(artifacts, list) or len(artifacts) != 1 or not isinstance(artifacts[0], dict)
-                    or (artifacts[0].get("kind"), artifacts[0].get("relativePath")) != _RESULT):
-                raise _Failure(f"runner の成果物が結果（result.json）の1つではありません（{artifacts!r}）")
-            path = output / _RESULT[1]
-            if not path.is_file():
-                raise _Failure("runner の成果物 result.json がありません")
-            result = path.read_bytes()
-            if hashlib.sha256(result).hexdigest() != artifacts[0].get("sha256") or len(result) != artifacts[0].get("bytes"):
-                raise _Failure("result.json が runner の応答の SHA256・バイト数と一致しません")
-            if sorted(item.name for item in output.iterdir()) != [_RESULT[1]]:
-                raise _Failure("runner の出力先のファイルが成果物の一覧と一致しません")
+            _, version, files = run(arguments, output, ENGINE, {_RESULT}, "結果（result.json）の1つ", timeout,
+                                    listing="bare")
+            result = files[_RESULT[1]]
         period, points = _answer(result)
     except _Failure as exc:
         raise RunnerError(f"SoilStructure で{_FAILED}: {exc}") from exc

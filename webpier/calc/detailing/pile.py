@@ -29,7 +29,7 @@ from .._exact import d, put
 from ..column_rebar import yield_strength
 from ..pile_body import PileResponseError, PointForces
 from ..response_displacement import ResponseDisplacementResult
-from .common import AREA, GAMMA_S, LENGTH, PERCENT, bar_area, need
+from .common import AREA, GAMMA_C, GAMMA_S, LENGTH, PERCENT, bar_area, need
 
 _REBAR = "鉄筋.杭"
 _PILE = "杭基礎.場所打ち杭"
@@ -43,7 +43,6 @@ ALPHA = Precision(3, "")  # αb: 0.404
 WHOLE = Precision(0, "mm")  # ld, 20φ: 383, 320
 QUARTER = Decimal("0.25")  # (2) the tension bars are the quarter (90°) of the main bars
 BENDING_MINIMUM = Printed(0.2, 2, "%")  # (2) 0.20 %
-BENDING_RELIEF = Printed(0.15, 2, "%")  # (2) the 0.15 % of the relief (printed, not judged)
 SPAN_LIMIT = Printed(2.5, 1, "")  # (3) the shear span ratio 2.5
 HEAD_TOUGH = Printed(0.35, 2, "%")  # (3) the 2D zone at a shear span ratio of 2.5 or less
 HEAD_PLAIN = Printed(0.3, 2, "%")  # (3) the 2D zone otherwise
@@ -56,7 +55,6 @@ MINIMUM_CONCRETE = Printed(0.85, 2, "")
 MINIMUM_STEEL = Printed(0.008, 3, "")
 # (4) RC標準 2.3.7.3: fbok by f'ck (the table of the sheet 基本定着長D16), γc 1.3; αb = 0.75／Kc ＋ 0.2 in [0.5, 1.0]
 BOND = {18: 1.9, 21: 2.1, 24: 2.3, 27: 2.5, 30: 2.7, 35: 3.0, 40: 3.3, 50: 3.8}
-GAMMA_C = Printed(1.3, 1, "")
 ALPHA_FACTOR = Printed(0.75, 2, "")
 ALPHA_CONSTANT = Printed(0.2, 1, "")
 ALPHA_MIN = Printed(0.5, 1, "")
@@ -68,7 +66,7 @@ ROUND_TO = Decimal(100)  # mm: the 杭頭定着長 is rounded up to it
 DIRECTIONS = (("橋軸方向", "線路方向"), ("直角方向", "線路直角方向"))
 
 
-def _mm(value: Decimal) -> Printed:
+def mm(value: Decimal) -> Printed:
     """A length in mm of the input's sizes as the sample prints it: no decimal when it has none (600, 156)."""
     return Printed(float(value), 0 if value == value.to_integral_value() else 1, "mm")
 
@@ -178,7 +176,7 @@ class PileDetailing:
         return self.bending.ok and self.hoops.ok
 
 
-def _hoop(hoop: PileHoop, path: str) -> tuple[Printed, int, Printed]:
+def hoop_of(hoop: PileHoop, path: str) -> tuple[Printed, int, Printed]:
     return (need(hoop.diameter, f"{path}.diameter_mm"), need(hoop.sets, f"{path}.sets"),
             need(hoop.pitch, f"{path}.pitch_mm"))
 
@@ -198,8 +196,8 @@ def section(pier: PierInput) -> Section:
         raise InputError(f"{_REBAR}.pure_cover_mm: 杭径に対して大きすぎます（主鉄筋の芯かぶり {centre:g} mm が杭の半径 "
                          f"{diameter / 2:g} mm 以上になります）")
     unit = bar_area(main, f"{_REBAR}.main_bars.diameter_mm")
-    return Section(diameter=_mm(diameter), diameter_m=Printed(float(diameter_m), 2 if diameter_m * 100 % 1 == 0 else 3, "m"),
-                   radius=_mm(diameter / 2), centre=_mm(centre), bar_diameter=main, bar_count=count, bar_unit=unit,
+    return Section(diameter=mm(diameter), diameter_m=Printed(float(diameter_m), 2 if diameter_m * 100 % 1 == 0 else 3, "m"),
+                   radius=mm(diameter / 2), centre=mm(centre), bar_diameter=main, bar_count=count, bar_unit=unit,
                    bar_area=put(AREA, d(unit) * count), grade=grade, fsyd=put(Precision(0, "N/mm2"),
                                                                               d(yield_strength(grade)) / d(GAMMA_S)),
                    fck=Printed(float(d(fck)), 1, "N/mm2"))
@@ -243,7 +241,7 @@ def hoop_minimum(pier: PierInput, found: Section, inverse_betas: Sequence[tuple[
     spans = _spans(inverse_betas, found)
     tough = any(span.tough for span in spans)
     path = f"{_REBAR}.hoops.zone_2d"
-    head = _ratio("杭頭2D区間", _hoop(bars.hoops.zone_2d, path), path, found, HEAD_TOUGH if tough else HEAD_PLAIN)
+    head = _ratio("杭頭2D区間", hoop_of(bars.hoops.zone_2d, path), path, found, HEAD_TOUGH if tough else HEAD_PLAIN)
     cutoff = bars.cutoff
     reach = None  # mm from the head down to the cut-off; None: no cut-off (the first main bars run all along)
     if cutoff.main_diameter is not None:
@@ -254,22 +252,27 @@ def hoop_minimum(pier: PierInput, found: Section, inverse_betas: Sequence[tuple[
         zone_path = f"{_REBAR}.hoops.lower[{index}]"
         length = d(need(zone.length, f"{zone_path}.length_m")) * _MILLI
         if reach is None or top < reach:
-            lower.append(_ratio(f"第{index + 1}区間", _hoop(zone.hoop, zone_path), zone_path, found, LOWER_MINIMUM))
+            lower.append(_ratio(f"第{index + 1}区間", hoop_of(zone.hoop, zone_path), zone_path, found, LOWER_MINIMUM))
         top += length
     ok = head.ok and all(item.ok for item in lower)
     return HoopMinimum(spans, tough, head, tuple(lower), ok)
 
 
-def head_anchorage(pier: PierInput, found: Section) -> HeadAnchorage:
-    bars = pier.rebar.pile
-    fck = pier.materials.footing
+def anchorage_bond(fck: Printed, where: str, purpose: str) -> tuple[Printed, Printed]:
+    """fbok of f'ck *fck* (RC標準 2.3.7.3) and fbod = fbok／γc; an f'ck without one is an input error at *where*, naming
+    the *purpose*."""
     fbok = BOND.get(int(d(fck))) if d(fck) == d(fck).to_integral_value() else None
     if fbok is None:
         strengths = "・".join(str(value) for value in BOND)
-        raise InputError(f"鉄筋.フーチング.concrete_strength_mpa: f'ck {fck.value:g} の付着強度がありません（杭頭定着長の"
-                         f"算定。{strengths} N/mm2）")
+        raise InputError(f"{where}: f'ck {fck.value:g} の付着強度がありません（{purpose}。{strengths} N/mm2）")
     fbok_printed = Printed(fbok, 1, "N/mm2")
-    fbod = put(STRENGTH, d(fbok_printed) / d(GAMMA_C))
+    return fbok_printed, put(STRENGTH, d(fbok_printed) / d(GAMMA_C))
+
+
+def head_anchorage(pier: PierInput, found: Section) -> HeadAnchorage:
+    bars = pier.rebar.pile
+    fck = pier.materials.footing
+    fbok_printed, fbod = anchorage_bond(fck, "鉄筋.フーチング.concrete_strength_mpa", "杭頭定着長の算定")
     phi = found.bar_diameter
     clear = put(LENGTH, d(found.centre) - d(phi) / 2)
     circle = (d(found.diameter) - 2 * d(found.centre)) * Decimal(repr(math.pi))
@@ -281,7 +284,7 @@ def head_anchorage(pier: PierInput, found: Section) -> HeadAnchorage:
         zone, path, hoop = "杭頭2D区間", f"{_REBAR}.hoops.zone_2d", bars.hoops.zone_2d
     else:
         zone, path, hoop = "フーチング内", f"{_REBAR}.hoops.footing", footing
-    diameter, sets, s = _hoop(hoop, path)
+    diameter, sets, s = hoop_of(hoop, path)
     at = put(AREA, d(bar_area(diameter, f"{path}.diameter_mm")) * sets)
     kc = put(RATIO_K, d(cb) / d(phi) + SPLIT_FACTOR * d(at) / (d(s) * d(phi)))
     raw = put(ALPHA, d(ALPHA_FACTOR) / d(kc) + d(ALPHA_CONSTANT))

@@ -29,11 +29,11 @@ from ...calc.pile_cast import CaseForces, Kind, PileCastResult, RowForces
 from ...calc.pile_check import Column, Judged, PileCheckResult
 from ...calc.pile_joint import PileJointResult, RowJoint, Side
 from ...core.printed import Printed
-from ..document import blank, report
+from ..document import report
 from ..equations import Definition
 from .check_text import OMITTED
-from .foundation_check import COLON, Chapter, LONGITUDINAL, TRANSVERSE
-from .frame_report import Manuscript, Span, TableSpec, Unit, blocks, semantic_records, value
+from .foundation_check import COLON, Chapter, LONGITUDINAL, TRANSVERSE, _blocks
+from .frame_report import Manuscript, Span, TableSpec, Unit, semantic_records, value
 from .insertion import Insertion, documents, render_with_pages
 
 TABLE_LEFT = 1
@@ -346,21 +346,6 @@ def content(result: PileCheckResult, chapter: Chapter) -> tuple[Unit, ...]:
 
 def records(result: PileCheckResult, chapter: Chapter) -> list[dict[str, str]]:
     return semantic_records(content(result, chapter))
-
-
-def _blocks(units: Sequence[Unit]) -> list:
-    """The blocks of *units*, a blank line before each "ここに、" list and each run of formula lines."""
-    found: list = []
-    run: list[Unit] = []
-    for unit in units:
-        previous = run[-1].kind if run else None
-        if run and not run[-1].keep and (unit.kind == "definitions" or unit.kind in ("line", "equation")
-                                         and previous not in ("line", "equation")):
-            found += blocks(run)
-            blank(found)
-            run = []
-        run.append(unit)
-    return [*found, *blocks(run)]
 
 
 def insertions(result: PileCheckResult, chapter: Chapter) -> tuple[Insertion, ...]:

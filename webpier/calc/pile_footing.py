@@ -365,18 +365,18 @@ def prepare(pier: PierInput, frame_result, direction: FootingDirectionKind, fram
         raise InputError("鉄筋.フーチング.stirrups: 有効幅の中にスターラップがありません（柱面方向の間隔・幅の間隔を確かめてください）")
     ends = {"face": face_ends, "pile": pile_ends}
 
-    def point(key: str, position: str, tension: str, bending: bool, deep_beam: str | None, wkey: str) -> Point:
+    def point(key: str, position: str, tension: str, bending: bool, deep_beam: str | None) -> Point:
         return Point(key, f"{position}（{tension}）", position, tension, ends["face" if position == FACE else "pile"],
-                     widths[wkey], put(LENGTH_MM, height), put(LENGTH_MM, depth[tension]), bending, deep_beam,
+                     widths[key], put(LENGTH_MM, height), put(LENGTH_MM, depth[tension]), bending, deep_beam,
                      LENGTH_MM(shear_a1) if deep_beam == "lower_tension" else None, put(LENGTH_MM, diameter),
                      count if deep_beam == "upper_tension" else None)
 
-    points = (point("face_lower", FACE, LOWER, True, None, "face_lower"),
-              point("face_upper", FACE, UPPER, True, None, "face_upper"),
-              point("pile_lower", PILE, LOWER, True, None, "pile_lower"),
-              point("pile_upper", PILE, UPPER, True, None, "pile_upper"),
-              point("face_shear", FACE, LOWER, False, "lower_tension", "face_shear"),
-              point("pile_shear", PILE, UPPER, False, "upper_tension", "pile_shear"))
+    points = (point("face_lower", FACE, LOWER, True, None),
+              point("face_upper", FACE, UPPER, True, None),
+              point("pile_lower", PILE, LOWER, True, None),
+              point("pile_upper", PILE, UPPER, True, None),
+              point("face_shear", FACE, LOWER, False, "lower_tension"),
+              point("pile_shear", PILE, UPPER, False, "upper_tension"))
     numbers = {extraction.group: extraction.number for extraction in frame_result.extractions} if frames else {}
     pickups = {case: numbers[group] for case, group in CASES if group is not None and frames}
     chain = {member.number: (frame.nodes[member.start - 1].x, frame.nodes[member.end - 1].x)
@@ -464,9 +464,8 @@ def complete(basis: FootingBasis, frame_forces: Mapping[tuple[int, int], Sequenc
                 found = _force(case, SEISMIC_PICKUP, mapped, seismic_forces, SEISMIC_PUSH, "地震時のピックアップ")
                 # report the frame's member of each end, not the element of the NDU
                 back = {seismic_elements[end.member]: end for end in point.ends}
-                found = Force(found.case, found.pickup, back[found.end.member], found.md, found.md_combination,
-                              found.vd, None if found.vd_end is None else back[found.vd_end.member],
-                              found.vd_combination, found.vd_md)
+                found = replace(found, end=back[found.end.member],
+                                vd_end=None if found.vd_end is None else back[found.vd_end.member])
             else:
                 assert frame_forces is not None  # the cases of the frame analysis are made with its forces
                 pickup = basis.pickups[case]

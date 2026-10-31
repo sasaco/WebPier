@@ -18,7 +18,7 @@ import re
 import pymupdf
 import pytest
 
-from webpier.pipeline import capacita
+from webpier.pipeline import capacita, runner_protocol
 from webpier.pipeline.capacita import RUNNER_KEY, check_column, check_section, runner_path
 from webpier.pipeline.fempython import RunnerError
 
@@ -215,13 +215,13 @@ def test_a_runner_that_cannot_start_is_an_error(tmp_path: Path):
 
 
 def test_a_runner_that_does_not_finish_is_an_error(fake_capacita_runner: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(capacita.subprocess, "run", _timeout)
+    monkeypatch.setattr(runner_protocol.subprocess, "run", _timeout)
     with pytest.raises(RunnerError, match="秒で終わりませんでした"):
         check_column(WDJ, "線路方向.pik", PIK, fake_capacita_runner, SECTIONS, timeout=1)
 
 
 def _timeout(*args, **kwargs):
-    raise capacita.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
+    raise runner_protocol.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
 
 
 def test_the_stand_in_checks_a_footing_wdj_without_a_pickup(fake_capacita_runner: Path):

@@ -42,9 +42,7 @@ def common(page: RebarPage) -> None:
     cards.entry(form, line, (*PILE, "aggregate_max_mm"), "粗骨材の最大寸法")
     cards.entry(form, line, (*PILE, "pure_cover_mm"), "純かぶり")
     cards.help_button(line, "純かぶりと芯かぶり", lambda: list(COVER_NOTE))
-    diameter = page.editor.document.data["杭基礎"]["場所打ち杭"]["杭径"]
-    frame = cards.labelled(line, "杭径 m（杭基礎ページ）")
-    ttk.Label(frame, text=cards.NO_VALUE if diameter is None else f"{diameter:g}", style="Symbol.TLabel").pack(anchor="w")
+    cards.shown(line, "杭径 m（杭基礎ページ）", page.editor.document.data["杭基礎"]["場所打ち杭"]["杭径"])
 
 
 def main(page: RebarPage) -> None:

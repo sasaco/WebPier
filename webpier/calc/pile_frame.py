@@ -27,7 +27,7 @@ from ..core.errors import InputError
 from ..core.printed import LENGTH, Precision, Printed
 from ..inputs import PierInput, choices
 from ._exact import d, put
-from .pile_ground import PI, STEEL_MODULUS, PileGroundResult
+from .pile_ground import PI, STEEL_MODULUS, PileGroundResult, _length
 from .pile_springs import DirectionSprings, GroundSprings
 
 FRAME_AREA = Precision(5, "m2")  # A of one pile as the frame prints it (Example橋脚4 図 1.2.2: 0.04171)
@@ -100,10 +100,6 @@ class PileGroup:
 
 def _mm(value: float) -> int:
     return int((Decimal(repr(value)) * _MM).to_integral_value())
-
-
-def _length(millimetres: int) -> Printed:
-    return LENGTH(float(Decimal(millimetres) / _MM))
 
 
 def section(pier: PierInput, ground: PileGroundResult) -> PileSection:

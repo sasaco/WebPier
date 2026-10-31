@@ -79,7 +79,7 @@ def _answer(monkeypatch, *, stdout=None, result=None, error=None):
                     "engineVersion": "fake-1", "artifacts": [artifact]}
             return subprocess.CompletedProcess(command, 0, stdout=json.dumps(body).encode(), stderr=b"")
         return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
-    monkeypatch.setattr("webpier.pipeline.pilejoint.subprocess.run", run)
+    monkeypatch.setattr("webpier.pipeline.runner_protocol.subprocess.run", run)
 
 
 @pytest.mark.parametrize("answer, message", [

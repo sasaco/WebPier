@@ -1089,8 +1089,7 @@ def _steel_ribs(m: _Manuscript, key: str, n: _Numbers, joint: SteelJoint, pipe: 
     m.paragraph(f"{key}.grade.text", "・ずれ止めの材質は、SS400と同等以上の鋼材とする。")
     m.paragraph(f"{key}.grade.result", f"使用したずれ止めの材質は、{ribs.grade}なので、上記条件を満足する。")
     m.paragraph(f"{key}.thickness.text", "・ずれ止めの厚さt'は鋼管の有効肉厚以下とする。")
-    if ribs.thickness is None or ribs.width is None or ribs.width_least is None or ribs.spacing is None \
-            or ribs.bottom is None or ribs.bottom_least is None:
+    if not ribs.fitted:
         m.paragraph(f"{key}.thickness.result", _sat(False, f"鋼管の有効肉厚が{value(ribs.effective)}mmのため、表の厚さの"
                                                            "ずれ止めを配置できず、"))
         return
@@ -1287,8 +1286,7 @@ def _steel_joint_summary(m: _Manuscript, key: str, n: _Numbers, joint: SteelJoin
         (f"それ以上：{value(hoops.upper_pitch)}mm程度", f"{value(hoops.upper_pitch)} mm", "○"),
         ("鋼管内：200mm～300mm", f"{value(inner.pitch)} mm", _mark(inner.ok)),
         ("ずれ止めの材質", "SS400と同等以上", ribs.grade, "○", SEE)]
-    if ribs.thickness is None or ribs.width is None or ribs.width_least is None or ribs.spacing is None \
-            or ribs.bottom is None or ribs.bottom_least is None:
+    if not ribs.fitted:
         rows.append(("ずれ止めの厚さ", f"t ＝ {value(ribs.effective)} mm 以下", "－", "×", SEE))
     else:
         rows += [

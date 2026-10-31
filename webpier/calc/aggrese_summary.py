@@ -46,7 +46,7 @@ def summary_bands(xlsx: bytes, file: str, error: type[ValueError]) -> tuple[Band
     if SHEET not in workbook.sheetnames:
         raise error(f"{file} にシート「{SHEET}」がありません")
     sheet = workbook[SHEET]
-    width = max(sheet.max_column, 2)
+    width = max(sheet.max_column or 0, 2)  # None when the workbook has no dimension
     rows = [tuple(_text(value) for value in row) + ("",) * (width - len(row))
             for row in sheet.iter_rows(min_col=1, max_col=width, values_only=True)]
     workbook.close()
@@ -58,9 +58,20 @@ def summary_bands(xlsx: bytes, file: str, error: type[ValueError]) -> tuple[Band
             found.append((cells, []))
         if found:
             found[-1][1].append((block, cells))
-    return tuple(Band(tuple((index, int(float(text))) for index, text in enumerate(numbers)
+    return tuple(Band(tuple((index, _case(text, file, error)) for index, text in enumerate(numbers)
                             if index >= FIRST_CASE_COLUMN and text), tuple(lines))
                  for numbers, lines in found)
+
+
+def _case(text: str, file: str, error: type[ValueError]) -> int:
+    """The Case number of a cell of a No row; *error* when it is not a whole number."""
+    try:
+        number = float(text)
+    except ValueError:
+        number = None
+    if number is None or not number.is_integer():
+        raise error(f"{file} の「{SHEET}」の No の行に Case の番号でない値があります（{text}）")
+    return int(number)
 
 
 __all__ = ["Band", "SHEET", "summary_bands"]

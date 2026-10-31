@@ -101,27 +101,34 @@ def read_env(path: Path) -> dict[str, str]:
     return settings
 
 
-def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None, *, dotenv: bool = True
-                ) -> Path:
-    """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
-    decision 61) the ``.env`` setting; both as they are now."""
+def find_runner(key: str, purpose: str, program: str, environ: Mapping[str, str] | None, env_file: Path, *,
+                dotenv: bool) -> Path:
+    """The runner executable of *key* (*program*, used for *purpose*): the environment variable, else (unless *dotenv* is
+    false: the headless runner, decision 61) the setting in *env_file*; both as they are now."""
     environ = os.environ if environ is None else environ
-    env_file = ENV_FILE if env_file is None else env_file
-    value = environ.get(RUNNER_KEY, "")
-    where = f"環境変数 {RUNNER_KEY}"
+    value = environ.get(key, "")
+    where = f"環境変数 {key}"
     if not value and dotenv:
-        value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
-        where = f"{env_file} の {RUNNER_KEY}"
+        value = read_env(env_file).get(key, "") if Path(env_file).is_file() else ""
+        where = f"{env_file} の {key}"
     if not value:
-        raise RunnerError(f"荷重図・骨組解析に使う FEMPython の runner が設定されていません。" + (
-            f"リポジトリのルートの .env に {RUNNER_KEY}='<FrameWebforCS.Headless.exe の絶対パス>' を書いてください" if dotenv
-            else f"環境変数 {RUNNER_KEY} に FrameWebforCS.Headless.exe の絶対パスを設定してください"))
+        raise RunnerError(f"{purpose}の runner が設定されていません。" + (
+            f"リポジトリのルートの .env に {key}='<{program} の絶対パス>' を書いてください" if dotenv
+            else f"環境変数 {key} に {program} の絶対パスを設定してください"))
     path = Path(value)
     if not path.is_absolute():
         raise RunnerError(f"{where} は絶対パスにしてください: {value}")
     if not path.is_file():
         raise RunnerError(f"{where} の runner がありません: {value}")
     return path
+
+
+def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None = None, *, dotenv: bool = True
+                ) -> Path:
+    """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
+    decision 61) the ``.env`` setting; both as they are now."""
+    return find_runner(RUNNER_KEY, "荷重図・骨組解析に使う FEMPython ", "FrameWebforCS.Headless.exe", environ, ENV_FILE if env_file is None else env_file,
+                       dotenv=dotenv)
 
 
 def _fail(document: Path, what: str, message: str) -> RunnerError:

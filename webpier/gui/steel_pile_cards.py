@@ -31,11 +31,6 @@ def _steel(page: RebarPage) -> dict[str, Any]:
     return page.editor.document.data["杭基礎"]["鋼管ソイルセメント杭"]
 
 
-def _shown(parent: ttk.Frame, label: str, number: Any) -> None:
-    frame = cards.labelled(parent, label)
-    ttk.Label(frame, text=cards.NO_VALUE if number is None else f"{number:g}", style="Symbol.TLabel").pack(anchor="w")
-
-
 def _wall(thickness: Any, corrosion: Any) -> str:
     """t − c as the 鋼管厚 is printed (0.1 mm), or no value while either is blank."""
     if not isinstance(thickness, (int, float)) or not isinstance(corrosion, (int, float)):
@@ -59,9 +54,9 @@ def pipe(page: RebarPage) -> None:
     cards.entry(form, line, (*STEEL, "鋼管厚"), "鋼管厚（腐食代を含む）")
     cards.readout_label(line, page.readouts, EFFECTIVE, "有効肉厚 t－c mm")
     line = cards.line(card)
-    _shown(line, "鋼管外径 m", steel.get("鋼管外径"))
-    _shown(line, "腐食代 mm", steel.get("腐食代"))
-    _shown(line, "ソイルセメント径 m", steel.get("ソイルセメント径"))
+    cards.shown(line, "鋼管外径 m", steel.get("鋼管外径"))
+    cards.shown(line, "腐食代 mm", steel.get("腐食代"))
+    cards.shown(line, "ソイルセメント径 m", steel.get("ソイルセメント径"))
     ttk.Label(card, text="外径・腐食代・ソイルセメント径と結合部は「杭基礎」ページで入力します。ソイルセメントの強度は"
                          "規則の値を使い、入力しません。", style="Muted.TLabel", wraplength=640).pack(anchor="w")
 

@@ -130,14 +130,19 @@ def _exact(item: Printed) -> Decimal:
     return Decimal(repr(item.value))
 
 
+def _anchor_rows(model: PileNduModel) -> tuple[tuple[int, int, int], ...]:
+    """The rows of ⑧: the first and last elements of each pile row and its piles in depth."""
+    members = {member.number: member for member in model.members}
+    return tuple((pile.first, pile.last, members[pile.member].depth_piles) for pile in model.piles)
+
+
 def _steel_anchor_bar(model: PileNduModel, pier: PierInput) -> AnchorBar:
     """⑧ of a 鋼管ソイルセメント杭 cut off (decision 126): the parser checked every item and the whole millimetres."""
     pile = pier.piles.steel_soil_cement
     cutoff = pile.cutoff
-    members = {member.number: member for member in model.members}
     corrosion = _exact(pile.corrosion)
     return AnchorBar(
-        rows=tuple((row.first, row.last, members[row.member].depth_piles) for row in model.piles),
+        rows=_anchor_rows(model),
         main_diameter=_exact(pile.steel_diameter) * 1000 - 2 * corrosion,
         main_count=int(_exact(cutoff.thickness) - corrosion),
         hoop_diameter=Decimal(repr(STEEL_PIPE_STRENGTH[cutoff.grade][0])), hoop_sets=None, hoop_pitch=None,
@@ -162,11 +167,9 @@ def anchor_bar(model: PileNduModel, pier: PierInput) -> AnchorBar | None:
             raise InputError(f"{_CUTOFF}.{path}: 杭の段落しの照査（Aggre-SE の ⑧）に必要です")
         return Decimal(repr(item.value)) if isinstance(item, Printed) else Decimal(item)
 
-    members = {member.number: member for member in model.members}
-    rows = tuple((pile.first, pile.last, members[pile.member].depth_piles) for pile in model.piles)
     length = head_anchorage(pier, section(pier)).length
     return AnchorBar(
-        rows=rows, main_diameter=need(cutoff.main_diameter, "main_bars.diameter_mm"),
+        rows=_anchor_rows(model), main_diameter=need(cutoff.main_diameter, "main_bars.diameter_mm"),
         main_count=int(need(cutoff.main_count, "main_bars.count")),
         hoop_diameter=need(cutoff.hoop.diameter, "hoops.diameter_mm"), hoop_sets=int(need(cutoff.hoop.sets, "hoops.sets")),
         hoop_pitch=need(cutoff.hoop.pitch, "hoops.pitch_mm"), head_anchorage=Decimal(repr(length.value)),
@@ -197,15 +200,15 @@ RESPONSE_CHECKS: dict[str, Checks] = {"L1": (False, False, True, False, True, Tr
                                       "L2": (True, True, True, False, True, False, True, False, True)}
 
 
-def _checks(model: NduModel | PileNduModel, *, piled: bool = False, anchored: bool = False) -> tuple[Checks, ...]:
-    """The check items of each combination of *model*; of piles (*piled*), ⑧ only with a cut-off (*anchored*)."""
+def _checks(model: NduModel | PileNduModel, *, without_anchor_bar: bool = False) -> tuple[Checks, ...]:
+    """The check items of each combination of *model*; without ⑧ for piles with no cut-off (*without_anchor_bar*)."""
     found = []
     for number, combination in enumerate(model.combinations, 1):
         pattern = (Decimal(repr(combination.rho_m.value)), Decimal(repr(combination.alpha_f.value)))
         if pattern not in CHECKS:
             raise ValueError(f"組合せ {number} の照査パターン ρm={pattern[0]}・αf={pattern[1]} の照査項目がありません")
         checks = CHECKS[pattern]
-        found.append(tuple(item and not (piled and not anchored and index == PILE_ANCHOR_BAR)
+        found.append(tuple(item and not (without_anchor_bar and index == PILE_ANCHOR_BAR)
                            for index, item in enumerate(checks)))
     return tuple(found)
 
@@ -251,7 +254,7 @@ def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
     # ⑧ is of piles with a cut-off: a 場所打ち杭's (decision 98) or a 鋼管ソイルセメント杭's (decision 126)
     anchor = anchor_bar(first, pier)
-    ordinary = tuple(case for model in models for case in _checks(model, piled=True, anchored=anchor is not None))
+    ordinary = tuple(case for model in models for case in _checks(model, without_anchor_bar=anchor is None))
     index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),
                    ground_class=_choice(design.ground_class, GROUND_CLASSES, "地盤区分"), shear_span=first.shear_span,
@@ -267,31 +270,26 @@ def ndu_databases(folder: str, names: Iterable[str], groups: Sequence[tuple[str,
     in order, as a path from the XML (``folder/name``): JRSNAP names a file ``<NDU>(Case<n>_…).DB1`` and numbers the Cases of
     each NDU from 1."""
     names = list(names)
-    found: list[str] = []
-    for stem, cases in groups:
-        own = re.compile(rf"{re.escape(stem)}\(Case(\d+)_[^()]*\)\.db1", re.IGNORECASE)
-        by_case: dict[int, str] = {}
-        for name in names:
-            if match := own.fullmatch(name):
-                case = int(match[1])
-                if case in by_case:
-                    raise ProjectError(f"{stem} の Case{case} の DB1 が2つあります: {by_case[case]}, {name}")
-                by_case[case] = name
-        if sorted(by_case) != list(range(1, cases + 1)):
-            raise ProjectError(f"JRSNAP の結果に {stem} の Case1〜{cases} の DB1 がそろっていません（{sorted(by_case.values())!r}）")
-        found += [f"{folder}/{by_case[case]}" for case in range(1, cases + 1)]
-    return tuple(found)
+    return tuple(path for stem, cases in groups
+                 for path in _by_case(folder, names, cases, re.compile(rf"{re.escape(stem)}\(Case(\d+)_[^()]*\)\.db1",
+                                                                       re.IGNORECASE), f"{stem} の "))
 
 
 def databases(folder: str, names: Iterable[str], cases: int) -> tuple[str, ...]:
     """The DB1 of each Case 1..*cases* among the result files *names*, as a path from the XML (``folder/name``)."""
+    return _by_case(folder, names, cases, _CASE, "")
+
+
+def _by_case(folder: str, names: Iterable[str], cases: int, pattern: re.Pattern[str], of: str) -> tuple[str, ...]:
+    """The names matching *pattern* (its group 1 the Case) of Cases 1..*cases*, in order, as ``folder/name``; *of* names
+    the NDU in the errors."""
     found: dict[int, str] = {}
     for name in names:
-        if match := _CASE.fullmatch(name):
+        if match := pattern.fullmatch(name):
             case = int(match[1])
             if case in found:
-                raise ProjectError(f"Case{case} の DB1 が2つあります: {found[case]}, {name}")
+                raise ProjectError(f"{of}Case{case} の DB1 が2つあります: {found[case]}, {name}")
             found[case] = name
     if sorted(found) != list(range(1, cases + 1)):
-        raise ProjectError(f"JRSNAP の結果に Case1〜{cases} の DB1 がそろっていません（{sorted(found.values())!r}）")
+        raise ProjectError(f"JRSNAP の結果に {of}Case1〜{cases} の DB1 がそろっていません（{sorted(found.values())!r}）")
     return tuple(f"{folder}/{found[case]}" for case in range(1, cases + 1))

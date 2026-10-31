@@ -13,11 +13,11 @@ import json
 import math
 import os
 from pathlib import Path
+import subprocess
 
 import pytest
 
 from webpier.calc.ground_displacement import RunnerRow
-from webpier.pipeline import soilstructure
 from webpier.pipeline.fempython import RunnerError
 from webpier.pipeline.soilstructure import RUNNER_KEY, calculate, document, runner_path
 
@@ -94,8 +94,8 @@ def test_a_runner_that_does_not_answer_is_an_error(fake_soilstructure_runner: Pa
 
 
 def test_an_envelope_that_is_not_an_object_is_an_error(monkeypatch: pytest.MonkeyPatch, fake_soilstructure_runner: Path):
-    monkeypatch.setattr(soilstructure.subprocess, "run",
-                        lambda *args, **kwargs: soilstructure.subprocess.CompletedProcess(args[0], 0, b"[]", b""))
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, b"[]", b""))
     with pytest.raises(RunnerError, match="JSON のオブジェクトではありません"):
         calculate(ROWS, Decimal("1.0"), fake_soilstructure_runner)
 
@@ -109,9 +109,9 @@ def test_a_runner_that_cannot_start_is_an_error(tmp_path: Path):
 
 def test_a_runner_that_does_not_finish_is_an_error(fake_soilstructure_runner: Path, monkeypatch: pytest.MonkeyPatch):
     def timeout(*args, **kwargs):
-        raise soilstructure.subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
+        raise subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 1))
 
-    monkeypatch.setattr(soilstructure.subprocess, "run", timeout)
+    monkeypatch.setattr(subprocess, "run", timeout)
     with pytest.raises(RunnerError, match="秒で終わりませんでした"):
         calculate(ROWS, Decimal("1.0"), fake_soilstructure_runner, timeout=1)
 

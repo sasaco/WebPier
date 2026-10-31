@@ -28,13 +28,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 import csv
 from dataclasses import dataclass
-import hashlib
 from io import BytesIO, StringIO
 import json
 import math
-import os
 from pathlib import Path
-import subprocess
 import tempfile
 from typing import Any
 import xml.etree.ElementTree as ET
@@ -45,10 +42,10 @@ from pypdf.errors import PyPdfError
 
 from ..calc.footing import FoundationStep, StepsError
 from ..reporting.stages.seismic_check import PILE_ANCHOR_BAR, SEISMIC_CHECK
-from .fempython import ENV_FILE, RunnerError, read_env
+from .fempython import ENV_FILE, RunnerError, find_runner
+from .runner_protocol import RunFailure as _Failure, run
 
 RUNNER_KEY = "STRUCTURAL_MCP_AGGRESE_RUNNER"
-PROTOCOL_VERSION = 1
 ENGINE = "aggrese"
 TIMEOUT = 600  # seconds
 # The report (decision 56), the pickup (decision 57), the summary workbook (decision 58) and the step table of the
@@ -74,10 +71,6 @@ AXIAL, TRANSVERSE = "axial", "transverse"  # --sdr-direction: 橋軸方向 (線�
 # each the envelope of every Case up to its response step (decision 57).
 PICKUPS = {1: "L1地震動", 2: "復旧性L2地震動", 3: "安全性L2地震動"}
 _CHECK = "で耐震性能照査ができません"
-
-
-class _Failure(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -108,23 +101,8 @@ def runner_path(environ: Mapping[str, str] | None = None, env_file: Path | None 
                 ) -> Path:
     """The runner executable: the environment variable, else (unless *dotenv* is false: the headless runner,
     decision 61) the ``.env`` setting; both as they are now."""
-    environ = os.environ if environ is None else environ
-    env_file = ENV_FILE if env_file is None else env_file
-    value = environ.get(RUNNER_KEY, "")
-    where = f"環境変数 {RUNNER_KEY}"
-    if not value and dotenv:
-        value = read_env(env_file).get(RUNNER_KEY, "") if Path(env_file).is_file() else ""
-        where = f"{env_file} の {RUNNER_KEY}"
-    if not value:
-        raise RunnerError(f"耐震性能照査に使う Aggre-SE の runner が設定されていません。" + (
-            f"リポジトリのルートの .env に {RUNNER_KEY}='<AggreSE.Headless.exe の絶対パス>' を書いてください" if dotenv
-            else f"環境変数 {RUNNER_KEY} に AggreSE.Headless.exe の絶対パスを設定してください"))
-    path = Path(value)
-    if not path.is_absolute():
-        raise RunnerError(f"{where} は絶対パスにしてください: {value}")
-    if not path.is_file():
-        raise RunnerError(f"{where} の runner がありません: {value}")
-    return path
+    return find_runner(RUNNER_KEY, "耐震性能照査に使う Aggre-SE ", "AggreSE.Headless.exe", environ, ENV_FILE if env_file is None else env_file,
+                       dotenv=dotenv)
 
 
 def snap_map(project: Path) -> dict[str, str]:
@@ -142,19 +120,6 @@ def snap_map(project: Path) -> dict[str, str]:
     if not found:
         raise _Failure("プロジェクトに解析ケースの DB1（SNAP/SnapDBPath）がありません")
     return found
-
-
-def _envelope(stdout: bytes) -> dict[str, Any]:
-    try:
-        envelope = json.loads(stdout.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise _Failure(f"runner の応答が JSON ではありません（{exc}）") from exc
-    if not isinstance(envelope, dict):
-        raise _Failure("runner の応答が JSON のオブジェクトではありません")
-    if envelope.get("protocolVersion") != PROTOCOL_VERSION or envelope.get("engine") != ENGINE:
-        raise _Failure(f"runner のやり取りの版が違います（protocolVersion {envelope.get('protocolVersion')!r}、"
-                       f"engine {envelope.get('engine')!r}）")
-    return envelope
 
 
 def _cases(summary: Any, mapped: Mapping[str, str]) -> tuple[Mapping[str, Any], ...]:
@@ -184,40 +149,10 @@ def _run(project: Path, runner: Path, timeout: float, limits: Limits | None, anc
             if limits.liquefied is not None:
                 (Path(work) / LIQUEFIED_SDR_NAME).write_bytes(limits.liquefied)
                 sdr += ["--sdr-liquefied", str(Path(work) / LIQUEFIED_SDR_NAME)]
-        try:
-            done = subprocess.run([str(runner), "run", "--input", str(project), "--output-dir", str(output),
-                                   "--snap-map", str(snaps), *arguments, *sdr],
-                                  capture_output=True, timeout=timeout, check=False)
-        except subprocess.TimeoutExpired as exc:
-            raise _Failure(f"{timeout} 秒で終わりませんでした") from exc
-        except OSError as exc:
-            raise _Failure(f"runner を起動できません（{exc}）") from exc
-        envelope = _envelope(done.stdout)
-        if done.returncode or envelope.get("ok") is not True or envelope.get("executionStatus") != "success":
-            errors = "; ".join(f"{error.get('code')}: {error.get('message')}" for error in envelope.get("errors") or ()
-                               if isinstance(error, dict)) or f"終了コード {done.returncode}"
-            raise _Failure(errors)
-        version, artifacts = envelope.get("engineVersion"), envelope.get("artifacts")
-        if not isinstance(version, str) or not version:
-            raise _Failure("runner の版（engineVersion）がありません")
-        if (not isinstance(artifacts, list) or len(artifacts) != len(expected)
-                or not all(isinstance(item, dict) for item in artifacts)
-                or {(item.get("kind"), item.get("relativePath")) for item in artifacts} != expected):
-            raise _Failure("runner の成果物が結果・計算書・ピックアップ・総括表" + (
-                "・直接基礎のステップ表" if limits is None else "") + ("・杭の段落とし計算書" if anchor_bar else "")
-                + f"の{len(expected)}つではありません（{artifacts!r}）")
-        files: dict[str, bytes] = {}
-        for item in artifacts:
-            path = output / item["relativePath"]
-            if not path.is_file():
-                raise _Failure(f"runner の成果物 {item['relativePath']} がありません")
-            content = path.read_bytes()
-            if hashlib.sha256(content).hexdigest() != item.get("sha256") or len(content) != item.get("bytes"):
-                raise _Failure(f"{item['relativePath']} が runner の応答の SHA256・バイト数と一致しません")
-            files[item["relativePath"]] = content
-        present = sorted(path.name for path in output.iterdir())
-        if present != sorted(files):
-            raise _Failure(f"runner の出力先のファイルが成果物の一覧と一致しません（{present!r}）")
+        what = ("結果・計算書・ピックアップ・総括表" + ("・直接基礎のステップ表" if limits is None else "")
+                + ("・杭の段落とし計算書" if anchor_bar else "") + f"の{len(expected)}つ")
+        envelope, version, files = run([str(runner), "run", "--input", str(project), "--output-dir", str(output),
+                                        "--snap-map", str(snaps), *arguments, *sdr], output, ENGINE, expected, what, timeout)
     cases = _cases(envelope.get("summary"), mapped)
     pdf = files["report.pdf"]
     _pdf(pdf, "計算書")

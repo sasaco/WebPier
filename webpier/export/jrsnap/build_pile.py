@@ -34,6 +34,7 @@ from typing import Any
 
 from ...calc._exact import d, put
 from ...calc.column_rebar import ColumnLayout, yield_strength
+from ...calc.detailing.pile import hoop_of
 from ...calc.pile_body import steel
 from ...calc.pile_joint import confined_strength, section as joint_section
 from ...calc.frame import NodeRole
@@ -64,11 +65,6 @@ CONSTRUCTION = {"自然泥水": -3, "安定液使用": -4}
 DISTANCE_TOLERANCE = Decimal("0.0005")
 
 
-def _hoop(hoop, path: str):
-    return (need(hoop.diameter, f"{path}.diameter_mm"), need(hoop.sets, f"{path}.sets"),
-            need(hoop.pitch, f"{path}.pitch_mm"))
-
-
 def pile_sections(pier: PierInput, profile: Profile, diameter: Printed) -> tuple[tuple[PileSection, ...], list[Decimal]]:
     """The sections of the zones of the hoops and where each zone ends (m below the head; the last one has no end)."""
     bars, cast = pier.rebar.pile, pier.piles.cast_in_place
@@ -89,7 +85,7 @@ def pile_sections(pier: PierInput, profile: Profile, diameter: Printed) -> tuple
         zones.append((f"{REBAR}.hoops.lower[{index}]", lower.hoop, length))
     sections, ends, end = [], [], Decimal(0)
     for path, hoop, length in zones:
-        hoop_diameter, sets, pitch = _hoop(hoop, path)
+        hoop_diameter, sets, pitch = hoop_of(hoop, path)
         end += d(length)
         ends.append(end)
         title = f"杭(φ{d(diameter) * 1000:.0f})：帯鉄筋ctc{pitch.value:g}"

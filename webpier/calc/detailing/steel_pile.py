@@ -37,7 +37,7 @@ from .._exact import d, put
 from ..column_rebar import yield_strength
 from ..pile_body import PointForces
 from .common import AREA, GAMMA_C, GAMMA_S, bar_area
-from .pile import BOND
+from .pile import anchorage_bond, mm
 
 _PILE = "杭基礎.鋼管ソイルセメント杭"
 _JOINT = f"{_PILE}.結合部"
@@ -125,11 +125,6 @@ FORCE_KN = Precision(2, "kN")  # Nd, Np per pile: 5695.00
 STRENGTHS = (("杭一般部（砂質土）", Printed(1000, 0, "kN/m2")), ("杭一般部（粘性土）", Printed(750, 0, "kN/m2")),
              ("杭先端部（砂質土）", Printed(15000, 0, "kN/m2")))
 NOMINAL_EXCESS = Printed(200, 0, "mm")
-
-
-def _mm(value: Decimal) -> Printed:
-    """A length in mm as the sample prints it: no decimal when it has none."""
-    return Printed(float(value), 0 if value == value.to_integral_value() else 1, "mm")
 
 
 def _up(value: Decimal, unit: Decimal) -> Decimal:
@@ -284,9 +279,15 @@ class Ribs:
     bottom: Printed | None  # the lowest step above the bottom of the filling
 
     @property
+    def fitted(self) -> bool:
+        """A flat bar of 表1.10-1 fits: the sizes, the spacing and the steps' bottoms are all given (or none is)."""
+        return self.thickness is not None
+
+    @property
     def ok(self) -> bool:
-        if self.bottom is None or self.bottom_least is None:
-            return False  # no flat bar fits 表1.10-1
+        if not self.fitted:
+            return False
+        assert self.bottom is not None and self.bottom_least is not None
         return d(self.bottom) >= d(self.bottom_least)
 
 
@@ -444,25 +445,25 @@ def _tip(diameter: Printed, soil_cement: Printed) -> Tip:
     if row is None:
         return Tip(None, None, None, None, None, penetration, margin, soil_cement)
     steps, first, pitch, length = TIP_RIBS[row]
-    return Tip(row, steps, _mm(Decimal(first)), _mm(Decimal(pitch)), _mm(Decimal(length)), penetration, margin,
+    return Tip(row, steps, mm(Decimal(first)), mm(Decimal(pitch)), mm(Decimal(length)), penetration, margin,
                soil_cement)
 
 
 def steel_pipe(pier: PierInput) -> SteelPipe:
     pile = pier.piles.steel_soil_cement
-    diameter = _mm(d(_need(pile.steel_diameter, f"{_PILE}.鋼管外径")) * _MILLI)
-    soil_cement = _mm(d(_need(pile.soil_cement_diameter, f"{_PILE}.ソイルセメント径")) * _MILLI)
+    diameter = mm(d(_need(pile.steel_diameter, f"{_PILE}.鋼管外径")) * _MILLI)
+    soil_cement = mm(d(_need(pile.soil_cement_diameter, f"{_PILE}.ソイルセメント径")) * _MILLI)
     made = _need(pile.thickness, f"{_PILE}.鋼管厚")
     corrosion = _need(pile.corrosion, f"{_PILE}.腐食代")
-    effective = _mm(d(made) - d(corrosion))
+    effective = mm(d(made) - d(corrosion))
     cutoff = pile.cutoff
     lower = None
     if cutoff.entered:  # the parser checked its grade and its wall (decision 126)
         assert cutoff.grade is not None and cutoff.thickness is not None
-        lower = LowerPipe(cutoff.grade, _thickness(_mm(d(cutoff.thickness)), MADE_LEAST, diameter, MADE_RATIO),
-                          _thickness(_mm(d(cutoff.thickness) - d(corrosion)), EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO))
-    return SteelPipe(diameter, soil_cement, _mm(d(corrosion)),
-                     _thickness(_mm(d(made)), MADE_LEAST, diameter, MADE_RATIO),
+        lower = LowerPipe(cutoff.grade, _thickness(mm(d(cutoff.thickness)), MADE_LEAST, diameter, MADE_RATIO),
+                          _thickness(mm(d(cutoff.thickness) - d(corrosion)), EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO))
+    return SteelPipe(diameter, soil_cement, mm(d(corrosion)),
+                     _thickness(mm(d(made)), MADE_LEAST, diameter, MADE_RATIO),
                      _thickness(effective, EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO), _tip(diameter, soil_cement), lower)
 
 
@@ -480,18 +481,12 @@ def _anchorage(pier: PierInput, phi: Printed, fsyd: Printed, pitch: Printed) -> 
     ineffective = put(WHOLE, INEFFECTIVE_BARS * d(phi))
     total = put(WHOLE, d(ld0) + d(ineffective))
     return Anchorage(fsyd, fck, fcd, spacing, limit, k1, ld01, hook, reduced, least, ld0, ineffective, total,
-                     _mm(_up(d(total), ROUND_ANCHOR)))
+                     mm(_up(d(total), ROUND_ANCHOR)))
 
 
 def _filling(fck_input: Printed, phi: Printed, grade: str, fsyd: Printed, diameter: Printed) -> Filling:
     fck = Printed(float(d(fck_input)), 1, "N/mm2")
-    fbok = BOND.get(int(d(fck))) if d(fck) == d(fck).to_integral_value() else None
-    if fbok is None:
-        strengths = "・".join(str(value) for value in BOND)
-        raise InputError(f"{_JOINT}.中詰めコンクリート_f'ck: f'ck {fck.value:g} の付着強度がありません（中詰めコンクリート長"
-                         f"の算定。{strengths} N/mm2）")
-    fbok_printed = Printed(fbok, 1, "N/mm2")
-    fbod = put(STRESS, d(fbok_printed) / d(GAMMA_C))
+    fbok_printed, fbod = anchorage_bond(fck, f"{_JOINT}.中詰めコンクリート_f'ck", "中詰めコンクリート長の算定")
     anchorage = put(WHOLE, d(FILL_ALPHA) * d(fsyd) / (4 * d(fbod)) * d(phi))
     required = put(WHOLE, d(FILL_INEFFECTIVE) + d(anchorage))
     factor = HOOK_RADIUS.get(grade)
@@ -502,7 +497,7 @@ def _filling(fck_input: Printed, phi: Printed, grade: str, fsyd: Printed, diamet
     least = put(WHOLE, d(FILL_FACTOR) * d(diameter))
     total = put(WHOLE, d(required) + d(hook) + d(FILL_BOTTOM))
     return Filling(fck, fbok_printed, fbod, anchorage, required, factor, hook, least, total,
-                   _mm(_up(max(d(least), d(total)), ROUND_FILL)))
+                   mm(_up(max(d(least), d(total)), ROUND_FILL)))
 
 
 def _footing_hoops(phi: Printed, diameter: Printed, top: Printed) -> FootingHoops:
@@ -518,8 +513,8 @@ def _footing_hoops(phi: Printed, diameter: Printed, top: Printed) -> FootingHoop
     while height + upper <= reach:
         height += upper
         positions.append(height)
-    return FootingHoops(_mm(Decimal(size)), _mm(Decimal(bar)) if d(diameter) <= d(limit) else None,
-                        _mm(Decimal(lower)), _mm(Decimal(upper)),
+    return FootingHoops(mm(Decimal(size)), mm(Decimal(bar)) if d(diameter) <= d(limit) else None,
+                        mm(Decimal(lower)), mm(Decimal(upper)),
                         tuple(position - d(EMBEDMENT) for position in positions))
 
 
@@ -528,7 +523,7 @@ def _pipe_hoops(filling: Filling) -> PipeHoops:
     span = d(filling.length) - d(FILL_BOTTOM) - d(filling.hook) - first
     divisions = int((span / d(PIPE_PITCH_RANGE[1])).to_integral_value(rounding=ROUND_CEILING))
     pitch = (span / divisions / ROUND_PIPE).to_integral_value(rounding=ROUND_FLOOR) * ROUND_PIPE
-    return PipeHoops(PIPE_HOOP, _mm(span), divisions, _mm(pitch), divisions + 1,
+    return PipeHoops(PIPE_HOOP, mm(span), divisions, mm(pitch), divisions + 1,
                      tuple(first + index * pitch for index in range(divisions + 1)))
 
 
@@ -542,14 +537,14 @@ def _ribs(effective: Printed, diameter: Printed, filling: Filling) -> Ribs:
         return Ribs(RIB_GRADE, effective, None, None, None, None, quarter, None, RIB_STEPS, None)
     least = RIB_WIDTH_FACTOR * thickness
     width = next(size for size in FLAT_WIDTHS if size >= least)
-    spacing = _mm(Decimal(band))
-    return Ribs(RIB_GRADE, effective, _mm(thickness), _mm(Decimal(width)), _mm(least), spacing, quarter,
+    spacing = mm(Decimal(band))
+    return Ribs(RIB_GRADE, effective, mm(thickness), mm(Decimal(width)), mm(least), spacing, quarter,
                 max(quarter, spacing, key=d), RIB_STEPS, _bottom(filling, quarter, spacing, RIB_STEPS))
 
 
 def _bottom(filling: Filling, quarter: Printed, spacing: Printed, steps: int) -> Printed:
     """The lowest step above the bottom of the filling: lc − {D／4 ＋ (n − 1)lz}."""
-    return _mm(d(filling.length) - (d(quarter) + (steps - 1) * d(spacing)))
+    return mm(d(filling.length) - (d(quarter) + (steps - 1) * d(spacing)))
 
 
 def joint(pier: PierInput, pipe: SteelPipe) -> Joint:
@@ -558,7 +553,7 @@ def joint(pier: PierInput, pipe: SteelPipe) -> Joint:
     phi = _need(found.bar_diameter, f"{bars}.径")
     count = _need(found.bar_count, f"{bars}.本数")
     grade = _need(found.bar_grade, f"{bars}.材質")
-    centroid = _mm(d(_need(found.bar_centroid, f"{bars}.重心位置")))
+    centroid = mm(d(_need(found.bar_centroid, f"{bars}.重心位置")))
     fill_fck = _need(found.fill_fck, f"{_JOINT}.中詰めコンクリート_f'ck")
     aggregate = _need(found.fill_aggregate_max, f"{_JOINT}.粗骨材の最大寸法")
     _need(pier.materials.footing, "鉄筋.フーチング.concrete_strength_mpa")
@@ -567,16 +562,16 @@ def joint(pier: PierInput, pipe: SteelPipe) -> Joint:
     if 2 * d(centroid) >= d(pipe.diameter):
         raise InputError(f"{bars}.重心位置: 鋼管外径に対して大きすぎます")
     made = pipe.made.value
-    cover = _mm(d(centroid) - d(made) - d(phi) / 2)
+    cover = mm(d(centroid) - d(made) - d(phi) / 2)
     pitch = put(WHOLE, (d(pipe.diameter) - 2 * d(centroid)) * Decimal(repr(math.pi)) / count)
     fsyd = put(Precision(0, "N/mm2"), d(yield_strength(grade)) / d(GAMMA_S))
     anchorage = _anchorage(pier, phi, fsyd, pitch)
     filling = _filling(fill_fck, phi, grade, fsyd, pipe.diameter)
     ribs = _ribs(pipe.effective.value, pipe.diameter, filling)
-    rib_gap = None if ribs.thickness is None else _mm(d(centroid) - d(made) - d(ribs.thickness) - d(phi) / 2)
+    rib_gap = None if ribs.thickness is None else mm(d(centroid) - d(made) - d(ribs.thickness) - d(phi) / 2)
     pc = put(PERCENT2, d(area) / (Decimal(repr(math.pi)) * d(pipe.diameter) ** 2 / 4) * 100)
-    return Joint(grade, phi, count, unit, area, made, centroid, cover, pitch, _mm(d(pitch) - d(phi)),
-                 _mm(d(aggregate)), put(TENTH, d(aggregate) * AGGREGATE_FACTOR),
+    return Joint(grade, phi, count, unit, area, made, centroid, cover, pitch, mm(d(pitch) - d(phi)),
+                 mm(d(aggregate)), put(TENTH, d(aggregate) * AGGREGATE_FACTOR),
                  put(TENTH, d(BAR_FACTOR) * d(phi)), rib_gap, pc, anchorage, filling,
                  _footing_hoops(phi, pipe.diameter, anchorage.l1), _pipe_hoops(filling), ribs)
 
@@ -620,7 +615,7 @@ def rib_bond(detailing: SteelPileDetailing, steps: int, tension: JointAxial | No
     diameter, effective, made = pipe.diameter, pipe.effective.value, pipe.made.value
     tau = bond_strength(filling.fck, ribs.thickness, ribs.spacing, effective, diameter)
     footing_fck = found.anchorage.fck
-    inner = _mm(d(diameter) - 2 * d(made))
+    inner = mm(d(diameter) - 2 * d(made))
     pi = Decimal(repr(math.pi))
     area = put(AREA_WHOLE, pi / 4 * (d(diameter) ** 2 - d(inner) ** 2))
     bearing = put(FORCE_N, d(BEARING_ETA) * d(footing_fck) * d(area) / d(GAMMA_C))
@@ -650,7 +645,7 @@ def with_joint_forces(detailing: SteelPileDetailing, tension: JointAxial | None,
     check (decision 123); unchanged when no flat bar fits 表1.10-1 (whose ribs are not ok already)."""
     found = detailing.joint
     ribs = found.ribs
-    if ribs.thickness is None or ribs.spacing is None:
+    if not ribs.fitted:
         return detailing
     bond = least_rib_bond(detailing, tension, compression)
     ribs = replace(ribs, steps=bond.steps, bottom=_bottom(found.filling, ribs.quarter, ribs.spacing, bond.steps))
