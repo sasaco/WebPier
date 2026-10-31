@@ -17,7 +17,7 @@ from pathlib import Path
 from gridlayoutpdf import Row
 
 from ...calc.detailing.pile import MINIMUM_CONCRETE, MINIMUM_FACTOR, MINIMUM_STEEL, PileSeismicResult
-from ..assembly import write_as_is
+from ..assembly import join, write_as_is
 from ..equations import Definition
 from .detailing import PILE_MINIMUM_TAG, PILE_MINIMUM_TITLE
 from .frame_report import Manuscript, sub, sup, value
@@ -60,7 +60,8 @@ def minimum_bars(m: Manuscript, result: PileSeismicResult) -> None:
 def render_pile_seismic_check(stage_id: str, result: PileSeismicResult, first_case: int | None, path: str | Path,
                       pages: Mapping[str, bytes]) -> Path:
     """The pages of the 応答変位法 when *result* has it, Aggre-SE's report, the page of 杭頭反力の最大値から定める最小鉄筋量
-    and the 杭の段落とし計算書 when the piles have a cut-off (decision 98; a 鋼管ソイルセメント杭 has neither, decision 122);
+    and the 杭の段落とし計算書 when the piles have a cut-off (decision 98; a 鋼管ソイルセメント杭 has no minimum bars, decision
+    122, and its cut-off's after Aggre-SE's report, decision 126);
     atomically replaces *path*."""
     if not {SEISMIC_CHECK} <= set(pages) <= {SEISMIC_CHECK, PILE_ANCHOR_BAR}:
         raise ValueError(f"耐震性能照査の計算書には Aggre-SE の帳票だけを受け取ります: {'・'.join(sorted(pages))}")
@@ -68,10 +69,15 @@ def render_pile_seismic_check(stage_id: str, result: PileSeismicResult, first_ca
     if result.response is not None:
         assert first_case is not None
         response_displacement(m, result.response, first_case)
-    if result.minimum is None:  # a 鋼管ソイルセメント杭 (decision 122): the 応答変位法, if any, then Aggre-SE's report
+    if result.minimum is None:
+        # a 鋼管ソイルセメント杭 (decision 122): the 応答変位法, if any, then Aggre-SE's report, and with a cut-off of its pipe
+        # the 杭の段落とし計算書 (decision 126)
+        report = {SEISMIC_CHECK: pages[SEISMIC_CHECK]}
         if not m.units:
-            return render_seismic_check(path, pages)
-        return render_with_pages(tuple(m.units), (Insertion(SEISMIC_CHECK, m.units[-1].key),), pages, path)
+            written = render_seismic_check(path, report)
+        else:
+            written = render_with_pages(tuple(m.units), (Insertion(SEISMIC_CHECK, m.units[-1].key),), report, path)
+        return written if PILE_ANCHOR_BAR not in pages else join((written.read_bytes(), pages[PILE_ANCHOR_BAR]), path)
     minimum_bars(m, result)
     units = tuple(m.units)
     insertions = (Insertion(SEISMIC_CHECK, f"{stage_id}/minimum.heading", before=True),

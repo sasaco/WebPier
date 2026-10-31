@@ -28,7 +28,7 @@ WebPier は 0711・0721 で Aggre-SE のプロジェクトXMLを `post/線路方
 
 ## 鋼管ソイルセメント杭の 0711・0721（決定122、P10a。2026-10-29）
 
-- `build_pile_project`：柱は杭列の範囲（`KGInfo`）の外の M-θ 要素 1 つ（結合部の材端回転ばねは柱に数えない）。杭の断面は結合部（501）と鋼管（62）の 2 つで、どちらも部材照査タイプ 杭。杭頭反力の節点は杭列の最初の要素（材端回転ばね）の i 端＝杭頭。⑧ 杭の段落しは場所打ち杭だけ（`anchor_bar` を呼ばない）。
+- `build_pile_project`：柱は杭列の範囲（`KGInfo`）の外の M-θ 要素 1 つ（結合部の材端回転ばねは柱に数えない）。杭の断面は結合部（501）と鋼管（62）の 2 つで、どちらも部材照査タイプ 杭。杭頭反力の節点は杭列の最初の要素（材端回転ばね）の i 端＝杭頭。⑧ 杭の段落しは `杭基礎.鋼管ソイルセメント杭.段落し` の段落し後の鋼管厚があるときだけ（決定126、`_steel_anchor_bar`）。Aggre-SE は鋼管杭（62・501）の `clsPileAnchorBar` を D1＝杭径・n1＝厚・D2＝fsy、PileHeadLength＝杭頭埋込長、ParagraphLength＝上杭長（0 なら自分で決める）、Upward／Downward＝施工余裕長の低止まり／高止まり、ReductionCoefficient＝継手低減係数として読み、PileMidLength・DesignMarginLength・Aw・Ss・余裕率は使わない（Mud 係数は 1 に固定）。WebPier は D1＝D−2c、n1＝t2−c、D2＝特性値（235・315）、50、0.9 を書き、使わない項目は初期値。段落し後の Myd は Aggre-SE が γs 1.1 の My0·(1−N/Ny) で、DB1 を dgMemberNumber で割った杭1本当りの軸力から求める（Example4 の線路方向で 427.04 kN·m を手計算で再現）。計算書は report.pdf の後ろに付ける。
 - 段階（`stages._with_nonlinear_piles`）：鋼管ソイルセメント杭は `complete` が `PileSeismicResult(None, response)`（杭頭反力の最大値から定める最小鉄筋量を作らない）。計算書は応答変位法の頁（G3〜G5）と Aggre-SE の report.pdf だけ（`render_pile_seismic_check` の `minimum is None`）。
 
 ## 杭基礎の液状化時の Case（決定95、P6c。2026-10-25）

@@ -15,8 +15,10 @@ piles (部材照査タイプ 杭), the reactions are taken at the head of each p
 the limit values of the foundation's stability are SOIL-JR's, which the runner reads from the .sdr it is given (``--sdr``). The
 check ⑧ 杭の段落し is made only for a pile with a cut-off (decision 98: its 段落し情報, ``AnchorBar``, with the 杭頭定着長
 WebPier calculates), on the Cases its 照査パターン checks it; Aggre-SE calculates the capacity after the cut-off from the bars
-it is given, so the NDU keeps the section of the head. The Cases are those of the combinations of every NDU of the stage in
-turn: the NDU of the forward push, then the one of the reversed push (decision 93).
+it is given, so the NDU keeps the section of the head. A 鋼管ソイルセメント杭 with a cut-off of its pipe (decision 126) has
+⑧ too: Aggre-SE reads the bars after the cut-off of a steel pipe pile (its elements 62 and 501) as the pipe below it, its
+diameter, wall and yield strength. The Cases are those of the combinations of every NDU of the stage in turn: the NDU of the
+forward push, then the one of the reversed push (decision 93).
 """
 
 from __future__ import annotations
@@ -27,10 +29,12 @@ from decimal import Decimal
 import re
 
 from ...calc.detailing.pile import head_anchorage, section
+from ...calc.pile_body import STEEL_PIPE_STRENGTH
 from ...core.errors import InputError
 from ...core.printed import Printed
 from ...inputs import PierInput
-from ...inputs.choices import CAST_IN_PLACE_PILE, GROUND_CLASSES, LIQUEFACTION_INDEXES, REGIONS
+from ...inputs.choices import CAST_IN_PLACE_PILE, GROUND_CLASSES, LIQUEFACTION_INDEXES, REGIONS, STEEL_SOIL_CEMENT_PILE
+from ...inputs.model import STEEL_JOINT_REDUCTION, STEEL_PIPE_EMBEDMENT_MM
 from ..jrsnap.model import NduModel
 from ..jrsnap.pile_model import COLUMN, PileNduModel
 
@@ -86,42 +90,72 @@ class PileRow:
 
 @dataclass(frozen=True)
 class AnchorBar:
-    """The 段落し情報 of Aggre-SE's ⑧ 杭の段落し (clsPileAnchorBar, decision 98): the elements of each pile row, the bars
-    after the cut-off and the lengths (mm) and rules of 鉄筋.杭.cutoff, with the 杭頭定着長 of the calculation."""
+    """The 段落し情報 of Aggre-SE's ⑧ 杭の段落し (clsPileAnchorBar): of a 場所打ち杭 (decision 98), the elements of each pile
+    row, the bars after the cut-off and the lengths (mm) and rules of 鉄筋.杭.cutoff, with the 杭頭定着長 of the calculation;
+    of a 鋼管ソイルセメント杭 (decision 126), the pipe below the cut-off in the same places (D1 its diameter, n1 its wall, D2 its
+    yield strength) and the lengths of its 段落し. None is an item Aggre-SE does not read for it: its initial value."""
 
     rows: tuple[tuple[int, int, int], ...]  # (first element, last element, piles in the depth) of each pile row
-    main_diameter: Decimal  # D1: 段落し後の軸方向鉄筋径
-    main_count: int  # n1
-    hoop_diameter: Decimal  # D2: 段落し後の帯鉄筋径
-    hoop_sets: int  # Aw: 帯鉄筋組数
-    hoop_pitch: Decimal  # Ss: 帯鉄筋間隔
-    head_anchorage: Decimal  # PileHeadLength: 杭頭定着長
-    cutoff_length: Decimal  # ParagraphLength: 段落し長さ
-    concrete_strength: Decimal  # ConcreteStrength: 定着部のコンクリート強度 (the footing's)
+    main_diameter: Decimal  # D1: 段落し後の軸方向鉄筋径; of a pipe 杭径 (the outer diameter less the corrosion)
+    main_count: int  # n1; of a pipe 厚 (the wall less the corrosion)
+    hoop_diameter: Decimal  # D2: 段落し後の帯鉄筋径; of a pipe 強度 (fsy, N/mm2)
+    hoop_sets: int | None  # Aw: 帯鉄筋組数
+    hoop_pitch: Decimal | None  # Ss: 帯鉄筋間隔
+    head_anchorage: Decimal  # PileHeadLength: 杭頭定着長; of a pipe 杭頭埋込長
+    cutoff_length: Decimal | None  # ParagraphLength: 段落し長さ; of a pipe 上杭長 (None: Aggre-SE finds the cut-off)
+    concrete_strength: Decimal | None  # ConcreteStrength: 定着部のコンクリート強度 (the footing's)
     joint_reduction: Decimal  # ReductionCoefficient: 継手低減係数
-    cutoff_anchorage: Decimal  # PileMidLength: 段落し定着長
-    margin: Decimal  # DesignMarginLength: 設計余裕長
+    cutoff_anchorage: Decimal | None  # PileMidLength: 段落し定着長
+    margin: Decimal | None  # DesignMarginLength: 設計余裕長
     no_joint_head: Decimal  # DisabledFromPileHead
-    no_joint_above: Decimal  # DisabledUpwardFromCutOffPoint
-    no_joint_below: Decimal  # DisabledDownwardFromCutOffPoint
-    margin_moment: Decimal  # MudCoefficient: 余裕率（曲げ）
-    margin_shear: Decimal  # VudCoefficient: 余裕率（せん断）
+    no_joint_above: Decimal  # DisabledUpwardFromCutOffPoint; of a pipe 施工余裕長 低止まり
+    no_joint_below: Decimal  # DisabledDownwardFromCutOffPoint; of a pipe 施工余裕長 高止まり
+    margin_moment: Decimal | None  # MudCoefficient: 余裕率（曲げ）
+    margin_shear: Decimal | None  # VudCoefficient: 余裕率（せん断）
 
 
 _CUTOFF = "鉄筋.杭.cutoff"
 
 
 def anchored(pier: PierInput) -> bool:
-    """Whether the piles of *pier* have a cut-off, which Aggre-SE checks as ⑧ (decision 98): its main bars are entered."""
-    return pier.rebar.pile.cutoff.main_diameter is not None
+    """Whether the piles of *pier* have a cut-off, which Aggre-SE checks as ⑧: of a 場所打ち杭 its main bars after it are
+    entered (decision 98), of a 鋼管ソイルセメント杭 its 段落し後の鋼管厚 (decision 126)."""
+    foundation = pier.substructure.foundation
+    if foundation == CAST_IN_PLACE_PILE:
+        return pier.rebar.pile.cutoff.main_diameter is not None
+    return foundation == STEEL_SOIL_CEMENT_PILE and pier.piles.steel_soil_cement.cutoff.entered
+
+
+def _exact(item: Printed) -> Decimal:
+    return Decimal(repr(item.value))
+
+
+def _steel_anchor_bar(model: PileNduModel, pier: PierInput) -> AnchorBar:
+    """⑧ of a 鋼管ソイルセメント杭 cut off (decision 126): the parser checked every item and the whole millimetres."""
+    pile = pier.piles.steel_soil_cement
+    cutoff = pile.cutoff
+    members = {member.number: member for member in model.members}
+    corrosion = _exact(pile.corrosion)
+    return AnchorBar(
+        rows=tuple((row.first, row.last, members[row.member].depth_piles) for row in model.piles),
+        main_diameter=_exact(pile.steel_diameter) * 1000 - 2 * corrosion,
+        main_count=int(_exact(cutoff.thickness) - corrosion),
+        hoop_diameter=Decimal(repr(STEEL_PIPE_STRENGTH[cutoff.grade][0])), hoop_sets=None, hoop_pitch=None,
+        head_anchorage=Decimal(STEEL_PIPE_EMBEDMENT_MM),
+        cutoff_length=None if cutoff.upper_length is None else _exact(cutoff.upper_length), concrete_strength=None,
+        joint_reduction=Decimal(repr(STEEL_JOINT_REDUCTION)), cutoff_anchorage=None, margin=None,
+        no_joint_head=_exact(cutoff.no_joint_from_head), no_joint_above=_exact(cutoff.low_margin),
+        no_joint_below=_exact(cutoff.high_margin), margin_moment=None, margin_shear=None)
 
 
 def anchor_bar(model: PileNduModel, pier: PierInput) -> AnchorBar | None:
-    """⑧ of the piles of *model* when 鉄筋.杭 has a cut-off (its main bars entered), else None; a blank item it needs is an
-    input error naming it."""
-    cutoff = pier.rebar.pile.cutoff
+    """⑧ of the piles of *model* when they have a cut-off, else None; of a 場所打ち杭 a blank item it needs is an input error
+    naming it (a 鋼管ソイルセメント杭's are checked by the parser)."""
     if not anchored(pier):
         return None
+    if pier.substructure.foundation == STEEL_SOIL_CEMENT_PILE:
+        return _steel_anchor_bar(model, pier)
+    cutoff = pier.rebar.pile.cutoff
 
     def need(item, path: str) -> Decimal:
         if item is None:
@@ -215,8 +249,8 @@ def build_pile_project(models: Sequence[PileNduModel], pier: PierInput, *,
     for other in (*models[1:], *liquefied, *(model for _, model in response)):
         if (_rows(other), len(other.sections)) != (rows, len(first.sections)):
             raise ValueError("向きの違う NDU の杭の列と断面が同じではありません")
-    # ⑧ is of a 場所打ち杭 with a cut-off (decision 98); a 鋼管ソイルセメント杭's is P10e (decision 122)
-    anchor = anchor_bar(first, pier) if pier.substructure.foundation == CAST_IN_PLACE_PILE else None
+    # ⑧ is of piles with a cut-off: a 場所打ち杭's (decision 98) or a 鋼管ソイルセメント杭's (decision 126)
+    anchor = anchor_bar(first, pier)
     ordinary = tuple(case for model in models for case in _checks(model, piled=True, anchored=anchor is not None))
     index = _choice(design.liquefaction_index, LIQUEFACTION_INDEXES, "液状化指数") if liquefied else 0
     return Project(region=_choice(design.region, REGIONS, "地域別"),

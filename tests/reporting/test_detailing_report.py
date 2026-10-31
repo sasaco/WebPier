@@ -361,6 +361,7 @@ def steel_document(**steel):
     example4 = json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))
     document["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
     document["杭基礎"]["鋼管ソイルセメント杭"] = example4["杭基礎"]["鋼管ソイルセメント杭"]
+    document["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]["段落し後の鋼管厚"] = None  # the pipe of the head alone; the cut-off of Example4 (decision 126) is tested apart
     document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
     document["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
     document["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0
@@ -446,6 +447,51 @@ def test_the_steel_pile_s_4_5_lays_out_on_pages_and_the_pdf_is_the_same_bytes(tm
         assert "0400/pile.heading" in [page.metadata["placements"][0]["block_id"] for page in pages]
     first = render_detailing(detailing, tmp_path / "a.pdf").read_bytes()
     assert first == render_detailing(detailing, tmp_path / "b.pdf").read_bytes()
+
+
+def cut_document(**cutoff):
+    """Example4's pile with its 段落し (decision 126): the pipe below it 14.0 mm, SKK490."""
+    document = steel_document()
+    document["杭基礎"]["鋼管ソイルセメント杭"]["段落し"] = json.loads(EXAMPLE4_INPUT.read_text(encoding="utf-8"))[
+        "杭基礎"]["鋼管ソイルセメント杭"]["段落し"]
+    document["杭基礎"]["鋼管ソイルセメント杭"]["段落し"].update(cutoff)
+    return document
+
+
+def test_a_pipe_without_a_cut_off_prints_neither_the_lower_pipe_nor_the_reference_to_check_8():
+    found = steel_texts()
+    assert not any(key.startswith("steel.pipe.lower") for key in found)
+    assert "steel.pipe.joint.reference" not in found and "段落し以深" not in found["steel.pipe.summary.table"]
+
+
+def test_a_cut_off_prints_the_wall_of_the_lower_pipe_and_refers_to_aggrese_s_check_8():
+    """Decision 126: 1.2.1(b) of the pipe below the cut-off (the sample III-2 t 13; its II-1.2.1 checks the head alone) and
+    the sentence of 1.2.1(c) the sample sends to its V-4.2, now 0711 and 0721."""
+    found = steel_texts(cut_document())
+    assert found["steel.pipe.lower.text"] == "・段落し以深の鋼管（段落し後の鋼管厚 14 mm、SKK490）についても、同じ条件で照査する。"
+    assert found["steel.pipe.lower.made.ratio"] == "鋼管外径Dに対して　14 ／ 800 ＝ 0.0175 ≧ 0.01"
+    assert found["steel.pipe.lower.effective.ratio"] == "鋼管外径Dに対して　13 ／ 800 ＝ 0.0163 ≧ 0.0125"
+    assert found["steel.pipe.lower.result"] == "となるため、段落し以深の鋼管も上記条件を満足する。"
+    assert found["steel.pipe.joint.reference"] == (
+        "継手位置の検討については「0711_線路方向非線形解析 杭の段落し図」と「0721_線路直角方向非線形解析 杭の段落し図」にて行う。")
+    table = found["steel.pipe.summary.table"]
+    assert "段落し以深" in table and "1.75 %" in table and "t ＝ 13 mm" in table
+
+
+def test_a_lower_pipe_out_of_its_rules_prints_that_it_does_not_satisfy_them():
+    document = cut_document(段落し後の鋼管厚=11.0)
+    document["杭基礎"]["鋼管ソイルセメント杭"].update(鋼管外径=1.0, ソイルセメント径=1.2)
+    found = steel_texts(document)
+    assert found["steel.pipe.lower.effective.ratio"] == "鋼管外径Dに対して　10 ／ 1000 ＝ 0.0100 ＜ 0.0125"
+    assert found["steel.pipe.lower.result"] == "となるため、段落し以深の鋼管は上記条件を満足しない。"
+
+
+def test_the_steel_pile_with_a_cut_off_lays_out_on_pages(tmp_path):
+    detailing = result(cut_document())
+    assert "0400/steel.pipe.lower.text" in [placement["block_id"] for page in build_detailing(detailing).layout()
+                                            for placement in page.metadata["placements"]]
+    assert render_detailing(detailing, tmp_path / "a.pdf").read_bytes() == render_detailing(
+        detailing, tmp_path / "b.pdf").read_bytes()
 
 
 # --- (b) ずれ止めの杭頭反力に対する検討 of the 鋼管ソイルセメント杭 (decision 123, the sample V-179〜181) ----------------------

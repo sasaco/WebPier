@@ -19,8 +19,9 @@ from tksheet import Sheet
 
 from ..calc.beam_rebar import BeamLayout
 from ..calc.column_rebar import ColumnLayout, count_mismatch
+from ..inputs import choices
 from ..inputs.fields import FORCE_RATIOS
-from . import beam_cards, column_cards, footing_cards, pile_cards, rebar_edit
+from . import beam_cards, column_cards, footing_cards, pile_cards, rebar_edit, steel_pile_cards
 from .beam_window import BeamWindow
 from .column_window import ColumnWindow
 from .document import EditorError
@@ -69,9 +70,11 @@ class RebarPage:
         self.editor = editor
         state = editor.rebar_state
         self.member: str = state.setdefault("member", "柱")
-        if self.member not in self.members():  # the pile of a foundation that is no longer a cast-in-place pile
+        if self.member not in self.members():  # the pile of a foundation that is no longer a pile foundation
             self.member = state["member"] = "柱"
         self.group: str = state.setdefault("group", "main")
+        self.steel = self.member == rebar_edit.PILE and (
+            rebar_edit.foundation(editor.document.data) == choices.STEEL_SOIL_CEMENT_PILE)  # decision 126
         self.layout: ColumnLayout | BeamLayout | FootingPreview | None = None
         self.frame = ttk.Frame(parent)
         self.frame.pack(fill="both", expand=True)
@@ -79,14 +82,15 @@ class RebarPage:
         bar.pack(fill="x", pady=(0, 8))
         ttk.Label(bar, text=self.member, style="Symbol.TLabel").pack(side="left", padx=(0, 18))  # chosen in the tree
         self.group_buttons = {}
-        for name, title in GROUPS[self.member]:
+        for name, title in self.groups():
             button = ttk.Button(bar, text=title, command=lambda name=name: self.select_group(name))
             button.pack(side="left", padx=3)
             self.group_buttons[name] = button
         if self.group not in self.group_buttons:
-            self.group = state["group"] = "main"
+            self.group = state["group"] = self.groups()[0][0]
         column = self.member == "柱"
-        ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
+        if not self.steel:  # a 鋼管ソイルセメント杭 has no 配筋略図 (its joint and tip are drawn in 0400)
+            ttk.Button(bar, text="断面図・配置表" if column else "配筋略図", command=self.toggle_window).pack(side="right")
         left = ttk.Frame(self.frame)
         left.pack(fill="both", expand=True)
         self.inputs_canvas = tk.Canvas(left, highlightthickness=0, background="white", height=480)
@@ -123,6 +127,8 @@ class RebarPage:
             self.form.properties(self.inputs, [((CHECK, key), label) for key, label in CHECK_LABELS])
             ttk.Label(self.inputs, text="柱の断面照査（0611・0621）の条件です。線路方向・線路直角方向で共通です。",
                       style="Muted.TLabel").pack(anchor="w")
+        elif self.steel:
+            {"pipe": steel_pile_cards.pipe, "cutoff": steel_pile_cards.cutoff}[self.group](self)
         elif self.member == rebar_edit.PILE:
             {"main": pile_cards.main, "hoops": pile_cards.hoops, "cutoff": pile_cards.cutoff}[self.group](self)
         elif self.group == "hoops":
@@ -139,6 +145,10 @@ class RebarPage:
     def members(self) -> tuple[str, ...]:
         return rebar_edit.members(self.editor.document.data)
 
+    def groups(self) -> tuple[tuple[str, str], ...]:
+        """The groups of the member: a 鋼管ソイルセメント杭's pile has its own (decision 126)."""
+        return steel_pile_cards.GROUPS if self.steel else GROUPS[self.member]
+
     def _save_state(self) -> None:
         self.editor.rebar_state.update(member=self.member, group=self.group)
 
@@ -149,7 +159,7 @@ class RebarPage:
     def select_member(self, member: str) -> bool:
         if member not in self.members() or not self.ready_to_leave() or not self.editor.ready_to_restructure():
             return False
-        self.member, self.group = member, "main"
+        self.member, self.group = member, "main"  # a group the member lacks opens at its first
         self._rebuild()
         return True
 
@@ -226,6 +236,8 @@ class RebarPage:
         if window is not None:
             window.close()
             return False
+        if self.steel:  # no 配筋略図 of a 鋼管ソイルセメント杭 (decision 126)
+            return False
         kind = WINDOWS[self.member]
         self.editor.rebar_state["window"] = kind(self.editor, self._window_closed)
         return True
@@ -251,6 +263,11 @@ class RebarPage:
         if self.member == rebar_edit.PILE:  # nothing to lay out: the cards show only what is entered
             self.layout = None
             self.status.set("")
+            if self.steel:  # the effective walls (decision 126)
+                for key, text in steel_pile_cards.readouts(self).items():
+                    if key in self.readouts:
+                        self.readouts[key].set(text)
+                return
             if (window := self.window()) is not None:
                 window.refresh()
             return

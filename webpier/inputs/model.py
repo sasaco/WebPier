@@ -184,6 +184,30 @@ class PileJoint:
     fill_aggregate_max: Printed | None  # 中詰めコンクリートの粗骨材の最大寸法, mm (decision 99)
 
 
+# decision 126 (the 段落し of a 鋼管ソイルセメント杭): the pipe embedded in the footing (decision 99, 手引き 1.10(2)), the
+# largest change of the wall (手引き 4 解説(1); the sample V-182 ②) and the 継手低減係数 (手引き 3.3; V-182 ⑮)
+STEEL_PIPE_EMBEDMENT_MM = 50
+MAX_WALL_CHANGE_MM = 7
+STEEL_JOINT_REDUCTION = 0.9
+
+
+@dataclass(frozen=True)
+class SteelPipeCutoff:
+    """The 段落し of a 鋼管ソイルセメント杭 (decision 126: CONTEXT.md 杭の段落し, 上杭長): the pipe below it, thinner or of a
+    weaker steel, and the lengths Aggre-SE's ⑧ takes (mm). None is blank; no cut-off while ``thickness`` is blank."""
+
+    thickness: Printed | None  # 段落し後の鋼管厚, mm (it includes the corrosion allowance, as 鋼管厚)
+    grade: str | None  # 段落し後の鋼管材質, one of choices.STEEL_PIPE_GRADES
+    upper_length: Printed | None  # 上杭長, mm from the top of the pipe; blank: Aggre-SE finds the cut-off
+    low_margin: Printed | None  # 施工余裕長: 低止まり, mm
+    high_margin: Printed | None  # 施工余裕長: 高止まり, mm
+    no_joint_from_head: Printed | None  # 継手を設けない範囲: from the head, mm
+
+    @property
+    def entered(self) -> bool:
+        return self.thickness is not None
+
+
 @dataclass(frozen=True)
 class SteelSoilCementPile:
     """鋼管ソイルセメント杭; None is blank."""
@@ -194,6 +218,7 @@ class SteelSoilCementPile:
     corrosion: Printed | None  # 腐食代 c, mm
     grade: str | None  # 鋼管材質, one of choices.STEEL_PIPE_GRADES (the pile body check, decision 89)
     joint: PileJoint  # 結合部 (the joint check, decision 90)
+    cutoff: SteelPipeCutoff  # 段落し (decision 126)
 
 
 @dataclass(frozen=True)

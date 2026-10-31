@@ -113,3 +113,16 @@ def test_a_steel_pile_has_the_response_pages_then_aggreses_report_and_no_minimum
                                       {SEISMIC_CHECK: report})
     from webpier.reporting.stages.seismic_check import render_seismic_check
     assert alone.read_bytes() == render_seismic_check(tmp_path / "as_is.pdf", {SEISMIC_CHECK: report}).read_bytes()
+
+
+def test_a_steel_pile_cut_off_has_aggreses_calculation_of_it_after_its_report(tmp_path: Path):
+    """Decision 126: the 杭の段落とし計算書 of a 鋼管ソイルセメント杭 follows Aggre-SE's report, with or without the 応答変位法."""
+    from webpier.calc.detailing.pile import PileSeismicResult
+    from webpier.reporting.stages.seismic_check import PILE_ANCHOR_BAR
+    pages = {SEISMIC_CHECK: _pdf("AGGRESE"), PILE_ANCHOR_BAR: _pdf("ANCHOR")}
+    for response, first, name in ((_result(0.428), 5, "response.pdf"), (None, None, "alone.pdf")):
+        path = render_pile_seismic_check("0711", PileSeismicResult(None, response), first, tmp_path / name, pages)
+        with pymupdf.open(path) as document:
+            texts_ = [page.get_text().strip() for page in document]
+        assert texts_[-2:] == ["AGGRESE", "ANCHOR"]
+        assert ("応答変位法による設計応答値の算定" in texts_[0]) is (response is not None)

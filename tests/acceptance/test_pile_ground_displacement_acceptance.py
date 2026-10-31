@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from recorded_input_support import input_sha256s
+from recorded_input_support import input_sha256s, with_steel_cutoff
 from webpier.calc.ground_displacement import DISPLACEMENT, PERIOD, GroundDisplacement, GroundPoint, SurfaceLayer
 from webpier.calc.pile_frame import PileFoundation
 from webpier.calc.pile_ground import calculate_pile_ground
@@ -73,7 +73,7 @@ def _ground(recorded) -> GroundDisplacement:
 
 @pytest.mark.parametrize("stage,source", [("0711", "0710"), ("0721", "0720")])
 def test_the_ndus_of_the_response_are_what_the_generator_writes_now(stage, source):
-    pier = parse_input(load_json((EVIDENCE / RECORD["input"]["kept"]).read_bytes()))
+    pier = parse_input(with_steel_cutoff(load_json((EVIDENCE / RECORD["input"]["kept"]).read_bytes())))  # decision 126
     sdc = (EVIDENCE / "ground.sdc").read_bytes()
     pile_ground = calculate_pile_ground(pier)
     foundation = PileFoundation(pile_ground, parse_sdc(sdc))

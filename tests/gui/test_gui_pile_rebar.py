@@ -1,5 +1,8 @@
-"""The 鉄筋 page's member 杭 (decisions 87 and 92): shown only for a cast-in-place pile foundation, the reinforcement on cards
-bound to the field table, the f'ck shared with the 杭基礎 page."""
+"""The 鉄筋 page's member 杭 (decisions 87 and 92): shown only for a pile foundation, the reinforcement of a cast-in-place pile on
+cards bound to the field table, the f'ck shared with the 杭基礎 page; of a 鋼管ソイルセメント杭 the pipe (its grade and wall shared
+with the 杭基礎 page) and its 段落し (decision 126)."""
+
+from tkinter import ttk
 
 import pytest
 
@@ -34,10 +37,10 @@ def enter(editor, path, text):
     editor.root.update()
 
 
-def test_the_pile_is_a_member_only_for_a_cast_in_place_pile_foundation(editor):
+def test_the_pile_is_a_member_only_for_a_pile_foundation(editor):
     assert page(editor).members() == ("梁", "柱", "フーチング", "杭")
     editor.document.data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
-    assert rebar_edit.members(editor.document.data) == rebar_edit.MEMBERS
+    assert rebar_edit.members(editor.document.data) == (*rebar_edit.MEMBERS, "杭")  # decision 126
     editor.document.data["下部構造"]["基礎形式"] = "直接基礎"
     assert rebar_edit.members(editor.document.data) == rebar_edit.MEMBERS
 
@@ -194,3 +197,69 @@ def test_a_refused_entry_keeps_the_page_when_a_member_is_chosen_in_the_tree(edit
     assert (*PILE, "main_bars", "count") in editor.bindings.refused
     assert not editor.select_member("梁")
     assert page(editor).member == "杭" and editor.tree.selection() == ("鉄筋/杭",)
+
+
+# --- decision 126: the 鋼管ソイルセメント杭's member 杭: 鋼管・ソイルセメント and 段落し -------------------------------------
+
+STEEL = ("杭基礎", "鋼管ソイルセメント杭")
+CUT = (*STEEL, "段落し")
+
+
+@pytest.fixture
+def steel(editor):
+    data = editor.document.data
+    data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
+    data["杭基礎"]["鋼管ソイルセメント杭"].update({"ソイルセメント径": 1.0, "鋼管外径": 0.8, "鋼管厚": 18.0, "腐食代": 1.0,
+                                             "鋼管材質": "SKK490"})
+    assert editor.select("下部構造") and editor.select("鉄筋")
+    assert page(editor).select_member("杭")
+    editor.root.update()
+    return editor
+
+
+def test_the_pile_is_a_member_of_a_steel_pile_foundation_too(steel):
+    assert page(steel).members() == ("梁", "柱", "フーチング", "杭")
+    assert list(page(steel).group_buttons) == ["pipe", "cutoff"] and page(steel).group == "pipe"
+
+
+def test_the_pipe_group_binds_the_grade_and_the_wall_of_the_pile_page_and_shows_the_rest(steel):
+    shown = set(steel.bindings.items)
+    assert {(*STEEL, "鋼管材質"), (*STEEL, "鋼管厚")} <= shown
+    assert not any(path[:2] == PILE for path in shown)
+    assert not {(*STEEL, "鋼管外径"), (*STEEL, "腐食代"), (*STEEL, "ソイルセメント径")} & shown  # shown only
+    assert page(steel).readouts[(*STEEL, "有効肉厚")].get() == "17.0"
+    enter(steel, (*STEEL, "鋼管厚"), "19.04")
+    assert steel.document.data["杭基礎"]["鋼管ソイルセメント杭"]["鋼管厚"] == 19.0  # one value with the 杭基礎 page
+    page(steel).refresh()
+    assert page(steel).readouts[(*STEEL, "有効肉厚")].get() == "18.0"
+    assert steel.select("杭基礎") and steel.bindings.items[(*STEEL, "鋼管厚")].cell.get() == "19.0"
+
+
+def test_the_cutoff_group_has_the_pipe_below_it_and_the_lengths_of_aggrese_s_check_8(steel):
+    assert page(steel).select_group("cutoff")
+    steel.root.update()
+    assert {(*CUT, "段落し後の鋼管厚"), (*CUT, "段落し後の鋼管材質"), (*CUT, "上杭長"), (*CUT, "施工余裕長", "低止まり"),
+            (*CUT, "施工余裕長", "高止まり"), (*CUT, "継手を設けない範囲_杭頭から")} <= set(steel.bindings.items)
+    assert page(steel).readouts[(*CUT, "有効肉厚")].get() == "—"
+    for path, text in (((*CUT, "段落し後の鋼管厚"), "14"), ((*CUT, "上杭長"), "9050.4"), ((*CUT, "施工余裕長", "低止まり"), "0")):
+        enter(steel, path, text)
+    assert not steel.bindings.refused
+    saved = steel.document.data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]
+    assert (saved["段落し後の鋼管厚"], saved["上杭長"], saved["施工余裕長"]["低止まり"]) == (14.0, 9050, 0)
+    page(steel).refresh()
+    assert page(steel).readouts[(*CUT, "有効肉厚")].get() == "13.0"
+
+
+def test_a_steel_pile_has_no_window_of_the_bars(steel):
+    buttons = [child for child in page(steel).frame.winfo_children()[0].winfo_children()
+               if isinstance(child, ttk.Button)]
+    assert all(button.cget("text") != "配筋略図" for button in buttons)
+    assert page(steel).toggle_window() is False and page(steel).window() is None
+
+
+def test_a_cast_in_place_pile_left_for_a_steel_one_opens_at_the_pipe(editor):
+    assert page(editor).select_member("杭") and page(editor).select_group("cutoff")
+    editor.document.data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
+    assert editor.select("下部構造") and editor.select("鉄筋")
+    assert page(editor).member == "杭" and page(editor).group in ("pipe", "cutoff")
+    assert not any(path[:2] == PILE for path in editor.bindings.items)

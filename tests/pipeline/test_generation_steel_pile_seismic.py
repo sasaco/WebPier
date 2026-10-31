@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -27,7 +28,9 @@ from webpier.pipeline.stages import STAGES
 PILE = json.loads((FIXTURES / "inputs" / "pile.json").read_text(encoding="utf-8"))
 STEEL = {"ソイルセメント径": 1.0, "鋼管外径": 0.8, "鋼管厚": 18.0, "腐食代": 1.0, "鋼管材質": "SKK490",
          "結合部": {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0}, "中詰めコンクリート_f'ck": 27.0,
-                  "粗骨材の最大寸法": 25}}
+                  "粗骨材の最大寸法": 25},
+         "段落し": {"段落し後の鋼管厚": None, "段落し後の鋼管材質": None, "上杭長": None,
+                    "施工余裕長": {"低止まり": None, "高止まり": None}, "継手を設けない範囲_杭頭から": None}}
 ITEMS = ("ground_model", "reactions", "longitudinal_seismic", "longitudinal_nonlinear_analysis")
 
 
@@ -170,3 +173,81 @@ def test_only_the_steel_pile_moves_0400():
     assert [item.kind for item in steel.finished("0400")] == ["dxf"]
     assert STAGES.for_foundation("場所打ち杭").finished("0400") == () == STAGES.finished("0400")
     assert STAGES.for_foundation("場所打ち杭").finished("0500") == ()  # SOIL-JR's .sdt is read by the runner
+
+
+# --- decision 126: the 段落し of the pipe, Aggre-SE's ⑧ 杭の段落し -------------------------------------------------------------
+
+CUTOFF = {"段落し後の鋼管厚": 14.0, "段落し後の鋼管材質": "SKK400", "上杭長": 9050,
+          "施工余裕長": {"低止まり": 300, "高止まり": 500}, "継手を設けない範囲_杭頭から": 2000}
+
+
+def write_cut(directory: Path, **changes) -> Path:
+    path = write(directory)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"] = {**deepcopy(CUTOFF), **changes}
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
+@pytest.fixture(scope="module")
+def cut(tmp_path_factory):
+    root = tmp_path_factory.mktemp("steel-0711-cutoff")
+    return root, generate.generate(GenerationOptions(write_cut(root / "pre"), root / "output", root / "post"))
+
+
+def _project(path: Path) -> str:
+    return path.read_bytes().decode("cp932")
+
+
+def _scalar(xml: str, tag: str) -> str:
+    return re.search(rf"<{tag}>([^<]*)</{tag}>", xml)[1]
+
+
+def _items(xml: str, tag: str) -> list[str]:
+    if re.search(rf"<{tag}\s*/>", xml):
+        return []
+    return re.findall(r"<(?:int|float|boolean|string)>([^<]*)</(?:int|float|boolean|string)>",
+                      re.search(rf"<{tag}>([\s\S]*?)</{tag}>", xml)[1])
+
+
+def test_a_steel_pile_without_a_cut_off_has_no_check_8(made):
+    root, _ = made
+    xml = _project(root / "post" / "線路方向.xml")
+    assert set(_items(xml, "dgCaseList_8")) == {"0"} and _items(xml, "dgMemberFirst") == []
+    assert _scalar(xml, "_D1") == "0" and _scalar(xml, "MudCoefficient") == "1.5"
+
+
+def test_a_cut_off_of_the_pipe_has_aggrese_check_8_with_the_pipe_below_it(cut):
+    """D1 the pipe's diameter less the corrosion (798, as the NDU's), n1 the lower wall less it (13), D2 the lower steel's
+    characteristic yield strength (SKK400 235); the 杭頭埋込長 50 and the 継手低減係数 0.9 are the program's (decision 126)."""
+    root, _ = cut
+    xml = _project(root / "post" / "線路方向.xml")
+    assert [_items(xml, "dgCaseList_8")[index] for index in range(4)] == ["-1", "-1", "0", "0"]  # αf 1.0 only
+    values = {tag: _scalar(xml, tag) for tag in (
+        "_D1", "_n1", "_D2", "_Aw", "_Ss", "_PileHeadLength", "_ParagraphLength", "_ConcreteStrength", "_ReductionCoefficient",
+        "_PileMidLength", "_DesignMarginLength", "_DisabledFromPileHead", "_DisabledUpwardFromCutOffPoint",
+        "_DisabledDownwardFromCutOffPoint", "MudCoefficient", "VudCoefficient")}
+    assert values == {"_D1": "798", "_n1": "13", "_D2": "235", "_Aw": "0", "_Ss": "0", "_PileHeadLength": "50",
+                      "_ParagraphLength": "9050", "_ConcreteStrength": "0", "_ReductionCoefficient": "0.9",
+                      "_PileMidLength": "0", "_DesignMarginLength": "0", "_DisabledFromPileHead": "2000",
+                      "_DisabledUpwardFromCutOffPoint": "300", "_DisabledDownwardFromCutOffPoint": "500",
+                      "MudCoefficient": "1.5", "VudCoefficient": "1.5"}
+    assert _scalar(xml, "D1") == "798" and _scalar(xml, "ParagraphLength") == "9050"  # the property as the field
+    assert len(_items(xml, "dgMemberFirst")) == len(_items(xml, "dgMemberNumber")) >= 2
+
+
+def test_a_cut_off_of_the_pipe_appends_aggrese_s_calculation_after_its_report(cut):
+    root, _ = cut
+    xml = _project(root / "post" / "線路方向.xml")
+    with pymupdf.open(root / "output" / "0711_線路方向非線形解析.pdf") as document:
+        text = "".join(page.get_text() for page in document)
+    rows = "-".join(_items(xml, "dgMemberFirst"))
+    assert text.index("FAKE AGGRESE SUMMARY") < text.index(f"FAKE AGGRESE ANCHOR BAR D798-13 {rows}")
+    assert "最小鉄筋量" not in text
+    assert not any("anchor" in name for name in tree(root / "post"))  # not placed in post (decision 98 (5))
+
+
+def test_a_blank_upper_length_leaves_the_cut_off_to_aggrese(tmp_path):
+    generate.generate(GenerationOptions(write_cut(tmp_path / "pre", 上杭長=None), tmp_path / "output", tmp_path / "post"))
+    xml = _project(tmp_path / "post" / "線路方向.xml")
+    assert _scalar(xml, "_ParagraphLength") == "0" and _scalar(xml, "_n1") == "13"

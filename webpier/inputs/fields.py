@@ -33,6 +33,7 @@ N_VALUE = Precision(0, "")
 STRESS = Precision(0, "kN/m2")
 STRENGTH = Precision(1, "N/mm2")
 THICKNESS_MM = Precision(1, "mm")  # 鋼管厚・腐食代 of the 鋼管ソイルセメント杭 (SOIL-JR t1, 腐食代)
+WHOLE_MM = Precision(0, "mm")  # the lengths of the 段落し of a 鋼管ソイルセメント杭 (decision 126; Aggre-SE ⑧ takes whole mm)
 REDUCTION = Precision(3, "")  # De, the reduction coefficient of a layer in liquefaction (SOIL-JR's 0.000)
 SHEAR_WAVE = Precision(0, "m/s")  # Vs of a layer: its 地盤変位 (decision 97; Example橋脚4 IV-4 170, 120 …)
 SHEAR_FACTOR = Precision(2, "")  # γb, at most 99.99 (JRSNAP SectSafe)
@@ -237,6 +238,13 @@ def _piles() -> dict[str, Field]:
         f"{steel}.結合部.中詰めコンクリート_f'ck": number(STRENGTH, "positive", nullable=True),
         # decision 99: Dmax of the filling concrete, for the clear spacing of the anchor bars (0400)
         f"{steel}.結合部.粗骨材の最大寸法": number(AGGREGATE, nullable=True, limit=within(*AGGREGATE_RANGE, "mm")),
+        # decision 126: the 段落し of the pipe (Aggre-SE ⑧); a blank 段落し後の鋼管厚 is no cut-off
+        f"{steel}.段落し.段落し後の鋼管厚": number(THICKNESS_MM, "positive", nullable=True),
+        f"{steel}.段落し.段落し後の鋼管材質": choice(choices.STEEL_PIPE_GRADES, nullable=True),
+        f"{steel}.段落し.上杭長": number(WHOLE_MM, "positive", nullable=True),
+        f"{steel}.段落し.施工余裕長.低止まり": number(WHOLE_MM, nullable=True),
+        f"{steel}.段落し.施工余裕長.高止まり": number(WHOLE_MM, nullable=True),
+        f"{steel}.段落し.継手を設けない範囲_杭頭から": number(WHOLE_MM, nullable=True),
         f"{layout}.形式": choice(choices.PILE_ARRANGEMENTS, nullable=True),
         f"{layout}.線路方向の列の位置[*]": number(LENGTH, "any"),
         f"{layout}.線路直角方向の列の位置[*]": number(LENGTH, "any"),

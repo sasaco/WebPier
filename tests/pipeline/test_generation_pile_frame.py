@@ -155,7 +155,9 @@ def test_a_load_model_has_no_frame_on_piles(tmp_path):
 
 STEEL = {"ソイルセメント径": 1.0, "鋼管外径": 0.8, "鋼管厚": 18.0, "腐食代": 1.0, "鋼管材質": "SKK490",
          "結合部": {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0}, "中詰めコンクリート_f'ck": 27.0,
-                  "粗骨材の最大寸法": 25}}  # (the pipe and the joint of Example橋脚4, as tests/pipeline/test_generation_steel_pile_seismic.py)
+                  "粗骨材の最大寸法": 25},
+         "段落し": {"段落し後の鋼管厚": None, "段落し後の鋼管材質": None, "上杭長": None,
+                    "施工余裕長": {"低止まり": None, "高止まり": None}, "継手を設けない範囲_杭頭から": None}}  # (the pipe and the joint of Example橋脚4, as tests/pipeline/test_generation_steel_pile_seismic.py)
 
 
 @pytest.mark.parametrize("foundation, items, changes", [

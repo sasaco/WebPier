@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from recorded_input_support import input_sha256s
+from recorded_input_support import input_sha256s, with_steel_cutoff
 from webpier.calc.pile_frame import PileFoundation
 from webpier.calc.pile_ground import calculate_pile_ground
 from webpier.calc.reaction import calculate_reaction
@@ -65,7 +65,7 @@ def test_the_case_for_the_liquefaction_is_the_samples_but_for_the_pile_anchor():
 
 @pytest.mark.parametrize("stage", ["0711", "0721"])
 def test_the_checked_project_is_what_the_generator_writes_now(stage):
-    pier = parse_input(load_json((EVIDENCE / RECORD["input"]["kept"]).read_bytes()))
+    pier = parse_input(with_steel_cutoff(load_json((EVIDENCE / RECORD["input"]["kept"]).read_bytes())))  # decision 126
     ordinary, liquefied = (EVIDENCE / "ground.sdc").read_bytes(), (EVIDENCE / "ground_liquefied.sdc").read_bytes()
     foundation = PileFoundation(calculate_pile_ground(pier), parse_sdc(ordinary))
     reaction = calculate_reaction(pier)

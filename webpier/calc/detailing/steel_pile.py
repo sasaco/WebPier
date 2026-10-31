@@ -32,6 +32,7 @@ from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from ...core.errors import InputError
 from ...core.printed import Precision, Printed
 from ...inputs import PierInput
+from ...inputs.model import STEEL_PIPE_EMBEDMENT_MM
 from .._exact import d, put
 from ..column_rebar import yield_strength
 from ..pile_body import PointForces
@@ -85,7 +86,7 @@ FILL_BOTTOM = Printed(100, 0, "mm")  # アンカー鉄筋と中詰め下端の�
 # SD490's is not checked in a source (decision 100)
 HOOK_RADIUS = {"SD295": Decimal("2.5"), "SD345": Decimal("2.5"), "SD390": Decimal("3.0")}
 ROUND_FILL = Decimal(50)
-EMBEDMENT = Printed(50, 0, "mm")  # the pipe into the footing (手引き 1.10(2) "50mm 程度")
+EMBEDMENT = Printed(STEEL_PIPE_EMBEDMENT_MM, 0, "mm")  # the pipe into the footing (手引き 1.10(2) "50mm 程度")
 # the hoops in the footing (解説表1.10-1, 解説図1.10-5) and in the pipe
 FOOTING_HOOPS = ((16, 10), (25, 13), (math.inf, 16))  # anchor bar at most → hoop
 FOOTING_HOOP_UPPER = (Printed(1000, 0, "mm"), 22)  # 鋼管外径が1000mm以下の場合はD22以下 (the sample II-25)
@@ -169,6 +170,19 @@ class Tip:
 
 
 @dataclass(frozen=True)
+class LowerPipe:
+    """The pipe below the 段落し (decision 126): its wall against the same rules (手引き 1.5) as the pipe of the head."""
+
+    grade: str
+    made: Thickness
+    effective: Thickness
+
+    @property
+    def ok(self) -> bool:
+        return self.made.ok and self.effective.ok
+
+
+@dataclass(frozen=True)
 class SteelPipe:
     """(1) 鋼管杭."""
 
@@ -178,6 +192,8 @@ class SteelPipe:
     made: Thickness
     effective: Thickness
     tip: Tip
+    # the pipe below the 段落し, if the pile has one (decision 126; absent from the result JSON without one)
+    lower: LowerPipe | None = field(default=None, metadata={"json": "set"})
 
     @property
     def diameter_ok(self) -> bool:
@@ -185,7 +201,8 @@ class SteelPipe:
 
     @property
     def ok(self) -> bool:
-        return self.diameter_ok and self.made.ok and self.effective.ok and self.tip.ok
+        return (self.diameter_ok and self.made.ok and self.effective.ok and self.tip.ok
+                and (self.lower is None or self.lower.ok))
 
 
 @dataclass(frozen=True)
@@ -438,9 +455,15 @@ def steel_pipe(pier: PierInput) -> SteelPipe:
     made = _need(pile.thickness, f"{_PILE}.鋼管厚")
     corrosion = _need(pile.corrosion, f"{_PILE}.腐食代")
     effective = _mm(d(made) - d(corrosion))
+    cutoff = pile.cutoff
+    lower = None
+    if cutoff.entered:  # the parser checked its grade and its wall (decision 126)
+        assert cutoff.grade is not None and cutoff.thickness is not None
+        lower = LowerPipe(cutoff.grade, _thickness(_mm(d(cutoff.thickness)), MADE_LEAST, diameter, MADE_RATIO),
+                          _thickness(_mm(d(cutoff.thickness) - d(corrosion)), EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO))
     return SteelPipe(diameter, soil_cement, _mm(d(corrosion)),
                      _thickness(_mm(d(made)), MADE_LEAST, diameter, MADE_RATIO),
-                     _thickness(effective, EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO), _tip(diameter, soil_cement))
+                     _thickness(effective, EFFECTIVE_LEAST, diameter, EFFECTIVE_RATIO), _tip(diameter, soil_cement), lower)
 
 
 def _anchorage(pier: PierInput, phi: Printed, fsyd: Printed, pitch: Printed) -> Anchorage:

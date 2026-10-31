@@ -221,6 +221,12 @@ def test_the_project_of_a_steel_pile_takes_the_column_alone_and_the_joint_and_th
     members = {member.number: member for member in found.members}
     assert [(row.head, row.piles) for row in project.pile_rows] == [(members[p.member].i, 3) for p in found.piles]
     column = next(e for e in found.elements if e.kind == COLUMN and e.nonlinear == 1)
-    assert project.footing_joint == column.j and project.pile_sections == 2 and project.anchor_bar is None
+    assert project.footing_joint == column.j and project.pile_sections == 2
+    # Example4's pipe is cut off to 14 mm (decision 126): ⑧ with the pipe below it, 798 − 13, SKK490's 315
+    anchor = project.anchor_bar
+    assert (anchor.main_diameter, anchor.main_count, anchor.hoop_diameter, anchor.head_anchorage) == (798, 13, 315, 50)
+    assert (anchor.cutoff_length, anchor.joint_reduction, anchor.hoop_sets, anchor.margin_moment) == (
+        None, Decimal("0.9"), None, None)
+    assert anchor.rows == tuple((p.first, p.last, members[p.member].depth_piles) for p in found.piles)
     ours = tree(write_project(project, tuple(f"F/{n}.DB1" for n in range(len(project.cases)))))
     assert items(ours, "Element/_dgLimitLevel_type") == ["2", "4", "4"]

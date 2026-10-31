@@ -94,6 +94,9 @@ _ANCHOR_LENGTHS = ("PileHeadLength", "ParagraphLength", "ConcreteStrength", "Red
                    "DisabledDownwardFromCutOffPoint")
 
 
+_INITIAL_MARGIN = "1.5"  # Aggre-SE's MudCoefficient and VudCoefficient
+
+
 def _pile_anchor_bar(anchor: AnchorBar | None) -> list[Node]:
     """The 段落し情報: Aggre-SE's initial values (no pile, or a pile without a cut-off), or those of *anchor* (decision 98).
     XmlSerializer writes each value twice, the field (``_D1``) and the text property (``D1``) whose setter sets the field
@@ -101,17 +104,21 @@ def _pile_anchor_bar(anchor: AnchorBar | None) -> list[Node]:
     if anchor is None:
         texts = {name: None for name in (*_ANCHOR_BARS, *_ANCHOR_LENGTHS)}
         rows: list[Node] = [("dgMemberFirst", None), ("dgMemberLast", None), ("dgMemberNumber", None)]
-        moment = shear = "1.5"
+        moment = shear = _INITIAL_MARGIN
     else:
-        numbers = (anchor.main_diameter, Decimal(anchor.main_count), anchor.hoop_diameter, Decimal(anchor.hoop_sets),
-                   anchor.hoop_pitch, anchor.head_anchorage, anchor.cutoff_length, anchor.concrete_strength,
-                   anchor.joint_reduction, anchor.cutoff_anchorage, anchor.margin, anchor.no_joint_head,
-                   anchor.no_joint_above, anchor.no_joint_below)
-        texts = {name: _number(value) for name, value in zip((*_ANCHOR_BARS, *_ANCHOR_LENGTHS), numbers)}
+        numbers = (anchor.main_diameter, Decimal(anchor.main_count), anchor.hoop_diameter,
+                   None if anchor.hoop_sets is None else Decimal(anchor.hoop_sets), anchor.hoop_pitch,
+                   anchor.head_anchorage, anchor.cutoff_length, anchor.concrete_strength, anchor.joint_reduction,
+                   anchor.cutoff_anchorage, anchor.margin, anchor.no_joint_head, anchor.no_joint_above,
+                   anchor.no_joint_below)
+        # an item Aggre-SE does not read for the pile (None, decision 126) keeps its initial value
+        texts = {name: None if value is None else _number(value)
+                 for name, value in zip((*_ANCHOR_BARS, *_ANCHOR_LENGTHS), numbers)}
         rows = [("dgMemberFirst", _array("int", [first for first, _, _ in anchor.rows])),
                 ("dgMemberLast", _array("int", [last for _, last, _ in anchor.rows])),
                 ("dgMemberNumber", _array("float", [Decimal(piles) for _, _, piles in anchor.rows]))]
-        moment, shear = _number(anchor.margin_moment), _number(anchor.margin_shear)
+        moment, shear = (_INITIAL_MARGIN if value is None else _number(value)
+                         for value in (anchor.margin_moment, anchor.margin_shear))
     values: list[Node] = [(f"_{name}", texts[name] or "0") for name in _ANCHOR_BARS]
     values += rows
     values += [(f"_{name}", texts[name] or "0") for name in _ANCHOR_LENGTHS]

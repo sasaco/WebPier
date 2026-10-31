@@ -14,6 +14,7 @@ from example4_support import EXAMPLE4_INPUT
 
 def example4(**changes):
     data = deepcopy(load_json(EXAMPLE4_INPUT.read_bytes()))
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]["段落し後の鋼管厚"] = None  # the body check takes the head's pipe (decision 126)
     for key, value in changes.items():
         data["杭基礎"]["鋼管ソイルセメント杭"][key] = value
     return parse_input(data)

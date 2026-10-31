@@ -25,7 +25,7 @@ from ..inputs.rebar import parse_rebar
 from .document import EditorError
 
 MEMBERS = ("梁", "柱", "フーチング")
-PILE = "杭"  # shown only for a cast-in-place pile foundation (decision 87)
+PILE = "杭"  # shown only for a pile foundation (decisions 87 and 126)
 COLUMN = "柱"
 W6 = ("下部構造", "寸法", "正面", "W6")
 B6 = ("下部構造", "寸法", "側面", "B6")
@@ -37,9 +37,14 @@ JsonPath = tuple[str | int, ...]
 
 
 def members(data: Any) -> tuple[str, ...]:
-    """The members of the 鉄筋 page: the pile only when the 基礎形式 is a cast-in-place pile."""
-    foundation = data.get("下部構造", {}).get("基礎形式") if isinstance(data, dict) else None
-    return (*MEMBERS, PILE) if foundation == choices.CAST_IN_PLACE_PILE else MEMBERS
+    """The members of the 鉄筋 page: the pile only when the 基礎形式 is a pile foundation (a 鋼管ソイルセメント杭's pipe and
+    its 段落し, decision 126)."""
+    return (*MEMBERS, PILE) if foundation(data) in choices.PILE_FOUNDATIONS else MEMBERS
+
+
+def foundation(data: Any) -> str | None:
+    """The 基礎形式 of the input, as entered."""
+    return data.get("下部構造", {}).get("基礎形式") if isinstance(data, dict) else None
 
 
 def blank(path: JsonPath) -> dict[str, Any]:

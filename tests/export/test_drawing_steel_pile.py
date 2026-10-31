@@ -30,6 +30,7 @@ def pier(**steel):
     data = deepcopy(PILE)
     data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
     data["杭基礎"]["鋼管ソイルセメント杭"] = deepcopy(EXAMPLE4["杭基礎"]["鋼管ソイルセメント杭"])
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]["段落し後の鋼管厚"] = None  # the pipe of the head alone; the cut-off of Example4 (decision 126) is tested apart
     data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
     data["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
     data["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from recorded_input_support import before_bearing_devices
+from recorded_input_support import before_bearing_devices, before_steel_cutoff
 from webpier.core.integrity import dump_json, load_json, sha256
 from webpier.inputs import parse_input
 from webpier.pipeline.generate import export_bytes
@@ -33,7 +33,8 @@ def accepted():
     data["鉄筋"]["フーチング"] = record["input"]["footing_bars"]
     # and before decision 125: with decision 59's bearing devices, without the 最大変動断面力比 (read by 0900 / 0910
     # alone; recorded_input_support.before_bearing_devices). The kept input is in the form of today.
-    rebuilt = dump_json(load_json(before_bearing_devices(dump_json(data))))
+    # and before decision 126: without the blank 段落し of the 鋼管ソイルセメント杭
+    rebuilt = dump_json(load_json(before_bearing_devices(before_steel_cutoff(dump_json(data)))))
     assert sha256(rebuilt) == record["input"]["sha256"], f"受入時の入力から変わっています。{REDO}"
     kept = (RECORDS / record["input"]["file"]).read_bytes()
     assert sha256(before_bearing_devices(kept)) == record["input"]["sha256"]

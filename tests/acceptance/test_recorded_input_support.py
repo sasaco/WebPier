@@ -7,7 +7,8 @@ import pytest
 
 from recorded_input_support import (
     BEARING_DEVICES, FORCE_RATIOS, before_bearing_devices, before_custom_tables, before_force_ratios, before_joint,
-    before_piles, before_rebar, input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar)
+    before_piles, before_rebar, before_steel_cutoff, input_sha256s, upgrade_to_piles, with_bars_in_piles, with_blank_rebar,
+    with_steel_cutoff)
 from webpier.core.integrity import sha256
 
 ROOT = Path(__file__).parents[2]
@@ -118,3 +119,21 @@ def test_an_input_recorded_before_the_force_ratios_were_entered_has_none():
     older = json.loads(before_bearing_devices(data).decode("utf-8"))
     assert FORCE_RATIOS not in older["片持ち梁の照査"]["疲労"]
     assert before_bearing_devices(data) == before_bearing_devices(without)  # the same bytes before decision 125
+
+
+def test_an_input_recorded_before_the_cut_off_of_the_steel_pipe_is_the_input_without_a_blank_one():
+    """Decision 126: the blank 段落し of the 鋼管ソイルセメント杭 is no condition of an acceptance recorded before it, and an
+    entered one is; a recorded file is read in the form of today with a blank one."""
+    data = (ROOT / "tests/fixtures/inputs/current.json").read_bytes()
+    older = before_steel_cutoff(data)
+    document = json.loads(older.decode("utf-8"))
+    assert list(document["杭基礎"]["鋼管ソイルセメント杭"]) == [
+        "ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部"]
+    assert b"\r\n" in older and sha256(older) in input_sha256s(data)
+    assert json.loads(json.dumps(with_steel_cutoff(document))) == json.loads(data.decode("utf-8"))
+    entered = json.loads(data.decode("utf-8"))
+    entered["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]["段落し後の鋼管厚"] = 14.0
+    text = (json.dumps(entered, indent=2, ensure_ascii=False) + "\n").replace("\n", "\r\n").encode("utf-8")
+    assert before_steel_cutoff(text) is None and before_joint(text) is None
+    assert sha256(older) not in input_sha256s(text)
+    assert before_steel_cutoff(b'{"schema_version": 2}\n') is None

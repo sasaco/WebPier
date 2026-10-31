@@ -799,9 +799,14 @@ def _steel_pipe(m: _Manuscript, pile: SteelPileDetailing) -> None:
            f"鋼管外径Dに対して　{value(effective.value)} ／ {value(pipe.diameter)} ＝ {value(effective.ratio)} "
            f"{_relation(effective.ratio, effective.least_ratio).replace('＞', '≧')} {value(effective.least_ratio)}")
     m.paragraph(f"{key}.effective.result", _sat(effective.ok, "となるため、"))
+    if pipe.lower is not None:
+        _lower_pipe(m, f"{key}.lower", pipe)
     m.heading(f"{key}.joint.heading", n("鋼管の継手"), 3, "【杭体設計の手引き 3】")
     for index, text in enumerate(_PIPE_JOINT_TEXT):
         m.paragraph(f"{key}.joint.{index}", text)
+    if pipe.lower is not None:  # the sample's "第Ⅴ編 4.2 …にて行う。": Aggre-SE's ⑧ of 0711 and 0721 (decision 126)
+        m.paragraph(f"{key}.joint.reference", "継手位置の検討については" + "と".join(
+            f"「{report} {PILE_CUTOFF_TITLE}」" for report in PILE_SEISMIC_REPORTS) + "にて行う。")
     _steel_tip(m, f"{key}.tip", n, pipe)
     m.heading(f"{key}.summary.heading", n("構造細目一覧"), 3)
     rows: list[tuple[Any, ...]] = [("項目", "前提条件", "設計値", "判定", "備考")]
@@ -813,6 +818,14 @@ def _steel_pipe(m: _Manuscript, pile: SteelPileDetailing) -> None:
                      _mark(d_ok(item.value, item.least)), Span(SEE, rowspan=2)))
         rows.append((ratio_text, f"{'t/D ＝ ' if item is effective else ''}{value(item.percent)} %",
                      _mark(d_ok(item.ratio, item.least_ratio))))
+    if pipe.lower is not None:
+        for name, item, symbol, least, ratio_text in (
+                ("段落し以深の製造時の肉厚", pipe.lower.made, "", "9mm以上", "Dの1%以上"),
+                ("段落し以深の有効肉厚", pipe.lower.effective, "t ＝ ", "6mm≦t", "1.25%≦t/D")):
+            rows.append((Span(name, rowspan=2), least, f"{symbol}{value(item.value)} mm",
+                         _mark(d_ok(item.value, item.least)), Span(SEE, rowspan=2)))
+            rows.append((ratio_text, f"{'t/D ＝ ' if symbol else ''}{value(item.percent)} %",
+                         _mark(d_ok(item.ratio, item.least_ratio))))
     tip = pipe.tip
     rows.append(("ずれ止めの取付け長", "－" if tip.length is None else f"{value(tip.length)}mm",
                  "－" if tip.length is None else f"lspi ＝ {value(tip.length)} mm", _mark(tip.ok), SEE))
@@ -821,6 +834,27 @@ def _steel_pipe(m: _Manuscript, pile: SteelPileDetailing) -> None:
     rows.append(("根入れ長", f"{value(tip.embedment)}mm以上", f"Df0 ＝ {value(tip.embedment)} mm", "○", SEE))
     m.table(f"{key}.summary.table", TableSpec(STEEL_SUMMARY_WIDTHS, tuple(rows), (1,) * len(rows), left=1),
             "表．構造細目一覧表")
+
+
+PILE_CUTOFF_TITLE = "杭の段落し図"  # the title of Aggre-SE's 杭の段落とし計算書 (⑧, decisions 98 and 126)
+
+
+def _lower_pipe(m: _Manuscript, key: str, pipe: SteelPipe) -> None:
+    """The wall of the pipe below the 段落し against the same rules (decision 126; the sample III-2 t 13, whose II-1.2.1 checks
+    the head's alone)."""
+    lower = pipe.lower
+    assert lower is not None
+    m.paragraph(f"{key}.text", f"・段落し以深の鋼管（段落し後の鋼管厚 {value(lower.made.value)} mm、{lower.grade}）についても、"
+                               "同じ条件で照査する。")
+    m.items(f"{key}.items", Definition("鋼管の製造時の肉厚", _mm(lower.made.value)),
+            Definition("鋼管の有効肉厚 t", Row(_mm(lower.effective.value), f"　（腐食代　{value(pipe.corrosion)} mm考慮）",
+                                           gap=0)))
+    for name, item in (("made", lower.made), ("effective", lower.effective)):
+        m.line(f"{key}.{name}.ratio",
+               f"鋼管外径Dに対して　{value(item.value)} ／ {value(pipe.diameter)} ＝ "
+               f"{value(item.ratio)} {_relation(item.ratio, item.least_ratio).replace('＞', '≧')} {value(item.least_ratio)}")
+    m.paragraph(f"{key}.result", "となるため、段落し以深の鋼管" + ("も上記条件を満足する。" if lower.ok
+                                                                  else "は上記条件を満足しない。"))
 
 
 _PIPE_JOINT_TEXT = (

@@ -21,7 +21,9 @@ All of them are also tried with the bearing devices of decision 59 last in ``上
 (after ``摩擦係数_μ`` and ``復旧性制動係数``; an acceptance recorded before decision 125, which removed them: only 0900
 read them, and every recorded input had Example2's counts, 起点側 4, 3, 1, 1 and 終点側 2, 7, 1, 0), and without
 ``片持ち梁の照査.疲労.最大変動断面力比`` (SA/SC and SB/SC, entered since; only 0910 reads them). The input without them
-alone is tried too (an acceptance recorded under decision 125, before they were entered).
+alone is tried too (an acceptance recorded under decision 125, before they were entered). Every form is also tried
+without a blank ``杭基礎.鋼管ソイルセメント杭.段落し`` (an acceptance recorded before decision 126, which added it: a blank
+one is no cut-off, the pipe of before).
 """
 
 import json
@@ -77,6 +79,36 @@ def _old_train(train: dict) -> dict:
         if key == "車両名":
             old |= json.loads(json.dumps(P16_TRAIN))
     return old
+
+
+BLANK_STEEL_CUTOFF = {"段落し後の鋼管厚": None, "段落し後の鋼管材質": None, "上杭長": None,  # decision 126
+                      "施工余裕長": {"低止まり": None, "高止まり": None}, "継手を設けない範囲_杭頭から": None}
+
+
+def _steel(document: object) -> dict | None:
+    piles = document.get("杭基礎") if isinstance(document, dict) else None
+    steel = piles.get("鋼管ソイルセメント杭") if isinstance(piles, dict) else None
+    return steel if isinstance(steel, dict) else None
+
+
+def before_steel_cutoff(data: bytes) -> bytes | None:
+    """The input as it was before decision 126 (no 段落し of the 鋼管ソイルセメント杭), or None when it has none or an
+    entered one."""
+    document = json.loads(data.decode("utf-8"))
+    steel = _steel(document)
+    if steel is None or steel.get("段落し") != BLANK_STEEL_CUTOFF:
+        return None
+    del steel["段落し"]
+    return _text(document, data)
+
+
+def with_steel_cutoff(document: dict) -> dict:
+    """An input recorded before decision 126 in the form of today (for a test that parses the recorded file): the blank
+    段落し of the 鋼管ソイルセメント杭 added after its 結合部."""
+    steel = _steel(document)
+    if steel is not None and "段落し" not in steel:
+        steel["段落し"] = json.loads(json.dumps(BLANK_STEEL_CUTOFF))
+    return document
 
 
 FORCE_RATIOS = "最大変動断面力比"  # 片持ち梁の照査.疲労: SA/SC and SB/SC, entered after decision 125
@@ -194,7 +226,11 @@ def before_joint(data: bytes) -> bytes | None:
     joint = document.get("杭基礎", {}).get("鋼管ソイルセメント杭", {}).get("結合部") if isinstance(document, dict) else None
     if joint != {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}:
         return None
-    del document["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]
+    steel = document["杭基礎"]["鋼管ソイルセメント杭"]
+    if steel.get("段落し", BLANK_STEEL_CUTOFF) != BLANK_STEEL_CUTOFF:  # decision 126 came after it
+        return None
+    steel.pop("段落し", None)
+    del steel["結合部"]
     text = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
     return (text.replace("\n", "\r\n") if b"\r\n" in data else text).encode("utf-8")
 
@@ -255,7 +291,8 @@ def upgrade_to_piles(document: dict) -> dict:
                 "杭長": None, "杭の単位体積重量": None,
                 "場所打ち杭": {"杭径": None, "f'ck": None, "施工条件": None},
                 "鋼管ソイルセメント杭": {"ソイルセメント径": None, "鋼管外径": None, "鋼管厚": None, "腐食代": None,
-                              "鋼管材質": None, "結合部": {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None}},
+                              "鋼管材質": None, "結合部": {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None}, "中詰めコンクリート_f'ck": None},
+                              "段落し": json.loads(json.dumps(BLANK_STEEL_CUTOFF))},
                 "配置": {"形式": None, "線路方向の列の位置": [], "線路直角方向の列の位置": [], "抜く杭": []}}
         elif key == "地盤データ":
             new[key] = {**value, "層": [{**{("粘着力_c" if name == "一軸圧縮強度_qu" else name): item
@@ -274,9 +311,10 @@ def input_sha256s(data: bytes) -> set[str]:
     """The SHA256 an acceptance of the input *data* may record: of it as it is, as it was before the 出力項目, as it was with
     the bars of the cast-in-place pile in the 杭基礎, before them, before the joint and before the pile foundation (each
     with and without the 出力項目), each also as it was before decision 98, all also as before decision 101, all also as
-    before decision 111, and all also as before decision 125."""
+    before decision 111, all also as before decision 125, and all also as before decision 126."""
     found: set[str] = set()
-    for current in (data, before_force_ratios(data), before_bearing_devices(data)):
+    starts = [start for start in (data, before_steel_cutoff(data)) if start is not None]
+    for current in (form for start in starts for form in (start, before_force_ratios(start), before_bearing_devices(start))):
         if current is None:
             continue
         for latest in (current, before_custom_tables(current)):

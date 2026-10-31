@@ -13,6 +13,7 @@ attributes are None. Every other item, and an unknown key, is read as without on
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from ..core.printed import Printed
@@ -23,7 +24,7 @@ from .fields import (BEAM_SURFACES, FORCE_RATIO_TRAINS, FORCE_RATIOS, LOAD, MAX_
 from .model import (
     Bearing, BrakingRule, CantileverCheck, CastInPlacePile, ColumnCheck, EndReaction, FatigueTrains, Jrsnap, JrsnapConditions,
     Materials, PierInput, PileFoundation, PileJoint, PileLayout, Reactions, Reserved, SeismicDesign, Shares, Soil, SoilLayer, Span,
-    Spans, Substructure, SteelSoilCementPile, Train,
+    Spans, Substructure, SteelPipeCutoff, SteelSoilCementPile, Train, MAX_WALL_CHANGE_MM, STEEL_PIPE_EMBEDMENT_MM,
 )
 from .outputs import OUTPUT_ITEMS, OUTPUT_KEYS, PILE_OUTPUT_KEYS, available, foundation_makes, requires
 from .rebar import parse_rebar
@@ -303,7 +304,8 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
         root = AbsentAsBlank(root.value, root.path)
     node = root.at("杭基礎").only("杭長", "杭の単位体積重量", "場所打ち杭", "鋼管ソイルセメント杭", "配置")
     cast = node.at("場所打ち杭").only("杭径", "f'ck", "施工条件")
-    steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部")
+    steel = node.at("鋼管ソイルセメント杭").only("ソイルセメント径", "鋼管外径", "鋼管厚", "腐食代", "鋼管材質", "結合部",
+                                               "段落し")
     joint = steel.at("結合部").only("軸方向鉄筋", "中詰めコンクリート_f'ck", "粗骨材の最大寸法")
     aggregate = joint.optional("粗骨材の最大寸法")  # absent is blank: an input made before decision 99 has none
     bars = joint.at("軸方向鉄筋").only("径", "本数", "材質", "重心位置")
@@ -317,7 +319,8 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
             grade=read(steel.at("鋼管材質")),
             joint=PileJoint(bar_diameter=read(bars.at("径")), bar_count=read(bars.at("本数")), bar_grade=read(bars.at("材質")),
                             bar_centroid=read(bars.at("重心位置")), fill_fck=read(joint.at("中詰めコンクリート_f'ck")),
-                            fill_aggregate_max=None if aggregate is None else read(aggregate))),
+                            fill_aggregate_max=None if aggregate is None else read(aggregate)),
+            cutoff=_steel_cutoff(steel.at("段落し"))),
         layout=_layout(node.at("配置")))
     if foundation not in choices.PILE_FOUNDATIONS:
         return piles
@@ -334,8 +337,67 @@ def _piles(root: Reader, foundation: str) -> PileFoundation:
             raise steel.at("鋼管厚").error("鋼管外径の半分より小さい値が必要です")
         if sizes["腐食代"].value > sizes["鋼管厚"].value:
             raise steel.at("腐食代").error("鋼管厚（腐食代を含む）以下が必要です")
+        if piles.steel_soil_cement.cutoff.entered:
+            _steel_cutoff_rules(steel, piles)
     _pile_layout_rules(node.at("配置"), piles.layout)
     return piles
+
+
+CUTOFF_MARGINS = ("低止まり", "高止まり")
+
+
+def _steel_cutoff(node: Reader) -> SteelPipeCutoff:
+    """The 段落し of a 鋼管ソイルセメント杭 (decision 126), read as to form and digits."""
+    node.only("段落し後の鋼管厚", "段落し後の鋼管材質", "上杭長", "施工余裕長", "継手を設けない範囲_杭頭から")
+    margins = node.at("施工余裕長").only(*CUTOFF_MARGINS)
+    low, high = (read(margins.at(key)) for key in CUTOFF_MARGINS)
+    return SteelPipeCutoff(thickness=read(node.at("段落し後の鋼管厚")), grade=read(node.at("段落し後の鋼管材質")),
+                           upper_length=read(node.at("上杭長")), low_margin=low, high_margin=high,
+                           no_joint_from_head=read(node.at("継手を設けない範囲_杭頭から")))
+
+
+def _steel_cutoff_rules(steel: Reader, piles: PileFoundation) -> None:
+    """The rules of a cut-off of the pipe (decision 126; 杭体設計の手引き 鋼管杭編 4, the sample V-182), checked before any
+    runner: what Aggre-SE's ⑧ needs, a lower pipe thinner or weaker by at most 7 mm, an upper pipe within the pile and
+    the whole millimetres Aggre-SE keeps of the lower pipe."""
+    pile = piles.steel_soil_cement
+    cutoff, node = pile.cutoff, steel.at("段落し")
+    margins = node.at("施工余裕長")
+    for item, where in ((cutoff.grade, node.at("段落し後の鋼管材質")), (cutoff.low_margin, margins.at("低止まり")),
+                        (cutoff.high_margin, margins.at("高止まり")),
+                        (cutoff.no_joint_from_head, node.at("継手を設けない範囲_杭頭から"))):
+        if item is None:
+            raise where.error("杭の段落しの照査（Aggre-SE の ⑧）に必要です")
+    thickness, lower = Decimal(repr(pile.thickness.value)), Decimal(repr(cutoff.thickness.value))
+    corrosion = Decimal(repr(pile.corrosion.value))
+    where = node.at("段落し後の鋼管厚")
+    if lower > thickness:
+        raise where.error(f"鋼管厚（{thickness:.1f} mm）以下が必要です")
+    if thickness - lower > MAX_WALL_CHANGE_MM:
+        raise where.error(f"肉厚の変化は {MAX_WALL_CHANGE_MM} mm 以下が必要です（杭体設計の手引き 4）")
+    grades = choices.STEEL_PIPE_GRADES
+    if pile.grade is not None and grades.index(cutoff.grade) > grades.index(pile.grade):
+        raise node.at("段落し後の鋼管材質").error(f"鋼管材質（{pile.grade}）より強い材質は選べません")
+    if lower == thickness and cutoff.grade == pile.grade:
+        raise where.error("鋼管厚か鋼管材質を上杭より小さくする必要があります（同じでは段落しになりません）")
+    if lower <= corrosion:
+        raise where.error(f"腐食代（{corrosion:.1f} mm）より大きい値が必要です")
+    if cutoff.upper_length is not None:
+        upper, high = Decimal(repr(cutoff.upper_length.value)), Decimal(repr(cutoff.high_margin.value))
+        length = Decimal(repr(piles.length.value)) * 1000
+        if upper <= STEEL_PIPE_EMBEDMENT_MM + high:
+            raise node.at("上杭長").error(f"杭頭埋込長 {STEEL_PIPE_EMBEDMENT_MM} mm と高止まり（{high:.0f} mm）の和より"
+                                          "大きい値が必要です")
+        if upper >= length + STEEL_PIPE_EMBEDMENT_MM:
+            raise node.at("上杭長").error(f"杭長（{length:.0f} mm）と杭頭埋込長 {STEEL_PIPE_EMBEDMENT_MM} mm の和より"
+                                          "小さい値が必要です")
+    whole = "Aggre-SE の ⑧ は鋼管の径・肉厚を整数 mm で扱います"
+    diameter = Decimal(repr(pile.steel_diameter.value)) * 1000 - 2 * corrosion
+    if diameter != diameter.to_integral_value():
+        raise steel.at("腐食代").error(f"{whole}（鋼管外径－2×腐食代 ＝ {diameter:.1f} mm）")
+    wall = lower - corrosion
+    if wall != wall.to_integral_value():
+        raise where.error(f"{whole}（段落し後の鋼管厚－腐食代 ＝ {wall:.1f} mm）")
 
 
 JRSNAP_KEYS = ("shear_factor_vcd", "shear_factor_vsd", "shear_factor_vdd", "analysis_steps",

@@ -39,9 +39,30 @@ def pile_input(kind="場所打ち杭"):
     piles["鋼管ソイルセメント杭"] = {"ソイルセメント径": 1.2, "鋼管外径": 1.0, "鋼管厚": 18.0, "腐食代": 1.0,
                                   "鋼管材質": "SKK490",
                                   "結合部": {"軸方向鉄筋": {"径": 38, "本数": 16, "材質": "SD390", "重心位置": 75.0},
-                                          "中詰めコンクリート_f'ck": 27.0}}
+                                          "中詰めコンクリート_f'ck": 27.0},
+                                  "段落し": blank_cutoff()}
     piles["配置"] = {"形式": "格子", "線路方向の列の位置": [-3.0, 0.0, 3.0], "線路直角方向の列の位置": [-3.0, 0.0, 3.0],
                    "抜く杭": [{"線路方向の列": 2, "線路直角方向の列": 2}]}
+    return data
+
+
+def blank_cutoff():
+    """The 段落し of a 鋼管ソイルセメント杭 with nothing entered: no cut-off (decision 126)."""
+    return {"段落し後の鋼管厚": None, "段落し後の鋼管材質": None, "上杭長": None,
+            "施工余裕長": {"低止まり": None, "高止まり": None}, "継手を設けない範囲_杭頭から": None}
+
+
+def cut_input(**changes):
+    """A 鋼管ソイルセメント杭 (D 1.0 m, t 18 mm, c 1 mm, SKK490, L 19 m) cut off to 14 mm SKK490 below 9.05 m."""
+    data = pile_input("鋼管ソイルセメント杭")
+    cutoff = {"段落し後の鋼管厚": 14.0, "段落し後の鋼管材質": "SKK490", "上杭長": 9050,
+              "施工余裕長": {"低止まり": 0, "高止まり": 0}, "継手を設けない範囲_杭頭から": 0}
+    for key, value in changes.items():
+        if key in ("低止まり", "高止まり"):
+            cutoff["施工余裕長"][key] = value
+        else:
+            cutoff[key] = value
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"] = cutoff
     return data
 
 
@@ -90,6 +111,7 @@ def test_the_values_of_the_other_pile_type_are_not_needed(kind, item):
     if item == "鋼管ソイルセメント杭":
         data["杭基礎"][item]["結合部"] = {"軸方向鉄筋": {"径": None, "本数": None, "材質": None, "重心位置": None},
                                     "中詰めコンクリート_f'ck": None}
+        data["杭基礎"][item]["段落し"] = blank_cutoff()
     parse_input(data)
 
 
@@ -132,6 +154,112 @@ def test_a_corrosion_allowance_may_be_nothing():
     data = pile_input("鋼管ソイルセメント杭")
     data["杭基礎"]["鋼管ソイルセメント杭"]["腐食代"] = 0.0
     assert parse_input(data).piles.steel_soil_cement.corrosion.value == 0
+
+
+CUT = "杭基礎.鋼管ソイルセメント杭.段落し"
+
+
+def test_a_steel_pile_without_a_cut_off_reads_none():
+    """Decision 126: a blank 段落し後の鋼管厚 is no cut-off, whatever the other items hold."""
+    cutoff = parse_input(cut_input(段落し後の鋼管厚=None, 上杭長=None)).piles.steel_soil_cement.cutoff
+    assert cutoff.thickness is None and not cutoff.entered
+
+
+def test_a_steel_pile_reads_its_cut_off():
+    cutoff = parse_input(cut_input(低止まり=300, 高止まり=500, 継手を設けない範囲_杭頭から=2000)).piles.steel_soil_cement.cutoff
+    assert cutoff.entered
+    assert (cutoff.thickness.value, cutoff.thickness.digits, cutoff.grade) == (14.0, 1, "SKK490")
+    assert (cutoff.upper_length.value, cutoff.upper_length.digits, cutoff.upper_length.unit) == (9050, 0, "mm")
+    assert (cutoff.low_margin.value, cutoff.high_margin.value, cutoff.no_joint_from_head.value) == (300, 500, 2000)
+
+
+def test_a_steel_pile_s_upper_length_may_be_left_to_aggre_se():
+    """A blank 上杭長: Aggre-SE's ⑧ finds the cut-off from the moments and the lower pipe's 0.9·Myd."""
+    assert parse_input(cut_input(上杭長=None)).piles.steel_soil_cement.cutoff.upper_length is None
+
+
+def test_the_cut_off_is_read_as_to_form_whatever_the_foundation():
+    data = cut_input(段落し後の鋼管厚=14.05)
+    data["下部構造"]["基礎形式"] = "直接基礎"
+    data["outputs"] = {key: False for key in data["outputs"]}
+    fails(data, f"{CUT}.段落し後の鋼管厚")
+
+
+def test_a_direct_foundation_may_leave_the_cut_off_out():
+    data = deepcopy(CURRENT)
+    del data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]
+    assert parse_input(data).piles.steel_soil_cement.cutoff.thickness is None
+
+
+def test_a_pile_foundation_needs_the_cut_off_group():
+    data = pile_input("鋼管ソイルセメント杭")
+    del data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]
+    fails(data, f"{CUT}")
+
+
+@pytest.mark.parametrize("path", ["段落し後の鋼管材質", "低止まり", "高止まり", "継手を設けない範囲_杭頭から"])
+def test_a_cut_off_needs_its_items(path):
+    where = f"{CUT}.施工余裕長.{path}" if path in ("低止まり", "高止まり") else f"{CUT}.{path}"
+    fails(cut_input(**{path: None}), f"{where}: 杭の段落しの照査（Aggre-SE の ⑧）に必要です")
+
+
+def test_a_cast_in_place_pile_does_not_read_the_steel_cut_off():
+    data = pile_input()
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"] = cut_input(段落し後の鋼管材質=None)["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]
+    parse_input(data)
+
+
+@pytest.mark.parametrize("changes,message", [
+    ({"段落し後の鋼管厚": 18.5}, f"{CUT}.段落し後の鋼管厚: 鋼管厚（18.0 mm）以下が必要です"),
+    ({"段落し後の鋼管厚": 10.9}, f"{CUT}.段落し後の鋼管厚: 肉厚の変化は 7 mm 以下が必要です（杭体設計の手引き 4）"),
+    ({"段落し後の鋼管厚": 18.0},
+     f"{CUT}.段落し後の鋼管厚: 鋼管厚か鋼管材質を上杭より小さくする必要があります（同じでは段落しになりません）"),
+    ({"段落し後の鋼管材質": "SKK400", "段落し後の鋼管厚": 18.0}, None),
+    ({"段落し後の鋼管厚": 11.0}, None),
+])
+def test_the_lower_pipe_is_thinner_or_weaker_by_at_most_7_mm(changes, message):
+    if message is None:
+        parse_input(cut_input(**changes))
+    else:
+        fails(cut_input(**changes), message)
+
+
+def test_the_lower_pipe_must_not_be_of_a_stronger_steel():
+    data = cut_input(段落し後の鋼管材質="SKK490")
+    data["杭基礎"]["鋼管ソイルセメント杭"]["鋼管材質"] = "SKK400"
+    fails(data, f"{CUT}.段落し後の鋼管材質: 鋼管材質（SKK400）より強い材質は選べません")
+
+
+def test_the_lower_pipe_must_be_thicker_than_the_corrosion():
+    data = cut_input(段落し後の鋼管厚=12.0)
+    data["杭基礎"]["鋼管ソイルセメント杭"].update({"鋼管厚": 16.0, "腐食代": 12.0})
+    fails(data, f"{CUT}.段落し後の鋼管厚: 腐食代（12.0 mm）より大きい値が必要です")
+
+
+@pytest.mark.parametrize("changes,message", [
+    ({"上杭長": 50}, f"{CUT}.上杭長: 杭頭埋込長 50 mm と高止まり（0 mm）の和より大きい値が必要です"),
+    ({"上杭長": 550, "高止まり": 500}, f"{CUT}.上杭長: 杭頭埋込長 50 mm と高止まり（500 mm）の和より大きい値が必要です"),
+    ({"上杭長": 19050}, f"{CUT}.上杭長: 杭長（19000 mm）と杭頭埋込長 50 mm の和より小さい値が必要です"),
+    ({"上杭長": 51}, None),
+    ({"上杭長": 19049}, None),
+])
+def test_the_upper_pipe_ends_within_the_pile(changes, message):
+    if message is None:
+        parse_input(cut_input(**changes))
+    else:
+        fails(cut_input(**changes), message)
+
+
+@pytest.mark.parametrize("changes,steel,message", [
+    ({}, {"腐食代": 1.3, "鋼管厚": 18.3},
+     f"杭基礎.鋼管ソイルセメント杭.腐食代: Aggre-SE の ⑧ は鋼管の径・肉厚を整数 mm で扱います（鋼管外径－2×腐食代 ＝ 997.4 mm）"),
+    ({"段落し後の鋼管厚": 14.5}, {},
+     f"{CUT}.段落し後の鋼管厚: Aggre-SE の ⑧ は鋼管の径・肉厚を整数 mm で扱います（段落し後の鋼管厚－腐食代 ＝ 13.5 mm）"),
+])
+def test_aggre_se_takes_whole_millimetres_of_the_lower_pipe(changes, steel, message):
+    data = cut_input(**changes)
+    data["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
+    fails(data, message)
 
 
 @pytest.mark.parametrize("key,message", [

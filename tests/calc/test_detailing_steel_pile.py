@@ -48,6 +48,7 @@ def sample(**steel):
     data = deepcopy(PILE)
     data["下部構造"]["基礎形式"] = "鋼管ソイルセメント杭"
     data["杭基礎"]["鋼管ソイルセメント杭"] = deepcopy(EXAMPLE4["杭基礎"]["鋼管ソイルセメント杭"])
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"]["段落し後の鋼管厚"] = None  # the pipe of the head alone; the cut-off of Example4 (decision 126) is tested apart
     data["杭基礎"]["鋼管ソイルセメント杭"]["結合部"]["粗骨材の最大寸法"] = 25.0
     data["杭基礎"]["鋼管ソイルセメント杭"].update(steel)
     data["鉄筋"]["フーチング"]["concrete_strength_mpa"] = 27.0
@@ -392,3 +393,36 @@ def test_no_tension_or_compression_is_none():
     assert (joint_axial(pushed, True), joint_axial(pulled, False)) == (None, None)
     assert joint_axial([("線路方向", [([head(0.004, -0.004)], 1)])], True) is None
     assert joint_axial([], False) is None
+
+
+# --- decision 126: the pipe below the 段落し has the same rules of its wall (手引き 1.5) -------------------------------------
+
+
+def cut(**items):
+    """Example4's pile with its 段落し: 14.0 mm (13 without the corrosion), SKK490 (III-2 図1.2.2)."""
+    data = sample()
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"] = deepcopy(EXAMPLE4["杭基礎"]["鋼管ソイルセメント杭"]["段落し"])
+    data["杭基礎"]["鋼管ソイルセメント杭"]["段落し"].update(items)
+    return data
+
+
+def test_a_pipe_without_a_cut_off_has_no_lower_pipe():
+    assert detailing().pipe.lower is None
+
+
+def test_the_pipe_below_the_cut_off_is_checked_as_the_one_above_it():
+    """By hand: made 14 ／ 800 ＝ 0.0175 ≧ 0.01 and 14 ≧ 9; effective 13 ／ 800 ＝ 0.01625 → 0.0163 ≧ 0.0125 and 13 ≧ 6."""
+    pipe = detailing(cut()).pipe
+    lower = pipe.lower
+    assert (lower.made.value.value, lower.made.ratio.value, lower.made.percent.value, lower.made.ok) == (14, 0.0175, 1.75, True)
+    assert (lower.effective.value.value, lower.effective.ratio.value, lower.effective.percent.value, lower.effective.ok) == (
+        13, 0.0163, 1.63, True)
+    assert pipe.ok
+
+
+def test_a_lower_pipe_too_thin_for_its_rules_is_not_ok():
+    """t 18 → 11 (the change 7 mm): effective 10 ／ 800 ＝ 0.0125 ≧ 0.0125 ok; with D 1.0 m, 10 ／ 1000 ＝ 0.0100 < 0.0125."""
+    data = cut(段落し後の鋼管厚=11.0)
+    data["杭基礎"]["鋼管ソイルセメント杭"].update(鋼管外径=1.0, ソイルセメント径=1.2)
+    pipe = detailing(data).pipe
+    assert (pipe.lower.made.ok, pipe.lower.effective.ratio.value, pipe.lower.effective.ok, pipe.ok) == (True, 0.01, False, False)
