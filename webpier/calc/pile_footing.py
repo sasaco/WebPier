@@ -285,20 +285,21 @@ def _shear_width(ax: Decimal, centres: Sequence[Decimal], column: tuple[Decimal,
     """The width of the deep beam shear at the face (decision 124, RC標準 8.8.5.2, the sample V-127): each pile of the row
     at *centres* (mm across) takes 0.65 √(a1² + d1²) + D, a1 = ax for a pile within the column's width *column* (its two
     side faces, mm across) and the diagonal to the corner, √(ax² + ay²), for one outside; the sum, not more than Lp + D
-    (nor B)."""
+    (nor B). A row of one pile has no Lp: its be, not more than B (decision 128)."""
     shares = []
     for centre in centres:
         ay = max(column[0] - centre, centre - column[1], Decimal(0))
         a1 = _printed((ax * ax + ay * ay).sqrt())
         shares.append(PileShare(a1, _printed(Decimal("0.65") * (d(a1) ** 2 + depth * depth).sqrt() + diameter), ay > 0))
-    span = max(centres) - min(centres)
     terms = (("d1", put(LENGTH_MM, depth)), ("D", put(LENGTH_MM, diameter)),
              *((f"a1({index})", share.a1) for index, share in enumerate(shares, 1)),
-             *((f"be({index})", share.be) for index, share in enumerate(shares, 1)),
-             ("Lp", put(LENGTH_MM, span)))
+             *((f"be({index})", share.be) for index, share in enumerate(shares, 1)))
     total = sum((d(share.be) for share in shares), Decimal(0))
+    if len(shares) == 1:
+        return Width("0.65√(a1² + d1²) + D", _printed(min(total, full)), _printed(full), terms, shares=tuple(shares))
+    span = max(centres) - min(centres)
     return Width("Σ{0.65√(a1² + d1²) + D}\n≦ Lp + D", _printed(min(total, span + diameter, full)), _printed(full),
-                 terms, shares=tuple(shares))
+                 (*terms, ("Lp", put(LENGTH_MM, span))), shares=tuple(shares))
 
 
 def prepare(pier: PierInput, frame_result, direction: FootingDirectionKind, frames: bool = True) -> FootingBasis:

@@ -389,6 +389,25 @@ def test_the_widths_of_example4_across_the_track_are_the_samples(example4):
     assert face.a1.value == 1768 and face.depth.value == shear["d1_mm"] == 2043
 
 
+@pytest.mark.parametrize("centre,full,a1,pile,be", [
+    # outside the column's side face (1750): a1b = √(1250² + 1250²) = 1768, 0.65√(1768² + 2075²) + 1000 = 2772
+    (3000, 8000, 1768, 2772, 2772),
+    # within the column's width: a1a = 1250, 0.65√(1250² + 2075²) + 1000 = 2575
+    (0, 8000, 1250, 2575, 2575),
+    # not more than B
+    (3000, 2500, 1768, 2772, 2500),
+])
+def test_the_shear_width_of_a_row_of_one_pile_is_its_be(centre, full, a1, pile, be):
+    """Decision 128: a row of one pile has no centre spacing Lp, so its be is not limited to D (Lp + D) but to B only."""
+    assert round(0.65 * math.hypot(1768, 2075) + 1000) == 2772 and round(0.65 * math.hypot(1250, 2075) + 1000) == 2575
+    width = pf._shear_width(Decimal(1250), [Decimal(centre)], (Decimal(-1750), Decimal(1750)), Decimal(2075),
+                            Decimal(1000), Decimal(full))
+    assert [(share.a1.value, share.be.value) for share in width.shares] == [(a1, pile)]
+    assert width.be.value == be
+    assert width.rule == "0.65√(a1² + d1²) + D"
+    assert [name for name, _ in width.terms] == ["d1", "D", "a1(1)", "be(1)"]
+
+
 @pytest.mark.parametrize("name,table,stirrups", [
     # 8000 // 450 = 17 across, 2114 // 300 = 7 within d: 119 (the sample 120, a known (3) of decision 124)
     ("longitudinal", ("表2.3.11", "表2.4.3"), 17 * 7),
